@@ -117,3 +117,25 @@ class NoSequenceError(SirilError):
     """
     def __init__(self, message: str = _("No Siril sequence loaded")):
         super().__init__(message)
+
+class ProcessingThreadBusyError(SirilError):
+    """
+    Exception raised when the processing thread is already in use.
+    """
+    def __init__(self, message: str = _("Siril processing thread is busy")):
+        super().__init__(message)
+
+class ImageDialogOpenError(SirilError):
+    """
+    Exception raised when an image processing dialog is open.
+    """
+    def __init__(self, message: str = _("Siril image dialog is open")):
+        super().__init__(message)
+
+class MouseModeError(SirilError):
+    """
+    Exception raised when Siril is in the wrong mouse mode.
+    """
+    def __init__(self, message: str = _("Siril mouse mode error")):
+        super().__init__(message)
+

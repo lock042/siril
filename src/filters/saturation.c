@@ -33,7 +33,6 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
-#include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
@@ -382,6 +381,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 
 void apply_satu_cancel() {
 	satu_close(TRUE);
+	siril_close_dialog("satu_dialog");
 }
 
 /*** adjusters **/

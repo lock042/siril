@@ -21,8 +21,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/command.h" // for process_clear()
-#include "core/OS_utils.h"
 #include "core/pipe.h"
 #include "gui/progress_and_log.h"
 
@@ -76,6 +74,19 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 	g_mutex_unlock(&com.mutex);
 	va_end(args);
 	return msg;
+}
+
+// Use these functions for literal color messages, i.e. from external sources
+// like python. In this case we do not want the message to be interpreted as a
+// printf-style format string!
+char* siril_log_literal_color_message(const char* message, const char* color) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_color_message("%s", color, message);
+}
+
+char* siril_log_literal_message(const char* message) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_message("%s", message);
 }
 
 const char *format_time_diff(struct timeval t_start, struct timeval t_end) {

@@ -5,11 +5,11 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, ClassVar
 import struct
 import logging
 import numpy as np
-from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults
+from .enums import BitpixType, StarProfile, SequenceType, DistoType, _Defaults, ImageType
 from .translations import _
 from .exceptions import SirilError
 
@@ -158,124 +158,130 @@ class FKeywords:
     sitelong: float = 0.0 #: [deg] Observation site longitude
     siteelev: float = 0.0 #: [m] Observation site elevation
 
+    # Plate solution data:
+    objctra: Optional[str] = None #: object RA as string, if available
+    objctdec: Optional[str] = None #: object Dec as string, if available
+    ra: Optional[float] = None #: RA as float, if available
+    dec: Optional[float] = None #: Dec as float, if available
+    pltsolvd: bool = False #: whether plate solved or not
+    pltsolvd_comment: Optional[str] = None #: plate solution comment
+
+    # constants used for packing/unpacking
+    FLEN_VALUE: ClassVar[int] = 71
+
+    # Build keyword-format parts that mirror keywords_to_py() in C.
+    # This is the keyword block only (strings + numeric fields + timestamps + wcs + pltsolvd)
+    _KEYWORD_FORMAT_PARTS: ClassVar[List[str]] = [
+        f'{FLEN_VALUE}s',  # program
+        f'{FLEN_VALUE}s',  # filename
+        f'{FLEN_VALUE}s',  # row_order
+        f'{FLEN_VALUE}s',  # filter
+        f'{FLEN_VALUE}s',  # image_type
+        f'{FLEN_VALUE}s',  # object
+        f'{FLEN_VALUE}s',  # instrume
+        f'{FLEN_VALUE}s',  # telescop
+        f'{FLEN_VALUE}s',  # observer
+        f'{FLEN_VALUE}s',  # sitelat_str
+        f'{FLEN_VALUE}s',  # sitelong_str
+        f'{FLEN_VALUE}s',  # bayer_pattern
+        f'{FLEN_VALUE}s',  # focname
+        f'{FLEN_VALUE}s',  # objctra (RA as a string)
+        f'{FLEN_VALUE}s',  # objctdec (Dec as a string)
+        f'{FLEN_VALUE}s',  # pltsolvd_comment
+        'd',  # bscale
+        'd',  # bzero
+        'Q',  # lo (uint64 padded)
+        'Q',  # hi (uint64 padded)
+        'd',  # flo
+        'd',  # fhi
+        'd',  # data_max
+        'd',  # data_min
+        'd',  # pixel_size_x
+        'd',  # pixel_size_y
+        'Q',  # binning_x (uint64)
+        'Q',  # binning_y (uint64)
+        'd',  # expstart
+        'd',  # expend
+        'd',  # centalt
+        'd',  # centaz
+        'd',  # sitelat
+        'd',  # sitelong
+        'd',  # siteelev
+        'q',  # bayer_xoffset (int64)
+        'q',  # bayer_yoffset (int64)
+        'd',  # airmass
+        'd',  # focal_length
+        'd',  # flength
+        'd',  # iso_speed
+        'd',  # exposure
+        'd',  # aperture
+        'd',  # ccd_temp
+        'd',  # set_temp
+        'd',  # livetime
+        'Q',  # stackcnt (uint64)
+        'd',  # cvf
+        'q',  # key_gain (int64)
+        'q',  # key_offset (int64)
+        'q',  # focuspos (int64)
+        'q',  # focussz (int64)
+        'd',  # foctemp
+        'q',  # date (int64 unix timestamp)
+        'q',  # date_obs (int64 unix timestamp)
+        'd',  # ra
+        'd',  # dec
+        '?',  # pltsolvd (bool 1 byte)
+    ]
+
+    # Full struct format (network order)
+    KEYWORDS_FORMAT: ClassVar[str] = '!' + ''.join(_KEYWORD_FORMAT_PARTS)
+    KEYWORDS_SIZE: ClassVar[int] = struct.calcsize(KEYWORDS_FORMAT)
+
     @classmethod
     def deserialize(cls, data: bytes) -> 'FKeywords':
         """
-        Deserialize binary response into an FKeywords object.
-
-        Args: response: Binary data to unpack
-
-        Returns: (FKeywords) object
-
-        Raises: ValueError: If received data size is incorrect
-                struct.error: If unpacking fails
+        Deserialize binary keyword-block (the block produced by keywords_to_py())
+        into an FKeywords object. Raises ValueError on size mismatch and SirilError
+        for other unpacking issues.
         """
-        # Constants matching C implementation
-        FLEN_VALUE = 71  # Standard FITS keyword length
+        if len(data) != cls.KEYWORDS_SIZE:
+            raise ValueError(f"Received keyword data size {len(data)} doesn't match expected size {cls.KEYWORDS_SIZE}")
 
-        # Build format string for struct unpacking
-        # Network byte order for all values
-        format_parts = [
-            f'{FLEN_VALUE}s',  # program
-            f'{FLEN_VALUE}s',  # filename
-            f'{FLEN_VALUE}s',  # row_order
-            f'{FLEN_VALUE}s',  # filter
-            f'{FLEN_VALUE}s',  # image_type
-            f'{FLEN_VALUE}s',  # object
-            f'{FLEN_VALUE}s',  # instrume
-            f'{FLEN_VALUE}s',  # telescop
-            f'{FLEN_VALUE}s',  # observer
-            f'{FLEN_VALUE}s',  # sitelat_str
-            f'{FLEN_VALUE}s',  # sitelong_str
-            f'{FLEN_VALUE}s',  # bayer_pattern
-            f'{FLEN_VALUE}s',  # focname
-            'd',  # bscale
-            'd',  # bzero
-            'Q',  # lo padded to 64bit
-            'Q',  # hi padded to 64bit
-            'd',  # flo padded to 64bit
-            'd',  # fhi padded to 64bit
-            'd',  # data_max
-            'd',  # data_min
-            'd',  # pixel_size_x
-            'd',  # pixel_size_y
-            'Q',  # binning_x (padded to uint64_t)
-            'Q',  # binning_y (padded to uint64_t)
-            'd',  # expstart
-            'd',  # expend
-            'd',  # centalt
-            'd',  # centaz
-            'd',  # sitelat
-            'd',  # sitelong
-            'd',  # siteelev
-            'q',  # bayer_xoffset
-            'q',  # bayer_yoffset
-            'd',  # airmass
-            'd',  # focal_length
-            'd',  # flength
-            'd',  # iso_speed
-            'd',  # exposure
-            'd',  # aperture
-            'd',  # ccd_temp
-            'd',  # set_temp
-            'd',  # livetime
-            'Q',  # stackcnt
-            'd',  # cvf
-            'q',  # key_gain
-            'q',  # key_offset
-            'q',  # focuspos
-            'q',  # focussz
-            'd',  # foctemp
-            'q',  # date (int64 unix timestamp)
-            'q'  # date_obs (int64 unix timestamp)
-        ]
-
-        format_string = '!' + ''.join(format_parts)
-
-        # Verify data size
-        expected_size = struct.calcsize(format_string)
-        if len(data) != expected_size:
-            raise ValueError(
-                f"Received keyword data size {len(data)} doesn't match expected size {expected_size}"
-            )
-
-        # Unpack the binary data
         try:
-            values = struct.unpack(format_string, data)
+            values = struct.unpack(cls.KEYWORDS_FORMAT, data)
 
-            # Helper functions
             def decimal_to_dms(decimal, is_latitude=True):
-                """Convert decimal degrees to degrees, minutes, seconds string."""
-                # Get the absolute value and direction
                 absolute = abs(decimal)
                 if is_latitude:
                     direction = 'N' if decimal >= 0 else 'S'
                 else:
                     direction = 'E' if decimal >= 0 else 'W'
-
-                # Calculate degrees, minutes, seconds
                 degrees = int(absolute)
                 minutes_decimal = (absolute - degrees) * 60
                 minutes = int(minutes_decimal)
                 seconds = round((minutes_decimal - minutes) * 60, 2)
-
-                # Format as string
                 return f"{degrees}°{minutes}'{seconds}\"{direction}"
 
-            def decode_string(s: bytes) -> str:
-                return s.decode('utf-8').rstrip('\x00')
+            def decode_string(s) -> str:
+                if isinstance(s, bytes):
+                    return s.decode("utf-8", errors="ignore").rstrip("\x00")
+                elif isinstance(s, str):
+                    return s.rstrip("\x00")
+                else:
+                    return str(s)
 
             def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
                 return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
 
-            # Replace default values and unphysical values
+            # Replace default sentinel values (if you use a sentinel list _Defaults.VALUES)
             values = [None if val in _Defaults.VALUES else val for val in values]
-            if values[9] == "" and values[29]: # sitelat_str
-                values[9] = decimal_to_dms(values[29])
-            if values[10] == "" and values[30]: # sitelong_str
-                values[10] = decimal_to_dms(values[30])
 
-            # Create FKeywords object
+            # If textual sitelat/sitelong are empty, fill them from numeric values
+            if (not decode_string(values[9])) and values[32]:
+                values[9] = decimal_to_dms(values[32])
+            if (not decode_string(values[10])) and values[33]:
+                values[10] = decimal_to_dms(values[33])
+
+            # Map unpacked values into named fields (indexing follows KEYWORD_FORMAT_PARTS)
             return cls(
                 program=decode_string(values[0]),
                 filename=decode_string(values[1]),
@@ -290,46 +296,51 @@ class FKeywords:
                 sitelong_str=decode_string(values[10]),
                 bayer_pattern=decode_string(values[11]),
                 focname=decode_string(values[12]),
-                bscale=values[13],
-                bzero=values[14],
-                lo=values[15],
-                hi=values[16],
-                # if fhi is 0.0, set both fhi and flo to None
-                flo=values[17] if values[18] != 0.0 else None,
-                fhi=values[18] if values[18] != 0.0 else None,
-                data_max=values[19],
-                data_min=values[20],
-                pixel_size_x=values[21] if values[21] and values[21] > 0.0 else None,
-                pixel_size_y=values[22] if values[22] and values[21] > 0.0 else None,
-                binning_x=values[23] if values[23] and values[24] > 1 else 1,
-                binning_y=values[24] if values[24] and values[24] > 1 else 1,
-                expstart=values[25],
-                expend=values[26],
-                centalt=values[27],
-                centaz=values[28],
-                sitelat=values[29],
-                sitelong=values[30],
-                siteelev=values[31],
-                bayer_xoffset=values[32],
-                bayer_yoffset=values[33],
-                airmass=values[34],
-                focal_length=values[35] if values[35] and values[35] > 0.0 else None,
-                flength=values[36] if values[36] and values[36] > 0.0 else None,
-                iso_speed=values[37],
-                exposure=values[38],
-                aperture=values[39],
-                ccd_temp=values[40],
-                set_temp=values[41],
-                livetime=values[42],
-                stackcnt=values[43],
-                cvf=values[44],
-                gain=values[45],
-                offset=values[46],
-                focuspos=values[47],
-                focussz=values[48],
-                foctemp=values[49],
-                date=timestamp_to_datetime(values[50]),
-                date_obs=timestamp_to_datetime(values[51])
+                objctra=decode_string(values[13]),
+                objctdec=decode_string(values[14]),
+                pltsolvd_comment=decode_string(values[15]),
+                bscale=values[16],
+                bzero=values[17],
+                lo=values[18],
+                hi=values[19],
+                flo=values[20] if values[21] != 0.0 else None,
+                fhi=values[21] if values[21] != 0.0 else None,
+                data_max=values[22],
+                data_min=values[23],
+                pixel_size_x=values[24] if values[24] and values[24] > 0.0 else None,
+                pixel_size_y=values[25] if values[25] and values[25] > 0.0 else None,
+                binning_x=values[26] if values[26] and values[26] > 1 else 1,
+                binning_y=values[27] if values[27] and values[27] > 1 else 1,
+                expstart=values[28],
+                expend=values[29],
+                centalt=values[30],
+                centaz=values[31],
+                sitelat=values[32],
+                sitelong=values[33],
+                siteelev=values[34],
+                bayer_xoffset=values[35],
+                bayer_yoffset=values[36],
+                airmass=values[37],
+                focal_length=values[38] if values[38] and values[38] > 0.0 else None,
+                flength=values[39] if values[39] and values[39] > 0.0 else None,
+                iso_speed=values[40],
+                exposure=values[41],
+                aperture=values[42],
+                ccd_temp=values[43],
+                set_temp=values[44],
+                livetime=values[45],
+                stackcnt=values[46],
+                cvf=values[47],
+                gain=values[48],
+                offset=values[49],
+                focuspos=values[50],
+                focussz=values[51],
+                foctemp=values[52],
+                date=timestamp_to_datetime(values[53]),
+                date_obs=timestamp_to_datetime(values[54]),
+                ra=values[55],
+                dec=values[56],
+                pltsolvd=values[57]
             )
         except Exception as e:
             raise SirilError(f"Deserialization error: {e}") from e
@@ -1151,19 +1162,39 @@ class Polygon:
     they can be used to display information to the user but they may be cleared
     at any time if the user toggles the overlay button in the main Siril interface
     to clear the overlay.
-
-    Attributes:
-        polygon_id (int): A unique identifier for the polygon.
-        points (List[FPoint]): List of points defining the polygon's shape.
-        color (int): Packed RGBA color (32-bit integer).
-        fill (bool): If True, the polygon should be filled when drawn.
-        legend (str): Optional legend for the polygon.
     """
-    points: List[FPoint] #: List of points defining the polygon's shape :no-index:
-    polygon_id: int = 0 #: unique identifier :no-index:
-    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF) :no-index:
-    fill: bool = False #: whether or not the polygon should be filled when drawn :no-index:
-    legend: str = None #: an optional legend :no-index:
+    
+    points: List[FPoint] #: List of points defining the polygon's shape
+    polygon_id: int = 0 #: unique identifier
+    color: int = 0xFFFFFFFF #: 32-bit RGBA color (packed, uint_8 per component. Default value is 0xFFFFFFFF)
+    fill: bool = False #: whether or not the polygon should be filled when drawn
+    legend: str = None #: an optional legend
+
+    @classmethod
+    def from_rectangle(cls, rect: Tuple[int, int, int, int], **kwargs) -> 'Polygon':
+        """
+        Create a Polygon from a rectangle of the kind returned by
+        sirilpy.connection.get_siril_selection().
+
+        Args:
+            rect (Tuple[int, int, int, int]): Rectangle as (x, y, width, height)
+            **kwargs: Additional keyword arguments to pass to Polygon constructor
+                    (polygon_id, color, fill, legend)
+
+        Returns:
+            Polygon: A new Polygon instance representing the rectangle
+        """
+        x, y, width, height = rect
+
+        # Create the four corner points of the rectangle
+        points = [
+            FPoint(float(x), float(y)),                    # top-left
+            FPoint(float(x + width), float(y)),            # top-right
+            FPoint(float(x + width), float(y + height)),   # bottom-right
+            FPoint(float(x), float(y + height))            # bottom-left
+        ]
+
+        return cls(points=points, **kwargs)
 
     def __str__(self):
         """For pretty-printing polygon information"""
@@ -1174,6 +1205,103 @@ class Polygon:
         for i, point in enumerate(self.points):
             pretty += f'\nPoint {i}: {point.x}, {point.y}'
         return pretty
+
+    def get_bounds(self) -> Tuple[float, float, float, float]:
+        """
+        Get the bounding box of the polygon.
+
+        Returns:
+            Tuple[float, float, float, float]: (min_x, min_y, max_x, max_y)
+
+        Raises:
+            ValueError: If the polygon has no points.
+        """
+        if not self.points:
+            raise ValueError("Polygon has no points")
+
+        min_x = min(point.x for point in self.points)
+        max_x = max(point.x for point in self.points)
+        min_y = min(point.y for point in self.points)
+        max_y = max(point.y for point in self.points)
+
+        return min_x, min_y, max_x, max_y
+
+    def get_min_x(self) -> float:
+        """Get the minimum x coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return min(point.x for point in self.points)
+
+    def get_max_x(self) -> float:
+        """Get the maximum x coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return max(point.x for point in self.points)
+
+    def get_min_y(self) -> float:
+        """Get the minimum y coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return min(point.y for point in self.points)
+
+    def get_max_y(self) -> float:
+        """Get the maximum y coordinate of the polygon."""
+        if not self.points:
+            raise ValueError("Polygon has no points")
+        return max(point.y for point in self.points)
+
+    def contains_point(self, x: float, y: float) -> bool:
+        """
+        Determine if a point is inside the polygon using Dan Sunday's optimized winding number algorithm.
+
+        This algorithm is more robust than ray casting for complex polygons and handles
+        edge cases better, including points on edges and self-intersecting polygons.
+
+        Args:
+            x (float): X coordinate of the point to test.
+            y (float): Y coordinate of the point to test.
+
+        Returns:
+            bool: True if the point is inside the polygon, False otherwise.
+        """
+        if len(self.points) < 3:
+            return False
+
+        def _is_left(p0_x: float, p0_y: float, p1_x: float, p1_y: float, p2_x: float, p2_y: float) -> float:
+            """
+            Test if point P2 is left|on|right of an infinite line P0P1.
+
+            Returns:
+                >0 for P2 left of the line through P0 and P1
+                =0 for P2 on the line
+                <0 for P2 right of the line
+            """
+            return ((p1_x - p0_x) * (p2_y - p0_y) - (p2_x - p0_x) * (p1_y - p0_y))
+
+        winding_number = 0    # the winding number counter
+        n = len(self.points)
+
+        # Loop through all edges of the polygon
+        for i in range(n):
+            # Edge from vertex i to vertex i+1
+            if i == n - 1:
+                # Last edge connects to first vertex
+                v1_x, v1_y = self.points[i].x, self.points[i].y
+                v2_x, v2_y = self.points[0].x, self.points[0].y
+            else:
+                v1_x, v1_y = self.points[i].x, self.points[i].y
+                v2_x, v2_y = self.points[i + 1].x, self.points[i + 1].y
+
+            if v1_y <= y:          # start y <= P.y
+                if v2_y > y:      # an upward crossing
+                    if _is_left(v1_x, v1_y, v2_x, v2_y, x, y) > 0:  # P left of edge
+                        winding_number += 1            # have a valid up intersect
+            else:                        # start y > P.y (no test needed)
+                if v2_y <= y:     # a downward crossing
+                    if _is_left(v1_x, v1_y, v2_x, v2_y, x, y) < 0:  # P right of edge
+                        winding_number -= 1            # have a valid down intersect
+
+        return winding_number != 0
 
     def serialize(self) -> bytes:
         """
@@ -1284,3 +1412,83 @@ class Polygon:
             polygons.append(polygon)
 
         return polygons
+
+@dataclass
+class ImageAnalysis:
+    """
+    Structure to hold image analysis data, used for culling
+    """
+    # constants used for packing/unpacking
+    FLEN: ClassVar[int] = 71
+
+    bgnoise: float = 0.0    #: RMS background noise
+    fwhm: float = 0.0       #: Mean fwhm
+    wfwhm: float = 0.0      #: Mean weighted fwhm
+    nbstars: int = 0        #: Number of stars detected
+    roundness: float = 0.0  #: Mean star roundness
+    imagetype: "ImageType" = 0  #: Image type enum
+    timestamp: int = 0      #: UNIX timestamp (64-bit seconds since 1970/1/1 00:00 UTC)
+    channels: int = 0       #: number of channels in the image
+    height: int = 0         #: image height
+    width: int = 0          #: image width
+    filter: str = ""        #: filter name (fixed-length string from C, max 70 chars)
+
+    # Network-safe format:
+    # ! = network (big-endian), standard sizes, no padding
+    # d = 8-byte double, q = 8-byte int, 70s = 70-byte string
+    _struct_fmt = f"!dddqdqqqqq{FLEN}s"
+    _struct = struct.Struct(_struct_fmt)
+
+    def serialize(self) -> bytes:
+        """Pack the dataclass into a network-safe binary struct."""
+        # Ensure filter fits FLEN, pad with null bytes if shorter
+        filter_bytes = self.filter.encode("utf-8")[:FLEN]
+        filter_bytes = filter_bytes.ljust(FLEN, b"\x00")
+
+        return self._struct.pack(
+            self.bgnoise,
+            self.fwhm,
+            self.wfwhm,
+            self.nbstars,
+            self.roundness,
+            self.imagetype,
+            self.timestamp,
+            self.channels,
+            self.height,
+            self.width,
+            filter_bytes,
+        )
+
+    @classmethod
+    def deserialize(cls, data: bytes) -> "ImageAnalysis":
+        """Unpack a network-safe binary struct into an ImageAnalysis instance."""
+        (
+            bgnoise,
+            fwhm,
+            wfwhm,
+            nbstars,
+            roundness,
+            imagetype,
+            timestamp,
+            channels,
+            height,
+            width,
+            filter_bytes,
+        ) = cls._struct.unpack(data)
+
+        # Decode filter string, stripping null terminators
+        filter_str = filter_bytes.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
+
+        return cls(
+            bgnoise,
+            fwhm,
+            wfwhm,
+            nbstars,
+            roundness,
+            imagetype,
+            timestamp,
+            channels,
+            height,
+            width,
+            filter_str,
+        )

@@ -23,7 +23,6 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "algos/fitting.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/message_dialog.h"
@@ -56,6 +55,11 @@ static gdouble get_low_rejection() {
 
 void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("linearmatch_dialog");
+}
+
+gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("linearmatch_dialog");
+	return TRUE;
 }
 
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {

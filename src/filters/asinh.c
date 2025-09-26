@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -40,6 +39,10 @@
 static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static clip_mode_t clip_mode = RGBBLEND;
+
+// Original ICC profile, in case we don't apply a stretch and need to revert
+static cmsHPROFILE original_icc = NULL;
+static gboolean single_image_stretch_applied = FALSE;
 
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
@@ -65,8 +68,15 @@ static void asinh_startup() {
 	copy_gfit_to_backup();
 }
 
-static void asinh_close(gboolean revert) {
+static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	set_cursor_waiting(TRUE);
+	// janky undo preparation to account for ICC usage
+	// this is purely a shallow copy, it MUST NOT be cleared with clearfits
+	fits undo_fit = {0};
+	memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+	undo_fit.icc_profile = original_icc;
+	undo_fit.color_managed = original_icc != NULL;
+
 	if (revert) {
 		if (asinh_stretch_value != 0.0f || asinh_black_value != 0.0f) {
 			copy_backup_to_gfit();
@@ -74,12 +84,18 @@ static void asinh_close(gboolean revert) {
 		}
 	} else {
 		invalidate_stats_from_fit(&gfit);
-		undo_save_state(get_preview_gfit_backup(),
+		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				asinh_stretch_value, asinh_black_value);
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
+	if (revert_icc_profile && !single_image_stretch_applied) {
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(original_icc);
+		color_manage(&gfit, gfit.icc_profile != NULL);
+	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }
@@ -90,6 +106,7 @@ static int asinh_process_all() {
 	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	populate_roi();
 	notify_gfit_modified();
+	single_image_stretch_applied = TRUE;
 	return 0;
 }
 
@@ -308,13 +325,23 @@ int command_asinh(fits *fit, float beta, float offset, gboolean human_luminance,
 }
 
 static void apply_asinh_changes() {
-	gboolean status = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
-	asinh_close(!status);
+	gboolean changed = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
+	asinh_close(!changed, !changed);
 }
 
 void apply_asinh_cancel() {
-	asinh_close(TRUE);
+	asinh_close(TRUE, TRUE);
 	siril_close_dialog("asinh_dialog");
+
+}
+
+void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
+	apply_asinh_cancel();
+}
+
+gboolean asinh_hide_on_delete(GtkWidget *widget) {
+	apply_asinh_cancel();
+	return TRUE;
 }
 
 /*** callbacks **/
@@ -329,7 +356,26 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
+	if (original_icc)
+		cmsCloseProfile(original_icc);
+	original_icc = copyICCProfile(gfit.icc_profile);
 	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+	single_image_stretch_applied = FALSE;
+	// When opening the dialog with a single image loaded, we cache the original ICC
+	// profile (may be NULL) in case the user closes the dialog without applying a
+	// stretch, in which case we will revert.
+	if (single_image_is_loaded()) {
+		if (original_icc) {
+			cmsCloseProfile(original_icc);
+			original_icc = copyICCProfile(gfit.icc_profile);
+		}
+		icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+	} else {
+		if (original_icc) {
+			cmsCloseProfile(original_icc);
+			original_icc = NULL;
+		}
+	}
 
 	asinh_startup();
 	asinh_stretch_value = 0.0f;
@@ -346,13 +392,10 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	/* default parameters do not transform image, no need to update preview */
 }
 
-void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_asinh_cancel();
-}
-
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))) || gui.roi.active) {
 		asinh_process_all();
 	}

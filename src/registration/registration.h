@@ -187,6 +187,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 // image hooks required by more than one reg method
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
+gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_frames);
 
 const char *describe_transformation_type(transformation_type type);
 

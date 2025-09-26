@@ -45,7 +45,6 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
 #include "demosaicing.h"
@@ -319,7 +318,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (layer < 0) {
 				size_t newsz;
 				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
-				if (!data) {
+				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
 					return NULL;
 				}

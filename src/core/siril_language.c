@@ -179,14 +179,16 @@ void language_init(const gchar *language) {
 	if ((!language) || (language[0] == '\0'))
 		return;
 
+	g_mutex_lock(&com.env_mutex);
 	/* This is default language */
 	if (!g_ascii_strcasecmp(language, "en")) {
-		if (g_setenv("LANGUAGE", "C", TRUE))
+		if (!g_setenv("LANGUAGE", "C", TRUE))
 			siril_debug_print("Error setting LANGUAGE to C\n");
 	} else {
-		if (g_setenv("LANGUAGE", language, TRUE))
+		if (!g_setenv("LANGUAGE", language, TRUE))
 			siril_debug_print("Error setting LANGUAGE\n");
 	}
+	g_mutex_unlock(&com.env_mutex);
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
 }

@@ -30,12 +30,9 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
-#include "algos/statistics.h"
 #include "algos/PSF.h"
-#include "gui/image_display.h"
 #include "gui/PSF_list.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -171,6 +168,15 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
+	
+	if (!regargs->no_output && regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -360,7 +366,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
+		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, "px");
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
 		sadata->current_regdata[in_index].fwhm = FWHMx;
@@ -396,30 +402,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 	}
 
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-		cvGetEye(&regargs->regparam[out_index].H);
-
-		if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
-			fit->keywords.pixel_size_x /= regargs->output_scale;
-			fit->keywords.pixel_size_y /= regargs->output_scale;
-			regargs->regparam[out_index].fwhm *= regargs->output_scale;
-			regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
-	sadata->success[out_index] = 1;
+	// updating regparam for the output sequence if any and updating pixel size 
+	// is handled in apply_reg_image_hook
+	args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	return 0;
 }
 
@@ -438,6 +423,13 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		if (regargs->new_total <= 1) {
+			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			args->retval = 1;
+		}
+	}
+
+	if (!args->retval) {
 		regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
 
 		if (!regargs->no_output) {
@@ -470,6 +462,9 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
+		} else if (args->seq->type == SEQ_REGULAR) {
+			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
 		}
 	}
 
@@ -618,10 +613,6 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free(args);
-		return -1;
-	}
 
 	args->compute_mem_limits_hook = star_align_compute_mem_limits;
 	args->upscale_ratio = regargs->output_scale;
@@ -646,7 +637,14 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->sfargs->keep_stars = TRUE;
 	regargs->sfargs->save_to_file = !regargs->matchSelection && !regargs->no_starlist;
 	regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
+	if (regargs->matchSelection && com.selection.w > 0 && com.selection.h > 0)
+		regargs->sfargs->selection = com.selection;
+	else {
+		regargs->sfargs->selection = (rectangle) {0, 0, 0, 0};
+		regargs->matchSelection = FALSE;
+	}
 
+	args->compute_size_hook = compute_registration_size_hook;
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;
@@ -1001,7 +999,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		// we do not remove it from the meaningful frames count or included ones, as it still may be worth aligning with the new ref
 		if (nb_aligned[trials] < nb_meaningful / 2) {
 			scores[best_index] = FLT_MAX;
-			siril_log_message(_("Trial #%d: After sequence alignement, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
+			siril_log_message(_("Trial #%d: After sequence alignment, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
 			best_index = minidx(scores, included, regargs->seq->number, NULL);
 			regargs->seq->reference_image = best_index;
 			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
@@ -1052,7 +1050,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	compute_dist(regargs, dist, included);
 	//if larger than cog, we recompute a score accoutning for the distance
 	if (dist[best_index] > allowable_dist) {
-		siril_log_message(_("After sequence alignement, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
+		siril_log_message(_("After sequence alignment, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
 		siril_debug_print(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_indexes[trials]], allowable_dist);
 		float FWHMx;
 		int new_best_index = -1;

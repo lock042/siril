@@ -18,7 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -29,9 +28,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 
 #include "arithm.h"
@@ -437,23 +434,23 @@ int addmax(fits *a, fits *b) {
 }
 
 void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
-	float *out[3] = { r, g, b };
+    // Compute the maximum values using fmaxf for better vectorization
+    float sfmax = fmaxf(fmaxf(data->sf[0], data->sf[1]), data->sf[2]);
+    float tfmax = fmaxf(fmaxf(data->tf[0], data->tf[1]), data->tf[2]);
 
-	// Compute the maximum values using fmaxf for better vectorization
-	float sfmax = fmaxf(fmaxf(data->sf[0], data->sf[1]), data->sf[2]);
-	float tfmax = fmaxf(fmaxf(data->tf[0], data->tf[1]), data->tf[2]);
+    // Compute the difference
+    float d = sfmax - tfmax;
 
-	// Compute the difference
-	float d = sfmax - tfmax;
+    // Calculate k based on conditions
+    float k = (tfmax + m_CB * d > 1.f) ? ((d != 0.f) ? fminf(m_CB, (1.f - tfmax) / d) : m_CB) : m_CB;
 
-	// Calculate k based on conditions
-	float k = (tfmax + m_CB * d > 1.f) ? ((d != 0.f) ? fminf(m_CB, (1.f - tfmax) / d) : m_CB) : m_CB;
+    // Pre-compute the common factor once
+    float one_minus_k = 1.f - k;
 
-	// Loop over channels
-	for (size_t chan = 0; chan < 3; chan++) {
-		// Compute the output using the precomputed k
-		*out[chan] = data->do_channel[chan] ? (1.f - k) * data->tf[chan] + k * data->sf[chan] : *out[chan];
-	}
+    // Process channels - keep compact for OpenMP SIMD optimization
+    *r = data->do_channel[0] ? (one_minus_k * data->tf[0] + k * data->sf[0]) : *r;
+    *g = data->do_channel[1] ? (one_minus_k * data->tf[1] + k * data->sf[1]) : *g;
+    *b = data->do_channel[2] ? (one_minus_k * data->tf[2] + k * data->sf[2]) : *b;
 }
 
 void clip(fits *fit) {
@@ -706,14 +703,20 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 #endif
 
 float half_to_float(const uint16_t val) {
+	// Union for type conversion without undefined behavior
+	union {
+		uint32_t u;
+		float f;
+	} converter;
+
 	// Extract the sign from the bits
 	const uint32_t sign = (uint32_t)(val & 0x8000) << 16;
 	// Extract the exponent from the bits
 	const uint8_t exp16 = (val & 0x7c00) >> 10;
 	// Extract the fraction from the bits
 	uint16_t frac16 = val & 0x3ff;
-
 	uint32_t exp32 = 0;
+
 	if (exp16 == 0x1f) {
 		exp32 = 0xff; // Infinity or NaN
 	} else if (exp16 != 0) {
@@ -721,9 +724,9 @@ float half_to_float(const uint16_t val) {
 	} else {
 		if (frac16 == 0) {
 			// Zero
-			return *(float*)&sign;
+			converter.u = sign;
+			return converter.f;
 		}
-
 		// Denormal number: normalize it
 		uint8_t offset;
 		#if HAS_BUILTIN_CLZ
@@ -739,14 +742,14 @@ float half_to_float(const uint16_t val) {
 		frac16 &= 0x3ff; // Mask off the implicit leading bit
 		exp32 = 113 - offset;
 	}
-
 	uint32_t frac32 = (uint32_t)frac16 << 13;
 
 	// Compose the final FP32 binary representation
-	uint32_t bits = 0;
-	bits |= sign;
-	bits |= (exp32 << 23);
-	bits |= frac32;
+	converter.u = sign | (exp32 << 23) | frac32;
+	return converter.f;
+}
 
-	return *(float *)&bits;
+int round_down_to_multiple(int value, int multiple) {
+    if (value < 0) return 0;
+    return (value / multiple) * multiple;
 }

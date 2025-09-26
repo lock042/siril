@@ -100,7 +100,6 @@ typedef unsigned short WORD;	// default type for internal image data
 #define ZOOM_DEFAULT	ZOOM_FIT
 
 /* Some statistic constants */
-#define SIGMA_PER_FWHM 2.35482
 #define AVGDEV_NORM 1.2533
 #define MAD_NORM 1.4826
 #define BWMV_NORM 0.9901
@@ -316,7 +315,7 @@ typedef enum {
 	DISTO_FILE,  // Distortion from given file
 	DISTO_MASTER, // Distortion from master files
 	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to
+	DISTO_FILE_COMET // special for cometary alignment, to be detected by apply reg. Enables to
 } disto_source;
 
 // defined in src/io/pythonmodule.h
@@ -389,6 +388,7 @@ struct sequ {
 	unsigned int rx;	// first image width (or ref if set)
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
+	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -556,6 +556,9 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean debayer_checked; // whether bayer pattern has already been checked and adjusted or not. This is set true for SER upon opening, not for other formats
+	unsigned int orig_ry; // original ry of the image (only set when reading partial)
+	int x_offset, y_offset; // x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
@@ -570,7 +573,7 @@ typedef enum {
 	SPCC_GREEN = 1 << GLAYER,
 	SPCC_BLUE = 1 << BLAYER,
 	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
-	SPCC_INVIS = 0
+	SPCC_INVIS = 1 << 7
 } spcc_channel;
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
@@ -781,12 +784,12 @@ struct guiinf {
 	point measure_start;	// quick alt-drag measurement
 	point measure_end;
 
-	GList *user_polygons;	// user defined polygons for the overlay
+	GSList *user_polygons;	// user defined polygons for the overlay
 
 	void (*draw_extra)(draw_data_t *dd);
 
 	/* List of all scripts from the repository */
-	GList* repo_scripts; // the list of selected scripts is in com.pref
+	GSList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
 	gboolean spcc_repo_available;
@@ -834,6 +837,10 @@ struct guiinf {
 	roi_t roi; // Region of interest struct
 	GSList *mouse_actions;
 	GSList *scroll_actions;
+	gboolean drawing_polygon; // whether drawing a polygon or not
+	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
+	GdkRGBA poly_ink; // Color and alpha for drawing polygons
+	gboolean poly_fill; // Whether to fill drawn polygons
 };
 
 struct common_icc {
@@ -875,7 +882,9 @@ struct cominf {
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
+	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
+	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
 	gboolean run_thread;		// the main thread loop condition
 	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command

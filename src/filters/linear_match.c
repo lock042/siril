@@ -20,9 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "algos/fitting.h"
 #include "algos/statistics.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 
 static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {

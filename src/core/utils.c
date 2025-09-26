@@ -39,9 +39,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "core/exif.h"
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
@@ -207,6 +205,13 @@ BYTE truncate_to_BYTE(WORD x) {
 	if (x > UCHAR_MAX)
 		return UCHAR_MAX;
 	return (BYTE)x;
+}
+
+BYTE roundw_to_BYTE(WORD input) {
+	if (input >= USHRT_MAX - 127) {
+		return UCHAR_MAX;
+	}
+	return (uint8_t)((input + 128) >> 8);
 }
 
 /**
@@ -725,6 +730,28 @@ char *remove_ext_from_filename(const char *filename) {
 	return file;
 }
 
+char *remove_all_ext_from_filename(const char *filename) {
+    char *file = NULL;
+    int ext_index = -1;
+
+    // Find the first dot after the last path separator
+    for (int i = strlen(filename) - 1; i > 0; i--) {
+        if (filename[i] == '\\' || filename[i] == '/')
+            break;
+        if (filename[i] == '.') {
+            ext_index = i;  // Keep updating to find the first dot, not the last
+        }
+    }
+
+    if (ext_index == -1)
+        return strdup(filename);
+
+    file = malloc(ext_index + 1);
+    strncpy(file, filename, ext_index);
+    file[ext_index] = '\0';
+    return file;
+}
+
 /**
  * Replaces the extension of a file name or path
  * @param path the original path
@@ -790,6 +817,19 @@ int is_symlink_file(const char *filename) {
 		return 1;
 	return 0;
 }
+
+/*
+* Wrapper around g_mkdir_with_parents that displays a readable error if it fails
+*/
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode) {
+	gint result = g_mkdir_with_parents(pathname, mode);
+	if (result != 0) {
+		int saved_errno = errno;
+		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", pathname, g_strerror(saved_errno));
+	}
+	return result;
+}
+
 
 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
 // we still allow for '.' though
@@ -1329,9 +1369,14 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 
 	if (pixbuf_file_info != NULL) {
 		/* Pixel size of image: width x height in pixel */
-		return g_strdup_printf("%d x %d %s\n%d %s", width, height,
-				ngettext("pixel", "pixels", height), n_channel,
-				ngettext("channel", "channels", n_channel));
+		if (n_channel > 0) {
+			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
+					ngettext("pixel", "pixels", height), n_channel,
+					ngettext("channel", "channels", n_channel));
+		} else {
+			return g_strdup_printf("%d x %d %s", width, height,
+				ngettext("pixel", "pixels", height));
+		}
 	}
 	return NULL;
 }
@@ -2172,4 +2217,92 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 
 char *strdupnullok(char *data) {
 	return (data) ? strdup(data) : NULL;
+}
+
+// Returns the full path minus the extension
+gchar* remove_extension_from_path(const gchar* filepath) {
+    if (!filepath) return NULL;
+
+    // Find the last dot in the entire path
+    gchar* last_dot = g_strrstr(filepath, ".");
+
+    // Find the last directory separator to ensure the dot is in the filename part
+    gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
+
+    // Only remove extension if:
+    // 1. There is a dot
+    // 2. The dot comes after the last directory separator (or there's no separator)
+    // 3. The dot is not at the end of the string
+    if (last_dot &&
+        (!last_sep || last_dot > last_sep) &&
+        *(last_dot + 1) != '\0') {
+
+        // Create new string up to (but not including) the dot
+        return g_strndup(filepath, last_dot - filepath);
+    }
+
+    // No extension found, return copy of original
+    return g_strdup(filepath);
+}
+
+gboolean delete_directory(const gchar *dir_path, GError **error) {
+	GDir *dir;
+	const gchar *name;
+	gchar *full_path;
+	GFile *file;
+	gboolean success = TRUE;
+
+	dir = g_dir_open(dir_path, 0, error);
+	if (!dir) {
+		return FALSE;
+	}
+
+	siril_debug_print("Deleting %s...\n", dir_path);
+
+	while ((name = g_dir_read_name(dir))) {
+		full_path = g_build_filename(dir_path, name, NULL);
+
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			if (!delete_directory(full_path, error)) {
+				success = FALSE;
+				break;
+			}
+		} else {
+			file = g_file_new_for_path(full_path);
+			if (!g_file_delete(file, NULL, error)) {
+				g_object_unref(file);
+				success = FALSE;
+				break;
+			}
+			g_object_unref(file);
+		}
+
+		g_free(full_path);
+	}
+
+	g_dir_close(dir);
+
+	if (success) {
+		file = g_file_new_for_path(dir_path);
+		if (!g_file_delete(file, NULL, error)) {
+			g_object_unref(file);
+			return FALSE;
+		}
+		g_object_unref(file);
+	}
+
+	return success;
+}
+
+gchar *posix_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '\\') {
+			*p = '/';
+		}
+		p++;
+	}
+	return normalized;
 }

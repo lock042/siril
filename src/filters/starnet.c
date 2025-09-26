@@ -37,32 +37,22 @@
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/arithm.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/siril_spawn.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
-#include "algos/geometry.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "filters/mtf.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 #include "gui/remixer.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 #include <unistd.h>
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -681,6 +671,8 @@ gpointer do_starnet(gpointer p) {
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
 	copy_fits_metadata(current_fit, &fit);
+	workingfit.header = malloc(strlen(current_fit->header)+1);
+	memcpy(workingfit.header, current_fit->header, strlen(current_fit->header)+1);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
@@ -786,6 +778,8 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	copy_fits_metadata(&workingfit, current_fit);
+	current_fit->header = malloc(strlen(workingfit.header)+1);
+	memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");

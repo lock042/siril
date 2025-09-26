@@ -19,7 +19,6 @@
 */
 
 #include "core/siril.h"
-#include "core/command.h"
 #include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
@@ -58,13 +57,21 @@ void reset_controls() {
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAout")), "mCFA_");
 }
 
-void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+static void close_everything() {
 	reset_controls();
 	clearfits(&cfa0);
 	clearfits(&cfa1);
 	clearfits(&cfa2);
 	clearfits(&cfa3);
 	siril_close_dialog("merge_cfa_dialog");
+}
+void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+	close_everything();
+}
+
+gboolean merge_cfa_hide_on_delete(GtkWidget *widget) {
+	close_everything();
+	return TRUE;
 }
 
 void on_merge_cfa_reset_clicked(GtkButton *button, gpointer user_data) {

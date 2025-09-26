@@ -269,6 +269,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/astrometry_dark.svg</property>
   </object>
+  <object class="GtkImage" id="autostretch_linked_icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/chain-linked.svg</property>
+  </object>
   <object class="GtkAdjustment" id="clamp_adjustment">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -380,11 +385,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/wcs-grid_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image4">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/chain.svg</property>
   </object>
   <object class="GtkImage" id="imageHelp">
     <property name="visible">True</property>
@@ -1376,21 +1376,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">13</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_graxpert">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the GraXpert external tool interface</property>
-            <property name="action-name">win.graxpert-processing</property>
-            <property name="text" translatable="yes">GraXpert Interface...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">14</property>
           </packing>
         </child>
         <child>
@@ -2833,7 +2818,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
     <property name="default-height">768</property>
     <property name="icon">pixmaps/siril.svg</property>
     <property name="show-menubar">False</property>
-    <signal name="delete-event" handler="siril_quit" swapped="no"/>
+    <signal name="delete-event" handler="on_siril_window_delete" swapped="no"/>
     <child>
       <object class="GtkBox" id="box9">
         <property name="visible">True</property>
@@ -4050,7 +4035,6 @@ Colour image target also applies to the debayer result for conversion.</property
                                     <property name="margin-bottom">2</property>
                                     <property name="label" translatable="yes">Conversion</property>
                                     <property name="justify">center</property>
-                                    <property name="wrap">True</property>
                                   </object>
                                   <packing>
                                     <property name="tab-fill">False</property>
@@ -5335,6 +5319,7 @@ The next action for DSLR images would be to debayer the preprocessed images, go 
                                                         <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
+                                                        <signal name="toggled" handler="update_prepro_interface" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -7163,8 +7148,7 @@ The master flat must be set in the Calibration tab.</property>
                                                             <object class="GtkComboBoxText" id="combo_driz_kernel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
-Note that the Gaussian and Lanczos models do not conserve flux and should not be used f you wish to use the output for accurate photometry.</property>
+                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details of when to use each model.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Square</item>
@@ -7187,7 +7171,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
                                                             <property name="text">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
-                                                            <property name="digits">2</property>
+                                                            <property name="digits">5</property>
                                                             <property name="value">1</property>
                                                             </object>
                                                             <packing>
@@ -10045,14 +10029,14 @@ WARNING: This option should not be checked for master stacking.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToggleButton">
+                          <object class="GtkToggleButton" id="linked_autostretch_button">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Chain/unchain channels in autostretch viewer mode.
-</property>
+                            <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
+Current state: linked.</property>
                             <property name="action-name">win.chain-chan</property>
-                            <property name="image">image4</property>
+                            <property name="image">autostretch_linked_icon</property>
                             <property name="relief">none</property>
                             <property name="active">True</property>
                           </object>

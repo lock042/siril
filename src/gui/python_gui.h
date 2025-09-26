@@ -27,4 +27,6 @@ void on_pythondebug_toggled(GtkCheckMenuItem *item, gpointer user_data);
 void set_code_view_theme();
 gboolean code_view_exists();
 void new_script(const gchar *content, gint length, const char *ext);
+gboolean script_editor_has_unsaved_changes();
+gboolean get_python_debug_mode();
 #endif

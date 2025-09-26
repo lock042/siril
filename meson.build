@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.4.0-beta2',
+  version : '1.4.0-beta4',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -149,6 +149,14 @@ siril_link_arg = []
 # There is no case where we check the math errno. So it’s safe to use this flag for siril.
 siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
+
+# Add arch=native support if enabled
+enable_arch_native = get_option('arch_native')
+if enable_arch_native
+  message('Enabling -march=native optimization')
+  siril_c_flag += ['-march=native', '-O3', '-mtune=native']
+  siril_cpp_flag += ['-march=native', '-O3', '-mtune=native']
+endif
 
 if platform_linux
   siril_link_arg += ['-rdynamic']
@@ -420,6 +428,16 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+    libgit2_warning='''
+
+        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        https://github.com/libgit2/libgit2/issues/7090
+        Please update to 1.9.1 or later.
+    '''
+    warning(libgit2_warning)
+    warnings += libgit2_warning
+  endif
 endif
 
 ffms2_dep = no_dep
@@ -729,6 +747,7 @@ summary(
 summary(
   {
     'openmp'    : get_option('openmp'),
+    'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'
 )
 

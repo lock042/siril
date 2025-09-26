@@ -52,6 +52,10 @@
 #include <omp.h>
 #endif
 
+#ifdef HAVE_LIBGIT2
+#include <git2.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -61,7 +65,6 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
-#include "core/command.h"
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
@@ -71,17 +74,13 @@
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/progress_and_log.h"
 #include "gui/siril_css.h"
-#include "registration/registration.h"
 
 
 /* the global variables of the whole project */
@@ -133,7 +132,7 @@ static GOptionEntry main_option[] = {
 	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
-	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
+	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -293,6 +292,9 @@ static void global_initialization() {
 	omp_set_max_active_levels(2);
 #endif
 
+#ifdef HAVE_LIBGIT2
+	git_libgit2_init();
+#endif
 }
 
 static void siril_app_startup(GApplication *application) {
@@ -378,16 +380,6 @@ static void siril_app_activate(GApplication *application) {
 	init_num_procs();
 	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
-
-#ifdef HAVE_LIBGIT2
-	if (is_online()) {
-		async_update_git_repositories();
-	} else {
-		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
-	}
-#else
-	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
-#endif
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -528,10 +520,11 @@ static void siril_macos_setenv(const char *progname) {
 			return;
 		}
 
+		g_mutex_lock(&com.env_mutex);
 		/* store canonical path to resources directory in environment variable. */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-    /* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
+		/* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
 		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
@@ -582,10 +575,11 @@ static void siril_macos_setenv(const char *progname) {
 		/* set PYTHONPAH to our bundled packages */
 		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
 		g_setenv("PYTHONPATH", tmp, TRUE);
+		g_mutex_unlock(&com.env_mutex);
 
 		/* astropy does not create its director itself */
 		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
-		g_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
+		siril_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
 	}
 }
 #endif
@@ -667,6 +661,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+#ifdef HAVE_LIBGIT2
+	git_libgit2_shutdown();
+#endif
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

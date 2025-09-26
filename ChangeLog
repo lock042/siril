@@ -1,10 +1,99 @@
+siril 1.4.0-beta4
+09/28/25
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+* Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
+* Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+* Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
+* Fixed handling of automatic scripts git repository update flag
+* Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
+* Fixed crash/memory allocation for stack min or max with 16b images (#1746)
+* Fixed magnitude calculation in Dynamic PSF, this affects mostly faint stars for images in 32b (#1739)
+* Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
+* Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
+* Fixed astrometric alignement for mosaics with some slight skew in the solution (#1747)
+* Fixed issues identifed by static analysis (!926)
+* Fixed issue with findstar command when running from a python script (#1782)
+* Fixed issue with auto-applying ICC profiles in stretch tools if nothing is done (reverts correctly) (#1768)
+* Fixed issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed drizzle calculations by exporting weight files during registration and using them for stacking (!882)
+* Fixed a crash in the seqcosme command
+* Fixed an issue where sequences would not load correctly if the file extensions did not match the preferred FITS extension (#1793)
+
+**Improvements:**
+* Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available intepreter
+* Centre the background extraction grid vertically instead of starting at the image edge and having a gap (#1741)
+* Right-click scripts directly from the script menu to open them in the editor
+* Optimize image preview, allow colour previews and improve preview stretching to use autostretch, add new large preview size at 512px
+* Added SirilInterface.get_image_from_file() method
+* Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
+* Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
+* Added Search box in the Script treeview
+* Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
+* Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
+* Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
+* Added some plate solution-related keywords to FKeywords sirilpy class. (#1779)
+* Replaced the confusing clip/rescale popup with a heuristic that generally does the right thing. (!931)
+* Moved the "Get Scripts" menu entry to the Scripts menu, where it logically belongs. (!865)
+
+siril 1.4.0-beta3
+07/11/25
+
+**Fixes:**
+* Fixed crash when opening 8-bit XISF file (#1638)
+* Fixed `match stars in selection` option for global registration (#1644)
+* Fixed an issue where image processing dialogs could fail to unblock python scripts when closed.
+* Fixed an issue where the python pix2radec and radec2pix commands failed with coords outside the image (!887)
+* Fixed an issue that meant the pyscript command was not waiting for the python interpreter to exit (#1660)
+* Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
+* Fixed Crash in pixelmath command with 16-bit images (#1672)
+* Fixed incorrect handling of sirilpy.connection.SirilInterface.log() strings (#1662)
+* Fixed incorrect channel handling in get_selection_stats() when no shape is provided (#1673)
+* FIxed incorrect thread handling after spawning a python script (thread pointer not set to NULL) (#1654)
+* Fixed idle handling to eliminate a hang where a thread was stuck waiting for itself to exit  during stacking (#1665)
+* Fixed potential thread safety issues setting environment variables
+* Fixed issues with updating the script repository - no longer cloned with depth=1
+* Fixed handling of star cluster names containing * characters
+* Fixed an issue with git repositories where they could be unable to update after changes to the remote (!900)
+* Fixed an inconsistency between GList / GSList that caused crashes relating to the scripts menu for some users (!899)
+* Fixed an issue with linear ICC profile generation where colorants were not correctly adapted to D50 (#1683)
+* Fixed computing output required space for Apply Registration (through GUI) if some images were not selected (#1690)
+* Fixed incorrect SPCC filter plots in "Plot All" in narrowband mode (#1691)
+* Fixed an issue where starnet was not updating a data structure that sirilpy get_image_fits_header() relied on
+* Fixed an issue where shared memory was not being released correctly after use until a python script exited (#1700)
+* Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
+* Fixed an issue where removing overlay polygons did not immediately update the overlay
+* Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
+
+**Improvements**
+* Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
+* Allow saving plots to files using sirilpy.connection.SirilInterface.xy_plot() (#1670)
+* Filechoosers in the calibration tab and calibration preferences remember the last directory (#1664)
+* Updated overlay_add_polygon() to use shared memory, to handle polygons with large numbers of sides
+* Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
+* Improved the GPU module helper methods in sirilpy
+* Fixed a crash with RGB compositing (#1562)
+* Improved behaviour of histogram stretch after autostretch if the image ICC profile differs from the display profile.
+* Changed the default GHT colour mode from human weighed luminance to independent (!899)
+* Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
+* Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
+* Add python method to draw Polygons in the Siril overlay.
+* Uses the double click to open script in the editor.
+* Make SIP and WCS as protected keywords (#1696)
+* Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
+* Added ability to open previous revisions of scripts in the repository (!911)
+
 siril 1.4.0-beta2
-XX/XX/25
+05/21/25
 
 **Fixes:**
 * Fixed option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
 * Fixed crash and slowness when refreshing the scripts list (#1548, #1574)
-* Immplemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
 * Fixed crash in Noise Reduction with Independent Channels option selected (#1567)
 * Fixed UI hang when manually refreshing scripts or SPCC (#1566)
@@ -19,15 +108,35 @@ XX/XX/25
 * Fixed bad font kerning on macOS (#1508)
 * Fixed crash on Windows language change (#1560)
 * Fixed incorrect option handling in denoise (#1599)
+* Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
+* Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
+* Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed crash in Image Plate Solver (#1609)
+* Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
+* Fixed incorrect behaviour when opening the git repositories if a git lock file was in place
+* Fixed failure in stacking if both feathering and image filtering were selected (#1629)
 
 **Improvements:**
 * Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
 * Added a fork of tkfilebrowser to support improved script UI file selection on Linux (!864)
 * Implemented a better linear regression algorithm for SPCC (!853)
 * Python scripts are now sorted alphabetically (#1559)
+* Made crop and ROI selection CFA-aware (#1579)
 * Added an optional rate limit for smooth scroll zoom speed (#1576)
 * Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
 * GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
+* Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
+* Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
+* Simplified the scripts and SPCC repository checking and made it more robust and thread-safe (!872)
+* Improved visibility of whether the autostretch preview is linked or unlinked (!878)
+* Changed the default GHT and asinh settings to update faster.
+* Added returning a dict from SirilInterface.get_image_fits_header() and SirilInterface.get_seq_frame_header in sirilpy (!877)
+* Improved Quit behaviour if there are unsaved script changes.
+* Improved feedback when the python context manager image_lock() reports an error.
+* Improved method of calling scripts from the editor to eliminate a script length restriction.
+* Added a GraXpert python script to replace the legacy C GraXpert interface (siril-scripts:!42)
+* Deprecated the legacy C interface which proved unreliable (#1620, #1611, #1573)
 
 siril 1.4.0-beta1
 04/26/25

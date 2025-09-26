@@ -67,7 +67,7 @@ int savepng(const char *filename, fits *fit, uint32_t bytes_per_sample,
 #endif
 
 #ifdef HAVE_LIBRAW
-int open_raw_files(const char*, fits*, gboolean);
+int open_raw_files(const char*, fits*);
 #endif
 
 #ifdef HAVE_LIBHEIF
@@ -92,6 +92,7 @@ int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);
 WORD truncate_to_WORD(int x);
+BYTE roundw_to_BYTE(WORD input);
 BYTE truncate_to_BYTE(WORD x);
 int set_int_in_interval(int val, int low, int high);
 float set_float_in_interval(float val, float low, float high);
@@ -131,10 +132,12 @@ const char *channel_number_to_name(int channel);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 char* remove_ext_from_filename(const char *basename);
+char *remove_all_ext_from_filename(const char *filename);
 gchar *replace_ext(const char *path, const char *new_ext);
 gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
 int is_symlink_file(const char *filename);
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
 void replace_invalid_chars(char *name, char repl);
@@ -186,6 +189,9 @@ guint gui_function(GSourceFunc idle_function, gpointer data);
 gchar *find_file_in_directory(gchar *basename, const gchar *path);
 gchar *find_file_recursively(gchar *basename, const gchar *top_path);
 char *strdupnullok(char *data);
+gchar* remove_extension_from_path(const gchar* filepath);
+gboolean delete_directory(const gchar *dir_path, GError **error);
+gchar *posix_path_separators(const gchar *path);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,

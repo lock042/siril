@@ -622,3 +622,18 @@ void free_disto_args(disto_data *disto) {
 	}
 	free(disto);
 }
+
+void copy_disto(disto_data *disto_in, disto_data *disto_out) {
+	if (!disto_in || !disto_out)
+		return;
+	disto_out->dtype = disto_in->dtype;
+	memcpy(disto_out->A,  disto_in->A,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->B,  disto_in->B,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->AP, disto_in->AP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->BP, disto_in->BP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	disto_out->order = disto_in->order;
+	disto_out->xref = disto_in->xref;
+	disto_out->yref = disto_in->yref;
+	disto_out->xmap = NULL;
+	disto_out->ymap = NULL;
+}

@@ -34,20 +34,10 @@ from babel.dates import format_date, format_datetime
 from datetime import datetime
 import os
 from math import log, floor
-
-try:
-    import tkinter as tk
-    from tkinter import ttk
-    from tkinter.messagebox import askyesnocancel, showerror
-    from urllib.parse import unquote
-except ImportError:
-    import Tkinter as tk
-    import ttk
-    from tkMessageBox import askyesnocancel, showerror
-    from urllib import unquote
-    import sys
-    reload(sys)
-    sys.setdefaultencoding('utf8')
+import tkinter as tk
+from tkinter import ttk
+from tkinter.messagebox import askyesnocancel, showerror
+from urllib.parse import unquote
 
 PATH = os.path.dirname(__file__)
 

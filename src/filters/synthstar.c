@@ -22,9 +22,7 @@
 #include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/arithm.h"
 #include "core/siril_log.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "algos/colors.h"
@@ -32,23 +30,11 @@
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
 #include "algos/extraction.h"
-#include "algos/geometry.h"
 #include "algos/siril_random.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/star_finder.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
-#include "filters/mtf.h"
 #include "filters/synthstar.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 int generate_synthstars(fits *fit);
@@ -344,13 +330,17 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars() {
+gpointer fix_saturated_stars(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	reprofile_saturated_stars(&gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
 
-gpointer do_synthstar() {
+gpointer do_synthstar(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	generate_synthstars(&gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);

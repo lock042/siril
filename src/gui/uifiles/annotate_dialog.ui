@@ -31,7 +31,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Clear all current annotations from the user catalog.</property>
+                <property name="tooltip-text" translatable="yes">Clear all current temporary annotations (in red by default)</property>
                 <signal name="clicked" handler="on_annotate_clear_clicked" swapped="no"/>
               </object>
               <packing>

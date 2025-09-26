@@ -32,7 +32,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "algos/colors.h"
 #include "algos/statistics.h"
 
 #include "gui/progress_and_log.h"
@@ -290,6 +289,11 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("color_calibration");
+}
+
+gboolean calibration_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("color_calibration");
+	return TRUE;
 }
 
 void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
@@ -573,4 +577,9 @@ void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
 	siril_close_dialog("ccm_dialog");
+}
+
+gboolean ccm_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("ccm_dialog");
+	return TRUE;
 }

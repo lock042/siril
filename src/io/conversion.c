@@ -48,8 +48,6 @@
 #include "io/seqwriter.h"
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
-#include "gui/utils.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "conversion.h"
 
@@ -139,15 +137,6 @@ void list_format_available() {
 #endif
 }
 
-static void initialize_ser_debayer_settings() {
-	com.pref.debayer.open_debayer = FALSE;
-	com.pref.debayer.use_bayer_header = TRUE;
-	com.pref.debayer.top_down = TRUE;
-	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
-	com.pref.debayer.bayer_inter = BAYER_RCD;
-	com.pref.debayer.xbayeroff = 0;
-	com.pref.debayer.ybayeroff = 0;
-}
 
 /**************************Public functions***********************************************************/
 
@@ -179,7 +168,6 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".pnm";
 	supported_extensions[count_ext++] = ".pic";
 
-	initialize_ser_debayer_settings();	// below in the file
 
 #ifdef HAVE_LIBRAW
 	int i, nb_raw;
@@ -339,7 +327,7 @@ image_type get_type_for_extension(const char *extension) {
 
 /* open the file with path source from any image type and load it into the given FITS object */
 int any_to_fits(image_type imagetype, const char *source, fits *dest,
-		gboolean interactive, gboolean force_float, gboolean debayer) {
+		gboolean interactive, gboolean force_float) {
 	int retval = 0;
 
 	switch (imagetype) {
@@ -397,7 +385,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 					src  = rsrc;
 				}
 #endif
-				retval = (open_raw_files(src , dest, debayer) < 0);
+				retval = (open_raw_files(src , dest) < 0);
 #ifdef _WIN32
 				if (rsrc != NULL) {
 					g_free(rsrc);
@@ -945,17 +933,17 @@ static void open_next_input_seq(convert_status *conv) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer, gboolean allow_32bits) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean force_debayer, gboolean allow_32bits) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
-	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
+	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE);
 
 	if (!retval) {
 		if (!allow_32bits && tmpfit->type == DATA_FLOAT) {
 			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", source);
 			retval = 1;
 		}
-		else retval = debayer_if_needed(imagetype, tmpfit, debayer);
+		else retval = debayer_if_needed(imagetype, tmpfit, force_debayer);
 	}
 
 	if (retval) {
@@ -1377,9 +1365,6 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	seqwrite_status retval = WRITE_FAILED;
 	if (writer->ser) {
-		if (!strcmp(fit->keywords.row_order,"TOP-DOWN")) {  // need to flip the fit before writing to ser to preserve the bayer matrix
-			fits_flip_top_to_bottom(fit);
-		}
 		if (ser_write_frame_from_fit(writer->ser, fit, writer->index)) {
 			siril_log_color_message(_("Error while converting to SER (no space left?)\n"), "red");
 		}

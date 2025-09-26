@@ -95,6 +95,14 @@ static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	}
 }
 
+static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info) {
+	/* Handle some bad BAYER PATTERN from Maxim DL */
+	if (strstr(fit->keywords.bayer_pattern, "INVALID")) {
+		siril_debug_print("Ignoring INVALID Bayer pattern\n");
+		fit->keywords.bayer_pattern[0] = '\0';
+	}
+}
+
 static void binning_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.binning_x <= 0)
 		fit->keywords.binning_x = 1;
@@ -344,7 +352,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), bayer_pattern_read, NULL),
 			KEYWORD_PRIMARY( "camera", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "focuser", "FOCNAME", KTYPE_STR, "Focusing equipment name", &(fit->keywords.focname), NULL, NULL),
@@ -539,7 +547,7 @@ int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit, NULL);
 	KeywordInfo *keys_start = keys;
 	super_bool sbool;
-	gboolean bool;
+	gboolean boolean;
 	int status;
 	gchar *str;
 	gushort us;
@@ -623,8 +631,8 @@ int save_fits_keywords(fits *fit) {
 			status = 0;
 			sbool = *((super_bool*) keys->data);
 			if (sbool != BOOL_NOT_SET) {
-				bool = (sbool == BOOL_FALSE) ? FALSE : TRUE;
-				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(bool), keys->comment, &status);
+				boolean = (sbool == BOOL_FALSE) ? FALSE : TRUE;
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(boolean), keys->comment, &status);
 			}
 			break;
 		default:
@@ -647,7 +655,7 @@ int remove_all_fits_keywords(fits *fit) {
 	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
 		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
 		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
-		if (!keyword_is_protected(keyname)) {
+		if (!keyword_is_protected(keyname, fit)) {
 			fits_delete_record(fit->fptr, i, &status);
 			siril_debug_print("%s removed\n", keyname);
 		}
@@ -975,7 +983,7 @@ int read_fits_keywords(fits *fit) {
 		status = 0;
 
 		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
-		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card)) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card, fit)) {
 			continue;
 		}
 
@@ -1331,4 +1339,44 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 
 void clear_Bayer_information(fits *fit) {
 	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
+}
+
+gboolean keyword_is_protected(char *card, fits *fit) {
+	char keyname[FLEN_KEYWORD];
+	int length = 0;
+	int status = 0;
+
+	fits_get_keyname(card, keyname, &length, &status);
+
+	if (g_strcmp0(keyname, "DATE") == 0) {
+		return TRUE;
+	}
+
+	if (fits_get_keyclass(card) == TYP_STRUC_KEY ||
+		fits_get_keyclass(card) == TYP_CMPRS_KEY ||
+		fits_get_keyclass(card) == TYP_SCAL_KEY ||
+		fits_get_keyclass(card) == TYP_WCS_KEY) {
+		return TRUE;
+		}
+
+	if (fit) {
+		GHashTable *keys_hash;
+		KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+		KeywordInfo *keyword_info = g_hash_table_lookup(keys_hash, keyname);
+		gboolean is_wcslib = FALSE;
+
+		if (keyword_info && g_strcmp0(keyword_info->group, "wcslib") == 0) {
+			is_wcslib = TRUE;
+		}
+
+		g_hash_table_destroy(keys_hash);
+		free(keys);
+
+		if (is_wcslib) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }

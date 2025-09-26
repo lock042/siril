@@ -29,9 +29,7 @@
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 
@@ -219,11 +217,10 @@ int checkinitfile() {
 			/* neither files found, create the directory and load defaults */
 			initialize_default_settings();
 
-			if (g_mkdir_with_parents(pathname, 0755) == 0) {
+			if (siril_mkdir_with_parents(pathname, 0755) == 0) {
 				g_fprintf(stdout, "Created config dir %s\n", pathname);
 				com.initfile = config_file;
 			} else {
-				siril_log_message(_("Failed to create config dir %s\n"), pathname);
 				g_free(config_file);
 				config_file = NULL;
 				//config_dir_failed = TRUE;

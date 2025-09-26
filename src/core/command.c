@@ -29,9 +29,7 @@
 #include <gsl/gsl_histogram.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <opencv2/core/version.hpp>
 #include <glib.h>
-#include <libgen.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -78,7 +76,6 @@
 #include "gui/image_interactions.h"
 #include "gui/keywords_tree.h"
 #include "gui/newdeconv.h"
-#include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/stacking.h"
 #include "gui/registration.h"
@@ -94,7 +91,6 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/linear_match.h"
 #include "filters/median.h"
-#include "filters/graxpert.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
@@ -108,7 +104,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/search_objects.h"
 #include "algos/star_finder.h"
-#include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
@@ -131,7 +126,6 @@
 #include "registration/registration.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
-#include "git-version.h"
 #include "io/healpix/healpix_cat.h"
 
 #include "command.h"
@@ -339,6 +333,19 @@ int process_save(int nb){
 		set_cursor_waiting(TRUE);
 		retval = savefits(savename, &gfit) ? CMD_GENERIC_ERROR : CMD_OK;
 		set_cursor_waiting(FALSE);
+	}
+	if (com.uniq) {
+		if (!g_str_has_suffix(savename, com.pref.ext)) {
+			gchar* tempfilename = g_strdup_printf("%s%s", savename, com.pref.ext);
+			com.uniq->filename = strdup(tempfilename);
+			g_free(tempfilename);
+		} else {
+			com.uniq->filename = strdup(savename);
+		}
+		com.uniq->fileexist = TRUE;
+		if (!com.headless) {
+			display_filename();
+		}
 	}
 	gui_function(set_precision_switch, NULL);
 
@@ -1958,7 +1965,7 @@ int process_seq_update_key(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	siril_log_color_message(_("Upating keywords...\n"), "green");
+	siril_log_color_message(_("Updating keywords...\n"), "green");
 
 	/* manage options */
 	if (word[2][0] == '-') {
@@ -2756,7 +2763,7 @@ int process_ls(int nb){
 	}
 
 #ifndef _WIN32
-	struct dirent **list;
+	struct dirent **list = NULL;
 
 	int n = scandir(path, &list, 0, alphasort);
 	if (n < 0) {
@@ -4105,7 +4112,7 @@ int process_pm(int nb) {
 	gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
 	g_regex_unref(regex);
 
-	// Check if a replacement was made to set some flags and check if an image is really laoded
+	// Check if a replacement was made to set some flags and check if an image is really loaded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
 		if (!single_image_is_loaded()) {
 			g_free(cleaned_expression);
@@ -4328,6 +4335,8 @@ int process_pm(int nb) {
 
 	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
 		g_free(args->expression1);
+		clearfits(fit);
+		g_strfreev(args->varname);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -4388,8 +4397,8 @@ int process_seq_tilt(int nb) {
 	}
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
-	if (!com.script && seq != &com.seq) {
-		gui_function(set_seq, word[1]);
+	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4500,84 +4509,185 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
-/* seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }] */
+gboolean get_followstar_idle(gpointer user_data) {
+	framing_mode *framing = (framing_mode*) user_data;
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	if (gtk_toggle_button_get_active(follow))
+		*framing = FOLLOW_STAR_FRAME;
+	// no need to have an else as framing is already initiated by the caller
+	return FALSE;
+}
+
+/* seqpsf sequencename [channel] [{ -at=x,y | -wcs=ra,dec }] [-followstar] */
 int process_seq_psf(int nb) {
-	if (com.script && nb < 4) {
-		siril_log_message(_("Arguments are not optional when called from a script\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (!com.headless && !sequence_is_loaded() && nb < 4) {
-		siril_log_message(_("Arguments are optional only if a sequence is already loaded and selection around a star made\n"));
+	// Must have at least sequence name argument
+	if (nb < 2) {
+		siril_log_message(_("Sequence name is required as first argument (use '.' for current sequence)\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	sequence *seq = NULL;
-	int layer;
-	if (nb < 4) {
+	int layer = -1;
+	gboolean has_area = FALSE;
+	rectangle area = { 0 };
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		area = com.selection;
+		has_area = TRUE;
+	}
+	gboolean followstar_set = FALSE;
+
+	// First argument is always sequence name
+	seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	gboolean use_current_seq = check_seq_is_comseq(seq);
+	if (!com.script && !com.python_script && !use_current_seq) {
+		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		free_sequence(seq, TRUE);
 		seq = &com.seq;
-		layer = select_vport(gui.cvport);
+	}
 
-		if (com.selection.w > 300 || com.selection.h > 300) {
+	// Parse remaining arguments in any order
+	for (int i = 2; i < nb; i++) {
+		if (strcmp(word[i], "-followstar") == 0) {
+			followstar_set = TRUE;
+		} else if (layer == -1) {
+			// Try to parse as layer number
+			gchar *end;
+			int potential_layer = g_ascii_strtoull(word[i], &end, 10);
+			if (end != word[i] && potential_layer < seq->nb_layers) {
+				layer = potential_layer;
+			} else {
+				// Not a valid layer number, try as star position
+				if (!has_area) {
+					fits first = { 0 };
+					if (use_current_seq) {
+						// For current sequence, we may not need to read metadata
+						// if we're using current selection
+						if (area.w > 0 && area.h > 0) {
+							has_area = TRUE;
+							continue;
+						}
+					}
+
+					if (seq_read_frame_metadata(seq, 0, &first)) {
+						if (seq != &com.seq) free_sequence(seq, TRUE);
+						return CMD_GENERIC_ERROR;
+					}
+					seq->current = 0;
+
+					if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+						has_area = TRUE;
+						clearfits(&first);
+					} else {
+						clearfits(&first);
+						siril_log_message(_("Invalid argument: %s\n"), word[i]);
+						if (seq != &com.seq) free_sequence(seq, TRUE);
+						return CMD_ARG_ERROR;
+					}
+				} else {
+					siril_log_message(_("Invalid argument: %s\n"), word[i]);
+					if (seq != &com.seq) free_sequence(seq, TRUE);
+					return CMD_ARG_ERROR;
+				}
+			}
+		} else if (!has_area) {
+			// Try to parse as star position
+			fits first = { 0 };
+			if (use_current_seq) {
+				// For current sequence, we may not need to read metadata
+				// if we're using current selection
+				if (area.w > 0 && area.h > 0) {
+					has_area = TRUE;
+					continue;
+				}
+			}
+			if (seq_read_frame_metadata(seq, 0, &first)) {
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
+				return CMD_GENERIC_ERROR;
+			}
+			seq->current = 0;
+
+			if (parse_star_position_arg(word[i], seq, &first, &area, NULL) == 0) {
+				has_area = TRUE;
+				clearfits(&first);
+			} else {
+				clearfits(&first);
+				siril_log_message(_("Invalid argument: %s\n"), word[i]);
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_message(_("Invalid argument: %s\n"), word[i]);
+			if (seq != &com.seq) free_sequence(seq, TRUE);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	// Set defaults for missing arguments
+	if (layer == -1) {
+		if (use_current_seq) {
+			layer = select_vport(gui.cvport);
+		} else {
+			layer = 0; // Default to first layer
+		}
+	}
+
+	if (!has_area) {
+		if (use_current_seq && com.selection.w > 0 && com.selection.h > 0) {
+			area = com.selection;
+			has_area = TRUE;
+		} else {
+			if (com.script) {
+				siril_log_message(_("Layer and star position arguments are required when called from a script\n"));
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+			if (!com.headless) {
+				siril_log_message(_("Layer and star position arguments are required, or make a selection around a star\n"));
+				if (seq != &com.seq) free_sequence(seq, TRUE);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	// Validate layer
+	if (layer >= seq->nb_layers) {
+		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
+		if (seq != &com.seq) free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	// Validate selection area
+	if (has_area) {
+		if (area.w > 300 || area.h > 300) {
 			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+			if (seq != &com.seq) free_sequence(seq, TRUE);
 			return CMD_SELECTION_ERROR;
 		}
-		if (com.selection.w <= 0 || com.selection.h <= 0) {
+		if (area.w <= 0 || area.h <= 0) {
 			siril_log_message(_("Select an area first\n"));
+			if (seq != &com.seq) free_sequence(seq, TRUE);
 			return CMD_SELECTION_ERROR;
-		}
-	} else {
-		seq = load_sequence(word[1], NULL);
-		if (!seq) {
-			return CMD_SEQUENCE_NOT_FOUND;
-		}
-		if (!com.script && seq != &com.seq) {
-			gui_function(set_seq, word[1]);
-			free_sequence(seq, TRUE);
-			seq = &com.seq;
-		}
-
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, 0, &first)) {
-			free_sequence(seq, TRUE);
-			return CMD_GENERIC_ERROR;
-		}
-		seq->current = 0;
-
-		gchar *end;
-		layer = g_ascii_strtoull(word[2], &end, 10);
-		if (end == word[2] || layer >= seq->nb_layers) {
-			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
-			free_sequence(seq, TRUE);
-			clearfits(&first);
-			return CMD_ARG_ERROR;
-		}
-
-		rectangle area;
-		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
-			free_sequence(seq, TRUE);
-			clearfits(&first);
-			return CMD_ARG_ERROR;
 		}
 		com.selection = area;
-		clearfits(&first);
 	}
 
-	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !seq->regparam[layer])
-		framing = ORIGINAL_FRAME;
-	if (framing == ORIGINAL_FRAME) {
-		if (com.headless)
-			framing = FOLLOW_STAR_FRAME;
-		else {
-			GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-			if (gtk_toggle_button_get_active(follow))
-				framing = FOLLOW_STAR_FRAME;
+	// Set framing mode
+	framing_mode framing = ORIGINAL_FRAME;
+	if (followstar_set) {
+		framing = FOLLOW_STAR_FRAME;
+	} else {
+		// Try registered frame first if available
+		if (seq->regparam[layer]) {
+			framing = REGISTERED_FRAME;
 		}
 	}
+
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, com.script) ? CMD_GENERIC_ERROR : CMD_OK;
-	if (seq != &com.seq)
-		free_sequence(seq, TRUE);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, (com.script || com.python_script)) ? CMD_GENERIC_ERROR : CMD_OK;
 	return retval;
 }
 
@@ -5249,8 +5359,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 			}
 			/* Make sure path exists */
 			gchar *dirname = g_path_get_dirname(value);
-			if (g_mkdir_with_parents(dirname, 0755) < 0) {
-				siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 				g_free(dirname);
 				return CMD_GENERIC_ERROR;
 			}
@@ -5318,7 +5427,7 @@ int process_findstar(int nb) {
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
-	args->update_GUI = !com.script;
+	args->update_GUI = !com.script || com.python_script;
 	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
@@ -5533,7 +5642,6 @@ int process_seq_cosme(int nb) {
 		char *current = word[3], *value;
 		value = current + 8;
 		if (value[0] == '\0') {
-			free_sequence(seq, TRUE);
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
@@ -5981,10 +6089,8 @@ int process_subsky(int nb) {
 		args->fit = &gfit;
 
 		// Check if the image has a Bayer CFA pattern
-		gboolean is_cfa = gfit.naxes[2] == 1 && (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
-						  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
+		sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+		gboolean is_cfa = gfit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 
 		int retval = 1;
 		if (use_existing) {
@@ -6080,6 +6186,14 @@ int process_findcosme(int nb) {
 	return CMD_OK;
 }
 
+static gboolean select_update_gui(gpointer user_data) {
+	update_stack_interface(TRUE);
+	update_reg_interface(FALSE);
+	adjust_sellabel();
+	drawPlot();
+	return FALSE;
+}
+
 int select_unselect(gboolean select) {
 	char *end1, *end2;
 	int from = g_ascii_strtoull(word[2], &end1, 10);
@@ -6125,10 +6239,8 @@ int select_unselect(gboolean select) {
 	writeseqfile(seq);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		drawPlot();
+		if (!com.headless)
+			execute_idle_and_wait_for_it(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
@@ -6267,7 +6379,12 @@ int process_extractGreen(int nb) {
 		}
 	}
 
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 
 	gchar *green = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -6307,7 +6424,12 @@ int extract_Ha(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern, scaling))) {
@@ -6350,7 +6472,12 @@ int extract_HaOIII(extraction_scaling scaling) {
 			free(tmp);
 		}
 	}
-	sensor_pattern pattern = get_bayer_pattern(&gfit);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit,FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
+		g_free(filename);
+		return CMD_INVALID_IMAGE;
+	}
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -7291,8 +7418,7 @@ int process_link(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-				if (g_mkdir_with_parents(value, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+				if (siril_mkdir_with_parents(value, 0755) < 0) {
 					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
@@ -7465,8 +7591,7 @@ int process_convert(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!g_file_test(value, G_FILE_TEST_EXISTS)) {
-				if (g_mkdir_with_parents(value, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", value);
+				if (siril_mkdir_with_parents(value, 0755) < 0) {
 					free(destroot);
 					return CMD_GENERIC_ERROR;
 				}
@@ -7498,6 +7623,7 @@ int process_convert(int nb) {
 	if (in_cwd && (output == SEQ_SER || output == SEQ_FITSEQ) && g_file_test(destroot, G_FILE_TEST_EXISTS)) {
 		siril_log_color_message(_("Destination sequence %s already exists in the current folder, cannot proceed.\n"), "red", destroot);
 		free(destroot);
+		g_dir_close(dir);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -7903,7 +8029,8 @@ int process_register(int nb) {
 		} else
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
-			sensor_pattern pattern = get_bayer_pattern(preffit);
+			// TODO: same remark as in gui/registration.c
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(preffit->keywords.bayer_pattern);
 			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
@@ -7931,17 +8058,7 @@ int process_register(int nb) {
 	method->type = REGTYPE_DEEPSKY;
 	regargs->func = method->method_ptr;
 
-	// testing free space
-	if (!regargs->no_output) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			goto terminate_register_on_error;
-		}
-	} else if (regargs->output_scale != 1.f) {
+	if (regargs->no_output && regargs->output_scale != 1.f) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
@@ -8367,7 +8484,7 @@ int process_seq_applyreg(int nb) {
 		} else
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
-			sensor_pattern pattern = get_bayer_pattern(preffit);
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(preffit->keywords.bayer_pattern);
 			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
@@ -8532,6 +8649,11 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 	return CMD_OK;
 }
 
+static gboolean stack_stop_thread(gpointer user_data) {
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int stack_one_seq(struct stacking_configuration *arg) {
 	sequence *seq = readseqfile(arg->seqfile);
 	if (!seq) {
@@ -8581,7 +8703,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	}
 	// manage reframing and upscale
 	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
-	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean can_upscale = can_reframe && !seq->is_variable && !seq->is_drizzle;
 	gboolean must_reframe = can_reframe && seq->is_variable;
 	args.maximize_framing = arg->maximize_framing;
 	args.upscale_at_stacking = arg->upscale_at_stacking;
@@ -8599,7 +8721,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	if (args.upscale_at_stacking && !can_upscale) {
-		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes or drizzled. Upscale at stacking will be ignored\n"), "red");
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
@@ -8644,7 +8766,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		stop_processing_thread();
+		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -8673,8 +8795,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		}
 		/* Make sure path exists */
 		gchar *dirname = g_path_get_dirname(arg->result_file);
-		if (g_mkdir_with_parents(dirname, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 			g_free(dirname);
 			retval = CMD_GENERIC_ERROR;
 		}
@@ -9546,7 +9667,13 @@ int process_extract(int nb) {
 }
 
 int process_reloadscripts(int nb){
-	return refresh_scripts(FALSE, NULL);
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
+		return CMD_GENERIC_ERROR;
+	} else {
+		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
+	}
+	return CMD_OK;
 }
 
 int process_requires(int nb) {
@@ -10950,8 +11077,8 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			} else {
 				reffit = gfit;
 			}
-			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.keywords.bayer_pattern);
-			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA or not
+			if (reffit.naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
 				*err = CMD_ARG_ERROR;
 				break;
@@ -11147,308 +11274,6 @@ int process_seq_profile(int nb) {
 
 	apply_cut_to_sequence(cut_args);
 
-	return CMD_OK;
-}
-
-static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
-		graxpert_operation operation) {
-	graxpert_data *data = new_graxpert_data();
-	int start = (seq == NULL) ? 1 : 2;
-	if (seq)
-		data->seq = seq;
-	else
-		data->fit = &gfit;
-	if (operation == GRAXPERT_BG) {
-		data->operation = GRAXPERT_BG;
-	} else if (operation == GRAXPERT_DENOISE) {
-		data->operation = GRAXPERT_DENOISE;
-	} else if (operation == GRAXPERT_DECONV) {
-		data->operation = GRAXPERT_DECONV;
-	} else if (operation == GRAXPERT_DECONV_STELLAR) {
-		data->operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
-		free_graxpert_data(data);
-		return NULL;
-	}
-	for (int i = start; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		else if (!g_ascii_strncasecmp(arg, "-gpu", 3)) {
-			data->use_gpu = TRUE;
-		} else if (!g_ascii_strncasecmp(arg, "-cpu", 3)) {
-			data->use_gpu = FALSE;
-		} else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
-			data->keep_bg = TRUE;
-		} else if (!g_ascii_strncasecmp(arg, "-ai_version=", 12)) {
-			arg += 12;
-			data->ai_version = g_strdup(arg);
-		} else {
-			if (operation == GRAXPERT_BG) {
-				if (g_str_has_prefix(arg, "-algo=")) {
-					arg += 6;
-					if (!g_ascii_strncasecmp(arg, "ai", 2)) {
-						data->bg_algo = GRAXPERT_BG_AI;
-					} else if (!g_ascii_strncasecmp(arg, "rbf", 3)) {
-						data->bg_algo = GRAXPERT_BG_RBF;
-					} else if (!g_ascii_strncasecmp(arg, "kriging", 7)) {
-						data->bg_algo = GRAXPERT_BG_KRIGING;
-					} else if (!g_ascii_strncasecmp(arg, "spline", 6)) {
-						data->bg_algo = GRAXPERT_BG_SPLINE;
-					} else {
-						siril_log_color_message(_("Error: unknown background extraction algorithm!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-mode=")) {
-					arg += 6;
-					if (!g_ascii_strncasecmp(arg, "sub", 3)) {
-						data->bg_mode = GRAXPERT_SUBTRACTION;
-					} else if (!g_ascii_strncasecmp(arg, "div", 3)) {
-						data->bg_mode = GRAXPERT_DIVISION;
-					} else {
-						siril_log_color_message(_("Error: unknown correction mode!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-kernel=")) {
-					arg += 8;
-					if (!g_ascii_strncasecmp(arg, "thinplate", 9)) {
-						data->kernel = GRAXPERT_THIN_PLATE;
-					} else if (!g_ascii_strncasecmp(arg, "quintic", 7)) {
-						data->kernel = GRAXPERT_QUINTIC;
-					} else if (!g_ascii_strncasecmp(arg, "cubic", 5)) {
-						data->kernel = GRAXPERT_CUBIC;
-					} else if (!g_ascii_strncasecmp(arg, "linear", 6)) {
-						data->kernel = GRAXPERT_LINEAR;
-					} else {
-						siril_log_color_message(_("Error: unknown RBF kernel!\n"), "red");
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-ai_batch_size=")) {
-					arg += 15;
-					data->ai_batch_size = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no AI batch size specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-pts_per_row=")) {
-					arg += 13;
-					data->bg_pts_option = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no pts_per_row specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-splineorder=")) {
-					arg += 13;
-					data->spline_order = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no spline order specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-samplesize=")) {
-					arg += 12;
-					data->sample_size = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no sample size specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-smoothing=")) {
-					arg += 11;
-					data->bg_smoothing = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no smoothing value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-bgtol=")) {
-					arg += 7;
-					data->bg_tol_option = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no background tolerance value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			} else if (operation == GRAXPERT_DENOISE) {
-				if (g_str_has_prefix(arg, "-strength=")) {
-					arg += 10;
-					data->denoise_strength = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no strength value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			} else { // operation must be GRAXPERT_DECONV or GRAXPERT_DECONV_STELLAR because of the earlier check
-				if (g_str_has_prefix(arg, "-strength=")) {
-					arg += 10;
-					data->deconv_strength = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no strength value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else if (g_str_has_prefix(arg, "-psfsize=")) {
-					arg += 9;
-					data->deconv_blur_psf_size = g_ascii_strtod(arg, &end);
-					if (arg == end) {
-						siril_log_message(_("Error: no psf size value specified\n"));
-						goto GRAX_ARG_ERROR;
-					}
-				} else {
-					siril_log_color_message(_("Error: unknown argument!\n"), "red");
-					goto GRAX_ARG_ERROR;
-				}
-			}
-		}
-	}
-
-	// Enforce bounds on data submitted
-	if (data->bg_smoothing < 0.0)
-		data->bg_smoothing = 0.0;
-	else if (data->bg_smoothing > 1.0)
-		data->bg_smoothing = 1.0;
-	if (data->denoise_strength < 0.0)
-		data->denoise_strength = 0.0;
-	else if (data->denoise_strength > 1.0)
-		data->denoise_strength = 1.0;
-	else if (data->deconv_strength > 1.0)
-		data->deconv_strength = 1.0;
-	else if (data->deconv_blur_psf_size > 14.0)
-		data->deconv_blur_psf_size = 14.0;
-	if (data->bg_tol_option < -2.0)
-		data->bg_tol_option = -2.0;
-	else if (data->bg_tol_option > 6.0)
-		data->bg_tol_option = 6.0;
-	if (data->operation == GRAXPERT_DENOISE || data->operation == GRAXPERT_DECONV
-			|| data->operation == GRAXPERT_DECONV_STELLAR || data->bg_algo == GRAXPERT_BG_AI) {
-		if (data->ai_version != NULL && !check_graxpert_version(data->ai_version, data->operation)) {
-			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"),"red");
-			ai_versions_to_log(operation);
-			goto GRAX_ARG_ERROR;
-		}
-	}
-
-	return data;
-
-	GRAX_ARG_ERROR:
-
-	free_graxpert_data(data);
-	return NULL;
-}
-
-int process_graxpert_bg(int nb) {
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL,
-			GRAXPERT_BG);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (data->bg_algo != GRAXPERT_BG_AI) {
-		const char *err;
-		data->bg_samples = generate_samples(&gfit, data->bg_pts_option,
-				data->bg_tol_option, data->sample_size, &err, MULTI_THREADED);
-		if (!data->bg_samples) {
-			siril_log_color_message(
-					_("Failed to generate background samples for image: %s\n"),
-					"red", _(err));
-			free_graxpert_data(data);
-			return CMD_GENERIC_ERROR;
-		}
-	}
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_graxpert_denoise(int nb) {
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, GRAXPERT_DENOISE);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_graxpert_deconv(int nb) {
-	graxpert_operation operation;
-
-	if (g_ascii_strcasecmp(word[1], "object") == 0) {
-		operation = GRAXPERT_DECONV;
-	} else if (g_ascii_strcasecmp(word[1], "stellar") == 0) {
-		operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		return CMD_ARG_ERROR;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL, operation);
-	if (!data)
-		return CMD_ARG_ERROR;
-
-	if (!start_in_new_thread(do_graxpert, data)) {
-		free_graxpert_data(data);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
-}
-
-int process_seq_graxpert_bg(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_BG);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
-	return CMD_OK;
-}
-
-int process_seq_graxpert_denoise(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_DENOISE);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
-	return CMD_OK;
-}
-
-int process_seq_graxpert_deconv(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-	graxpert_operation operation;
-
-	if (g_ascii_strcasecmp(word[2], "object") == 0) {
-		operation = GRAXPERT_DECONV;
-	} else if (g_ascii_strcasecmp(word[2], "stellar") == 0) {
-		operation = GRAXPERT_DECONV_STELLAR;
-	} else {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, operation);
-	if (!data) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	apply_graxpert_to_sequence(data);
 	return CMD_OK;
 }
 
@@ -11712,11 +11537,12 @@ int process_pwd(int nb) {
 typedef struct _pyscript_data {
 	gchar *script_name;
 	gchar **argv_script;
+	gboolean from_cli;
 } pyscript_data;
 
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
-	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script);
+	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11730,6 +11556,8 @@ int process_pyscript(int nb) {
 		script_name = g_strdup(word[1]);
 	} else {
 		// Search for the file in the user's set script directories and the scripts repository
+		// We search the user's path first so any local modifications are used in preference to
+		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
@@ -11756,10 +11584,11 @@ int process_pyscript(int nb) {
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
-		g_setenv("SIRIL_PYTHON_CLI", "1", TRUE);  // TRUE to overwrite if it exists
+		data->from_cli = TRUE;
 		// Cannot use start_in_new_thread here because of the possibility of the python script
 		// calling siril.cmd() and running commands that themselves require the processing thread
 		// so we use a generic GThread
+		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
 		if (!thread) {
 			free(data);
@@ -11767,7 +11596,11 @@ int process_pyscript(int nb) {
 			g_strfreev(argv_script);
 			return CMD_GENERIC_ERROR;
 		} else {
-			g_thread_unref(thread);
+			if (com.script || already_in_a_python_script) {
+				g_thread_join(thread);
+			} else {
+				g_thread_unref(thread);
+			}
 		}
 		return CMD_OK;
 	} else {

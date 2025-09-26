@@ -47,7 +47,6 @@
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "sorting.h"
 #include "statistics.h"
 #include "statistics_float.h"
 #include "demosaicing.h"
@@ -237,7 +236,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			if (layer < 0) {
 				size_t newsz;
 				data = extract_CFA_buffer_area_ushort(fit, -layer - 1, selection, &newsz);
-				if (!data) {
+				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
 					return NULL;
 				}
@@ -816,6 +815,10 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 static int stat_finalize_hook(struct generic_seq_args *args) {
 	GError *error = NULL;
 	struct stat_data *s_args = (struct stat_data*) args->user;
+	GFile *file = NULL;
+	GOutputStream* output_stream = NULL;
+	int result = 1; // Default to error
+
 	if (!s_args->list) {
 		free(s_args);
 		return 1;
@@ -823,20 +826,21 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
 	int size = nb_data_layers * args->nb_filtered_images;
-	GFile *file = g_file_new_for_path(s_args->csv_name);
-	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+
+	file = g_file_new_for_path(s_args->csv_name);
+	output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	g_free(s_args->csv_name);
-	if (output_stream == NULL) {
+
+	if (output_stream == NULL || error != NULL) {
 		if (error != NULL) {
-			g_warning("%s\n", error->message);
+			g_warning("Cannot create output file: %s", error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "Cannot save histo\n");
 		}
-		g_object_unref(file);
-		free_stat_list(s_args->list, size);
-		free(s_args);
-		return 1;
+		fprintf(stderr, "Cannot save histo\n");
+		goto cleanup;
 	}
+
+	// Write header
 	const gchar *header;
 	if (s_args->option == STATS_BASIC) {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\n";
@@ -845,37 +849,48 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	} else {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\tlocation\tscale\n";
 	}
+
 	if (!g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL, &error)) {
-		g_warning("%s\n", error->message);
+		g_warning("Failed to write header: %s", error->message);
 		g_clear_error(&error);
-		g_object_unref(output_stream);
-		g_object_unref(file);
-		free_stat_list(s_args->list, size);
-		free(s_args);
-		return 1;
+		goto cleanup;
 	}
 
+	// Write data
 	for (int i = 0; i < args->nb_filtered_images * nb_data_layers; i++) {
 		if (!s_args->list[i]) continue; //stats can fail
 		if (!g_output_stream_write_all(output_stream, s_args->list[i], strlen(s_args->list[i]), NULL, NULL, &error)) {
-			g_warning("%s\n", error->message);
+			g_warning(_("Failed to write seqstat data: %s"), error->message);
 			g_clear_error(&error);
-			g_object_unref(output_stream);
-			g_object_unref(file);
-			free_stat_list(s_args->list, size);
-			free(s_args);
-			return 1;
+			goto cleanup;
 		}
 	}
 
+	// Success path
 	siril_log_message(_("Statistic file %s was successfully created.\n"), g_file_peek_path(file));
 	writeseqfile(args->seq);
-	g_object_unref(output_stream);
-	g_object_unref(file);
-	free_stat_list(s_args->list, size);
+	result = 0; // Success
+
+cleanup:
+	// Close and cleanup in proper order
+	if (output_stream) {
+		if (!g_output_stream_close(output_stream, NULL, &error)) {
+			g_warning(_("Failed to close seqstat output stream: %s"), error->message);
+			g_clear_error(&error);
+		}
+		g_object_unref(output_stream);
+	}
+
+	if (file) {
+		g_object_unref(file);
+	}
+
+	if (s_args->list) {
+		free_stat_list(s_args->list, size);
+	}
 	free(s_args);
 
-	return 0;
+	return result;
 }
 
 static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {

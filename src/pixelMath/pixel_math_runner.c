@@ -25,12 +25,10 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/siril_log.h"
-#include "algos/siril_wcs.h"
 #include "algos/statistics.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
-#include "gui/image_display.h"
 #include "gui/message_dialog.h"
 #include "gui/open_dialog.h"
 #include "gui/progress_and_log.h"
@@ -321,7 +319,7 @@ static gboolean check_files_dimensions(guint *width, guint* height, guint *chann
 
 static gboolean end_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
-	stop_processing_thread();// can it be done here in case there is no thread?
+	stop_processing_thread();
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
@@ -479,10 +477,10 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
-	if (!f[0])
+	if (!f[0] && single_image_is_loaded() )
 		// if no fit used (only constants),
-		// we copy the metadata from first image of the list
-		copy_fits_metadata(var_fit, fit);
+		// we copy the metadata from gfit
+		copy_fits_metadata(&gfit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
 	update_fits_header(fit);
@@ -725,7 +723,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = (double) gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = (double) gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -763,7 +765,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -848,10 +854,9 @@ failure: // failure before the eval loop
 		free(args->fit);
 		free(args);
 	}
-	else if (com.script || com.python_script)
+	else {
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
-	else
-		siril_add_idle(end_pixel_math_operation, args);
+	}
 	return GINT_TO_POINTER((gint)failed);
 }
 
@@ -1296,6 +1301,12 @@ static void select_image(int nb) {
 						}
 
 						int idx = search_for_free_index();
+						if (idx >= MAX_IMAGES) {
+							siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
+							g_free(filename);
+							clearfits(&f);
+							break;
+						}
 						add_image_to_variable_list(filename, variables[idx], filter, f.naxes[2], f.naxes[0], f.naxes[1]);
 
 						pos++;
@@ -1314,7 +1325,6 @@ static void select_image(int nb) {
 
 	siril_preview_free(preview);
 	gtk_widget_destroy(dialog);
-
 }
 
 gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,

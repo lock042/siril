@@ -26,7 +26,6 @@
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/open_dialog.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -40,7 +39,6 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
@@ -293,8 +291,6 @@ void initialize_registration_methods() {
 	gtk_combo_box_text_remove_all(comboboxregmethod);
 	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		gtk_combo_box_text_append_text(comboboxregmethod, reg_methods[j]->name);
-		siril_log_message(_("Loading registration method: %s\n"),
-				reg_methods[j]->name);
 	}
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
 
@@ -754,6 +750,8 @@ static gboolean check_3stars(regmethod_index index) {
 		return TRUE;
 	if (_3stars_check_selection()) {// checks that the right image is loaded based on doall and dofollow
 		int nbselstars = _3stars_get_number_selected_stars();
+		if (nbselstars == 0)
+			gtk_label_set_text(labelregisterinfo, _("Pick at least one star"));
 		return nbselstars > 0;
 	}
 	return FALSE;
@@ -848,7 +846,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 	/* must enforce drizzle/interp */
 	must_have_drizzle = has_output && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
-	must_have_interp  = has_output && gfit.naxes[2] == 3 && com.seq.type != SEQ_SER; // we can drizzle not-yet-debayered SER when undebayered on-the-fly
+	must_have_interp  = has_output && gfit.naxes[2] == 3;
 
 
 	/* initialize default */
@@ -913,17 +911,21 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	}
 
+	// if not debayered, check that the bayer pattern is known
+	// at this stage it does not need to be correct, we just need to know there's one to identify if it's a valid bayer pattern
+	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
+	// This would need either to add a force bayer button in the registration tab (ugly)
+	// or direct the user to correcting the bayer pattern in the images headers (prefered)
+	if (fit_is_cfa(&gfit) && gfit.keywords.bayer_pattern[0] != '\0') {
+		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+	}
+
 	// checking bayer status is ok
 	check_bayer_ok = !has_output || //if no output, we don't need to check
 					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
+					 (gfit.naxes[2] == 1 && has_drizzle && pattern >= BAYER_FILTER_MIN) || // bayer-drizzle sequence
 					 gfit.naxes[2] == 3 || // debayered sequence
-					 com.seq.type == SEQ_SER || // SER can be debayered on-the-fly
-					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
-
-	// if not debayered, check that the bayer pattern is known
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		pattern = get_bayer_pattern(&gfit);
-	}
+					 com.seq.type == SEQ_SER;// SER can be debayered on-the-fly
 
 	// checking if it requires same size sequence
 	samesizeseq_required = (regindex >= REG_3STARS && regindex <= REG_KOMBAT) || ((is_star_align || isapplyreg) && has_drizzle);
@@ -933,7 +935,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_bayer_ok &&
 			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) &&
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
-			pattern <= BAYER_FILTER_MAX &&
 			(!isapplyreg || has_reg) && // must have reg data if applyreg
 			check_applyreg(regindex) &&
 			check_comet(regindex) &&
@@ -949,7 +950,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
-		} else if (pattern > BAYER_FILTER_MAX) {
+		} else if (fit_is_cfa(&gfit) && (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN)) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 		} else if (!check_bayer_ok) {
@@ -968,7 +969,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
-	driz->is_bayer = gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
+	driz->is_bayer = fit_is_cfa(&gfit);
 	int status;
 	gchar *error = NULL;
 	gchar *expression = NULL;
@@ -1135,20 +1136,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		return 1;
 	}
 #endif
-
-	/* We check that available disk space is enough when
-	the registration method produces a new sequence with images
-	*/
-	if (has_output_images) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			return 1;
-		}
-	}
 
 	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (regargs->output_scale != 1.f || com.seq.is_variable) {

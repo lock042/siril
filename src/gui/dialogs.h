@@ -26,6 +26,7 @@ void siril_close_preview_dialogs();
 gboolean siril_widget_hide_on_delete(GtkWidget *widget);
 gboolean is_a_dialog_opened();
 gboolean is_an_image_processing_dialog_opened();
+void mark_imgproc_dialog_closed();
 
 void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title, const gchar *pattern, gboolean set_default);
 SirilWidget* siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);

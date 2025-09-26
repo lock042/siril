@@ -29,23 +29,29 @@
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
-#include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/siril_plot.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/histogram.h"
 #include "gui/dialogs.h"
-#include "gui/registration_preview.h"
-#include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include "photometric_cc.h"
-#include "io/image_format_fits.h"
 
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
+
+// Uncomment the next line to enable more verbose debug reporting
+//#define SPCC_DEBUG_TEST
+
+#ifdef SPCC_DEBUG_TEST
+#define DEBUG_SPCC 1
+#else
+#define DEBUG_SPCC 0
+#endif
+#define spcc_debug_print(fmt, ...) \
+	do { if (DEBUG_TEST && DEBUG_SPCC) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
@@ -57,7 +63,6 @@ static int set_spcc_args(struct photometric_cc_data *args);
 gboolean populate_spcc_combos(gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
-static GMutex combos_filling = { 0 };
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -65,6 +70,11 @@ void reset_spcc_filters() {
 
 void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("s_pcc_dialog");
+}
+
+gboolean s_pcc_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("s_pcc_dialog");
+	return TRUE;
 }
 
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
@@ -89,7 +99,7 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 static gboolean end_gaiacheck_idle(gpointer p) {
 	GtkWidget *image = lookup_widget("gaia_status_widget");
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-	gtk_widget_set_tooltip_text(image, N_("Checking Gaia archive status..."));
+	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
@@ -97,7 +107,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	stop_processing_thread();
 	if (args->code != 200) {
 		// status page is down
-		text = N_("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
 		colortext = "salmon";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
@@ -108,33 +118,33 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		}
 		switch (retval) {
 			case 0:
-				text = N_("Gaia archive available");
+				text = _("Gaia archive available");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 1:
-				text = N_("Gaia archive running but performing slightly slower\n");
+				text = _("Gaia archive running but performing slightly slower\n");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 2:
-				text = N_("Gaia archive running but performing very slowly");
+				text = _("Gaia archive running but performing very slowly");
 				colortext = "salmon";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 				break;
 			case 3:
 			case 4:
-				text = N_("Gaia archive unavailable");
+				text = _("Gaia archive unavailable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			case 5:
-				text = N_("Gaia archive unreachable");
+				text = _("Gaia archive unreachable");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
 			default:
-				text = N_("Unknown Gaia archive status");
+				text = _("Unknown Gaia archive status");
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
 				colortext = "red";
 		}
@@ -175,7 +185,7 @@ static void start_photometric_cc(gboolean spcc) {
 	set_bg_sigma(pcc_args);
 	if (spcc) {
 		pcc_args->catalog = get_spcc_catalog_from_GUI();
-		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
+		siril_debug_print(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		if (set_spcc_args(pcc_args)) {
 			free(pcc_args);
@@ -593,10 +603,10 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 			return 1;
 		}
 	} else {
-		if (args->selected_sensor_osc == -1 || args->selected_filter_osc == -1 ||
-						(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
-						args->selected_white_ref == -1) {
-			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter and white reference are selected.\n"), "red");
+		if (args->selected_sensor_osc == -1 || (args->selected_filter_osc == -1 && !args->nb_mode) ||
+					(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
+					args->selected_white_ref == -1) {
+			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter or NB filter values, and white reference are selected.\n"), "red");
 			return 1;
 		}
 	}
@@ -610,7 +620,7 @@ int get_favourite_spccobject(GList *list, const gchar *favourite) {
 	GList *current = list;
 	while (current != NULL) {
 		spcc_object *haystack = current->data;
-		if (g_strcmp0(haystack->name, favourite) == 0) {
+		if (haystack && g_strcmp0(haystack->name, favourite) == 0) {
 			return g_list_position(list, current);  // Found a match, return the GList node
 		}
 		current = current->next;
@@ -635,60 +645,363 @@ int get_favourite_oscsensor(GList *list, const gchar *favourite) {
 
 void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
 
-void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
-    GtkComboBoxText *combo;
+/**
+ * Validates a string for safe use in GTK widgets
+ * @param str The string to validate
+ * @return TRUE if string is valid, FALSE otherwise
+ */
+static gboolean is_valid_string(const char *str) {
+	// Check for NULL pointer
+	if (!str) {
+		return FALSE;
+	}
 
-    combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
-	g_signal_handlers_block_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-    // Clear the model
-    gtk_combo_box_text_remove_all(combo);
+	// Check for empty string
+	if (strlen(str) == 0) {
+		return FALSE;
+	}
 
-    GList *iterator = list;
+	// Check for reasonable length (prevent buffer overflows/memory issues)
+	if (strlen(str) > 1000) {
+		return FALSE;
+	}
 
-    if (list == com.spcc_data.osc_sensors) {
-        while (iterator) {
-            osc_sensor *object = (osc_sensor *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->channel[0].model);
-            iterator = iterator->next;
-        }
-		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
-    } else {
-        while (iterator) {
-            spcc_object *object = (spcc_object *)iterator->data;
-            gtk_combo_box_text_append_text(combo, object->name);
-            iterator = iterator->next;
-        }
-		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
-    }
+	return TRUE;
+}
+
+void fill_combo_from_glist(GtkWidget *widget, GList *list, int channel, const gchar *favourite) {
+	// Input validation
+	if (!widget) {
+		siril_debug_print("fill_combo_from_glist: widget is NULL\n");
+		return;
+	}
+
+	if (!GTK_IS_COMBO_BOX_TEXT(widget)) {
+		siril_debug_print("fill_combo_from_glist: widget is not a combo box text widget\n");
+		return;
+	}
+
+	// Critical: Check if list is NULL
+	if (!list) {
+		siril_debug_print("fill_combo_from_glist: list is NULL, cannot populate combo\n");
+		return;
+	}
+
+	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(widget);
+
+	// Validate that the combo box is still valid
+	if (!GTK_IS_COMBO_BOX_TEXT(combo)) {
+		siril_debug_print("fill_combo_from_glist: combo cast failed\n");
+		return;
+	}
+
+	// Block signal handler so we don't call the callback while messing about with the combobox
+	// Find the specific handler ID instead of using function-based blocking
+	guint signal_id = g_signal_lookup("changed", GTK_TYPE_COMBO_BOX);
+	if (signal_id == 0) {
+		siril_debug_print("fill_combo_from_glist: failed to lookup 'changed' signal\n");
+		return;
+	}
+
+	guint n_blocked = g_signal_handlers_block_matched(G_OBJECT(combo),
+		G_SIGNAL_MATCH_ID,
+		signal_id,
+		0, NULL, NULL, NULL);
+
+	// Clear the model
+	gtk_combo_box_text_remove_all(combo);
+
+	GList *iterator = list;
+	int active_index = -1;
+	int item_count = 0;
+
+	// Validate list length to prevent infinite loops
+	int max_items = 10000; // reasonable upper limit
+	GList *temp_iter = list;
+	int list_length = 0;
+	while (temp_iter && list_length < max_items) {
+		list_length++;
+		temp_iter = temp_iter->next;
+	}
+
+	if (list_length >= max_items) {
+		siril_debug_print("fill_combo_from_glist: list appears to be corrupted (too long or circular)\n");
+		goto cleanup;
+	}
+
+	if (list == com.spcc_data.osc_sensors) {
+		spcc_debug_print("fill_combo_from_glist: populating OSC sensors (%d items)\n", list_length);
+
+		while (iterator && item_count < max_items) {
+			// Validate iterator and its data
+			if (!iterator->data) {
+				siril_debug_print("fill_combo_from_glist: NULL data in osc_sensors list at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			osc_sensor *object = (osc_sensor *)iterator->data;
+
+			// Comprehensive validation of osc_sensor object
+			if (!object) {
+				siril_debug_print("fill_combo_from_glist: NULL osc_sensor object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			if (!object->channel[0].model) {
+				siril_debug_print("fill_combo_from_glist: NULL model string in osc_sensor at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Validate string
+			if (!is_valid_string(object->channel[0].model)) {
+				siril_debug_print("fill_combo_from_glist: invalid string in osc_sensor at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Attempt to add to combo box
+			gtk_combo_box_text_append_text(combo, object->channel[0].model);
+			iterator = iterator->next;
+			item_count++;
+		}
+
+		// Get favourite index with validation
+		if (favourite) {
+			active_index = get_favourite_oscsensor(list, favourite);
+		}
+
+	} else {
+		spcc_debug_print("fill_combo_from_glist: populating SPCC objects (%d items)\n", list_length);
+
+		while (iterator && item_count < max_items) {
+			// Validate iterator and its data
+			if (!iterator->data) {
+				gchar *listname = NULL;
+				if (list == com.spcc_data.osc_sensors)
+					listname = g_strdup("ocs_sensors");
+				else if (list == com.spcc_data.mono_sensors)
+					listname = g_strdup("mono_sensors");
+				else if (list == com.spcc_data.osc_filters)
+					listname = g_strdup("osc_filters");
+				else if (list == com.spcc_data.wb_ref)
+					listname = g_strdup("wb_ref");
+				else if (list == com.spcc_data.osc_lpf)
+					listname = g_strdup("osc_lpf");
+				else if (list == com.spcc_data.mono_filters[RLAYER])
+					listname = g_strdup("mono filters (red)");
+				else if (list == com.spcc_data.mono_filters[GLAYER])
+					listname = g_strdup("mono filters (green)");
+				else if (list == com.spcc_data.mono_filters[BLAYER])
+					listname = g_strdup("mono filters (blue)");
+				siril_debug_print("fill_combo_from_glist: NULL data in spcc_object list %s at item %d\n", listname, item_count);
+				g_free(listname);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			spcc_object *object = (spcc_object *)iterator->data;
+
+			// Comprehensive validation of spcc_object
+			if (!object) {
+				siril_debug_print("fill_combo_from_glist: NULL spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			if (!object->name) {
+				siril_debug_print("fill_combo_from_glist: NULL name in spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Validate string
+			if (!is_valid_string(object->name)) {
+				siril_debug_print("fill_combo_from_glist: invalid string in spcc_object at item %d\n", item_count);
+				iterator = iterator->next;
+				item_count++;
+				continue;
+			}
+
+			// Attempt to add to combo box
+			gtk_combo_box_text_append_text(combo, object->name);
+			iterator = iterator->next;
+			item_count++;
+		}
+
+		// Get favourite index with validation
+		if (favourite) {
+			active_index = get_favourite_spccobject(list, favourite);
+		}
+	}
+
+	spcc_debug_print("fill_combo_from_glist: successfully added %d items to combo\n", item_count);
+
+cleanup:
+	// Unblock handlers we blocked
+	if (n_blocked > 0) {
+		g_signal_handlers_unblock_matched(G_OBJECT(combo),
+			G_SIGNAL_MATCH_ID,
+			signal_id,
+			0, NULL, NULL, NULL);
+	}
+
+	// Set active index with validation
+	if (active_index >= 0 && active_index < item_count) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active_index);
+		spcc_debug_print("fill_combo_from_glist: set active index to %d\n", active_index);
+	} else if (active_index >= 0) {
+		siril_debug_print("fill_combo_from_glist: favourite index %d is out of range (max: %d)\n", active_index, item_count - 1);
+	}
 }
 
 gboolean populate_spcc_combos(gpointer user_data) {
-	// Initialize filters if required
-	fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
-	fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
-	fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
-	fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
-	fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
-	fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
-	fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
-	fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
-	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+	siril_debug_print("populate_spcc_combos: starting\n");
+
+	// Validate we're on the main thread
+	if (!g_main_context_is_owner(g_main_context_default())) {
+		siril_debug_print("populate_spcc_combos: ERROR - not called from main thread!\n");
+		goto end;
+	}
+
+	// Comprehensive validation of critical data structures before use
+	if (!com.spcc_data.osc_sensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_sensors is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.mono_sensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - mono_sensors is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.osc_filters) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_filters is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.wb_ref) {
+		siril_debug_print("populate_spcc_combos: ERROR - wb_ref is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.osc_lpf) {
+		siril_debug_print("populate_spcc_combos: ERROR - osc_lpf is NULL\n");
+		goto end;
+	}
+	// Check individual filter arrays
+	if (!com.spcc_data.mono_filters[RLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - red filters (RLAYER) is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.mono_filters[GLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - green filters (GLAYER) is NULL\n");
+		goto end;
+	}
+	if (!com.spcc_data.mono_filters[BLAYER]) {
+		siril_debug_print("populate_spcc_combos: ERROR - blue filters (BLAYER) is NULL\n");
+		goto end;
+	}
+	// Look up all the widgets here with validation
+	GtkWidget *oscfilters = lookup_widget("combo_spcc_filters_osc");
+	if (!oscfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_osc widget\n");
+		goto end;
+	}
+	GtkWidget *rfilters = lookup_widget("combo_spcc_filters_r");
+	if (!rfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_r widget\n");
+		goto end;
+	}
+	GtkWidget *gfilters = lookup_widget("combo_spcc_filters_g");
+	if (!gfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_g widget\n");
+		goto end;
+	}
+	GtkWidget *bfilters = lookup_widget("combo_spcc_filters_b");
+	if (!bfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_b widget\n");
+		goto end;
+	}
+	GtkWidget *lpfilters = lookup_widget("combo_spcc_filters_lpf");
+	if (!lpfilters) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_filters_lpf widget\n");
+		goto end;
+	}
+	GtkWidget *monosensors = lookup_widget("combo_spcc_sensors_mono");
+	if (!monosensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_mono widget\n");
+		goto end;
+	}
+	GtkWidget *oscsensors = lookup_widget("combo_spcc_sensors_osc");
+	if (!oscsensors) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_sensors_osc widget\n");
+		goto end;
+	}
+	GtkWidget *whitepoint = lookup_widget("combo_spcc_whitepoint");
+	if (!whitepoint) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find combo_spcc_whitepoint widget\n");
+		goto end;
+	}
+	GtkWidget *switch_widget_lookup = lookup_widget("spcc_sensor_switch");
+	if (!switch_widget_lookup) {
+		siril_debug_print("populate_spcc_combos: ERROR - could not find spcc_sensor_switch widget\n");
+		goto end;
+	}
+	GtkSwitch *switch_widget = GTK_SWITCH(switch_widget_lookup);
+	if (!GTK_IS_SWITCH(switch_widget)) {
+		siril_debug_print("populate_spcc_combos: ERROR - spcc_sensor_switch is not a GtkSwitch\n");
+		goto end;
+	}
+	// Validate preferences exist (basic check)
+	if (!com.pref.spcc.oscfilterpref) {
+		siril_debug_print("populate_spcc_combos: WARNING - oscfilterpref is NULL\n");
+	}
+
+	// Initialize filters with error handling
+	spcc_debug_print("populate_spcc_combos: populating OSC filters\n");
+	fill_combo_from_glist(oscfilters, com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+
+	spcc_debug_print("populate_spcc_combos: populating red filters\n");
+	fill_combo_from_glist(rfilters, com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+
+	spcc_debug_print("populate_spcc_combos: populating green filters\n");
+	fill_combo_from_glist(gfilters, com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+
+	spcc_debug_print("populate_spcc_combos: populating blue filters\n");
+	fill_combo_from_glist(bfilters, com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
+
+	spcc_debug_print("populate_spcc_combos: populating LP filters\n");
+	fill_combo_from_glist(lpfilters, com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+
+	spcc_debug_print("populate_spcc_combos: populating mono sensors\n");
+	fill_combo_from_glist(monosensors, com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+
+	spcc_debug_print("populate_spcc_combos: populating OSC sensors\n");
+	fill_combo_from_glist(oscsensors, com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+
+	spcc_debug_print("populate_spcc_combos: populating white point\n");
+	fill_combo_from_glist(whitepoint, com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+
+	spcc_debug_print("populate_spcc_combos: setting switch state\n");
 	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
+
+	siril_debug_print("populate_spcc_combos: completed successfully\n");
+end:
 	return FALSE;
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
-	g_mutex_lock(&combos_filling);
-	if (!spcc_filters_initialized) {
-		// do most of the slow file reading in this thread, separate to GTK thread
-		load_all_spcc_metadata();
-		spcc_filters_initialized = TRUE;
-	}
-	g_mutex_unlock(&combos_filling);
+	load_spcc_metadata_if_needed();
 	// update combos back in the GTK thread
-	siril_add_idle(populate_spcc_combos, NULL);
+	gui_mutex_lock(); // force deconfliction with other GUI updates (specifically the script menu)
+	execute_idle_and_wait_for_it(populate_spcc_combos, NULL);
+	gui_mutex_unlock();
 	return GINT_TO_POINTER(0);
 }
 
@@ -907,12 +1220,14 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
 			sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
-		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
-			filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
-		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
-			filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
-		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
-			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
+				filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
+			if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
+				filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
+			if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
+				filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		}
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
 		// there must not be any NULL spcc_object*s with non-NULL ones after them
@@ -929,6 +1244,18 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			spcc_object_free_arrays(structs[i]);
 			i++;
 		}
+		if (args.nb_mode) {
+			double nbx[14] = {400.0,
+				args.nb_center[0] - 0.5*args.nb_bandwidth[0], args.nb_center[0] - 0.5*args.nb_bandwidth[0],
+				args.nb_center[0] + 0.5*args.nb_bandwidth[0], args.nb_center[0] + 0.5*args.nb_bandwidth[0],
+				args.nb_center[1] - 0.5*args.nb_bandwidth[1], args.nb_center[1] - 0.5*args.nb_bandwidth[1],
+				args.nb_center[1] + 0.5*args.nb_bandwidth[1], args.nb_center[1] + 0.5*args.nb_bandwidth[1],
+				args.nb_center[2] - 0.5*args.nb_bandwidth[2], args.nb_center[2] - 0.5*args.nb_bandwidth[2],
+				args.nb_center[2] + 0.5*args.nb_bandwidth[2], args.nb_center[2] + 0.5*args.nb_bandwidth[2], 1000.0};
+			double nby[14] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+			siril_plot_add_xydata(spl_data, _("Narrowband filters"), 14, nbx, nby, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){0.8, 0.8, 0.0});
+		}
 	} else {
 		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
 		if (args.selected_sensor_osc >= 0 && args.selected_sensor_osc < g_list_length (sensor_list)) {
@@ -937,8 +1264,10 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			sensor_g = &osc->channel[GLAYER];
 			sensor_b = &osc->channel[BLAYER];
 		}
-		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
-			filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		if (!args.nb_mode) {
+			if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
+				filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		}
 		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (filter_list_lpf))
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
@@ -955,6 +1284,18 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			g_free(spl_legend);
 			spcc_object_free_arrays(structs[i]);
 			i++;
+		}
+		if (args.nb_mode) {
+			double nbx[14] = {400.0,
+				args.nb_center[0] - 0.5*args.nb_bandwidth[0], args.nb_center[0] - 0.5*args.nb_bandwidth[0],
+				args.nb_center[0] + 0.5*args.nb_bandwidth[0], args.nb_center[0] + 0.5*args.nb_bandwidth[0],
+				args.nb_center[1] - 0.5*args.nb_bandwidth[1], args.nb_center[1] - 0.5*args.nb_bandwidth[1],
+				args.nb_center[1] + 0.5*args.nb_bandwidth[1], args.nb_center[1] + 0.5*args.nb_bandwidth[1],
+				args.nb_center[2] - 0.5*args.nb_bandwidth[2], args.nb_center[2] - 0.5*args.nb_bandwidth[2],
+				args.nb_center[2] + 0.5*args.nb_bandwidth[2], args.nb_center[2] + 0.5*args.nb_bandwidth[2], 1000.0};
+			double nby[14] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0};
+			siril_plot_add_xydata(spl_data, _("Narrowband filters"), 14, nbx, nby, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){0.8, 0.8, 0.0});
 		}
 	}
 	if (args.atmos_corr) {

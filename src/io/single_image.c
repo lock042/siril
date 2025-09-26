@@ -18,9 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 #include <string.h>
 
 #include "core/siril.h"
@@ -41,11 +38,11 @@
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
-#include "gui/preferences.h"
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
 #include "gui/user_polygons.h"
+#include "gui/siril_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -53,11 +50,8 @@
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
 #include "core/undo.h"
 #include "core/processing.h"
-#include "compositing/compositing.h"
-#include "registration/registration.h"
 
 /* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
@@ -105,9 +99,12 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 	clear_stars_list(TRUE);
+	clear_backup();
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
 	reset_menu_toggle_button();
@@ -227,7 +224,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			return 1;
 		}
 	} else {
-		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
+		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
 		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
@@ -430,7 +427,9 @@ int single_image_is_loaded() {
 /**************** updating the single image *******************/
 
 /* generic idle function for end of operation on gfit */
-gboolean end_gfit_operation() {
+gboolean end_gfit_operation(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 

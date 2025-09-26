@@ -22,7 +22,6 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/siril_wcs.h"
 #include "algos/comparison_stars.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
@@ -230,7 +229,7 @@ static void manual_photometry_data (sequence *seq) {
 
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
-			siril_log_color_message(_("Problem with convertion\n"), "red"); // PB in the conversion pix->wcs
+			siril_log_color_message(_("Problem with conversion\n"), "red"); // PB in the conversion pix->wcs
 			g_free(entered_target_name);
 			g_free(target_name);
 			return;
