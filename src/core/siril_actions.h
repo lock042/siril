@@ -141,4 +141,6 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
+gboolean chain_channels_idle_callback(gpointer user_data);
+
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */
