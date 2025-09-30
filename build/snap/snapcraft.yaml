@@ -21,7 +21,7 @@ architectures:
 apps:
   siril:
     command: usr/bin/siril
-    extensions: [gnome-3-34]
+    extensions: [gnome-3-38]
     desktop: usr/share/applications/siril.desktop
     common-id: org.siril.Siril
     plugs:
