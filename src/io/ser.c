@@ -487,7 +487,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 
 static gchar *flip_bayer_pattern(const gchar *old_pattern, unsigned int ry) {
 	sensor_pattern old_sensor_pattern = get_cfa_pattern_index_from_string(old_pattern);
-	if (old_pattern == BAYER_FILTER_NONE)
+	if (old_sensor_pattern == BAYER_FILTER_NONE)
 		return g_strdup(old_pattern); // unknown pattern, do nothing
 	adjust_Bayer_pattern_orientation(&old_sensor_pattern, ry, TRUE);
 	return g_strdup(filter_pattern[old_sensor_pattern]);
