@@ -323,7 +323,7 @@ appimage:
 
 snap:
   stage: packaging
-  image: snapcore/snapcraft:stable
+  image: ghcr.io/canonical/snapcraft:8_core22
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   script:
