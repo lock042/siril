@@ -323,12 +323,9 @@ appimage:
 
 snap:
   stage: packaging
-  image: ubuntu:24.04
+  image: snapcore/snapcraft:stable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
-  before_script:
-    - apt-get update
-    - apt-get install -y snapcraft git
   script:
     - mkdir -p snap
     - cp build/snap/snapcraft.yaml snap/snapcraft.yaml
