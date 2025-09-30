@@ -11,7 +11,7 @@ license: GPL-3.0-or-later
 version: 1.4.0-beta4
 grade: stable
 confinement: strict
-base: core20
+base: core18
 compression: lzo
 
 architectures:
@@ -21,7 +21,7 @@ architectures:
 apps:
   siril:
     command: usr/bin/siril
-    extensions: [gnome-3-38]
+    extensions: [gnome-3-34]
     desktop: usr/share/applications/siril.desktop
     common-id: org.siril.Siril
     plugs:
