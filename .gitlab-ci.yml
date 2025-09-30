@@ -333,15 +333,16 @@ snap:
     - mkdir -p snap
     - cp build/snap/snapcraft.yaml snap/snapcraft.yaml
     - snapcraft --destructive-mode
+    - mkdir -p snap-artifacts
+    - mv ./*.snap snap-artifacts/
   artifacts:
     name: "Snap artifacts"
     expose_as: "Get Snap package here"
     expire_in: 1 week
     paths:
-      - "*.snap"
+      - snap-artifacts/
   needs: []
   allow_failure: true
-
 
 ################################################################################
 # Analysis
