@@ -7,21 +7,17 @@ description: |
   taken with a camera for deep sky objects. It can convert, align, 
   stack and enhance images from various astronomical sources.
 
-website: https://siril.org/
-contact: https://gitlab.com/free-astro/siril/-/issues
-issues: https://gitlab.com/free-astro/siril/-/issues
-source-code: https://gitlab.com/free-astro/siril
 license: GPL-3.0-or-later
-
 version: 1.4.0-beta4
 grade: stable
 confinement: strict
 base: core24
 compression: lzo
 
-platforms:
-  arm64:
-  amd64:
+# 'platforms' n'est pas supporté, utilisez 'architectures' à la place
+architectures:
+  - build-on: amd64
+  - build-on: arm64
 
 apps:
   siril:
@@ -154,4 +150,3 @@ parts:
     meson-parameters:
       - --prefix=/usr
       - --buildtype=release
-
