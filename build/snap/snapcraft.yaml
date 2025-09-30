@@ -11,10 +11,9 @@ license: GPL-3.0-or-later
 version: 1.4.0-beta4
 grade: stable
 confinement: strict
-base: core24
+base: core20
 compression: lzo
 
-# 'platforms' n'est pas supporté, utilisez 'architectures' à la place
 architectures:
   - build-on: amd64
   - build-on: arm64
