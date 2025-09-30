@@ -26,7 +26,7 @@ platforms:
 apps:
   siril:
     command: usr/bin/siril
-    extensions: [gnome]
+    extensions: [gnome-42]
     desktop: usr/share/applications/siril.desktop
     common-id: org.siril.Siril
     plugs:
