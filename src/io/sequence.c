@@ -896,7 +896,7 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	assert(index < seq->number);
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			int ret = readfits(filename, dest, NULL, force_float);
 			if (ret) {
 				char *base = remove_all_ext_from_filename(filename);
@@ -1037,7 +1037,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	char filename[256];
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (read_fits_metadata_from_path(filename, dest)) {
 				siril_log_message(_("Could not load image %d from sequence %s\n"),
 						index, seq->seqname);
@@ -1145,7 +1145,7 @@ int seq_open_image(sequence *seq, int index) {
 			if (_allocate_sequence_locks(seq))
 				return 1;
 
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			siril_fits_open_diskfile_img(&seq->fptr[index], filename, READONLY, &status);
 			if (status) {
 				fits_report_error(stderr, status);
@@ -1256,6 +1256,51 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
 
+	return name_buffer;
+}
+
+char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *name_buffer) {
+	char format[20];
+	const gchar *com_ext = get_com_ext(seq->fz);
+	if (index < 0 || index > seq->number || name_buffer == NULL)
+		return NULL;
+	if (seq->fixed <= 1) {
+		sprintf(format, "%%s%%d");
+	} else {
+		sprintf(format, "%%s%%.%dd", seq->fixed);
+	}
+
+	// List of extensions to check
+	const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
+	int num_extensions = 6;
+
+	// Build base filename without extension
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
+
+	// Try each extension
+	for (int i = 0; i < num_extensions; i++) {
+		char test_path[256];
+		snprintf(test_path, 255, "%s%s", name_buffer, extensions[i]);
+
+		// If seq->fz is TRUE, add .fz suffix
+		if (seq->fz) {
+			strncat(test_path, com_ext, 255 - strlen(test_path) - 1);
+		}
+
+		// Check if file exists
+		if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
+			// File exists, copy to name_buffer and return
+			strncpy(name_buffer, test_path, 255);
+			name_buffer[255] = '\0';
+			return name_buffer;
+		}
+	}
+
+	// If no file found, fall back to default behavior (use com_ext)
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
+	strncat(name_buffer, com_ext, 255 - strlen(name_buffer) - 1);
+
+	name_buffer[255] = '\0';
 	return name_buffer;
 }
 

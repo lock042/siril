@@ -1473,7 +1473,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			char frame_filename[256];
 			char *result = NULL;
 			gchar *absolute_path = NULL;
-			result = seq_get_image_filename(&com.seq, index, frame_filename);
+			switch (com.seq.type) {
+				case SEQ_REGULAR:
+					result = fit_sequence_get_image_filename_checkext(&com.seq, index, frame_filename);
+					break;
+				default:
+					result = seq_get_image_filename(&com.seq, index, frame_filename);
+			}
 			if (com.wd && result) {
 				if (com.seq.type == SEQ_REGULAR) {
 					absolute_path = g_build_filename(com.wd, frame_filename, NULL);
