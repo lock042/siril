@@ -1,0 +1,157 @@
+name: siril
+title: Siril
+summary: Astronomical image processing software
+description: |
+  Siril is an astronomical image processing tool, meant to be used for 
+  pre-processing and processing of astronomical images, such as sequences 
+  taken with a camera for deep sky objects. It can convert, align, 
+  stack and enhance images from various astronomical sources.
+
+website: https://siril.org/
+contact: https://gitlab.com/free-astro/siril/-/issues
+issues: https://gitlab.com/free-astro/siril/-/issues
+source-code: https://gitlab.com/free-astro/siril
+license: GPL-3.0-or-later
+
+version: 1.4.0-beta4
+grade: stable
+confinement: strict
+base: core24
+compression: lzo
+
+platforms:
+  arm64:
+  amd64:
+
+apps:
+  siril:
+    command: usr/bin/siril
+    extensions: [gnome]
+    desktop: usr/share/applications/siril.desktop
+    common-id: org.siril.Siril
+    plugs:
+      - home
+      - removable-media
+      - network
+      - x11
+      - wayland
+      - opengl
+
+parts:
+  cfitsio:
+    plugin: cmake
+    source: https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
+    source-checksum: sha256/95900cf95ae760839e7cb9678a7b2fad0858d6ac12234f934bd1cb6bfc246ba9
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DUSE_PTHREADS=ON
+
+  gtksourceview4:
+    plugin: meson
+    source: https://download.gnome.org/sources/gtksourceview/4.8/gtksourceview-4.8.4.tar.xz
+    source-checksum: sha256/7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+
+  libgit2:
+    plugin: cmake
+    source: https://github.com/libgit2/libgit2/archive/refs/tags/v1.7.1.tar.gz
+    source-checksum: sha256/17d2b292f21be3892b704dddff29327b3564f96099a1c53b00edc23160c71327
+    cmake-parameters:
+      - -DBUILD_EXAMPLES=OFF
+      - -DBUILD_TESTS=OFF
+      - -DUSE_SSH=ON
+    build-packages:
+      - libssh2-1-dev
+
+  wcslib:
+    plugin: autotools
+    source: https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib-8.3.tar.bz2
+    source-checksum: sha256/431ea3417927bbc02b89bfa3415dc0b4668b0f21a3b46fb8a3525e2fcf614508
+    autotools-configure-parameters:
+      - --without-pgplot
+      - --without-cfitsio
+      - --disable-fortran
+
+  gsl:
+    plugin: autotools
+    source: https://mirror.ibcp.fr/pub/gnu/gsl/gsl-2.8.tar.gz
+    source-checksum: sha256/6a99eeed15632c6354895b1dd542ed5a855c0f15d9ad1326c6fe2b2c9e423190
+    autotools-configure-parameters:
+      - --enable-shared
+      - --disable-static
+
+  fftw3:
+    plugin: autotools
+    source: http://fftw.org/fftw-3.3.10.tar.gz
+    source-checksum: sha256/56c932549852cddcfafdab3820b0200c7742675be92179e59e6215b340e26467
+    autotools-configure-parameters:
+      - --enable-float
+      - --enable-threads
+      - --enable-openmp
+      - --disable-fortran
+
+  opencv:
+    plugin: cmake
+    source: https://github.com/opencv/opencv/archive/refs/tags/4.12.0.zip
+    source-checksum: sha256/fa3faf7581f1fa943c9e670cf57dd6ba1c5b4178f363a188a2c8bff1eb28b7e4
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DWITH_FFMPEG=OFF
+      - -DWITH_QT=OFF
+      - -DWITH_OPENGL=OFF
+
+  exiv2:
+    plugin: cmake
+    source: https://github.com/Exiv2/exiv2/releases/download/v0.27.6/exiv2-0.27.6-Source.tar.gz
+    source-checksum: sha256/4c192483a1125dc59a3d70b30d30d32edace9e14adf52802d2f853abf72db8a6
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+
+  libraw:
+    plugin: autotools
+    source: https://www.libraw.org/data/LibRaw-0.21.1.tar.gz
+    source-checksum: sha256/630a6bcf5e65d1b1b40cdb8608bdb922316759bfb981c65091fec8682d1543cd
+
+  ffms2:
+    plugin: autotools
+    source: https://github.com/FFMS/ffms2.git
+    source-type: git
+    source-commit: f20827cf280b669321cd5b62e01d744bc68c21fc
+
+  libheif:
+    plugin: autotools
+    source: https://github.com/strukturag/libheif/releases/download/v1.12.0/libheif-1.12.0.tar.gz
+    source-checksum: sha256/e1ac2abb354fdc8ccdca71363ebad7503ad731c84022cf460837f0839e171718
+
+  libxisf:
+    plugin: cmake
+    source: https://gitea.nouspiro.space/nou/libXISF.git
+    source-type: git
+    source-tag: v0.2.13
+
+  siril:
+    after:
+      - cfitsio
+      - gtksourceview4
+      - libgit2
+      - wcslib
+      - gsl
+      - fftw3
+      - opencv
+      - exiv2
+      - libraw
+      - ffms2
+      - libheif
+      - libxisf
+    plugin: meson
+    source: https://gitlab.com/free-astro/siril.git
+    source-tag: 1.4.0-beta4
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=release
+

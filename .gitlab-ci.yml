@@ -321,6 +321,28 @@ appimage:
   needs: ["build-image-oldstable"]
   allow_failure: true
 
+snap:
+  stage: packaging
+  image: ubuntu:24.04
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - apt-get update
+    - apt-get install -y snapcraft git
+  script:
+    - mkdir -p snap
+    - cp build/snap/snapcraft.yaml snap/snapcraft.yaml
+    - snapcraft --destructive-mode
+  artifacts:
+    name: "Snap artifacts"
+    expose_as: "Get Snap package here"
+    expire_in: 1 week
+    paths:
+      - "*.snap"
+  needs: []
+  allow_failure: true
+
+
 ################################################################################
 # Analysis
 
