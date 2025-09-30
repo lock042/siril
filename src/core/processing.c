@@ -1230,28 +1230,52 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 	}
-	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
+if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
 		// List of extensions to check (both upper and lower case)
 		const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
 		int num_extensions = 6;
 		const gchar *com_ext = get_com_ext(args->seq->fz);
 
 		retval = 1; // Default to fail status
+
+		// First, try com_ext (the expected extension)
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, com_ext);
+		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+			g_free(seqfilename);
+			if (!retval) goto after_fitseq_check;
+		}
+		g_free(seqfilename);
+
+		// If com_ext didn't match, try other extensions
 		for (int i = 0; i < num_extensions; i++) {
-			gchar *seqfilename;
+			// Skip if this extension matches com_ext (already checked)
 			if (args->seq->fz) {
-				seqfilename = g_strdup_printf("%s%s%s", args->seq->seqname, extensions[i], com_ext);
+				// For compressed files, check if extension + .fz matches com_ext
+				char temp_ext[20];
+				snprintf(temp_ext, 19, "%s.fz", extensions[i]);
+				if (strcmp(temp_ext, com_ext) == 0) continue;
+			} else {
+				// For uncompressed files, check if extension matches com_ext
+				if (strcmp(extensions[i], com_ext) == 0) continue;
+			}
+
+			if (args->seq->fz) {
+				seqfilename = g_strdup_printf("%s%s.fz", args->seq->seqname, extensions[i]);
 			} else {
 				seqfilename = g_strdup_printf("%s%s", args->seq->seqname, extensions[i]);
 			}
 
 			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
-				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0); // Success clears the fail status
+				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 				g_free(seqfilename);
 				if (!retval) break;
+			} else {
+				g_free(seqfilename);
 			}
-			g_free(seqfilename);
 		}
+
+after_fitseq_check:
 		if (retval) goto cleanup;
 	}
 	for (frame = 0; frame < nb_frames; frame++) {

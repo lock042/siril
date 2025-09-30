@@ -1277,19 +1277,38 @@ char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *n
 	// Build base filename without extension
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 
-	// Try each extension
+	// First, try com_ext (the expected extension)
+	char test_path[256];
+	snprintf(test_path, 255, "%s%s", name_buffer, com_ext);
+
+	if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
+		strncpy(name_buffer, test_path, 255);
+		name_buffer[255] = '\0';
+		return name_buffer;
+	}
+
+	// If com_ext didn't match, try other extensions
 	for (int i = 0; i < num_extensions; i++) {
-		char test_path[256];
+		// Skip if this extension matches com_ext (already checked)
+		if (seq->fz) {
+			// For compressed files, check if extension + .fz matches com_ext
+			char temp_ext[20];
+			snprintf(temp_ext, 19, "%s%s", extensions[i], ".fz");
+			if (strcmp(temp_ext, com_ext) == 0) continue;
+		} else {
+			// For uncompressed files, check if extension matches com_ext
+			if (strcmp(extensions[i], com_ext) == 0) continue;
+		}
+
 		snprintf(test_path, 255, "%s%s", name_buffer, extensions[i]);
 
 		// If seq->fz is TRUE, add .fz suffix
 		if (seq->fz) {
-			strncat(test_path, com_ext, 255 - strlen(test_path) - 1);
+			strncat(test_path, ".fz", 255 - strlen(test_path) - 1);
 		}
 
 		// Check if file exists
 		if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
-			// File exists, copy to name_buffer and return
 			strncpy(name_buffer, test_path, 255);
 			name_buffer[255] = '\0';
 			return name_buffer;
