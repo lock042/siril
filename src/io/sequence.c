@@ -1296,7 +1296,7 @@ char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *n
 
 		// Cache the extension if not already cached
 		if (seq->cached_ext == NULL) {
-			seq->cached_ext = g_strdup(default_ext);
+			seq->cached_ext = strdup(default_ext);
 		}
 
 		return name_buffer;
@@ -1333,9 +1333,9 @@ char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *n
 					// Cache extension with .fz suffix
 					char full_ext[20];
 					snprintf(full_ext, 19, "%s.fz", extensions[i]);
-					seq->cached_ext = g_strdup(full_ext);
+					seq->cached_ext = strdup(full_ext);
 				} else {
-					seq->cached_ext = g_strdup(extensions[i]);
+					seq->cached_ext = strdup(extensions[i]);
 				}
 			}
 
@@ -1633,7 +1633,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	for (j = 0; j < MAX_SEQPSF && seq->photometry[j]; j++) {
 		free_photometry_set(seq, j);
 	}
-
+	free(seq->cached_ext);
 	if (free_seq_too)	free(seq);
 }
 
