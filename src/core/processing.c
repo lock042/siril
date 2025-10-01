@@ -1231,19 +1231,51 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		}
 	}
 	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
-		int i = 0;
-		static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
-		// We only look for lowercase extensions as FITSEQ will only have been created by Siril, and should
-		// have used a lowercase extensions set in com.pref.ext
-		retval = 1; // For this loop, default to fail status
-		while (fitseq_ext[i]) {
-			gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, fitseq_ext[i++]);
-			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
-				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0); // Success clears the fail status
-			}
+		// List of extensions to check (both upper and lower case)
+		const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
+		int num_extensions = 6;
+		const gchar *com_ext = get_com_ext(args->seq->fz);
+
+		retval = 1; // Default to fail status
+
+		// First, try com_ext (the expected extension)
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, com_ext);
+		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 			g_free(seqfilename);
-			if (!retval) break;
+			if (!retval) goto after_fitseq_check;
 		}
+		g_free(seqfilename);
+
+		// If com_ext didn't match, try other extensions
+		for (int i = 0; i < num_extensions; i++) {
+			// Skip if this extension matches com_ext (already checked)
+			if (args->seq->fz) {
+				// For compressed files, check if extension + .fz matches com_ext
+				char temp_ext[20];
+				snprintf(temp_ext, 19, "%s.fz", extensions[i]);
+				if (strcmp(temp_ext, com_ext) == 0) continue;
+			} else {
+				// For uncompressed files, check if extension matches com_ext
+				if (strcmp(extensions[i], com_ext) == 0) continue;
+			}
+
+			if (args->seq->fz) {
+				seqfilename = g_strdup_printf("%s%s.fz", args->seq->seqname, extensions[i]);
+			} else {
+				seqfilename = g_strdup_printf("%s%s", args->seq->seqname, extensions[i]);
+			}
+
+			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+				g_free(seqfilename);
+				if (!retval) break;
+			} else {
+				g_free(seqfilename);
+			}
+		}
+
+after_fitseq_check:
 		if (retval) goto cleanup;
 	}
 	for (frame = 0; frame < nb_frames; frame++) {

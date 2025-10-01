@@ -67,6 +67,8 @@ void remove_tmp_upscaled_files(struct stacking_args *args) {
 		for (i = 0; i < args->seq->number; i++) {
 			char filename[500];
 			// FIXME: no preallocation of file name
+			// don't use the fit_sequence_get_image_filename_checkext function here as these
+			// temp files are created with the preferred extension anyway.
 			fit_sequence_get_image_filename(args->seq, args->image_indices[i], filename, TRUE);
 			siril_debug_print("Removing %s\n", filename);
 			if (g_unlink(filename))
