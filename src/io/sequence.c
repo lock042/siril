@@ -985,7 +985,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 #endif
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (readfits_partial(filename, layer, dest, area, do_photometry)) {
 				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);

@@ -535,8 +535,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	args->seq->needs_saving = TRUE;
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
-	fit_sequence_get_image_filename(seq, i, file_i, TRUE);
-	fit_sequence_get_image_filename(seq, j, file_j, TRUE);
+	fit_sequence_get_image_filename_checkext(seq, i, file_i);
+	fit_sequence_get_image_filename_checkext(seq, j, file_j);
 	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
 		readfits_partial_all_layers(file_j, &fitj, &areaj)) {
 		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
