@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-07-23 22:17+0000\n"
-"Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
+"PO-Revision-Date: 2025-09-29 03:33+0000\n"
+"Last-Translator: Paulo Cabral <paulinho.cabral@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -6745,19 +6745,19 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
-msgstr ""
+msgstr "Cabeçalho então de cima para baixo"
 
 #: src/gui/uifiles/settings_window.ui:579
 msgid "Header then Bottom-Up"
-msgstr ""
+msgstr "Cabeçalho então de baixo para cima"
 
 #: src/gui/uifiles/settings_window.ui:580
 msgid "Force Top-Down"
-msgstr ""
+msgstr "Forçar de cima para baixo"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
-msgstr ""
+msgstr "Forçar de baixo para cima"
 
 #: src/gui/uifiles/settings_window.ui:597 src/gui/uifiles/siril.ui:3952
 #: src/gui/open_dialog.c:191
@@ -7824,7 +7824,7 @@ msgstr "Normal (256x256)"
 
 #: src/gui/uifiles/settings_window.ui:3589
 msgid "Large (512x512)"
-msgstr ""
+msgstr "Grande (512x512)"
 
 #: src/gui/uifiles/settings_window.ui:3605
 msgid "Image Thumbnails"
@@ -8466,6 +8466,9 @@ msgid ""
 "Type here to filter the list of scripts. The search matches any part of the "
 "script name. Filtering is case-insensitive and updates instantly as you type."
 msgstr ""
+"Digite aqui para filtrar a lista de scripts. A busca corresponde a qualquer "
+"parte do nome do script. O filtro não diferencia maiúsculas de minúsculas e "
+"é atualizado instantaneamente conforme você digita."
 
 #: src/gui/uifiles/settings_window.ui:5203
 #, fuzzy
@@ -8764,6 +8767,7 @@ msgid "High resolution Drizzle weight files"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5827
+#, fuzzy
 msgid ""
 "By default, Drizzle uses 8-bit weight files. This is good enough for many "
 "purposes and is relatively economical with storage requirements.\n"
@@ -8774,6 +8778,17 @@ msgid ""
 "and can be deleted when stacking is finished: if a sequence is re-drizzled, "
 "any existing drizzle weights will be overwritten."
 msgstr ""
+"Por padrão, o Drizzle utiliza arquivos de peso de 8 bits. Isso é suficiente "
+"para muitos propósitos e é relativamente econômico em termos de "
+"armazenamento.\n"
+"Marcar esta opção oferece maior precisão: os pesos do Drizzle serão salvos "
+"com a mesma profundidade de bits da sequência drizzled, o que significa que "
+"os arquivos de peso ocuparão tanto espaço quanto uma cópia adicional da "
+"sequência drizzled.\n"
+"Os arquivos de peso são salvos na subpasta drizztmp do diretório de trabalho "
+"e podem ser excluídos após o empilhamento ser concluído. Se uma sequência "
+"for reprocessada com Drizzle, quaisquer arquivos de peso existentes serão "
+"sobrescritos."
 
 #: src/gui/uifiles/settings_window.ui:5861
 #: src/gui/uifiles/settings_window.ui:6304
