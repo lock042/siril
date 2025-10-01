@@ -624,8 +624,7 @@ void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	if (value_check(&gfit))
-		siril_open_dialog("extract_channel_dialog");
+	siril_open_dialog("extract_channel_dialog");
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
