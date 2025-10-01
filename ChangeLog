@@ -1,3 +1,10 @@
+siril 1.4.0-XXX
+XX/XX/XX
+
+**Fixes:**
+* Fixed wrong interpretation of bayer pattern after a background extraction on CFA images (#1799)
+* Fixed unnecessary range clipping/scaling prior to RGB channel extraction
+
 siril 1.4.0-beta4
 09/28/25
 
