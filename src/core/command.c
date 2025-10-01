@@ -1313,7 +1313,7 @@ int process_getref(int nb) {
 	if (seq->type == SEQ_REGULAR) {
 		long maxpath = get_pathmax();
 		char filename[maxpath];
-		fit_sequence_get_image_filename(seq, ref_image, filename, TRUE);
+		fit_sequence_get_image_filename_checkext(seq, ref_image, filename);
 		siril_log_message(_("Image %d: '%s'\n"), ref_image, filename);
 	}
 	else siril_log_message(_("Image %d\n"), ref_image);
@@ -2930,7 +2930,7 @@ int process_merge(int nb) {
 			long maxpath = get_pathmax();
 			char filename[maxpath];
 			for (int image = 0; image < seqs[i]->number; image++) {
-				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
+				fit_sequence_get_image_filename_checkext(seqs[i], image, filename);
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}

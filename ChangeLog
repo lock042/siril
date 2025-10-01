@@ -3,7 +3,8 @@ XX/XX/XX
 
 **Fixes:**
 * Fixed wrong interpretation of bayer pattern after a background extraction on CFA images (#1799)
-* Fixed unnecessary range clipping/scaling prior to RGB channel extraction
+* Fixed unnecessary range clipping/scaling prior to RGB channel extraction (#1797)
+* Fixed issue with sequence filename construction if com.pref.ext didn't match the seq (#1796)
 
 siril 1.4.0-beta4
 09/28/25
