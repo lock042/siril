@@ -1261,9 +1261,18 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 
 char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *name_buffer) {
 	char format[20];
-	const gchar *com_ext = get_com_ext(seq->fz);
+	const gchar *default_ext;
+
 	if (index < 0 || index > seq->number || name_buffer == NULL)
 		return NULL;
+
+	// Use cached extension if available, otherwise get default
+	if (seq->cached_ext != NULL) {
+		default_ext = seq->cached_ext;
+	} else {
+		default_ext = get_com_ext(seq->fz);
+	}
+
 	if (seq->fixed <= 1) {
 		sprintf(format, "%%s%%d");
 	} else {
@@ -1277,27 +1286,33 @@ char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *n
 	// Build base filename without extension
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 
-	// First, try com_ext (the expected extension)
+	// First, try default_ext (com_ext or cached_ext)
 	char test_path[256];
-	snprintf(test_path, 255, "%s%s", name_buffer, com_ext);
+	snprintf(test_path, 255, "%s%s", name_buffer, default_ext);
 
 	if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
 		strncpy(name_buffer, test_path, 255);
 		name_buffer[255] = '\0';
+
+		// Cache the extension if not already cached
+		if (seq->cached_ext == NULL) {
+			seq->cached_ext = g_strdup(default_ext);
+		}
+
 		return name_buffer;
 	}
 
-	// If com_ext didn't match, try other extensions
+	// If default_ext didn't match, try other extensions
 	for (int i = 0; i < num_extensions; i++) {
-		// Skip if this extension matches com_ext (already checked)
+		// Skip if this extension matches default_ext (already checked)
 		if (seq->fz) {
-			// For compressed files, check if extension + .fz matches com_ext
+			// For compressed files, check if extension + .fz matches default_ext
 			char temp_ext[20];
 			snprintf(temp_ext, 19, "%s%s", extensions[i], ".fz");
-			if (strcmp(temp_ext, com_ext) == 0) continue;
+			if (strcmp(temp_ext, default_ext) == 0) continue;
 		} else {
-			// For uncompressed files, check if extension matches com_ext
-			if (strcmp(extensions[i], com_ext) == 0) continue;
+			// For uncompressed files, check if extension matches default_ext
+			if (strcmp(extensions[i], default_ext) == 0) continue;
 		}
 
 		snprintf(test_path, 255, "%s%s", name_buffer, extensions[i]);
@@ -1311,13 +1326,26 @@ char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *n
 		if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
 			strncpy(name_buffer, test_path, 255);
 			name_buffer[255] = '\0';
+
+			// Cache the found extension if not already cached
+			if (seq->cached_ext == NULL) {
+				if (seq->fz) {
+					// Cache extension with .fz suffix
+					char full_ext[20];
+					snprintf(full_ext, 19, "%s.fz", extensions[i]);
+					seq->cached_ext = g_strdup(full_ext);
+				} else {
+					seq->cached_ext = g_strdup(extensions[i]);
+				}
+			}
+
 			return name_buffer;
 		}
 	}
 
-	// If no file found, fall back to default behavior (use com_ext)
+	// If no file found, fall back to default behavior (use default_ext)
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
-	strncat(name_buffer, com_ext, 255 - strlen(name_buffer) - 1);
+	strncat(name_buffer, default_ext, 255 - strlen(name_buffer) - 1);
 
 	name_buffer[255] = '\0';
 	return name_buffer;
@@ -2459,7 +2487,7 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 		char last_char = cache_filename[strlen(cache_filename) - 1];
 		int margin = (last_char == 't') ? 30 : 0; // we use a margin for lst files but not for msk files
 		char img_filename[256];
-		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
+		if (!fit_sequence_get_image_filename_checkext(seq, index, img_filename) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
