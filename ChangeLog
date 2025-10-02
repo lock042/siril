@@ -6,6 +6,7 @@ XX/XX/XX
 * Fixed unnecessary range clipping/scaling prior to RGB channel extraction (#1797)
 * Fixed issue with sequence filename construction if com.pref.ext didn't match the seq (#1796)
 * Fixed issue where curves tool preview could fail to disapply (#1801)
+* Fixed global registration failed to add reference image to the aligned sequence (#1798)
 
 siril 1.4.0-beta4
 09/28/25
