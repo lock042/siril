@@ -229,6 +229,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		sadata->fitted_stars = nb_stars;
 	}
 	FWHM_stats(sadata->refstars, sadata->fitted_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+	if (args->seq->bitpix != 32 && !com.pref.force_16bit)
+		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;

@@ -380,6 +380,14 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	args->type = gtk_combo_box_get_active(combo_extract_channel);
 	args->str_type = gtk_combo_box_get_active_id(combo_extract_channel);
 
+	if (args->type != EXTRACT_RGB) {
+		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
+		if (!value_check(&gfit)) {
+			siril_log_color_message(_("Error in value_check(). This should not happen...\n"), "red");
+			return;
+		}
+	}
+
 	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
 
 	for (int i = 0; i < 3; i++) {
