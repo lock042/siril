@@ -380,7 +380,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].H = H;
 
 		if (!regargs->no_output) {
-			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+			if (regargs->driz || regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
@@ -406,6 +406,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 	// updating regparam for the output sequence if any and updating pixel size 
 	// is handled in apply_reg_image_hook
+	sadata->success[out_index] = 1;
 	args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	return 0;
 }
