@@ -147,7 +147,28 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				category = _("Core");
 				core = TRUE;
 			} else {
-				category = _("Other");
+				// Extract last subdirectory and convert to title case
+				gchar *path = (gchar *)iterator->data;
+				gchar *last_slash = strrchr(path, G_DIR_SEPARATOR);
+
+				if (last_slash && last_slash > path) {
+					gchar *prev_slash = g_strrstr_len(path, last_slash - path, G_DIR_SEPARATOR_S);
+					gchar *subdir_start = prev_slash ? prev_slash + 1 : path;
+
+					gchar *subdir = g_strndup(subdir_start, last_slash - subdir_start);
+
+					// Convert to title case
+					if (subdir && subdir[0]) {
+						subdir[0] = g_ascii_toupper(subdir[0]);
+						for (gsize i = 1; subdir[i]; i++) {
+							subdir[i] = g_ascii_tolower(subdir[i]);
+						}
+					}
+
+					category = subdir;
+				} else {
+					category = _("Other");
+				}
 			}
 			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
@@ -181,6 +202,14 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 					COLUMN_SCRIPTPATH, scriptpath,
 					COLUMN_BGCOLOR, bg_color[color],
 					-1);
+				// Free dynamically allocated category if it's not one of the static strings
+				if (category != _("Preprocessing") &&
+				    category != _("Processing") &&
+				    category != _("Utility") &&
+				    category != _("Core") &&
+				    category != _("Other")) {
+					g_free((gchar *)category);
+				}
 			}
 			g_free(scriptname);
 			g_free(scriptpath);
