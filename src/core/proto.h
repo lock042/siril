@@ -85,7 +85,28 @@ int roundf_to_int(float x);
 WORD round_to_WORD(double x);
 BYTE round_to_BYTE(double x);
 BYTE roundf_to_BYTE(float f);
-WORD roundf_to_WORD(float f);
+/**
+ * Round float value to a WORD
+ * @param f value to round
+ * @return a truncated and rounded WORD
+ */
+static inline WORD roundf_to_WORD(float f) {
+	// Branchless clamp using masks
+	float clamped = (f < 0.0f) ? 0.0f : f;
+	clamped = (clamped > (float)USHRT_MAX) ? (float)USHRT_MAX : clamped;
+	// Round to nearest integer
+	return (WORD)(clamped + 0.5f);
+}
+
+/**
+ * convert an unsigned short value to siril's representation of float values [0, 1]
+ * @param w value to convert
+ * @return the float equivalent
+ */
+static inline float ushort_to_float_range(WORD w) {
+	return (float)w * INV_USHRT_MAX_SINGLE;
+}
+
 signed short roundf_to_short(float f);
 guint float_to_max_range(float f, guint max);
 int round_to_ceiling_multiple(int x, int factor);

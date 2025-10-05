@@ -115,23 +115,6 @@ BYTE roundf_to_BYTE(float f) {
 }
 
 /**
- * Round float value to a WORD
- * @param f value to round
- * @return a truncated and rounded WORD
- */
-WORD roundf_to_WORD(float f) {
-	WORD retval;
-	if (f < 0.5f) {
-		retval = 0;
-	} else if (f >= USHRT_MAX - 0.5f) {
-		retval = USHRT_MAX;
-	} else {
-		retval = (WORD)(f + 0.5f);
-	}
-	return retval;
-}
-
-/**
  * Round float value to a short
  * @param f value to round
  * @return a truncated and rounded short
@@ -245,15 +228,6 @@ float set_float_in_interval(float val, float low, float high) {
  */
 double set_double_in_interval(double val, double low, double high) {
 	return max(low, min(val, high));
-}
-
-/**
- * convert an unsigned short value to siril's representation of float values [0, 1]
- * @param w value to convert
- * @return the float equivalent
- */
-float ushort_to_float_range(WORD w) {
-	return (float)w * INV_USHRT_MAX_SINGLE;
 }
 
 /**

@@ -147,7 +147,7 @@ siril_link_arg = []
 
 # -fno-math-errno is used to speedup code, this for example speeds up all sqrt() functions.
 # There is no case where we check the math errno. So it’s safe to use this flag for siril.
-siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
+siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64', '-Rpass=loop-verctorize', '-Rpass-missed=loop-vectorize', '-Rpass-analysis=loop-vectorize']
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
 # Add arch=native support if enabled

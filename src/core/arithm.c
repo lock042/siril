@@ -197,10 +197,155 @@ int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float) {
 	return 1;
 }
 
+// descreen b from a
+int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
+	if (!a) return 1;
+	if (!b) return 1;
+	size_t ndata = a->rx * a->ry * a->naxes[2];
+
+	// Determine input types once before loop
+	gboolean a_is_ushort = (a->type == DATA_USHORT);
+	gboolean b_is_ushort = (b->type == DATA_USHORT);
+
+	// If a is ushort and allow_32bits is true, we need to convert a to float
+	if (a_is_ushort && allow_32bits) {
+		fit_replace_buffer(a, ushort_buffer_to_float(a->data, ndata), DATA_FLOAT);
+		a_is_ushort = FALSE;
+	}
+
+	// Vectorizable descreen with on-the-fly conversion
+	const float eps = 1e-6f;
+
+	if (a_is_ushort && b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = ushort_to_float_range(a->data[i]);
+			float bi = ushort_to_float_range(b->data[i]);
+			float denom = 1.f - bi;
+			// compute both versions
+			float screened   = 1.f - ((1.f - ai) / denom);
+			float subtracted = ai - bi;
+			// mask: 1.0f if denom >= eps, else 0.0f
+			float mask = (denom >= eps) ? 1.f : 0.f;
+			// branchless blend
+			float result = mask * screened + (1.f - mask) * subtracted;
+			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
+		}
+	} else if (a_is_ushort && !b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = ushort_to_float_range(a->data[i]);
+			float bi = b->fdata[i];
+			float denom = 1.f - bi;
+			// compute both versions
+			float screened   = 1.f - ((1.f - ai) / denom);
+			float subtracted = ai - bi;
+			// mask: 1.0f if denom >= eps, else 0.0f
+			float mask = (denom >= eps) ? 1.f : 0.f;
+			// branchless blend
+			float result = mask * screened + (1.f - mask) * subtracted;
+			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
+		}
+	} else if (!a_is_ushort && b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(com.max_thread) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = a->fdata[i];
+			float bi = ushort_to_float_range(b->data[i]);
+			float denom = 1.f - bi;
+			// compute both versions
+			float screened   = 1.f - ((1.f - ai) / denom);
+			float subtracted = ai - bi;
+			// mask: 1.0f if denom >= eps, else 0.0f
+			float mask = (denom >= eps) ? 1.f : 0.f;
+			// branchless blend
+			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
+		}
+	} else { // both float
+#pragma omp parallel for schedule(static) num_threads(com.max_thread) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = a->fdata[i];
+			float bi = b->fdata[i];
+			float denom = 1.f - bi;
+			// compute both versions
+			float screened   = 1.f - ((1.f - ai) / denom);
+			float subtracted = ai - bi;
+			// mask: 1.0f if denom >= eps, else 0.0f
+			float mask = (denom >= eps) ? 1.f : 0.f;
+			// branchless blend
+			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
+		}
+	}
+
+	return 0;
+}
+
+// screen a and b together, store result in result
+int screen(fits *a, fits *b, fits *result, gboolean allow_32bits, int threads) {
+	if (!a) return 1;
+	if (!b) return 1;
+	if (!result) return 1;
+
+	size_t ndata = a->rx * a->ry * a->naxes[2];
+	gboolean revert_result = FALSE;
+
+	// Ensure result has float buffer
+	if (result->type == DATA_USHORT) {
+		fit_replace_buffer(result, ushort_buffer_to_float(result->data, ndata), DATA_FLOAT);
+		revert_result = !allow_32bits;
+	}
+
+	// Determine input types once before loop
+	gboolean a_is_ushort = (a->type == DATA_USHORT);
+	gboolean b_is_ushort = (b->type == DATA_USHORT);
+
+	// Vectorizable screen with on-the-fly conversion
+	// Four branches based on input types to avoid conditionals in hot loop
+	if (a_is_ushort && b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = ushort_to_float_range(a->data[i]);
+			float bi = ushort_to_float_range(b->data[i]);
+			result->fdata[i] = 1.f - (1.f - ai) * (1.f - bi);
+		}
+	} else if (a_is_ushort && !b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = ushort_to_float_range(a->data[i]);
+			float bi = b->fdata[i];
+			result->fdata[i] = 1.f - (1.f - ai) * (1.f - bi);
+		}
+	} else if (!a_is_ushort && b_is_ushort) {
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = a->fdata[i];
+			float bi = ushort_to_float_range(b->data[i]);
+			result->fdata[i] = 1.f - (1.f - ai) * (1.f - bi);
+		}
+	} else { // both float
+#pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
+		for (size_t i = 0; i < ndata; i++) {
+			float ai = a->fdata[i];
+			float bi = b->fdata[i];
+			result->fdata[i] = 1.f - (1.f - ai) * (1.f - bi);
+		}
+	}
+
+	// Revert result if needed
+	if (revert_result) {
+		fit_replace_buffer(result, float_buffer_to_ushort(result->fdata, ndata), DATA_USHORT);
+	}
+
+	return 0;
+}
+
 static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor) {
 	if (!a) return 1;
 	if (!a->data) return 1;
 	if (!b) return 1;
+	if (b->type == DATA_FLOAT && !b->fdata)
+		return 1;
+	else if (b->type == DATA_USHORT && !b->data)
+		return 1;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
@@ -209,7 +354,6 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 	}
 
 	if (b->type == DATA_USHORT) {
-		if (!b->data) return 1;
 		WORD *abuf = a->data, *bbuf = b->data;
 		if (oper == OPER_DIV) {
 			for (i = 0; i < n; ++i) {
@@ -252,12 +396,10 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 					break;
 				}
 
-				if (factor != 1.0f)
-					abuf[i] = roundf_to_WORD(factor * (float) abuf[i]);
+				abuf[i] = roundf_to_WORD(factor * (float) abuf[i]);
 			}
 		}
 	} else if (b->type == DATA_FLOAT) {
-		if (!b->fdata) return 1;
 		WORD *abuf = a->data;
 		float *bbuf = b->fdata;
 		float norm = (a->bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE;
@@ -433,26 +575,6 @@ int addmax(fits *a, fits *b) {
 	return 0;
 }
 
-void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
-    // Compute the maximum values using fmaxf for better vectorization
-    float sfmax = fmaxf(fmaxf(data->sf[0], data->sf[1]), data->sf[2]);
-    float tfmax = fmaxf(fmaxf(data->tf[0], data->tf[1]), data->tf[2]);
-
-    // Compute the difference
-    float d = sfmax - tfmax;
-
-    // Calculate k based on conditions
-    float k = (tfmax + m_CB * d > 1.f) ? ((d != 0.f) ? fminf(m_CB, (1.f - tfmax) / d) : m_CB) : m_CB;
-
-    // Pre-compute the common factor once
-    float one_minus_k = 1.f - k;
-
-    // Process channels - keep compact for OpenMP SIMD optimization
-    *r = data->do_channel[0] ? (one_minus_k * data->tf[0] + k * data->sf[0]) : *r;
-    *g = data->do_channel[1] ? (one_minus_k * data->tf[1] + k * data->sf[1]) : *g;
-    *b = data->do_channel[2] ? (one_minus_k * data->tf[2] + k * data->sf[2]) : *b;
-}
-
 void clip(fits *fit) {
 	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
 	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
@@ -532,38 +654,49 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	int available_threads = com.max_thread - omp_get_num_threads();
 #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int i = 0 ; i < (w * h); i++) {
 		a[i] = x[i];
 	}
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,16) collapse(2)
+#pragma omp for schedule(static)
 #endif
 	for (int j = 0 ; j < h ; j++) {
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int i = 0 ; i < w ; i++) {
-			float r = hypotf(i < w / 2 ? i : i - w, j < h / 2 ? j : j - h);
+			float dx = (i < w / 2 ? i : i - w);
+			float dy = (j < h / 2 ? j : j - h);
+			float r  = sqrtf(dx*dx + dy*dy);
 			kk[j][i] = alpha * expf(-r*r*invss);
 		}
 	}
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,16) collapse(2)
+#pragma omp for schedule(static)
 #endif
 	for (int j = 0 ; j < h ; j++) {
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int i = 0 ; i < w ; i++) {
 			sum += kk[j][i];
 		}
 	}
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,16) collapse(2)
+#pragma omp for schedule(static)
 #endif
 	for (int j = 0 ; j < h ; j++) {
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 		for (int i = 0 ; i < w ; i++) {
 			kk[j][i] /= sum;
 		}
 	}
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int i = 0 ; i < (w * h); i++) {
 		a[i] = k[i];
@@ -577,7 +710,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_destroy_plan(p);
 #ifdef _OPENMP
 }
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int i = 0 ; i < w * h ; i++) {
 		fx[i] = fx[i] * fk[i];
@@ -590,7 +723,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_destroy_plan(q);
 #ifdef _OPENMP
 }
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int i = 0 ; i < w * h; i++) {
 		a[i] = fx[i];
@@ -604,7 +737,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_destroy_plan(r);
 #ifdef _OPENMP
 }
-#pragma omp for simd schedule(static)
+#pragma omp for simd
 #endif
 	for (int i = 0 ; i < w * h; i++) {
 		fftwf_complex z = fk[i] * scale;
@@ -660,12 +793,15 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 		float (*y)[outw] = (void*)out;
 		float (*x)[inw] = (void*)in;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static, 16) collapse(2) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
 		for (int j = 0; j < outh; j++) {
+#ifdef _OPENMP
+#pragma omp simd
+#endif
 			for (int i = 0; i < outw; i++) {
 				float g = x[2 * j][2 * i] + x[2 * j][2 * i + 1] + x[ 2 * j + 1][2 * i] + x[2 * j + 1][ 2 * i + 1];
-				y[j][i] = g/4;
+				y[j][i] = g * 0.25f; // faster than dividing by 4
 			}
 		}
 		return;
