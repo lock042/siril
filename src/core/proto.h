@@ -81,6 +81,120 @@ int readjxl(const char* name, fits *fit);
 int savejxl(const char* name, fits* fit, int effort, double quality, gboolean force_8bit);
 #endif
 /****************** utils.h ******************/
+
+WORD *float_buffer_to_ushort(const float *buffer, size_t ndata);
+signed short *float_buffer_to_short(const float *buffer, size_t ndata);
+signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata);
+float *uchar_buffer_to_float(BYTE *buffer, size_t ndata);
+float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
+float *ushort8_buffer_to_float(WORD *buffer, size_t ndata);
+const char *channel_number_to_name(int channel);
+int get_extension_index(const char *filename);
+image_type get_type_from_filename(const gchar *filename);
+char* remove_ext_from_filename(const char *basename);
+char *remove_all_ext_from_filename(const char *filename);
+gchar *replace_ext(const char *path, const char *new_ext);
+gboolean string_is_a_path(const char *file);
+int is_readable_file(const char *filename);
+int is_symlink_file(const char *filename);
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode);
+gboolean is_forbiden_in_filename(gchar c);
+gboolean file_name_has_invalid_chars(const char *name);
+void replace_invalid_chars(char *name, char repl);
+gchar* replace_wide_char(const gchar *str);
+int stat_file(const char *filename2, image_type *type, char **realname);
+const char* get_filename_ext(const char *filename);
+
+int siril_change_dir(const char *dir, gchar **err);
+int update_sequences_list(const char *sequence_name_to_select);
+void expand_home_in_filename(char *filename, int size);
+double get_normalized_value(fits*);
+void swap_param(double*, double*);
+gchar* str_append(char **data, const char *newdata);
+char *format_basename(char *root, gboolean can_free);
+float compute_slope(WORD *lo, WORD *hi);
+gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
+gchar *siril_truncate_str(gchar *str, gint size);
+gchar **glist_to_array(GList *list, int *arg_count);
+gchar* url_cleanup(const gchar *uri_string);
+void remove_spaces_from_str(gchar *s);
+gboolean string_has_space(const gchar *str);
+void remove_trailing_eol(char *str);
+gboolean string_is_a_number(const char *str);
+#if !GLIB_CHECK_VERSION(2,68,0)
+guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
+		guint limit);
+#endif
+char *str_replace(char *orig, const char *rep, char *with);
+void replace_spaces_from_str(gchar *s, char c);
+void replace_char_from_str(gchar *s, gchar in, gchar out);
+gchar *build_string_from_words(char **words);
+void append_elements_to_array(char **array, char **elements);
+const gchar *get_com_ext(gboolean fz);
+gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
+
+int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
+int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
+gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
+GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
+int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
+int count_lines_in_textfile(const gchar *filename);
+void copy_filename(const char *filename, char *truncated_filename, size_t max_length);
+gboolean is_string_numeric(const gchar *str);
+const gchar* find_first_numeric(const gchar *string);
+const gchar* find_first_nonnumeric(const gchar *string);
+int count_pattern_occurence(const gchar *string, const gchar *pattern);
+guint gui_function(GSourceFunc idle_function, gpointer data);
+gchar *find_file_in_directory(gchar *basename, const gchar *path);
+gchar *find_file_recursively(gchar *basename, const gchar *top_path);
+char *strdupnullok(char *data);
+gchar* remove_extension_from_path(const gchar* filepath);
+gboolean delete_directory(const gchar *dir_path, GError **error);
+gchar *posix_path_separators(const gchar *path);
+
+/****************** quantize.h ***************/
+int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,
+		long *ngoodpix, WORD *minvalue, WORD *maxvalue,
+		double *mean, double *sigma, double *noise1, double *noise2,
+		double *noise3, double *noise5, threading_type threads, int *status);
+
+int siril_fits_img_stats_float(float *array, long nx, long ny,
+		long *ngoodpix, float *minvalue, float *maxvalue,
+		double *mean, double *sigma, double *noise1, double *noise2,
+		double *noise3, double *noise5, threading_type threads, int *status);
+
+/****************** siril.h ******************/
+
+int threshlo(fits *fit, WORD level);
+int threshhi(fits *fit, WORD level);
+int nozero(fits *fit, WORD level);
+int gaussian_blur_RT(fits *fit, double sigma, int threads);
+int unsharp(fits*, double sigma, double mult, gboolean verbose);
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats);
+int loglut(fits *fit);
+int ddp(fits *a, float lev, float coef, float sig);
+int visu(fits *fit, int low, int high);
+int fill(fits *fit, int level, const rectangle *arearg);
+int off(fits *a, float level);
+double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
+void compute_grey_flat(fits *fit);
+
+/****************** seqfile.h ******************/
+sequence* readseqfile(const char *name);
+int writeseqfile(sequence *seq);
+gboolean existseq(const char *name);
+int buildseqfile(sequence *seq, int force_recompute);
+
+/****************** statistics_list.h ******************/
+void computeStat();
+
+/****************** chelperfuncs.h *********************/
+float bilinear(float *x, int w, int h, float i, float j);
+float bilinear_ushort(WORD *x, int w, int h, float i, float j);
+
+/******** static inlines to aid vectorization **********/
+
 /**
  * Round double value to an integer (branchless)
  * @param x value to round
@@ -536,135 +650,6 @@ static inline uint64_t be64_to_cpu(uint64_t x) {
 static inline gboolean isrgb(const fits *fit) {
 	return (fit->naxis == 3);
 }
-
-WORD *float_buffer_to_ushort(const float *buffer, size_t ndata);
-signed short *float_buffer_to_short(const float *buffer, size_t ndata);
-signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata);
-float *uchar_buffer_to_float(BYTE *buffer, size_t ndata);
-float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
-float *ushort8_buffer_to_float(WORD *buffer, size_t ndata);
-gboolean test_double_eq(double a, double b, double epsilon);
-uint16_t change_endianness16(uint16_t x);
-uint16_t cpu_to_le16(uint16_t x);
-uint16_t cpu_to_be16(uint16_t x);
-uint16_t le16_to_cpu(uint16_t x);
-uint16_t be16_to_cpu(uint16_t x);
-uint32_t change_endianness32(uint32_t x);
-uint32_t cpu_to_le32(uint32_t x);
-uint32_t cpu_to_be32(uint32_t x);
-uint32_t le32_to_cpu(uint32_t x);
-uint32_t be32_to_cpu(uint32_t x);
-uint32_t be24_to_cpu(const BYTE x[3]);
-uint64_t change_endianness64(uint64_t x);
-uint64_t cpu_to_le64(uint64_t x);
-uint64_t cpu_to_be64(uint64_t x);
-uint64_t le64_to_cpu(uint64_t x);
-uint64_t be64_to_cpu(uint64_t x);
-gboolean isrgb(const fits *fit);
-const char *channel_number_to_name(int channel);
-int get_extension_index(const char *filename);
-image_type get_type_from_filename(const gchar *filename);
-char* remove_ext_from_filename(const char *basename);
-char *remove_all_ext_from_filename(const char *filename);
-gchar *replace_ext(const char *path, const char *new_ext);
-gboolean string_is_a_path(const char *file);
-int is_readable_file(const char *filename);
-int is_symlink_file(const char *filename);
-gint siril_mkdir_with_parents(const gchar* pathname, gint mode);
-gboolean is_forbiden_in_filename(gchar c);
-gboolean file_name_has_invalid_chars(const char *name);
-void replace_invalid_chars(char *name, char repl);
-gchar* replace_wide_char(const gchar *str);
-int stat_file(const char *filename2, image_type *type, char **realname);
-const char* get_filename_ext(const char *filename);
-
-int siril_change_dir(const char *dir, gchar **err);
-int update_sequences_list(const char *sequence_name_to_select);
-void expand_home_in_filename(char *filename, int size);
-double get_normalized_value(fits*);
-void swap_param(double*, double*);
-gchar* str_append(char **data, const char *newdata);
-char *format_basename(char *root, gboolean can_free);
-float compute_slope(WORD *lo, WORD *hi);
-gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
-gchar *siril_truncate_str(gchar *str, gint size);
-gchar **glist_to_array(GList *list, int *arg_count);
-gchar* url_cleanup(const gchar *uri_string);
-void remove_spaces_from_str(gchar *s);
-gboolean string_has_space(const gchar *str);
-void remove_trailing_eol(char *str);
-gboolean string_is_a_number(const char *str);
-#if !GLIB_CHECK_VERSION(2,68,0)
-guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
-		guint limit);
-#endif
-char *str_replace(char *orig, const char *rep, char *with);
-void replace_spaces_from_str(gchar *s, char c);
-void replace_char_from_str(gchar *s, gchar in, gchar out);
-gchar *build_string_from_words(char **words);
-void append_elements_to_array(char **array, char **elements);
-const gchar *get_com_ext(gboolean fz);
-gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
-
-int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
-int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
-int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
-int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
-int count_lines_in_textfile(const gchar *filename);
-void copy_filename(const char *filename, char *truncated_filename, size_t max_length);
-gboolean is_string_numeric(const gchar *str);
-const gchar* find_first_numeric(const gchar *string);
-const gchar* find_first_nonnumeric(const gchar *string);
-int count_pattern_occurence(const gchar *string, const gchar *pattern);
-guint gui_function(GSourceFunc idle_function, gpointer data);
-gchar *find_file_in_directory(gchar *basename, const gchar *path);
-gchar *find_file_recursively(gchar *basename, const gchar *top_path);
-char *strdupnullok(char *data);
-gchar* remove_extension_from_path(const gchar* filepath);
-gboolean delete_directory(const gchar *dir_path, GError **error);
-gchar *posix_path_separators(const gchar *path);
-
-/****************** quantize.h ***************/
-int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,
-		long *ngoodpix, WORD *minvalue, WORD *maxvalue,
-		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, threading_type threads, int *status);
-
-int siril_fits_img_stats_float(float *array, long nx, long ny,
-		long *ngoodpix, float *minvalue, float *maxvalue,
-		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, threading_type threads, int *status);
-
-/****************** siril.h ******************/
-
-int threshlo(fits *fit, WORD level);
-int threshhi(fits *fit, WORD level);
-int nozero(fits *fit, WORD level);
-int gaussian_blur_RT(fits *fit, double sigma, int threads);
-int unsharp(fits*, double sigma, double mult, gboolean verbose);
-float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats);
-int loglut(fits *fit);
-int ddp(fits *a, float lev, float coef, float sig);
-int visu(fits *fit, int low, int high);
-int fill(fits *fit, int level, const rectangle *arearg);
-int off(fits *a, float level);
-double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
-void compute_grey_flat(fits *fit);
-
-/****************** seqfile.h ******************/
-sequence* readseqfile(const char *name);
-int writeseqfile(sequence *seq);
-gboolean existseq(const char *name);
-int buildseqfile(sequence *seq, int force_recompute);
-
-/****************** statistics_list.h ******************/
-void computeStat();
-
-/****************** chelperfuncs.h *********************/
-float bilinear(float *x, int w, int h, float i, float j);
-float bilinear_ushort(WORD *x, int w, int h, float i, float j);
 
 #ifdef __cplusplus
 }
