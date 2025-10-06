@@ -379,20 +379,19 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 	struct registration_args *regargs = sadata->regargs;
 	int w_out = 0, h_out = 0;
 	float scale = 1.0;
+	gint64 im_size = 0; // total size of all images after registration
 	if (regargs->func == &register_star_alignment) {// global registration
 		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		scale = regargs->output_scale;
+		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
 	} else if (regargs->func == &register_apply_reg) { // applyreg
-		w_out = regargs->framingd.roi_out.w;
-		h_out = regargs->framingd.roi_out.h;
+		im_size = (gint64)(regargs->framingd.total_Mpix * 1.e6); // already includes scale and nb_frames
 	} else {
 		siril_debug_print("Unsupported registration function for size computation\n");
 		return -1;
 	}
-	// image_size including scale
-	// for applyreg, we pass already upscaled sizes so scale is forced to 1.
-	gint64 im_size = (gint64)w_out * h_out * scale * scale;
+
 	// nblayers
 	int output_nb_layers = regargs->seq->nb_layers;
 	if (regargs->driz && regargs->driz->is_bayer)
@@ -407,15 +406,17 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 		header_size += SER_HEADER_LEN;
 	} else {
 		output_depth = (com.pref.force_16bit) ? sizeof(WORD) : sizeof(float);
-		header_size = nb_frames *  (gint64)FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
+		header_size = nb_frames * (gint64)FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
 	}
-	size = im_size * output_depth * nb_frames + header_size;
+	size = im_size * output_depth + header_size;
 	if (regargs->driz) {
 		if (com.pref.drizz_weight_match_bitpix) {
-			size += im_size * output_depth * nb_frames + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+			size += im_size * output_depth + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
 		} else {
-			size += im_size * sizeof(BYTE) * nb_frames + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+			size += im_size * sizeof(BYTE) + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
 		}
 	}
+	// temp for debug
+	siril_log_message("Required storage space: %" G_GINT64_FORMAT " MB\n", (gint64)(size / BYTES_IN_A_MB));
 	return size;
 }
