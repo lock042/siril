@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-09-29 03:33+0000\n"
+"PO-Revision-Date: 2025-10-03 18:38+0000\n"
 "Last-Translator: Paulo Cabral <paulinho.cabral@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -2830,7 +2830,6 @@ msgid "One star registration (deep-sky)"
 msgstr "Registo de uma estrela (céu profundo)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2841,7 +2840,6 @@ msgstr ""
 "Selecione o método de enquadramento para alinhamento de céu profundo:\n"
 "Primeiro canal - quadro para o primeiro canal (sempre L no modo de "
 "luminância);\n"
-"Máx - quadro para a extensão máxima das imagens alinhadas;\n"
 "Mín - quadro para a sobreposição mínima de todas as imagens alinhadas;\n"
 "COG - quadro para o centro de gravidade dos pixels no conjunto de imagens "
 "alinhadas."
@@ -3413,11 +3411,11 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
-"Suprime artefatos coloridos em blocos que raramente podem aparecer em "
-"imagens coloridas. Esta opção trata cada canal separadamente e elimina "
-"artefatos ao custo de alguma velocidade. Na maioria das vezes, isso não é "
-"necessário, portanto, está desativado por padrão e só deve ser ativado no "
-"caso raro de você ver artefatos ao eliminar o ruído de uma imagem colorida."
+"Suprime artefatos de cores em blocos que raramente aparecem em imagens "
+"coloridas. Esta opção trata cada canal separadamente e elimina artefatos, "
+"mas com alguma perda de velocidade. Na maioria das vezes, isso não é "
+"necessário, por isso está desativado por padrão e só deve ser ativado no "
+"raro caso de você observar artefatos ao remover ruído de uma imagem colorida."
 
 #: src/gui/uifiles/denoise_dialog.ui:181
 msgid "Color Denoising"
@@ -6727,9 +6725,8 @@ msgid "X-Trans demosaicing quality"
 msgstr "Qualidade de demosaicing X-Trans"
 
 #: src/gui/uifiles/settings_window.ui:561
-#, fuzzy
 msgid "Row-order preference:"
-msgstr "imagem de referência"
+msgstr "Preferência de ordem de linha:"
 
 #: src/gui/uifiles/settings_window.ui:572
 msgid ""
@@ -6742,6 +6739,16 @@ msgid ""
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
 msgstr ""
+"O Siril lê dados FITS na orientação de baixo para cima, mas muitos softwares "
+"de captura não atendem a essa especificação. A maioria deles agora grava uma "
+"chave ROWORDER nos metadados das imagens para indicar como os dados foram "
+"armazenados.\n"
+"Selecione nesta lista sua opção preferida. As duas primeiras tentarão "
+"primeiro ler ROWORDER do cabeçalho e, em seguida, usarão uma solução "
+"alternativa. As duas últimas opções forçam a leitura de cima para baixo ou "
+"de baixo para cima.\n"
+"Esta configuração é ignorada com arquivos SER, que são sempre assumidos como "
+"de cima para baixo, de acordo com seu padrão."
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
@@ -8471,7 +8478,6 @@ msgstr ""
 "é atualizado instantaneamente conforme você digita."
 
 #: src/gui/uifiles/settings_window.ui:5203
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8482,7 +8488,10 @@ msgstr ""
 "Lista de scripts disponíveis. Os scripts selecionados estarão disponíveis no "
 "menu Scripts. Clique duas vezes em uma linha para abrir o script no Editor "
 "de Scripts. (Isso pode ser usado para fazer e salvar alterações locais em um "
-"script.)"
+"script.)\n"
+"Para abrir uma revisão mais antiga (por exemplo, para obter uma versão mais "
+"antiga após uma atualização de script incorreta), clique com o botão direito "
+"do mouse em uma linha."
 
 #: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
@@ -8764,7 +8773,7 @@ msgstr "Usar flat"
 
 #: src/gui/uifiles/settings_window.ui:5823
 msgid "High resolution Drizzle weight files"
-msgstr ""
+msgstr "Arquivos de Drizzle de alta confiabilidade"
 
 #: src/gui/uifiles/settings_window.ui:5827
 #, fuzzy
@@ -10404,6 +10413,12 @@ msgid ""
 "When processing images, registration data is taken from the default layer if "
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
+"Camada na qual o registro é feito. Ele só pode ser feito em uma camada por "
+"vez, ou seja, em imagens monocromáticas.\n"
+"O sinal (*) após o nome da camada significa que os dados de registro já "
+"estão disponíveis para esta camada.\n"
+"Ao processar imagens, os dados de registro são obtidos da camada padrão, se "
+"disponível (para imagens RGB: Verde, caso contrário, use Azul e Vermelho)."
 
 #: src/gui/uifiles/siril.ui:5525
 #, fuzzy
@@ -10419,6 +10434,12 @@ msgid ""
 "<b>WARNING</b>: Make sure to draw a selection with a sufficient number of "
 "stars."
 msgstr ""
+"Marque esta caixa se desejar executar o algoritmo de Alinhamento Global de "
+"Estrelas dentro da área selecionada na imagem de referência. Se nenhuma "
+"seleção for feita, esta opção será ignorada.\n"
+"\n"
+"<b>AVISO</b>: Certifique-se de desenhar uma seleção com um número suficiente "
+"de estrelas."
 
 #: src/gui/uifiles/siril.ui:5545
 msgid "Minimum Star Pairs:"
@@ -10519,6 +10540,15 @@ msgid ""
 "When this box is unchecked, the global star registration will be calculated "
 "and immediately applied using the output registration options selected below."
 msgstr ""
+"Quando esta caixa estiver marcada, as imagens transformadas não serão salvas "
+"como uma sequência recém-registrada. As matrizes de transformação serão "
+"salvas no arquivo de sequência. Os dados de registro poderão ser "
+"inspecionados e algumas imagens desmarcadas, antes da aplicação das "
+"transformações usando o método \"Aplicar Registro Existente\".\n"
+"\n"
+"Quando esta caixa estiver desmarcada, o registro global de estrelas será "
+"calculado e aplicado imediatamente usando as opções de registro de saída "
+"selecionadas abaixo."
 
 #: src/gui/uifiles/siril.ui:5697
 msgid "Undistortion:"
@@ -10959,6 +10989,17 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
+"Ativa o clampeamento dos algoritmos de interpolação Bicúbico e Lancsoz4\n"
+"\n"
+"O principal problema com os algoritmos de interpolação Lanczos e Bicúbico é "
+"a geração de artefatos de subprojeção (ringing). Esses artefatos são "
+"causados pelos lóbulos negativos das funções de interpolação que incidem "
+"sobre bordas de alto contraste e pixels brilhantes isolados (como nas "
+"estrelas). Isso geralmente ocorre apenas com dados lineares.\n"
+"\n"
+"Nas implementações atuais do Siril, incluímos um mecanismo de clampeamento "
+"que evita valores interpolados negativos e artefatos de ringing para a "
+"maioria das imagens."
 
 #: src/gui/uifiles/siril.ui:7095
 msgid "Use interpolation"
@@ -10977,6 +11018,13 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"Marque esta opção para incluir o plano mestre na ponderação inicial de "
+"pixels. Isso fará com que pixels de áreas com menos vinhetas dos quadros de "
+"entrada sejam ponderados com mais intensidade do que pixels de áreas com "
+"mais vinhetas, onde se encaixam no mesmo pixel de saída. Isso representa, na "
+"melhor das hipóteses, um ganho menor.\n"
+"\n"
+"O plano mestre deve ser definido na aba Calibração."
 
 #: src/gui/uifiles/siril.ui:7128
 msgid "Droplet Model"
@@ -11812,6 +11860,8 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:9670
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
 msgstr ""
+"Clique para definir o nome do item para a área de transferência (rótulo "
+"verde)"
 
 #: src/gui/uifiles/siril.ui:9671
 msgid "Sequence:"
@@ -11824,11 +11874,11 @@ msgstr "Matriz de Interpolação de Imagem"
 
 #: src/gui/uifiles/siril.ui:9799
 msgid "High value"
-msgstr ""
+msgstr "Valor alto"
 
 #: src/gui/uifiles/siril.ui:9858
 msgid "Low value"
-msgstr ""
+msgstr "Valor baixo"
 
 #: src/gui/uifiles/siril.ui:9908
 msgid "Min/Max"
@@ -11851,16 +11901,26 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
+"Modo de exibição: esta lista apresenta todos os modos visuais disponíveis no "
+"Siril.\n"
+"\n"
+"<b>AVISO: apenas o modo Linear mostra os valores reais de pixels (quando os "
+"controles deslizantes de visualização estão nas posições mínima e máxima). "
+"Outros modos são apenas uma maneira conveniente de exibir seus dados. Amplie "
+"seu histograma antes de trabalhar em uma ferramenta externa.</b>"
 
 #: src/gui/uifiles/siril.ui:10036
 msgid ""
 "Link/unlink channels in autostretch viewer mode.\n"
 "Current state: linked."
 msgstr ""
+"Vincular/desvincular canais no modo de visualização de alongamento "
+"automático.\n"
+"Estado atual: vinculado."
 
 #: src/gui/uifiles/siril.ui:10062
 msgid "Switch to normal and negative view"
-msgstr ""
+msgstr "Mudar para a visualização normal e negativa"
 
 #: src/gui/uifiles/siril.ui:10079
 msgid "Switch to normal and rainbow colormap (false color rendering)"
@@ -11871,22 +11931,30 @@ msgid ""
 "Left-click to show object names if WCS information is available. Right-click "
 "to display a list of astro catalogs to choose from."
 msgstr ""
+"Clique com o botão esquerdo para exibir os nomes dos objetos, se houver "
+"informações WCS disponíveis. Clique com o botão direito para exibir uma "
+"lista de catálogos astrológicos para escolher."
 
 #: src/gui/uifiles/siril.ui:10120
 msgid "Show celestial grid if WCS information is available"
-msgstr ""
+msgstr "Mostrar grade celeste se as informações do WCS estiverem disponíveis"
 
 #: src/gui/uifiles/siril.ui:10134
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
+"Alternar para o modo PSF/fotometria. Se uma sequência for carregada, um "
+"clique com o botão direito do mouse na imagem exibida aplica o PSF/"
+"Fotometria a toda a sequência."
 
 #: src/gui/uifiles/siril.ui:10148
 msgid ""
 "Make an intensity profile cut, showing a graph of the pixel value along a "
 "line between two points"
 msgstr ""
+"Faça um corte de perfil de intensidade, mostrando um gráfico do valor do "
+"pixel ao longo de uma linha entre dois pontos"
 
 #: src/gui/uifiles/siril.ui:10172
 #, fuzzy
@@ -11900,11 +11968,11 @@ msgstr "Criar três imagens"
 
 #: src/gui/uifiles/siril.ui:10200
 msgid "Fit the image to the window"
-msgstr ""
+msgstr "Ajustar a imagem à janela"
 
 #: src/gui/uifiles/siril.ui:10217
 msgid "Show the image at its normal size"
-msgstr ""
+msgstr "Mostrar a imagem em seu tamanho normal"
 
 #: src/gui/uifiles/siril.ui:10278
 msgid "Horizontal mirror"
@@ -11926,7 +11994,7 @@ msgstr "Nenhuma sequência selecionada"
 
 #: src/gui/uifiles/siril.ui:10385
 msgid "Open recent images (only FITS and SER files)"
-msgstr ""
+msgstr "Abra imagens recentes (somente arquivos FITS e SER)"
 
 #: src/gui/uifiles/siril.ui:10409
 #, fuzzy
@@ -11943,6 +12011,8 @@ msgid ""
 "Menu of the image processing tools. It contains all suitable functions for "
 "image enhancement."
 msgstr ""
+"Menu de ferramentas de processamento de imagem. Contém todas as funções "
+"adequadas para aprimoramento de imagens."
 
 #: src/gui/uifiles/siril.ui:10520
 #, fuzzy
@@ -11953,20 +12023,25 @@ msgstr "_Processamento de imagem"
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
 msgstr ""
+"Menu de ferramentas do Siril. Contém todas as funções necessárias para "
+"análise de imagens."
 
 #: src/gui/uifiles/siril.ui:10567
 msgid "Tools"
-msgstr ""
+msgstr "Ferramentas"
 
 #: src/gui/uifiles/siril.ui:10602
 msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
 msgstr ""
+"Menu dos arquivos de script. Este menu só aparece quando os caminhos de "
+"script definidos nas preferências são definidos para as pastas de script "
+"existentes."
 
 #: src/gui/uifiles/siril.ui:10672
 msgid "Bit-depth select button"
-msgstr ""
+msgstr "Botão de seleção de profundidade de bits"
 
 #: src/gui/uifiles/siril.ui:10726
 #, fuzzy
@@ -11975,11 +12050,11 @@ msgstr "Criar três imagens"
 
 #: src/gui/uifiles/siril.ui:10741
 msgid "Save the current image in a different name"
-msgstr ""
+msgstr "Salvar a imagem atual com um nome diferente"
 
 #: src/gui/uifiles/siril.ui:10763
 msgid "Take a snapshot of your displayed image."
-msgstr ""
+msgstr "Tire um instantâneo da imagem exibida."
 
 #: src/gui/uifiles/siril.ui:10815
 #, fuzzy
@@ -11995,29 +12070,33 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:10850
 msgid "Displays the amount of used RAM memory by Siril."
-msgstr ""
+msgstr "Exibe a quantidade de memória RAM usada pelo Siril."
 
 #: src/gui/uifiles/siril.ui:10871
 msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
 msgstr ""
+"Exibe a quantidade de espaço em disco disponível no sistema de arquivos que "
+"contém o diretório de trabalho."
 
 #. Must be short !!
 #: src/gui/uifiles/siril.ui:10873
 msgctxt "GUI"
 msgid "Disk Space: N/A"
-msgstr ""
+msgstr "Espaço em disco: N/A"
 
 #: src/gui/uifiles/spcc_details.ui:8 src/gui/uifiles/spcc_details.ui:254
 msgid "SPCC Details"
-msgstr ""
+msgstr "Detalhes do SPCC"
 
 #: src/gui/uifiles/spcc_details.ui:28
 msgid ""
 "Plot the data (QE, transmittance or relative photon count) as a function of "
 "wavelength"
 msgstr ""
+"Trace os dados (QE, transmitância ou contagem relativa de fótons) como uma "
+"função do comprimento de onda"
 
 #: src/gui/uifiles/spcc_details.ui:154
 #, fuzzy
@@ -12026,7 +12105,7 @@ msgstr "Fonte"
 
 #: src/gui/uifiles/spcc_details.ui:167
 msgid "Datafile version"
-msgstr ""
+msgstr "Versão do arquivo de dados"
 
 #: src/gui/uifiles/spcc_details.ui:195
 msgid "Number of samples"
@@ -12034,11 +12113,11 @@ msgstr "Número de amostras"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:35 src/algos/extraction.c:1160
 msgid "Split CFA"
-msgstr ""
+msgstr "Dividir CFA"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:70
 msgid "Apply Split CFA"
-msgstr ""
+msgstr "Aplicar CFA dividido"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:101
 #, fuzzy
@@ -12047,11 +12126,11 @@ msgstr "Prefixo dos nomes das imagens resultantes do processo de corte."
 
 #: src/gui/uifiles/split_cfa_dialog.ui:145
 msgid "Method: "
-msgstr ""
+msgstr "Método: "
 
 #: src/gui/uifiles/split_cfa_dialog.ui:156
 msgid "Select the method you want to apply."
-msgstr ""
+msgstr "Selecione o método que você deseja aplicar."
 
 #: src/gui/uifiles/split_cfa_dialog.ui:159
 msgid "Split CFA Channels"
@@ -12074,7 +12153,7 @@ msgstr "Extração"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:177
 msgid "Ha/OIII Resampling"
-msgstr ""
+msgstr "Reamostragem de Ha/OIII"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:189
 msgid ""
@@ -12083,10 +12162,15 @@ msgid ""
 "the Ha image by a factor of 2 to match the OIII image; downsample OIII "
 "downsamples the OIII image by a factor of 2 to match the Ha image."
 msgstr ""
+"Como lidar com a saída do Extract Ha/OIII. Sem reamostragem, produz-se uma "
+"imagem OIII com resolução total e uma imagem Ha com resolução média; a "
+"ampliação de Ha aumenta a resolução da imagem Ha em um fator de 2 para "
+"corresponder à imagem OIII; a redução de resolução de OIII reduz a resolução "
+"da imagem OIII em um fator de 2 para corresponder à imagem Ha."
 
 #: src/gui/uifiles/split_cfa_dialog.ui:192
 msgid "No resampling"
-msgstr ""
+msgstr "Sem reamostragem"
 
 #: src/gui/uifiles/split_cfa_dialog.ui:193
 #, fuzzy
@@ -12100,15 +12184,15 @@ msgstr "Normalizar imagens"
 
 #: src/gui/uifiles/starnet_dialog.ui:43
 msgid "StarNet Star Removal"
-msgstr ""
+msgstr "Remoção de estrelas StarNet"
 
 #: src/gui/uifiles/starnet_dialog.ui:80
 msgid "Apply StarNet"
-msgstr ""
+msgstr "Aplicar StarNet"
 
 #: src/gui/uifiles/starnet_dialog.ui:111
 msgid "Pre-stretch linear image"
-msgstr ""
+msgstr "Pré-alongamento de imagem linear"
 
 #: src/gui/uifiles/starnet_dialog.ui:116
 msgid ""
@@ -12117,10 +12201,14 @@ msgid ""
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
+"Se selecionado, um alongamento otimizado da Função de Transferência de Meio-"
+"tom (MTF) é aplicado à imagem antes da execução do StarNet, e o alongamento "
+"inverso é aplicado na conclusão. Isso é necessário para usar o StarNet na "
+"fase linear do processamento."
 
 #: src/gui/uifiles/starnet_dialog.ui:130
 msgid "Generate star mask"
-msgstr ""
+msgstr "Gerar máscara de estrela"
 
 #: src/gui/uifiles/starnet_dialog.ui:135
 msgid ""
@@ -12128,10 +12216,13 @@ msgid ""
 "directory. The star mask is calculated as the difference between the "
 "original image and the starless image. The default is to produce a star mask."
 msgstr ""
+"Se selecionado, uma máscara de estrela será gerada e salva no diretório de "
+"trabalho. A máscara de estrela é calculada como a diferença entre a imagem "
+"original e a imagem sem estrelas. O padrão é produzir uma máscara de estrela."
 
 #: src/gui/uifiles/starnet_dialog.ui:150
 msgid "Use custom stride"
-msgstr ""
+msgstr "Use etapas personalizadas"
 
 #: src/gui/uifiles/starnet_dialog.ui:155
 msgid ""
@@ -12139,10 +12230,13 @@ msgid ""
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
+"Se selecionado, um valor personalizado pode ser inserido para o parâmetro de "
+"passo do StarNet. O valor padrão é 256 e o desenvolvedor do StarNet "
+"recomenda não alterá-lo."
 
 #: src/gui/uifiles/starnet_dialog.ui:175
 msgid "Stride"
-msgstr ""
+msgstr "Etapa"
 
 #: src/gui/uifiles/starnet_dialog.ui:187
 msgid ""
@@ -12151,10 +12245,15 @@ msgid ""
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
+"Define o tamanho dos blocos passados para a rede neural StarNet para "
+"processamento. É altamente recomendável deixar essa configuração padrão. "
+"Reduzir pela metade a configuração de passo quadruplica o tempo de "
+"processamento. Se alterado, o passo deve ser um número inteiro par entre 2 e "
+"256."
 
 #: src/gui/uifiles/starnet_dialog.ui:210
 msgid "Recompose stars on completion"
-msgstr ""
+msgstr "Recomponha as estrelas após a conclusão"
 
 #: src/gui/uifiles/starnet_dialog.ui:215
 msgid ""
@@ -12164,6 +12263,11 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
+"Se selecionada, ao concluir o processo StarNet, a ferramenta de recomposição "
+"de estrelas será aberta, fornecendo uma interface para esticar e mesclar "
+"independentemente o fundo e as estrelas, caso seja desejada a redução de "
+"estrelas, em vez da remoção total.\n"
+"Esta opção não tem efeito ao processar uma sequência."
 
 #: src/gui/uifiles/starnet_dialog.ui:230
 msgid "Upsample x2"
@@ -12176,12 +12280,19 @@ msgid ""
 "processing time and may impair performance on very large stars. The image is "
 "rescaled to the original size on completion."
 msgstr ""
+"Se selecionado, a imagem será ampliada por um fator de 2 antes da execução "
+"do StarNet. Isso melhora o desempenho em estrelas muito próximas, mas "
+"quadruplica o tempo de processamento e pode prejudicar o desempenho em "
+"estrelas muito grandes. A imagem é redimensionada para o tamanho original "
+"após a conclusão."
 
 #: src/gui/uifiles/starnet_dialog.ui:252
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Aplique StarNet a todas as imagens na sequência atual. Serão geradas "
+"sequências sem estrelas e, se selecionada, com máscara de estrela."
 
 #: src/gui/uifiles/starnet_dialog.ui:273
 #, fuzzy
@@ -12199,11 +12310,11 @@ msgstr "Deteção de estrelas"
 
 #: src/gui/uifiles/starnet_dialog.ui:289
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 #: src/gui/uifiles/stars_list_window.ui:84
 msgid "Export list of stars to a file"
-msgstr ""
+msgstr "Exportar lista de estrelas para um arquivo"
 
 #: src/gui/uifiles/stars_list_window.ui:90
 #: src/gui/uifiles/stars_list_window.ui:906
@@ -12230,6 +12341,9 @@ msgid ""
 "The current zoom level will not be altered. This does not apply to stars "
 "selected by clicking their PSF in the main display."
 msgstr ""
+"Se marcada, uma estrela selecionada na lista será centralizada na tela. O "
+"nível de zoom atual não será alterado. Isso não se aplica a estrelas "
+"selecionadas clicando em seu PSF na tela principal."
 
 #: src/gui/uifiles/stars_list_window.ui:516
 #: src/gui/uifiles/stars_list_window.ui:568
@@ -12240,12 +12354,16 @@ msgid ""
 "Changes of these four values should be tested on one representative image "
 "before using them for registration."
 msgstr ""
+"Alterações desses quatro valores devem ser testadas em uma imagem "
+"representativa antes de usá-las para registro."
 
 #: src/gui/uifiles/stars_list_window.ui:529
 msgid ""
 "Half-size in pixels of the search box. Only the brightest pixel will be used "
 "in this box to fit a star."
 msgstr ""
+"Metade do tamanho em pixels da caixa de pesquisa. Somente o pixel mais "
+"brilhante será usado nesta caixa para encaixar uma estrela."
 
 #: src/gui/uifiles/stars_list_window.ui:547
 msgid ""
@@ -12291,7 +12409,7 @@ msgstr ""
 
 #: src/gui/uifiles/stars_list_window.ui:625
 msgid "Relax PSF checks"
-msgstr ""
+msgstr "Relaxe as verificações do PSF"
 
 #: src/gui/uifiles/stars_list_window.ui:629
 msgid ""
@@ -12301,6 +12419,12 @@ msgid ""
 "guiding, strong coma) but should be used as a last resort, if playing with "
 "all other detection parameters fails."
 msgstr ""
+"Quando marcado, este botão desativa algumas verificações realizadas na fase "
+"de detecção de estrelas, para rejeitar candidatos inicialmente detectados "
+"com base em algumas métricas de qualidade do PSF. Isso pode ser usado para "
+"forçar a detecção de estrelas com formatos estranhos (orientação incorreta, "
+"coma forte), mas deve ser usado como último recurso, caso a manipulação de "
+"todos os outros parâmetros de detecção falhe."
 
 #: src/gui/uifiles/stars_list_window.ui:645
 msgid "Convergence:"
@@ -12315,6 +12439,13 @@ msgid ""
 "This should normally be the case only for stacked images. Increasing this "
 "value may signicantly impact star finding computation time."
 msgstr ""
+"Critério de convergência para ajuste PSF.\n"
+"O valor padrão de 1 deve funcionar na maioria dos casos. No entanto, para "
+"imagens com coma forte, pode ser necessário aumentar esse valor para "
+"permitir mais etapas de iteração.\n"
+"Normalmente, isso deve ser o caso apenas para imagens empilhadas. Aumentar "
+"esse valor pode impactar significativamente o tempo de computação para "
+"encontrar estrelas."
 
 #: src/gui/uifiles/stars_list_window.ui:677
 msgid "Profile type:"
@@ -12329,6 +12460,9 @@ msgid ""
 "Minimum value for Moffat beta parameter. This can be used to avoid galaxies "
 "being modelled as stars with excessively low beta."
 msgstr ""
+"Valor mínimo para o parâmetro beta de Moffat. Isso pode ser usado para "
+"evitar que galáxias sejam modeladas como estrelas com beta excessivamente "
+"baixo."
 
 #: src/gui/uifiles/stars_list_window.ui:733
 msgid "Resets all parameters to defaults."
@@ -12339,12 +12473,16 @@ msgid ""
 "Maximum star amplitude threshold (stars with larger amplitudes will not be "
 "detected)."
 msgstr ""
+"Limite máximo de amplitude de estrelas (estrelas com amplitudes maiores não "
+"serão detectadas)."
 
 #: src/gui/uifiles/stars_list_window.ui:774
 msgid ""
 "Mininum star amplitude threshold (stars with smaller amplitudes will not be "
 "detected)."
 msgstr ""
+"Limiar mínimo de amplitude de estrelas (estrelas com amplitudes menores não "
+"serão detectadas)."
 
 #: src/gui/uifiles/stars_list_window.ui:790
 msgid "Amplitude range"
@@ -12357,6 +12495,10 @@ msgid ""
 "Note: excluding saturated stars from the list will probably make "
 "registration or astrometry fail."
 msgstr ""
+"Habilitar intervalo de amplitude (somente estrelas com amplitude neste "
+"intervalo serão excluídas da detecção).\n"
+"Observação: excluir estrelas saturadas da lista provavelmente fará com que o "
+"registro ou a astrometria falhem."
 
 #: src/gui/uifiles/stars_list_window.ui:806
 msgid "Roundness range"
@@ -12368,12 +12510,17 @@ msgid ""
 "Use only to display optical distortions or double stars, not for "
 "registration or astrometry, this will break them."
 msgstr ""
+"Habilitar limite superior de arredondamento.\n"
+"Use apenas para exibir distorções ópticas ou estrelas duplas, não para "
+"registro ou astrometria, pois isso as quebrará."
 
 #: src/gui/uifiles/stars_list_window.ui:825
 msgid ""
 "Maximum roundness, use only to display optical distortions or double stars, "
 "not for registration or astrometry, this will break them."
 msgstr ""
+"Redondeza máxima, use somente para exibir distorções ópticas ou estrelas "
+"duplas, não para registro ou astrometria, pois isso as quebrará."
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
@@ -12391,6 +12538,8 @@ msgstr "Remover a estrela selecionada da lista"
 msgid ""
 "Remove all stars from the list and clears the tilt overlay, if displayed"
 msgstr ""
+"Remove todas as estrelas da lista e limpa a sobreposição de inclinação, se "
+"exibida"
 
 #: src/gui/uifiles/unpurple_dialog.ui:59
 msgid "Unpurple Filter"
@@ -12398,7 +12547,7 @@ msgstr "Filtro de correção magenta"
 
 #: src/gui/uifiles/unpurple_dialog.ui:147
 msgid "Blue Adjustment"
-msgstr ""
+msgstr "Ajuste de Azul"
 
 #: src/gui/uifiles/unpurple_dialog.ui:158
 #, fuzzy
@@ -12434,6 +12583,11 @@ msgid ""
 "background luminance level for pixels to be selected\n"
 "Threshold for purple reduction set in the [0, 1] range."
 msgstr ""
+"Quando \"Usar máscara estelar\" está ativado, isso afeta o tamanho de cada "
+"estrela\n"
+"na máscara estelar. Quando desativado, afeta o\n"
+"nível de luminância de fundo para os pixels a serem selecionados.\n"
+"Limite para redução de roxo definido no intervalo [0, 1]."
 
 #: src/gui/uifiles/unpurple_dialog.ui:267
 #, fuzzy
@@ -12475,27 +12629,27 @@ msgstr "Processar Wavelets"
 
 #: src/gui/uifiles/wavelets_dialog.ui:321
 msgid "Layer 1"
-msgstr ""
+msgstr "Camada 1"
 
 #: src/gui/uifiles/wavelets_dialog.ui:391
 msgid "Layer 2"
-msgstr ""
+msgstr "Camada 2"
 
 #: src/gui/uifiles/wavelets_dialog.ui:461
 msgid "Layer 3"
-msgstr ""
+msgstr "Camada 3"
 
 #: src/gui/uifiles/wavelets_dialog.ui:531
 msgid "Layer 4"
-msgstr ""
+msgstr "Camada 4"
 
 #: src/gui/uifiles/wavelets_dialog.ui:601
 msgid "Layer 5"
-msgstr ""
+msgstr "Camada 5"
 
 #: src/gui/uifiles/wavelets_dialog.ui:671
 msgid "Layer 6"
-msgstr ""
+msgstr "Camada 6"
 
 #: src/gui/uifiles/wavelets_dialog.ui:737
 msgid "Adjust"
@@ -12504,12 +12658,12 @@ msgstr "Ajuste"
 #: src/gui/siril-shortcuts.ui:14
 msgctxt "shortcut window"
 msgid "Images / Videos"
-msgstr ""
+msgstr "Imagens / Vídeos"
 
 #: src/gui/siril-shortcuts.ui:19
 msgctxt "shortcut window"
 msgid "Open an image / video"
-msgstr ""
+msgstr "Abrir uma imagem / vídeo"
 
 #: src/gui/siril-shortcuts.ui:26
 #, fuzzy
@@ -12520,7 +12674,7 @@ msgstr "Criar três imagens"
 #: src/gui/siril-shortcuts.ui:33
 msgctxt "shortcut window"
 msgid "Save the image with a new filename"
-msgstr ""
+msgstr "Salve a imagem com um novo nome de arquivo"
 
 #: src/gui/siril-shortcuts.ui:40
 #, fuzzy
@@ -12543,7 +12697,7 @@ msgstr "Zoom ajustado"
 #: src/gui/siril-shortcuts.ui:61
 msgctxt "shortcut window"
 msgid "Fit the image to the window"
-msgstr ""
+msgstr "Ajustar a imagem à janela"
 
 #: src/gui/siril-shortcuts.ui:68
 #, fuzzy
@@ -12554,17 +12708,17 @@ msgstr "Zoom ajustado"
 #: src/gui/siril-shortcuts.ui:76
 msgctxt "shortcut window"
 msgid "Undo and Redo"
-msgstr ""
+msgstr "Desfazer e Refazer"
 
 #: src/gui/siril-shortcuts.ui:81
 msgctxt "shortcut window"
 msgid "Undo previous command"
-msgstr ""
+msgstr "Desfazer comando anterior"
 
 #: src/gui/siril-shortcuts.ui:88
 msgctxt "shortcut window"
 msgid "Redo previous command"
-msgstr ""
+msgstr "Refazer comando anterior"
 
 #: src/gui/siril-shortcuts.ui:96
 #, fuzzy
@@ -12605,17 +12759,17 @@ msgstr "Espelho vertical"
 #: src/gui/siril-shortcuts.ui:137
 msgctxt "shortcut window"
 msgid "Tools"
-msgstr ""
+msgstr "Ferramentas"
 
 #: src/gui/siril-shortcuts.ui:142
 msgctxt "shortcut window"
 msgid "Open preferences"
-msgstr ""
+msgstr "Abrir preferências"
 
 #: src/gui/siril-shortcuts.ui:149
 msgctxt "shortcut window"
 msgid "Open application menu"
-msgstr ""
+msgstr "Abra o menu da aplicação"
 
 #: src/gui/siril-shortcuts.ui:156
 #, fuzzy
@@ -12626,17 +12780,17 @@ msgstr "Estatística"
 #: src/gui/siril-shortcuts.ui:163
 msgctxt "shortcut window"
 msgid "Open dynamic PSF window"
-msgstr ""
+msgstr "Abrir janela PSF dinâmica"
 
 #: src/gui/siril-shortcuts.ui:170
 msgctxt "shortcut window"
 msgid "Change working directory"
-msgstr ""
+msgstr "Alterar diretório de trabalho"
 
 #: src/gui/siril-shortcuts.ui:177
 msgctxt "shortcut window"
 msgid "Open plate solver dialog"
-msgstr ""
+msgstr "Abrir o diálogo do plate solver"
 
 #: src/gui/siril-shortcuts.ui:184
 msgctxt "shortcut window"
@@ -12674,22 +12828,22 @@ msgstr "Seleção de sequência"
 #: src/gui/siril-shortcuts.ui:226
 msgctxt "shortcut window"
 msgid "Copy snapshot to clipboard"
-msgstr ""
+msgstr "Copiar instantâneo para a área de transferência"
 
 #: src/gui/siril-shortcuts.ui:233
 msgctxt "shortcut window"
 msgid "Toggle On/Off registration framing"
-msgstr ""
+msgstr "Ativar/desativar enquadramento de registro"
 
 #: src/gui/siril-shortcuts.ui:241
 msgctxt "shortcut window"
 msgid "Windows and Application"
-msgstr ""
+msgstr "Janelas e Aplicações"
 
 #: src/gui/siril-shortcuts.ui:246
 msgctxt "shortcut window"
 msgid "Fullscreen on / off"
-msgstr ""
+msgstr "Tela cheia on / off"
 
 #: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
@@ -13508,9 +13662,9 @@ msgid "Invalid FITS file or pattern for debayering\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:152
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid Bayer pattern for debayering: %d\n"
-msgstr "Mesclagem de padrão Bayer não salva"
+msgstr "Padrão Bayer inválido para desbayerização: %d\n"
 
 #: src/algos/demosaicing.c:166
 msgid ""
@@ -13636,9 +13790,8 @@ msgid "Ha channel"
 msgstr "Canal vermelho"
 
 #: src/algos/extraction.c:331
-#, fuzzy
 msgid "Extract Ha: unsupported Bayer pattern.\n"
-msgstr "Selecionar o padrão Bayer da sua  câmara."
+msgstr "Extrair Ha: padrão Bayer não suportado.\n"
 
 #: src/algos/extraction.c:385 src/algos/extraction.c:618
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -14391,9 +14544,9 @@ msgid "Bad argument to stats option\n"
 msgstr "Argumento ruim para opção de estatísticas\n"
 
 #: src/algos/statistics.c:863
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to write seqstat data: %s"
-msgstr "Falha ao ler as entradas de dados.\n"
+msgstr "Falha ao gravar dados seqstat: %s"
 
 #. Success path
 #: src/algos/statistics.c:870
@@ -14402,9 +14555,9 @@ msgid "Statistic file %s was successfully created.\n"
 msgstr ""
 
 #: src/algos/statistics.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to close seqstat output stream: %s"
-msgstr "Falha ao criar arquivo de saída: %s\n"
+msgstr "Falha ao fechar o fluxo de saída seqstat: %s"
 
 #: src/algos/statistics.c:995 src/registration/global.c:326
 msgid ""
@@ -20651,9 +20804,9 @@ msgid "Failed to find GPid %d, it may already have exited...\n"
 msgstr ""
 
 #: src/core/processing.c:1262
-#, fuzzy, c-format
+#, c-format
 msgid "Error finding the HDU for frame %d\n"
-msgstr "Erro ao abrir o arquivo %s\n"
+msgstr "Erro ao encontrar o HDU para o quadro %d\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -21885,9 +22038,9 @@ msgid "blue"
 msgstr ""
 
 #: src/core/utils.c:828
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create directory '%s': %s\n"
-msgstr "Falha ao criar arquivo de saída: %s\n"
+msgstr "Falha ao criar o diretório '%s': %s\n"
 
 #: src/core/utils.c:1203
 msgid "Unknown error\n"
@@ -23701,9 +23854,9 @@ msgid "Loading commit message..."
 msgstr ""
 
 #: src/gui/git_gui.c:398
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
-msgstr "Erro ao carregar o conteúdo do script: %s\n"
+msgstr "Erro ao carregar o conteúdo do script de %d revisões anteriores: %s\n"
 
 #: src/gui/histogram.c:163 src/gui/histogram.c:169 src/gui/histogram.c:1176
 #: src/gui/histogram.c:1182 src/gui/histogram.c:1871 src/gui/histogram.c:1888
@@ -28374,9 +28527,8 @@ msgid "Failed to set slider state - invalid mode value"
 msgstr "Falha ao definir a seleção - nenhuma imagem carregada"
 
 #: src/io/siril_pythoncommands.c:3065
-#, fuzzy
 msgid "Error: invalid slider values"
-msgstr "Erro: Não foi possível analisar os valores -to.\n"
+msgstr "Erro: valores de controle deslizante inválidos"
 
 #: src/io/siril_pythoncommands.c:3077
 #, fuzzy
@@ -28610,16 +28762,18 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Erro no comando de criação de venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:2041
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create virtual environment: %s\n"
-msgstr "Falha ao preparar o ambiente virtual\n"
+msgstr "Falha ao criar ambiente virtual: %s\n"
 
 #: src/io/siril_pythonmodule.c:2044
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python stderr:\n"
 "%s\n"
-msgstr "Scripts Python"
+msgstr ""
+"Padrão Python:\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2049
 msgid ""
@@ -29743,9 +29897,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/astrometric.c:133
-#, fuzzy
 msgid "Failed to compute homography from corners\n"
-msgstr "não carregada"
+msgstr "Falha ao calcular a homografia dos cantos\n"
 
 #: src/registration/astrometric.c:271
 #, c-format
