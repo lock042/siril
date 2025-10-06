@@ -327,7 +327,7 @@ static inline WORD truncate_to_WORD(int x) {
  * and return as float (branchless)
  */
 static inline float ushort_to_float_range(WORD x) {
-	return (float) x * USHRT_MAX_SINGLE;
+	return (float) x * INV_USHRT_MAX_SINGLE;
 }
 
 /**
