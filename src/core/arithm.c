@@ -202,20 +202,16 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 	if (!a) return 1;
 	if (!b) return 1;
 	size_t ndata = a->rx * a->ry * a->naxes[2];
-
 	// Determine input types once before loop
 	gboolean a_is_ushort = (a->type == DATA_USHORT);
 	gboolean b_is_ushort = (b->type == DATA_USHORT);
-
 	// If a is ushort and allow_32bits is true, we need to convert a to float
 	if (a_is_ushort && allow_32bits) {
 		fit_replace_buffer(a, ushort_buffer_to_float(a->data, ndata), DATA_FLOAT);
 		a_is_ushort = FALSE;
 	}
-
 	// Vectorizable descreen with on-the-fly conversion
 	const float eps = 1e-6f;
-
 	if (a_is_ushort && b_is_ushort) {
 #pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
 		for (size_t i = 0; i < ndata; i++) {
@@ -223,8 +219,8 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
 			// compute both versions
-			float screened   = 1.f - ((1.f - ai) / denom);
 			float subtracted = ai - bi;
+			float screened = subtracted / denom;
 			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
 			// branchless blend
@@ -238,8 +234,8 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
 			// compute both versions
-			float screened   = 1.f - ((1.f - ai) / denom);
 			float subtracted = ai - bi;
+			float screened = subtracted / denom;
 			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
 			// branchless blend
@@ -253,8 +249,8 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
 			// compute both versions
-			float screened   = 1.f - ((1.f - ai) / denom);
 			float subtracted = ai - bi;
+			float screened = subtracted / denom;
 			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
 			// branchless blend
@@ -267,15 +263,14 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
 			// compute both versions
-			float screened   = 1.f - ((1.f - ai) / denom);
 			float subtracted = ai - bi;
+			float screened = subtracted / denom;
 			// mask: 1.0f if denom >= eps, else 0.0f
 			float mask = (denom >= eps) ? 1.f : 0.f;
 			// branchless blend
 			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
 		}
 	}
-
 	return 0;
 }
 
