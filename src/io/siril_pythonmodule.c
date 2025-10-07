@@ -496,7 +496,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
