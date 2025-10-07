@@ -52,6 +52,271 @@
 #endif
 
 /**
+ * Round double value to an integer
+ * @param x value to round
+ * @return an integer
+ */
+int round_to_int(double x) {
+	if (x <= INT_MIN + 0.5) return INT_MIN;
+	if (x >= INT_MAX - 0.5) return INT_MAX;
+	if (x >= 0.0)
+		return (int)(x + 0.5);
+	return (int)(x - 0.5);
+}
+
+/**
+ * Round float value to an integer
+ * @param x value to round
+ * @return an integer
+ */
+int roundf_to_int(float x) {
+	if (x <= (float)INT_MIN + 0.5f) return INT_MIN;
+	if (x >= (float)INT_MAX - 0.5f) return INT_MAX;
+	if (x >= 0.0f)
+		return (int)(x + 0.5f);
+	return (int)(x - 0.5f);
+}
+
+/**
+ * Round double value to a WORD
+ * @param x value to round
+ * @return a WORD
+ */
+WORD round_to_WORD(double x) {
+	if (x <= 0.0)
+		return (WORD)0;
+	if (x > USHRT_MAX_DOUBLE)
+		return USHRT_MAX;
+	return (WORD)(x + 0.5);
+}
+
+/**
+ * Round double value to a BYTE
+ * @param x value to round
+ * @return a BYTE
+ */
+BYTE round_to_BYTE(double x) {
+	if (x <= 0.0)
+		return (BYTE)0;
+	if (x > UCHAR_MAX_DOUBLE)
+		return UCHAR_MAX;
+	return (BYTE)(x + 0.5);
+}
+
+/**
+ * Round float value to a BYTE
+ * @param f value to round
+ * @return a truncated and rounded BYTE
+ */
+BYTE roundf_to_BYTE(float f) {
+	if (f < 0.5f) return 0;
+	if (f >= UCHAR_MAX - 0.5f) return UCHAR_MAX;
+	return (BYTE)(f + 0.5f);
+}
+
+/**
+ * Round float value to a WORD
+ * @param f value to round
+ * @return a truncated and rounded WORD
+ */
+WORD roundf_to_WORD(float f) {
+	WORD retval;
+	if (f < 0.5f) {
+		retval = 0;
+	} else if (f >= USHRT_MAX - 0.5f) {
+		retval = USHRT_MAX;
+	} else {
+		retval = (WORD)(f + 0.5f);
+	}
+	return retval;
+}
+
+/**
+ * Round float value to a short
+ * @param f value to round
+ * @return a truncated and rounded short
+ */
+signed short roundf_to_short(float f) {
+	if (f < SHRT_MIN + 0.5f) return SHRT_MIN;
+	if (f >= SHRT_MAX - 0.5f) return SHRT_MAX;
+	return (signed short)(f + 0.5f);
+}
+
+/**
+ * Scale float value to a maximum value up to 2^32-1
+ * and return as guint32
+ * @param f value to scale
+ * @param max float range [0f..1f] scales to guint32 range [0..max]
+ * @return a guint32
+ */
+guint float_to_max_range(float f, guint max) {
+	f *= max;
+	if (f < 0.5f) return 0;
+	if (f >= max - 0.5f) return max;
+	return (guint)(f + 0.5f);
+}
+
+/**
+ * Compute a ceiling factor
+ * @param x the number to test
+ * @param factor the factor
+ * @return x if it is a factor of factor or the next factor
+ */
+int round_to_ceiling_multiple(int x, int factor) {
+	if (x % factor == 0)
+		return x;
+	return (x / factor + 1) * factor;
+}
+
+/**
+ * convert double value to a BYTE
+ * @param x value to convert
+ * @return a BYTE
+ */
+BYTE conv_to_BYTE(double x) {
+	if (x == 0.0)
+		return (BYTE)0;
+	if (x == USHRT_MAX_DOUBLE)
+		return UCHAR_MAX;
+	x = ((x / USHRT_MAX_DOUBLE) * UCHAR_MAX_DOUBLE);
+	return((BYTE)(x));
+}
+
+/**
+ * truncate a 64 bit unsigned int to a 32 bit signed int
+ * @param x value to truncate
+ * @return an int
+ */
+int truncate_to_int32(uint64_t x) {
+	if (x > (uint64_t)INT_MAX)
+		return INT_MAX;
+	return (int)x;
+}
+
+WORD truncate_to_WORD(int x) {
+	if (x < 0)
+		return 0;
+	if (x > USHRT_MAX)
+		return USHRT_MAX;
+	return (WORD)x;
+}
+
+BYTE truncate_to_BYTE(WORD x) {
+	if (x > UCHAR_MAX)
+		return UCHAR_MAX;
+	return (BYTE)x;
+}
+
+BYTE roundw_to_BYTE(WORD input) {
+	if (input >= USHRT_MAX - 127) {
+		return UCHAR_MAX;
+	}
+	return (uint8_t)((input + 128) >> 8);
+}
+
+/**
+ * Clamp an integer value in the interval given by [low, high]
+ * @param val value to be checked
+ * @param low low value of the interval
+ * @param high high value of the interval
+ * @return a new value set in the [low, high] interval
+ */
+int set_int_in_interval(int val, int low, int high) {
+	return max(low, min(val, high));
+}
+
+/**
+ * Clamp a float value in the interval given by [low, high]
+ * @param val value to be checked
+ * @param low low value of the interval
+ * @param high high value of the interval
+ * @return a new value set in the [low, high] interval
+ */
+float set_float_in_interval(float val, float low, float high) {
+	return max(low, min(val, high));
+}
+
+/**
+ * Clamp a double value in the interval given by [low, high]
+ * @param val value to be checked
+ * @param low low value of the interval
+ * @param high high value of the interval
+ * @return a new value set in the [low, high] interval
+ */
+double set_double_in_interval(double val, double low, double high) {
+	return max(low, min(val, high));
+}
+
+/**
+ * convert an unsigned short value to siril's representation of float values [0, 1]
+ * @param w value to convert
+ * @return the float equivalent
+ */
+float ushort_to_float_range(WORD w) {
+	return (float)w * INV_USHRT_MAX_SINGLE;
+}
+
+/**
+ * convert an unsigned char value to siril's representation of float values [0, 1]
+ * @param w value to convert
+ * @return the float equivalent
+ */
+float uchar_to_float_range(BYTE w) {
+	return (float)w * INV_UCHAR_MAX_SINGLE;
+}
+
+/**
+ * convert an double value from the unsigned short range to siril's representation
+ * of float values [0, 1]
+ * @param d value to convert
+ * @return the float equivalent
+ */
+float double_ushort_to_float_range(double d) {
+	return (float)d * INV_USHRT_MAX_SINGLE;
+}
+
+/**
+ * convert a siril float [0, 1] to an unsigned short
+ * @param f value to convert
+ * @return the unsigned short equivalent
+ */
+WORD float_to_ushort_range(float f) {
+	return roundf_to_WORD(f * USHRT_MAX_SINGLE);
+}
+
+/**
+ * convert a siril float [0, 1] to a signed short
+ * @param f value to convert
+ * @return the signed short equivalent
+ * (-SHRT_MAX - 1)
+ */
+signed short float_to_short_range(float f) {
+	return roundf_to_short((f * USHRT_MAX_SINGLE) - SHRT_MAX_SINGLE - 1);
+}
+
+/**
+ * convert a siril float [0, 1] to an unsigned char
+ * @param f value to convert
+ * @return the unsigned char equivalent
+ */
+BYTE float_to_uchar_range(float f) {
+	return roundf_to_BYTE(f * UCHAR_MAX_SINGLE);
+}
+
+/**
+ * convert the pixel value of an image to a float [0, 1] normalized using bitpix
+ * value depending on btpix
+ * @param fit the image the data is from
+ * @return a float [0, 1] value for the given integer value
+ */
+float ushort_to_float_bitpix(const fits *fit,const WORD value) {
+	const float fval = (float)value;
+	return fit->orig_bitpix == BYTE_IMG ?
+		fval * INV_UCHAR_MAX_SINGLE :
+		fval * INV_USHRT_MAX_SINGLE;
+}
+
+/**
  * convert a float type buffer into a WORD buffer
  * @param buffer in float
  * @param ndata
@@ -163,6 +428,202 @@ float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
 		}
 	}
 	return buf;
+}
+
+/**
+ * Test equality between two double number
+ * @param a
+ * @param b
+ * @param epsilon
+ * @return
+ */
+gboolean test_double_eq(double a, double b, double epsilon) {
+	return (fabs(a - b) <= epsilon);
+}
+
+/**
+ * change endianness of a 16 bit unsigned int
+ * @param x value to convert
+ * @return byte-swapped value
+ */
+uint16_t change_endianness16(uint16_t x) {
+    return (x >> 8) | (x << 8);
+}
+
+/**
+ * convert a 16 bit unsigned int in CPU byte order to little endian
+ * @param x value to convert
+ * @return little endian value
+ */
+uint16_t cpu_to_le16(uint16_t x) {
+#ifdef __BIG_ENDIAN__
+    return change_endianness16(x);
+#else
+    return x;
+#endif
+}
+
+/**
+ * convert a 16 bit unsigned int in CPU byte order to big endian
+ * @param x value to convert
+ * @return big endian value
+ */
+uint16_t cpu_to_be16(uint16_t x) {
+#ifdef __BIG_ENDIAN__
+    return x;
+#else
+    return change_endianness16(x);
+#endif
+}
+
+/**
+ * convert a 16 bit unsigned int from little endian to CPU byte order
+ * @param x little endian value to convert
+ * @return value
+ */
+uint16_t le16_to_cpu(uint16_t x) {
+    return cpu_to_le16(x);
+}
+
+/**
+ * convert a 16 bit unsigned int from big endian to CPU byte order
+ * @param x big endian value to convert
+ * @return value
+ */
+uint16_t be16_to_cpu(uint16_t x) {
+    return cpu_to_be16(x);
+}
+
+uint32_t be24_to_cpu(const BYTE x[3]) {
+#ifdef __BIG_ENDIAN__
+	uint32_t r = ((x[2] << 16) | (x[1] << 8) | x[0]);
+#else
+	uint32_t r = ((x[0] << 16) | (x[1] << 8) | x[2]);
+#endif
+	return r;
+}
+
+/**
+ * change endianness of a 32 bit unsigned int
+ * @param x value to convert
+ * @return byte-swapped value
+ */
+uint32_t change_endianness32(uint32_t x) {
+    return (x >> 24) | ((x & 0xFF0000) >> 8) | ((x & 0xFF00) << 8) | (x << 24);
+}
+
+/**
+ * convert a 32 bit unsigned int in CPU byte order to little endian
+ * @param x value to convert
+ * @return little endian value
+ */
+uint32_t cpu_to_le32(uint32_t x) {
+#ifdef __BIG_ENDIAN__
+    return change_endianness32(x);
+#else
+    return x;
+#endif
+}
+
+/**
+ * convert a 32 bit unsigned int in CPU byte order to big endian
+ * @param x value to convert
+ * @return big endian value
+ */
+uint32_t cpu_to_be32(uint32_t x) {
+#ifdef __BIG_ENDIAN__
+    return x;
+#else
+    return change_endianness32(x);
+#endif
+}
+
+/**
+ * convert a 32 bit unsigned int from little endian to CPU byte order
+ * @param x little endian value to convert
+ * @return value
+ */
+uint32_t le32_to_cpu(uint32_t x) {
+    return cpu_to_le32(x);
+}
+
+/**
+ * convert a 32 bit unsigned int from big endian to CPU byte order
+ * @param x big endian value to convert
+ * @return value
+ */
+uint32_t be32_to_cpu(uint32_t x) {
+    return cpu_to_be32(x);
+}
+
+/**
+ * change endianness of a 64 bit unsigned int
+ * @param x value to convert
+ * @return byte-swapped value
+ */
+uint64_t change_endianness64(uint64_t x) {
+    return
+        (x >> 56)
+        | ((x & 0xFF000000000000) >> 40)
+        | ((x & 0xFF0000000000) >> 24)
+        | ((x & 0xFF00000000) >> 8)
+        | ((x & 0xFF000000) << 8)
+        | ((x & 0xFF0000) << 24)
+        | ((x & 0xFF00) << 40)
+        | (x << 56);
+}
+
+/**
+ * convert a 64 bit unsigned int in CPU byte order to little endian
+ * @param x value to convert
+ * @return little endian value
+ */
+uint64_t cpu_to_le64(uint64_t x) {
+#ifdef __BIG_ENDIAN__
+	return change_endianness64(x);
+#else
+	return x;
+#endif
+}
+
+/**
+ * convert a 64 bit unsigned int in CPU byte order to big endian
+ * @param x value to convert
+ * @return big endian value
+ */
+uint64_t cpu_to_be64(uint64_t x) {
+#ifdef __BIG_ENDIAN__
+	return x;
+#else
+	return change_endianness64(x);
+#endif
+}
+
+/**
+ * convert a 64 bit unsigned int from little endian to CPU byte order
+ * @param x little endian value to convert
+ * @return value
+ */
+uint64_t le64_to_cpu(uint64_t x) {
+	return cpu_to_le64(x);
+}
+
+/**
+ * convert a 64 bit unsigned int from big endian to CPU byte order
+ * @param x big endian value to convert
+ * @return value
+ */
+uint64_t be64_to_cpu(uint64_t x) {
+	return cpu_to_be64(x);
+}
+
+/**
+ * Test if fit has 3 channels
+ * @param fit input FITS image
+ * @return TRUE if fit image has 3 channels
+ */
+gboolean isrgb(const fits *fit) {
+	return (fit->naxis == 3);
 }
 
 /**
