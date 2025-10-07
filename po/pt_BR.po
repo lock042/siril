@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-07 00:13+0000\n"
+"PO-Revision-Date: 2025-10-07 22:26+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -10500,6 +10500,31 @@ msgid ""
 "for <b>Shift</b>, <b>Similarity</b> and <b>Affine</b> and of 4 for "
 "<b>Homography</b>."
 msgstr ""
+"<b>Deslocamento</b> é um mapeamento rígido de 2 graus de liberdade ("
+"deslocamentos x/y), adequado para imagens sem distorção, sem escala e sem "
+"rotação de campo. É necessário que pelo menos 1 par de estrelas tenha "
+"correspondência para definir a transformação.\n"
+"\n"
+"<b>Similaridade</b> é um mapeamento de 4 graus de liberdade (uma escala, uma "
+"rotação e deslocamentos x/y) mais rígido que a homografia, adequado para "
+"imagens sem distorção. É necessário que pelo menos 2 pares de estrelas "
+"tenham correspondência para definir a transformação.\n"
+"\n"
+"<b>Afinidade</b> é um mapeamento de 6 graus de liberdade (duas escalas, um "
+"cisalhamento, uma rotação e deslocamentos x/y) mais rígido que a homografia, "
+"adequado para imagens com pouca distorção. É necessário que pelo menos 3 "
+"pares de estrelas tenham correspondência para definir a transformação.\n"
+"\n"
+"<b>Homografia</b> é a transformação padrão que utiliza uma transformação de "
+"8 graus de liberdade para distorcer as imagens em relação ao referencial. "
+"Isso é adequado para o caso geral e altamente recomendado para imagens de "
+"campo amplo. São necessários pelo menos 4 pares de estrelas tenham "
+"correspondência para definir a transformação.\n"
+"\n"
+"<b>AVISO</b>: A correspondência inicial de estrelas utiliza o algoritmo de "
+"similaridade triangular; consequentemente, o mínimo de pares de estrelas "
+"deve ser de pelo menos 3 para <b>Deslocamento</b>, <b>Similaridade</b> e "
+"<b>Afins</b> e de 4 para <b>Homografia</b>."
 
 #: src/gui/uifiles/siril.ui:5622
 msgid "Shift"
@@ -10784,6 +10809,32 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"Selecione o conjunto de imagens a ser registrado:\n"
+"\n"
+"<b>todas</b>: todas as imagens da sequência são utilizadas\n"
+"\n"
+"<b>selecionadas</b>: utilizar apenas imagens que não foram desmarcadas da "
+"sequência\n"
+"\n"
+"<b>FWHM</b>: imagens com o melhor FWHM computado (somente registro baseado "
+"em estrelas)\n"
+"\n"
+"<b>FWHM ponderado</b>: esta é uma melhoria de um FWHM simples. Permite "
+"excluir imagens muito mais espúrias usando o número de estrelas detectadas "
+"em comparação com a imagem de referência (somente registro baseado em "
+"estrelas)\n"
+"\n"
+"<b>arredondamento</b>: imagens com o melhor arredondamento de estrelas ("
+"somente registro baseado em estrelas)\n"
+"\n"
+"<b>fundo</b>: imagens com os menores valores de fundo (somente registro "
+"baseado em estrelas)\n"
+"\n"
+"<b>estrelas nb</b>: imagens com o melhor número de estrelas detectadas ("
+"somente registro baseado em estrelas)\n"
+"\n"
+"<b>qualidade</b>: imagens com a melhor qualidade (registros DFT planetários "
+"ou Kombat)"
 
 #: src/gui/uifiles/siril.ui:6443 src/gui/uifiles/siril.ui:6572
 #: src/gui/uifiles/siril.ui:6712 src/gui/uifiles/siril.ui:8702
@@ -10889,6 +10940,32 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
+"Selecione o conjunto de imagens a serem empilhadas:\n"
+"\n"
+"<b>todas</b>: todas as imagens da sequência são usadas na pilha\n"
+"\n"
+"<b>selecionadas</b>: use apenas imagens que não foram desmarcadas da "
+"sequência\n"
+"\n"
+"<b>FWHM</b>: imagens com o melhor FWHM computado (somente registro baseado "
+"em estrelas)\n"
+"\n"
+"<b>FWHM ponderado</b>: esta é uma melhoria de um FWHM simples. Permite "
+"excluir imagens muito mais espúrias usando o número de estrelas detectadas "
+"em comparação com a imagem de referência (somente registro baseado em "
+"estrelas)\n"
+"\n"
+"<b>arredondamento</b>: imagens com o melhor arredondamento de estrelas ("
+"somente registro baseado em estrelas)\n"
+"\n"
+"<b>fundo</b>: imagens com os menores valores de fundo (somente registro "
+"baseado em estrelas)\n"
+"\n"
+"<b>estrelas nb</b>: imagens com o melhor número de estrelas detectadas ("
+"somente registro baseado em estrelas)\n"
+"\n"
+"<b>qualidade</b>: imagens com a melhor qualidade (registros DFT planetários "
+"ou Kombat)"
 
 #: src/gui/uifiles/siril.ui:6666 src/gui/uifiles/siril.ui:6793
 #: src/gui/uifiles/siril.ui:8925 src/gui/uifiles/siril.ui:9052
@@ -11416,6 +11493,22 @@ msgid ""
 "However, multiplicative normalisation must be used with flat-field frames.</"
 "b>"
 msgstr ""
+"Se um desses itens for selecionado, um processo de normalização será "
+"aplicado a todas as imagens de entrada antes do empilhamento.\n"
+"\n"
+"- A normalização corresponde ao fundo médio de todas as imagens de entrada "
+"e, em seguida, a normalização é processada por multiplicação ou adição. "
+"Lembre-se de que ambos os processos geralmente levam a resultados "
+"semelhantes, mas a normalização multiplicativa é preferível para imagens que "
+"serão usadas para multiplicação ou divisão como campo plano.\n"
+"\n"
+"- A escala corresponde à dispersão ponderando todas as imagens de entrada. "
+"Isso tende a melhorar a relação sinal-ruído e, portanto, esta é a opção "
+"usada por padrão com a normalização aditiva.\n"
+"\n"
+"<b>Os masters offset e escuros não devem ser processados com normalização. "
+"No entanto, a normalização multiplicativa deve ser usada com quadros de "
+"campo plano.</b>"
 
 #: src/gui/uifiles/siril.ui:8104
 #, fuzzy
@@ -11523,6 +11616,42 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
+"Sete algoritmos de rejeição estão disponíveis:\n"
+"\n"
+"<b>Recorte de Percentil</b> é um algoritmo de rejeição de uma etapa, ideal "
+"para pequenos conjuntos de dados (até 6 imagens).\n"
+"\n"
+"<b>Recorte Sigma</b> é um algoritmo iterativo que rejeita pixels cuja "
+"distância da mediana seja maior que dois valores fornecidos em unidades "
+"sigma.\n"
+"\n"
+"<b>Recorte MAD</b> é um algoritmo iterativo que funciona como Recorte Sigma, "
+"exceto que o estimador utilizado é o Desvio Absoluto da Mediana (MAD). "
+"Geralmente, é usado para processamento de imagens infravermelhas com ruído.\n"
+"\n"
+"<b>Recorte Sigma da Mediana</b> é o mesmo algoritmo, exceto que os pixels "
+"rejeitados são substituídos pelo valor da mediana.\n"
+"\n"
+"<b>Recorte Sigma Winsorizado</b> é muito semelhante ao método Recorte Sigma, "
+"mas utiliza um algoritmo baseado no trabalho de Huber [1] [2].\n"
+"\n"
+"<b>Linear Fit Clipping</b> é um algoritmo desenvolvido por Juan Conejero, "
+"principal desenvolvedor do PixInsight [2]. Ele ajusta a melhor reta (y = ax +"
+" b) da pilha de pixels e rejeita valores discrepantes. Este algoritmo "
+"apresenta ótimo desempenho com pilhas grandes e imagens contendo gradientes "
+"de céu com diferentes distribuições e orientações espaciais.\n"
+"\n"
+"O algoritmo <b>Generalized Extreme Studentized Deviate Test</b> [3] é uma "
+"generalização do Teste de Grubbs, usado para detectar um ou mais valores "
+"discrepantes em um conjunto de dados univariado que segue uma distribuição "
+"aproximadamente normal. Este algoritmo apresenta excelente desempenho com "
+"grandes conjuntos de dados com mais de 50 imagens.\n"
+"\n"
+"[1] Peter J. Huber e E. Ronchetti (2009), Estatísticas Robustas, 2ª Ed., "
+"Wiley\n"
+"[2] Juan Conejero, Integração de Imagens, Tutorial Pixinsight\n"
+"[3] Rosner, Bernard (maio de 1983), Pontos Percentuais para um Procedimento "
+"ESD Generalizado de Muitos Outliers, Technometrics, 25(2), pp. 165-172"
 
 #: src/gui/uifiles/siril.ui:8317
 #, fuzzy
@@ -12967,6 +13096,32 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
+"Resultado PSF %s (%s%s):\n"
+"\n"
+"Coordenadas do Centroide:\n"
+"\t\t%s\n"
+"\n"
+"Largura Total Metade Máxima:\n"
+"\t\tFWHMx=%.2f%s\n"
+"\t\tFWHMy=%.2f%s\n"
+"\t\tr=%.2f\n"
+"Ângulo:\n"
+"\t\t%0.2fgraus\n"
+"\n"
+"Valor de Fundo:\n"
+"\t\tB=%.6f\n"
+"\n"
+"Intensidade Máxima:\n"
+"\t\tA=%.6f\n"
+"\n"
+"Magnitude (%s):\n"
+"\t\tm=%.4f±%.4f\n"
+"\n"
+"Relação Sinal-Ruído:\n"
+"\t\tSNR=%.1fdB (%s)\n"
+"\n"
+"RMSE:\n"
+"\t\tRMSE=%.3e"
 
 #: src/algos/PSF.c:1046
 #, fuzzy
@@ -12992,6 +13147,9 @@ msgid ""
 "%s could not find distortion polynomials for the order specified (%d) and "
 "returned a linear solution, try with a lower order or increase magnitude\n"
 msgstr ""
+"%s não conseguiu encontrar polinômios de distorção para a ordem especificada "
+"(%d) e retornou uma solução linear, tente com uma ordem inferior ou aumente "
+"a magnitude\n"
 
 #: src/algos/astrometry_solver.c:489
 msgid ""
@@ -13016,16 +13174,18 @@ msgstr "Cancelado\n"
 
 #: src/algos/astrometry_solver.c:499
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Memória insuficiente\n"
 
 #: src/algos/astrometry_solver.c:501
 #, c-format
 msgid "There are not enough stars picked in the image. least %d are needed\n"
 msgstr ""
+"Não há estrelas suficientes selecionadas na imagem. São necessárias pelo "
+"menos %d estrelas\n"
 
 #: src/algos/astrometry_solver.c:504
 msgid "Transformation matrix is invalid, solve failed\n"
-msgstr ""
+msgstr "A matriz de transformação é inválida, a solução falhou\n"
 
 #: src/algos/astrometry_solver.c:506
 msgid "Reprojecting catalog failed\n"
@@ -13041,37 +13201,40 @@ msgid ""
 "Siril near solver could not find a solution over the search radius (%.1f "
 "deg)\n"
 msgstr ""
+"O near solver do Siril não conseguiu encontrar uma solução no raio de busca ("
+"%.1f graus)\n"
 
 #: src/algos/astrometry_solver.c:512
 #, c-format
 msgid "Siril near solver time-out after %ds\n"
-msgstr ""
+msgstr "O near solver do Siril atingiu o tempo limit após %ds\n"
 
 #: src/algos/astrometry_solver.c:514
 msgid "Siril near solver encountered a problem when allocating threads\n"
-msgstr ""
+msgstr "O near solver do Siril encontrou um problema ao alocar threads\n"
 
 #: src/algos/astrometry_solver.c:516
 msgid ""
 "Local Astrometry.net encountered a problem while launching its process\n"
-msgstr ""
+msgstr "O Astrometry.net local encontrou um problema ao iniciar seu processo\n"
 
 #. center is less than 10" off from a pole
 #: src/algos/astrometry_solver.c:548
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr ""
+"Posição ascendente em relação a N é indeterminada (muito perto de um polo)\n"
 
 #: src/algos/astrometry_solver.c:568
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
-msgstr ""
+msgstr "Para cima é %+.2lf graus no sentido anti-horário em relação a N%s\n"
 
 #: src/algos/astrometry_solver.c:568
 msgid " (flipped)"
-msgstr ""
+msgstr " (invertida)"
 
 #: src/algos/astrometry_solver.c:573
 msgid "Resolution:%*.3lf arcsec/px\n"
-msgstr ""
+msgstr "Resolução:%*.3lf arcsec/px\n"
 
 #: src/algos/astrometry_solver.c:575
 msgid "Focal length:%*.2lf mm\n"
@@ -13079,37 +13242,38 @@ msgstr "Distância focal:%*.2lf mm\n"
 
 #: src/algos/astrometry_solver.c:576
 msgid "Pixel size:%*.2lf µm\n"
-msgstr ""
+msgstr "Tamanho do pixel: %*.2lf µm\n"
 
 #: src/algos/astrometry_solver.c:579
 #, c-format
 msgid "Field of view:    %s x %s\n"
-msgstr ""
+msgstr "Campo de visão:    %s x %s\n"
 
 #: src/algos/astrometry_solver.c:580
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
-msgstr ""
+msgstr "Centro de imagem: alfa: %s, delta: %s\n"
 
 #: src/algos/astrometry_solver.c:584
 #, c-format
 msgid "Was %.2f arcmin from initial value\n"
-msgstr ""
+msgstr "Era %.2f arcmin do valor inicial\n"
 
 #: src/algos/astrometry_solver.c:855
 #, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr ""
+msgstr "Obteve %d estrelas do catálogo %s\n"
 
 #: src/algos/astrometry_solver.c:882
 #, c-format
 msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr ""
+"Resolução de imagem com astrometry.net para um campo de visão de %.2f graus\n"
 
 #: src/algos/astrometry_solver.c:884 src/gui/photometric_cc.c:1505
 msgid "local"
-msgstr ""
+msgstr "Local"
 
 #: src/algos/astrometry_solver.c:885
 #, fuzzy
@@ -13152,7 +13316,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1023
 msgid "Plate Solve"
-msgstr ""
+msgstr "Solução de imagem"
 
 #: src/algos/astrometry_solver.c:1048 src/gui/callbacks.c:1960
 #, c-format
@@ -13166,11 +13330,11 @@ msgstr "Não foi possível salvar o arquivo mestre de distorção, pulando\n"
 
 #: src/algos/astrometry_solver.c:1066
 msgid "Solution has no distortion\n"
-msgstr ""
+msgstr "A solução não tem distorção\n"
 
 #: src/algos/astrometry_solver.c:1074
 msgid "Flipping image and updating astrometry data.\n"
-msgstr ""
+msgstr "Invertendo a imagem e atualizando os dados astrométricos.\n"
 
 #: src/algos/astrometry_solver.c:1107
 #, c-format
@@ -13192,17 +13356,18 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1307
 msgid "Solving again at updated center\n"
-msgstr ""
+msgstr "Resolvendo novamente no centro atualizado\n"
 
 #: src/algos/astrometry_solver.c:1598
 #, c-format
 msgid "Running asnet version %s\n"
-msgstr ""
+msgstr "Executando a versão %s do ASNET\n"
 
 #: src/algos/astrometry_solver.c:1636
 #, c-format
 msgid "Astrometry.net path (%s) incorrectly set in preferences\n"
 msgstr ""
+"Caminho do Astrometry.net (%s) definido incorretamente nas preferências\n"
 
 #: src/algos/astrometry_solver.c:1668
 msgid "solve-field was not found, set its path in the preferences\n"
@@ -13218,6 +13383,8 @@ msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
+"Astrometry.net resolvendo com um campo de busca em RA: %s, Dec: %s, dentro "
+"de um raio de %s graus para escalas [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1752
 #, c-format
@@ -13229,11 +13396,11 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1756
 #, c-format
 msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
-msgstr ""
+msgstr "Astrometry.net resolvendo cegamente em posição para escalas [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1759
 msgid "Astrometry.net solving blindly\n"
-msgstr ""
+msgstr "Astrometry.net resolvendo às cegas\n"
 
 #: src/algos/astrometry_solver.c:1824
 #, fuzzy
@@ -13248,6 +13415,7 @@ msgstr "Nenhuma solução astrométrica encontrada\n"
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
+"Não foi possível ler a solução do campo de solução (esperado no arquivo %s)\n"
 
 #: src/algos/astrometry_solver.c:1936
 msgid "Using the current selection to detect stars\n"
@@ -13255,7 +13423,7 @@ msgstr "Usar a seleção atual para detectar estrelas\n"
 
 #: src/algos/astrometry_solver.c:1981
 msgid "Selection is not used in manual star selection mode\n"
-msgstr ""
+msgstr "A seleção não é usada no modo de seleção manual de estrelas\n"
 
 #: src/algos/astrometry_solver.c:2038
 msgid "Error: no reference stars available\n"
@@ -13264,7 +13432,7 @@ msgstr "Erro: nenhuma estrela de referência disponível\n"
 #: src/algos/astrometry_solver.c:2055 src/registration/registration.c:94
 #: src/registration/shift_methods.c:84 src/registration/shift_methods.c:364
 msgid "Recomputing already existing registration for this layer\n"
-msgstr ""
+msgstr "Recomputando o registro já existente para esta camada\n"
 
 #: src/algos/astrometry_solver.c:2070
 #, c-format
@@ -13311,12 +13479,12 @@ msgstr "Imagem %d: nenhuma estrela encontrada\n"
 #: src/algos/astrometry_solver.c:2185 src/algos/astrometry_solver.c:2239
 #, c-format
 msgid "Could not copy WCS data, skipping image %d\n"
-msgstr ""
+msgstr "Não foi possível copiar os dados WCS, ignorando a imagem %d\n"
 
 #: src/algos/astrometry_solver.c:2212
 #, c-format
 msgid "Image %s did not solve\n"
-msgstr ""
+msgstr "A imagem %s não foi resolvida\n"
 
 #: src/algos/astrometry_solver.c:2226
 #, c-format
@@ -13336,7 +13504,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:2255
 #, c-format
 msgid "(%d were already solved and skipped)\n"
-msgstr ""
+msgstr "(%d já foram resolvidos e ignorados)\n"
 
 #: src/algos/astrometry_solver.c:2259
 msgid "Computing astrometric registration...\n"
@@ -13351,19 +13519,21 @@ msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
 msgstr ""
+"Não há amostras de fundo suficientes. O fundo a ser extraído não pode ser "
+"calculado.\n"
 
 #: src/algos/background_extraction.c:834
 #, c-format
 msgid "Failed to generate background samples for image: %s\n"
-msgstr ""
+msgstr "Falha ao gerar amostras de fundo para a imagem: %s\n"
 
 #: src/algos/background_extraction.c:893 src/algos/background_extraction.c:1060
 msgid "Not enough samples."
-msgstr ""
+msgstr "Não há amostras suficientes."
 
 #: src/algos/background_extraction.c:893
 msgid "Insufficient samples"
-msgstr ""
+msgstr "Amostras insuficientes"
 
 #: src/algos/background_extraction.c:910
 #, c-format
