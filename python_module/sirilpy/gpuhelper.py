@@ -487,7 +487,13 @@ class ONNXHelper:
                         back to the CPU-only package purely because of network issues
         """
         # First check if any onnxruntime is already installed
-        is_installed, package_name = self.is_onnxruntime_installed()
+        try:
+            is_installed, package_name = self.is_onnxruntime_installed()
+        except:
+            # Error checking if it's installed
+            print("Error checking ONNX Runtime state. Removing and reinstalling...")
+            self.uninstall_onnxruntime()
+            is_installed = False
 
         if is_installed:
             if force:
