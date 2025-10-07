@@ -689,8 +689,8 @@ gpointer do_starnet(gpointer p) {
 		}
 	}
 
+	const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 	if (!force_16bit) {
-		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
 
@@ -733,7 +733,9 @@ gpointer do_starnet(gpointer p) {
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
-		retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		//retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		// De-screen starless from original
+		retval = descreen(&fit, &workingfit, !force_16bit, com.max_thread);
 		if (retval) {
 			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
 			goto CLEANUP;
