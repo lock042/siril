@@ -7,7 +7,7 @@ XX/XX/XX
 * Fixed issue with sequence filename construction if com.pref.ext didn't match the seq (#1796)
 * Fixed issue where curves tool preview could fail to disapply (#1801)
 * Fixed global registration failed to add reference image to the aligned sequence (#1798)
-* Fixed PLTSOLVD keyword that was not correctly propageted (#1807)
+* Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
