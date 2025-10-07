@@ -12,6 +12,7 @@ XX/XX/XX
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
 * Make ONNXHelper slightly more robust (!940)
+* Enabled compiler optimizations by inlining many common data conversion functions (!942)
 
 siril 1.4.0-beta4
 09/28/25

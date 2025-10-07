@@ -101,3 +101,9 @@ option('flatpak-id',
  value : '',
  description : 'set by flatpak-builder if building a flatpak'
 )
+
+option('simd_logs',
+ type : 'boolean',
+ value : false,
+ description : 'Enable loop vectorization analysis during build (clang only)'
+)
