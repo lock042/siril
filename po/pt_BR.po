@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-03 18:38+0000\n"
-"Last-Translator: Paulo Cabral <paulinho.cabral@gmail.com>\n"
+"PO-Revision-Date: 2025-10-07 00:13+0000\n"
+"Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -12473,16 +12473,16 @@ msgid ""
 "Maximum star amplitude threshold (stars with larger amplitudes will not be "
 "detected)."
 msgstr ""
-"Limite máximo de amplitude de estrelas (estrelas com amplitudes maiores não "
-"serão detectadas)."
+"Limite máximo de amplitude de estrelas (nota: estrelas com amplitudes "
+"maiores não serão detectadas)."
 
 #: src/gui/uifiles/stars_list_window.ui:774
 msgid ""
 "Mininum star amplitude threshold (stars with smaller amplitudes will not be "
 "detected)."
 msgstr ""
-"Limiar mínimo de amplitude de estrelas (estrelas com amplitudes menores não "
-"serão detectadas)."
+"Limiar mínimo de amplitude de estrelas (nota: estrelas com amplitudes "
+"menores não serão detectadas)."
 
 #: src/gui/uifiles/stars_list_window.ui:790
 msgid "Amplitude range"
@@ -12848,12 +12848,12 @@ msgstr "Tela cheia on / off"
 #: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
 msgid "Hide / Show toolbar"
-msgstr ""
+msgstr "Ocultar / Exibir barra de ferramenta"
 
 #: src/gui/siril-shortcuts.ui:260
 msgctxt "shortcut window"
 msgid "Switch to the Conversion page"
-msgstr ""
+msgstr "Mudar para a página de conversão"
 
 #: src/gui/siril-shortcuts.ui:267
 #, fuzzy
@@ -12864,73 +12864,73 @@ msgstr "PSF para a sequência"
 #: src/gui/siril-shortcuts.ui:274
 msgctxt "shortcut window"
 msgid "Switch to the Pre-Processing page"
-msgstr ""
+msgstr "Mudar para a página de pré-processamento"
 
 #: src/gui/siril-shortcuts.ui:281
 msgctxt "shortcut window"
 msgid "Switch to the Registration page"
-msgstr ""
+msgstr "Mudar para a página de registro"
 
 #: src/gui/siril-shortcuts.ui:288
 msgctxt "shortcut window"
 msgid "Switch to the Plot page"
-msgstr ""
+msgstr "Mudar para a página de gráfico"
 
 #: src/gui/siril-shortcuts.ui:295
 msgctxt "shortcut window"
 msgid "Switch to the Stacking page"
-msgstr ""
+msgstr "Mudar para a página de empilhamento"
 
 #: src/gui/siril-shortcuts.ui:302
 msgctxt "shortcut window"
 msgid "Switch to the Output logs page"
-msgstr ""
+msgstr "Mudar para a página de logs de saída"
 
 #: src/gui/siril-shortcuts.ui:309
 msgctxt "shortcut window"
 msgid "Quit the application"
-msgstr ""
+msgstr "Sair da aplicação"
 
 #: src/algos/PSF.c:966
 msgid "Excellent"
-msgstr ""
+msgstr "Excelente"
 
 #: src/algos/PSF.c:967
 msgid "Good"
-msgstr ""
+msgstr "Bom"
 
 #: src/algos/PSF.c:968
 msgid "Fair"
-msgstr ""
+msgstr "Razoável"
 
 #: src/algos/PSF.c:969
 msgid "Poor"
-msgstr ""
+msgstr "Pobre"
 
 #: src/algos/PSF.c:970
 msgid "Bad"
-msgstr ""
+msgstr "Ruim"
 
 #: src/algos/PSF.c:971
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 #: src/algos/PSF.c:979
 msgid "true reduced"
-msgstr ""
+msgstr "realmente reduzido"
 
 #: src/algos/PSF.c:981
 msgid "relative"
-msgstr ""
+msgstr "relativo"
 
 #: src/algos/PSF.c:1030 src/algos/background_extraction.c:909
 msgid "monochrome"
-msgstr ""
+msgstr "monocromático"
 
 #: src/algos/PSF.c:1032
 #, c-format
 msgid ", beta=%0.1f, %s channel"
-msgstr ""
+msgstr ", beta=%0.1f, canal %s"
 
 #: src/algos/PSF.c:1035
 #, c-format
@@ -12983,6 +12983,8 @@ msgid ""
 "Could not invert the SIP distortion coefficients, try using a lower order or "
 "a linear solution\n"
 msgstr ""
+"Não foi possível inverter os coeficientes de distorção do SIP, tente usar "
+"uma solução de ordem inferior ou linear\n"
 
 #: src/algos/astrometry_solver.c:486
 #, c-format
@@ -12996,15 +12998,17 @@ msgid ""
 "Siril solver could not find a final solution at the updated center, solution "
 "may be inaccurate\n"
 msgstr ""
+"O solver do Siril não conseguiu encontrar uma solução final no centro "
+"atualizado, a solução pode ser imprecisa\n"
 
 #: src/algos/astrometry_solver.c:492
 #, c-format
 msgid "%s solve succeeded.\n"
-msgstr ""
+msgstr "%s resolvido com sucesso.\n"
 
 #: src/algos/astrometry_solver.c:495
 msgid "The image could not be aligned with the reference stars\n"
-msgstr ""
+msgstr "A imagem não pôde ser alinhada com as estrelas de referência\n"
 
 #: src/algos/astrometry_solver.c:497
 msgid "Cancelled\n"
@@ -30773,7 +30777,7 @@ msgstr "Equalização RGB .......... desabilitada\n"
 
 #: src/stacking/stacking.c:417
 msgid "Stacking result image"
-msgstr ""
+msgstr "Imagem resultado do empilhamento"
 
 #: src/stacking/stacking.c:466
 msgid "Unsaved stacking result"
