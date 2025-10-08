@@ -62,7 +62,8 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 gboolean background_sample_is_valid(background_sample *sample);
 gdouble background_sample_get_size(background_sample *sample);
 point background_sample_get_position(background_sample *sample);
-
+void sample_mutex_lock();
+void sample_mutex_unlock();
 void apply_background_cancel();
 
 #endif /* SRC_ALGOS_BACKGROUND_EXTRACTION_H_ */

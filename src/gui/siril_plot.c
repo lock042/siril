@@ -45,7 +45,7 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
 }
 
-static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
+gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
 	gchar *temp = NULL, *timestamp = NULL;
 	GString *filename = NULL;
 	
@@ -149,7 +149,7 @@ static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfile
 	return savefilename;
 }
 
-static gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
+gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
 	if (!spl_data)
 		return TRUE;
 

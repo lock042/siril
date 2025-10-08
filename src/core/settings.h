@@ -69,7 +69,6 @@ typedef enum {
 	BAYER_IGV,
 	BAYER_LMMSE,
 	BAYER_RCD,
-	BAYER_SUPER_PIXEL,
 	XTRANS
 } interpolation_method;
 
@@ -97,6 +96,13 @@ typedef enum {
 	CMF_1931_2DEG = 0,
 	CMF_1964_10DEG = 1
 } cmf_pref;
+
+typedef enum {
+	ROW_ORDER_HEADER_TOPDOWN,
+	ROW_ORDER_HEADER_BOTTOMUP,
+	ROW_ORDER_FORCE_TOPDOWN,
+	ROW_ORDER_FORCE_BOTTOMUP
+} row_order_t;
 
 /***********************************************************************************************/
 
@@ -157,7 +163,7 @@ struct debayer_config {
 	gboolean use_bayer_header;		// use the pattern given in the file header
 	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean top_down;			// debayer top-down orientation
+	row_order_t orientation;			// orientation preference
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
 	int xtrans_passes;			// number of passes for X-Trans debayer
 };
@@ -429,9 +435,10 @@ struct pref_struct {
 	fftw_params fftw_conf;
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
-	GList *selected_scripts;
+	GSList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
+	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
 };
 
 typedef struct pref_struct preferences;

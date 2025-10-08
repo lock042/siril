@@ -322,8 +322,8 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&Hom, H);
 	refptout = H * Mat(refptin);
-	refpointout->x = refptout.at<double>(0, 0);
-	refpointout->y = refptout.at<double>(0, 1);
+	refpointout->x = refptout.at<double>(0) / refptout.at<double>(2);
+	refpointout->y = refptout.at<double>(1) / refptout.at<double>(2);
 }
 
 static void convert_H_to_MatH(const Homography *from, Mat &to) {
@@ -1191,3 +1191,18 @@ void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography 
 	convert_MatH_to_H(std::move(_H), H);
 }
 
+int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_ref, Homography *Hom) {
+	std::vector<Point2f> ref;
+	std::vector<Point2f> img;
+
+	for (int i = 0; i < 4; i++) {
+		ref.push_back(Point2f(x_ref[i], y_ref[i]));
+		img.push_back(Point2f(x_img[i], y_img[i]));
+	}
+
+	Mat H = findHomography(img, ref, 0);
+	if (H.empty())
+		return -1;
+	convert_MatH_to_H(std::move(H), Hom);
+	return 0;
+}

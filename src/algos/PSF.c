@@ -336,13 +336,17 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
  * failed and for star detection when magnitude is not needed.
  */
 static double psf_get_mag(gsl_matrix* z, double B) {
-	double intensity = 1.0;
+	double intensity = 0.0;
 	size_t NbRows = z->size1;
 	size_t NbCols = z->size2;
 
 	for (size_t i = 0; i < NbRows; i++) {
 		for (size_t j = 0; j < NbCols; j++)
 			intensity += gsl_matrix_get(z, i, j) - B;
+	}
+	if (intensity <= 0.0) {
+		siril_debug_print("psf_get_mag: intensity is <= 0, returning default value\n");
+		return -DEFAULT_DOUBLE_VALUE; // no star, returning an unmistakable value
 	}
 	return -2.5 * log10(intensity);
 }

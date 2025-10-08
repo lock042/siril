@@ -11,6 +11,32 @@ within sirilpy.
 from enum import IntEnum, unique
 
 @unique
+class STFType(IntEnum):
+    """ enum representing STF types """
+    LINEAR_DISPLAY = 0
+    LOG_DISPLAY = 1
+    SQRT_DISPLAY = 2
+    SQUARED_DISPLAY = 3
+    ASINH_DISPLAY = 4
+    AUTOSTRETCH_DISPLAY = 5
+    HISTEQ_DISPLAY = 6
+
+@unique
+class SlidersMode(IntEnum):
+    MIPSLOHI = 0
+    MINMAX = 1
+    USER = 2
+
+@unique
+class ImageType(IntEnum):
+    """ enum representing image functional types """
+    UNKNOWN = 0
+    LIGHT = 1
+    DARK = 2
+    FLAT = 3
+    BIAS = 4
+
+@unique
 class _Status(IntEnum):
     """
     Returns the status of a command. NONE is for commands that
@@ -122,6 +148,26 @@ class _Command(IntEnum):
     CONFIRM_MESSAGEBOX = 62
     GET_SEQ_FRAME_HEADER = 63
     CREATE_NEW_SEQ = 64
+    CLEAR_BGSAMPLES = 65
+    DRAW_POLYGON = 66
+    GET_IMAGE_FILE = 67
+    ANALYSE_IMAGE_FILE = 68
+    UNDO = 69
+    REDO = 70
+    SET_IMAGE_ICCPROFILE = 71
+    CLEAR_UNDO_HISTORY = 72
+    GET_SLIDER_STATE = 73
+    SET_SLIDER_MODE = 74
+    SET_SLIDER_LOHI = 75
+    GET_STFMODE = 76
+    SET_STFMODE = 77
+    GET_PANZOOM = 78
+    SET_PAN = 79
+    SET_ZOOM = 80
+    GET_DISPLAY_ICC_PROFILE = 81
+    GET_STF_LINKED = 82
+    SET_STF_LINKED = 83
+    SET_IMAGE_FILENAME = 84
     ERROR = 0xFF
 
 @unique

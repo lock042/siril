@@ -41,6 +41,7 @@ gboolean load_WCS_from_fits(fits* fit);
 // this one directly uses the WCSLIB struct
 void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d);
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
+int wcs2pix2(wcsprm_t *wcslib, double ra, double dec, double *x, double *y);
 int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
 int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
@@ -69,5 +70,6 @@ void wcs_print(wcsprm_t *prm);
 
 void remove_dis_from_wcs(wcsprm_t *prm);
 void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm);
+wcsprm_t *wcs_copy_linear(wcsprm_t *prm_in);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

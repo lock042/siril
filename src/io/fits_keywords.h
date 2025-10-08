@@ -78,4 +78,6 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args);
 
 int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry);
 
+gboolean keyword_is_protected(char *card, fits *fit);
+
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

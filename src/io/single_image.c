@@ -42,6 +42,7 @@
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
 #include "gui/user_polygons.h"
+#include "gui/siril_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -98,9 +99,12 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 	clear_stars_list(TRUE);
+	clear_backup();
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
 	reset_menu_toggle_button();
@@ -220,7 +224,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			return 1;
 		}
 	} else {
-		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
+		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
 		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)

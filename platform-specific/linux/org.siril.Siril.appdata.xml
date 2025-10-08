@@ -99,21 +99,90 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-    <release version="1.4.0-beta3" date="2025-xx-xx">
+    <release version="1.4.0-beta4" date="2025-09-28">
+      <url type="details">https://siril.org/download/1.4.0-beta4</url>
+      <description>
+        <p>
+          Fourth and likely final beta release of the 1.4.0 series, featuring critical fixes to the Drizzle
+          algorithm and robust Bayer pattern handling. This version includes all planned major features
+          for the stable 1.4.0 release.
+        </p>
+        <ul>
+          <li>
+            Fixed major Drizzle algorithm issues by exporting weight files during registration and using them for stacking
+          </li>
+          <li>
+            Discovered and corrected an error in the original HST Drizzle code, contributing to space image processing improvements
+          </li>
+          <li>
+            Implemented robust Bayer/X-Trans pattern handling across the entire codebase
+          </li>
+          <li>
+            Fixed multiple stability issues including crashes with OpenCV 4.12+, seqpsf/seqtilt commands, and memory allocation
+          </li>
+          <li>
+            Enhanced image preview with color support, autostretch improvements, and new 512px preview size
+          </li>
+          <li>
+            Added official PyQt6 support for Python script GUIs with comprehensive new API methods
+          </li>
+          <li>
+            Improved astrometric alignment for mosaics and enhanced metadata extraction from FITSEQ sequences
+          </li>
+          <li>
+            Added search functionality in script treeview and right-click script editing from menu
+          </li>
+          <li>
+            Fixed sequence loading issues and improved handling of automatic script repository updates
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0-beta3" date="2025-07-11">
       <url type="details">https://siril.org/download/1.4.0-beta3</url>
       <description>
         <p>
-         .
+          Third beta release of the 1.4.0 series, delivering comprehensive stability improvements and
+          enhanced Python integration. This version addresses critical crashes, improves script handling,
+          and introduces significant workflow enhancements for both GUI and command-line users.
         </p>
-         .
+        <ul>
+          <li>
+            Fixed multiple critical crashes (8-bit XISF files, pixelmath with 16-bit images, RGB compositing)
+          </li>
+          <li>
+            Resolved Python integration issues including script execution, thread handling, and shared memory management
+          </li>
+          <li>
+            Fixed SPCC filter plotting issues in narrowband mode and improved linear regression
+          </li>
+          <li>
+            Improved script repository handling with better update mechanisms and version control
+          </li>
+          <li>
+            Enhanced calibration workflow with improved file chooser memory and sequence cropping support
+          </li>
+          <li>
+            Added advanced Python features including polygon overlay drawing and improved GPU helper modules
+          </li>
+          <li>
+            Modernized GraXpert integration with new AI-powered script replacing legacy interface
+          </li>
+          <li>
+            Improved ICC profile handling and histogram stretch behavior for better color accuracy
+          </li>
+          <li>
+            Enhanced command-line functionality with -followstar support for seqpsf command
+          </li>
+        </ul>
       </description>
     </release>
     <release version="1.4.0-beta2" date="2025-05-21">
       <url type="details">https://siril.org/download/1.4.0-beta2</url>
       <description>
         <p>
-          Second beta release of the 1.4.0 series, building upon the foundations established in beta1. 
-          This version focuses on stability improvements, bug fixes, and user experience enhancements 
+          Second beta release of the 1.4.0 series, building upon the foundations established in beta1.
+          This version focuses on stability improvements, bug fixes, and user experience enhancements
           while continuing to refine the major features introduced in the previous beta.
         </p>
         <ul>
@@ -157,8 +226,8 @@
       <url type="details">https://siril.org/download/1.4.0-beta1</url>
       <description>
         <p>
-          First beta release of the 1.4.0 series. This version marks a huge leap compared 
-          with 1.2 across many areas of the software. GUI has been improved in several places 
+          First beta release of the 1.4.0 series. This version marks a huge leap compared
+          with 1.2 across many areas of the software. GUI has been improved in several places
           for better user experience, and many new features have been implemented.
           The most outstanding changes are:
         </p>
@@ -490,7 +559,7 @@
         </p>
         <ul>
           <li>
-          High bit depth color processing (32-bit per color channel is 
+          High bit depth color processing (32-bit per color channel is
           now the default).
           </li>
           <li>

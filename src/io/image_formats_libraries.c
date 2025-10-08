@@ -765,6 +765,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		}
 		// Check what is the appropriate color space to save in
 		// Covers 8- and high-bitdepth files
+		// bitspersample is *destination* bits per sample (because that affects the export
+		// ICC profile) but transforms are done source bit depth to source bit depth
 		if (bitspersample == 8) { // 8-bit
 			if (nsamples == 1) { // mono
 				cmsHPROFILE srgb_mono_out = NULL;
@@ -806,7 +808,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						return 1;
 				}
 			}
-		} else { // high bitdepth
+		} else  if (bitspersample == 16) { // 16-bit or 32-bit save from < 32-bit input
 			if (nsamples == 1) { // mono
 				cmsHPROFILE srgb_mono_out = NULL;
 				switch (com.pref.icc.export_16bit_method) {
@@ -847,17 +849,21 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						return 1;
 				}
 			}
+		} else {
+			// 32-bit images are always saved with the image profile
+			profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 		}
 		cmsUInt32Number datasize = fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = width * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
-		if (save_transform) { // For "use image ICC profile" save_transform will be NULL, no need to transform the data
+		if (save_transform) {
+			// Do the transform
 			cmsDoTransformLineStride(save_transform, buf, dest, width, height, bytesperline, bytesperline, bytesperplane, bytesperplane);
 			cmsDeleteTransform(save_transform);
 		} else {
+			// For "use image ICC profile" save_transform will be NULL, no need to transform the data
 			memcpy(dest, buf, bytesperplane * nsamples);
 		}
-		// 32 bit files are always saved in the color space of their current profile.
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
 		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
@@ -1180,6 +1186,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			fit->data = (WORD *)malloc(npixels * fit->naxes[2] * sizeof(WORD));
 			if (!fit->data) {
 				siril_log_message(_("Memory allocation error for image data.\n"));
+				free(xdata->fitsHeader);
+				free(xdata->icc_buffer);
+				free(xdata->data);
 				free(xdata);
 				return -1;
 			}
@@ -1246,6 +1255,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		break;
 	default:
 		siril_log_message(_("This image type is not handled.\n"));
+		free(xdata->fitsHeader);
+		free(xdata->icc_buffer);
+		free(xdata->data);
 		free(xdata);
 		return -1;
 	}
@@ -1287,7 +1299,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 			name, fit->naxes[2], fit->rx, fit->ry);
 
 	/* free data */
-	if (xdata->fitsHeader) free(xdata->fitsHeader);
+	free(xdata->fitsHeader);
 	free(xdata);
 
 	return 0;
@@ -2315,14 +2327,10 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	return 1;
 }
 
-int open_raw_files(const char *name, fits *fit, gboolean debayer) {
+int open_raw_files(const char *name, fits *fit) {
 	int retval = readraw_in_cfa(name, fit);
 
 	if (retval >= 0) {
-		if (debayer) {
-			debayer_if_needed(TYPEFITS, fit, TRUE);
-		}
-
 		gchar *basename = g_path_get_basename(name);
 		siril_log_message(_("Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"),
 				basename, fit->naxes[2], fit->rx, fit->ry);

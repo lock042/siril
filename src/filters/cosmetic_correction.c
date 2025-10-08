@@ -584,7 +584,7 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
 	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
-	g_object_unref(c_args->file);
+//	g_object_unref(c_args->file);
 	return retval;
 }
 

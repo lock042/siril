@@ -723,7 +723,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = (double) gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = (double) gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -761,7 +765,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					x[nb_rows] = gfit.fdata[px];
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
+					} else {
+						x[nb_rows] = gfit.fdata[px];
+					}
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -1293,6 +1301,12 @@ static void select_image(int nb) {
 						}
 
 						int idx = search_for_free_index();
+						if (idx >= MAX_IMAGES) {
+							siril_log_color_message(_("Error: maximum variable index exceeded - too many variables!\n"), "red");
+							g_free(filename);
+							clearfits(&f);
+							break;
+						}
 						add_image_to_variable_list(filename, variables[idx], filter, f.naxes[2], f.naxes[0], f.naxes[1]);
 
 						pos++;
@@ -1311,7 +1325,6 @@ static void select_image(int nb) {
 
 	siril_preview_free(preview);
 	gtk_widget_destroy(dialog);
-
 }
 
 gboolean on_pixel_math_entry_r_focus_in_event(GtkWidget *widget,

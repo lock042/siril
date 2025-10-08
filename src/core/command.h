@@ -32,6 +32,7 @@ struct {
 extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
 
 gboolean image_cfa_warning_check();
+gboolean get_followstar_idle(gpointer user_data);
 
 int	process_addmax(int nb);
 int	process_autostretch(int nb);

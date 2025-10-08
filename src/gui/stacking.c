@@ -654,7 +654,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
-	gboolean can_upscale = can_reframe && !com.seq.is_variable;
+	gboolean can_upscale = can_reframe && !com.seq.is_variable && !com.seq.is_drizzle;
 	gboolean must_reframe = can_reframe && com.seq.is_variable;
 
 	int stack_method = gtk_combo_box_get_active(method_combo);

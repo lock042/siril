@@ -328,8 +328,8 @@
                             <property name="action-name">editor.execute</property>
                             <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                             <accelerator key="F5" signal="activate"/>
+                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                           </object>
                         </child>
                         <child>
@@ -411,7 +411,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                           <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Run the script</property>
+                            <property name="tooltip-text" translatable="yes">Set the position of the right margin indicator in the editor. This visual guide helps maintain consistent line lengths and improve code readability.</property>
                             <property name="action-name">editor.set_rmarginpos</property>
                             <property name="label" translatable="yes">Set right margin position</property>
                           </object>
@@ -541,7 +541,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                           <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="tooltip-text" translatable="yes">Open Python API reference documentation</property>
                             <property name="action-name">editor.python_doc</property>
                             <property name="label" translatable="yes">Python API reference</property>
                           </object>
@@ -550,7 +550,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
                           <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="tooltip-text" translatable="yes">Open Siril command reference documentation</property>
                             <property name="action-name">editor.command_doc</property>
                             <property name="label" translatable="yes">Siril Command Reference</property>
                           </object>

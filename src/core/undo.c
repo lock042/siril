@@ -413,6 +413,16 @@ int undo_display_data(int dir) {
 	return 0;
 }
 
+gboolean undo_in_thread(gpointer user_data) {
+	undo_display_data(UNDO);
+	return FALSE;
+}
+
+gboolean redo_in_thread(gpointer user_data) {
+	undo_display_data(REDO);
+	return FALSE;
+}
+
 int undo_flush() {
 	if (!com.history) {
 		return 1;

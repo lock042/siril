@@ -8,9 +8,6 @@ Utility module for Siril Python interface providing helper functions for file op
 package management, and standard I/O control to support Siril's scripting capabilities.
 """
 
-
-
-
 import os
 import sys
 import io
@@ -20,7 +17,7 @@ import platform
 import threading
 import subprocess
 from importlib import metadata, util
-from typing import Union, List, Optional, TYPE_CHECKING, Tuple
+from typing import Union, List, Optional, TYPE_CHECKING, Tuple, Dict
 import requests
 from packaging import version as pkg_version
 from packaging.specifiers import SpecifierSet
@@ -145,7 +142,7 @@ def download_with_progress(
                 headers['Range'] = f'bytes={initial_size}-'
 
             # Establish connection with timeout
-            response = requests.get(url, stream=True, headers=headers, timeout=30)
+            response = requests.get(url, stream=True, headers=headers, timeout=(10, 30))
             response.raise_for_status()
 
             # Determine total file size and content range
@@ -219,7 +216,8 @@ def download_with_progress(
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
-                     version_constraints: Optional[Union[str, List[str]]] = None):
+                     version_constraints: Optional[Union[str, List[str]]] = None,
+                     reinstall: Optional[bool] = False):
     """
     Ensures that the specified package(s) are installed and meet optional version constraints.
 
@@ -227,6 +225,7 @@ def ensure_installed(*packages: Union[str, List[str]],
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
         version_constraints (str or List[str], optional): Version constraint string(s)
             (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
+        reinstall (bool, optional): Forces reinstallation. Defaults to False.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
@@ -266,7 +265,7 @@ def ensure_installed(*packages: Union[str, List[str]],
                 continue
 
             # Attempt installation
-            _install_package(package, constraint)
+            _install_package(package, constraint, reinstall=reinstall)
 
         except TimeoutError as e:
             all_installed = False
@@ -320,7 +319,8 @@ def _stream_output(process):
     for line in io.TextIOWrapper(process.stdout, encoding='utf-8', errors='replace'):
         print(line.rstrip())
 
-def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None, index_url: Optional[str] = None):
+def _install_package(package_name: str, version_constraint: Optional[str] = None, from_url: Optional[str] = None,
+                     index_url: Optional[str] = None, reinstall: Optional[bool] = False, nodeps: Optional[bool] = False):
     """
     Install a package with optional version constraint, streaming pip output to stdout.
 
@@ -329,6 +329,10 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
         version_constraint (str, optional): Version constraint for installation.
         from_url (str, optional): URL to find packages at, passed as "-f URL" to pip.
         index_url (str, optional): repository URL, passed as "--index-url URL" to pip.
+        reinstall (bool optional): whether to force reinstallation. Defaults to False.
+        nodeps (bool, optional): whether to install without dependencies. Defaults to
+            False, but occasionally useful together with reinstall=True for problematic
+            packages such as torch.
 
     Note: the from_url and index_url parameters are not for general use and are only
     required for certain very specific circustances.
@@ -348,11 +352,19 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
 
         # Add index-url option if index_url is provided
         if index_url:
-            pip_command.append(["--index-url", index_url])
+            pip_command.extend(["--index-url", index_url])
 
         # Add find-links option if from_url is provided
         if from_url:
             pip_command.extend(["-f", from_url])
+
+        # If required, add the --force-reinstall flag
+        if reinstall:
+            pip_command.append("--force-reinstall")
+
+        # If required, add the --no-deps flag
+        if nodeps:
+            pip_command.append("--no-deps")
 
         # Add the package to install
         pip_command.append(install_target)
@@ -393,6 +405,45 @@ def check_module_version(requires=None):
     having been added at a particular version of the module then you
     must check the running sirilpy module supports your script by
     calling this function.
+
+    Siril will not show scripts with unsatisfied check_module_version()
+    calls in the repository list in 'Get Scripts', so if you want a
+    function that enables different code paths for different versions
+    you should use `needs_module_version()` instead.
+
+    Args:
+        requires (str): A version format specifier string following the
+                        same format used by pip, i.e. it may contain
+                        '==1.2', '!=3.4', '>5.6', '>=7.8', or a
+                        combination such as '>=1.2,<3.4'
+
+    Returns:
+        True if requires = None or if the available sirilpy module version
+        satisfies the version specifier, otherwise False
+
+    Raises:
+        ValueError: if requires is an invalid version specifier.
+    """
+    import sirilpy  # pylint: disable=import-outside-toplevel
+
+    if requires is None:
+        return True  # No version requirement
+
+    try:
+        # Create a SpecifierSet from the `requires` string
+        specifiers = SpecifierSet(requires)
+        # Use pkg_version from top-level import
+        return pkg_version.parse(sirilpy.__version__) in specifiers
+    except (pkg_version.InvalidVersion, ValueError) as exc:
+        raise ValueError(f"Invalid version specifier: {requires}") from exc
+
+def needs_module_version(requires=None):
+    """
+    Check the version of the Siril module is sufficient to support a
+    feature. This allows writing optional code paths for different sirilpy
+    API levels. The function works the same as check_module_version() but
+    the presence of an unsatisfied needs_module_version() call will not
+    prevent a script from showing up in the list in 'Get Scripts'
 
     Args:
         requires (str): A version format specifier string following the
@@ -457,7 +508,6 @@ class SuppressedStdout:
         sys.stdout = self.original_stdout  # Restore Python stdout
         self.devnull.close()
 
-
 class SuppressedStderr:
     """
     This context manager allows suppression of the script's stderr, which
@@ -488,514 +538,188 @@ class SuppressedStderr:
         sys.stderr = self.original_stderr  # Restore Python stderr
         self.devnull.close()
 
-class ONNXHelper:
+def parse_fits_header(header_text: str, include_comments: bool = False) -> Dict[str, Union[str, int, float, bool]]:
     """
-    A class to handle detection and installation of the appropriate ONNX Runtime
-    package based on the system hardware and configuration.
+    Parse FITS header from text content into a dictionary with support for HIERARCH and CONTINUE keywords.
 
-    Example usage (this should be used instead of
-    ``sirilpy.ensure_installed("onnxruntime")`` to install the correct package for
-    the user's system.)
+    Handles Siril's newline-separated FITS header format and converts it to a dictionary
+    compatible with astropy.wcs.WCS. Supports extended FITS keywords via HIERARCH and
+    long string values via CONTINUE.
 
-    .. code-block:: python
+    Args:
+        header_text: Raw header string with header cards separated by newlines.
+                    Expected format: "KEYWORD = value / comment"
+        include_comments: If True, includes COMMENT and HISTORY cards in the output.
+                         If False (default), these cards are skipped.
 
-       installer = sirilpy.ONNXHelper()
-       installer.install_onnxruntime()
+    Returns:
+        Dictionary mapping FITS header keywords (str) to their parsed values.
+        Values are converted to appropriate Python types:
+        - 'T'/'F' -> bool
+        - Quoted strings -> str (quotes removed, with CONTINUE support for long strings)
+        - Numeric strings -> int or float
+        - Everything else -> str
+        - COMMENT/HISTORY cards -> str (content after keyword, if include_comments=True)
+        - HIERARCH keywords -> str (full hierarchical keyword preserved)
 
+    Notes:
+        - Filters out warning messages, tracebacks, and other non-header content
+        - By default ignores COMMENT and HISTORY cards (set include_comments=True to include)
+        - Skips malformed cards or invalid keywords
+        - Standard keywords must be ≤8 characters and alphanumeric (plus underscore/hyphen)
+        - HIERARCH keywords can be longer and contain spaces/dots
+        - CONTINUE cards are automatically merged with the previous string value
+        - Comments after '/' are ignored for regular cards
 
+    Example:
+        >>> header_str = '''SIMPLE  = T / file conforms to FITS standard
+        ... BITPIX  = -32 / bits per pixel
+        ... HIERARCH ESO DET CHIP1 NAME = 'CCD #1' / detector name
+        ... LONGSTR = 'This is a very long string that needs to be '
+        ... CONTINUE  'continued on the next line'
+        ... COMMENT Test comment'''
+        >>> result = parse_fits_header(header_str)
+        >>> result['SIMPLE']
+        True
+        >>> result['BITPIX']
+        -32
+        >>> result['HIERARCH ESO DET CHIP1 NAME']
+        'CCD #1'
+        >>> result['LONGSTR']
+        'This is a very long string that needs to be continued on the next line'
     """
+    from typing import Dict, Union
 
-    def __init__(self):
-        """Initialize the ONNXHelper."""
-        self.system = platform.system().lower()
+    header_dict: Dict[str, Union[str, int, float, bool]] = {}
+    lines = header_text.strip().split('\n')
 
-    def install_onnxruntime(self):
-        """
-        Detect system configuration and install the appropriate ONNX Runtime package.
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
 
-        Returns:
-            bool: True if installation was successful or already installed, False otherwise.
+        # Skip problematic lines
+        if (not line or
+            line.startswith(('WARNING', 'Traceback', 'ValueError', 'File ', 'During',
+                'Python')) or line.strip() == 'END'):
+            i += 1
+            continue
 
-        Raises:
-            TimooutError: if a TimeoutError occurs in ensure_installed() - this avoids falling
-                        back to the CPU-only package purely because of network issues
-        """
-        # First check if any onnxruntime is already installed
-        is_installed, package_name = self.check_onnxruntime_installed()
+        # Handle COMMENT and HISTORY cards
+        if line.startswith(('COMMENT', 'HISTORY')):
+            if include_comments:
+                keyword = line.split()[0]
+                content = line[len(keyword):].strip()
+                # Handle multiple COMMENT/HISTORY cards by creating a list
+                if keyword in header_dict:
+                    if isinstance(header_dict[keyword], list):
+                        header_dict[keyword].append(content)
+                    else:
+                        header_dict[keyword] = [header_dict[keyword], content]
+                else:
+                    header_dict[keyword] = content
+            i += 1
+            continue
 
-        if is_installed:
-            print(f"ONNX Runtime is already installed: {package_name}")
-            return True
+        # Handle CONTINUE cards (must follow a string value)
+        if line.startswith('CONTINUE'):
+            if i > 0:  # Make sure there's a previous card
+                # Find the last added string value to continue
+                last_key = None
+                for key in reversed(list(header_dict.keys())):
+                    if isinstance(header_dict[key], str):
+                        last_key = key
+                        break
 
-        # If not installed, get recommended package
-        onnxruntime_pkg, from_url, index_url = self.get_onnxruntime_package()
+                if last_key:
+                    # Extract the continuation string
+                    continue_part = line[8:].strip()  # Skip 'CONTINUE'
+                    if '/' in continue_part:
+                        continue_part = continue_part.split('/')[0].strip()
 
-        # Check if the package exists
-        if not self._check_onnxruntime_availability(onnxruntime_pkg):
-            print(f"Package {onnxruntime_pkg} not found. Falling back to default onnxruntime.")
-            onnxruntime_pkg = "onnxruntime"
+                    # Remove quotes if present
+                    if continue_part.startswith("'") and continue_part.endswith("'"):
+                        continue_part = continue_part[1:-1]
 
-        # Install the package
-        try:
-            if not _check_package_installed(onnxruntime_pkg):
-                _install_package(onnxruntime_pkg, None, from_url=from_url, index_url=index_url)
-                # For openvino we need to set the runtime environment:
-                # https://github.com/intel/onnxruntime/releases/tag/v5.6
-                if self.system == 'windows' and onnxruntime_pkg == 'onnxruntime-openvino':
-                    import onnxruntime.tools.add_openvino_win_libs as utils
-                    utils.add_openvino_libs_to_path()
-        except TimeoutError as e:
-            print(f"Failed to install {onnxruntime_pkg}: timeout error {str(e)}")
-            raise TimeoutError("Error: timeout in install_onnxruntime()") from e
+                    # Append to the previous string value
+                    header_dict[last_key] += continue_part
+            i += 1
+            continue
 
-        except Exception as e:
-            print(f"Failed to install {onnxruntime_pkg}: {str(e)}")
-            print("Falling back to default onnxruntime package.")
-            try:
-                ensure_installed("onnxruntime")
-            except Exception as err:
-                print(f"Failed to install default onnxruntime: {str(err)}")
-                return False
-        return True
-
-    def check_onnxruntime_installed(self):
-        """
-        Check if any onnxruntime package is already installed and usable.
-
-        Returns:
-            tuple: (is_installed, package_name) where package_name could be
-                  'onnxruntime', 'onnxruntime-gpu', 'onnxruntime-silicon', etc.
-        """
-        try:
-            # Try importing onnxruntime - if this fails, the package is not usable
-            import onnxruntime
-
-        except ImportError as e:
-            # If import fails, package is not usable regardless of pip list
-            # One of the error messages is a clue that MSVC runtime need updating
-            if platform.system().lower() == "windows" and \
-                                "DLL load failed" in str(e):
-                print("DLL load failed. This means you need to update system "
-                    "libraries. Usually updating Microsoft Visual C++ Runtime "
-                    "will solve the issue.", file=sys.stderr)
-            return False, None
-        except Exception as e:
-            print(f"Error checking for installed onnxruntime: {e}")
-            return False, None
-
-        # If we get here, some version of onnxruntime is installed and working
-        package_name = "onnxruntime"  # Default assumption
-
-        # Check provider information to determine specific package variant
-        providers = onnxruntime.get_available_providers()
-        print(f"Detected ONNX Runtime with providers: {providers}")
-
-        # Check for specific provider patterns
-        if any(p for p in providers if "CUDA" in p or "GPU" in p):
-            package_name = "onnxruntime-gpu"
-        elif any(p for p in providers if "DirectML" in p):
-            package_name = "onnxruntime-directml"
-        elif any(p for p in providers if "ROCm" in p):
-            package_name = "onnxruntime-rocm"
-        elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
-            package_name = "onnxruntime-intel"
-
-        return True, package_name
-
-    def get_onnxruntime_package(self):
-        """
-        Determine the appropriate ONNX Runtime package based on system and available hardware.
-
-        Returns:
-            tuple: (package_name, url) where url is None except for special cases like ROCm
-        """
-        from_url = None
-        index_url = None
-        onnxruntime_pkg = "onnxruntime"
-        cuda_version = self._detect_cuda_version()
-        if self.system == "windows":
-                # NVidia GPU runtime that supports CUDA
-            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-            else:
-                # DirectML provides hardware acceleration for various GPUs on Windows
-                onnxruntime_pkg = "onnxruntime-directml"
-
-        elif self.system == "darwin":  # macOS
-            onnxruntime_pkg = "onnxruntime"
-
-        elif self.system == "linux":
-            if self._detect_nvidia_gpu() and pkg_version.Version(cuda_version).major >= 11:
-                onnxruntime_pkg = "onnxruntime-gpu"
-                if pkg_version.Version(cuda_version).major == 11:
-                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-            elif self._detect_amd_gpu():
-                # ROCm support for AMD GPUs on Linux
-                onnxruntime_pkg = "onnxruntime-rocm"
-                from_url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
-            elif self._detect_intel_gpu_for_openvino():
-                onnxruntime_pkg = "onnxruntime-openvino"
-
-        return onnxruntime_pkg, from_url, index_url
-
-    def _detect_cuda_version(self) -> Optional[str]:
-        """
-        Detects the CUDA version by parsing the output of 'nvcc -v'.
-
-        Returns:
-            Optional[str]: The CUDA version as a string (e.g., '11.7') if detected,
-                          or "0.0" if nvcc is not installed or version cannot be determined.
-        """
-        try:
-            nvcc_command = 'nvcc.exe' if self.system == 'windows' else 'nvcc'
-
-            # Run nvcc -V and capture the output
-            result = subprocess.run([nvcc_command, '-V'],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   text=True,
-                                   check=False)
-
-            output = result.stderr if result.stderr else result.stdout
-
-            version_match = re.search(r'release (\d+\.\d+)', output)
-            if version_match:
-                return version_match.group(1)
-
-            alt_match = re.search(r'V(\d+\.\d+\.\d+)', output)
-            if alt_match:
-                # Return just the major.minor part (e.g., 11.7 from 11.7.0)
-                version_parts = alt_match.group(1).split('.')
-                return f"{version_parts[0]}.{version_parts[1]}"
-
-            return "0.0"
-        except (subprocess.SubprocessError, FileNotFoundError):
-            # nvcc is not installed or an error occurred
-            return "0.0"
-
-    def _detect_nvidia_gpu(self):
-        """
-        Detect if NVIDIA GPU is available. (Required to check Windows and Linux, not required on MacOS.)
-
-        Returns:
-            bool: True if NVIDIA GPU is detected, False otherwise.
-        """
-        try:
-            if self.system == "windows":
-                # Windows detection using PowerShell
-                output = subprocess.check_output(
-                    ["powershell", "-Command", "Get-WmiObject -Class Win32_VideoController"],
-                    text=True
-                )
-                return "NVIDIA" in output
-            # Linux and macOS detection using lspci or similar
-            if self.system == "linux":
+        # Handle HIERARCH cards
+        if line.startswith('HIERARCH'):
+            if '=' in line:
                 try:
-                    output = subprocess.check_output(["nvidia-smi"], stderr=subprocess.DEVNULL, text=True)
-                    return True
-                except (subprocess.SubprocessError, FileNotFoundError):
+                    # For HIERARCH, the keyword can contain spaces and extends until '='
+                    equals_pos = line.find('=')
+                    key = line[8:equals_pos].strip()  # Skip 'HIERARCH' prefix
+                    rest = line[equals_pos + 1:]
+
+                    # Use the actual keyword (without HIERARCH prefix) as the key
+
+                    # Extract value (ignore comment for simplicity)
+                    value_str = rest.split('/')[0].strip()
+
+                    # Parse value
+                    value = _parse_fits_value(value_str)
+                    header_dict[key] = value
+
+                except Exception:
                     pass
+            i += 1
+            continue
 
-                try:
-                    output = subprocess.check_output(["lspci"], text=True)
-                    return "NVIDIA" in output
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    return False
-        except Exception:
-            pass
-        return False
-
-    def _detect_amd_gpu(self):
-        """
-        Detect if AMD GPU is available (Only needed on Linux, as on Windows the directml
-        package is used.)
-
-        Returns:
-            bool: True if AMD GPU is detected, False otherwise.
-        """
-        try:
-            # Try rocm-smi first
+        # Handle regular FITS cards
+        if '=' in line:
             try:
-                output = subprocess.check_output(["rocm-smi"], stderr=subprocess.DEVNULL, text=True)
-                return True
-            except (subprocess.SubprocessError, FileNotFoundError):
+                key, rest = line.split('=', 1)
+                key = key.strip()
+
+                # Validate standard FITS keyword (not HIERARCH)
+                if len(key) <= 8 and key.replace('_', '').replace('-', '').isalnum():
+                    # Extract value (ignore comment for simplicity)
+                    value_str = rest.split('/')[0].strip()
+
+                    # Parse value
+                    value = _parse_fits_value(value_str)
+                    header_dict[key] = value
+
+            except Exception:
                 pass
 
-            # Fallback to lspci
-            try:
-                output = subprocess.check_output(["lspci"], text=True)
-                return any(gpu in output for gpu in ["AMD", "ATI", "Radeon"])
-            except (subprocess.SubprocessError, FileNotFoundError):
-                return False
-        except Exception:
-            pass
+        i += 1
+
+    return header_dict
+
+def _parse_fits_value(value_str: str) -> Union[str, int, float, bool]:
+    """
+    Helper function to parse a FITS value string into the appropriate Python type.
+
+    Args:
+        value_str: The value portion of a FITS header card
+
+    Returns:
+        Parsed value as bool, int, float, or str
+    """
+    value_str = value_str.strip()
+
+    # Handle boolean values
+    if value_str == 'T':
+        return True
+    elif value_str == 'F':
         return False
 
-    def _detect_intel_gpu_for_openvino(self):
-        """
-        Detect if an Intel GPU compatible with OpenVINO is available.
+    # Handle quoted strings
+    elif value_str.startswith("'") and value_str.endswith("'"):
+        return value_str[1:-1]
 
-        Returns:
-            bool: True if compatible Intel GPU is detected
-        """
-        # First try using OpenVINO's native detection if available
+    # Handle numeric values
+    else:
         try:
-            import openvino as ov
-            core = ov.Core()
-            available_devices = core.available_devices
-            return any(device.startswith("GPU") for device in available_devices)
-        except ImportError:
-            print("OpenVINO not installed, falling back to hardware detection")
-        except Exception as e:
-            print(f"Error using OpenVINO device detection: {e}")
-
-        # Fall back to lspci detection if OpenVINO is not available
-        try:
-            output = subprocess.check_output(["lspci"], text=True).lower()
-
-            # Intel integrated and discrete GPU keywords
-            intel_keywords = ["intel", "graphics", "iris", "uhd", "hd graphics", "arc",
-                            "a3", "a5", "a7", "a370m", "a730m", "a770", "a750",
-                            "a580", "a380", "battlemage"]
-
-            # Check for any Intel GPU
-            return "intel" in output and any(keyword in output for keyword in intel_keywords)
-
-        except (subprocess.SubprocessError, FileNotFoundError):
-            return False
-        except Exception as e:
-            print(f"Error detecting Intel GPU: {e}")
-            return False
-
-    def _check_onnxruntime_availability(self, package_name):
-        """
-        Check if the specified ONNX Runtime package is available on PyPI.
-
-        Args:
-            package_name (str): Package name to check
-
-        Returns:
-            bool: True if the package is available, False otherwise.
-        """
-        try:
-            output = subprocess.check_output(
-                [sys.executable, "-m", "pip", "index", "versions", package_name],
-                stderr=subprocess.DEVNULL,
-                text=True
-            )
-            return "No matching distribution found" not in output
-        except subprocess.SubprocessError:
-            # If the command fails, check directly from PyPI
-            try:
-                url = f"https://pypi.org/pypi/{package_name}/json"
-                response = requests.get(url)
-                return response.status_code == 200
-            except Exception:
-                return False
-
-    def get_execution_providers_ordered(self, ai_gpu_acceleration=True):
-        """
-        Get execution providers ordered by priority.
-
-        This function returns a list of available ONNX Runtime execution providers
-        in a reasonable order of priority, covering major GPU platforms:
-
-        The CPU provider is always included as the final fallback option.
-
-        Args:
-            ai_gpu_acceleration (bool): Whether to include GPU acceleration providers.
-                                    Defaults to True.
-
-        Returns:
-            list: Ordered list of available execution providers.
-        """
-        def has_tensorrt_library():
-            """
-            Checks if TensorRT libraries are available and can be loaded.
-            """
-            import ctypes.util
-            import ctypes
-
-            lib_names = {
-                "linux": "nvinfer",
-                "windows": "nvinfer",
-                "darwin": None  # TensorRT isn't available on macOS
-            }
-            lib_name = lib_names.get(platform.system().lower())
-            if not lib_name:
-                return False
-
-            path = ctypes.util.find_library(lib_name)
-            if path:
-                try:
-                    ctypes.CDLL(path)
-                    return True
-                except OSError:
-                    return False
-            return False
-
-        import onnxruntime
-        providers = []
-        available_providers = onnxruntime.get_available_providers()
-
-        if ai_gpu_acceleration:
-            if self.system == "darwin":
-#                is_apple_silicon = (
-#                    platform.machine().startswith(("arm", "aarch"))
-#                )
-                # Apple Silicon / Neural Engine (faster if available and supports the model features)
-#                if is_apple_silicon:
-#                    if "CoreMLExecutionProvider" in available_providers:
-                        # On Apple silicon it's safe to create a MLPROGRAM instead of the older MLMODEL
-#                        providers.append(
-#                            (
-#                                "CoreMLExecutionProvider",
-#                                {
-#                                    "flags": "COREML_FLAG_CREATE_MLPROGRAM",
-#                                },
-#                            )
-#                        )
-#                else:
-#                    # On Intel silicon we omit the MLPROGRAM flag
-#                    providers.append("CoreMLExecutionProvider")
-                providers.append("CoreMLExecutionProvider")
-
-            elif self.system == "windows":
-                # NVIDIA TensorRT - best performance if the model features are supported
-                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
-                    providers.append("TensorrtExecutionProvider")
-
-                # NVIDIA GPU - good fallback option, still much faster than CPU
-                if "CUDAExecutionProvider" in available_providers:
-                    providers.append("CUDAExecutionProvider")
-
-                # DirectML for Windows GPUs (supports various vendors)
-                if "DmlExecutionProvider" in available_providers:
-                    providers.append("DmlExecutionProvider")
-
-            elif self.system == "linux":
-                # NVIDIA TensorRT - best performance if the model features are supported
-                if "TensorrtExecutionProvider" in available_providers and has_tensorrt_library():
-                    providers.append("TensorrtExecutionProvider")
-
-                # NVIDIA GPU - good fallback option, still much faster than CPU
-                if "CUDAExecutionProvider" in available_providers:
-                    providers.append("CUDAExecutionProvider")
-
-                # AMD GPU - fastest possible but commented out until not marked as experimental
-                #if "MIGraphXExecutionProvider" in available_providers:
-                #    providers.append("MIGraphXExecutionProvider")
-
-                # AMD GPU
-                if "ROCmExecutionProvider" in available_providers:
-                    providers.append("ROCmExecutionProvider")
-
-                # Intel GPU via OpenVINO
-                if "OpenVINOExecutionProvider" in available_providers:
-                    providers.append("OpenVINOExecutionProvider")
-
-        # CPU is always the fallback option
-        providers.append("CPUExecutionProvider")
-
-        return providers
-
-    def uninstall_onnxruntime(self):
-        """
-        Detects and uninstalls all variants of onnxruntime packages.
-        Checks for any package starting with 'onnxruntime'.
-
-        Returns:
-            list: A list of uninstalled packages
-        """
-        # Get all installed packages
-        try:
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "list"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            installed_packages = result.stdout.splitlines()
-        except subprocess.CalledProcessError as e:
-            print(f"Error getting installed packages: {e}")
-            return []
-
-        # Find all packages that start with 'onnxruntime'
-        onnx_packages = []
-        for line in installed_packages:
-            parts = line.split()
-            if parts and parts[0].lower().startswith('onnxruntime'):
-                onnx_packages.append(parts[0])
-
-        # Uninstall found packages
-        if not onnx_packages:
-            print("No onnxruntime packages found.")
-            return []
-
-        print(f"Found onnxruntime packages: {', '.join(onnx_packages)}")
-        uninstalled = []
-
-        for package in onnx_packages:
-            print(f"Uninstalling {package}...")
-            try:
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "uninstall", "-y", package],
-                    check=True
-                )
-                uninstalled.append(package)
-                print(f"Successfully uninstalled {package}")
-            except subprocess.CalledProcessError:
-                print(f"Failed to uninstall {package}")
-
-        return uninstalled
-
-def parse_fits_header(header_text: str) -> dict:
-    """
-    Parse FITS header from text content into a dictionary
-    
-    Parameters:
-    header_text (str): Content of the FITS header text file
-    
-    Returns:
-    dict: Dictionary containing all header keywords and values
-    """
-    header_dict = {}
-    
-    for line in header_text.split('\n'):
-        # Skip empty lines, COMMENT, HISTORY, and END
-        if not line.strip() or line.startswith('COMMENT') or line.startswith('HISTORY') or line.startswith('END'):
-            continue
-            
-        # Split the line into key and value parts
-        parts = line.split('=')
-        if len(parts) != 2:
-            continue
-            
-        key = parts[0].strip()
-        value_part = parts[1].strip()
-        
-        # Handle the value part (removing comments after /)
-        if '/' in value_part:
-            value_part = value_part.split('/')[0].strip()
-            
-        # Convert value to appropriate type
-        try:
-            # Try converting to float first
-            if value_part.startswith("'") and value_part.endswith("'"):
-                # String value
-                value = value_part.strip("'").strip()
-            elif value_part == 'T':
-                value = True
-            elif value_part == 'F':
-                value = False
+            # Check if it's a float (contains decimal point or scientific notation)
+            if '.' in value_str or 'E' in value_str.upper() or 'D' in value_str.upper():
+                return float(value_str.replace('D', 'E'))  # Handle Fortran double precision
             else:
-                value = float(value_part)
+                return int(value_str)
         except ValueError:
-            # If conversion fails, keep as string
-            value = value_part.strip()
-            
-        header_dict[key] = value
-        
-    return header_dict
+            # If conversion fails, return as string
+            return value_str

@@ -26,17 +26,21 @@ void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
+gboolean set_cutoff_sliders_values_idle(gpointer p);
 void set_sliders_value_to_gfit();
 void set_accel_map(const gchar * const *accelmap);
 void initialize_display_mode();
 void set_display_mode();
+gboolean set_display_mode_idle(gpointer user_data);
 void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
+gpointer update_seq_gui_idle_thread_func(gpointer data);
 gboolean set_GUI_CWD(gpointer user_data);
 void set_icon_entry(GtkEntry *entry, gchar *string);
 gboolean update_MenuItem(gpointer user_data);
 void sliders_mode_set_state(sliders_mode);
+gboolean sliders_mode_set_state_idle(gpointer p);
 display_mode get_display_mode_from_menu();
 int copy_rendering_settings();
 
@@ -78,7 +82,7 @@ gboolean save_main_window_state(gpointer user_data);
 gboolean load_main_window_state(gpointer user_data);
 GPid show_child_process_selection_dialog(GSList *children);
 gboolean set_seq_browser_active(gpointer user_data);
-void siril_quit();
+gboolean siril_quit(void);
 
 /* for image_display */
 void set_viewer_mode_widgets_sensitive(gboolean sensitive);

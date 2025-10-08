@@ -2105,7 +2105,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			if (target_coords) {
 				siril_world_cs_unref(aargs->cat_center);
 				aargs->cat_center = target_coords;
-				if (aargs->ref_stars && target_coords) {
+				if (aargs->ref_stars) {
 					aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 					aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 				}
@@ -2173,6 +2173,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		siril_world_cs_unref(aargs->cat_center);
+		free(aargs);
 		return 1;
 	}
 
@@ -2189,6 +2191,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			g_atomic_int_inc(&aargs_master->seqprogress);
 		}
 		free_fitted_stars(stars);
+		siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
 		return status;
 	}
@@ -2224,6 +2227,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		} else {
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 			arg->seq->imgparam[i].incl = FALSE;
+			siril_world_cs_unref(aargs->cat_center);
 			free(aargs);
 			return 1;
 		}

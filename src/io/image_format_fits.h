@@ -28,7 +28,7 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
 void clearfits_header(fits*);
 int readfits_partial(const char *filename, int layer, fits *fit,
-		const rectangle *area, gboolean read_date);
+		const rectangle *area, gboolean do_photometry);
 int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle *area);
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
@@ -82,7 +82,6 @@ int check_loaded_fits_params(fits *ref, ...);
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
 int get_xpsampled(double* xps, const gchar *filename, int i);
-gboolean keyword_is_protected(char *card);
 void process_keyword_string_value(const char *input, char *output, gboolean condition);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
@@ -92,8 +91,8 @@ int fits_swap_image_data(fits *a, fits *b);
 int save_wcs_fits(fits *f, const gchar *filename);
 int save_mask_fits(int rx, int ry, float *buffer, const gchar *name);
 int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask);
+int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz);
 
 void interpolate_nongreen(fits *fit);
-const char* get_cfa_from_pattern(sensor_pattern pattern);
 
 #endif
