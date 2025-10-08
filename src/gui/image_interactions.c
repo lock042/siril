@@ -56,6 +56,10 @@ cut_method cutting;
 static double margin_size = 10;
 static release_action button_release = { 0, mouse_nullfunction };
 
+mouse_status_enum get_mouse_status() {
+	return mouse_status;
+}
+
 #define MAX_CALLBACKS_PER_EVENT 10
 /* selection zone event management */
 static selection_update_callback _registered_selection_callbacks[MAX_CALLBACKS_PER_EVENT];
@@ -320,6 +324,10 @@ void init_mouse() {
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
+void init_draw_poly() {
+	mouse_status = MOUSE_ACTION_DRAW_POLY;
+}
+
 GdkModifierType get_primary() {
 	return gdk_keymap_get_modifier_mask(
 			gdk_keymap_get_for_display(gdk_display_get_default()),
@@ -577,7 +585,13 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	if (blank_density_cvport && gtk_label_get_text(labels_density[gui.cvport])[0] != '\0')
 		gtk_label_set_text(labels_density[gui.cvport], " ");
 
-	if (gui.translating) {
+	if (gui.drawing_polygon) {
+		point *ev = malloc(sizeof(point));
+		ev->x = zoomed.x;
+		ev->y = zoomed.y;
+		gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);
+		redraw(REDRAW_OVERLAY);
+	} else if (gui.translating) {
 		update_zoom_fit_button();
 
 		pointi ev = { (int)(event->x), (int)(event->y) };
@@ -741,6 +755,11 @@ void update_zoom_label() {
 		g_sprintf(zoom_buffer, " ");
 	}
 	gdk_threads_add_idle(set_label_zoom_text_idle, zoom_buffer);
+}
+
+gboolean update_zoom_label_idle(gpointer user_data) {
+	update_zoom_label();
+	return FALSE;
 }
 
 gboolean update_zoom(gdouble x, gdouble y, double scale) {

@@ -431,10 +431,11 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			if (!seq->imgparam[i].incl)
 				continue;
 			if (seq_read_frame_metadata(seq, i, &fit)) {
-				siril_log_color_message(_("Could not load image# %d, deselecting\n"), "red", i + 1);
+				siril_log_color_message(_("Could not load image# %d, aborting\n"), "red", i + 1);
 				seq->imgparam[i].incl = FALSE;
 				clearfits(&fit);
 				free_disto_args(disto);
+				return NULL;
 			}
 			int statusread = 0;
 			gchar *wcsname = path_parse(&fit, distoparam->filename, PATHPARSE_MODE_READ, &statusread);
@@ -621,4 +622,19 @@ void free_disto_args(disto_data *disto) {
 		free(disto->ymap);
 	}
 	free(disto);
+}
+
+void copy_disto(disto_data *disto_in, disto_data *disto_out) {
+	if (!disto_in || !disto_out)
+		return;
+	disto_out->dtype = disto_in->dtype;
+	memcpy(disto_out->A,  disto_in->A,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->B,  disto_in->B,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->AP, disto_in->AP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->BP, disto_in->BP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	disto_out->order = disto_in->order;
+	disto_out->xref = disto_in->xref;
+	disto_out->yref = disto_in->yref;
+	disto_out->xmap = NULL;
+	disto_out->ymap = NULL;
 }

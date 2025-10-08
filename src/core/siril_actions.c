@@ -133,11 +133,6 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 	process_close(0);
 }
 
-void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("settings_window");
-	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
-}
-
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 #if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
@@ -333,18 +328,33 @@ void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	g_variant_unref(state);
 }
 
+static void update_chain_channels_ui(gboolean linked) {
+	set_unlink_channels(!linked);
+
+	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps",
+									linked ? "chain-linked.svg" : "chain.svg", NULL);
+	GtkWidget *image = lookup_widget("autostretch_linked_icon");
+	gtk_image_set_from_resource((GtkImage*) image, name);
+
+	GtkWidget *button = lookup_widget("linked_autostretch_button");
+	gchar *tooltip_text = g_strdup_printf(_("Link/unlink channels in autostretch viewer mode.\nCurrent state: %s."),
+										linked ? _("linked") : _("unlinked"));
+	gtk_widget_set_tooltip_text(button, tooltip_text);
+
+	g_free(name);
+	g_free(tooltip_text);
+}
+
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	gboolean linked = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
-	set_unlink_channels(!linked);
-	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", linked ? "chain-linked.svg" : "chain.svg", NULL);
-	GtkWidget *image = lookup_widget("autostretch_linked_icon");
-	gtk_image_set_from_resource((GtkImage*) image, name);
-	GtkWidget *button = lookup_widget("linked_autostretch_button");
-	gchar *tooltip_text = g_strdup_printf(_("Link/unlink channels in autostretch viewer mode.\nCurrent state: %s."), linked ? _("linked") : _("unlinked"));
-	gtk_widget_set_tooltip_text(button, tooltip_text);
-	g_free(name);
-	g_free(tooltip_text);
+	update_chain_channels_ui(linked);
+}
+
+gboolean chain_channels_idle_callback(gpointer user_data) {
+	gboolean linked = GPOINTER_TO_INT(user_data);
+	update_chain_channels_ui(linked);
+	return G_SOURCE_REMOVE;
 }
 
 void chain_channels_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -392,7 +402,42 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	process_seq_psf(0);
+
+	if (!sequence_is_loaded()) {
+		siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
+		return;
+	}
+
+	// If we reach here, sequence is loaded
+	sequence *seq = &com.seq;
+	int layer = select_vport(gui.cvport);
+
+	// Validate selection size
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_log_color_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"), "red");
+		return;
+	}
+	if (com.selection.w <= 0 || com.selection.h <= 0) {
+		siril_log_color_message(_("Select an area first\n"), "red");
+		return;
+	}
+
+	// Determine framing mode
+	framing_mode framing = REGISTERED_FRAME;
+	if (!seq->regparam[layer])
+		framing = ORIGINAL_FRAME;
+	if (framing == ORIGINAL_FRAME) {
+		// com.headless is FALSE, so we execute the GUI path
+		execute_idle_and_wait_for_it(get_followstar_idle, &framing);
+	}
+
+	// Run PSF
+	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, FALSE, framing, TRUE, FALSE) ? 1 : 0;
+
+	if (retval != 0) {
+		siril_log_color_message(_("Error running the PSF on the sequence\n"), "red");
+	}
 }
 
 void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -400,7 +445,11 @@ void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_dat
 }
 
 void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("crop_dialog");
+	if (valid_rgbcomp_seq()) {
+		crop_rgbcomp_seq();
+	} else {
+		siril_open_dialog("crop_dialog");
+	}
 }
 
 void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -575,8 +624,7 @@ void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	if (value_check(&gfit))
-		siril_open_dialog("extract_channel_dialog");
+	siril_open_dialog("extract_channel_dialog");
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -817,15 +865,4 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("ccm_dialog");
-}
-
-void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_message_dialog(GTK_MESSAGE_INFO, _("Update"), _("The original GraXpert "
-		"interface has been removed for technical reasons and unreliability. Please use "
-		"the GraXpert_AI.py script available in the scripts repository: you can add it "
-		"via the \"Get Scripts\" menu entry in the hamburger menu.\n"
-		"The new script handles single images and sequences just like the original "
-		"interface and provides both a GUI and command-line access using the pyscript "
-		"command, for use in scripts. It is less resource hungry, better integrated and "
-		"performs better than the original, and we expect it will be more reliable too."));
 }

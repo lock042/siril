@@ -28,6 +28,7 @@
 #include "gui/registration_preview.h"
 #include "gui/sequence_list.h"
 #include "registration/registration.h"
+#include "opencv/opencv.h"
 
 gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	int current_preview, shiftx = 0, shifty = 0;
@@ -108,6 +109,14 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
+		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+			siril_debug_print("Error: image #%d has a wrong shift x value\n", com.seq.current + 1);
+			shiftx += 1;
+		}
+		if (shifty == INT_MIN) { // mainly to avoid static checker warning
+			siril_debug_print("Error: image #%d has a wrong shift y value\n", com.seq.current + 1);
+			shifty += 1;
+		}
 	}
 	if (shiftx || shifty)
 		cairo_translate(cr, shiftx, -shifty);
@@ -330,6 +339,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 			PRINT_ALLOC_ERR;
 			return;
 		}
+		cvGetEye(&com.seq.regparam[current_layer][com.seq.reference_image].H);
 	}
 
 	new_value = gtk_spin_button_get_value_as_int(spinbutton);

@@ -524,8 +524,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
 	gchar *filepath = g_build_filename(root, filename, NULL);
 
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir_with_parents(root, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+		if (siril_mkdir_with_parents(root, 0755) < 0) {
 			g_free(filepath);
 			g_free(root);
 			return NULL; // we won't be able to write to the file
@@ -566,6 +565,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
+	int fetch_url_error = 0;
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
@@ -600,7 +600,6 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	siril_debug_print("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	int fetch_url_error;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
 
 	/* save (and parse if required)*/

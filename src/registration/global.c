@@ -173,6 +173,15 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
+	
+	if (!regargs->no_output && regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
 
 	// we correct the reference stars for distortions
 	// we'll do the same for each imagebefore matching the 2 lists
@@ -220,6 +229,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		sadata->fitted_stars = nb_stars;
 	}
 	FWHM_stats(sadata->refstars, sadata->fitted_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+	if (args->seq->bitpix != FLOAT_IMG && !com.pref.force_16bit)
+		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
@@ -369,7 +380,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].H = H;
 
 		if (!regargs->no_output) {
-			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+			if (regargs->driz || regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
@@ -385,38 +396,23 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz || regargs->undistort)) {
 			if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
+		} else {
+			regargs->imgparam[out_index].rx = fit->rx;
+			regargs->imgparam[out_index].ry = fit->ry;
 		}
 	}
 
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-		cvGetEye(&regargs->regparam[out_index].H);
-
-		if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
-			fit->keywords.pixel_size_x /= regargs->output_scale;
-			fit->keywords.pixel_size_y /= regargs->output_scale;
-			regargs->regparam[out_index].fwhm *= regargs->output_scale;
-			regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
+	// updating regparam for the output sequence if any and updating pixel size 
+	// is handled in apply_reg_image_hook
 	sadata->success[out_index] = 1;
+	args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	return 0;
 }
 
@@ -435,6 +431,13 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		if (regargs->new_total <= 1) {
+			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			args->retval = 1;
+		}
+	}
+
+	if (!args->retval) {
 		regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
 
 		if (!regargs->no_output) {
@@ -467,6 +470,9 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
+		} else if (args->seq->type == SEQ_REGULAR) {
+			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
 		}
 	}
 
@@ -615,10 +621,6 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		free(args);
-		return -1;
-	}
 
 	args->compute_mem_limits_hook = star_align_compute_mem_limits;
 	args->upscale_ratio = regargs->output_scale;
@@ -650,6 +652,7 @@ int register_star_alignment(struct registration_args *regargs) {
 		regargs->matchSelection = FALSE;
 	}
 
+	args->compute_size_hook = compute_registration_size_hook;
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;

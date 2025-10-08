@@ -33,6 +33,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
+#include "core/command_line_processor.h"
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -501,8 +502,11 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	if (!(args->seq->type == SEQ_INTERNAL))
 		g_assert(args->new_seq_prefix); // don't call this hook otherwise
 	//removing existing files
-	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
-	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+	if (args->seq->type != SEQ_INTERNAL) {
+		remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_drizzle_files(args->seq, args->new_seq_prefix);
+	}
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -846,7 +850,8 @@ gpointer waiting_for_thread() {
 	com.thread = NULL;
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-	return retval;
+
+	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 int claim_thread_for_python() {
@@ -1225,27 +1230,87 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 	}
+	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
+		// List of extensions to check (both upper and lower case)
+		const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
+		int num_extensions = 6;
+		const gchar *com_ext = get_com_ext(args->seq->fz);
 
+		retval = 1; // Default to fail status
+
+		// First, try com_ext (the expected extension)
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, com_ext);
+		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+			g_free(seqfilename);
+			if (!retval) goto after_fitseq_check;
+		}
+		g_free(seqfilename);
+
+		// If com_ext didn't match, try other extensions
+		for (int i = 0; i < num_extensions; i++) {
+			// Skip if this extension matches com_ext (already checked)
+			if (args->seq->fz) {
+				// For compressed files, check if extension + .fz matches com_ext
+				char temp_ext[20];
+				snprintf(temp_ext, 19, "%s.fz", extensions[i]);
+				if (strcmp(temp_ext, com_ext) == 0) continue;
+			} else {
+				// For uncompressed files, check if extension matches com_ext
+				if (strcmp(extensions[i], com_ext) == 0) continue;
+			}
+
+			if (args->seq->fz) {
+				seqfilename = g_strdup_printf("%s%s.fz", args->seq->seqname, extensions[i]);
+			} else {
+				seqfilename = g_strdup_printf("%s%s", args->seq->seqname, extensions[i]);
+			}
+
+			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+				g_free(seqfilename);
+				if (!retval) break;
+			} else {
+				g_free(seqfilename);
+			}
+		}
+
+after_fitseq_check:
+		if (retval) goto cleanup;
+	}
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
 
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, input_idx)) {
+		if (args->seq->type == SEQ_REGULAR && seq_open_image(args->seq, input_idx)) {
 			retval = 1;
 			goto cleanup;
+		} else if (args->seq->type == SEQ_FITSEQ) {
+			// Need to move to the correct HDU
+			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
+			if (retval) {
+				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				goto cleanup;
+			}
 		}
 		if (args->seq->type == SEQ_REGULAR)
 			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
 		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);
-		seq_close_image(args->seq, input_idx);
+		if (args->seq->type == SEQ_REGULAR)
+			seq_close_image(args->seq, input_idx);
 		clearfits(&fit);
 	}
 cleanup:
+	if (args->seq->type == SEQ_FITSEQ) {
+		int status;
+		fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[0], NULL, &status);
+	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	free_sequence(args->seq, TRUE);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	g_slist_free_full(args->keys, g_free);
 	g_free(args->header);
 	if (args->output_stream)

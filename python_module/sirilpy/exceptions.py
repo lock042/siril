@@ -132,3 +132,10 @@ class ImageDialogOpenError(SirilError):
     def __init__(self, message: str = _("Siril image dialog is open")):
         super().__init__(message)
 
+class MouseModeError(SirilError):
+    """
+    Exception raised when Siril is in the wrong mouse mode.
+    """
+    def __init__(self, message: str = _("Siril mouse mode error")):
+        super().__init__(message)
+

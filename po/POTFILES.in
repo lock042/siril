@@ -87,6 +87,7 @@ src/compositing/compositing.c
 src/core/OS_utils.c
 src/core/arithm.c
 src/core/command.c
+src/core/command_def.h
 src/core/command_line_processor.c
 src/core/icc_profile.c
 src/core/initfile.c

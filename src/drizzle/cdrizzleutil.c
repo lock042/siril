@@ -159,6 +159,9 @@ driz_param_init(struct driz_param_t* p) {
   p->nmiss = 0;
   p->nskip = 0;
   p->error = NULL;
+
+  memset(p->cfa, 0, sizeof(p->cfa));
+  p->cfadim = 1;
 }
 
 /*****************************************************************

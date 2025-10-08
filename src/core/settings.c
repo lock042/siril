@@ -68,6 +68,7 @@ preferences pref_init = {
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
+	.drizz_weight_match_bitpix = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -185,7 +186,7 @@ preferences pref_init = {
 		.use_bayer_header = TRUE,
 		.bayer_pattern = BAYER_FILTER_RGGB,
 		.bayer_inter = BAYER_RCD,
-		.top_down = TRUE,
+		.orientation = ROW_ORDER_HEADER_TOPDOWN,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
 		.xtrans_passes = 1
@@ -389,7 +390,7 @@ struct settings_access all_settings[] = {
 	{ "debayer", "use_bayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
 	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
-	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
+	{ "debayer", "orientation", STYPE_INT, N_("row-order preference"), &com.pref.debayer.orientation, { .range_int = { 0, ROW_ORDER_FORCE_BOTTOMUP } } },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },
@@ -467,6 +468,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
+	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },

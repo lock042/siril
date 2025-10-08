@@ -56,8 +56,10 @@
  *  - added overlap statistics in the O* cards:
  *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
+ * version 6
+ * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
  */
-#define CURRENT_SEQFILE_VERSION 5	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -115,15 +117,20 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d %d";
+				else
+					scanformat = "%511s %d %d %d %d %d %d %d %d %d";
 
-				if(sscanf(line+2, scanformat,
+				int nbtokens = sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
-						allocated != 0){
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz, &seq->is_drizzle);
+				if((nbtokens < 6 && version < 6) || (nbtokens < 10 && version >= 6) || allocated != 0) {
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				if (version < 0) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
 					goto error;
 				}
 				if (seq->number == 0) {
@@ -440,13 +447,24 @@ sequence * readseqfile(const char *name){
 					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = malloc(sizeof(struct fits_sequence));
+					seq->fitseq_file = calloc(1, sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
-					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, get_com_ext(seq->fz));
-					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
-					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file, READONLY)) {
-						g_free(seq->fitseq_file->filename);
+					int i = 0;
+					static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
+					// We only look for lowercase extensions as FITSEQ will only have been created by Siril, and should
+					// have used a lowercase extensions set in com.pref.ext
+					while (fitseq_ext[i]) {
+						GString *fileString = g_string_new(filename);
+						g_string_append(fileString, fitseq_ext[i++]);
+						gchar *test_filename = g_string_free(fileString, FALSE);
+						if (g_file_test(test_filename, G_FILE_TEST_EXISTS) && !fitseq_open(test_filename, seq->fitseq_file, READONLY)) {
+							seq->fitseq_file->filename = test_filename;
+							break;
+						} else {
+							g_free(test_filename);
+						}
+					}
+					if (!seq->fitseq_file->filename) {
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;
 						goto error;
@@ -675,10 +693,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag drizzle\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz, seq->is_drizzle);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {

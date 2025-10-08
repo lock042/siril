@@ -631,7 +631,7 @@ int crop(fits *fit, rectangle *bounds) {
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
-	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
+	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
 	switch (cfa) {
 		case BAYER_FILTER_NONE:
 			break;
@@ -698,7 +698,11 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	int ret = crop(fit, &(c_args->area));
-
+	if (args->seq->type == SEQ_INTERNAL) {
+		// For SEQ_INTERNAL we update the sequence in place, we must update the metadata too
+		args->seq->imgparam[o].rx = c_args->area.w;
+		args->seq->imgparam[o].ry = c_args->area.h;
+	}
 	if (!ret) {
 		char log[90];
 		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
@@ -890,6 +894,7 @@ int scale_finalize_hook(struct generic_seq_args *args) {
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
+	args->already_in_a_thread = args->seq->type == SEQ_INTERNAL;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;

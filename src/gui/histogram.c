@@ -58,10 +58,10 @@ static gboolean closing = FALSE;
 static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
-static clip_mode_t _clip_mode = CLIP;
+static clip_mode_t _clip_mode = RGBBLEND;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
-static int _payne_colourstretchmodel = COL_HUMANLUM;
+static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
 static fits* fit = &gfit;
@@ -75,6 +75,10 @@ static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
 static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
+
+// Original ICC profile, in case we don't apply a stretch and need to revert
+static cmsHPROFILE original_icc = NULL;
+static gboolean single_image_stretch_applied = FALSE;
 
 // The 4th toggle pointer remains NULL, but it makes the logic easier in redraw_histo()
 static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
@@ -133,7 +137,17 @@ static void init_toggles() {
 	}
 }
 
+static gboolean active_sliders = TRUE;
+
+static void set_controls_active(gboolean state) {
+	gtk_widget_set_sensitive(lookup_widget("histoShadEntry"), state);
+	gtk_widget_set_sensitive(lookup_widget("histoMidEntry"), state);
+	gtk_widget_set_sensitive(lookup_widget("histoHighEntry"), state);
+	active_sliders = state;
+}
+
 static void histo_startup() {
+	set_controls_active(TRUE);
 	add_roi_callback(histo_change_between_roi_and_image);
 	roi_supported(TRUE);
 	copy_gfit_to_backup();
@@ -169,7 +183,7 @@ static void histo_startup() {
 	}
 }
 
-static void histo_close(gboolean revert, gboolean update_image_if_needed) {
+static void histo_close(gboolean revert, gboolean update_image_if_needed, gboolean revert_icc_profile) {
 	if (revert) {
 
 		for (int i = 0; i < fit->naxes[2]; i++) {
@@ -186,6 +200,12 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	// free data
 	if(!sequence_working && !revert) {
 		clear_hsl();
+	}
+	if (revert_icc_profile && !single_image_stretch_applied) {
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(original_icc);
+		color_manage(&gfit, gfit.icc_profile != NULL);
 	}
 	clear_backup();
 	clear_hist_backup();
@@ -709,7 +729,7 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 				displayed_values = NULL;
 			}
 			PRINT_ALLOC_ERR;
-			histo_close(TRUE, TRUE);
+			histo_close(TRUE, TRUE, TRUE);
 			return;
 		}
 		displayed_values = tmp;
@@ -884,9 +904,9 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 		if (full_reset) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 1);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), RGBBLEND);
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
 		}
 	}
@@ -1184,7 +1204,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	histo_close(TRUE, TRUE);
+	histo_close(TRUE, TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 	return FALSE;
@@ -1193,7 +1213,7 @@ gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values(FALSE);
-	histo_close(TRUE, TRUE);
+	histo_close(TRUE, TRUE, FALSE);
 	histo_startup();
 	set_cursor_waiting(FALSE);
 }
@@ -1211,6 +1231,7 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+	set_controls_active(TRUE);
 	if (invocation == HISTO_STRETCH) {
 		if ((_midtones == 0.5f) && (_shadows == 0.0f) && (_highlights == 1.0f)) {
 			return;
@@ -1241,7 +1262,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			histo_close(TRUE, FALSE);
+			histo_close(TRUE, FALSE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -1273,7 +1294,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		 * It is better to first close the window as it is a liveview tool
 		 * TODO: could we improve this behavior?
 		 */
-			histo_close(TRUE, FALSE);
+			histo_close(TRUE, FALSE, TRUE);
 			siril_close_dialog("histogram_dialog");
 
 		/* apply the process */
@@ -1292,13 +1313,19 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			histo_recompute();
 		}
 		populate_roi();
-		// partial cleanup
+		// janky undo preparation to account for ICC usage
+		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
+		fits undo_fit = {0};
+		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+		undo_fit.icc_profile = original_icc;
+		undo_fit.color_managed = original_icc != NULL;
+
 		if (invocation == HISTO_STRETCH) {
 			siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
 				_shadows, _midtones, _highlights);
 			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
 				_midtones, _shadows, _highlights);
-			undo_save_state(get_preview_gfit_backup(),
+			undo_save_state(&undo_fit,
 				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
 				_midtones, _shadows, _highlights);
 		} else if (invocation == GHT_STRETCH) {
@@ -1306,37 +1333,37 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			if (_payne_colourstretchmodel != COL_SAT) {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
-						undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
+						undo_save_state(&undo_fit, _("GHS LINEAR BP: %.2f"), _BP);
 						break;
 				}
 			} else {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						undo_save_state(get_preview_gfit_backup(), _("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						undo_save_state(get_preview_gfit_backup(), _("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						undo_save_state(&undo_fit, _("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
-						undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR SAT BP: %.2f"), _BP);
+						undo_save_state(&undo_fit, _("GHS LINEAR SAT BP: %.2f"), _BP);
 						break;
 				}
 			}
@@ -1347,13 +1374,15 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		histo_startup();
 		reset_cursors_and_values(FALSE);
 
+		single_image_stretch_applied = TRUE;
+
 		set_cursor("default");
 	}
 }
 
 void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
-	histo_close(TRUE, TRUE);
+	histo_close(TRUE, TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 
@@ -1380,6 +1409,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
 			auto_display_compensation = TRUE;
 		notify_update((gpointer) param);
+		set_controls_active(FALSE);
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
 	}
@@ -1482,14 +1512,34 @@ void toggle_histogram_window_visibility(int _invocation) {
 	for (int i=0;i<3;i++) {
 		do_channel[i] = TRUE;
 	}
-	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
-		histo_close(TRUE, TRUE);
+		histo_close(TRUE, TRUE, TRUE);
 		set_cursor_waiting(FALSE);
+
 		siril_close_dialog("histogram_dialog");
 	} else {
+		if (original_icc)
+			cmsCloseProfile(original_icc);
+		original_icc = copyICCProfile(gfit.icc_profile);
+		icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+		single_image_stretch_applied = FALSE;
+		// When opening the dialog with a single image loaded, we cache the original ICC
+		// profile (may be NULL) in case the user closes the dialog without applying a
+		// stretch, in which case we will revert.
+		if (single_image_is_loaded()) {
+			if (original_icc) {
+				cmsCloseProfile(original_icc);
+				original_icc = copyICCProfile(gfit.icc_profile);
+			}
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+		} else {
+			if (original_icc) {
+				cmsCloseProfile(original_icc);
+				original_icc = NULL;
+			}
+		}
 		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		//Ensure the colour stretch model is initialised at startup
@@ -1524,7 +1574,7 @@ gboolean on_drawingarea_histograms_motion_notify_event(GtkWidget *widget, GdkEve
 				xpos = 0.0;
 			if (xpos > 1.0)
 				xpos = 1.0;
-		if (invocation == HISTO_STRETCH) {
+		if (invocation == HISTO_STRETCH && active_sliders) {
 			gchar *buffer = NULL;
 			GtkEntry *histoMidEntry = GTK_ENTRY(lookup_widget("histoMidEntry"));
 			GtkEntry *histoShadEntry = GTK_ENTRY(lookup_widget("histoShadEntry"));
@@ -1582,7 +1632,7 @@ gboolean on_drawingarea_histograms_button_press_event(GtkWidget *widget,
 	width = get_width_of_histo();
 	int height = 281;
 	height = get_height_of_histo();
-	if (invocation == HISTO_STRETCH) {
+	if (invocation == HISTO_STRETCH && active_sliders) {
 		if (on_gradient((GdkEvent *) event, width, height)) {
 			float delta = ((_highlights - _shadows) * _midtones) + _shadows;
 
@@ -1825,7 +1875,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 		} else {
 			set_cursor_waiting(TRUE);
 			reset_cursors_and_values(FALSE);
-			histo_close(TRUE, TRUE);
+			histo_close(TRUE, TRUE, FALSE);
 			setup_hsl();
 			_payne_colourstretchmodel = tmp;
 			histo_startup();
@@ -1844,7 +1894,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 		if (_payne_colourstretchmodel == COL_SAT) {
 			set_cursor_waiting(TRUE);
 			reset_cursors_and_values(FALSE);
-			histo_close(TRUE, TRUE);
+			histo_close(TRUE, TRUE, FALSE);
 			clear_hsl();
 			_payne_colourstretchmodel = tmp;
 			histo_startup();

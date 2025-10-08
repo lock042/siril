@@ -30,5 +30,7 @@ int undo_display_data(int dir);
 int undo_save_state(fits *fit, const char *message, ...);
 int	undo_flush();
 void set_undo_redo_tooltip();
+gboolean undo_in_thread(gpointer user_data);
+gboolean redo_in_thread(gpointer user_data);
 
 #endif /* UNDO_H_ */

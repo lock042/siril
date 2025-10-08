@@ -1,26 +1,32 @@
 #ifndef _DEMOSAICING_H
 #define _DEMOSAICING_H
 
+// set to 1 to save green_interpolated fits
+#define BAYER_DEBUG 0
 extern const char *filter_pattern[];
 extern const size_t num_filter_patterns;
-int get_cfa_pattern_index_from_string(const char *bayer);
+void adjust_Bayer_pattern_orientation(sensor_pattern *pattern, unsigned int ry, gboolean flip);
+sensor_pattern get_cfa_pattern_index_from_string(const char *bayer);
+sensor_pattern get_validated_cfa_pattern(fits *fit, gboolean force_debayer, gboolean verbose);
+int FC_array(int row, int col, BYTE* bpattern, int size);
+int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolean verbose);
+gboolean fit_is_cfa(fits *fit);
+gboolean compare_compiled_pattern(BYTE *refpattern, BYTE *pattern, int pattern_size);
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
+void get_debayer_area(const rectangle *area, rectangle *debayer_area,
+		const rectangle *image_area, int *debayer_offset_x,
+		int *debayer_offset_y);
 
-WORD *debayer_buffer(WORD *buf, int *width, int *height,
-		interpolation_method interpolation, sensor_pattern pattern, int bit_depth);
 int debayer(fits*, interpolation_method, sensor_pattern pattern);
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern);
-WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern);
-float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern);
 int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 #ifdef __cplusplus
 }
 #endif
-
-sensor_pattern get_bayer_pattern(fits *fit);
 
 struct merge_cfa_data {
 	sequence *seq0;
@@ -30,12 +36,8 @@ struct merge_cfa_data {
 	char *seqEntryOut;
 	sensor_pattern pattern;
 };
-void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
-void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
-void get_debayer_area(const rectangle *area, rectangle *debayer_area,
-		const rectangle *image_area, int *debayer_offset_x,
-		int *debayer_offset_y);
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
 #ifdef __cplusplus
 extern "C" {

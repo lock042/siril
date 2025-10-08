@@ -486,7 +486,6 @@ This is important if you are not coloring the layers with pure R, pure G and pur
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Select framing method for deep-sky alignment:
 First channel - frame to the first channel (always L in luminance mode);
-Max - frame to the maximum extent of the aligned images;
 Min - frame to the minimum overlap of all aligned images;
 COG - frame to the centre of gravity of the pixels in the set of aligned images.</property>
                 <property name="active">2</property>

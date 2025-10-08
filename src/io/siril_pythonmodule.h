@@ -79,6 +79,26 @@ typedef enum {
 	CMD_CONFIRM_MESSAGEBOX = 62,
 	CMD_GET_SEQ_FRAME_HEADER = 63,
 	CMD_CREATE_NEW_SEQ = 64,
+	CMD_CLEAR_BGSAMPLES = 65,
+	CMD_DRAW_POLYGON = 66,
+	CMD_GET_IMAGE_FILE = 67,
+	CMD_ANALYSE_IMAGE_FROM_FILE = 68,
+	CMD_UNDO = 69,
+	CMD_REDO = 70,
+	CMD_SET_IMAGE_ICCPROFILE = 71,
+	CMD_CLEAR_UNDO_HISTORY = 72,
+	CMD_GET_SLIDER_STATE = 73,
+	CMD_SET_SLIDER_MODE = 74,
+	CMD_SET_SLIDER_LOHI = 75,
+	CMD_GET_STFMODE = 76,
+	CMD_SET_STFMODE = 77,
+	CMD_GET_PANZOOM = 78,
+	CMD_SET_PAN = 79,
+	CMD_SET_ZOOM = 80,
+	CMD_GET_DISPLAY_ICCPROFILE = 81,
+	CMD_GET_STF_LINKED = 82,
+	CMD_SET_STF_LINKED = 83,
+	CMD_SET_IMAGE_FILENAME = 84,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -179,18 +199,21 @@ typedef struct {
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
-void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file);
+void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync, gchar** argv_script, gboolean is_temp_file, gboolean from_cli, gboolean debug_mode);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview);
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();
 void shutdown_python_communication(CommunicationState *commstate);
 void rebuild_venv();
+gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic);
 
 #endif

@@ -934,8 +934,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	GError *error = NULL;
 	gchar *dirname = g_path_get_dirname(filename);
 	GDir *dir = g_dir_open(dirname, 0, NULL);
-	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
-		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
 		g_free(dirname);
 		return 1;
 	}
@@ -1173,7 +1172,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	}
 	curr_findstar_args->threading = SINGLE_THREADED;
 
-	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
+	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "cache", "lst", NULL);
 	if (!star_filename) {
 		free(curr_findstar_args);
 		return TRUE;
@@ -1224,7 +1223,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
-		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		if (!star_filename) {
 			if (curr_findstar_args->onepass == TRUE) {
 				free(curr_findstar_args->nb_stars);
@@ -1252,7 +1251,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
 			// uncomment these lines to save the green fit for each image
-			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "fit", "green_");
+			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "cache", "fit", "green_");
 			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
@@ -1376,9 +1375,11 @@ gpointer findstar_worker(gpointer p) {
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	fits *green_fit = NULL;
+	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
 	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
 		green_fit = calloc(1, sizeof(fits));
+		orig = args->im.fit;
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(green_fit);
 		args->im.fit = green_fit;
@@ -1387,6 +1388,7 @@ gpointer findstar_worker(gpointer p) {
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			&args->selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 	if (green_fit) {
+		args->im.fit = orig;
 		clearfits(green_fit);
 		free(green_fit);
 	}
@@ -1438,7 +1440,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 
 	if (args->update_GUI)
-		update_star_list(stars, TRUE, FALSE);
+		update_star_list(stars, TRUE, com.python_script);
 
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),

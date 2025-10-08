@@ -37,6 +37,7 @@
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
+	double *fweight[3];	// the new image's weights for drizzle stacking
 	GList *list_date; // list of dates of every FITS file
 	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
@@ -54,7 +55,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
 	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 
-	if (ssdata->input_32bits) {
+	if (ssdata->input_32bits || args->seq->is_drizzle) {
 		ssdata->fsum[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
 		if (ssdata->fsum[0] == NULL){
 			PRINT_ALLOC_ERR;
@@ -62,11 +63,26 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 		}
 		if(args->seq->nb_layers == 3){
 			ssdata->fsum[1] = ssdata->fsum[0] + nbdata;
-			ssdata->fsum[2] = ssdata->fsum[0] + nbdata*2;
+			ssdata->fsum[2] = ssdata->fsum[0] + nbdata * 2;
 		} else {
 			ssdata->fsum[1] = NULL;
 			ssdata->fsum[2] = NULL;
 		}
+		if (args->seq->is_drizzle) {
+			ssdata->fweight[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
+			if (ssdata->fweight[0] == NULL){
+				PRINT_ALLOC_ERR;
+				return ST_ALLOC_ERROR;
+			}
+			if(args->seq->nb_layers == 3){
+				ssdata->fweight[1] = ssdata->fweight[0] + nbdata;	// index of green layer in fweight[0]
+				ssdata->fweight[2] = ssdata->fweight[0] + nbdata * 2;	// index of blue layer in fweight[0]
+			} else {
+				ssdata->fweight[1] = NULL;
+				ssdata->fweight[2] = NULL;
+			}
+		} else
+			ssdata->fweight[0] = NULL;
 		ssdata->sum[0] = NULL;
 	} else {
 		ssdata->sum[0] = calloc(nbdata, sizeof(guint64) * args->seq->nb_layers);
@@ -76,7 +92,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 		}
 		if(args->seq->nb_layers == 3){
 			ssdata->sum[1] = ssdata->sum[0] + nbdata;	// index of green layer in sum[0]
-			ssdata->sum[2] = ssdata->sum[0] + nbdata*2;	// index of blue layer in sum[0]
+			ssdata->sum[2] = ssdata->sum[0] + nbdata * 2;	// index of blue layer in sum[0]
 		} else {
 			ssdata->sum[1] = NULL;
 			ssdata->sum[2] = NULL;
@@ -94,6 +110,26 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	int shiftx = 0, shifty = 0, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
 	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
+	gboolean is_drizzle = args->seq->is_drizzle;
+	float **weights = NULL;
+	float *dweights = NULL;
+	if (is_drizzle) {
+		const gchar *drizzfile = get_sequence_cache_filename(args->seq, i, "drizztmp", "fit", NULL);
+		int rx = (args->seq->is_variable) ? args->seq->imgparam[i].rx : args->seq->rx;
+		int ry = (args->seq->is_variable) ? args->seq->imgparam[i].ry : args->seq->ry;
+		rectangle drizz_area = { 0, 0, rx, ry};
+		dweights = calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
+		int layer = (args->seq->nb_layers == 1) ? 0 : 4; // 4 means all layers, 0 means only the first layer
+		if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dweights)) {
+			siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", i + 1,
+			drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
+			return ST_SEQUENCE_ERROR;
+		}
+		weights = malloc(sizeof(float *) * args->seq->nb_layers);
+		for (int l = 0; l < args->seq->nb_layers; ++l) {
+			weights[l] = dweights + (l * rx * ry);
+		}
+	}
 	/* we get some metadata at the same time: date, exposure ... */
 
 #ifdef _OPENMP
@@ -120,32 +156,64 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		shifty = round_to_int(dy);
 		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
+	if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: image #%d has a wrong shiftx value\n", o + 1);
+		shiftx += 1;
+	}
+	if (shifty == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: image #%d has a wrong shifty value\n", o + 1);
+		shifty += 1;
+	}
 
 	for (y = 0; y < ssdata->output_size[1]; ++y) {
 		ny = y - shifty;
+		size_t rny = ny * fit->rx;
 		for (x = 0; x < ssdata->output_size[0]; ++x) {
 			nx = x - shiftx;
 			if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
 				// we have data for this pixel
-				ii = ny * fit->rx + nx;		// index in source image
+				ii = rny + nx;		// index in source image
 				if (ii < nbdata) {
 					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
-						if (ssdata->input_32bits) {
+						if (!is_drizzle) {
+							if (ssdata->input_32bits) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-							ssdata->fsum[layer][pixel] += (double)fit->fpdata[layer][ii];
+								ssdata->fsum[layer][pixel] += (double)fit->fpdata[layer][ii];
+							}
+							else
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
+						} else {
+							if (ssdata->input_32bits) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->fsum[layer][pixel] += (double)(fit->fpdata[layer][ii] * weights[layer][ii]);
+							}
+							else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->fsum[layer][pixel] += (double)(fit->pdata[layer][ii] * weights[layer][ii]);
+							}
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+							ssdata->fweight[layer][pixel] += (double)weights[layer][ii]; // weight is always in the first layer
 						}
-						else
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-							ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
 					}
 				}
 			}
 			++pixel;
 		}
+	}
+	if (is_drizzle) {
+		free(dweights);
+		free(weights);
 	}
 	return ST_OK;
 }
@@ -161,31 +229,35 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	if (args->retval) {
 		if (ssdata->sum[0]) free(ssdata->sum[0]);
 		if (ssdata->fsum[0]) free(ssdata->fsum[0]);
+		if (ssdata->fweight[0]) free(ssdata->fweight[0]);
 		args->user = NULL;
 		return args->retval;
 	}
 
 	nbdata = ssdata->output_size[0] * ssdata->output_size[1] * args->seq->nb_layers;
-	// find the max first
-	if (ssdata->input_32bits) {
+
+	if (!args->seq->is_drizzle) {
+		// find the max first
+		if (ssdata->input_32bits) {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:fmax)
 #endif
-		for (i = 0; i < nbdata; ++i) {
-			if (ssdata->fsum[0][i] > fmax)
-				fmax = ssdata->fsum[0][i];
-		}
-		if (!fmax)
-			return ST_GENERIC_ERROR;
-	} else {
+			for (i = 0; i < nbdata; ++i) {
+				if (ssdata->fsum[0][i] > fmax)
+					fmax = ssdata->fsum[0][i];
+			}
+			if (!fmax)
+				return ST_GENERIC_ERROR;
+		} else {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(max:max)
 #endif
-		for (i = 0; i < nbdata; ++i)
-			if (ssdata->sum[0][i] > max)
-				max = ssdata->sum[0][i];
-		if (!max)
-			return ST_GENERIC_ERROR;
+			for (i = 0; i < nbdata; ++i)
+				if (ssdata->sum[0][i] > max)
+					max = ssdata->sum[0][i];
+			if (!max)
+				return ST_GENERIC_ERROR;
+		}
 	}
 
 	fits *fit = &ssdata->result;
@@ -214,46 +286,76 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	compute_date_time_keywords(ssdata->list_date, fit);
 	g_list_free_full(ssdata->list_date, (GDestroyNotify) free_list_date);
 
-	if (ssdata->output_32bits) {
-		if (ssdata->input_32bits) {
-			double ratio = 1.0 / fmax;
-			for (layer=0; layer<args->seq->nb_layers; ++layer){
-				double *from = ssdata->fsum[layer];
-				float *to = fit->fpdata[layer];
-				for (i=0; i < nbdata; ++i) {
-					*to++ = (float)((double)(*from++) * ratio);
+	if (!args->seq->is_drizzle) {
+		if (ssdata->output_32bits) {
+			if (ssdata->input_32bits) {
+				double ratio = 1.0 / fmax;
+				for (layer=0; layer<args->seq->nb_layers; ++layer){
+					double *from = ssdata->fsum[layer];
+					float *to = fit->fpdata[layer];
+					for (i=0; i < nbdata; ++i) {
+						*to++ = (float)((double)(*from++) * ratio);
+					}
+				}
+			} else {
+				double ratio = 1.0 / (max == 0 ? 1 : (double)max);
+				for (layer=0; layer<args->seq->nb_layers; ++layer){
+					guint64 *from = ssdata->sum[layer];
+					float *to = fit->fpdata[layer];
+					for (i=0; i < nbdata; ++i) {
+						*to++ = (float)((double)(*from++) * ratio);
+					}
 				}
 			}
 		} else {
-			double ratio = 1.0 / (max == 0 ? 1 : (double)max);
+			double ratio = 1.0;
+			if (max > USHRT_MAX) {
+				ratio = USHRT_MAX_DOUBLE / (double)max;
+				siril_log_color_message(_("Reducing the stacking output to a 16-bit image will result in precision loss\n"), "salmon");
+			}
+
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
-				float *to = fit->fpdata[layer];
+				WORD *to = fit->pdata[layer];
 				for (i=0; i < nbdata; ++i) {
-					*to++ = (float)((double)(*from++) * ratio);
+					if (ratio == 1.0)
+						*to++ = round_to_WORD(*from++);
+					else *to++ = round_to_WORD((double)(*from++) * ratio);
 				}
 			}
 		}
-	} else {
-		double ratio = 1.0;
-		if (max > USHRT_MAX) {
-			ratio = USHRT_MAX_DOUBLE / (double)max;
-			siril_log_color_message(_("Reducing the stacking output to a 16-bit image will result in precision loss\n"), "salmon");
-		}
-
-		for (layer=0; layer<args->seq->nb_layers; ++layer){
-			guint64 *from = ssdata->sum[layer];
-			WORD *to = fit->pdata[layer];
-			for (i=0; i < nbdata; ++i) {
-				if (ratio == 1.0)
-					*to++ = round_to_WORD(*from++);
-				else *to++ = round_to_WORD((double)(*from++) * ratio);
+	} else { // divide by drizzle weights
+		for (layer = 0; layer<args->seq->nb_layers; ++layer){
+			double *from = ssdata->fsum[layer];
+			double *fromw = ssdata->fweight[layer];
+			float *tof = (ssdata->output_32bits) ? fit->fpdata[layer] : NULL;
+			WORD *tos = (ssdata->output_32bits) ? NULL : fit->pdata[layer];
+			float factor = ssdata->input_32bits ? 1.f : INV_USHRT_MAX_SINGLE;
+			for (i = 0; i < nbdata; ++i) {
+				if (ssdata->output_32bits) {
+					if (*fromw > 0.0)
+						*tof++ = (float)((*from++) / (*fromw++)) * factor;
+					else {
+						*tof++ = 0.0f; // avoid division by zero
+						++from;
+						++fromw;
+					}
+				} else {
+					if (*fromw > 0.0)
+						*tos++ = round_to_WORD((*from++) / (*fromw++));
+					else {
+						*tos++ = 0; // avoid division by zero
+						++from;
+						++fromw;
+					}
+				}
 			}
 		}
 	}
 
 	if (ssdata->sum[0]) free(ssdata->sum[0]);
 	if (ssdata->fsum[0]) free(ssdata->fsum[0]);
+	if (ssdata->fweight[0]) free(ssdata->fweight[0]);
 	args->user = NULL;
 
 	return ST_OK;

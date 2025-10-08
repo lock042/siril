@@ -211,7 +211,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			if (!wait_for_file_to_be_written(filename)) {
 				fits dest = { 0 };
 				gchar *new = replace_ext(filename, com.pref.ext);
-				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
+				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit);
 				savefits(new, &dest);
 				clearfits(&dest);
 			}

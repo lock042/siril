@@ -636,6 +636,7 @@ void init_stacking_args(struct stacking_args *args) {
 	args->maximize_framing = FALSE;
 	memset(args->offset, 0, 2 * sizeof(int));
 	args->upscale_at_stacking = FALSE;
+	args->drizzle = FALSE;
 
 	args->type_of_rejection = NO_REJEC;
 	memset(args->sig, 0, 2 * sizeof(float));

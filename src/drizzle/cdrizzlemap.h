@@ -133,6 +133,11 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
 
 int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx, int target_ry, float scale, disto_data *disto, int threads);
 
+int interpolate_four_points(struct driz_param_t *par,
+			    int ixcen, int iycen, float h,
+			    float *x1, float *x2, float *x3, float *x4,
+			    float *y1, float *y2, float *y3, float *y4);
+
 int
 map_point(struct driz_param_t *par, float xin, float yin,
           float *xout, float *yout);

@@ -56,3 +56,4 @@ GPATH
 *.pyc
 *.egg-info
 .idea/
+subprojects/.wraplock
