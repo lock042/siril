@@ -29,29 +29,26 @@
 #include "core/undo.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
+#include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "filters/graxpert.h"
+#include "compositing/compositing.h"
 #include "gui/cut.h"
-#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
+#include "gui/python_gui.h"
 #include "algos/siril_wcs.h"
-#include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
-#include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_pythonmodule.h"
+#include "io/siril_git.h"
 #include "annotations_pref.h"
-#include "compositing/align_rgb.h"
-#include "preferences.h"
 #include "image_display.h"
 #include "image_interactions.h"
 #include "single_image.h"
@@ -68,7 +65,6 @@
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
-#include "fix_xtrans_af.h"
 #include "siril_intro.h"
 #include "siril_preview.h"
 #include "siril-window.h"
@@ -354,6 +350,7 @@ void unlock_roi_mutex() {
 gpointer on_set_roi() {
 	if (com.selection.w == 0 && com.selection.h == 0)
 		return GINT_TO_POINTER(0);
+	rectangle sel = com.selection;
 	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 	if (com.python_command) {
 		g_mutex_unlock(&roi_mutex);
@@ -365,7 +362,7 @@ gpointer on_set_roi() {
 	// Ensure any pending ROI changes are overwritten by the backup
 	// Must copy the whole backup to gfit and gui.roi.fit to account
 	// for switching between full image and ROI
-	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+	memcpy(&gui.roi.selection, &sel, sizeof(rectangle));
 	gui.roi.active = TRUE;
 	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
 		copy_backup_to_gfit();
@@ -476,6 +473,11 @@ void set_cutoff_sliders_values() {
 	gtk_entry_set_text(minentry, buffer);
 	g_signal_handlers_unblock_by_func(minentry, on_min_entry_changed, NULL);
 	gtk_toggle_button_set_active(cutmax, gui.cut_over);
+}
+
+gboolean set_cutoff_sliders_values_idle(gpointer p) {
+	set_cutoff_sliders_values();
+	return FALSE;
 }
 
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
@@ -592,6 +594,11 @@ void set_display_mode() {
 
 }
 
+gboolean set_display_mode_idle(gpointer user_data) {
+	set_display_mode();
+	return FALSE;
+}
+
 void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
@@ -637,6 +644,21 @@ void adjust_sellabel() {
 
 	g_free(buffer_global);
 	g_free(buffer_title);
+}
+
+static gboolean update_seq_gui_idle(gpointer p) {
+	adjust_sellabel();
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	redraw(REDRAW_OVERLAY);
+	drawPlot();
+	writeseqfile(&com.seq);
+	return FALSE;
+}
+
+gpointer update_seq_gui_idle_thread_func(gpointer data) {
+	execute_idle_and_wait_for_it(update_seq_gui_idle, NULL);
+	return FALSE;
 }
 
 void set_icon_entry(GtkEntry *entry, gchar *string) {
@@ -714,7 +736,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
-	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
+	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && (sequence_is_loaded() || valid_rgbcomp_seq()));
 	/* selectoin and isrgb is needed */
 	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
 
@@ -757,6 +779,12 @@ void sliders_mode_set_state(sliders_mode sliders) {
 	g_signal_handlers_block_by_func(radiobutton, func[sliders], NULL);
 	gtk_toggle_button_set_active(radiobutton, TRUE);
 	g_signal_handlers_unblock_by_func(radiobutton, func[sliders], NULL);
+}
+
+gboolean sliders_mode_set_state_idle(gpointer p) {
+	sliders_mode sliders = *(sliders_mode*) p;
+	sliders_mode_set_state(sliders);
+	return FALSE;
 }
 
 display_mode get_display_mode_from_menu() {
@@ -834,19 +862,25 @@ void update_prepro_interface(gboolean allow_debayer) {
 	}
 
 	gtk_widget_set_sensitive(prepro_button,
-			(sequence_is_loaded() || single_image_is_loaded())
-			&& (gtk_toggle_button_get_active(udark)
-				|| gtk_toggle_button_get_active(uoffset)
-				|| gtk_toggle_button_get_active(uflat)));
+			gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(debayer)) ||
+			((sequence_is_loaded() || single_image_is_loaded()) &&
+			(gtk_toggle_button_get_active(udark) ||
+			gtk_toggle_button_get_active(uoffset) ||
+			gtk_toggle_button_get_active(uflat))));
+
 	gtk_widget_set_sensitive(cosme_grid, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(dark_optim, gtk_toggle_button_get_active(udark));
+
 	gtk_widget_set_sensitive(equalize, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(auto_eval, gtk_toggle_button_get_active(uflat));
+
 	gtk_widget_set_sensitive(flat_norm,
 			gtk_toggle_button_get_active(uflat) &&
 			!gtk_toggle_button_get_active(checkAutoEvaluate));
 
-	gtk_widget_set_sensitive(debayer, allow_debayer && gtk_widget_get_sensitive(prepro_button));
+	gtk_widget_set_sensitive(debayer, allow_debayer);
 	gtk_widget_set_sensitive(fix_xtrans, gtk_toggle_button_get_active(udark) || gtk_toggle_button_get_active(uoffset));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(output_type), sequence_is_loaded());
@@ -1355,6 +1389,7 @@ static void load_accels() {
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
 		"win.clipboard",              "<Primary><Shift>x", NULL,
+		"win.statistics",             "<alt>s", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
@@ -1531,6 +1566,91 @@ gboolean is_gui_ready() {
 	return gui_ready;
 }
 
+gpointer update_spcc(gpointer user_data) {
+	// 1. Update the repository
+	if (is_online()) {
+#ifdef HAVE_LIBGIT2
+		auto_update_gitspcc(TRUE);
+#endif
+		// 2. Update the SPCC combos
+		// populate_spcc_combos_async runs in this thread but the actual call to
+		// populate_spcc_combos is run from it in an idle in the GTK thread
+		populate_spcc_combos_async(NULL);
+	}
+	return GINT_TO_POINTER(0);
+}
+
+// Updates the repository and then refreshes the scripts menu.
+gpointer update_scripts(gpointer user_data) {
+	if (is_online()) {
+#ifdef HAVE_LIBGIT2
+		// 1. Update the repository
+//		if (com.python_init_thread)
+//			g_thread_join(com.python_init_thread);
+//		com.python_init_thread = NULL;
+		auto_update_gitscripts(TRUE);
+#endif
+		// 2. Update the menu (not verbose)
+		gui_mutex_lock();
+		// refresh_script_menu runs in an idle in the GTK thread
+		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
+	}
+	return GINT_TO_POINTER(0);
+}
+
+gpointer initialize_script_menu_and_spcc_widgets_serially(gpointer user_data) {
+	// First fill the SPCC combos and script menu so they are immediately available
+	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1)); // script menu first as it's quick based on an already loaded list
+	populate_spcc_combos_async(NULL); // this after, as it takes a little time to load the actual files
+	// Now, in threads, update the repositories and then update the combos and menu again to reflect any changes
+	if (com.pref.auto_script_update && is_online())
+		g_thread_unref(g_thread_new("update_scripts", update_scripts, NULL)); // this is slow as will require repository syncing
+	if (com.pref.spcc.auto_spcc_update && is_online())
+		g_thread_unref(g_thread_new("update_spcc", update_spcc, NULL)); // this is slow as will require repository syncing
+	return FALSE;
+}
+
+// Only called from preferences when reactivating the SPCC repository
+gpointer initialize_spcc(gpointer user_data) {
+	// 1. Initialize the SPCC combos
+	// populate_spcc_combos_async runs in this thread but the actual call to
+	// populate_spcc_combos is run from it in an idle in the GTK thread
+	populate_spcc_combos_async(NULL); // controls the GUI mutex
+	// 2. Update the repository
+	if (com.pref.spcc.auto_spcc_update && is_online()) {
+#ifdef HAVE_LIBGIT2
+		auto_update_gitspcc(TRUE);
+#endif
+		// 3. Update the SPCC combos
+		// populate_spcc_combos_async runs in this thread but the actual call to
+		// populate_spcc_combos is run from it in an idle in the GTK thread
+		populate_spcc_combos_async(NULL); // controls the GUI mutex again
+	}
+	return GINT_TO_POINTER(0);
+}
+
+// Initializes the scripts menu, updates the repository and then refreshes the scripts menu
+gpointer initialize_scripts(gpointer user_data) {
+	// 1. Initialize the menu (verbose)
+	// initialize_script_menu_idle runs as an idle in the GTK thread
+	gui_mutex_lock();
+	execute_idle_and_wait_for_it(initialize_script_menu_idle, GINT_TO_POINTER(1));
+	gui_mutex_unlock();
+	// 2. Update the repository
+	if (com.pref.auto_script_update && is_online()) {
+#ifdef HAVE_LIBGIT2
+		auto_update_gitscripts(TRUE);
+#endif
+		// 3. Update the menu (not verbose)
+		// refresh_script_menu runs in an idle in the GTK thread
+		gui_mutex_lock();
+		execute_idle_and_wait_for_it(refresh_script_menu_idle, GINT_TO_POINTER(0));
+		gui_mutex_unlock();
+	}
+	return GINT_TO_POINTER(0);
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
@@ -1574,9 +1694,16 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
-	GThread *thread = g_thread_new("initialize_script_menu",
-					initialize_script_menu_in_thread, GINT_TO_POINTER(1));
-	g_thread_unref(thread);
+
+	/* initialize scripts and SPCC in threads:
+	 * 1) initialize the scripts menu / SPCC widgets
+	 * 2) sync the scripts repositories
+	 * 3) update the scripts menu / SPCC widgets
+	 */
+	if (!is_online()) {
+		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
+	}
+	g_thread_unref(g_thread_new("init_scripts_and_spcc", initialize_script_menu_and_spcc_widgets_serially, NULL));
 
 	/* initialize command processor */
 	init_command();
@@ -1623,6 +1750,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
+	/* due to another in glade, we need to associate the model here */
+	gtk_tree_view_set_model(GTK_TREE_VIEW(lookup_widget("pref_astro_tree_view")), GTK_TREE_MODEL(gtk_builder_get_object(gui.builder, "liststore_astrometry")));
+
 	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 
@@ -1668,23 +1798,11 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
 
-#ifndef HAVE_LIBCURL
-	// SPCC is not available if compiled without networking
-	gtk_widget_set_visible(lookup_widget("proc_spcc"), FALSE);
-	// Remove it from the RGB composition color calibration methods list too
-	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(lookup_widget("rgbcomp_cc_method")), 2);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")), 1);
-#endif
-
 	/* now that everything is loaded we can connect these signals
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
-	/* populate SPCC combos in a thread */
-	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
-	/* GraXpert checks, if required */
-	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 	gui_ready = TRUE;
 }
 
@@ -1930,17 +2048,38 @@ void gtk_main_quit() {
 	exit(EXIT_SUCCESS);
 }
 
-void siril_quit() {
-	if (com.pref.gui.silent_quit) {
-		gtk_main_quit();
+gboolean on_siril_window_delete(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	return !siril_quit();
+}
+
+// Returns TRUE if quitting should proceed, FALSE to cancel
+gboolean siril_quit(void) {
+	if (script_editor_has_unsaved_changes()) {
+		gboolean quit_anyway = siril_confirm_dialog(
+			_("Unsaved script changes"),
+			_("There are unsaved changes in the script editor. Quit anyway?"),
+			_("Quit")
+		);
+		if (!quit_anyway) {
+			on_open_pythonpad(NULL, NULL);
+			return FALSE; // Cancel quit
+		}
 	}
-	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
-			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
-	if (quit) {
-		gtk_main_quit();
-	} else {
-		fprintf(stdout, "Staying on the application.\n");
+
+	if (!com.pref.gui.silent_quit) {
+		gboolean quit = siril_confirm_dialog_and_remember(
+			_("Closing application"),
+			_("Are you sure you want to quit?"), _("Exit"),
+			&com.pref.gui.silent_quit
+		);
+		if (!quit) {
+			fprintf(stdout, "Staying on the application.\n");
+			return FALSE; // Cancel quit
+		}
 	}
+
+	gtk_main_quit();
+	return TRUE; // Proceed with quit
 }
 
 /* We give one signal event by toggle button to fix a bug. Without this solution
@@ -2252,11 +2391,11 @@ void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 GPid show_child_process_selection_dialog(GSList *children) {
 	// Create the dialog
 	GtkWidget *dialog = gtk_dialog_new_with_buttons(
-		"Select task to stop",
-		NULL,  // No parent window
+		_("Select task to stop"),
+		GTK_WINDOW(lookup_widget("control_window")),  // No parent window
 		GTK_DIALOG_MODAL,
-		"_Cancel", GTK_RESPONSE_CANCEL,
-		"_Stop Process", GTK_RESPONSE_OK,
+		_("_Cancel"), GTK_RESPONSE_CANCEL,
+		_("_Stop Process"), GTK_RESPONSE_OK,
 		NULL
 	);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
@@ -2300,7 +2439,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Process Name Column
 	column = gtk_tree_view_column_new_with_attributes(
-		"Process Name",
+		_("Process Name"),
 		renderer,
 		"text", 1,
 		NULL
@@ -2310,7 +2449,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Start Time Column
 	column = gtk_tree_view_column_new_with_attributes(
-		"Start Time",
+		_("Start Time"),
 		renderer,
 		"text", 2,
 		NULL

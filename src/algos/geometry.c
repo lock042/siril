@@ -25,16 +25,15 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "algos/astrometry_solver.h"
+#include "algos/demosaicing.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "gui/PSF_list.h"
-#include "gui/utils.h"
 #include "gui/callbacks.h"
 
 #include "geometry.h"
@@ -631,6 +630,35 @@ int crop(fits *fit, rectangle *bounds) {
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
+	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
+	switch (cfa) {
+		case BAYER_FILTER_NONE:
+			break;
+		case BAYER_FILTER_RGGB: // Fallthrough intentional
+		case BAYER_FILTER_BGGR:
+		case BAYER_FILTER_GBRG:
+		case BAYER_FILTER_GRBG:
+			bounds->x &= ~1;
+			bounds->y &= ~1;
+			bounds->w &= ~1;
+			bounds->h &= ~1;
+			if(bounds->w < 2)
+				bounds->w = 2;
+			if (bounds->h < 2)
+				bounds->h = 2;
+			siril_log_message(_("Rounding selection to match CFA pattern\n"));
+			break;
+		default: // X-trans
+			bounds->x = round_down_to_multiple(bounds->x, 6);
+			bounds->y = round_down_to_multiple(bounds->y, 6);
+			bounds->w = round_down_to_multiple(bounds->w, 6);
+			bounds->h = round_down_to_multiple(bounds->h, 6);
+			if(bounds->w < 2)
+				bounds->w = 2;
+			if (bounds->h < 2)
+				bounds->h = 2;
+			siril_log_message(_("Rounding selection to match CFA pattern\n"));
+	}
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
@@ -669,7 +697,11 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	int ret = crop(fit, &(c_args->area));
-
+	if (args->seq->type == SEQ_INTERNAL) {
+		// For SEQ_INTERNAL we update the sequence in place, we must update the metadata too
+		args->seq->imgparam[o].rx = c_args->area.w;
+		args->seq->imgparam[o].ry = c_args->area.h;
+	}
 	if (!ret) {
 		char log[90];
 		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
@@ -774,6 +806,7 @@ int scale_finalize_hook(struct generic_seq_args *args) {
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
+	args->already_in_a_thread = args->seq->type == SEQ_INTERNAL;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;

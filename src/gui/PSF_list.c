@@ -39,8 +39,6 @@
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/ccd-inspector.h"
-#include "algos/astrometry_solver.h"
 
 static GtkListStore *liststore_stars = NULL;
 

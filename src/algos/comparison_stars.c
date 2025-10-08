@@ -25,11 +25,9 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
 #include "io/siril_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
@@ -206,6 +204,7 @@ void write_nina_file(struct compstars_arg *args) {
 				catalog_to_str(args->cat));
 	}
 	replace_spaces_from_str(args->nina_file, '_');
+	replace_char_from_str(args->nina_file, '*', '-');
 
 	siril_log_message(_("Creating csv output file %s\n"), args->nina_file);
 

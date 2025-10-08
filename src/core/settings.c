@@ -28,7 +28,6 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "io/local_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "stacking/stacking.h"
 
 /* the settings as initialized in static.
@@ -69,6 +68,7 @@ preferences pref_init = {
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
+	.drizz_weight_match_bitpix = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -186,7 +186,7 @@ preferences pref_init = {
 		.use_bayer_header = TRUE,
 		.bayer_pattern = BAYER_FILTER_RGGB,
 		.bayer_inter = BAYER_RCD,
-		.top_down = TRUE,
+		.orientation = ROW_ORDER_HEADER_TOPDOWN,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
 		.xtrans_passes = 1
@@ -390,7 +390,7 @@ struct settings_access all_settings[] = {
 	{ "debayer", "use_bayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
 	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
-	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
+	{ "debayer", "orientation", STYPE_INT, N_("row-order preference"), &com.pref.debayer.orientation, { .range_int = { 0, ROW_ORDER_FORCE_BOTTOMUP } } },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },
@@ -468,6 +468,7 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
+	{ "gui_registration", "drizz_weight_match_bitpix", STYPE_BOOL, N_("Match Drizzle weights bitpix to sequence"), &com.pref.drizz_weight_match_bitpix },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
@@ -524,11 +525,11 @@ struct settings_access all_settings[] = {
 	{ "gui", "custom_gray_ICC_profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
 	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
 	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
-	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
+	{ "gui", "export_intent", STYPE_INT, N_("color management export intent"), &com.pref.icc.export_intent },
 	{ "gui", "default_to_srgb", STYPE_BOOL, N_("default to sRGB when exporting non color managed images"), &com.pref.icc.default_to_srgb },
-	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
-	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
-	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
+	{ "gui", "working_gamut", STYPE_INT, N_("color management working gamut"), &com.pref.icc.working_gamut },
+	{ "gui", "export_8bit_method", STYPE_INT, N_("color management export profile for 8bit files"), &com.pref.icc.export_8bit_method },
+	{ "gui", "export_16bit_method", STYPE_INT, N_("color management export profile for 16bit files"), &com.pref.icc.export_16bit_method },
 	{ "gui", "icc_autoconversion", STYPE_INT, N_("autoconvert images with an ICC profile to the working color space"), &com.pref.icc.autoconversion },
 	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
 	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },

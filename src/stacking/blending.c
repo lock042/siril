@@ -60,7 +60,7 @@ void compute_downscaled_mask_size(int rx, int ry, int *rx_out, int *ry_out, doub
 
 // check if we need to create the mask or if it already exists
 static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
-	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
 		return TRUE;
 	}
@@ -173,7 +173,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	cvDownscaleBlendMask(rx, ry, rx_out, ry_out, buffer8in, buffer32out);
 
 	//we save the mask
-	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "msk", NULL);
+	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
 		siril_debug_print("failed to create the mask filename");
 		free(buffer8in);
@@ -204,7 +204,7 @@ int compute_masks(struct stacking_args *args) {
 	arg->image_read_hook = compute_mask_read_hook;
 	arg->filtering_criterion = args->filtering_criterion;
 	arg->filtering_parameter = args->filtering_parameter;
-	arg->nb_filtered_images = args->seq->selnum;
+	arg->nb_filtered_images = args->nb_images_to_stack;
 	arg->image_hook = compute_mask_image_hook;
 	arg->description = _("Compute feathering masks");
 	arg->has_output = FALSE;

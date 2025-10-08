@@ -184,7 +184,7 @@
  */
 
 /* this typedef is used several sorting routines */
-typedef int (*PFI)();
+typedef int (*PFI)(const void*, const void*);
 
 static int set_star(s_star *star, double x, double y, double mag, double BV);
 static void copy_star(s_star *from_ptr, s_star *to_ptr);

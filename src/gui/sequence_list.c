@@ -23,11 +23,9 @@
 #endif
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
@@ -957,7 +955,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 #ifdef _WIN32
 	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
-	struct dirent **list;
+	struct dirent **list = NULL;
 	int i, n;
 
 

@@ -26,20 +26,18 @@
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/arithm.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "drizzle/cdrizzlebox.h"
 #include "drizzle/cdrizzlemap.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
-#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -331,8 +329,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
-	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
-		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
+	if (!regargs->driz && fit_is_cfa(&fit))
+		siril_log_color_message(_("Applying interpolation on a sequence opened as CFA is a bad idea.\n"), "red");
 
 	if (regargs->undistort) {
 		siril_log_message(_("Distortion data was found in the sequence file, undistortion will be applied\n"));
@@ -347,6 +345,16 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
+
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		siril_log_color_message(
+				_("Could not init drizzle\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
+
 	clearfits(&fit);
 	return registration_prepare_results(args);
 }
@@ -436,7 +444,22 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->error = malloc(sizeof(struct driz_error_t));
 		p->scale = scale;
 		p->pixel_fraction = driz->pixel_fraction;
-		p->cfa = driz->cfa;
+		BYTE cfa[36];
+		int cfadim = 0;
+		if (fit_is_cfa(fit)) {
+			if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
+				siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
+				free(p->error);
+				free(p->pixmap);
+				free(p);
+				return 1;
+			}
+			if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
+				siril_log_color_message(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), "salmon", in_index + 1);
+			}
+			memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+			p->cfadim = driz->cfadim;
+		}
 		// Set bounds equal to whole image
 		p->xmin = p->ymin = 0;
 		p->xmax = fit->rx - 1;
@@ -477,7 +500,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fits out = { 0 };
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
-		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		if (fit->keywords.date_obs)
+			out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
 		// keep the astrometry for later
 		wcsprm_t *wcs_out = NULL;
 		if (has_wcs(fit)) {
@@ -487,17 +511,20 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.rx = out.naxes[0] = dst_rx;
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
-		size_t chansize = out.rx * out.ry * sizeof(float);
-		out.fdata = calloc(out.naxes[2] * chansize, 1);
-		out.fpdata[0] = out.fdata;
-		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
-		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+		size_t chansize = out.rx * out.ry;
+		out.fdata = calloc(out.naxes[2] * chansize, sizeof(float));
+		out.fpdata[RLAYER] = out.fdata;
+		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
 		p->output_data = &out;
 
 		// Set up the output_counts fits to store pixel hit counts
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
 		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		output_counts->fpdata[RLAYER] = output_counts->fdata;
+		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
+		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
 		p->output_counts = output_counts;
 
 		p->weights = driz->flat;
@@ -509,7 +536,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		clearfits(fit);
 		// copy the DATE_OBS
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		if (out.keywords.date_obs)
+			fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
 		// restore the astrometry
 		if (wcs_out) {
@@ -534,7 +562,27 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		free(p->pixmap->xmap);
 		free(p->pixmap);
 
-		// Get rid of the output_counts image, no longer required
+		// Save drizzle weights to the drizztmp folder
+		const gchar *count_filename = get_sequence_cache_filename(args->seq, in_index, "drizztmp", "fit", args->new_seq_prefix);
+		// if original data is USHORT or drizz_weight_match_bitpix is FALSE,
+		// weights need to be renormed in the [0,1] range, because they will be saved as 8b or 16b
+		if ((fit->type == DATA_USHORT && !com.pref.force_16bit) || !com.pref.drizz_weight_match_bitpix) {
+			size_t nbpix_per_channel = output_counts->rx * output_counts->ry;
+			for (int c = 0; c < output_counts->naxes[2]; c++) {
+				float *counts = output_counts->fpdata[c];
+				float factor = 1.f / driz->max_weight[c];
+				for (size_t i = 0; i < nbpix_per_channel; i++) {
+					counts[i] *= factor;
+				}
+			}
+		}
+		if (!com.pref.drizz_weight_match_bitpix || fit->bitpix == BYTE_IMG) { // we save as 8b
+			output_counts->bitpix = BYTE_IMG;
+		} else if (fit->type == DATA_USHORT && !com.pref.force_16bit) { // we save as 16b
+			output_counts->bitpix = USHORT_IMG;
+		} // else we save as 32b
+
+		savefits(count_filename, output_counts);
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
@@ -590,6 +638,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		if (regargs->new_total <= 1) {
+			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			args->retval = 1;
+		}
+	}
+	if (!args->retval) {
 		if (failed) {
 			// regargs->imgparam and regargs->regparam may have holes caused by images
 			// that failed to be registered - compact them
@@ -615,6 +669,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 			free(args->new_fitseq);
 		} else if (args->seq->type == SEQ_REGULAR) {
 			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
 		}
 	}
 
@@ -787,6 +842,210 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
+static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, disto_data *disto) {
+	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
+	driz_param_init(p);
+	p->kernel = driz->kernel;
+	p->driz = driz;
+	p->error = malloc(sizeof(struct driz_error_t));
+	p->scale = driz->scale;
+	p->pixel_fraction = driz->pixel_fraction;
+	if (driz->is_bayer) {
+		p->cfadim = driz->cfadim;
+		memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
+	}
+	int retval = 0;
+	int src_rx = 0, src_ry = 0;
+	fits out = { 0 };
+	fits *fit = NULL;
+	fits *output_counts = NULL;
+
+	int patch_size_in = max(20, p->cfadim);
+	patch_size_in *= 2;
+	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
+	fits *tiny_flat = NULL;
+	float *flatbuf = NULL;
+	siril_debug_print("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
+
+	if (disto) {
+		src_rx = reffits->rx;
+		src_ry = reffits->ry;
+	} else {
+		src_rx = extent;
+		src_ry = extent;
+	}
+
+	// Set bounds equal to whole image
+	p->xmin = p->ymin = 0;
+	p->xmax = src_rx - 1;
+	p->ymax = src_ry - 1;
+	p->pixmap = calloc(1, sizeof(imgmap_t));
+	p->pixmap->rx = src_rx;
+	p->pixmap->ry = src_ry;
+	size_t size_in = src_rx * src_ry;
+
+	float *buffer = calloc(size_in, sizeof(float));
+	if (!buffer) {
+		siril_log_color_message(_("Drizzle: Could not allocate memory for weight calculation.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
+	}
+	if (driz->flat && !disto) {
+		flatbuf = calloc(size_in, sizeof(float));
+		if (!flatbuf) {
+			siril_log_color_message(_("Drizzle: Could not allocate memory for tiny flat calculation.\n"), "red");
+			retval = 1;
+			goto clean_and_exit;
+		}
+	}
+
+	if (disto) {
+		// we will fill patches:
+		// - at the 4 corners
+		// - in the center
+		// the rest of the mock-up image will be black so that most of the pixels are skipped during this fake calc
+
+		// Fill 4 corners
+		for (int y = 0; y < extent; y++) {
+			for (int x = 0; x < extent; x++) {
+				buffer[y * src_rx + x] = 1.f;
+				buffer[y * src_rx + (src_rx - extent + x)] = 1.f;
+				buffer[(src_ry - extent + y) * src_rx + x] = 1.f;
+				buffer[(src_ry - extent + y) * src_rx + (src_rx - extent + x)] = 1.f;
+			}
+		}
+
+		// Fill center patch (2*extent x 2*extent)
+		int cx = src_rx / 2 - extent;
+		int cy = src_ry / 2 - extent;
+		for (int y = 0; y < 2 * extent; y++) {
+			int yy = cy + y;
+			if (yy < 0 || yy >= src_ry)
+				continue;
+			for (int x = 0; x < 2 * extent; x++) {
+				int xx = cx + x;
+				if (xx < 0 || xx >= src_rx)
+					continue;
+				buffer[yy * src_rx + xx] = 1.f;
+			}
+		}
+	} else { // we just fill the whole (tiny) image with 1.f
+		for (size_t i = 0; i < size_in; i++)
+			buffer[i] = 1.0f;
+	}
+
+	new_fit_image_with_data(&fit, src_rx, src_ry, 1, DATA_FLOAT, buffer);
+	int dst_rx = (int)(src_rx * driz->scale);
+	int dst_ry = (int)(src_ry * driz->scale);
+	Homography H = { 0 };
+	cvGetEye(&H);
+
+	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, disto, 1)) {
+		siril_log_color_message(_("Drizzle: Could not compute mapping for weights calculation.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
+	}
+
+	if (!p->pixmap->xmap) {
+		siril_log_color_message(_("Drizzle:Error generating mapping array.\n"), "red");
+		retval = 1;
+		goto clean_and_exit;
+	}
+	p->data = fit;
+
+	/* Set up output fits */
+	copyfits(fit, &out, CP_FORMAT, -1);
+	out.rx = out.naxes[0] = dst_rx;
+	out.ry = out.naxes[1] = dst_ry;
+	out.naxes[2] = driz->is_bayer ? 3 : 1;
+	size_t chansize = out.rx * out.ry * sizeof(float);
+	out.fdata = calloc(out.naxes[2] * chansize, 1);
+	out.fpdata[RLAYER] = out.fdata;
+	out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+	out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+	p->output_data = &out;
+
+	// Set up the output_counts fits to store pixel hit counts
+	output_counts = calloc(1, sizeof(fits));
+	copyfits(&out, output_counts, CP_FORMAT, -1);
+	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+	output_counts->fpdata[RLAYER] = output_counts->fdata;
+	output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + out.rx * out.ry;
+	output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * out.rx * out.ry;
+	p->output_counts = output_counts;
+
+	if (driz->flat) {
+		if (disto)
+			p->weights = driz->flat;
+		else {
+			if (output_counts->naxes[2] == 1) {
+				imstats *stat = statistics(NULL, -1, driz->flat, 0, NULL, STATS_MINMAX, 1);
+				if (!stat || stat->max <= 1e-3f) {
+					siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", 0);
+					retval = 1;
+					goto clean_and_exit;
+				}
+				for (size_t i = 0; i < size_in; i++)
+					flatbuf[i] = stat->max;
+			} else {
+				float max[3] = { 0.f, 0.f, 0.f };
+				for (int c = 0; c < 3; c++) { // we need to do the stats on cfa channels to create the mock-up tiny flat
+					imstats *stat = statistics(NULL, -1, driz->flat, -(c + 1), NULL, STATS_MINMAX, 1);
+					if (!stat || stat->max <= 1e-3f) {
+						siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", c - 1);
+						retval = 1;
+						goto clean_and_exit;
+					}
+					max[c] = stat->max;
+				}
+				for (size_t i = 0; i < extent; i++) { // column
+					for (size_t j = 0; j < extent; j++) { // row
+						int c = FC_array(j, i, driz->cfa, driz->cfadim);
+						flatbuf[i * src_rx + j] = max[c];
+					}
+				}
+			}
+			new_fit_image_with_data(&tiny_flat, src_rx, src_ry, 1, DATA_FLOAT, flatbuf);
+			p->weights = tiny_flat;
+		}
+	}
+
+	if (dobox(p)) { // Do the drizzle
+		siril_log_color_message("s\n", p->error->last_message);
+		return 1;
+	}
+	for (int c = 0; c < output_counts->naxes[2]; c++) {
+		imstats *stat = statistics(NULL, -1, output_counts, c, NULL, STATS_MINMAX, 1);
+		if (!stat) {
+			siril_log_color_message(_("Error computing statistics for drizzle weights.\n"), "red");
+			retval = 1;
+			continue;
+		}
+		if (stat->max <= 1e-3f) {
+			siril_log_color_message(_("Max drizzle weight for layer %d is invalid.\n"), "red", c);
+			retval = 1;
+			continue;
+		}
+		siril_log_message("Max drizzle weight for layer %d: %f\n", c, stat->max);
+		driz->max_weight[c] = stat->max;
+	}
+clean_and_exit:
+	clearfits(fit);
+	clearfits(&out);
+	clearfits(output_counts);
+	free(fit);
+	free(output_counts);
+	if (tiny_flat) {
+		clearfits(tiny_flat);
+		free(tiny_flat);
+	}
+	free(p->pixmap->xmap);
+	free(p->pixmap);
+	free(p->error);
+	free(p);
+	return retval;
+}
+
 // Used by both apply_reg and global methods: definition is in registration.h
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
@@ -800,42 +1059,37 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 	}
-	sensor_pattern pattern;
-	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
-		driz->is_bayer = TRUE;
-		switch (args->seq->ser_file->color_id) {
-			case SER_MONO:
-				pattern = get_cfa_pattern_index_from_string("");
-				driz->is_bayer = FALSE;
-				break;
-			case SER_BAYER_RGGB:
-				pattern = get_cfa_pattern_index_from_string("RGGB");
-				break;
-			case SER_BAYER_GRBG:
-				pattern = get_cfa_pattern_index_from_string("GRBG");
-				break;
-			case SER_BAYER_GBRG:
-				pattern = get_cfa_pattern_index_from_string("GBRG");
-				break;
-			case SER_BAYER_BGGR:
-				pattern = get_cfa_pattern_index_from_string("BGGR");
-				break;
-			default:
-				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
-				driz->is_bayer = FALSE;
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern);
+	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN; // any pattern above BAYER_FILTER_MIN is a valid pattern, that includes XTrans;
+	int cfadim = 0;
+	if (driz->is_bayer && get_compiled_pattern(&fit, driz->cfa, &cfadim, FALSE)) {
+		siril_log_color_message(_("Warning: the CFA pattern in the reference image is not supported by drizzle.\n"), "red");
+		return 1;
+	}
+	if (driz->is_bayer)
+		driz->cfadim = (int)cfadim;
+	int status = 0;
+	if 	(!(com.pref.drizz_weight_match_bitpix && (fit.bitpix == DATA_FLOAT || !com.pref.force_16bit))) { // we save as 32b, we don't need to renorm the weights
+		disto_data *disto = NULL;
+		gboolean free_disto = FALSE;
+		if (regargs->undistort) {
+			if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
+				disto = regargs->disto;
+			} else {
+				disto = calloc(1, sizeof(disto_data));
+				copy_disto(&regargs->disto[regargs->reference_image], disto);
+				free_disto = TRUE;
+			}
 		}
-	} else {
-		const gchar bayertest = fit.keywords.bayer_pattern[0];
-		driz->is_bayer = (bayertest == 'R' || bayertest == 'G' || bayertest == 'B'); // If there is a CFA pattern we need to CFA drizzle
-		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
+		status = compute_max_drizzle_weights(driz, &fit, disto);
+		if (free_disto)
+			free_disto_args(disto);
+	} else { // just to be sure it's correctly initialized
+		for (int c = 0; c < 3; c++)
+			driz->max_weight[c] = 1.f;
 	}
-	if (driz->is_bayer) {
-		adjust_Bayer_pattern(&fit, &pattern);
-		driz->cfa = get_cfa_from_pattern(pattern);
-		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
-			return 1;
-	}
-	return 0;
+	clearfits(&fit);
+	return status;
 }
 
 int register_apply_reg(struct registration_args *regargs) {
@@ -912,13 +1166,8 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	}
 
-	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		retval = -1;
-		goto END;
-
-	}
-
 	args->upscale_ratio = regargs->output_scale;
+	args->compute_size_hook = compute_registration_size_hook;
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	args->finalize_hook = apply_reg_finalize_hook;
@@ -995,7 +1244,8 @@ int register_apply_reg(struct registration_args *regargs) {
 			retval = -1;
 			goto END;
 		}
-		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
+		if (ref.keywords.date_obs)
+			regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 		clearfits(&ref);
 	}
 
@@ -1084,8 +1334,8 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 			if (regargs->retval)
 				return FALSE;
 		} else {
-			siril_log_color_message(_("Images will be larger than what Siril can display for now."), "salmon");
-			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels"), "salmon");
+			siril_log_color_message(_("Images will be larger than what Siril can display for now.\n"), "salmon");
+			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels.\n"), "salmon");
 		}
 	}
 
@@ -1098,25 +1348,6 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	int nb_frames = regargs->seq->selnum;
-	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
-	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
-	if (regargs->seq->type == SEQ_SER) {
-		size *= regargs->seq->ser_file->byte_pixel_depth;
-		size *= nb_frames;
-		size += SER_HEADER_LEN;
-	} else {
-		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
-		size *= nb_frames;
-	}
-	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
-	g_free(size_msg);
-	if (test_available_space(size)) {
-		siril_log_color_message(_("Not enough space to save the output images\n"), "red");
-		return FALSE;
-	}
 	return TRUE;
 }
 

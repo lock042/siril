@@ -22,7 +22,9 @@
 #define SRC_GUI_SIRIL_PLOT_H_
 
 #include "core/siril.h"
-
+#include "io/siril_plot.h"
 gboolean create_new_siril_plot_window(gpointer p);
+gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
+gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height);
 
 #endif /* SRC_GUI_PLOT_H_ */

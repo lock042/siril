@@ -32,9 +32,7 @@
 #include "core/siril_log.h"
 #include "core/arithm.h"
 #include "gui/callbacks.h"
-#include "gui/utils.h"
 #include "gui/image_display.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
 #include "gui/sequence_list.h"
@@ -44,11 +42,8 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/ser.h"
 #include "registration/registration.h"
 #include "algos/noise.h"
-#include "algos/sorting.h"
-#include "algos/siril_wcs.h"
 #include "stacking/sum.h"
 #include "opencv/opencv.h"
 
@@ -641,6 +636,7 @@ void init_stacking_args(struct stacking_args *args) {
 	args->maximize_framing = FALSE;
 	memset(args->offset, 0, 2 * sizeof(int));
 	args->upscale_at_stacking = FALSE;
+	args->drizzle = FALSE;
 
 	args->type_of_rejection = NO_REJEC;
 	memset(args->sig, 0, 2 * sizeof(float));

@@ -25,6 +25,7 @@
  */
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/icc_profile.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
@@ -170,24 +171,57 @@ int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 		return -1;
 	}
 
+	// Check we haven't made a bad assumption about the extension
+	char *candidate_filename = NULL;
+
+	if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		// Original filename exists, use it
+		candidate_filename = strdup(filename);
+	} else {
+		// Try to find a file with different extensions
+		char *base = remove_all_ext_from_filename(filename);
+		const char *extensions[] = {
+			".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz",
+			".FIT", ".FITS", ".FTS", ".FIT.FZ", ".FITS.FZ", ".FTS.FZ"
+		}; // Not exhaustive but if people are using mixed-case extensions like .Fit then they should mend their ways
+
+		gboolean found = FALSE;
+		for (int i = 0; i < sizeof(extensions)/sizeof(extensions[0]); i++) {
+			char *test_filename = g_strdup_printf("%s%s", base, extensions[i]);
+			if (g_file_test(test_filename, G_FILE_TEST_EXISTS)) {
+				candidate_filename = strdup(test_filename);  // Use strdup for stdlib consistency
+				g_free(test_filename);  // Free the GLib-allocated string
+				found = TRUE;
+				break;
+			}
+			g_free(test_filename);
+		}
+		free(base);
+
+		if (!found) {
+			siril_log_color_message(_("Cannot find FITS file %s or any variant with supported extensions\n"), "red", filename);
+			return -1;
+		}
+	}
+
 	int status = 0;
-	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, iomode, &status);
+	siril_fits_open_diskfile_img(&(fitseq->fptr), candidate_filename, iomode, &status);
 	if (status) {
 		report_fits_error(status);
-		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", filename);
+		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", candidate_filename);
+		free(candidate_filename);
 		return -1;
 	}
-
 	if (_find_hdus(fitseq->fptr, &fitseq->hdu_index, &fitseq->frame_count) || fitseq->frame_count <= 1) {
-		siril_log_color_message(_("Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"), "red", filename);
+		siril_log_color_message(_("Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"), "red", candidate_filename);
+		free(candidate_filename);
 		return -1;
 	}
-
 	if (fits_movabs_hdu(fitseq->fptr, fitseq->hdu_index[0], NULL, &status)) {
 		report_fits_error(status);
+		free(candidate_filename);
 		return -1;
 	}
-
 	// we store the first image's dimensions in the struct
 	int naxis;
 	status = 0;
@@ -195,26 +229,24 @@ int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 	if (status || naxis <= 1 || fitseq->naxes[0] == 0 || fitseq->naxes[1] == 0) {
 		status = 0;
 		fits_close_file(fitseq->fptr, &status);
+		free(candidate_filename);
 		return -1;
 	}
 	if (naxis == 2)
 		fitseq->naxes[2] = 1;
-
 	manage_bitpix(fitseq->fptr, &(fitseq->bitpix), &(fitseq->orig_bitpix));
-
 	if (fitseq->bitpix == LONGLONG_IMG) {
 		siril_log_message(
 				_("FITS images with 64 bits signed integer per pixel.channel are not supported.\n"));
 		status = 0;
 		fits_close_file(fitseq->fptr, &status);
+		free(candidate_filename);
 		return -1;
 	}
-
-	fitseq->filename = strdup(filename);
+	fitseq->filename = candidate_filename; // Use the candidate filename instead of strdup(filename)
 	siril_debug_print("fitseq_open: sequence %s has %d frames, bitpix = %d, naxis = %d, naxes = { %ld, %ld, %ld }\n",
-			filename, fitseq->frame_count, fitseq->bitpix, naxis,
+			candidate_filename, fitseq->frame_count, fitseq->bitpix, naxis,
 			fitseq->naxes[0], fitseq->naxes[1], fitseq->naxes[2]);
-
 	if (fits_is_reentrant()) {
 		fitseq->is_mt_capable = TRUE;
 		fprintf(stdout, "cfitsio was compiled with multi-thread support,"
@@ -226,7 +258,6 @@ int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 				" parallel read of images will be impossible\n");
 		siril_log_message(_("Your version of cfitsio does not support multi-threading\n"));
 	}
-
 	return 0;
 }
 
@@ -299,8 +330,13 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
-	dest->icc_profile = NULL;
-	color_manage(dest, FALSE);
+	if (!status) {
+		dest->orig_ry = fitseq->naxes[1];
+		dest->x_offset = area->x;
+		dest->y_offset = dest->orig_ry - area->y - area->h;
+		dest->icc_profile = NULL;
+		color_manage(dest, FALSE);
+	}
 	return status;
 }
 

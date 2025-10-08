@@ -159,6 +159,9 @@ driz_param_init(struct driz_param_t* p) {
   p->nmiss = 0;
   p->nskip = 0;
   p->error = NULL;
+
+  memset(p->cfa, 0, sizeof(p->cfa));
+  p->cfadim = 1;
 }
 
 /*****************************************************************
@@ -275,7 +278,7 @@ bool2str(bool_t value) {
 void
 create_lanczos_lut(const int kernel_order, const size_t npix,
                    const float del, float* lanczos_lut) {
-  integer_t i;
+  size_t i;
   const float forder = (float)kernel_order;
   float poff;
 

@@ -33,6 +33,7 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source index, gchar **msg1, gchar **msg2);
 disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsprm *WCSDATA, gboolean drizzle, int *status);
 void free_disto_args(disto_data *disto);
+void copy_disto(disto_data *disto_in, disto_data *disto_out);
 
 #ifdef __cplusplus
 extern "C" {

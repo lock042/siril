@@ -67,16 +67,16 @@ build-image:
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-latest --cache=true --cache-ttl=120h
 
 # Image for GNU/Linux build
-#build-image-oldstable:
-#  stage: prepare
-#  cache: {}
-#  image:
-#    name: gcr.io/kaniko-project/executor:debug
-#    entrypoint: [""]
-#  script:
-#    - mkdir -p /kaniko/.docker
-#    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-#    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable --cache=true --cache-ttl=120h
+build-image-oldstable:
+  stage: prepare
+  cache: {}
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable --cache=true --cache-ttl=120h
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -199,17 +199,18 @@ macos:
     - macos
     - ${ARCHITECTURE}
   cache:
-    - key: ccache
+    - key: ccache-$CI_JOB_NAME_SLUG
       paths:
         - ccache
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "500Mi"
+    ORKA_RUNNER: sonoma-2
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 8fdb05e5e8c21f18193280dc63d33759a8586ba8
+    SM_REPO_REF: 62d80e546e5ddf4455a837c943b865b37edc82b7
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -251,7 +252,7 @@ macos:
 win64-native:
   stage: packaging
   cache:
-    key: "cache-windows-small"
+    key: "cache-windows-small1"
     paths:
       - ccache
       - DLLcache # cache for the DLL txt files recording all files to be copied to the package
@@ -262,7 +263,7 @@ win64-native:
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 36
+    SDW_VERSION: 47
     SDW_NAME: siril$SDW_VERSION
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
@@ -293,13 +294,13 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-48'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
     FLATPAK_MODULE: "siril"
     APP_ID: "org.siril.Siril"
-    RUNTIME_REPO: "https://nightly.gnome.org/gnome-nightly.flatpakrepo"
+    RUNTIME_REPO: "https://flathub.org/repo/flathub.flatpakrepo"
     BUNDLE: "org.siril.Siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
@@ -324,24 +325,24 @@ flatpak:
   allow_failure: true
 
 
-#appimage:
-#  stage: packaging
-#  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable
-#  variables:
-#    GIT_SUBMODULE_STRATEGY: recursive
-#  cache:
-#    paths:
-#      - apt-cache
-#  before_script:
-#    - apt-get install -y wget
-#  script:
-#    - bash -ex build/appimage/generate.sh
-#  artifacts:
-#    expire_in: 1 week
-#    paths:
-#      - build/appimage/Siril*.AppImage*
-#  needs: ["build-image-oldstable"]
-#  allow_failure: true
+appimage:
+  stage: packaging
+  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  cache:
+    paths:
+      - apt-cache
+  before_script:
+    - apt-get install -y wget
+  script:
+    - bash -ex build/appimage/generate.sh
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - build/appimage/Siril*.AppImage*
+  needs: ["build-image-oldstable"]
+  allow_failure: true
 
 ################################################################################
 # Analysis

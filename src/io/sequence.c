@@ -38,12 +38,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_date.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
-#include "core/icc_profile.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/cut.h"
@@ -56,7 +54,6 @@
 #ifdef HAVE_FFMS2
 #include "films.h"
 #endif
-#include "avi_pipp/avi_writer.h"
 #include "single_image.h"
 #include "image_format_fits.h"
 #include "gui/histogram.h"
@@ -65,15 +62,13 @@
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "gui/sequence_list.h"
-#include "gui/preferences.h"
 #include "gui/registration_preview.h"
 #include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/quality.h"
 #include "algos/statistics.h"
-#include "algos/geometry.h"
 #include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include "opencv/opencv.h"
@@ -360,19 +355,23 @@ int check_seq() {
 /* Creates a .seq file for regular FITS sequence passed in argument */
 static sequence *create_one_regular_seq(const char *seqname) {
 
-	const gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
-	const gchar *search_folder = g_path_get_dirname(abs_path);
-	const gchar *filename = g_path_get_basename(abs_path);
+	gchar *abs_path = g_canonicalize_filename(seqname, com.wd);
+	gchar *search_folder = g_path_get_dirname(abs_path);
+	gchar *filename = g_path_get_basename(abs_path);
+	g_free(abs_path);
 
-	const char *root = remove_ext_from_filename(filename);
+	char *root = remove_ext_from_filename(filename);
+	g_free(filename);
 	int fixed = 5; // TODO: isn't it defined somewhere else?
 	const gchar *ext = get_com_ext(com.pref.comp.fits_enabled);
 
 	GError* error = NULL;
 	GDir* dir = g_dir_open(search_folder, 0, &error);
+	g_free(search_folder);
 	if (error) {
 		siril_log_color_message(_("Error opening directory: %s\n"), "red", error->message);
 		g_error_free(error);
+		free(root);
 		return NULL;
     }
 	const gchar* pattern = g_strdup_printf("^%s(\\d{%d})\\%s$", 
@@ -383,7 +382,7 @@ static sequence *create_one_regular_seq(const char *seqname) {
  
 	sequence *new_seq = calloc(1, sizeof(sequence));
 	initialize_sequence(new_seq, TRUE);
-	new_seq->seqname = g_strdup(root);
+	new_seq->seqname = root; // move it as we don't need it any more in this fn
 	new_seq->beg = INT_MAX;
 	new_seq->end = 0;
 	new_seq->number = 0;
@@ -572,13 +571,14 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 			break;
 		case SEQ_FITSEQ:
 		case SEQ_SER:;
-			const char *root = remove_ext_from_filename(seqname);
+			char *root = remove_ext_from_filename(seqname);
 			const gchar *ext;
 			if (seqtype == SEQ_FITSEQ)
 				ext = get_com_ext(com.pref.comp.fits_enabled);
 			else
 				ext = ".ser";
 			const gchar *filename = g_strdup_printf("%s%s", root, ext);
+			g_free(root);
 			seq = check_seq_one_file(filename, seqtype == SEQ_FITSEQ);
 			break;
 		default:
@@ -610,7 +610,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	display_filename();		// display filename in gray window
 	gui_function(set_precision_switch, NULL); // set precision on screen
 	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
+	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
 	update_reg_interface(FALSE);	// change the registration prereq message
 	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
 	adjust_reginfo();		// change registration displayed/editable values
@@ -896,11 +896,17 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 	assert(index < seq->number);
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
-			if (readfits(filename, dest, NULL, force_float)) {
-				siril_log_message(_("Could not load image %d from sequence %s\n"),
-						index, seq->seqname);
-				return 1;
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
+			int ret = readfits(filename, dest, NULL, force_float);
+			if (ret) {
+				char *base = remove_all_ext_from_filename(filename);
+				ret = readfits(base, dest, NULL, force_float);
+				free(base);
+				if (ret) {
+					siril_log_message(_("Could not load image %d from sequence %s\n"),
+							index, seq->seqname);
+					return 1;
+				}
 			}
 			break;
 		case SEQ_SER:
@@ -979,7 +985,7 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 #endif
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (readfits_partial(filename, layer, dest, area, do_photometry)) {
 				siril_log_message(_("Could not load partial image %d from sequence %s\n"),
 						index, seq->seqname);
@@ -1021,7 +1027,6 @@ int seq_read_frame_part(sequence *seq, int layer, int index, fits *dest, const r
 			extract_region_from_fits(seq->internal_fits[index], 0, dest, area);
 			break;
 	}
-
 	return 0;
 }
 
@@ -1032,7 +1037,7 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 	char filename[256];
 	switch (seq->type) {
 		case SEQ_REGULAR:
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			if (read_fits_metadata_from_path(filename, dest)) {
 				siril_log_message(_("Could not load image %d from sequence %s\n"),
 						index, seq->seqname);
@@ -1053,6 +1058,13 @@ int seq_read_frame_metadata(sequence *seq, int index, fits *dest) {
 #ifdef _OPENMP
 				int thread_id = omp_get_thread_num();
 				dest->fptr = seq->fitseq_file->thread_fptr[thread_id];
+				int status = 0;
+				fits_movabs_hdu(dest->fptr, seq->fitseq_file->hdu_index[index], NULL, &status);
+				if (status) {
+					siril_log_message(_("Could not seek frame %d from FITS sequence %s. Error status: %d\n"),
+							index, seq->seqname, status);
+					return 1;
+				}
 				if (read_fits_metadata(dest)) {
 					siril_log_message(_("Could not load frame %d from FITS sequence %s\n"),
 							index, seq->seqname);
@@ -1133,7 +1145,7 @@ int seq_open_image(sequence *seq, int index) {
 			if (_allocate_sequence_locks(seq))
 				return 1;
 
-			fit_sequence_get_image_filename(seq, index, filename, TRUE);
+			fit_sequence_get_image_filename_checkext(seq, index, filename);
 			siril_fits_open_diskfile_img(&seq->fptr[index], filename, READONLY, &status);
 			if (status) {
 				fits_report_error(stderr, status);
@@ -1244,6 +1256,98 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
 
+	return name_buffer;
+}
+
+char *fit_sequence_get_image_filename_checkext(sequence *seq, int index, char *name_buffer) {
+	char format[20];
+	const gchar *default_ext;
+
+	if (index < 0 || index > seq->number || name_buffer == NULL)
+		return NULL;
+
+	// Use cached extension if available, otherwise get default
+	if (seq->cached_ext != NULL) {
+		default_ext = seq->cached_ext;
+	} else {
+		default_ext = get_com_ext(seq->fz);
+	}
+
+	if (seq->fixed <= 1) {
+		sprintf(format, "%%s%%d");
+	} else {
+		sprintf(format, "%%s%%.%dd", seq->fixed);
+	}
+
+	// List of extensions to check
+	const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
+	int num_extensions = 6;
+
+	// Build base filename without extension
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
+
+	// First, try default_ext (com_ext or cached_ext)
+	char test_path[256];
+	snprintf(test_path, 255, "%s%s", name_buffer, default_ext);
+
+	if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
+		strncpy(name_buffer, test_path, 255);
+		name_buffer[255] = '\0';
+
+		// Cache the extension if not already cached
+		if (seq->cached_ext == NULL) {
+			seq->cached_ext = strdup(default_ext);
+		}
+
+		return name_buffer;
+	}
+
+	// If default_ext didn't match, try other extensions
+	for (int i = 0; i < num_extensions; i++) {
+		// Skip if this extension matches default_ext (already checked)
+		if (seq->fz) {
+			// For compressed files, check if extension + .fz matches default_ext
+			char temp_ext[20];
+			snprintf(temp_ext, 19, "%s%s", extensions[i], ".fz");
+			if (strcmp(temp_ext, default_ext) == 0) continue;
+		} else {
+			// For uncompressed files, check if extension matches default_ext
+			if (strcmp(extensions[i], default_ext) == 0) continue;
+		}
+
+		snprintf(test_path, 255, "%s%s", name_buffer, extensions[i]);
+
+		// If seq->fz is TRUE, add .fz suffix
+		if (seq->fz) {
+			strncat(test_path, ".fz", 255 - strlen(test_path) - 1);
+		}
+
+		// Check if file exists
+		if (g_file_test(test_path, G_FILE_TEST_EXISTS)) {
+			strncpy(name_buffer, test_path, 255);
+			name_buffer[255] = '\0';
+
+			// Cache the found extension if not already cached
+			if (seq->cached_ext == NULL) {
+				if (seq->fz) {
+					// Cache extension with .fz suffix
+					char full_ext[20];
+					snprintf(full_ext, 19, "%s.fz", extensions[i]);
+					seq->cached_ext = strdup(full_ext);
+				} else {
+					seq->cached_ext = strdup(extensions[i]);
+				}
+			}
+
+			return name_buffer;
+		}
+	}
+
+	// If no file found, fall back to default behavior (use default_ext)
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
+	strncat(name_buffer, default_ext, 255 - strlen(name_buffer) - 1);
+
+	name_buffer[255] = '\0';
 	return name_buffer;
 }
 
@@ -1371,11 +1475,19 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 
 void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 	for (int i = 0; i < seq->number; i++) {
-		gchar *star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		const gchar *star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", prefix);
 		siril_debug_print("Removing %s\n", star_filename);
 		if (g_unlink(star_filename))
 			siril_debug_print("g_unlink() failed\n");
-		g_free(star_filename);
+	}
+}
+
+void remove_prefixed_drizzle_files(sequence *seq, const char *prefix) {
+	for (int i = 0; i < seq->number; i++) {
+		const gchar *drizzle_filename = get_sequence_cache_filename(seq, i, "drizztmp", "fit", prefix);
+		siril_debug_print("Removing %s\n", drizzle_filename);
+		if (g_unlink(drizzle_filename))
+			siril_debug_print("g_unlink() failed\n");
 	}
 }
 
@@ -1521,7 +1633,7 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 	for (j = 0; j < MAX_SEQPSF && seq->photometry[j]; j++) {
 		free_photometry_set(seq, j);
 	}
-
+	free(seq->cached_ext);
 	if (free_seq_too)	free(seq);
 }
 
@@ -1539,7 +1651,7 @@ gboolean sequence_is_loaded() {
 }
 
 gboolean check_seq_is_comseq(const sequence *seq) {
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
+	if (sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
 	return FALSE;
 }
@@ -1824,14 +1936,16 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	const char t = spsfargs->bayer_pattern[0];
-	gboolean handle_cfa = (t == 'R' || t == 'G' || t == 'B');
+	gboolean handle_cfa = fit_is_cfa(fit);
 	if (handle_cfa) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
 		interpolate_nongreen(fit);
 	}
+#if BAYER_DEBUG
+	const gchar *green_filename = get_sequence_cache_filename(args->seq, index, "fit", "green_");
+	savefits(green_filename, fit);
+#endif
 
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
@@ -1969,7 +2083,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
 
-	if (args->already_in_a_thread || com.script) { // the idle won't be called
+	if (args->already_in_a_thread || com.script || com.python_script) { // the idle won't be called
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -1987,6 +2101,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		/* the idle below won't be called, we free data here */
 		if (spsfargs->list)
 			g_slist_free_full(spsfargs->list, free);
+		memset(&com.selection, 0, sizeof(rectangle)); // we don't call delete_selected_area to avoid its idle when running python scripts
 		free(spsfargs);
 		args->user = NULL;
 	}
@@ -2094,20 +2209,6 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->init_from_center = init_from_center;
-
-	fits fit = { 0 };
-	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
-		free(args);
-		free(spsfargs);
-		return -1;
-	} else {
-		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
-	}
-	if (seq->type == SEQ_INTERNAL)
-		clearfits_header(&fit); // Mustn't free the pixeldata as we only reference it for internal sequences
-	else
-		clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
@@ -2374,6 +2475,9 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 // for FITSEQ and SER, we don't accept this as original sequence is not altered by platesolving
 // we cannot use st_mtime because it is not reliable on all systems
 cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+	if (seq->type == SEQ_INTERNAL)
+		return CACHE_NOT_FOUND; // internal sequences don't have filenames or cache files
+
 	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
 		return CACHE_NOT_FOUND;
 
@@ -2383,7 +2487,7 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 		char last_char = cache_filename[strlen(cache_filename) - 1];
 		int margin = (last_char == 't') ? 30 : 0; // we use a margin for lst files but not for msk files
 		char img_filename[256];
-		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
+		if (!fit_sequence_get_image_filename_checkext(seq, index, img_filename) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
 				stat(cache_filename, &cachefileInfo))
@@ -2413,18 +2517,19 @@ cache_status check_cachefile_date(sequence *seq, int index, const gchar *cache_f
 	return CACHE_NEWER;
 }
 
-gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *ext, const gchar *prefix) {
+gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachefolder, const gchar *ext, const gchar *prefix) {
 	char root[256];
 	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
 		return NULL;
 	}
+	gchar *base_root = g_path_get_basename(root);
 	gchar *cache_filename = NULL;
 	if (prefix)
-		cache_filename = g_strdup_printf("%s%s.%s", prefix, root, ext);
+		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
-		cache_filename = g_strdup_printf("%s.%s", root, ext);
-
-	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, "cache", cache_filename, NULL);
+		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
+	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, cache_filename, NULL);
 	g_free(cache_filename);
+	g_free(base_root);
 	return cache_path;
 }

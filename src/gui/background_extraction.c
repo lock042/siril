@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/undo.h"
 #include "algos/background_extraction.h"
+#include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -126,8 +127,10 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
@@ -157,10 +160,8 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = &gfit;
 
 	// Check if the image has a Bayer CFA pattern
-	gboolean is_cfa = gfit.naxes[2] == 1 && (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
-					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
-					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
-					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+	gboolean is_cfa = gfit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
 						remove_gradient_from_image, args)) {
 		free(args->seqEntry);
@@ -236,12 +237,19 @@ void apply_background_cancel() {
 }
 
 void on_background_close_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("background_extraction_dialog");
+	apply_background_cancel();
+}
+
+gboolean bge_hide_on_delete(GtkWidget *widget) {
+	apply_background_cancel();
+	return TRUE;
 }
 
 void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	redraw(REDRAW_OVERLAY);
 

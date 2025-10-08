@@ -34,10 +34,8 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
-#include "io/single_image.h"
 #include "algos/Def_Wavelet.h"
 #include "wavelets.h"
-#include "core/OS_utils.h"
 
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
@@ -211,6 +209,7 @@ void apply_wavelets_cancel() {
 		reset_scale_w();
 		update_wavelets();
 	}
+	siril_close_dialog("wavelets_dialog");
 }
 
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
@@ -228,7 +227,6 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	apply_wavelets_cancel();
-	siril_close_dialog("wavelets_dialog");
 	return FALSE;
 }
 

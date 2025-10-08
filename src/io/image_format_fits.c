@@ -34,22 +34,18 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
-#include "algos/astrometry_solver.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
-#include "io/sequence.h"
 #include "io/fits_keywords.h"
-#include "io/single_image.h"
 #include "image_format_fits.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
@@ -60,8 +56,6 @@ const char *fit_extension[] = {
 		".fts"
 };
 
-static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
-static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 
@@ -191,22 +185,6 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	list = g_slist_reverse(list);
 	*history = list;
 }
-
-static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
-	float fhi, flo;
-	int status = 0;
-	fits_read_key(fptr, TFLOAT, "MIPS-FHI", &fhi, NULL, &status);
-	if (!status) {
-		*hi = float_to_ushort_range(fhi);
-		status = 0;
-		fits_read_key(fptr, TFLOAT, "MIPS-FLO", &flo, NULL, &status);
-		if (!status) {
-			*lo = float_to_ushort_range(flo);
-		}
-	}
-	return status;
-}
-
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
@@ -829,8 +807,7 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 	*status = 0;
 	gchar *dirname = g_path_get_dirname(filename);
 	GDir *dir = g_dir_open(dirname, 0, NULL);
-	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
-		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
 		*status = 1;
 		g_free(dirname);
 		return *status;
@@ -1467,12 +1444,17 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		return -1;
 	}
 
+	read_fits_metadata(fit);
+	fit->orig_ry = fit->naxes[1];
+	fit->x_offset = area->x;
+	fit->y_offset = fit->orig_ry - area->y - area->h;
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
 	fit->ry = fit->naxes[1];
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
+
 
 	/* Note: reading one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
@@ -1589,6 +1571,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 		}
 	}
 
+	read_fits_metadata(fit);
 	fit->naxes[0] = area->w;
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
@@ -1918,7 +1901,7 @@ int savefits(const char *name, fits *f) {
 	if (!status) {
 		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
 				filename, f->naxes[2], f->rx, f->ry,
-				f->type == DATA_USHORT ? 16 : 32);
+				f->bitpix == FLOAT_IMG ? 32 : (f->bitpix == SHORT_IMG || f->bitpix == USHORT_IMG ? 16 : 8));
 	}
 	g_free(filename);
 	return 0;
@@ -2616,6 +2599,9 @@ void extract_region_from_fits(fits *from, int layer, fits *to,
 		extract_region_from_fits_ushort(from, layer, to, area);
 	else if (from->type == DATA_FLOAT)
 		extract_region_from_fits_float(from, layer, to, area);
+	to->orig_ry = from->ry;
+	to->x_offset = area->x;
+	to->y_offset = to->orig_ry - area->y - area->h;
 }
 
 int new_fit_image(fits **fit, int width, int height, int nblayer, data_type type) {
@@ -2773,10 +2759,29 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	}
 }
 
-static void gray2rgb(float gray, guchar *rgb) {
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
-	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+static inline void gray2rgb(float gray, guchar *rgb) {
+	guchar val = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = val;
+	*rgb++ = val;
+	*rgb++ = val;
+}
+
+static inline void set_rgb(float r, float g, float b, guchar *rgb) {
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * r);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * g);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * b);
+}
+
+// Choose thread count based on workload
+static inline int choose_num_threads(int W, int H, int max_threads) {
+	int pixels = W * H;
+	if (pixels < 65536) { // < 64k pixels → single-thread
+		return 1;
+	}
+	int threads = pixels / 16384; // aim ~16k pixels per thread
+	if (threads > max_threads) threads = max_threads;
+	if (threads < 1) threads = 1;
+	return threads;
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2785,29 +2790,25 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	return FALSE;
 }
 
-static double logviz(double arg) {
-	return log1p(arg);
-} // for PREVIEW_LOG
-
 #define TRYFITS(f, ...) \
 	do{ \
 		status = FALSE; \
 		f(__VA_ARGS__, &status); \
 		if(status){ \
-			free(ima_data); \
+			if(ima_data) free(ima_data); \
 			fits_close_file(fp, &status); \
 			return NULL; \
 		} \
 	} while(0)
 
 /**
- * Create a monochrome preview of a FITS file in a GdkPixbuf
+ * Create a preview of a FITS file in a GdkPixbuf (color if available)
  * @param filename
  * @return a GdkPixbuf containing the preview or NULL
  */
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	fitsfile *fp;
-	gchar *description;
+	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
 	float nullval = 0.;
 	int naxis, dtype, stat, status, frames;
@@ -2826,134 +2827,198 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	const int w = naxes[0];
 	const int h = naxes[1];
-	if (w <= 0 || h <= 0)
-		return(NULL);
+	const int n_channels = (naxis >= 3 && naxes[2] >= 3) ? 3 : 1;
+	const gboolean is_color = (n_channels == 3);
 
-	size_t sz = w * h;
+	if (w <= 0 || h <= 0)
+		return NULL;
+
+	size_t sz = (size_t)w * h * n_channels;
 	ima_data = malloc(sz * sizeof(float));
+	if (!ima_data) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
 
 	TRYFITS(fits_read_img, fp, TFLOAT, 1, sz, &nullval, ima_data, &stat);
 
 	const int x = (int) ceil((float) w / MAX_SIZE);
 	const int y = (int) ceil((float) h / MAX_SIZE);
-	const int pixScale = (x > y) ? x : y;	// picture scale factor
-	const int Ws = w / pixScale; 			// picture width in pixScale blocks
-	const int Hs = h / pixScale; 			// -//- height pixScale
+	const int pixScale = (x > y) ? x : y;   // picture scale factor
+	const int Ws = w / pixScale;            // preview width
+	const int Hs = h / pixScale;            // preview height
 
-	const int n_channels = naxis == 3 ? naxis : 1;
-
-	if (fitseq_is_fitseq(filename, &frames)) { // FIXME: we reopen the file in this function
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s\n%s", w,
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
 				ngettext("channel", "channels", n_channels), abs(dtype), frames,
-				ngettext("frame", "frames", frames), _("(Monochrome Preview)"));
+				ngettext("frame", "frames", frames));
 	} else {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%s", w,
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
 				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype),
-				_("(Monochrome Preview)"));
+				ngettext("channel", "channels", n_channels), abs(dtype));
 	}
 
+	/* Allocate preview_data */
+	size_t prev_size = (size_t)Ws * Hs;
+	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
+	if (!preview_data) {
+		free(ima_data);
+		fits_close_file(fp, &status);
+		g_free(description);
+		return NULL;
+	}
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 	{
-		// array for preview picture line
-		float pix[MAX_SIZE];
 #ifdef _OPENMP
 #pragma omp for
 #endif
-		for (int i = 0; i < Hs; i++) { // cycle through a blocks by lines
+		for (int i = 0; i < Hs; i++) { // cycle through blocks by lines
 			int M = i * pixScale;
-			for (int j = 0; j < MAX_SIZE; j++) { // zero line buffer
-				pix[j] = 0;
-			}
-			unsigned int m = 0; // amount of strings read in block
-			for (int l = 0; l < pixScale; l++, m++) { // cycle through a block lines
-				const float *ptr = &ima_data[M * w];
-				int N = 0; // number of column
-				for (int j = 0; j < Ws; j++) { // cycle through a blocks by columns
-					unsigned int n = 0;	// amount of columns read in block
-					float sum = 0.f; // average intensity in block
-					for (int k = 0; k < pixScale; k++, n++) { // cycle through block pixels
-						if (N++ < w) // row didn't end
-							sum += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
-						else
-							break;
+
+			for (int j = 0; j < Ws; j++) { // cycle through blocks by columns
+				int N = j * pixScale;
+
+				for (int ch = 0; ch < n_channels; ch++) {
+					float sum = 0.f;
+					unsigned int count = 0;
+
+					for (int l = 0; l < pixScale && (M + l) < h; l++) {
+						for (int k = 0; k < pixScale && (N + k) < w; k++) {
+							int idx;
+							if (is_color) {
+								idx = ch * w * h + (M + l) * w + (N + k);
+							} else {
+								idx = (M + l) * w + (N + k);
+							}
+							sum += ima_data[idx];
+							count++;
+						}
 					}
-					pix[j] += sum / n; //(byte / n - min)/wd;
+
+					int preview_idx = ch * Ws * Hs + i * Ws + j;
+					preview_data[preview_idx] = (count > 0) ? sum / count : 0.0f;
 				}
-				if (++M >= h)
-					break;
 			}
-			// fill unused picture pixels
-			float *ptr = &ima_data[i * Ws];
-			for (int l = 0; l < Ws; l++)
-				*ptr++ = pix[l] / m;
 		}
 	}
 
-	float *ptr = ima_data;
-	sz = Ws * Hs;
-	float max = *ptr;
-	float min = max;
-	float avr = 0.f;
-	for (size_t i = 0; i < sz; i++, ptr++) {
-		const float val = *ptr;
-		max = max(max, val);
-		min = min(min, val);
-		avr += val;
+	// Set min, max and scale, avoiding caclulations where possible
+	float maxmax = 1.f;
+	float minmin = 0.f;
+	float scale = 1.f;
+	switch (dtype) {
+		case BYTE_IMG:;
+			scale = INV_UCHAR_MAX_SINGLE;
+			break;
+		case SHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			break;
+		case USHORT_IMG:;
+			scale = INV_USHRT_MAX_SINGLE;
+			minmin = -32768.f; // min value for 16-bit signed
+			break;
+		default:; // FLOAT_IMG, LONG_IMG, ULONG_IMG
+			/* Find per-channel min/max */
+			float min_vals[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+			float max_vals[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+			for (int ch = 0; ch < n_channels; ch++) {
+				for (size_t i = 0; i < prev_size; i++) {
+					int idx = ch * prev_size + i;
+					float val = preview_data[idx];
+					if (val < min_vals[ch]) min_vals[ch] = val;
+					if (val > max_vals[ch]) max_vals[ch] = val;
+				}
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			if (maxmax < 10.f) maxmax = 1.f;	// Allow maxmax to handle integer-range and JWST images but clamp
+												// to typical 0-1 range otherwise, for consistent preview
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			if (minmin > -1.f) minmin = 0.f; // Allow minmin to handle SHORT_IMG but clamp to 0.f otherwise
+
+			if (dtype == FLOAT_IMG) {
+				scale = (maxmax > 10.f) ? INV_USHRT_MAX_SINGLE : 1.f;
+				break;
+			}
+			maxmax = is_color ? fmaxf(fmaxf(max_vals[0], max_vals[1]), max_vals[2]) : max_vals[0];
+			minmin = is_color ? fminf(fminf(min_vals[0], min_vals[1]), min_vals[2]) : min_vals[0];
+			scale = 1.f / (maxmax - minmin);
+			break;
 	}
-	avr /= (float) sz;
 
-	/* use FITS keyword if available for a better visualization */
-	float lo = 0.f;
-	float hi = 0.f;
-	status = 0;
-	__tryToFindKeywords(fp, TFLOAT, MIPSLO, &lo, &status);
-	status = 0;
-	__tryToFindKeywords(fp, TFLOAT, MIPSHI, &hi, &status);
-
-	if (hi != lo && hi != 0.f && abs(dtype) <= USHORT_IMG) {
-		min = lo;
-		max = hi;
-	} else if (dtype <= FLOAT_IMG) {	// means float or double image
-		WORD wlo, whi;
-		if (!try_read_float_lo_hi(fp, &wlo, &whi)) {
-			min = (float) wlo / USHRT_MAX_SINGLE;
-			max = (float) whi / USHRT_MAX_SINGLE;
-		}
+	int num_threads = choose_num_threads(Ws, Hs, com.max_thread);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(num_threads) if (num_threads > 1)
+#endif
+	for (int idx = 0 ; idx < (int)(prev_size * n_channels); idx++) {
+		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
-	float wd = max - min;
-	avr = (avr - min) / wd;	// normal average by preview
-	avr = -logf(avr);		// scale factor
-	if (avr > 1.) {
-		wd /= avr;
-	}
+	fits *tmp = NULL;
+	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	struct mtf_params mtfp[3] = {
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+	};
 
-	guchar *pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
+	find_unlinked_midtones_balance_default(tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+	tmp->fdata = NULL;
+	tmp->fpdata[0] = NULL;
+	tmp->fpdata[1] = NULL;
+	tmp->fpdata[2] = NULL;
+	clearfits(tmp);
+	free(tmp);
+
+	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
+
+	// Move this outside the loop to avoid unnecessary multiplications
+	// in the loop
+	int twice_prev_size = prev_size * 2;
+
+	// Recalculate num_threads as we rely on simd in the inner loop
+	num_threads = choose_num_threads(1, Hs, com.max_thread);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
+#endif
+	for (int i = 0; i < Hs; i++) {
+		int src_row_offset  = i * Ws;
+		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread)
+#pragma omp simd
 #endif
-	for (int i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		guchar *pptr = &pixbuf_data[Ws * i * 3];
-		float *p = &ima_data[(Hs - i - 1) * Ws];
 		for (int j = 0; j < Ws; j++) {
-			gray2rgb(logviz((*p++ - min) / wd), pptr);
-			pptr += 3;
+			int src_idx  = src_row_offset + j;
+			int dest_idx = dest_row_offset + j * 3;
+
+			if (is_color) {
+				float r = preview_data[src_idx];
+				float g = preview_data[prev_size + src_idx];
+				float b = preview_data[twice_prev_size + src_idx];
+				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
+			} else {
+				float gray = preview_data[src_idx];
+				gray2rgb(gray, &pixbuf_data[dest_idx]);
+			}
 		}
 	}
+
 	fits_close_file(fp, &status);
 	free(ima_data);
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
-			GDK_COLORSPACE_RGB,	// only this supported
-			FALSE,				// no alpha
-			8,				// number of bits
-			Ws, Hs,				// size
-			Ws * 3,				// line length in bytes
-			(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
+	free(preview_data);
+
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
+			GDK_COLORSPACE_RGB,
+			FALSE,
+			8,
+			Ws, Hs,
+			Ws * 3,
+			(GdkPixbufDestroyNotify) free_preview_data,
 			NULL);
 	*descr = description;
 	return pixbuf;
@@ -3210,16 +3275,6 @@ static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc 
 	}
 }
 
-gboolean keyword_is_protected(char *card) {
-	char keyname[9];
-	strncpy(keyname, card, 8);
-	keyname[8] = '\0';
-	if (g_strcmp0(keyname, "DATE    ") == 0) {
-		return TRUE;
-	}
-	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
-}
-
 static int ffs2c(const char *instr, /* I - null terminated input string  */
 char *outstr, /* O - null terminated quoted output string */
 const int *status) /* IO - error status */
@@ -3328,7 +3383,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 		siril_debug_print("%s\n", card);
 
 	/* check if this is a protected keyword that must not be changed */
-	if (*card && keyword_is_protected(card)) {
+	if (*card && keyword_is_protected(card, fit)) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
 		return 1;
 	} else {
@@ -3436,24 +3491,29 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 }
 
 int associate_header_to_memfile(const char *header, fitsfile *fptr) {
-    int status = 0;
+	int status = 0;
+	char *saveptr = NULL;
 
-    char *header_copy = strdup(header);
-    char *line = strtok(header_copy, "\n");
+	char *header_copy = strdup(header);
+	if (!header_copy) {
+		return -1;
+	}
 
-    while (line != NULL) {
-        if (fits_write_record(fptr, line, &status)) {
-            report_fits_error(status);
-            free(header_copy);
-            return status;
-        }
+	char *line = strtok_r(header_copy, "\n", &saveptr);
 
-        line = strtok(NULL, "\n");
-    }
+	while (line != NULL) {
+		if (fits_write_record(fptr, line, &status)) {
+			report_fits_error(status);
+			free(header_copy);
+			return status;
+		}
 
-    free(header_copy);
+		line = strtok_r(NULL, "\n", &saveptr);
+	}
 
-    return 0;
+	free(header_copy);
+
+	return 0;
 }
 
 int fits_parse_header_str(fits *fit, const char *header){
@@ -3633,6 +3693,70 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	return status;
 }
 
+// TODO: should not be different than read_mask_fits_area, to be improved
+// read an area form a 32b drizz_weight
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+// if we pass layer == 4, it reads the whole file
+int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz) {
+	if (layer < 0)
+		return read_mask_fits_area(name, area, ry, drizz);
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 3;
+	long fpixel[3], lpixel[3], inc[3] = { 1L, 1L , 1L};
+	long naxes[3] = { 1L, 1L, 1L};
+
+	/* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	fpixel[2] = layer + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+	lpixel[2] = layer + 1;
+
+	if (!name)
+		return 1;
+	fits_open_file(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (layer == 4) { // read the whole file
+		size_t nbdata = area->w * area->h * 3;
+		fits_read_img(fptr, TFLOAT, 1, nbdata, NULL, drizz, NULL, &status);
+	} else {
+		fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
+	}
+	
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read drizz file %s\n", name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
 // Swaps all image-data related elements of two FITS (the data pointers themselves,
 // also dimensions and statistics, but not the header, keywords or fptr).
 
@@ -3682,6 +3806,9 @@ int fits_swap_image_data(fits *a, fits *b) {
 	gboolean btmp = a->top_down;
 	a->top_down = b->top_down;
 	b->top_down = btmp;
+	gboolean ctmp = a->debayer_checked;
+	a->debayer_checked = b->debayer_checked;
+	b->debayer_checked = ctmp;
 	imstats **stmp = a->stats;
 	a->stats = b->stats;
 	b->stats = stmp;
@@ -3700,61 +3827,14 @@ int fits_swap_image_data(fits *a, fits *b) {
 
 /** Calculate the bayer pattern color from the row and column **/
 
-static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
-}
-
-const char* get_cfa_from_pattern(sensor_pattern pattern) {
-	const char* cfa;
-	switch (pattern) {
-		case BAYER_FILTER_BGGR:
-			cfa = "2110";
-			break;
-		case BAYER_FILTER_GRBG:
-			cfa = "1021";
-			break;
-		case BAYER_FILTER_RGGB:
-			cfa = "0112";
-			break;
-		case BAYER_FILTER_GBRG:
-			cfa = "1201";
-			break;
-		case XTRANS_FILTER_1:
-//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-			cfa = "110112112110201021112110110112021201";
-			break;
-		case XTRANS_FILTER_2:
-//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-			cfa = "021201110112112110201021112110110112";
-			break;
-		case XTRANS_FILTER_3:
-//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-			cfa = "101121212010101121121101010212121101";
-			break;
-		case XTRANS_FILTER_4:
-//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-			cfa = "121101010212121101101121212010101121";
-			break;
-		default:
-			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
-			return NULL;
-	}
-	return cfa;
-}
-
 // These interpolation routines will work for X-Trans as well as Bayer patterns
 
-static void interpolate_nongreen_float(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_float(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3765,7 +3845,7 @@ static void interpolate_nongreen_float(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+						if (FC_array(nx, ny, cfa, cfadim) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3783,17 +3863,12 @@ static void interpolate_nongreen_float(fits *fit) {
 	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
-static void interpolate_nongreen_ushort(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+static void interpolate_nongreen_ushort(fits *fit, BYTE cfa[36], int cfadim) {
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {
 		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
+			if (FC_array(row, col, cfa, cfadim) == 1)
 				continue;
 			uint32_t index = col + row * width;
 			float interp = 0.f;
@@ -3804,7 +3879,7 @@ static void interpolate_nongreen_ushort(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC_array(nx, ny, cfa, cfadim) == 1) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
@@ -3825,10 +3900,14 @@ static void interpolate_nongreen_ushort(fits *fit) {
 #undef RECIPSQRT2
 
 void interpolate_nongreen(fits *fit) {
+	int cfadim = 0;
+	BYTE cfa[36];
+	if (fit->naxes[2] != 1 || get_compiled_pattern(fit, cfa, &cfadim, FALSE))
+		return;
 	if (fit->type == DATA_FLOAT) {
-		interpolate_nongreen_float(fit);
+		interpolate_nongreen_float(fit, cfa, cfadim);
 	} else {
-		interpolate_nongreen_ushort(fit);
+		interpolate_nongreen_ushort(fit, cfa, cfadim);
 	}
 	invalidate_stats_from_fit(fit);
 	siril_debug_print("Interpolating non-green pixels\n");

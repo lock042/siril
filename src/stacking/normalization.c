@@ -1,3 +1,23 @@
+/*
+* This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <string.h>
 
 #include "core/siril.h"
@@ -12,7 +32,6 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
 
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
@@ -406,6 +425,14 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	translation_from_H(seq->regparam[args->reglayer][j].H, &dxj, &dyj);
 	dx = round_to_int(dxj - dxi);
 	dy = round_to_int(dyi - dyj);
+	if (dx == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: images #%d and #%d have a wrong dx value\n", i, j);
+		dx += 1;
+	}
+	if (dy == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: images #%d and #%d have a wrong dy value\n", i, j);
+		dy += 1;
+	}
 	int rxi = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
 	int ryi = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
 	int rxj = (seq->is_variable) ? seq->imgparam[j].rx : seq->rx;
@@ -508,8 +535,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	args->seq->needs_saving = TRUE;
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
-	fit_sequence_get_image_filename(seq, i, file_i, TRUE);
-	fit_sequence_get_image_filename(seq, j, file_j, TRUE);
+	fit_sequence_get_image_filename_checkext(seq, i, file_i);
+	fit_sequence_get_image_filename_checkext(seq, j, file_j);
 	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
 		readfits_partial_all_layers(file_j, &fitj, &areaj)) {
 		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);

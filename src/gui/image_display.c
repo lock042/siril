@@ -23,7 +23,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
@@ -50,7 +49,6 @@
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#include "git-version.h"
 
 #include <wcslib.h>
 #include <wcsfix.h>
@@ -1019,7 +1017,7 @@ static void draw_user_polygons(const draw_data_t *dd) {
 	static double dash_format[] = { 4.0, 2.0 };
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
 	cairo_set_dash(cr, dash_format, 2, 0);
-	GList *l;
+	GSList *l;
 	for (l = gui.user_polygons; l != NULL; l = l->next) {
 		UserPolygon *polygon = (UserPolygon *)l->data;
 		if (polygon->n_points < 2)
@@ -1293,6 +1291,26 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
+static void draw_in_progress_poly(const draw_data_t* dd) {
+	if (!gui.drawing_polypoints) return;
+
+	cairo_t *cr = dd->cr;
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	gdk_cairo_set_source_rgba(cr, &gui.poly_ink);
+
+	GSList *list = gui.drawing_polypoints;
+	const point* start = (point*) list->data;
+	cairo_move_to(cr, start->x + 0.5, start->y + 0.5);
+
+	// Build the complete path first
+	for (list = list->next; list; list = list->next) {
+		const point* position = (point*) list->data;
+		cairo_line_to(cr, position->x + 0.5, position->y + 0.5);
+	}
+
+	// Now stroke the entire path at once
+	cairo_stroke(cr);
+}
 
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
@@ -2099,6 +2117,20 @@ static gboolean redraw_idle(gpointer p) {
 	return FALSE;
 }
 
+static gpointer redraw_idle_thread_func(gpointer data) {
+	sample_mutex_lock();
+	execute_idle_and_wait_for_it(redraw_idle, data);
+	sample_mutex_unlock();
+	return FALSE;
+}
+
+void queue_redraw_and_wait_for_it(remap_type doremap) {
+	if (!com.script && !com.python_command && !com.headless) {
+		GThread *thread = g_thread_new("redraw", redraw_idle_thread_func, GINT_TO_POINTER((int)doremap));
+		g_thread_join(thread);
+	}
+}
+
 void queue_redraw(remap_type doremap) {
 	// request a redraw from another thread
 	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
@@ -2178,6 +2210,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_measurement_line(&dd);
 
 	/* draw user polygons */
+	draw_in_progress_poly(&dd);
 	draw_user_polygons(&dd);
 
 	/* detected stars and highlight the selected star */

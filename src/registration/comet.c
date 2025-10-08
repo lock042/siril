@@ -21,15 +21,12 @@
 #include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/siril_wcs.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
 #include "registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
@@ -159,7 +156,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		// instead, we change to DISTO_FILE_COMET and use the refimage as distortion master (if it has distortion)
 			if (ref.keywords.wcslib && ref.keywords.wcslib->lin.dispre != NULL) {
 				char buffer[256];
-				fit_sequence_get_image_filename(args->seq, args->seq->reference_image, buffer, TRUE);
+				fit_sequence_get_image_filename_checkext(args->seq, args->seq->reference_image, buffer);
 				cadata->distoparam[regargs->layer].filename = g_strdup(buffer);
 			}
 			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) // and if astrometry is flipped

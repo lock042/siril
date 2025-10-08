@@ -47,7 +47,6 @@
 #include "gui/siril_plot.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
-#include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
@@ -200,6 +199,83 @@ int filtermaskArrays(double *x, double *y, gboolean *mask, int n) {
 	return newSize;
 }
 
+// Typical wavelength ranges for broadband filters (in nm)
+#define RED_MIN 580.0
+#define RED_MAX 700.0
+#define BLUE_MIN 400.0
+#define BLUE_MAX 525.0  // Extended a bit from a more typical 500.0 to include OIII/Hbeta region
+
+// Tolerance for considering two wavelengths "the same"
+#define WAVELENGTH_TOLERANCE 1.0  // nm
+
+typedef enum {
+	FILTER_RED,
+	FILTER_BLUE,
+	FILTER_GREEN,  // Between blue and red
+	FILTER_OTHER   // Outside typical visible range
+} FilterType;
+
+FilterType classify_wavelength(double wavelength) {
+	if (wavelength >= RED_MIN && wavelength <= RED_MAX) {
+		return FILTER_RED;
+	} else if (wavelength >= BLUE_MIN && wavelength <= BLUE_MAX) {
+		return FILTER_BLUE;
+	} else if (wavelength > BLUE_MAX && wavelength < RED_MIN) {
+		return FILTER_GREEN;
+	} else {
+		return FILTER_OTHER;
+	}
+}
+
+gboolean wavelengths_match(double w1, double w2) {
+	return fabs(w1 - w2) <= WAVELENGTH_TOLERANCE;
+}
+
+gboolean should_plot(int layer, struct photometric_cc_data *args) {
+	FilterType target_filter_type;
+
+	// Determine which filter type we're checking for based on layer
+	if (layer == RLAYER) {
+		target_filter_type = FILTER_RED;
+	} else if (layer == BLAYER) {
+		target_filter_type = FILTER_BLUE;
+	} else {
+		// Invalid layer, return TRUE (allow plotting)
+		return TRUE;
+	}
+
+	// Count how many filters match the target type and check for duplicates
+	int matching_filters = 0;
+	double matching_wavelengths[3];
+
+	// First pass: identify all filters that match the target type
+	for (int i = 0; i < 3; i++) {
+		FilterType current_type = classify_wavelength(args->nb_center[i]);
+		if (current_type == target_filter_type) {
+			matching_wavelengths[matching_filters] = args->nb_center[i];
+			matching_filters++;
+		}
+	}
+
+	// If we have less than 2 matching filters, no duplicates possible
+	if (matching_filters < 2) {
+		return TRUE;
+	}
+
+	// Second pass: check for duplicates among the matching filters
+	for (int i = 0; i < matching_filters; i++) {
+		for (int j = i + 1; j < matching_filters; j++) {
+			if (wavelengths_match(matching_wavelengths[i], matching_wavelengths[j])) {
+				// Found duplicate filters in the target layer
+				return FALSE;
+			}
+		}
+	}
+
+	// No duplicates found
+	return TRUE;
+}
+
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
@@ -209,6 +285,8 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	double *crg = malloc(sizeof(double) * nb_stars);
 	double *cbg = malloc(sizeof(double) * nb_stars);
 	double wrg = 0.f, wbg = 0.f;
+	gboolean plotrg = args->nb_mode ? should_plot(RLAYER, args) : TRUE;
+	gboolean plotbg = args->nb_mode ? should_plot(BLAYER, args) : TRUE;
 	gboolean *maskrg = NULL, *maskbg = NULL;
 	xpsampled response[3] = { init_xpsampled(), init_xpsampled(), init_xpsampled() };
 
@@ -417,53 +495,57 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 	if (args->do_plot) {
 		double stat_min, stat_max;
-		int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
-		gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
-		double best_fit_rgx[2] = {stat_min, stat_max};
-		double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
 		spcc_object *object = (spcc_object*) selected_white->data;
+		if (plotrg) {
+			int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
+			gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
+			double best_fit_rgx[2] = {stat_min, stat_max};
+			double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
 
-		siril_plot_data *spl_datarg = init_siril_plot_data();
-		if (spl_datarg) {
-			siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
-			siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-			gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
-			siril_plot_set_title(spl_datarg, title1);
-			g_free(title1);
-			siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
-			siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
-			siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
-			siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
-			siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
-			siril_plot_set_yfmt(spl_datarg, "%.1lf");
-			spl_datarg->cfgdata.point.radius = 1;
-			spl_datarg->cfgdata.point.sz = 2;
-			spl_datarg->cfgdata.line.sz = 2;
-			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+			siril_plot_data *spl_datarg = init_siril_plot_data();
+			if (spl_datarg) {
+				siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+				siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+				gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
+				siril_plot_set_title(spl_datarg, title1);
+				g_free(title1);
+				siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+				siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
+				siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+				siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
+				siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+				siril_plot_set_yfmt(spl_datarg, "%.1lf");
+				spl_datarg->cfgdata.point.radius = 1;
+				spl_datarg->cfgdata.point.sz = 2;
+				spl_datarg->cfgdata.line.sz = 2;
+				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+			}
 		}
 
-		int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
-		gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
-		double best_fit_bgx[2] = {stat_min, stat_max};
-		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
-		siril_plot_data *spl_databg = init_siril_plot_data();
-		if (spl_databg) {
-			siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
-			siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-			gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
-			siril_plot_set_title(spl_databg, title2);
-			g_free(title2);
-			siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
-			gchar *spl_legendbg = _("B/G");
-			siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
-			siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
-			siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
-			siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
-			siril_plot_set_yfmt(spl_databg, "%.1lf");
-			spl_databg->cfgdata.point.radius = 1;
-			spl_databg->cfgdata.point.sz = 2;
-			spl_databg->cfgdata.line.sz = 2;
-			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+		if (plotbg) {
+			int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
+			gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
+			double best_fit_bgx[2] = {stat_min, stat_max};
+			double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
+			siril_plot_data *spl_databg = init_siril_plot_data();
+			if (spl_databg) {
+				siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+				siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+				gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
+				siril_plot_set_title(spl_databg, title2);
+				g_free(title2);
+				siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+				gchar *spl_legendbg = _("B/G");
+				siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
+				siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+				siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
+				siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+				siril_plot_set_yfmt(spl_databg, "%.1lf");
+				spl_databg->cfgdata.point.radius = 1;
+				spl_databg->cfgdata.point.sz = 2;
+				spl_databg->cfgdata.line.sz = 2;
+				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+			}
 		}
 
 		siril_add_idle(end_generic, NULL);
@@ -888,10 +970,14 @@ gpointer photometric_cc_standalone(gpointer p) {
 	/* Fetching the catalog*/
 	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
-		for (int i = 0 ; i < siril_cat->nbitems ; i++) {
-			// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
-			get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+		if (args->datalink_path == NULL) {
+			retval = 1;
+		} else {
+			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
+				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
+				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+			}
 		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;

@@ -39,9 +39,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "core/exif.h"
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
@@ -52,264 +50,6 @@
 #if GLIB_CHECK_VERSION(2,68,0)
 #define g_memdup g_memdup2
 #endif
-
-/**
- * Round double value to an integer
- * @param x value to round
- * @return an integer
- */
-int round_to_int(double x) {
-	if (x <= INT_MIN + 0.5) return INT_MIN;
-	if (x >= INT_MAX - 0.5) return INT_MAX;
-	if (x >= 0.0)
-		return (int)(x + 0.5);
-	return (int)(x - 0.5);
-}
-
-/**
- * Round float value to an integer
- * @param x value to round
- * @return an integer
- */
-int roundf_to_int(float x) {
-	if (x <= (float)INT_MIN + 0.5f) return INT_MIN;
-	if (x >= (float)INT_MAX - 0.5f) return INT_MAX;
-	if (x >= 0.0f)
-		return (int)(x + 0.5f);
-	return (int)(x - 0.5f);
-}
-
-/**
- * Round double value to a WORD
- * @param x value to round
- * @return a WORD
- */
-WORD round_to_WORD(double x) {
-	if (x <= 0.0)
-		return (WORD)0;
-	if (x > USHRT_MAX_DOUBLE)
-		return USHRT_MAX;
-	return (WORD)(x + 0.5);
-}
-
-/**
- * Round double value to a BYTE
- * @param x value to round
- * @return a BYTE
- */
-BYTE round_to_BYTE(double x) {
-	if (x <= 0.0)
-		return (BYTE)0;
-	if (x > UCHAR_MAX_DOUBLE)
-		return UCHAR_MAX;
-	return (BYTE)(x + 0.5);
-}
-
-/**
- * Round float value to a BYTE
- * @param f value to round
- * @return a truncated and rounded BYTE
- */
-BYTE roundf_to_BYTE(float f) {
-	if (f < 0.5f) return 0;
-	if (f >= UCHAR_MAX - 0.5f) return UCHAR_MAX;
-	return (BYTE)(f + 0.5f);
-}
-
-/**
- * Round float value to a WORD
- * @param f value to round
- * @return a truncated and rounded WORD
- */
-WORD roundf_to_WORD(float f) {
-	WORD retval;
-	if (f < 0.5f) {
-		retval = 0;
-	} else if (f >= USHRT_MAX - 0.5f) {
-		retval = USHRT_MAX;
-	} else {
-		retval = (WORD)(f + 0.5f);
-	}
-	return retval;
-}
-
-/**
- * Round float value to a short
- * @param f value to round
- * @return a truncated and rounded short
- */
-signed short roundf_to_short(float f) {
-	if (f < SHRT_MIN + 0.5f) return SHRT_MIN;
-	if (f >= SHRT_MAX - 0.5f) return SHRT_MAX;
-	return (signed short)(f + 0.5f);
-}
-
-/**
- * Scale float value to a maximum value up to 2^32-1
- * and return as guint32
- * @param f value to scale
- * @param max float range [0f..1f] scales to guint32 range [0..max]
- * @return a guint32
- */
-guint float_to_max_range(float f, guint max) {
-	f *= max;
-	if (f < 0.5f) return 0;
-	if (f >= max - 0.5f) return max;
-	return (guint)(f + 0.5f);
-}
-
-/**
- * Compute a ceiling factor
- * @param x the number to test
- * @param factor the factor
- * @return x if it is a factor of factor or the next factor
- */
-int round_to_ceiling_multiple(int x, int factor) {
-	if (x % factor == 0)
-		return x;
-	return (x / factor + 1) * factor;
-}
-
-/**
- * convert double value to a BYTE
- * @param x value to convert
- * @return a BYTE
- */
-BYTE conv_to_BYTE(double x) {
-	if (x == 0.0)
-		return (BYTE)0;
-	if (x == USHRT_MAX_DOUBLE)
-		return UCHAR_MAX;
-	x = ((x / USHRT_MAX_DOUBLE) * UCHAR_MAX_DOUBLE);
-	return((BYTE)(x));
-}
-
-/**
- * truncate a 64 bit unsigned int to a 32 bit signed int
- * @param x value to truncate
- * @return an int
- */
-int truncate_to_int32(uint64_t x) {
-	if (x > (uint64_t)INT_MAX)
-		return INT_MAX;
-	return (int)x;
-}
-
-WORD truncate_to_WORD(int x) {
-	if (x < 0)
-		return 0;
-	if (x > USHRT_MAX)
-		return USHRT_MAX;
-	return (WORD)x;
-}
-
-BYTE truncate_to_BYTE(WORD x) {
-	if (x > UCHAR_MAX)
-		return UCHAR_MAX;
-	return (BYTE)x;
-}
-
-/**
- * Clamp an integer value in the interval given by [low, high]
- * @param val value to be checked
- * @param low low value of the interval
- * @param high high value of the interval
- * @return a new value set in the [low, high] interval
- */
-int set_int_in_interval(int val, int low, int high) {
-	return max(low, min(val, high));
-}
-
-/**
- * Clamp a float value in the interval given by [low, high]
- * @param val value to be checked
- * @param low low value of the interval
- * @param high high value of the interval
- * @return a new value set in the [low, high] interval
- */
-float set_float_in_interval(float val, float low, float high) {
-	return max(low, min(val, high));
-}
-
-/**
- * Clamp a double value in the interval given by [low, high]
- * @param val value to be checked
- * @param low low value of the interval
- * @param high high value of the interval
- * @return a new value set in the [low, high] interval
- */
-double set_double_in_interval(double val, double low, double high) {
-	return max(low, min(val, high));
-}
-
-/**
- * convert an unsigned short value to siril's representation of float values [0, 1]
- * @param w value to convert
- * @return the float equivalent
- */
-float ushort_to_float_range(WORD w) {
-	return (float)w * INV_USHRT_MAX_SINGLE;
-}
-
-/**
- * convert an unsigned char value to siril's representation of float values [0, 1]
- * @param w value to convert
- * @return the float equivalent
- */
-float uchar_to_float_range(BYTE w) {
-	return (float)w * INV_UCHAR_MAX_SINGLE;
-}
-
-/**
- * convert an double value from the unsigned short range to siril's representation
- * of float values [0, 1]
- * @param d value to convert
- * @return the float equivalent
- */
-float double_ushort_to_float_range(double d) {
-	return (float)d * INV_USHRT_MAX_SINGLE;
-}
-
-/**
- * convert a siril float [0, 1] to an unsigned short
- * @param f value to convert
- * @return the unsigned short equivalent
- */
-WORD float_to_ushort_range(float f) {
-	return roundf_to_WORD(f * USHRT_MAX_SINGLE);
-}
-
-/**
- * convert a siril float [0, 1] to a signed short
- * @param f value to convert
- * @return the signed short equivalent
- * (-SHRT_MAX - 1)
- */
-signed short float_to_short_range(float f) {
-	return roundf_to_short((f * USHRT_MAX_SINGLE) - SHRT_MAX_SINGLE - 1);
-}
-
-/**
- * convert a siril float [0, 1] to an unsigned char
- * @param f value to convert
- * @return the unsigned char equivalent
- */
-BYTE float_to_uchar_range(float f) {
-	return roundf_to_BYTE(f * UCHAR_MAX_SINGLE);
-}
-
-/**
- * convert the pixel value of an image to a float [0, 1] normalized using bitpix
- * value depending on btpix
- * @param fit the image the data is from
- * @return a float [0, 1] value for the given integer value
- */
-float ushort_to_float_bitpix(const fits *fit,const WORD value) {
-	const float fval = (float)value;
-	return fit->orig_bitpix == BYTE_IMG ?
-		fval * INV_UCHAR_MAX_SINGLE :
-		fval * INV_USHRT_MAX_SINGLE;
-}
 
 /**
  * convert a float type buffer into a WORD buffer
@@ -426,202 +166,6 @@ float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
 }
 
 /**
- * Test equality between two double number
- * @param a
- * @param b
- * @param epsilon
- * @return
- */
-gboolean test_double_eq(double a, double b, double epsilon) {
-	return (fabs(a - b) <= epsilon);
-}
-
-/**
- * change endianness of a 16 bit unsigned int
- * @param x value to convert
- * @return byte-swapped value
- */
-uint16_t change_endianness16(uint16_t x) {
-    return (x >> 8) | (x << 8);
-}
-
-/**
- * convert a 16 bit unsigned int in CPU byte order to little endian
- * @param x value to convert
- * @return little endian value
- */
-uint16_t cpu_to_le16(uint16_t x) {
-#ifdef __BIG_ENDIAN__
-    return change_endianness16(x);
-#else
-    return x;
-#endif
-}
-
-/**
- * convert a 16 bit unsigned int in CPU byte order to big endian
- * @param x value to convert
- * @return big endian value
- */
-uint16_t cpu_to_be16(uint16_t x) {
-#ifdef __BIG_ENDIAN__
-    return x;
-#else
-    return change_endianness16(x);
-#endif
-}
-
-/**
- * convert a 16 bit unsigned int from little endian to CPU byte order
- * @param x little endian value to convert
- * @return value
- */
-uint16_t le16_to_cpu(uint16_t x) {
-    return cpu_to_le16(x);
-}
-
-/**
- * convert a 16 bit unsigned int from big endian to CPU byte order
- * @param x big endian value to convert
- * @return value
- */
-uint16_t be16_to_cpu(uint16_t x) {
-    return cpu_to_be16(x);
-}
-
-uint32_t be24_to_cpu(const BYTE x[3]) {
-#ifdef __BIG_ENDIAN__
-	uint32_t r = ((x[2] << 16) | (x[1] << 8) | x[0]);
-#else
-	uint32_t r = ((x[0] << 16) | (x[1] << 8) | x[2]);
-#endif
-	return r;
-}
-
-/**
- * change endianness of a 32 bit unsigned int
- * @param x value to convert
- * @return byte-swapped value
- */
-uint32_t change_endianness32(uint32_t x) {
-    return (x >> 24) | ((x & 0xFF0000) >> 8) | ((x & 0xFF00) << 8) | (x << 24);
-}
-
-/**
- * convert a 32 bit unsigned int in CPU byte order to little endian
- * @param x value to convert
- * @return little endian value
- */
-uint32_t cpu_to_le32(uint32_t x) {
-#ifdef __BIG_ENDIAN__
-    return change_endianness32(x);
-#else
-    return x;
-#endif
-}
-
-/**
- * convert a 32 bit unsigned int in CPU byte order to big endian
- * @param x value to convert
- * @return big endian value
- */
-uint32_t cpu_to_be32(uint32_t x) {
-#ifdef __BIG_ENDIAN__
-    return x;
-#else
-    return change_endianness32(x);
-#endif
-}
-
-/**
- * convert a 32 bit unsigned int from little endian to CPU byte order
- * @param x little endian value to convert
- * @return value
- */
-uint32_t le32_to_cpu(uint32_t x) {
-    return cpu_to_le32(x);
-}
-
-/**
- * convert a 32 bit unsigned int from big endian to CPU byte order
- * @param x big endian value to convert
- * @return value
- */
-uint32_t be32_to_cpu(uint32_t x) {
-    return cpu_to_be32(x);
-}
-
-/**
- * change endianness of a 64 bit unsigned int
- * @param x value to convert
- * @return byte-swapped value
- */
-uint64_t change_endianness64(uint64_t x) {
-    return
-        (x >> 56)
-        | ((x & 0xFF000000000000) >> 40)
-        | ((x & 0xFF0000000000) >> 24)
-        | ((x & 0xFF00000000) >> 8)
-        | ((x & 0xFF000000) << 8)
-        | ((x & 0xFF0000) << 24)
-        | ((x & 0xFF00) << 40)
-        | (x << 56);
-}
-
-/**
- * convert a 64 bit unsigned int in CPU byte order to little endian
- * @param x value to convert
- * @return little endian value
- */
-uint64_t cpu_to_le64(uint64_t x) {
-#ifdef __BIG_ENDIAN__
-	return change_endianness64(x);
-#else
-	return x;
-#endif
-}
-
-/**
- * convert a 64 bit unsigned int in CPU byte order to big endian
- * @param x value to convert
- * @return big endian value
- */
-uint64_t cpu_to_be64(uint64_t x) {
-#ifdef __BIG_ENDIAN__
-	return x;
-#else
-	return change_endianness64(x);
-#endif
-}
-
-/**
- * convert a 64 bit unsigned int from little endian to CPU byte order
- * @param x little endian value to convert
- * @return value
- */
-uint64_t le64_to_cpu(uint64_t x) {
-	return cpu_to_le64(x);
-}
-
-/**
- * convert a 64 bit unsigned int from big endian to CPU byte order
- * @param x big endian value to convert
- * @return value
- */
-uint64_t be64_to_cpu(uint64_t x) {
-	return cpu_to_be64(x);
-}
-
-/**
- * Test if fit has 3 channels
- * @param fit input FITS image
- * @return TRUE if fit image has 3 channels
- */
-gboolean isrgb(const fits *fit) {
-	return (fit->naxis == 3);
-}
-
-/**
  * Converts a channel number from a color image to its name.
  * @param channel the channel number [0, 2]
  * @return the string containing the name of the channel's color
@@ -725,6 +269,28 @@ char *remove_ext_from_filename(const char *filename) {
 	return file;
 }
 
+char *remove_all_ext_from_filename(const char *filename) {
+    char *file = NULL;
+    int ext_index = -1;
+
+    // Find the first dot after the last path separator
+    for (int i = strlen(filename) - 1; i > 0; i--) {
+        if (filename[i] == '\\' || filename[i] == '/')
+            break;
+        if (filename[i] == '.') {
+            ext_index = i;  // Keep updating to find the first dot, not the last
+        }
+    }
+
+    if (ext_index == -1)
+        return strdup(filename);
+
+    file = malloc(ext_index + 1);
+    strncpy(file, filename, ext_index);
+    file[ext_index] = '\0';
+    return file;
+}
+
 /**
  * Replaces the extension of a file name or path
  * @param path the original path
@@ -790,6 +356,19 @@ int is_symlink_file(const char *filename) {
 		return 1;
 	return 0;
 }
+
+/*
+* Wrapper around g_mkdir_with_parents that displays a readable error if it fails
+*/
+gint siril_mkdir_with_parents(const gchar* pathname, gint mode) {
+	gint result = g_mkdir_with_parents(pathname, mode);
+	if (result != 0) {
+		int saved_errno = errno;
+		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", pathname, g_strerror(saved_errno));
+	}
+	return result;
+}
+
 
 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
 // we still allow for '.' though
@@ -1329,9 +908,14 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 
 	if (pixbuf_file_info != NULL) {
 		/* Pixel size of image: width x height in pixel */
-		return g_strdup_printf("%d x %d %s\n%d %s", width, height,
-				ngettext("pixel", "pixels", height), n_channel,
-				ngettext("channel", "channels", n_channel));
+		if (n_channel > 0) {
+			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
+					ngettext("pixel", "pixels", height), n_channel,
+					ngettext("channel", "channels", n_channel));
+		} else {
+			return g_strdup_printf("%d x %d %s", width, height,
+				ngettext("pixel", "pixels", height));
+		}
 	}
 	return NULL;
 }
@@ -2172,4 +1756,92 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 
 char *strdupnullok(char *data) {
 	return (data) ? strdup(data) : NULL;
+}
+
+// Returns the full path minus the extension
+gchar* remove_extension_from_path(const gchar* filepath) {
+    if (!filepath) return NULL;
+
+    // Find the last dot in the entire path
+    gchar* last_dot = g_strrstr(filepath, ".");
+
+    // Find the last directory separator to ensure the dot is in the filename part
+    gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
+
+    // Only remove extension if:
+    // 1. There is a dot
+    // 2. The dot comes after the last directory separator (or there's no separator)
+    // 3. The dot is not at the end of the string
+    if (last_dot &&
+        (!last_sep || last_dot > last_sep) &&
+        *(last_dot + 1) != '\0') {
+
+        // Create new string up to (but not including) the dot
+        return g_strndup(filepath, last_dot - filepath);
+    }
+
+    // No extension found, return copy of original
+    return g_strdup(filepath);
+}
+
+gboolean delete_directory(const gchar *dir_path, GError **error) {
+	GDir *dir;
+	const gchar *name;
+	gchar *full_path;
+	GFile *file;
+	gboolean success = TRUE;
+
+	dir = g_dir_open(dir_path, 0, error);
+	if (!dir) {
+		return FALSE;
+	}
+
+	siril_debug_print("Deleting %s...\n", dir_path);
+
+	while ((name = g_dir_read_name(dir))) {
+		full_path = g_build_filename(dir_path, name, NULL);
+
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			if (!delete_directory(full_path, error)) {
+				success = FALSE;
+				break;
+			}
+		} else {
+			file = g_file_new_for_path(full_path);
+			if (!g_file_delete(file, NULL, error)) {
+				g_object_unref(file);
+				success = FALSE;
+				break;
+			}
+			g_object_unref(file);
+		}
+
+		g_free(full_path);
+	}
+
+	g_dir_close(dir);
+
+	if (success) {
+		file = g_file_new_for_path(dir_path);
+		if (!g_file_delete(file, NULL, error)) {
+			g_object_unref(file);
+			return FALSE;
+		}
+		g_object_unref(file);
+	}
+
+	return success;
+}
+
+gchar *posix_path_separators(const gchar *path) {
+	gchar *normalized = g_strdup(path);
+	gchar *p = normalized;
+
+	while (*p) {
+		if (*p == '\\') {
+			*p = '/';
+		}
+		p++;
+	}
+	return normalized;
 }

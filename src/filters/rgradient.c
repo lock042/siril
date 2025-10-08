@@ -219,6 +219,11 @@ void on_rgradient_cancel_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("rgradient_dialog");
 }
 
+gboolean rgradient_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("rgradient_dialog");
+	return TRUE;
+}
+
 void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if(!check_ok_if_cfa())
 		return;

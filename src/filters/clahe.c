@@ -19,14 +19,12 @@
  */
 
 #include <string.h>
-#include <opencv2/core/version.hpp>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "core/processing.h"
 #include "core/undo.h"
-#include "algos/colors.h"
 #include "opencv/opencv.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -34,7 +32,6 @@
 #include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
-#include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 
 #include "clahe.h"

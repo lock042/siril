@@ -25,13 +25,11 @@
 #include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
 #include "core/command_line_processor.h"
 #include "algos/PSF.h"
-#include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
 #include "algos/photometric_cc.h"
 #include "io/annotation_catalogues.h"
@@ -41,10 +39,8 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "gui/image_display.h"
-#include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
-
 
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
@@ -832,8 +828,7 @@ gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *fi
 	/* First we test if root directory already exists */
 	gchar *root = g_path_get_dirname(filename);
 	if (!g_file_test(root, G_FILE_TEST_IS_DIR)) {
-		if (g_mkdir_with_parents(root, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+		if (siril_mkdir_with_parents(root, 0755) < 0) {
 			g_free(root);
 			return FALSE;
 		}
@@ -1477,6 +1472,8 @@ gpointer conesearch_worker(gpointer p) {
 		}
 	}
 
+	retval = 0;
+
 	if (args->has_GUI && args->compare) {
 		spl_data = init_siril_plot_data();
 		if (!spl_data) {
@@ -1495,8 +1492,6 @@ gpointer conesearch_worker(gpointer p) {
 		dyf = NULL;
 	}
 
-	retval = 0;
-
 	exit_conesearch:
 	{
 		gboolean go_idle = args->has_GUI;
@@ -1510,7 +1505,7 @@ gpointer conesearch_worker(gpointer p) {
 		if (go_idle) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			siril_add_idle(end_conesearch, temp_cat);
+			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
 		} else {
 			end_generic(NULL);
 		}

@@ -28,7 +28,6 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -39,13 +38,10 @@
 #include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 #include "gui/histogram.h"
-#include "core/undo.h"
 #include "core/arithm.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "filters/ght.h"
 
-#include "gui/histogram.h"
 #include <gsl/gsl_histogram.h>
 
 // Invocation: 1 if called directly from starnet GUI,
@@ -535,44 +531,7 @@ int remixer() {
 				} else if (right_loaded && !left_loaded) {
 					memcpy(gfit.fdata, fit_right_calc.fdata, npixels * 3 * sizeof(float));
 				} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-					for (size_t i = 0 ; i < npixels ; i++) {
-						float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-						float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
-						if (left_loaded) {
-							rinl = fit_left_calc.fpdata[0][i];
-							ginl = fit_left_calc.fpdata[1][i];
-							binl = fit_left_calc.fpdata[2][i];
-						} else {
-							rinl = 0.f;
-							ginl = 0.f;
-							binl = 0.f;
-						}
-						if (right_loaded) {
-							rinr = fit_right_calc.fpdata[0][i];
-							ginr = fit_right_calc.fpdata[1][i];
-							binr = fit_right_calc.fpdata[2][i];
-						} else {
-							rinr = 0.f;
-							ginr = 0.f;
-							binr = 0.f;
-						}
-						linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl, TRUE);
-						xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-						linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr, TRUE);
-						xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-						float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-						float ao = (Ll * Al + Lr * Ar) / divisor;
-						float bo = (Ll * Bl + Lr * Br) / divisor;
-						float Lo = Ll + Lr - Ll * Lr * 0.01f;
-						LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-						xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout, TRUE);
-						gfit.fpdata[0][i] = rout;
-						gfit.fpdata[1][i] = gout;
-						gfit.fpdata[2][i] = bout;
-					}
+					screen(&fit_left_calc, &fit_right_calc, &gfit, !com.pref.force_16bit, com.max_thread);
 				}
 				break;
 			case DATA_USHORT:
@@ -581,44 +540,7 @@ int remixer() {
 				} else if (right_loaded && !left_loaded) {
 					memcpy(gfit.data, fit_right_calc.data, npixels * 3 * sizeof(WORD));
 				} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-					for (size_t i = 0 ; i < npixels ; i++) {
-						float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-						float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
-						if (left_loaded) {
-							rinl = fit_left_calc.pdata[0][i] * invnorm;
-							ginl = fit_left_calc.pdata[1][i] * invnorm;
-							binl = fit_left_calc.pdata[2][i] * invnorm;
-						} else {
-							rinl = 0.f;
-							ginl = 0.f;
-							binl = 0.f;
-						}
-						if (right_loaded) {
-							rinr = fit_right_calc.pdata[0][i] * invnorm;
-							ginr = fit_right_calc.pdata[1][i] * invnorm;
-							binr = fit_right_calc.pdata[2][i] * invnorm;
-						} else {
-							rinr = 0.f;
-							ginr = 0.f;
-							binr = 0.f;
-						}
-						linrgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl, TRUE);
-						xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-						linrgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr, TRUE);
-						xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-						float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-						float ao = (Ll * Al + Lr * Ar) / divisor;
-						float bo = (Ll * Bl + Lr * Br) / divisor;
-						float Lo = Ll + Lr - Ll * Lr * 0.01f;
-						LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-						xyz_to_linrgbf(xo, yo, zo, &rout, &gout, &bout, TRUE);
-						gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
-						gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
-						gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
-					}
+					screen(&fit_left_calc, &fit_right_calc, &gfit, !com.pref.force_16bit, com.max_thread);
 				}
 				break;
 			default:

@@ -34,7 +34,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/undo.h"
 
 #include "signals.h"
 

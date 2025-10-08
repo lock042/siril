@@ -31,7 +31,8 @@ typedef enum {
 	OUTPUT_LOGS
 } main_tabs;
 
-
+void gui_mutex_lock();
+void gui_mutex_unlock();
 GtkWidget* lookup_widget (const gchar *widget_name);
 GObject* lookup_gobject(const gchar *gobject_name);
 GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);
@@ -55,5 +56,6 @@ void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gc
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 gchar* get_control_window_id();
+GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba);
 
 #endif /* SRC_GUI_UTILS_H_ */

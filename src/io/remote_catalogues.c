@@ -34,15 +34,9 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
-#include "algos/search_objects.h"
-#include "algos/siril_wcs.h"
-#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
-#include "algos/comparison_stars.h"
 #include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "registration/matching/misc.h"
 
 // These statics define the formatting for some fields used when writing catalog names
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
@@ -530,8 +524,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
 	gchar *filepath = g_build_filename(root, filename, NULL);
 
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir_with_parents(root, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+		if (siril_mkdir_with_parents(root, 0755) < 0) {
 			g_free(filepath);
 			g_free(root);
 			return NULL; // we won't be able to write to the file
@@ -572,6 +565,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
+	int fetch_url_error = 0;
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
@@ -606,9 +600,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	siril_debug_print("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	int fetch_url_error;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
-	g_free(url);
 
 	/* save (and parse if required)*/
 	if (buffer && !error) {
@@ -641,9 +633,21 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+
+	g_free(url);
 	return filepath;
 
 download_error:
+	if (fetch_url_error) {
+		siril_log_color_message(_("Error: unable to retrieve the remote catalogue from the server at %s. "
+			"This is not a Siril bug. It means the catalogue server is unavailable. This is usually a "
+			"short-lived problem however this server is not affiliated with Siril and the Siril team do "
+			"not control it. We highly recommend using a local server such as the optimized Siril extract "
+			"from Gaia DR3, installable using the Catalog_Installer.py script. This is faster and does not "
+			"rely on third party servers.\n"), "red", url);
+	}
+	g_free(url);
+
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);

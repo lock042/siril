@@ -32,7 +32,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "algos/colors.h"
 #include "algos/statistics.h"
 
 #include "gui/progress_and_log.h"
@@ -292,6 +291,11 @@ void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) 
 	siril_close_dialog("color_calibration");
 }
 
+gboolean calibration_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("color_calibration");
+	return TRUE;
+}
+
 void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
 	GtkWidget *cc_box_red = lookup_widget("cc_box_red");
@@ -375,6 +379,14 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 	args->type = gtk_combo_box_get_active(combo_extract_channel);
 	args->str_type = gtk_combo_box_get_active_id(combo_extract_channel);
+
+	if (args->type != EXTRACT_RGB) {
+		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
+		if (!value_check(&gfit)) {
+			siril_log_color_message(_("Error in value_check(). This should not happen...\n"), "red");
+			return;
+		}
+	}
 
 	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
 
@@ -573,4 +585,9 @@ void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
 	siril_close_dialog("ccm_dialog");
+}
+
+gboolean ccm_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("ccm_dialog");
+	return TRUE;
 }

@@ -38,20 +38,14 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
-#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_spawn.h"
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "io/annotation_catalogues.h"
 #include "algos/photometry.h"
-#include "algos/photometric_cc.h"
-#include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
-#include "io/fits_keywords.h"
-#include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
@@ -61,8 +55,6 @@
 #include "registration/matching/match.h"
 #include "registration/matching/apply_match.h"
 #include "registration/matching/atpmatch.h"
-#include "gui/message_dialog.h"
-
 
 #define DOWNSAMPLE_FACTOR 0.25
 #define CONV_TOLERANCE 1E-2 // convergence tolerance in arcsec from the projection center
@@ -1128,6 +1120,7 @@ clearup:
 	}
 	else {
 		free(args);
+		args = NULL;
 	}
 	if (is_verbose)
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -2112,7 +2105,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			if (target_coords) {
 				siril_world_cs_unref(aargs->cat_center);
 				aargs->cat_center = target_coords;
-				if (aargs->ref_stars && target_coords) {
+				if (aargs->ref_stars) {
 					aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 					aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 				}
@@ -2180,6 +2173,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		siril_world_cs_unref(aargs->cat_center);
+		free(aargs);
 		return 1;
 	}
 
@@ -2196,6 +2191,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			g_atomic_int_inc(&aargs_master->seqprogress);
 		}
 		free_fitted_stars(stars);
+		siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
 		return status;
 	}
@@ -2209,13 +2205,14 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
 
+	/* be careful, aargs is freed in plate_solver */
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
 	}
 
-	if (aargs->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
+	if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve with astrometric registration
 		arg->seq->imgparam[i].incl = (gboolean)!retval;
 
 	if (!retval && !arg->has_output) { // SEQ_REGULAR
@@ -2230,6 +2227,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		} else {
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 			arg->seq->imgparam[i].incl = FALSE;
+			siril_world_cs_unref(aargs->cat_center);
 			free(aargs);
 			return 1;
 		}

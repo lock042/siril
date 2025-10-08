@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
-#include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"

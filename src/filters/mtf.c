@@ -237,13 +237,10 @@ int find_linked_midtones_balance_default(fits *fit, struct mtf_params *result) {
 }
 
 void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params) {
-	START_TIMER;
+	int threads = com.max_thread;
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
-#ifdef _OPENMP
-	int threads = min(com.max_thread, 2); // not worth using many threads here
-#endif
 
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
@@ -252,8 +249,6 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			// This is only a small loop: 8 threads seems to be about as many as is worthwhile
-			// because of the thread startup cost
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(threads) schedule(static) if (threads > 1)
 #endif
@@ -284,7 +279,6 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		}
 	}
 	else return;
-	END_TIMER;
 	invalidate_stats_from_fit(to);
 }
 
