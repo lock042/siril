@@ -150,6 +150,14 @@ siril_link_arg = []
 siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
+
+# clang compiler flags to aid with identifying missed vectorization - uncomment to use
+enable_simd_logs = get_option('simd_logs')
+if enable_simd_logs and meson.get_compiler('c').get_id() == 'clang'
+  siril_c_flag += ['-Rpass=loop-vectorize', '-Rpass-missed=loop-vectorize', '-Rpass-analysis=loop-vectorize']
+  siril_cpp_flag += ['-Rpass=loop-vectorize', '-Rpass-missed=loop-vectorize', '-Rpass-analysis=loop-vectorize']
+endif
+
 # Add arch=native support if enabled
 enable_arch_native = get_option('arch_native')
 if enable_arch_native

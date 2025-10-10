@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-08-30 14:46+0000\n"
+"PO-Revision-Date: 2025-10-04 05:39+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -6240,7 +6240,7 @@ msgstr "FITSオプション"
 #: src/gui/uifiles/settings_window.ui:1964 src/gui/uifiles/siril.ui:2389
 #: src/gui/uifiles/siril.ui:2716
 msgid "Astrometry"
-msgstr "天体位置測定学"
+msgstr "天体測量"
 
 #: src/gui/uifiles/settings_window.ui:1196 src/gui/uifiles/siril.ui:10927
 #, fuzzy
@@ -10796,10 +10796,9 @@ msgid "Image Processing"
 msgstr "画像処理"
 
 #: src/gui/uifiles/siril.ui:10556
-#, fuzzy
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
-msgstr "画像処理メニュー. 画像補正に適した全ての機能を含みます."
+msgstr "Sirilツールメニュー。画像解析に必要な機能をすべて含みます。"
 
 #: src/gui/uifiles/siril.ui:10567
 msgid "Tools"
@@ -20700,7 +20699,8 @@ msgstr ""
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
-msgstr ""
+msgstr "新しいバージョンが利用可能です。<a href=\"%s\">%s</a>でダウンロードできます。"
+"\n"
 
 #: src/core/siril_update.c:397
 msgid "No update check: this is a development version\n"
@@ -24569,6 +24569,9 @@ msgid ""
 "FITS header, astrometry and photometry tools, as well as image analysis "
 "features."
 msgstr ""
+"新しいメニュー、ツールが作られ、これまでインタフェース全体に分散していたSiril"
+"のツールが一元化されました。これには統計、FITSヘッダ、天体測量および測光ツー"
+"ルに加え、画像解析機能も含まれます。"
 
 #: src/gui/siril_intro.c:49
 msgid ""
@@ -24591,6 +24594,9 @@ msgid ""
 "documentation, preferences, keyboard shortcuts help, and the script tab in "
 "the preferences, making it easy to add new scripts."
 msgstr ""
+"ハンバーガーメニューが簡素化され、ドキュメント、設定、キーボードショートカッ"
+"トのヘルプ、設定内のスクリプトタブへのクイックアクセスが追加されました。これ"
+"により、新しいスクリプトの追加が容易になりました。"
 
 #: src/gui/siril_intro.c:52
 msgid ""
@@ -24612,6 +24618,9 @@ msgid ""
 "button allows you to manage ICC profiles, while a right-click displays the "
 "image in soft proofing mode."
 msgstr ""
+"このバージョンのSirilにはカラーマネージメントツールが含まれています。このボタ"
+"ンを左クリックするとICCプロファイルを管理でき、右クリックすると画像をソフトプ"
+"ルーフィングモードで表示します。"
 
 #: src/gui/siril_intro.c:55
 msgid ""

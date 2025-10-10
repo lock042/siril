@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-08-14 14:07+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-10-06 07:16+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -6773,9 +6773,8 @@ msgid "X-Trans demosaicing quality"
 msgstr "Qualität der X-Trans-Demosaikierung"
 
 #: src/gui/uifiles/settings_window.ui:561
-#, fuzzy
 msgid "Row-order preference:"
-msgstr "Einstellungen öffnen"
+msgstr "Einstellung Zeilenreihenfolge:"
 
 #: src/gui/uifiles/settings_window.ui:572
 #, fuzzy
@@ -7715,7 +7714,7 @@ msgstr "Kamera"
 
 #: src/gui/uifiles/settings_window.ui:3085
 msgid "siril-spcc-database repository:"
-msgstr "Repository der Sirl SPCC-Datenbank:"
+msgstr "Repository der Siril SPCC-Datenbank:"
 
 #: src/gui/uifiles/settings_window.ui:3094
 msgid "Enable repository"
@@ -8191,7 +8190,7 @@ msgstr "Absolut farbmetrisch"
 
 #: src/gui/uifiles/settings_window.ui:4366
 msgid "Black point compensation"
-msgstr "Schwarzpunktkompentation"
+msgstr "Schwarzpunktkompensation"
 
 #: src/gui/uifiles/settings_window.ui:4370
 msgid ""
@@ -8807,7 +8806,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5749
 msgid "Maximum slice size for sliced image operations"
-msgstr "Maximale Abschnittgröße-Größe für Abschnitts-Bildoperationen"
+msgstr "Maximale Abschnittgröße für Abschnitts-Bildoperationen"
 
 #: src/gui/uifiles/settings_window.ui:5760
 msgid ""
@@ -13856,9 +13855,9 @@ msgid "Invalid FITS file or pattern for debayering\n"
 msgstr "Ungültiger Dateideskriptor nach shm_open\n"
 
 #: src/algos/demosaicing.c:152
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid Bayer pattern for debayering: %d\n"
-msgstr "Nicht gespeicherte Bayer-Musterzusammenführung"
+msgstr "ungültiges Bayer-Muster für Bayer-Zusammenführung %d\n"
 
 #: src/algos/demosaicing.c:166
 msgid ""
@@ -13889,12 +13888,11 @@ msgstr "Einstellungen"
 
 #: src/algos/demosaicing.c:265
 msgid "top-down"
-msgstr ""
+msgstr "von oben nach unten"
 
 #: src/algos/demosaicing.c:265
-#, fuzzy
 msgid "bottom-up"
-msgstr "Unten Links"
+msgstr "von unten nach oben"
 
 #: src/algos/demosaicing.c:267 src/core/command.c:3839
 msgid "forced"
@@ -13987,9 +13985,8 @@ msgid "Ha channel"
 msgstr "Ha-Kanal"
 
 #: src/algos/extraction.c:331
-#, fuzzy
 msgid "Extract Ha: unsupported Bayer pattern.\n"
-msgstr "Unterstütztes Bayermuster erkannt"
+msgstr "Extrahiere Ha: nicht unterstütztes Bayermuster.\n"
 
 #: src/algos/extraction.c:385 src/algos/extraction.c:618
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -14813,9 +14810,9 @@ msgid "Bad argument to stats option\n"
 msgstr "Schlechtes Argument für die statistische Option\n"
 
 #: src/algos/statistics.c:863
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to write seqstat data: %s"
-msgstr "Dateneinträge konnten nicht gelesen werden.\n"
+msgstr "seqstat Daten: %s konnten nicht geschrieben werden"
 
 #. Success path
 #: src/algos/statistics.c:870
@@ -14824,9 +14821,9 @@ msgid "Statistic file %s was successfully created.\n"
 msgstr "Statistikdatei %s wurde erfolgreich erstellt.\n"
 
 #: src/algos/statistics.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to close seqstat output stream: %s"
-msgstr "Erstellung der Ausgabedatei %s fehlgeschlagen\n"
+msgstr "seqstat Ausgabedatei %s konnte nicht geschlossen werden"
 
 #: src/algos/statistics.c:995 src/registration/global.c:326
 msgid ""
@@ -16482,9 +16479,9 @@ msgstr ""
 
 #: src/core/command.c:4585 src/core/command.c:4590 src/core/command.c:4618
 #: src/core/command.c:4623
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument: %s\n"
-msgstr "Ungültige Argumente"
+msgstr "Ungültige Argumente: %s\n"
 
 #: src/core/command.c:4644
 #, fuzzy
@@ -23423,7 +23420,7 @@ msgstr ""
 #: src/core/processing.c:1262
 #, c-format
 msgid "Error finding the HDU for frame %d\n"
-msgstr "Fehler: kann HDU für Bild  %d nicht finden\n"
+msgstr "Fehler: kann HDU für Bild %d nicht finden\n"
 
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
@@ -30549,9 +30546,9 @@ msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Konnte Teilbild %d aus Sequenz %s nicht laden\n"
 
 #: src/io/sequence.c:1064
-#, fuzzy, c-format
+#, c-format
 msgid "Could not seek frame %d from FITS sequence %s. Error status: %d\n"
-msgstr "Konnte Frame %d aus FITS-Sequenz %s nicht laden\n"
+msgstr "Konnte Frame %d aus FITS-Sequenz %s nicht suchen. Fehlerstatus: %d\n"
 
 #: src/io/sequence.c:1164
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
@@ -31828,9 +31825,8 @@ msgid "Failed to set slider state - invalid mode value"
 msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:3065
-#, fuzzy
 msgid "Error: invalid slider values"
-msgstr "Fehler: Fehlende oder ungültige Werte-Arrays.\n"
+msgstr "Fehler: ungültige Werte der Schieberegler"
 
 #: src/io/siril_pythoncommands.c:3077
 #, fuzzy
@@ -32083,16 +32079,18 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Fehler beim Befehl zur Erstellung von venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:2041
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create virtual environment: %s\n"
-msgstr "Vorbereitung der virtuellen Umgebung fehlgeschlagen\n"
+msgstr "Vorbereitung der virtuellen Umgebung %s fehlgeschlagen\n"
 
 #: src/io/siril_pythonmodule.c:2044
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python stderr:\n"
 "%s\n"
-msgstr "Pythonskripte"
+msgstr ""
+"Python stderr:\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2049
 msgid ""
@@ -33315,12 +33313,11 @@ msgid ""
 "instead\n"
 msgstr ""
 "Referenzbild ist nicht in der gefilterten Liste enthalten, es wird folgendes "
-"verwendet:\n"
+"Bild #%d verwendet:\n"
 
 #: src/registration/astrometric.c:133
-#, fuzzy
 msgid "Failed to compute homography from corners\n"
-msgstr "Ausgabe-Index konnte nicht berechnet werden"
+msgstr "Berechnung der Homographie aus der Ecke fehlgeschlagen\n"
 
 #: src/registration/astrometric.c:271
 #, c-format
@@ -33401,9 +33398,9 @@ msgstr ""
 "ist in den Einstellungen leer\n"
 
 #: src/registration/distorsion.c:434
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, aborting\n"
-msgstr "Konnte das Bild nicht laden, Abbruch.\n"
+msgstr "Konnte das Bild# %d nicht laden, Abbruch.\n"
 
 #: src/registration/distorsion.c:444
 msgid "Could not parse master file name for distortion, aborting\n"

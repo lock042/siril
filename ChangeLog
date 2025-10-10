@@ -7,6 +7,13 @@ XX/XX/XX
 * Fixed issue with sequence filename construction if com.pref.ext didn't match the seq (#1796)
 * Fixed issue where curves tool preview could fail to disapply (#1801)
 * Fixed global registration failed to add reference image to the aligned sequence (#1798)
+* Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
+
+**Improvements**
+* Support arbitrary script categories in the GtkTreeView in script preferences
+* Make ONNXHelper slightly more robust (!940)
+* Enabled compiler optimizations by inlining many common data conversion functions (!942)
+* Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
 
 siril 1.4.0-beta4
 09/28/25

@@ -507,7 +507,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
 			KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
-			KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
+			KEYWORD_PRIMARY( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), NULL, NULL),
 			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE }
 	};
 
@@ -629,6 +629,7 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_BOOL:
 			status = 0;
+			if (g_strcmp0("PLTSOLVD", keys->key) == 0) break;
 			sbool = *((super_bool*) keys->data);
 			if (sbool != BOOL_NOT_SET) {
 				boolean = (sbool == BOOL_FALSE) ? FALSE : TRUE;
@@ -792,8 +793,8 @@ int save_wcs_keywords(fits *fit) {
 			}
 		}
 	}
-	if (fit->keywords.wcsdata.pltsolvd) {
-		fits_update_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->keywords.wcsdata.pltsolvd), fit->keywords.wcsdata.pltsolvd_comment, &status);
+	if (fit->keywords.wcsdata.pltsolvd == TRUE) {
+		fits_update_key(fit->fptr, TLOGICAL, "PLTSOLVD", &fit->keywords.wcsdata.pltsolvd,  fit->keywords.wcsdata.pltsolvd_comment, &status);
 	}
 
 	return 0;
