@@ -46,6 +46,7 @@ static const gchar *cat[] = {
 	"stars.csv",
 	"constellations.csv",
 	"constellationsnames.csv",
+	"caldwell.csv",
 	/* below this line, user catalogues are in the user directory, not the
 	 * siril install dir.  */
 	"user-DSO-catalogue.csv",

@@ -14,6 +14,7 @@ XX/XX/XX
 * Make ONNXHelper slightly more robust (!940)
 * Enabled compiler optimizations by inlining many common data conversion functions (!942)
 * Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
+* Added Caldwell catalogue for better annotations in Southern celestial hemisphere (!xxx)
 
 siril 1.4.0-beta4
 09/28/25

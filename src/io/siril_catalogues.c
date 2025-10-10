@@ -182,6 +182,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_RA1) | (1 << CAT_FIELD_DEC1);
 		case CAT_AN_CONST_NAME:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS);
+		case CAT_AN_CALDWELL:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME);
 		case CAT_AN_USER_DSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_ALIAS);
 		case CAT_AN_USER_SSO:
@@ -306,6 +308,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return "IAU constellations";
 		case CAT_AN_CONST_NAME:
 			return "IAU constellations names";
+		case CAT_AN_CALDWELL:
+			return "Caldwell";
 		case CAT_AN_USER_DSO:
 			return "user-DSO";
 		case CAT_AN_USER_SSO:

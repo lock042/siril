@@ -14,6 +14,7 @@ install_data(['messier.csv'
               ,'stars.csv'
               , 'constellations.csv'
               , 'constellationsnames.csv'
+              , 'caldwell.csv'
               ],
              rename : ['catalogue/messier.csv'
                       ,'catalogue/ngc.csv'
@@ -23,5 +24,6 @@ install_data(['messier.csv'
                       ,'catalogue/stars.csv'
                       , 'catalogue/constellations.csv'
                       , 'catalogue/constellationsnames.csv'
+                      , 'catalogue/caldwell.csv'
                       ],
              install_dir : siril_datadir)
