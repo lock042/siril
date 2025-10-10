@@ -8,6 +8,8 @@ XX/XX/XX
 * Fixed issue where curves tool preview could fail to disapply (#1801)
 * Fixed global registration failed to add reference image to the aligned sequence (#1798)
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
