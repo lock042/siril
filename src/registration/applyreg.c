@@ -844,7 +844,7 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		fprintf(stdout, "Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)

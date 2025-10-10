@@ -417,6 +417,6 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 		}
 	}
 	// temp for debug
-	siril_log_message("Required storage space: %" G_GINT64_FORMAT " MB\n", (gint64)(size / BYTES_IN_A_MB));
+	// siril_log_message("Required storage space: %" G_GINT64_FORMAT " MB\n", (gint64)(size / BYTES_IN_A_MB));
 	return size;
 }
