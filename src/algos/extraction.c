@@ -400,58 +400,44 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	}
 	// Loop through calculating the means of the 3 O-III photosite subchannels
 	// Also populate the Ha fits data
-	float g1 = 0.f, g2 = 0.f, b = 0.f;
-	unsigned j = 0;
-	unsigned error = 0;
+	imstats* statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
+	imstats* statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
+	if (!statg || !statb) {
+		siril_debug_print("Error calculating image statistics for Ha-OIII extraction.\n");
+		if (statg) free_stats(statg);
+		if (statb) free_stats(statb);
+		clearfits(Ha);
+		clearfits(OIII);
+		return 1;
+	}
+	float scaleb = statg->mad / statb->mad;
+	float offsetb = scaleb * statb->median - statg->median;
+	free_stats(statg);
+	free_stats(statb);
+	int j = 0;
 	for (int row = 0; row < in->ry - 1; row += 2) {
+		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
-			float c0 = (float) in->data[col + row * in->rx];
-			float c1 = (float) in->data[1 + col + row * in->rx];
-			float c2 = (float) in->data[col + (1 + row) * in->rx];
-			float c3 = (float) in->data[1 + col + (1 + row) * in->rx];
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = roundf_to_WORD(c0);
-				g1 += c1;
-				g2 += c2;
-				b += c3;
+				Ha->data[j] = in->data[col + offset];
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = roundf_to_WORD(c3);
-				g1 += c1;
-				g2 += c2;
-				b += c0;
+				Ha->data[j] = in->data[1 + col + offset + in->rx];
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = roundf_to_WORD(c1);
-				g1 += c0;
-				g2 += c3;
-				b += c2;
+				Ha->data[j] = in->data[1 + col + offset];
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = roundf_to_WORD(c2);
-				g1 += c0;
-				g2 += c3;
-				b += c1;
+				Ha->data[j] = in->data[col + offset + in->rx];
 				break;
 			default:
 				printf("Should not happen.\n");
-				error++;
 			}
-		j++;
+			j++;
 		}
 	}
-	if (!error) {
-		// g1, g2 and b are divided by j to give averages, work out the mean OIII level and calculate scaling ratios
-		// for each of the 3 OIII subchannels to equalize them
-		g1 /= j;
-		g2 /= j;
-		b /= j;
-		float avgoiii = (g1 + g2 + b) / 3;
-		float g1ratio = avgoiii / g1;
-		float g2ratio = avgoiii / g2;
-		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 #ifdef _OPENMP
@@ -459,117 +445,109 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 {
 #pragma omp for simd schedule(static)
 #endif
-		for (int row = 0; row < in->ry - 1; row += 2) {
-			for (int col = 0; col < in->rx - 1; col += 2) {
-				switch(pattern) {
-					case BAYER_FILTER_RGGB:
-						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
-						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
-						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + (1 + row) * in->rx]);
-						break;
-					case BAYER_FILTER_BGGR:
-						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
-						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
-						OIII->data[col + row * in->rx] = roundf_to_WORD(bratio * in->data[col + row * in->rx]);
-						break;
-					case BAYER_FILTER_GRBG:
-						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
-						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
-						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[col + (1 + row) * in->rx]);
-						break;
-					case BAYER_FILTER_GBRG:
-						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
-						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
-						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + row * in->rx]);
-						break;
-					default:
-						printf("Should not happen.\n");
-						error++;
-				}
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			switch(pattern) {
+				case BAYER_FILTER_RGGB:
+					OIII->data[1 + col + row * in->rx] = in->data[1 + col + row * in->rx];
+					OIII->data[col + (1 + row) * in->rx] = in->data[col + (1 + row) * in->rx];
+					OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(scaleb * in->data[1 + col + (1 + row) * in->rx] - offsetb);
+					break;
+				case BAYER_FILTER_BGGR:
+					OIII->data[1 + col + row * in->rx] = in->data[1 + col + row * in->rx];
+					OIII->data[col + (1 + row) * in->rx] = in->data[col + (1 + row) * in->rx];
+					OIII->data[col + row * in->rx] = roundf_to_WORD(scaleb * in->data[col + row * in->rx] - offsetb);
+					break;
+				case BAYER_FILTER_GRBG:
+					OIII->data[col + row * in->rx] = in->data[col + row * in->rx];
+					OIII->data[1 + col + (1 + row) * in->rx] = in->data[1 + col + (1 + row) * in->rx];
+					OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(scaleb * in->data[col + (1 + row) * in->rx] - offsetb);
+					break;
+				case BAYER_FILTER_GBRG:
+					OIII->data[col + row * in->rx] = in->data[col + row * in->rx];
+					OIII->data[1 + col + (1 + row) * in->rx] = in->data[1 + col + (1 + row) * in->rx];
+					OIII->data[1 + col + row * in->rx] = roundf_to_WORD(scaleb * in->data[1 + col + row * in->rx] - offsetb);
+					break;
+				default:
+					printf("Should not happen.\n");
 			}
 		}
+	}
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
 		// Separate loop for Ha site interpolation so this works for all Bayer patterns
-		if (!error) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-			for (int row = 0; row < in->ry - 1; row += 2) {
-				for (int col = 0; col < in->rx - 1; col += 2) {
-					int HaIndex = 0;
-					switch(pattern) {
-						case BAYER_FILTER_RGGB:
-							HaIndex = col + row * in->rx;
-							break;
-						case BAYER_FILTER_BGGR:
-							HaIndex = 1 + col + (1 + row) * in->rx;
-							break;
-						case BAYER_FILTER_GRBG:
-							HaIndex = 1 + col + row * in->rx;
-							break;
-						case BAYER_FILTER_GBRG:
-							HaIndex = col + (1 + row) * in->rx;
-							break;
-						default:
-							printf("Should not happen.\n");
-							error++;
-					}
-					float interp = 0.f;
-					float weight = 0.f;
-					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
-					gboolean last_y = (HaIndex / in->rx == in->ry - 1) ? TRUE : FALSE;
-					gboolean first_x = (HaIndex % in->rx == 0) ? TRUE : FALSE;
-					gboolean last_x = (HaIndex % in->rx == in->rx - 1) ? TRUE : FALSE;
-					if (!first_y) {
-						interp += OIII->data[HaIndex - in->rx] * SQRTF_2;
-						weight += SQRTF_2;
-						if (!first_x) {
-							interp += (OIII->data[HaIndex - 1] * SQRTF_2);
-							interp += OIII->data[(HaIndex - in->rx) - 1];
-							weight += (1.f + SQRTF_2);
-						}
-						if (!last_x) {
-							interp += OIII->data[(HaIndex - in->rx) + 1];
-							interp += OIII->data[HaIndex + 1] * SQRTF_2;
-							weight += (1.f + SQRTF_2);
-						}
-					} else { // first_y
-						if (!first_x) {
-							interp += OIII->data[HaIndex - 1] * SQRTF_2;
-							weight += SQRTF_2;
-						}
-						if(!last_x) {
-							interp += OIII->data[HaIndex + 1] * SQRTF_2;
-							weight += SQRTF_2;
-						}
-					}
-					if (!last_y) {
-						interp += OIII->data[HaIndex + in->rx] * SQRTF_2;
-						weight += SQRTF_2;
-						if(!first_x) {
-							interp += OIII->data[(HaIndex + in->rx) - 1];
-							weight += 1.f;
-						}
-						if(!last_x) {
-							interp += OIII->data[HaIndex + in->rx + 1];
-							weight += 1.f;
-						}
-					}
-					interp /= weight;
-					OIII->data[HaIndex] = roundf_to_WORD(interp);
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			int HaIndex = 0;
+			switch(pattern) {
+				case BAYER_FILTER_RGGB:
+					HaIndex = col + row * in->rx;
+					break;
+				case BAYER_FILTER_BGGR:
+					HaIndex = 1 + col + (1 + row) * in->rx;
+					break;
+				case BAYER_FILTER_GRBG:
+					HaIndex = 1 + col + row * in->rx;
+					break;
+				case BAYER_FILTER_GBRG:
+					HaIndex = col + (1 + row) * in->rx;
+					break;
+				default:
+					printf("Should not happen.\n");
+			}
+			float interp = 0.f;
+			float weight = 0.f;
+			gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
+			gboolean last_y = (HaIndex / in->rx == in->ry - 1) ? TRUE : FALSE;
+			gboolean first_x = (HaIndex % in->rx == 0) ? TRUE : FALSE;
+			gboolean last_x = (HaIndex % in->rx == in->rx - 1) ? TRUE : FALSE;
+			if (!first_y) {
+				interp += OIII->data[HaIndex - in->rx] * SQRTF_2;
+				weight += SQRTF_2;
+				if (!first_x) {
+					interp += (OIII->data[HaIndex - 1] * SQRTF_2);
+					interp += OIII->data[(HaIndex - in->rx) - 1];
+					weight += (1.f + SQRTF_2);
+				}
+				if (!last_x) {
+					interp += OIII->data[(HaIndex - in->rx) + 1];
+					interp += OIII->data[HaIndex + 1] * SQRTF_2;
+					weight += (1.f + SQRTF_2);
+				}
+			} else { // first_y
+				if (!first_x) {
+					interp += OIII->data[HaIndex - 1] * SQRTF_2;
+					weight += SQRTF_2;
+				}
+				if(!last_x) {
+					interp += OIII->data[HaIndex + 1] * SQRTF_2;
+					weight += SQRTF_2;
 				}
 			}
+			if (!last_y) {
+				interp += OIII->data[HaIndex + in->rx] * SQRTF_2;
+				weight += SQRTF_2;
+				if(!first_x) {
+					interp += OIII->data[(HaIndex + in->rx) - 1];
+					weight += 1.f;
+				}
+				if(!last_x) {
+					interp += OIII->data[HaIndex + in->rx + 1];
+					weight += 1.f;
+				}
+			}
+			interp /= weight;
+			OIII->data[HaIndex] = roundf_to_WORD(interp);
 		}
+	}
+
 #ifdef _OPENMP
 }
 #endif
-	}
-	if (error)
-		return 1;
-	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
-	// or do nothing.
 
 	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
