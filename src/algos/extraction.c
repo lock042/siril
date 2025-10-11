@@ -398,10 +398,10 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_USHORT)) {
 		return 1;
 	}
-	// Loop through calculating the means of the 3 O-III photosite subchannels
-	// Also populate the Ha fits data
-	imstats* statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
-	imstats* statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
+	// Compute loc/scale (median/MAD) for green and blue channels
+	// and derive additive+scale factors to be applied to blue pixels
+	imstats *statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
+	imstats *statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
 	if (!statg || !statb) {
 		siril_debug_print("Error calculating image statistics for Ha-OIII extraction.\n");
 		if (statg) free_stats(statg);
@@ -613,10 +613,10 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_FLOAT)) {
 		return 1;
 	}
-	// Loop through calculating the means of the 3 O-III photosite subchannels
-	// Also populate the Ha fits data
-	imstats* statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
-	imstats* statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
+	// Compute loc/scale (median/MAD) for green and blue channels
+	// and derive additive+scale factors to be applied to blue pixels
+	imstats *statg = statistics(NULL, -1, in, -2, NULL, STATS_LITENORM, threads);
+	imstats *statb = statistics(NULL, -1, in, -3, NULL, STATS_LITENORM, threads);
 	if (!statg || !statb) {
 		siril_debug_print("Error calculating image statistics for Ha-OIII extraction.\n");
 		if (statg) free_stats(statg);
@@ -656,7 +656,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	}
 
 
-		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+	// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 #ifdef _OPENMP
 #pragma omp parallel num_threads(threads)
 {
@@ -674,7 +674,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 				case BAYER_FILTER_BGGR:
 					OIII->fdata[offset + 1] = in->fdata[offset + 1];
 					OIII->fdata[offset + in->rx] = in->fdata[offset + in->rx];
-					OIII->fdata[col + row * in->rx] = scaleb * in->fdata[col + row * in->rx] - offsetb;
+					OIII->fdata[offset] = scaleb * in->fdata[offset] - offsetb;
 					break;
 				case BAYER_FILTER_GRBG:
 					OIII->fdata[offset] = in->fdata[offset];
