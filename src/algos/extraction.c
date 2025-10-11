@@ -418,24 +418,24 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
-
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = in->data[col + offset];
+				Ha->data[j] = in->data[offset];
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = in->data[1 + col + offset + in->rx];
+				Ha->data[j] = in->data[offset + in->rx + 1];
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = in->data[1 + col + offset];
+				Ha->data[j] = in->data[offset + 1];
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = in->data[col + offset + in->rx];
+				Ha->data[j] = in->data[offset + in->rx];
 				break;
 			default:
 				printf("Should not happen.\n");
 			}
 			j++;
+			offset += 2;
 		}
 	}
 
@@ -446,31 +446,33 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #pragma omp for simd schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
+		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			switch(pattern) {
 				case BAYER_FILTER_RGGB:
-					OIII->data[1 + col + row * in->rx] = in->data[1 + col + row * in->rx];
-					OIII->data[col + (1 + row) * in->rx] = in->data[col + (1 + row) * in->rx];
-					OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(scaleb * in->data[1 + col + (1 + row) * in->rx] - offsetb);
+					OIII->data[offset + 1] = in->data[offset + 1];
+					OIII->data[offset + in->rx] = in->data[offset + in->rx];
+					OIII->data[offset + in->rx + 1] = roundf_to_WORD(scaleb * in->data[offset + in->rx + 1] - offsetb);
 					break;
 				case BAYER_FILTER_BGGR:
-					OIII->data[1 + col + row * in->rx] = in->data[1 + col + row * in->rx];
-					OIII->data[col + (1 + row) * in->rx] = in->data[col + (1 + row) * in->rx];
-					OIII->data[col + row * in->rx] = roundf_to_WORD(scaleb * in->data[col + row * in->rx] - offsetb);
+					OIII->data[offset + 1] = in->data[offset + 1];
+					OIII->data[offset + in->rx] = in->data[offset + in->rx];
+					OIII->data[offset] = roundf_to_WORD(scaleb * in->data[offset] - offsetb);
 					break;
 				case BAYER_FILTER_GRBG:
-					OIII->data[col + row * in->rx] = in->data[col + row * in->rx];
-					OIII->data[1 + col + (1 + row) * in->rx] = in->data[1 + col + (1 + row) * in->rx];
-					OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(scaleb * in->data[col + (1 + row) * in->rx] - offsetb);
+					OIII->data[offset] = in->data[offset];
+					OIII->data[offset + in->rx + 1] = in->data[offset + in->rx + 1];
+					OIII->data[offset + in->rx] = roundf_to_WORD(scaleb * in->data[offset + in->rx] - offsetb);
 					break;
 				case BAYER_FILTER_GBRG:
-					OIII->data[col + row * in->rx] = in->data[col + row * in->rx];
-					OIII->data[1 + col + (1 + row) * in->rx] = in->data[1 + col + (1 + row) * in->rx];
-					OIII->data[1 + col + row * in->rx] = roundf_to_WORD(scaleb * in->data[1 + col + row * in->rx] - offsetb);
+					OIII->data[offset] = in->data[offset];
+					OIII->data[offset + in->rx + 1] = in->data[offset + in->rx + 1];
+					OIII->data[offset + in->rx + 1] = roundf_to_WORD(scaleb * in->data[offset + in->rx + 1] - offsetb);
 					break;
 				default:
 					printf("Should not happen.\n");
 			}
+			offset += 2;
 		}
 	}
 #ifdef _OPENMP
@@ -481,24 +483,26 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #pragma omp for simd schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
+		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			int HaIndex = 0;
 			switch(pattern) {
 				case BAYER_FILTER_RGGB:
-					HaIndex = col + row * in->rx;
+					HaIndex = offset;
 					break;
 				case BAYER_FILTER_BGGR:
-					HaIndex = 1 + col + (1 + row) * in->rx;
+					HaIndex = offset + in->rx + 1;
 					break;
 				case BAYER_FILTER_GRBG:
-					HaIndex = 1 + col + row * in->rx;
+					HaIndex = offset + 1;
 					break;
 				case BAYER_FILTER_GBRG:
-					HaIndex = col + (1 + row) * in->rx;
+					HaIndex = offset + in->rx;
 					break;
 				default:
 					printf("Should not happen.\n");
 			}
+			offset += 2;
 			float interp = 0.f;
 			float weight = 0.f;
 			gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
@@ -632,21 +636,22 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->fdata[j] = in->fdata[col + offset];
+				Ha->fdata[j] = in->fdata[offset];  // c0
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->fdata[j] = in->fdata[1 + col + offset + in->rx];
+				Ha->fdata[j] = in->fdata[offset + in->rx + 1 ]; // c3
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->fdata[j] = in->fdata[1 + col + offset];
+				Ha->fdata[j] = in->fdata[offset + 1]; // c1
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->fdata[j] = in->fdata[col + offset + in->rx];
+				Ha->fdata[j] = in->fdata[offset + in->rx]; // c2
 				break;
 			default:
 				printf("Should not happen.\n");
 			}
 			j++;
+			offset += 2;
 		}
 	}
 
@@ -658,31 +663,33 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #pragma omp for simd schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
+		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			switch(pattern) {
 				case BAYER_FILTER_RGGB:
-					OIII->fdata[1 + col + row * in->rx] = in->fdata[1 + col + row * in->rx];
-					OIII->fdata[col + (1 + row) * in->rx] = in->fdata[col + (1 + row) * in->rx];
-					OIII->fdata[1 + col + (1 + row) * in->rx] = scaleb * in->fdata[1 + col + (1 + row) * in->rx] - offsetb;
+					OIII->fdata[offset + 1] = in->fdata[offset + 1];
+					OIII->fdata[offset + in->rx] = in->fdata[offset + in->rx];
+					OIII->fdata[offset + in->rx + 1] = scaleb * in->fdata[offset + in->rx + 1] - offsetb;
 					break;
 				case BAYER_FILTER_BGGR:
-					OIII->fdata[1 + col + row * in->rx] = in->fdata[1 + col + row * in->rx];
-					OIII->fdata[col + (1 + row) * in->rx] = in->fdata[col + (1 + row) * in->rx];
+					OIII->fdata[offset + 1] = in->fdata[offset + 1];
+					OIII->fdata[offset + in->rx] = in->fdata[offset + in->rx];
 					OIII->fdata[col + row * in->rx] = scaleb * in->fdata[col + row * in->rx] - offsetb;
 					break;
 				case BAYER_FILTER_GRBG:
-					OIII->fdata[col + row * in->rx] = in->fdata[col + row * in->rx];
-					OIII->fdata[1 + col + (1 + row) * in->rx] = in->fdata[1 + col + (1 + row) * in->rx];
-					OIII->fdata[col + (1 + row) * in->rx] = scaleb * in->fdata[col + (1 + row) * in->rx] - offsetb;
+					OIII->fdata[offset] = in->fdata[offset];
+					OIII->fdata[offset + in->rx + 1] = in->fdata[offset + in->rx + 1];
+					OIII->fdata[offset + in->rx] = scaleb * in->fdata[offset + in->rx] - offsetb;
 					break;
 				case BAYER_FILTER_GBRG:
-					OIII->fdata[col + row * in->rx] = in->fdata[col + row * in->rx];
-					OIII->fdata[1 + col + (1 + row) * in->rx] = in->fdata[1 + col + (1 + row) * in->rx];
-					OIII->fdata[1 + col + row * in->rx] = scaleb * in->fdata[1 + col + row * in->rx] - offsetb;
+					OIII->fdata[offset] = in->fdata[offset];
+					OIII->fdata[offset + in->rx + 1] = in->fdata[offset + in->rx + 1];
+					OIII->fdata[offset + 1] = scaleb * in->fdata[offset + 1] - offsetb;
 					break;
 				default:
 					printf("Should not happen.\n");
 			}
+			offset += 2;
 		}
 	}
 
@@ -694,24 +701,26 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #pragma omp for simd schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
+		size_t offset = row * in->rx;
 		for (int col = 0; col < in->rx - 1; col += 2) {
 			int HaIndex = 0;
 			switch(pattern) {
 				case BAYER_FILTER_RGGB:
-					HaIndex = col + row * in->rx;
+					HaIndex = offset;
 					break;
 				case BAYER_FILTER_BGGR:
-					HaIndex = 1 + col + (1 + row) * in->rx;
+					HaIndex = offset + in->rx + 1;
 					break;
 				case BAYER_FILTER_GRBG:
-					HaIndex = 1 + col + row * in->rx;
+					HaIndex = offset + 1;
 					break;
 				case BAYER_FILTER_GBRG:
-					HaIndex = col + (1 + row) * in->rx;
+					HaIndex = offset + in->rx;
 					break;
 				default:
 					printf("Should not happen.\n");
 			}
+			offset += 2;
 			float interp = 0.f;
 			float weight = 0.f;
 			gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
