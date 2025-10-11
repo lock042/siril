@@ -484,8 +484,8 @@ static gboolean is_same_item(cat_item *item1, cat_item *item2, siril_cat_index c
 					&& fabs(item1->sitelon - item2->sitelon) < 1.e-4
 					&& fabs(item1->siteelev - item2->siteelev) < 1.;
 		default:
-			return fabs(item1->ra - item2->ra) < CATALOG_DIST_EPSILON
-				&& fabs(item1->dec - item2->dec) < CATALOG_DIST_EPSILON;
+			return (fabs(item1->ra - item2->ra) < CATALOG_DIST_EPSILON
+				&& fabs(item1->dec - item2->dec) < CATALOG_DIST_EPSILON);
 	}
 }
 
