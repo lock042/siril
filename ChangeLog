@@ -8,6 +8,7 @@ XX/XX/XX
 * Fixed issue where curves tool preview could fail to disapply (#1801)
 * Fixed global registration failed to add reference image to the aligned sequence (#1798)
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
+* Fixed crash in seqstarnet (#1814)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
