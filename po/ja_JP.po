@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-04 05:39+0000\n"
+"PO-Revision-Date: 2025-10-14 03:04+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril/ja/>\n"
@@ -2937,7 +2937,7 @@ msgstr ""
 #: src/gui/uifiles/cut_dialog.ui:333 src/gui/cut.c:89 src/gui/cut.c:170
 #: src/gui/cut.c:1406
 msgid "Intensity Profile"
-msgstr ""
+msgstr "強度プロファイル"
 
 #: src/gui/uifiles/cut_dialog.ui:342
 msgid "Plot Title"
@@ -20674,7 +20674,7 @@ msgstr ""
 #: src/core/siril_networking.c:122
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
-msgstr ""
+msgstr "URLの取得に失敗しました。libcurlエラー: [%ld]\n"
 
 #: src/core/siril_networking.c:181
 #, fuzzy, c-format
@@ -22450,7 +22450,7 @@ msgstr ""
 
 #: src/gui/cut.c:721 src/gui/cut.c:733
 msgid "Intensity"
-msgstr ""
+msgstr "強度"
 
 #: src/gui/cut.c:723 src/pixelMath/pixel_math_runner.c:351
 msgid "R"
@@ -24633,7 +24633,8 @@ msgstr ""
 msgid ""
 "A new intensity profiling tool has been added. This allows creating mono or "
 "RGB profiles of pixel values along a line in the image."
-msgstr ""
+msgstr "新たな強度プロファイルツールが追加されました。これにより、画像内の線に沿った"
+"ピクセル値の白黒またはRGBプロファイルを作成できます。"
 
 #: src/gui/siril_intro.c:57
 msgid ""
@@ -24653,9 +24654,8 @@ msgstr ""
 msgid ""
 "Enjoy using the new Siril. You can restart this introduction at any moment "
 "in the Miscellaneous tab of the preferences."
-msgstr ""
-"新しいSirilをお楽しみください。この紹介は環境設定の「その他」タブでいつでも再"
-"開できます。"
+msgstr "新しいSirilをお楽しみください。この紹介は設定の「その他」タブでいつでも再開で"
+"きます。"
 
 #: src/gui/siril_plot.c:169
 msgid "Snapshot was saved into the clipboard.\n"

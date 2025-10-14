@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-06 07:16+0000\n"
+"PO-Revision-Date: 2025-10-14 03:04+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -2856,7 +2856,6 @@ msgid "One star registration (deep-sky)"
 msgstr "Einzel-Stern-Registrierung (Deep-Sky)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2864,12 +2863,11 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
-"Wählt die Rahmung-/Beschnittmethode für die Deep-Sky-Ausrichtung:\n"
-"Erster Kanal – Rahmung entsprechend dem ersten Kanal (immer L im "
-"Luminanzmodus);\n"
-"Max – Ergebnis ist das maximalen Ausmaß der ausgerichteten Bilder;\n"
-"Min. – Beschnitt auf die minimale Überlappung aller ausgerichteten Bilder;\n"
-"COG – Beschnitt auf den Schwerpunkt der Pixel der ausgerichteten Bilder."
+"Wählen Sie die Rahmenmethode für die Deep-Sky-Ausrichtung:\n"
+"Erster Kanal – Rahmen zum ersten Kanal (im Luminanzmodus immer L);\n"
+"Min – Rahmen zur minimalen Überlappung aller ausgerichteten Bilder;\n"
+"COG – Rahmen zum Schwerpunkt der Pixel in der Gruppe der ausgerichteten "
+"Bilder."
 
 #: src/gui/uifiles/composition_dialog.ui:493
 msgid "First channel"
@@ -5312,7 +5310,7 @@ msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:623
 msgid "Parameters"
-msgstr "Bildparameter"
+msgstr "Parameter"
 
 #: src/gui/uifiles/pixelmath.ui:649
 msgid "Rescale result"
@@ -5505,8 +5503,8 @@ msgid ""
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
 "Wenn aktiv, werden alle Argumente, die in den Argument-Eintrag eingegeben "
-"werden, an das Skript weitergegeben wenn es gestartet wird. Dies sichert "
-"außerdem, dass SirilInterface im CLI-Modus aufgerufen wird "
+"werden, an das Skript weitergegeben wenn es gestartet wird. \n"
+"Dies sichert außerdem, dass Siril-Interface im CLI-Modus aufgerufen wird "
 "(SirilInterface.is_cli() gibt TRUE zurück)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
@@ -6808,9 +6806,8 @@ msgid "Header then Bottom-Up"
 msgstr "Header, dann Bottom-Up"
 
 #: src/gui/uifiles/settings_window.ui:580
-#, fuzzy
 msgid "Force Top-Down"
-msgstr "erzwing debayern von oben nach unten"
+msgstr "Erzwinge von oben nach unten"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
@@ -8537,7 +8534,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5203
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8548,7 +8544,10 @@ msgstr ""
 "Liste der verfügbaren Skripte. Ausgewählte Skripte werden über das Menü "
 "„Skripte“ verfügbar gemacht. Doppelklicken Sie auf eine Zeile, um das Skript "
 "im Skripteditor zu öffnen. (z.B. um lokale Änderungen an einem Skript zu "
-"speichern.)"
+"speichern.)\n"
+"Um eine ältere Revision zu öffnen (z. B. um nach einem fehlerhaften Skript-"
+"Update eine ältere Version zu erhalten), klicken Sie mit der rechten "
+"Maustaste auf eine Zeile."
 
 #: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
@@ -13540,7 +13539,6 @@ msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "Nicht unterstütztes CFA-Muster für diese Funktion\n"
 
 #: src/algos/background_extraction.c:995 src/algos/background_extraction.c:1209
-#, fuzzy
 msgid "Error splitting into CFA subchannels, aborting...\n"
 msgstr "Fehler beim Aufteilen in CFA-Unterkanälte, breche ab...\n"
 
@@ -19862,7 +19860,6 @@ msgstr ""
 "ändert nicht den Anzeigemodus"
 
 #: src/core/command_def.h:105
-#, fuzzy
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -19875,6 +19872,8 @@ msgid ""
 msgstr ""
 "Erstellt eine neue, schwarze (mit Nullen gefüllte) Bilddatei der Größe "
 "<b>width</b> x <b>height</b>.\n"
+"Optional kann der Parameter <b>[Dateiname]</b> verwendet werden, um den "
+"Namen der neuen Datei anzugeben.\n"
 "\n"
 "Das Bild ist im 32-Bit Format und enthält <b>nb_channel</b> Kanäle mit "
 "<b>nb_channel</b> = 1 oder 3. Es wird nicht gespeichert, kann aber "
@@ -26630,9 +26629,9 @@ msgid "Loading commit message..."
 msgstr "Commit-Bemerkung wird geladen..."
 
 #: src/gui/git_gui.c:398
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
-msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
+msgstr "Fehler beim Laden des Skriptinhalte: %s Revisionen zurück: %s\n"
 
 #: src/gui/histogram.c:163 src/gui/histogram.c:169 src/gui/histogram.c:1176
 #: src/gui/histogram.c:1182 src/gui/histogram.c:1871 src/gui/histogram.c:1888
