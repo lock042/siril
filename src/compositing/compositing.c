@@ -910,8 +910,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
-	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
-						framing != FRAMING_CURRENT) ? TRUE : FALSE;
+	regargs.two_pass = TRUE;
 	regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
