@@ -214,7 +214,7 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 	}
 
 	// Vectorizable descreen with on-the-fly conversion
-	const float eps = 1e-3f;
+	const float eps = 1e-6f;
 
 	if (a_is_ushort && b_is_ushort) {
 #pragma omp parallel for schedule(static) num_threads(threads) if(ndata > 50000)
@@ -222,10 +222,10 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float ai = ushort_to_float_range(a->data[i]);
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
-			float denom_safe = fmaxf(denom, eps);
 			float subtracted = ai - bi;
-			float screened = subtracted / denom_safe;
 			float mask = (denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask);
+			float screened = subtracted / denom_safe;
 			float result = mask * screened + (1.f - mask) * subtracted;
 			result = fmaxf(0.f, fminf(1.f, result));
 			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
@@ -236,10 +236,10 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float ai = ushort_to_float_range(a->data[i]);
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
-			float denom_safe = fmaxf(denom, eps);
 			float subtracted = ai - bi;
-			float screened = subtracted / denom_safe;
 			float mask = (denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask);
+			float screened = subtracted / denom_safe;
 			float result = mask * screened + (1.f - mask) * subtracted;
 			result = fmaxf(0.f, fminf(1.f, result));
 			a->data[i] = roundf_to_WORD(result * USHRT_MAX_SINGLE);
@@ -250,10 +250,12 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float ai = a->fdata[i];
 			float bi = ushort_to_float_range(b->data[i]);
 			float denom = 1.f - bi;
-			float denom_safe = fmaxf(denom, eps);
 			float subtracted = ai - bi;
+			// For float data, denom could be negative, so check absolute value
+			float abs_denom = (denom >= 0.f) ? denom : -denom;
+			float mask = (abs_denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask) * ((denom >= 0.f) ? 1.f : -1.f);
 			float screened = subtracted / denom_safe;
-			float mask = (denom >= eps) ? 1.f : 0.f;
 			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
 		}
 	} else { // both float
@@ -262,13 +264,16 @@ int descreen(fits *a, fits *b, gboolean allow_32bits, int threads) {
 			float ai = a->fdata[i];
 			float bi = b->fdata[i];
 			float denom = 1.f - bi;
-			float denom_safe = fmaxf(denom, eps);
 			float subtracted = ai - bi;
+			// For float data, denom could be negative, so check absolute value
+			float abs_denom = (denom >= 0.f) ? denom : -denom;
+			float mask = (abs_denom >= eps) ? 1.f : 0.f;
+			float denom_safe = denom + (1.f - mask) * ((denom >= 0.f) ? 1.f : -1.f);
 			float screened = subtracted / denom_safe;
-			float mask = (denom >= eps) ? 1.f : 0.f;
 			a->fdata[i] = mask * screened + (1.f - mask) * subtracted;
 		}
 	}
+
 	return 0;
 }
 
