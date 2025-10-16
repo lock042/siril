@@ -168,8 +168,7 @@ int rgb_align(int m) {
 	regargs.framing = framing;
 	regargs.output_scale = 1.f;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
-	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
-						framing != FRAMING_CURRENT) ? TRUE : FALSE;
+	regargs.two_pass = TRUE;
 	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
 		regargs.type = SHIFT_TRANSFORMATION;
 	else
