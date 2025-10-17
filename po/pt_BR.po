@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-14 19:43+0000\n"
+"PO-Revision-Date: 2025-10-17 09:11+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -13643,12 +13643,12 @@ msgstr "estrela %s [%s] adicionada como estrela de referência\n"
 #: src/algos/comparison_stars.c:145
 #, c-format
 msgid "Star %s ignored because it was too close to another\n"
-msgstr ""
+msgstr "Estrela %s ignorada porque estava muito próxima de outra\n"
 
 #: src/algos/comparison_stars.c:147
 #, c-format
 msgid "Star %s could not be used because it's on the borders or outside\n"
-msgstr ""
+msgstr "A estrela %s não pôde ser usada porque está nas bordas ou fora\n"
 
 #: src/algos/comparison_stars.c:209
 #, c-format
@@ -13657,7 +13657,7 @@ msgstr "Criando o arquivo de saída csv %s\n"
 
 #: src/algos/comparison_stars.c:227
 msgid "Problem writing the comparison stars file\n"
-msgstr ""
+msgstr "Problema ao escrever o arquivo de estrelas de comparação\n"
 
 #: src/algos/comparison_stars.c:277
 msgid "Not enough stars available\n"
@@ -13668,39 +13668,47 @@ msgid ""
 "Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: "
 "%1.3lf\n"
 msgstr ""
+"Parâmetros de filtragem: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1"
+".3lf\n"
 
 #: src/algos/comparison_stars.c:283
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr ""
+msgstr "Estrela alvo: Vmag = %2.2lf, B-V = %+2.2lf\n"
 
 #: src/algos/comparison_stars.c:327
 #, c-format
 msgid "-> %d stars matching those criteria were found in %s and discarded\n"
 msgstr ""
+"-> %d estrelas que correspondem a esses critérios foram encontradas em %s e "
+"descartadas\n"
 
 #: src/algos/comparison_stars.c:340
 msgid "Stars sorted by increasing distance (in arcmin) wrt. image center\n"
 msgstr ""
+"Estrelas classificadas por distância crescente (em minutos de arco) em "
+"relação ao centro da imagem\n"
 
 #: src/algos/comparison_stars.c:350
 #, c-format
 msgid "e_Vmag and e_Bmag are photometric errors supplied from %s\n"
-msgstr ""
+msgstr "e_Vmag e e_Bmag são erros fotométricos fornecidos por %s\n"
 
 #: src/algos/comparison_stars.c:357
 msgid ""
 "Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
 msgstr ""
+"Estrela de comparação %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, "
+"%4.3lf, %5.2lf\n"
 
 #. and log results
 #: src/algos/comparison_stars.c:373
 #, c-format
 msgid "%d comparison stars after sort.\n"
-msgstr ""
+msgstr "%d estrelas de comparação após a classificação.\n"
 
 #: src/algos/comparison_stars.c:377
 msgid "No csv output file to create\n"
-msgstr ""
+msgstr "Nenhum arquivo de saída csv para criar\n"
 
 #. and retrieving its results
 #. returns the nb of stars
@@ -13736,7 +13744,7 @@ msgstr "Este comando só funciona em imagens resolvidas astrometricamente\n"
 
 #: src/algos/comparison_stars.c:455
 msgid "Target star photometric information not available.\n"
-msgstr ""
+msgstr "Informações fotométricas da estrela alvo não disponíveis.\n"
 
 #: src/algos/comparison_stars.c:462
 msgid "No variable star selected\n"
@@ -13748,11 +13756,11 @@ msgstr "Nenhuma estrela de comparação encontrada na imagem, cancelando\n"
 
 #: src/algos/comparison_stars.c:516 src/algos/comparison_stars.c:518
 msgid "stars within"
-msgstr ""
+msgstr "estrelas dentro"
 
 #: src/algos/demosaicing.c:148
 msgid "Invalid FITS file or pattern for debayering\n"
-msgstr ""
+msgstr "Arquivo FITS ou padrão inválido para desbayerização\n"
 
 #: src/algos/demosaicing.c:152
 #, c-format
@@ -13764,20 +13772,22 @@ msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
 msgstr ""
+"O cabeçalho FITS não contém um padrão XTRANS adequado, o demosaicing não "
+"pode ser feito\n"
 
 #: src/algos/demosaicing.c:194
 #, c-format
 msgid "Invalid character in X-Trans filter pattern: %c\n"
-msgstr ""
+msgstr "Caractere inválido no padrão de filtro X-Trans: %c\n"
 
 #: src/algos/demosaicing.c:262
 #, c-format
 msgid "Filter Pattern: %s %s, Orientation: %s %s %s\n"
-msgstr ""
+msgstr "Padrão de filtro: %s %s, Orientação: %s %s %s\n"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 msgid "from header"
-msgstr ""
+msgstr "do cabeçalho"
 
 #: src/algos/demosaicing.c:264 src/algos/demosaicing.c:266
 #, fuzzy
@@ -13786,7 +13796,7 @@ msgstr "Configurações"
 
 #: src/algos/demosaicing.c:265
 msgid "top-down"
-msgstr ""
+msgstr "de cima para baixo"
 
 #: src/algos/demosaicing.c:265
 #, fuzzy
@@ -13795,11 +13805,12 @@ msgstr "Inferior-esquerda"
 
 #: src/algos/demosaicing.c:267 src/core/command.c:3839
 msgid "forced"
-msgstr ""
+msgstr "forçado"
 
 #: src/algos/demosaicing.c:549
 msgid "Cannot perform debayering on image with more than one channel\n"
 msgstr ""
+"Não é possível executar a desbayerização em imagens com mais de um canal\n"
 
 #: src/algos/demosaicing.c:554
 #, fuzzy
@@ -13808,7 +13819,7 @@ msgstr "Nenhum item encontrado na imagem\n"
 
 #: src/algos/demosaicing.c:566
 msgid "Cannot perform debayering\n"
-msgstr ""
+msgstr "Não é possível executar a desbayerização\n"
 
 #: src/algos/demosaicing.c:648
 msgid "Could not load metadata\n"
@@ -13817,35 +13828,37 @@ msgstr "Não foi possível carregar metadados\n"
 #: src/algos/demosaicing.c:659
 #, c-format
 msgid "Image %d: error opening CFA1 file\n"
-msgstr ""
+msgstr "Imagem %d: erro ao abrir arquivo CFA1\n"
 
 #: src/algos/demosaicing.c:664
 #, c-format
 msgid "Image %d: error opening CFA2 file\n"
-msgstr ""
+msgstr "Imagem %d: erro ao abrir arquivo CFA2\n"
 
 #: src/algos/demosaicing.c:669
 #, c-format
 msgid "Image %d: error opening CFA3 file\n"
-msgstr ""
+msgstr "Imagem %d: erro ao abrir arquivo CFA3\n"
 
 #: src/algos/demosaicing.c:725
 msgid "Merge CFA"
-msgstr ""
+msgstr "Mesclar CFA"
 
 #: src/algos/demosaicing.c:764 src/gui/merge_cfa.c:357
 msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
+"Os arquivos de entrada são incompatíveis (todos devem ser mono, com o mesmo "
+"tamanho e profundidade de bits). Cancelando...\n"
 
 #: src/algos/demosaicing.c:766 src/gui/merge_cfa.c:359
 msgid "X dimensions incompatible\n"
-msgstr ""
+msgstr "Dimensões X incompatíveis\n"
 
 #: src/algos/demosaicing.c:768 src/gui/merge_cfa.c:361
 msgid "Y dimensions incompatible\n"
-msgstr ""
+msgstr "Dimensões Y incompatíveis\n"
 
 #: src/algos/demosaicing.c:770 src/gui/merge_cfa.c:363
 msgid "Channels not all mono\n"
@@ -13853,15 +13866,15 @@ msgstr "Canais não são todos mono\n"
 
 #: src/algos/demosaicing.c:772 src/gui/merge_cfa.c:365
 msgid "Input files not all the same bit depth\n"
-msgstr ""
+msgstr "Os arquivos de entrada não têm todos a mesma profundidade de bits\n"
 
 #: src/algos/demosaicing.c:779
 msgid "Error creating output image\n"
-msgstr ""
+msgstr "Erro ao criar imagem de saída\n"
 
 #: src/algos/extraction.c:78 src/algos/extraction.c:125
 msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
-msgstr ""
+msgstr "O Extract_Green não funciona em imagens de câmeras sem filtro Bayer!\n"
 
 #: src/algos/extraction.c:116 src/algos/extraction.c:163
 #, c-format
@@ -13870,11 +13883,11 @@ msgstr "%s: extrair canal verde\n"
 
 #: src/algos/extraction.c:173
 msgid "Extract Green: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Extração de Verde: padrão Bayer não suportado.\n"
 
 #: src/algos/extraction.c:217 src/algos/extraction.c:273
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
-msgstr ""
+msgstr "Extract_Ha não funciona em imagens de câmeras sem filtro Bayer!\n"
 
 #. Mark this as no longer having a Bayer pattern
 #: src/algos/extraction.c:264 src/algos/extraction.c:320
@@ -13888,11 +13901,11 @@ msgstr "Extrair Ha: padrão Bayer não suportado.\n"
 
 #: src/algos/extraction.c:385 src/algos/extraction.c:618
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
-msgstr ""
+msgstr "As dimensões da imagem devem ser uniformes. Corte em 1 pixel.\n"
 
 #: src/algos/extraction.c:393 src/algos/extraction.c:626
 msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
-msgstr ""
+msgstr "Extract_HaOIII não funciona em imagens de câmeras sem filtro Bayer!\n"
 
 #. remve WCS data - even if not scaled, the centre will have moved by half a pixel
 #. Mark this as no longer having a Bayer pattern
@@ -13908,15 +13921,15 @@ msgstr "Canal OIII\n"
 
 #: src/algos/extraction.c:843
 msgid "Extract HaOIII: unsupported Bayer pattern.\n"
-msgstr ""
+msgstr "Extrair HaOIII: padrão Bayer não suportado.\n"
 
 #: src/algos/extraction.c:892
 msgid "Extract Ha and OIII"
-msgstr ""
+msgstr "Extrair Ha and OIII"
 
 #: src/algos/extraction.c:910 src/algos/extraction.c:978
 msgid "Split CFA does not work on non-Bayer filter camera images!\n"
-msgstr ""
+msgstr "A divisão de CFA não funciona em imagens de câmeras sem filtro Bayer!\n"
 
 #. Update history
 #: src/algos/extraction.c:966 src/algos/extraction.c:1036
@@ -13939,7 +13952,7 @@ msgstr "Canal CFA3 Bayer\n"
 #: src/core/arithm.c:323 src/core/arithm.c:410 src/filters/fft.c:516
 #: src/gui/remixer.c:412 src/livestacking/livestacking.c:703
 msgid "Images must have same dimensions.\n"
-msgstr ""
+msgstr "As imagens devem ter as mesmas dimensões.\n"
 
 #: src/algos/fitting.c:238 src/algos/fitting.c:288
 msgid "Linear fit functions:\n"
@@ -13947,7 +13960,7 @@ msgstr "Funções de ajuste linear:\n"
 
 #: src/algos/fitting.c:263 src/algos/fitting.c:313
 msgid "Error! Need at least 2 points...\n"
-msgstr ""
+msgstr "Erro! Precisa de pelo menos 2 pontos...\n"
 
 #: src/algos/fix_xtrans_af.c:189
 #, c-format
@@ -13955,37 +13968,39 @@ msgid ""
 "Fix X-Trans: Unknown camera %s, trying to read information from "
 "preferences.\n"
 msgstr ""
+"Corrigir X-Trans: Câmera desconhecida %s, tentando ler informações das "
+"preferências.\n"
 
 #: src/algos/fix_xtrans_af.c:192
 msgid "Sample box cannot be bigger than the image.\n"
-msgstr ""
+msgstr "A caixa de amostra não pode ser maior que a imagem.\n"
 
 #: src/algos/fix_xtrans_af.c:196
 msgid "AF box cannot be bigger than the image.\n"
-msgstr ""
+msgstr "A caixa AF não pode ser maior que a imagem.\n"
 
 #: src/algos/fix_xtrans_af.c:209
 msgid "No information available in preferences.\n"
-msgstr ""
+msgstr "Nenhuma informação disponível nas preferências.\n"
 
 #: src/algos/fix_xtrans_af.c:261
 msgid "This CFA pattern cannot be handled by fix_xtrans_ac.\n"
-msgstr ""
+msgstr "Este padrão CFA não pode ser manipulado por fix_xtrans_ac.\n"
 
 #: src/algos/fix_xtrans_af.c:343
 #, c-format
 msgid "Failed to sample enough pixels for AF type %d.\n"
-msgstr ""
+msgstr "Falha ao amostrar pixels suficientes para o tipo AF %d.\n"
 
 #: src/algos/geometry.c:269
 #, c-format
 msgid "Binning x%d: processing...\n"
-msgstr ""
+msgstr "Binning x%d: processando...\n"
 
 #: src/algos/geometry.c:289
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
-msgstr ""
+msgstr "Novo tamanho de imagem: %dx%d pixels.\n"
 
 #: src/algos/geometry.c:297 src/algos/geometry.c:392
 msgid "Nearest-Neighbor"
@@ -13993,39 +14008,39 @@ msgstr "Vizinho mais próximo"
 
 #: src/algos/geometry.c:306 src/algos/geometry.c:405
 msgid "Lanczos4"
-msgstr ""
+msgstr "Lanczos4"
 
 #: src/algos/geometry.c:319
 #, c-format
 msgid "Resample (%s interpolation): processing...\n"
-msgstr ""
+msgstr "Reamostragem (interpolação %s): processando...\n"
 
 #: src/algos/geometry.c:359 src/algos/geometry.c:410
 #, c-format
 msgid "Rotation (%s interpolation, angle=%g): processing...\n"
-msgstr ""
+msgstr "Rotação (interpolação %s, ângulo=%g): processando...\n"
 
 #: src/algos/geometry.c:360 src/algos/geometry.c:389
 msgid "No"
-msgstr ""
+msgstr "Não"
 
 #: src/algos/geometry.c:445 src/algos/geometry.c:479
 msgid "Horizontal mirror: processing...\n"
-msgstr ""
+msgstr "Espelho horizontal: processando...\n"
 
 #: src/algos/geometry.c:538
 msgid "Vertical mirror: processing...\n"
-msgstr ""
+msgstr "Espelho vertical: processando...\n"
 
 #: src/algos/geometry.c:649 src/algos/geometry.c:660
 msgid "Rounding selection to match CFA pattern\n"
-msgstr ""
+msgstr "Seleção de arredondamento para corresponder ao padrão CFA\n"
 
 #: src/algos/geometry.c:707 src/core/command.c:2159
 #: src/gui/menu_gray_geometry.c:366 src/gui/menu_gray_geometry.c:381
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
-msgstr ""
+msgstr "Recortar (x=%d, y=%d, w=%d, h=%d)"
 
 #: src/algos/geometry.c:759 src/registration/applyreg.c:821
 #: src/registration/global.c:585 src/stacking/blending.c:116
@@ -14034,6 +14049,8 @@ msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
 "considered available)\n"
 msgstr ""
+"%s: memória insuficiente para realizar esta operação (%s necessário por "
+"thread, %s considerado disponível)\n"
 
 #: src/algos/geometry.c:817 src/compositing/compositing.c:2039
 #, fuzzy
@@ -14047,12 +14064,12 @@ msgstr "Sequência de corte"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
-msgstr ""
+msgstr "Desvio padrão de ruído: calculando...\n"
 
 #: src/algos/noise.c:73 src/algos/noise.c:77
 #, c-format
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
-msgstr ""
+msgstr "Valor de ruído de fundo (canal: #%d): %0.3f (%.3e)\n"
 
 #: src/algos/photometric_cc.c:166
 #, c-format
@@ -14063,56 +14080,65 @@ msgid ""
 "Number of stars: %d (removed %d outliers)\n"
 "White balance factors: %.3f %.3f %.3f</span>"
 msgstr ""
+"Resumo do Balanço de Branco\n"
+"<span size=\"small\">%s Ajuste Linear SPCC: y = %f + %f·x, &#x03C3; = %f\n"
+"Referência de branco: %s\n"
+"Número de estrelas: %d (removidos %d outliers)\n"
+"Fatores de balanço de branco: %.3f %.3f %.3f</span>"
 
 #: src/algos/photometric_cc.c:299 src/algos/photometric_cc.c:593
 #, c-format
 msgid "Applying aperture photometry to %d star.\n"
 msgid_plural "Applying aperture photometry to %d stars.\n"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Aplicando abertura fotométrica a %d estrela.\n"
+msgstr[1] "Aplicando abertura fotométrica %d estrelas.\n"
 
 #: src/algos/photometric_cc.c:443
 msgid "Array mismatch after discarding photometrically invalid stars\n"
 msgstr ""
+"Incompatibilidade de matriz após descarte de estrelas fotometricamente "
+"inválidas\n"
 
 #: src/algos/photometric_cc.c:448 src/algos/photometric_cc.c:713
 #, c-format
 msgid "%d star excluded from the calculation\n"
 msgid_plural "%d stars excluded from the calculation\n"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d estrela excluída do cálculo.\n"
+msgstr[1] "%d estrelas excluídas do cálculo.\n"
 
 #: src/algos/photometric_cc.c:459
 msgid "Error: insufficient photometrically valid stars\n"
-msgstr ""
+msgstr "Erro: estrelas fotometricamente válidas insuficientes\n"
 
 #: src/algos/photometric_cc.c:469 src/algos/photometric_cc.c:481
 msgid ""
 "Error: unable to compute a fit to the data. Check your sensor and filter "
 "selections are correct.\n"
 msgstr ""
+"Erro: não foi possível calcular um ajuste aos dados. Verifique se as "
+"seleções de sensor e filtro estão corretas.\n"
 
 #: src/algos/photometric_cc.c:485
 msgid "SPCC Linear Fits\n"
-msgstr ""
+msgstr "Ajustes lineares SPCC\n"
 
 #: src/algos/photometric_cc.c:486
 #, c-format
 msgid "Image R/G = %f + %f * Catalog R/G (sigma: %f)\n"
-msgstr ""
+msgstr "Imagem R/G = %f + %f * Catálogo R/G (sigma: %f)\n"
 
 #: src/algos/photometric_cc.c:487
 #, c-format
 msgid "Image B/G = %f + %f * Catalog B/G (sigma: %f)\n"
-msgstr ""
+msgstr "Imagem B/G = %f + %f * Catálogo B/G (sigma: %f)\n"
 
 #: src/algos/photometric_cc.c:507
 msgid "Catalog R/G (flux)"
-msgstr ""
+msgstr "Catálogo R/G (fluxo)"
 
 #: src/algos/photometric_cc.c:512
 msgid "Image R/G (flux)"
-msgstr ""
+msgstr "Imagem R/G (fluxo)"
 
 #: src/algos/photometric_cc.c:513
 #, fuzzy
@@ -14121,47 +14147,56 @@ msgstr "RGB"
 
 #: src/algos/photometric_cc.c:514 src/algos/photometric_cc.c:540
 msgid "Best fit"
-msgstr ""
+msgstr "Melhor ajuste"
 
 #: src/algos/photometric_cc.c:532
 msgid "Catalog B/G (flux)"
-msgstr ""
+msgstr "Catálogo B/G (fluxo)"
 
 #: src/algos/photometric_cc.c:537
 msgid "Image B/G (flux)"
-msgstr ""
+msgstr "Imagem B/G (fluxo)"
 
 #: src/algos/photometric_cc.c:538
 msgid "B/G"
-msgstr ""
+msgstr "B/G"
 
 #: src/algos/photometric_cc.c:560
 msgid ""
 "Error calculating white balance coefficients: kw contains negative values.\n"
 msgstr ""
+"Erro ao calcular coeficientes de balanço de branco: kw contém valores "
+"negativos.\n"
 
 #: src/algos/photometric_cc.c:563 src/algos/photometric_cc.c:749
 #, c-format
 msgid "Found a solution for color calibration using %d stars. Factors:\n"
 msgstr ""
+"Encontrei uma solução para calibração de cores usando %d estrelas. Fatores:\n"
 
 #: src/algos/photometric_cc.c:569 src/algos/photometric_cc.c:754
 msgid ""
 "The photometric color calibration has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
 msgstr ""
+"A calibração fotométrica de cores encontrou uma solução que pode não ser "
+"perfeita porque não se baseou em muitas estrelas\n"
 
 #: src/algos/photometric_cc.c:571 src/algos/photometric_cc.c:756
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
 msgstr ""
+"A calibração de cor fotométrica parece ter encontrado uma solução imprecisa, "
+"considere corrigir o gradiente da imagem primeiro\n"
 
 #: src/algos/photometric_cc.c:614
 msgid ""
 "Image color space is nonlinear. It is recommended to apply photometric color "
 "calibration to linear images.\n"
 msgstr ""
+"O espaço de cores da imagem não é linear. Recomenda-se aplicar a calibração "
+"de cores fotométrica a imagens lineares.\n"
 
 #: src/algos/photometric_cc.c:634
 msgid "Error: failed to set up colorspace transform.\n"
@@ -14169,13 +14204,13 @@ msgstr "Erro: falha ao configurar a transformação do espaço de cores.\n"
 
 #: src/algos/photometric_cc.c:721
 msgid "No valid stars found.\n"
-msgstr ""
+msgstr "Nenhuma estrela válida encontrada.\n"
 
 #. we cannot use compute_all_channels_statistics_single_image because of the area
 #: src/algos/photometric_cc.c:768
 #, c-format
 msgid "Computing background reference with tolerance +%.2fσ / -%.2fσ.\n"
-msgstr ""
+msgstr "Calculando referência de fundo com tolerância +%.2fσ / -%.2fσ.\n"
 
 #. Check for NaN... If they are NaN the result image is junk
 #: src/algos/photometric_cc.c:801
@@ -14184,17 +14219,19 @@ msgstr "Erro ao calcular coeficientes: cancelando...\n"
 
 #: src/algos/photometric_cc.c:807
 msgid "White balance factors:\n"
-msgstr ""
+msgstr "Fatores de equilíbrio de branco:\n"
 
 #: src/algos/photometric_cc.c:844
 msgid ""
 "Found linear plate solve data. For better result you should redo "
 "platesolving\n"
 msgstr ""
+"Foram encontrados dados de plate solving lineares. Para obter melhores "
+"resultados, você deve refazer a resolução\n"
 
 #: src/algos/photometric_cc.c:848
 msgid "Photometric color correction will do nothing for monochrome images\n"
-msgstr ""
+msgstr "A correção de cor fotométrica não fará nada em imagens monocromáticas\n"
 
 #: src/algos/photometric_cc.c:859
 msgid "failed to compute statistics on image, aborting\n"

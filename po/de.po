@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-14 03:04+0000\n"
+"PO-Revision-Date: 2025-10-16 08:30+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -30915,12 +30915,12 @@ msgstr ""
 #. we update with prefs values if necessary
 #: src/io/ser.c:304
 msgid "Forcing debayer mono SER\n"
-msgstr ""
+msgstr "Erzwinge debayern Mono SER\n"
 
 #: src/io/ser.c:312
 #, c-format
 msgid "Cannot handle this SER type (%d)\n"
-msgstr ""
+msgstr "Kann diesen SER Typ (%d) nicht verarbeiten\n"
 
 #: src/io/ser.c:352
 msgid "SER file has been fixed...\n"
@@ -31284,12 +31284,11 @@ msgstr ""
 "neu starten, um das richtige Repository neu zu klonen.\n"
 
 #: src/io/siril_git.c:539
-#, fuzzy
 msgid ""
 "Existing directory is not a valid git repository or is misconfigured. "
 "Cleaning up...\n"
 msgstr ""
-"Existierendes Verzeichnis ist kein gültiges GIT Repository. Räume auf...\n"
+"Existierendes Verzeichnis ist kein gültiges git Repository. Räume auf...\n"
 
 #: src/io/siril_git.c:555 src/io/siril_git.c:876
 #, c-format
@@ -31350,9 +31349,8 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Lokales Skript-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:706
-#, fuzzy
 msgid "Scripts repository directory does not exist.\n"
-msgstr "Fehler beim Entfernen des Repository-Verzeichnisses: %s\n"
+msgstr "Skript Repository Verzeichnis existiert nicht\n"
 
 #: src/io/siril_git.c:715
 #, fuzzy
@@ -31389,7 +31387,7 @@ msgstr ""
 #: src/io/siril_git.c:871
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr ""
-"Existierendes Verzeichnis ist kein gültiges GIT Repository. Räume auf...\n"
+"Existierendes Verzeichnis ist kein gültiges git Repository. Räume auf...\n"
 
 #: src/io/siril_git.c:889 src/io/siril_git.c:906
 #, c-format
@@ -31412,9 +31410,8 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Lokales SPCC-Datenbank-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:1319
-#, fuzzy
 msgid "Error opening scripts repository\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr "Fehler beim Öffnen des Skript Repositorys\n"
 
 #: src/io/siril_pythoncommands.c:500
 msgid "Unknown config type"
@@ -31663,7 +31660,7 @@ msgstr "Bild hat kein ICC-Profil"
 
 #: src/io/siril_pythoncommands.c:2013
 msgid "Siril is running headless, no display ICC profile"
-msgstr ""
+msgstr "Siril läuft ohne grafische Oberfläche, kein ICC Anzeigeprofil"
 
 #: src/io/siril_pythoncommands.c:2036 src/io/siril_pythoncommands.c:2532
 msgid "Image has no FITS header"
@@ -31780,7 +31777,7 @@ msgstr "Ungültige Datenlänge"
 
 #: src/io/siril_pythoncommands.c:2609 src/io/siril_pythoncommands.c:2775
 msgid "File does not exist or is not accessible"
-msgstr ""
+msgstr "Datei existiert nicht oder kann nicht benutzt werden"
 
 #: src/io/siril_pythoncommands.c:2618 src/io/siril_pythoncommands.c:2789
 #, fuzzy
@@ -32096,6 +32093,8 @@ msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
 msgstr ""
+"Hinweis: bei Debian/Ubuntu ist vermutlich die Installation des 'python3-"
+"venv' Paketes notwendig.\n"
 
 #: src/io/siril_pythonmodule.c:2106
 #, c-format
@@ -33057,9 +33056,8 @@ msgid "Could not init distortion mapping\n"
 msgstr "Verzerrungsabbildung kann nicht initialisiert werden\n"
 
 #: src/registration/applyreg.c:351 src/registration/global.c:179
-#, fuzzy
 msgid "Could not init drizzle\n"
-msgstr "Konnte Datei %s nicht öffnen\n"
+msgstr "Konnte Drizzle nicht initialisieren\n"
 
 #: src/registration/applyreg.c:380 src/registration/global.c:319
 #, c-format
@@ -33113,9 +33111,8 @@ msgid "Drizzle: Could not compute mapping for weights calculation.\n"
 msgstr "Bildauflösung konnte nicht berechnet werden\n"
 
 #: src/registration/applyreg.c:950
-#, fuzzy
 msgid "Drizzle:Error generating mapping array.\n"
-msgstr "Fehler beim erzeugen der Mapping-Matrix\n"
+msgstr "Drizzle: Fehler beim Erzeugen der Mapping-Matrix.\n"
 
 #: src/registration/applyreg.c:984 src/registration/applyreg.c:995
 #, c-format
