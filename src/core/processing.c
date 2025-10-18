@@ -1072,8 +1072,7 @@ void remove_child_from_children(GPid pid) {
 			g_slist_free_1(iter);
 			free_child(child);
 			siril_debug_print("Removed GPid %d from com.children\n", pid);
-//			if (pid != -2) // For the processing thread we are a little more thorough
-				return;
+			return;
 		}
 
 		// Move to next node
