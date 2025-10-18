@@ -5721,7 +5721,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list(TRUE);
+	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);

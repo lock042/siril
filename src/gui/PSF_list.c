@@ -762,6 +762,12 @@ void clear_stars_list(gboolean refresh_GUI) {
 		display_status();
 }
 
+gboolean clear_stars_list_as_idle(gpointer user_data) {
+	gboolean refresh = (gboolean) GPOINTER_TO_INT(user_data);
+	clear_stars_list(refresh);
+	return FALSE;
+}
+
 struct star_update_s {
 	psf_star **stars;
 	gboolean update_GUI;
