@@ -114,7 +114,6 @@ int rgb_align(int m) {
 
 	/* align it */
 	method = reg_methods[m];
-	gboolean two_step = TRUE;
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
