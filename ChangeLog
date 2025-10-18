@@ -11,6 +11,8 @@ XX/XX/XX
 * Fixed crash in seqstarnet (#1814)
 * Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
 * Fixed writing RA/DEC to star lists from a single findstar commend (#1794)
+* Fixed issue with RGB composition not always applying registration (!948)
+* Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences

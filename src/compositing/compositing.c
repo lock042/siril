@@ -852,14 +852,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *framingcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_framing_combo"));
 	int ft = gtk_combo_box_get_active(framingcombo);
 	framing = ft == 0 ? FRAMING_CURRENT : ft == 1 ? FRAMING_MIN : FRAMING_COG;
-	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
-		the_type = SHIFT_TRANSFORMATION;
-	else
-		the_type = HOMOGRAPHY_TRANSFORMATION;
-
-	gboolean two_step = (method->method_ptr == register_multi_step_global ||
-		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
-
 	gboolean do_sum = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_rgb_button")));
 
 	// Avoid crash if gfit has been closed since populating the layers
@@ -910,9 +902,11 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
-	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
-						framing != FRAMING_CURRENT) ? TRUE : FALSE;
-	regargs.type = HOMOGRAPHY_TRANSFORMATION;
+	regargs.two_pass = TRUE;
+	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
+		regargs.type = SHIFT_TRANSFORMATION;
+	else
+		regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
 	// Update the spinbutton values if we are doing manual reg
@@ -942,43 +936,43 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		com.run_thread = FALSE;	// fix for the cancelling check in processing
 		return;
 	}
-	if (two_step) {
-		int count_A = 0;
-		int count_B = 0;
-		for (int index = 0 ; index < layers_count - start ; index++) {
-			int layer = index + start;
-			if (layers[layer]->the_fit.rx != 0) {
-				count_B++;
-				if (seq->imgparam[index].incl) count_A++;
-			}
+	// Second step - apply registration
+	// We now do this for all methods
+	int count_A = 0;
+	int count_B = 0;
+	for (int index = 0 ; index < layers_count - start ; index++) {
+		int layer = index + start;
+		if (layers[layer]->the_fit.rx != 0) {
+			count_B++;
+			if (seq->imgparam[index].incl) count_A++;
 		}
-		if (count_A != count_B) {
-			if (!siril_confirm_dialog(_("Incomplete alignment"),
-					_("Some images did not align correctly. Proceed to see the "
-					"partially aligned result? (This may alter image dimensions "
-					"in which case the images must be re-loaded to retry "
-					"alignment.)"), _("Proceed"))) {
-				set_cursor_waiting(FALSE);
-				com.run_thread = FALSE;	// fix for the cancelling check in processing
-				return;
-			}
-		}
-		if (luminance_mode) {
-			// Set the reference image to 0 (i.e. Luminance)
-			regargs.seq->reference_image = 0;
-			siril_log_message(_("Using Luminance channel as reference.\n"));
-		}
-		int ret2 = register_apply_reg(&regargs);
-		free(regargs.imgparam);
-		regargs.imgparam = NULL;
-		free(regargs.regparam);
-		regargs.regparam = NULL;
-		if (ret2) {
-			set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+	}
+	if (count_A != count_B) {
+		if (!siril_confirm_dialog(_("Incomplete alignment"),
+				_("Some images did not align correctly. Proceed to see the "
+				"partially aligned result? (This may alter image dimensions "
+				"in which case the images must be re-loaded to retry "
+				"alignment.)"), _("Proceed"))) {
 			set_cursor_waiting(FALSE);
 			com.run_thread = FALSE;	// fix for the cancelling check in processing
 			return;
 		}
+	}
+	if (luminance_mode) {
+		// Set the reference image to 0 (i.e. Luminance)
+		regargs.seq->reference_image = 0;
+		siril_log_message(_("Using Luminance channel as reference.\n"));
+	}
+	int ret2 = register_apply_reg(&regargs);
+	free(regargs.imgparam);
+	regargs.imgparam = NULL;
+	free(regargs.regparam);
+	regargs.regparam = NULL;
+	if (ret2) {
+		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+		set_cursor_waiting(FALSE);
+		com.run_thread = FALSE;	// fix for the cancelling check in processing
+		return;
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
@@ -1033,23 +1027,11 @@ float get_normalized_pixel_value(int fits_index, float layer_pixel_value) {
  * x and y are given in buffer coordinates, not image coordinates.
  * Handles (not yet - binning and) registration offset */
 static float get_composition_pixel_value(int fits_index, int reg_layer, int x, int y) {
-	int realX = x, realY = y;
-	if (seq && seq->regparam && reg_layer < seq->number && reg_layer >= 0) {
-		double dx = 0.0, dy = 0.0;
-		// Not needed except for shift transformation
-		if (the_type == SHIFT_TRANSFORMATION)
-			translation_from_H(seq->regparam[0][reg_layer].H, &dx, &dy);
-		// all images have one layer, hence the 0 below
-		realX = x - round_to_int(dx);
-		if (realX < 0 || realX >= layers[fits_index]->the_fit.rx) return 0.0f;
-		realY = y - round_to_int(dy);
-		if (realY < 0 || realY >= layers[fits_index]->the_fit.ry) return 0.0f;
-	}
 	float pixel_value;
 	if (layers[fits_index]->the_fit.type == DATA_FLOAT)
-		pixel_value = layers[fits_index]->the_fit.fpdata[0][realX + realY * layers[fits_index]->the_fit.rx];
+		pixel_value = layers[fits_index]->the_fit.fpdata[0][x + y * layers[fits_index]->the_fit.rx];
 	else if (layers[fits_index]->the_fit.type == DATA_USHORT)
-		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][realX + realY * layers[fits_index]->the_fit.rx] / USHRT_MAX_SINGLE;
+		pixel_value = (float) layers[fits_index]->the_fit.pdata[0][x + y * layers[fits_index]->the_fit.rx] / USHRT_MAX_SINGLE;
 	else
 		pixel_value = 0.f;
 	if (coeff) {
