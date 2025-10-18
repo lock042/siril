@@ -10,6 +10,7 @@ XX/XX/XX
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
 * Fixed crash in seqstarnet (#1814)
 * Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
+* Fixed writing RA/DEC to star lists from a single findstar commend (#1794)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
