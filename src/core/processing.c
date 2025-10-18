@@ -1114,11 +1114,8 @@ void kill_child_process(GPid pid, gboolean onexit) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
-					kill((pid_t) child->childpid, SIGINT);
+					kill((pid_t) child->childpid, SIGKILL);
 #endif
-					// Free the child struct
-					free_child(child);
-					iter->data = NULL;
 				} else if (child->program == EXT_ASNET) {
 					FILE* fp = g_fopen("stop", "w");
 					if (fp != NULL)
@@ -1129,8 +1126,6 @@ void kill_child_process(GPid pid, gboolean onexit) {
 							siril_debug_print("g_unlink() failed\n");
 						siril_debug_print("asnet has been stopped on exit\n");
 					}
-					free_child(child);
-					iter->data = NULL;
 				}
 				// No need to manually remove the child as this is done by child_watch_cb
 			}
