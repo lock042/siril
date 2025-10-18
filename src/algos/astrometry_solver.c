@@ -1793,7 +1793,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 	GPid child_pid;
-	child_info *child = g_malloc(sizeof(child_info));
 	siril_spawn_host_async_with_pipes(NULL,
 				sfargs,
 				NULL,
