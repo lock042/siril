@@ -227,6 +227,7 @@ gpointer generic_sequence_metadata_worker(gpointer args);
 
 void kill_child_process(GPid pid, gboolean on_exit);
 void remove_child_from_children(GPid pid);
+gboolean add_child(GPid child_pid, int program, const gchar *name);
 
 #ifdef __cplusplus
 }
