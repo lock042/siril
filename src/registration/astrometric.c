@@ -381,7 +381,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	regdata *current_regdata = seq->regparam[layer];
 	int xmin = INT_MAX, xmax = -INT_MAX;
 	int ymin = INT_MAX, ymax = -INT_MAX;
-	int ry_ref = ((seq->is_variable) ? seq->imgparam[ref_index].ry : seq->ry);
+	int ry_ref = ((seq->is_variable) ? seq->imgparam[refindex].ry : seq->ry);
 	for (int i = 0;  i < n; i++) {
 		if (!incl[i])
 			continue;

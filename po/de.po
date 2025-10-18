@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-06 07:16+0000\n"
+"PO-Revision-Date: 2025-10-16 08:30+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
@@ -2856,7 +2856,6 @@ msgid "One star registration (deep-sky)"
 msgstr "Einzel-Stern-Registrierung (Deep-Sky)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2864,12 +2863,11 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
-"Wählt die Rahmung-/Beschnittmethode für die Deep-Sky-Ausrichtung:\n"
-"Erster Kanal – Rahmung entsprechend dem ersten Kanal (immer L im "
-"Luminanzmodus);\n"
-"Max – Ergebnis ist das maximalen Ausmaß der ausgerichteten Bilder;\n"
-"Min. – Beschnitt auf die minimale Überlappung aller ausgerichteten Bilder;\n"
-"COG – Beschnitt auf den Schwerpunkt der Pixel der ausgerichteten Bilder."
+"Wählen Sie die Rahmenmethode für die Deep-Sky-Ausrichtung:\n"
+"Erster Kanal – Rahmen zum ersten Kanal (im Luminanzmodus immer L);\n"
+"Min – Rahmen zur minimalen Überlappung aller ausgerichteten Bilder;\n"
+"COG – Rahmen zum Schwerpunkt der Pixel in der Gruppe der ausgerichteten "
+"Bilder."
 
 #: src/gui/uifiles/composition_dialog.ui:493
 msgid "First channel"
@@ -5312,7 +5310,7 @@ msgstr ""
 
 #: src/gui/uifiles/pixelmath.ui:623
 msgid "Parameters"
-msgstr "Bildparameter"
+msgstr "Parameter"
 
 #: src/gui/uifiles/pixelmath.ui:649
 msgid "Rescale result"
@@ -5505,8 +5503,8 @@ msgid ""
 "(SirilInterface.is_cli() will return True)"
 msgstr ""
 "Wenn aktiv, werden alle Argumente, die in den Argument-Eintrag eingegeben "
-"werden, an das Skript weitergegeben wenn es gestartet wird. Dies sichert "
-"außerdem, dass SirilInterface im CLI-Modus aufgerufen wird "
+"werden, an das Skript weitergegeben wenn es gestartet wird. \n"
+"Dies sichert außerdem, dass Siril-Interface im CLI-Modus aufgerufen wird "
 "(SirilInterface.is_cli() gibt TRUE zurück)"
 
 #: src/gui/uifiles/python_scratchpad.ui:363
@@ -6808,9 +6806,8 @@ msgid "Header then Bottom-Up"
 msgstr "Header, dann Bottom-Up"
 
 #: src/gui/uifiles/settings_window.ui:580
-#, fuzzy
 msgid "Force Top-Down"
-msgstr "erzwing debayern von oben nach unten"
+msgstr "Erzwinge von oben nach unten"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
@@ -8537,7 +8534,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5203
-#, fuzzy
 msgid ""
 "List of available scripts. Selected scripts will be made available via the "
 "Scripts menu. Double-click a row to open the script in the Script Editor. "
@@ -8548,7 +8544,10 @@ msgstr ""
 "Liste der verfügbaren Skripte. Ausgewählte Skripte werden über das Menü "
 "„Skripte“ verfügbar gemacht. Doppelklicken Sie auf eine Zeile, um das Skript "
 "im Skripteditor zu öffnen. (z.B. um lokale Änderungen an einem Skript zu "
-"speichern.)"
+"speichern.)\n"
+"Um eine ältere Revision zu öffnen (z. B. um nach einem fehlerhaften Skript-"
+"Update eine ältere Version zu erhalten), klicken Sie mit der rechten "
+"Maustaste auf eine Zeile."
 
 #: src/gui/uifiles/settings_window.ui:5220
 msgid "Category"
@@ -13540,7 +13539,6 @@ msgid "Error: unsupported CFA pattern for this operation.\n"
 msgstr "Nicht unterstütztes CFA-Muster für diese Funktion\n"
 
 #: src/algos/background_extraction.c:995 src/algos/background_extraction.c:1209
-#, fuzzy
 msgid "Error splitting into CFA subchannels, aborting...\n"
 msgstr "Fehler beim Aufteilen in CFA-Unterkanälte, breche ab...\n"
 
@@ -19862,7 +19860,6 @@ msgstr ""
 "ändert nicht den Anzeigemodus"
 
 #: src/core/command_def.h:105
-#, fuzzy
 msgid ""
 "Creates a new image filled with zeros with a size of <b>width</b> x "
 "<b>height</b>.\n"
@@ -19875,6 +19872,8 @@ msgid ""
 msgstr ""
 "Erstellt eine neue, schwarze (mit Nullen gefüllte) Bilddatei der Größe "
 "<b>width</b> x <b>height</b>.\n"
+"Optional kann der Parameter <b>[Dateiname]</b> verwendet werden, um den "
+"Namen der neuen Datei anzugeben.\n"
 "\n"
 "Das Bild ist im 32-Bit Format und enthält <b>nb_channel</b> Kanäle mit "
 "<b>nb_channel</b> = 1 oder 3. Es wird nicht gespeichert, kann aber "
@@ -26630,9 +26629,9 @@ msgid "Loading commit message..."
 msgstr "Commit-Bemerkung wird geladen..."
 
 #: src/gui/git_gui.c:398
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading script contents from %d revisions back: %s\n"
-msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
+msgstr "Fehler beim Laden des Skriptinhalte: %s Revisionen zurück: %s\n"
 
 #: src/gui/histogram.c:163 src/gui/histogram.c:169 src/gui/histogram.c:1176
 #: src/gui/histogram.c:1182 src/gui/histogram.c:1871 src/gui/histogram.c:1888
@@ -30916,12 +30915,12 @@ msgstr ""
 #. we update with prefs values if necessary
 #: src/io/ser.c:304
 msgid "Forcing debayer mono SER\n"
-msgstr ""
+msgstr "Erzwinge debayern Mono SER\n"
 
 #: src/io/ser.c:312
 #, c-format
 msgid "Cannot handle this SER type (%d)\n"
-msgstr ""
+msgstr "Kann diesen SER Typ (%d) nicht verarbeiten\n"
 
 #: src/io/ser.c:352
 msgid "SER file has been fixed...\n"
@@ -31285,12 +31284,11 @@ msgstr ""
 "neu starten, um das richtige Repository neu zu klonen.\n"
 
 #: src/io/siril_git.c:539
-#, fuzzy
 msgid ""
 "Existing directory is not a valid git repository or is misconfigured. "
 "Cleaning up...\n"
 msgstr ""
-"Existierendes Verzeichnis ist kein gültiges GIT Repository. Räume auf...\n"
+"Existierendes Verzeichnis ist kein gültiges git Repository. Räume auf...\n"
 
 #: src/io/siril_git.c:555 src/io/siril_git.c:876
 #, c-format
@@ -31351,9 +31349,8 @@ msgid "Local scripts repository is up-to-date!\n"
 msgstr "Lokales Skript-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:706
-#, fuzzy
 msgid "Scripts repository directory does not exist.\n"
-msgstr "Fehler beim Entfernen des Repository-Verzeichnisses: %s\n"
+msgstr "Skript Repository Verzeichnis existiert nicht\n"
 
 #: src/io/siril_git.c:715
 #, fuzzy
@@ -31390,7 +31387,7 @@ msgstr ""
 #: src/io/siril_git.c:871
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
 msgstr ""
-"Existierendes Verzeichnis ist kein gültiges GIT Repository. Räume auf...\n"
+"Existierendes Verzeichnis ist kein gültiges git Repository. Räume auf...\n"
 
 #: src/io/siril_git.c:889 src/io/siril_git.c:906
 #, c-format
@@ -31413,9 +31410,8 @@ msgid "Local SPCC database repository is up-to-date!\n"
 msgstr "Lokales SPCC-Datenbank-Repository ist aktuell!\n"
 
 #: src/io/siril_git.c:1319
-#, fuzzy
 msgid "Error opening scripts repository\n"
-msgstr "Fehler beim Klonen des Repositorys: %s\n"
+msgstr "Fehler beim Öffnen des Skript Repositorys\n"
 
 #: src/io/siril_pythoncommands.c:500
 msgid "Unknown config type"
@@ -31664,7 +31660,7 @@ msgstr "Bild hat kein ICC-Profil"
 
 #: src/io/siril_pythoncommands.c:2013
 msgid "Siril is running headless, no display ICC profile"
-msgstr ""
+msgstr "Siril läuft ohne grafische Oberfläche, kein ICC Anzeigeprofil"
 
 #: src/io/siril_pythoncommands.c:2036 src/io/siril_pythoncommands.c:2532
 msgid "Image has no FITS header"
@@ -31781,7 +31777,7 @@ msgstr "Ungültige Datenlänge"
 
 #: src/io/siril_pythoncommands.c:2609 src/io/siril_pythoncommands.c:2775
 msgid "File does not exist or is not accessible"
-msgstr ""
+msgstr "Datei existiert nicht oder kann nicht benutzt werden"
 
 #: src/io/siril_pythoncommands.c:2618 src/io/siril_pythoncommands.c:2789
 #, fuzzy
@@ -32097,6 +32093,8 @@ msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
 msgstr ""
+"Hinweis: bei Debian/Ubuntu ist vermutlich die Installation des 'python3-"
+"venv' Paketes notwendig.\n"
 
 #: src/io/siril_pythonmodule.c:2106
 #, c-format
@@ -33058,9 +33056,8 @@ msgid "Could not init distortion mapping\n"
 msgstr "Verzerrungsabbildung kann nicht initialisiert werden\n"
 
 #: src/registration/applyreg.c:351 src/registration/global.c:179
-#, fuzzy
 msgid "Could not init drizzle\n"
-msgstr "Konnte Datei %s nicht öffnen\n"
+msgstr "Konnte Drizzle nicht initialisieren\n"
 
 #: src/registration/applyreg.c:380 src/registration/global.c:319
 #, c-format
@@ -33114,9 +33111,8 @@ msgid "Drizzle: Could not compute mapping for weights calculation.\n"
 msgstr "Bildauflösung konnte nicht berechnet werden\n"
 
 #: src/registration/applyreg.c:950
-#, fuzzy
 msgid "Drizzle:Error generating mapping array.\n"
-msgstr "Fehler beim erzeugen der Mapping-Matrix\n"
+msgstr "Drizzle: Fehler beim Erzeugen der Mapping-Matrix.\n"
 
 #: src/registration/applyreg.c:984 src/registration/applyreg.c:995
 #, c-format
