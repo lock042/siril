@@ -696,6 +696,7 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
+	starnet_args->multi_args = multi_args;
 	gboolean error = FALSE;
 	multi_args->seq = seq;
 	if (!multi_args->seq) {
@@ -730,7 +731,7 @@ int process_seq_starnet(int nb){
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				sprintf(starnet_args->stride, "%d", stride);
+				starnet_args->stride = g_strdup_printf("%d", stride);
 				starnet_args->customstride = TRUE;
 			}
 		}
@@ -756,7 +757,7 @@ int process_seq_starnet(int nb){
 	if (starnet_args->starmask) {
 		multi_args->prefixes[1] = g_strdup("starmask_");
 	}
-
+	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 	sequence_cfa_warning_check(multi_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(multi_args);
