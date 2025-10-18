@@ -903,7 +903,10 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
 	regargs.two_pass = TRUE;
-	regargs.type = HOMOGRAPHY_TRANSFORMATION;
+	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
+		regargs.type = SHIFT_TRANSFORMATION;
+	else
+		regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
 	// Update the spinbutton values if we are doing manual reg

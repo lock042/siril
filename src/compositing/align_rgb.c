@@ -84,45 +84,6 @@ static int initialize_internal_rgb_sequence() {
 	return 0;
 }
 
-static void align_and_compose() {
-	int i = 0;	// i is browsing the 1D buffer, i = y * rx + x
-	for (int y = 0; y < gfit.ry; ++y) {
-		for (int x = 0; x < gfit.rx; ++x) {
-			for (int channel = 0; channel < 3; channel++) {
-				fits *fit = internal_sequence_get(seq, channel);
-				if (seq && seq->regparam) {
-					double dx, dy;
-					translation_from_H(seq->regparam[REGLAYER][channel].H, &dx, &dy);
-					int realX = x - round_to_int(dx);
-					int realY = y - round_to_int(dy);
-					if (fit->type == DATA_USHORT) {
-						WORD pixel;
-						if (realX < 0 || realX >= gfit.rx)
-							pixel = 0;
-						else if (realY < 0 || realY >= gfit.ry)
-							pixel = 0;
-						else {
-							pixel = fit->pdata[0][realX + gfit.rx * realY];
-						}
-						gfit.pdata[channel][i] = pixel;
-					} else {
-						float pixel;
-						if (realX < 0 || realX >= gfit.rx)
-							pixel = 0.f;
-						else if (realY < 0 || realY >= gfit.ry)
-							pixel = 0.f;
-						else {
-							pixel = fit->fpdata[0][realX + gfit.rx * realY];
-						}
-						gfit.fpdata[channel][i] = pixel;
-					}
-				}
-			}
-			i++;
-		}
-	}
-}
-
 static void compose() {
 	size_t npixels = gfit.rx * gfit.ry;
 	fits *fit[3];
@@ -153,8 +114,7 @@ int rgb_align(int m) {
 
 	/* align it */
 	method = reg_methods[m];
-	gboolean two_step = (method->method_ptr == register_multi_step_global ||
-		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
+	gboolean two_step = TRUE;
 	regargs.seq = seq;
 	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
@@ -186,12 +146,8 @@ int rgb_align(int m) {
 		com.run_thread = FALSE;	// fix for the cancelling check in processing
 		return retval1;
 	}
-	if (two_step) {
-		retval2 = register_apply_reg(&regargs);
-		compose(); // Register_apply_reg has already done the alignment for us
-	} else {
-		align_and_compose();
-	}
+	retval2 = register_apply_reg(&regargs);
+	compose(); // Register_apply_reg has already done the alignment for us
 
 	com.run_thread = FALSE;	// fix for the canceling check in processing
 
