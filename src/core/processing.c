@@ -1072,7 +1072,8 @@ void remove_child_from_children(GPid pid) {
 			g_slist_free_1(iter);
 			free_child(child);
 			siril_debug_print("Removed GPid %d from com.children\n", pid);
-			return;
+//			if (pid != -2) // For the processing thread we are a little more thorough
+				return;
 		}
 
 		// Move to next node
@@ -1087,7 +1088,6 @@ void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
 	// Find the correct child in the list
-	GSList *prev = NULL;
 	GSList *iter = com.children;
 	gboolean success = FALSE;
 	while (iter) {
@@ -1125,9 +1125,6 @@ void kill_child_process(GPid pid, gboolean onexit) {
 			success = TRUE;
 			if (!onexit)
 				break;
-		} else {
-			// Only advance prev if we didn't remove the current node
-			prev = iter;
 		}
 		iter = next;
 	}
@@ -1195,8 +1192,10 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 		stop_processing_thread();
 		wait_for_script_thread();
 	}
-	if (!com.headless)
+	if (!com.headless) {
 		script_widgets_enable(TRUE);
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	}
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {
