@@ -38,6 +38,7 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_git.h"
 #include "gui/utils.h"
+#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/python_gui.h"
@@ -46,6 +47,7 @@
 
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Note that scripts execute code with your current user privileges. While Siril Script Files can only execute Siril commands and a very small number of specific external programs, Python scripts are considerably more powerful and execute code not written by the Siril team. Ensure you obtain scripts from a reputable source.")
 
+void on_get_scripts_clicked(gpointer user_data);
 static GtkWidget *menuscript = NULL;
 
 static GSList *initialize_script_paths(){
@@ -336,6 +338,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
+
 	GtkWidget *menu_item_pythondebug = gtk_check_menu_item_new_with_label(_("Enable Python debug mode"));
 	GObject *existing = gtk_builder_get_object(gui.builder, "pythondebugtoggle");
 	if (!existing) {
@@ -343,6 +346,9 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	}
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_item_pythondebug), FALSE);
 	g_signal_connect(G_OBJECT(menu_item_pythondebug), "toggled", G_CALLBACK(on_pythondebug_toggled), NULL);
+
+	GtkWidget *menu_item_getscripts = gtk_menu_item_new_with_label(_("Get Scripts"));
+	g_signal_connect(G_OBJECT(menu_item_getscripts), "activate", G_CALLBACK(on_get_scripts_clicked), NULL);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_ssf);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_ssf), menu_ssf);
@@ -355,11 +361,16 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), sep);
 	gtk_widget_show(sep);
 
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_getscripts);
+	gtk_widget_show(menu_item_getscripts);
+
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythonpad);
 	gtk_widget_show(menu_item_pythonpad);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythondebug);
 	gtk_widget_show(menu_item_pythondebug);
+
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
 
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
@@ -637,4 +648,9 @@ GSList *set_list_to_preferences_dialog(GSList *list) {
 		add_path_to_gtkText((gchar *) l->data);
 	}
 	return list;
+}
+
+void on_get_scripts_clicked(gpointer user_data) {
+	siril_open_dialog("settings_window");
+	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
 }

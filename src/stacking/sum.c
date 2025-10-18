@@ -156,6 +156,14 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		shifty = round_to_int(dy);
 		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
+	if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: image #%d has a wrong shiftx value\n", o + 1);
+		shiftx += 1;
+	}
+	if (shifty == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: image #%d has a wrong shifty value\n", o + 1);
+		shifty += 1;
+	}
 
 	for (y = 0; y < ssdata->output_size[1]; ++y) {
 		ny = y - shifty;

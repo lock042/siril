@@ -431,10 +431,11 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			if (!seq->imgparam[i].incl)
 				continue;
 			if (seq_read_frame_metadata(seq, i, &fit)) {
-				siril_log_color_message(_("Could not load image# %d, deselecting\n"), "red", i + 1);
+				siril_log_color_message(_("Could not load image# %d, aborting\n"), "red", i + 1);
 				seq->imgparam[i].incl = FALSE;
 				clearfits(&fit);
 				free_disto_args(disto);
+				return NULL;
 			}
 			int statusread = 0;
 			gchar *wcsname = path_parse(&fit, distoparam->filename, PATHPARSE_MODE_READ, &statusread);

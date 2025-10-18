@@ -229,6 +229,8 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		sadata->fitted_stars = nb_stars;
 	}
 	FWHM_stats(sadata->refstars, sadata->fitted_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+	if (args->seq->bitpix != FLOAT_IMG && !com.pref.force_16bit)
+		B /= USHRT_MAX_DOUBLE;
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
@@ -378,7 +380,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		sadata->current_regdata[in_index].H = H;
 
 		if (!regargs->no_output) {
-			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+			if (regargs->driz || regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
@@ -394,16 +396,22 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz || regargs->undistort)) {
 			if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
+		} else {
+			regargs->imgparam[out_index].rx = fit->rx;
+			regargs->imgparam[out_index].ry = fit->ry;
 		}
 	}
 
 	// updating regparam for the output sequence if any and updating pixel size 
 	// is handled in apply_reg_image_hook
+	sadata->success[out_index] = 1;
 	args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	return 0;
 }

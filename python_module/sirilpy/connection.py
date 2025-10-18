@@ -5054,3 +5054,52 @@ class SirilInterface:
             return bool(mode[0])
         except struct.error as e:
             raise SirilError(_("Error occurred in get_siril_stf(): {}").format(e)) from e
+
+    def set_siril_stf_linked(self, state: bool) -> bool:
+        """
+        Set the screen transfer function in Siril using the provided enum value.
+        Args:
+            state: bool
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a STFType enum
+            if not isinstance(state, bool):
+                raise ValueError("Mode must be True or False")
+
+            # Pack the value into a byte
+            # Format depends on which arguments are provided
+            payload = struct.pack('?', state)
+            self._execute_command(_Command.SET_STF_LINKED, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_siril_stf_linked(): {e}") from e
+
+    def set_image_filename(self,
+                        filename: str) -> bool:
+        """
+        Set the image filename in Siril.
+        Args:
+            filename (str): the image filename to set
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+        Returns:
+            bool: True if the filename was set successfully
+        """
+        try:
+            # Encode the filename as UTF-8 and pack it as bytes
+            filename_bytes = filename.encode('utf-8')
+            payload = filename_bytes
+            self._execute_command(_Command.SET_IMAGE_FILENAME, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_image_filename(): {e}") from e

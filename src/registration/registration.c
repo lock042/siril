@@ -407,7 +407,7 @@ gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_fram
 		header_size += SER_HEADER_LEN;
 	} else {
 		output_depth = (com.pref.force_16bit) ? sizeof(WORD) : sizeof(float);
-		header_size = nb_frames *  FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
+		header_size = nb_frames *  (gint64)FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
 	}
 	size = im_size * output_depth * nb_frames + header_size;
 	if (regargs->driz) {

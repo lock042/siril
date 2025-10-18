@@ -9,6 +9,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
@@ -1472,7 +1473,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			char frame_filename[256];
 			char *result = NULL;
 			gchar *absolute_path = NULL;
-			result = seq_get_image_filename(&com.seq, index, frame_filename);
+			switch (com.seq.type) {
+				case SEQ_REGULAR:
+					result = fit_sequence_get_image_filename_checkext(&com.seq, index, frame_filename);
+					break;
+				default:
+					result = seq_get_image_filename(&com.seq, index, frame_filename);
+			}
 			if (com.wd && result) {
 				if (com.seq.type == SEQ_REGULAR) {
 					absolute_path = g_build_filename(com.wd, frame_filename, NULL);
@@ -2988,6 +2995,33 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_SET_STF_LINKED: {
+			if (com.headless)
+				break;
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
+			if (result) {
+				if (payload_length == 1) {
+					uint8_t statebyte = payload[0];
+					gboolean state = (statebyte);
+					gui.unlink_channels = !state;
+
+					// Schedule the UI update on the GTK thread
+					execute_idle_and_wait_for_it(chain_channels_idle_callback, GINT_TO_POINTER(state));
+					queue_redraw_and_wait_for_it(REMAP_ALL);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set slider state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				const char* error_msg = _("Failed to set slider state - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		case CMD_GET_PANZOOM: {
 			// Prepare the response data
 			uint8_t response_data[3 * sizeof(double)];
@@ -3141,6 +3175,35 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Handle error - no image loaded
 				const char* error_msg = _("Failed to set display offset - no image loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_IMAGE_FILENAME: {
+
+			if (payload_length > 0) {
+				// Allocate memory for the filename string (payload + null terminator)
+				gchar* filename = malloc(payload_length + 1);
+				memcpy(filename, payload, payload_length);
+				filename[payload_length] = '\0'; // Null-terminate the string
+				gboolean exists = g_file_test(filename, G_FILE_TEST_EXISTS);
+				if (!com.uniq) {
+					create_uniq_from_gfit(filename, exists);  // com.uniq takes ownership of filename, no need to free it here
+				} else {
+					free(com.uniq->filename);
+					com.uniq->filename = filename; // com.uniq takes ownership of filename, no need to free it here
+					com.uniq->fileexist = exists;
+				}
+
+				// Update GUI
+				siril_add_pythonsafe_idle(open_single_image_from_gfit, NULL);
+
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Failed to set image filename - empty filename provided");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				if (!success)
+					siril_debug_print("Error in send_response\n");
 			}
 			break;
 		}

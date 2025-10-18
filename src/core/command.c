@@ -696,6 +696,7 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
+	starnet_args->multi_args = multi_args;
 	gboolean error = FALSE;
 	multi_args->seq = seq;
 	if (!multi_args->seq) {
@@ -730,7 +731,7 @@ int process_seq_starnet(int nb){
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				sprintf(starnet_args->stride, "%d", stride);
+				starnet_args->stride = g_strdup_printf("%d", stride);
 				starnet_args->customstride = TRUE;
 			}
 		}
@@ -756,7 +757,7 @@ int process_seq_starnet(int nb){
 	if (starnet_args->starmask) {
 		multi_args->prefixes[1] = g_strdup("starmask_");
 	}
-
+	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 	sequence_cfa_warning_check(multi_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(multi_args);
@@ -1313,7 +1314,7 @@ int process_getref(int nb) {
 	if (seq->type == SEQ_REGULAR) {
 		long maxpath = get_pathmax();
 		char filename[maxpath];
-		fit_sequence_get_image_filename(seq, ref_image, filename, TRUE);
+		fit_sequence_get_image_filename_checkext(seq, ref_image, filename);
 		siril_log_message(_("Image %d: '%s'\n"), ref_image, filename);
 	}
 	else siril_log_message(_("Image %d\n"), ref_image);
@@ -2930,7 +2931,7 @@ int process_merge(int nb) {
 			long maxpath = get_pathmax();
 			char filename[maxpath];
 			for (int image = 0; image < seqs[i]->number; image++) {
-				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
+				fit_sequence_get_image_filename_checkext(seqs[i], image, filename);
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}

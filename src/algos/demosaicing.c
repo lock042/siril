@@ -789,10 +789,9 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 			size_t cfax = outx >> 1;
 			size_t cfay = outy >> 1;
 			size_t indexcfa = cfax + cfay * (size_t) cfa0->rx;
-			// Note order because of the read orientation
 			size_t indexout0 = outx + outy * out->rx;
-			size_t indexout1 = outx + (outy + 1) * out->rx;
-			size_t indexout2 = (outx + 1) + outy * out->rx;
+			size_t indexout1 = (outx + 1) + outy * out->rx;
+			size_t indexout2 = outx + (outy + 1) * out->rx;
 			size_t indexout3 = (outx + 1) + (outy + 1) * out->rx;
 			switch (datatype) {
 				case DATA_FLOAT:

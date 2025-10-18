@@ -166,6 +166,8 @@ class _Command(IntEnum):
     SET_ZOOM = 80
     GET_DISPLAY_ICC_PROFILE = 81
     GET_STF_LINKED = 82
+    SET_STF_LINKED = 83
+    SET_IMAGE_FILENAME = 84
     ERROR = 0xFF
 
 @unique
