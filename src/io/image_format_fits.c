@@ -1869,9 +1869,9 @@ int savefits(const char *name, fits *f) {
 	}
 
 	if (save_opened_fits(f)) {
-	    status = 0;
-	    fits_close_file(f->fptr, &status);
-	    f->fptr = NULL;
+		status = 0;
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
 		g_free(filename);
 		return 1;
 	}
@@ -3647,7 +3647,7 @@ int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
 // and dealing with all the types and headers
 int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
 	int status = 0;
-	fitsfile *fptr;
+	fitsfile *fptr = NULL;
 	int naxis = 2;
 	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
 	long naxes[2] = { 1L, 1L};
@@ -3659,7 +3659,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 
 	if (!name)
 		return 1;
-	fits_open_file(&fptr, name, READONLY, &status);
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return 1;
@@ -3671,12 +3671,12 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	}
 	if (naxes[0] < area->w) {
 		siril_debug_print("area too wide\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
 		siril_debug_print("area too high\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
@@ -3717,7 +3717,7 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 
 	if (!name)
 		return 1;
-	fits_open_file(&fptr, name, READONLY, &status);
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return 1;
@@ -3729,12 +3729,12 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 	}
 	if (naxes[0] < area->w) {
 		siril_debug_print("area too wide\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
 		siril_debug_print("area too high\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (layer == 4) { // read the whole file

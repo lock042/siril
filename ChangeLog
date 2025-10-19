@@ -13,6 +13,8 @@ XX/XX/XX
 * Fixed writing RA/DEC to star lists from a single findstar command (#1794)
 * Fixed issue with RGB composition not always applying registration (!948)
 * Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
