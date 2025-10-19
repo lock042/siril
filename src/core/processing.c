@@ -22,6 +22,7 @@
 #include <windows.h>
 #else
 #include <sys/socket.h>
+#include <sys/wait.h>
 #endif
 
 #include <assert.h>
@@ -1010,11 +1011,56 @@ static void free_child(child_info *child) {
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	g_spawn_close_pid(pid);
-	remove_child_from_children(pid);
+#ifdef G_OS_WIN32
+    DWORD exit_code;
+    if (GetExitCodeProcess(pid, &exit_code)) {
+        if (exit_code == 0) {
+            siril_debug_print("Child process completed successfully\n");
+        } else {
+            siril_debug_print("Plate solver exited with code %lu\n", exit_code);
+        }
+    }
+    CloseHandle(pid);
+#else
+    // POSIX: manually reap the child
+    int wait_status;
+    pid_t result;
+
+    // Try to reap - if it fails with ECHILD, someone else already did
+    result = waitpid(pid, &wait_status, WNOHANG);
+
+    if (result == pid) {
+        // We successfully reaped it
+        if (WIFEXITED(wait_status)) {
+            int exit_status = WEXITSTATUS(wait_status);
+            if (exit_status == 0) {
+                siril_debug_print("Child process completed successfully\n");
+            } else {
+                siril_debug_print("Child process exited with status %d\n", exit_status);
+            }
+        } else if (WIFSIGNALED(wait_status)) {
+            siril_debug_print("Child process terminated by signal %d\n", WTERMSIG(wait_status));
+        }
+    } else if (result == 0) {
+        // Process hasn't exited yet (shouldn't happen)
+        siril_debug_print("Warning: child watch called but process still running\n");
+    } else if (result == -1 && errno == ECHILD) {
+        // Already reaped - this was your original problem
+        // With DO_NOT_REAP_CHILD, this shouldn't happen
+        siril_debug_print("Warning: child process already reaped\n");
+    } else {
+        siril_debug_print("Error waiting for child: %s\n", strerror(errno));
+    }
+    g_spawn_close_pid(pid);
+#endif
+    remove_child_from_children(pid);
 }
 
 gboolean add_child(GPid child_pid, int program, const gchar *name) {
+	// Add the callback to remove it on completion
+	if (program != EXT_PYTHON && program != INT_PROC_THREAD)
+		g_child_watch_add(child_pid, child_watch_cb, NULL);
+
 	child_info *child = g_malloc(sizeof(child_info));
 	if (!child) {
 		return FALSE;
@@ -1038,10 +1084,6 @@ gboolean add_child(GPid child_pid, int program, const gchar *name) {
 	child_mutex_lock();
 	com.children = g_slist_prepend(com.children, child);
 	child_mutex_unlock();
-
-	// Add the callback to remove it on completion
-	if (child->program != EXT_PYTHON && child->program != INT_PROC_THREAD)
-		g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	return TRUE;
 }

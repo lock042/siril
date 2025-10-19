@@ -28,8 +28,6 @@
 #include <fcntl.h>
 #include <gio/gwin32inputstream.h>
 #else
-#include <sys/types.h> // for waitpid(2)
-#include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
 

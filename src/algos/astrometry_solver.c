@@ -1796,7 +1796,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	siril_spawn_host_async_with_pipes(NULL,
 				sfargs,
 				NULL,
-				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 				NULL,
 				NULL,
 				&child_pid,
@@ -1810,7 +1810,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	// Note: the asnet pid isn't strictly needed here as it isn't used to kill the process
 	// should we need to, but it makes a handy index to search for in the child process list,
 	// so we record it anyway.
-	remove_child_from_children((GPid)-2);
+//	remove_child_from_children((GPid) -2);
 	if (!add_child(child_pid, EXT_ASNET, "Astrometry.net local solver")) {
 		siril_log_color_message(_("Warning: failed to add astrometry.net to child process list\n"), "salmon");
 	}
