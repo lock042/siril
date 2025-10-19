@@ -1045,8 +1045,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
         // Process hasn't exited yet (shouldn't happen)
         siril_debug_print("Warning: child watch called but process still running\n");
     } else if (result == -1 && errno == ECHILD) {
-        // Already reaped - this was your original problem
-        // With DO_NOT_REAP_CHILD, this shouldn't happen
+        // Already reaped
         siril_debug_print("Warning: child process already reaped\n");
     } else {
         siril_debug_print("Error waiting for child: %s\n", strerror(errno));
@@ -1168,6 +1167,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 							siril_debug_print("g_unlink() failed\n");
 						siril_debug_print("asnet has been stopped on exit\n");
 					}
+					stop_processing_thread(); // we stop the sequence worker as well
 				}
 				// No need to manually remove the child as this is done by child_watch_cb
 			}

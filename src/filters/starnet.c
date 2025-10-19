@@ -931,6 +931,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->prepare_hook = multi_prepare;
 	seqargs->image_hook = starnet_image_hook;
 	seqargs->has_output = TRUE;
+	seqargs->stop_on_error = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqargs->save_hook = multi_save;
 	seqargs->new_seq_prefix = strdup(multi_args->seqEntry);
