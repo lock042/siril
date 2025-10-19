@@ -117,7 +117,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	}
 
 	if (stars_needs_freeing)
-		free_psf_starstarstar(stars);
+		free_fitted_stars(stars);
 
 	return 0;
 }
