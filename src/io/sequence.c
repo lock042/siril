@@ -2528,6 +2528,11 @@ gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachef
 		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
 		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
+	if (g_strcmp0(ext, "fit") == 0) {
+		gchar *tmp_filename = set_right_extension(cache_filename);
+		g_free(cache_filename);
+		cache_filename = tmp_filename;
+	}
 	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, cache_filename, NULL);
 	g_free(cache_filename);
 	g_free(base_root);

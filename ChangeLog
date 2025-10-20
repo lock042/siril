@@ -12,7 +12,11 @@ XX/XX/XX
 * Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
 * Fixed writing RA/DEC to star lists from a single findstar command (#1794)
 * Fixed issue with RGB composition not always applying registration (!948)
+* Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
 * Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
+* Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
 * Fixed min/max stacking for (0,0) pixel (#1810)
 * Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
 * Fixed using reference image position and updating WCS in Export Sequence (#1824)
@@ -22,6 +26,8 @@ XX/XX/XX
 * Make ONNXHelper slightly more robust (!940)
 * Enabled compiler optimizations by inlining many common data conversion functions (!942)
 * Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
+* Added prefix arg to SirilInterface.set_seq_frame_pixeldata() to make it easier to create new sequences
+* SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
 
 siril 1.4.0-beta4
 09/28/25

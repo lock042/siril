@@ -2459,6 +2459,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Populate the list store
 	GtkTreeIter iter;
+	child_mutex_lock();
 	for (GSList *l = children; l != NULL; l = l->next) {
 		child_info *child = (child_info *)l->data;
 
@@ -2476,7 +2477,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		// Free the formatted time string
 		g_free(time_str);
 	}
-
+	child_mutex_unlock();
 	// Add scrolled window to dialog
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);

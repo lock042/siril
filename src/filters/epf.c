@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "gui/utils.h"
 #include "core/siril_log.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -45,7 +46,7 @@ gpointer epfhandler (gpointer args) {
 	int retval = edge_preserving_filter(p);
 	unlock_roi_mutex();
 	if (!com.script)
-		siril_add_idle(end_epf, NULL);
+		execute_idle_and_wait_for_it(end_epf, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -54,7 +55,7 @@ gpointer epf_filter (gpointer args) {
 	set_cursor_waiting(TRUE);
 	int retval = edge_preserving_filter(p);
 	if (!com.script)
-		siril_add_idle(end_epf, NULL);
+		execute_idle_and_wait_for_it(end_epf, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
