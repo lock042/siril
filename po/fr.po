@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-09-26 14:55+0000\n"
+"PO-Revision-Date: 2025-10-19 05:36+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -17268,8 +17268,8 @@ msgstr "Impossible d'analyser l'argument `%s' dans le filtre `%s', abandon.\n"
 #: src/core/command.c:8268
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr ""
-"Il n'existe pas de données d'alugnement pour cette séquence, ce qui entraîne "
-"l'abandon de l'opération.\n"
+"Il n'existe pas de données d'alignement pour cette séquence, ce qui entraîne "
+"l'abandon de l'opération\n"
 
 #: src/core/command.c:8445
 #, c-format
@@ -33235,8 +33235,8 @@ msgid ""
 "Trial #%d: After sequence analysis, we are choosing image %d as new "
 "reference for registration\n"
 msgstr ""
-"Essai #%d : Après l'analyse de la séquence, nous choisissons l'image %d "
-"comme nouvelle référence pour l'alugnement.\n"
+"Essai #%d : Après l'analyse de la séquence, nous choisissons l'image %d "
+"comme nouvelle référence pour l'alignement\n"
 
 #: src/registration/applyreg.c:59
 #, c-format
