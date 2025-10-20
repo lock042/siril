@@ -388,6 +388,7 @@ struct sequ {
 	unsigned int rx;	// first image width (or ref if set)
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
+	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
@@ -399,6 +400,7 @@ struct sequ {
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
 	disto_params *distoparam;	// the distortion parameters used for the registration if any, one per layer
+	char* cached_ext;	// FIT sequences only: cache the ext to speed up filename search
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum

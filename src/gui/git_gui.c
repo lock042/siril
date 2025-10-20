@@ -40,6 +40,11 @@
 #ifdef HAVE_LIBGIT2
 
 static GtkListStore *list_store = NULL;
+static gchar *current_search_text = NULL;
+static gboolean filter_enabled = FALSE;
+static GtkTreeModelFilter *filter_model = NULL;
+static GtkTreeModelSort *sort_model = NULL;
+
 
 static const char *bg_color[] = {"WhiteSmoke", "#1B1B1B"};
 
@@ -60,23 +65,68 @@ static void get_list_store() {
 	}
 }
 
+void on_find_script_entry_changed(GtkEntry *entry, gpointer user_data) {
+	const gchar *text = gtk_entry_get_text(entry);
+
+	g_free(current_search_text);
+	current_search_text = g_strdup(text);
+	filter_enabled = (text && *text != '\0');
+
+	if (filter_model) {
+		gtk_tree_model_filter_refilter(filter_model);
+	}
+}
+
+static gboolean tree_filter_visible_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer data) {
+	gchar *script_name = NULL;
+	gboolean visible = TRUE;
+
+	if (!filter_enabled || !current_search_text || strlen(current_search_text) == 0) {
+		return TRUE;
+	}
+
+	gtk_tree_model_get(model, iter, COLUMN_SCRIPTNAME, &script_name, -1);
+
+	if (script_name) {
+		gchar *key_lower = g_ascii_strdown(current_search_text, -1);
+		gchar *name_lower = g_ascii_strdown(script_name, -1);
+		visible = (strstr(name_lower, key_lower) != NULL);
+		g_free(key_lower);
+		g_free(name_lower);
+		g_free(script_name);
+	}
+
+	return visible;
+}
+
 static gboolean fill_script_repo_tree_idle(gpointer p) {
 	GtkTreeView *tview = (GtkTreeView *)p;
 	GtkTreeIter iter;
 	if (!tview)
 		return FALSE;
+
+	if (sort_model) {
+		gtk_tree_view_set_model(tview, NULL);
+		g_object_unref(sort_model);
+		sort_model = NULL;
+	}
+	if (filter_model) {
+		g_object_unref(filter_model);
+		filter_model = NULL;
+	}
+
 	if (list_store)
 		gtk_list_store_clear(list_store);
 	get_list_store();
-	gint sort_column_id;
-	GtkSortType order;
-	// store sorted state of list_store, disable sorting, disconnect from the
-	// view, fill, reconnect and re-apply sort
-	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
-	gtk_tree_sortable_set_sort_column_id(
-		GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
-		GTK_SORT_ASCENDING);
-	gtk_tree_view_set_model(tview, NULL);
+
+	gint sort_column_id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+	GtkSortType order = GTK_SORT_ASCENDING;
+	if (GTK_IS_TREE_SORTABLE(list_store)) {
+		gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store),
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
+			GTK_SORT_ASCENDING);
+	}
 
 	gui_repo_scripts_mutex_lock();
 	if (gui.repo_scripts) {
@@ -97,7 +147,28 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				category = _("Core");
 				core = TRUE;
 			} else {
-				category = _("Other");
+				// Extract last subdirectory and convert to title case
+				gchar *path = (gchar *)iterator->data;
+				gchar *last_slash = strrchr(path, G_DIR_SEPARATOR);
+
+				if (last_slash && last_slash > path) {
+					gchar *prev_slash = g_strrstr_len(path, last_slash - path, G_DIR_SEPARATOR_S);
+					gchar *subdir_start = prev_slash ? prev_slash + 1 : path;
+
+					gchar *subdir = g_strndup(subdir_start, last_slash - subdir_start);
+
+					// Convert to title case
+					if (subdir && subdir[0]) {
+						subdir[0] = g_ascii_toupper(subdir[0]);
+						for (gsize i = 1; subdir[i]; i++) {
+							subdir[i] = g_ascii_tolower(subdir[i]);
+						}
+					}
+
+					category = subdir;
+				} else {
+					category = _("Other");
+				}
 			}
 			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
@@ -117,28 +188,48 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 				for (iterator2 = com.pref.selected_scripts; iterator2;
 					iterator2 = iterator2->next) {
 					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
-					included = TRUE;
+						included = TRUE;
 					}
 				}
 			}
 			if (!core) {
 				gtk_list_store_append(list_store, &iter);
-				gtk_list_store_set(list_store, &iter, COLUMN_CATEGORY, category,
-								COLUMN_SCRIPTNAME, scriptname, COLUMN_TYPE, scripttype, COLUMN_SELECTED,
-								included, COLUMN_SCRIPTPATH, scriptpath,
-								COLUMN_BGCOLOR, bg_color[color], -1);
+				gtk_list_store_set(list_store, &iter,
+					COLUMN_CATEGORY, category,
+					COLUMN_SCRIPTNAME, scriptname,
+					COLUMN_TYPE, scripttype,
+					COLUMN_SELECTED, included,
+					COLUMN_SCRIPTPATH, scriptpath,
+					COLUMN_BGCOLOR, bg_color[color],
+					-1);
+				// Free dynamically allocated category if it's not one of the static strings
+				if (category != _("Preprocessing") &&
+				    category != _("Processing") &&
+				    category != _("Utility") &&
+				    category != _("Core") &&
+				    category != _("Other")) {
+					g_free((gchar *)category);
+				}
 			}
-			/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
 			g_free(scriptname);
-			g_free(scriptpath); // it's ok to free this as the list_store keeps a copy internally
+			g_free(scriptpath);
 		}
 	}
 	gui_repo_scripts_mutex_unlock();
 
-	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
+	filter_model = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(list_store), NULL));
+	gtk_tree_model_filter_set_visible_func(filter_model, tree_filter_visible_func, NULL, NULL);
+
+	sort_model = GTK_TREE_MODEL_SORT(gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(filter_model)));
+	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(sort_model));
+
+	if (GTK_IS_TREE_SORTABLE(list_store)) {
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
+	}
+
 	return FALSE;
 }
+
 
 /* called on preference window loading.
  * It is executed safely in the GTK thread if as_idle is true. */
@@ -362,7 +453,7 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
 	gboolean val;
-	GtkTreeIter iter;
+	GtkTreeIter iter, filter_iter, child_iter;
 	GtkTreePath *path;
 	GtkTreeModel *model;
 	gchar *script_path = NULL;
@@ -382,13 +473,21 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	gtk_tree_model_get(model, &iter, 3, &script_path, -1);
 	gtk_tree_model_get(model, &iter, 2, &val, -1);
 
-	// Toggle the value in the model
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
+	if (GTK_IS_TREE_MODEL_SORT(model)) {
+		gtk_tree_model_sort_convert_iter_to_child_iter(GTK_TREE_MODEL_SORT(model), &filter_iter, &iter);
+		if (GTK_IS_TREE_MODEL_FILTER(gtk_tree_model_sort_get_model(GTK_TREE_MODEL_SORT(model)))) {
+			GtkTreeModelFilter *filter = GTK_TREE_MODEL_FILTER(gtk_tree_model_sort_get_model(GTK_TREE_MODEL_SORT(model)));
+			gtk_tree_model_filter_convert_iter_to_child_iter(filter, &child_iter, &filter_iter);
+			// Toggle the value in the actual list_store
+			gtk_list_store_set(list_store, &child_iter, 2, !val, -1);
+		}
+	} else {
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, !val, -1);
+	}
 
 	if (!val) {
 		// Checkbox is now checked - add to list if not already present
-		if (!g_slist_find_custom(com.pref.selected_scripts, script_path,
-							(GCompareFunc)g_strcmp0)) {
+		if (!g_slist_find_custom(com.pref.selected_scripts, script_path, (GCompareFunc)g_strcmp0)) {
 #ifdef DEBUG_GITSCRIPTS
 			printf("Adding script: %s\n", script_path);
 #endif
@@ -400,8 +499,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 		}
 	} else {
 		// Checkbox is now unchecked - remove from list
-		GSList *found = g_slist_find_custom(com.pref.selected_scripts, script_path,
-										(GCompareFunc)g_strcmp0);
+		GSList *found = g_slist_find_custom(com.pref.selected_scripts, script_path, (GCompareFunc)g_strcmp0);
 		if (found) {
 #ifdef DEBUG_GITSCRIPTS
 			printf("Removing script: %s\n", script_path);
@@ -411,7 +509,6 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 			// Remove the element and update the list
 			com.pref.selected_scripts = g_slist_delete_link(com.pref.selected_scripts, found);
 		}
-
 		// Free our copy of script_path
 		g_free(script_path);
 	}
@@ -420,11 +517,11 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 }
 
 void on_disable_gitscripts() {
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
-	GtkListStore *liststore = GTK_LIST_STORE(model);
+	// Clear the actual list_store, not the filter
 	com.pref.use_scripts_repository = FALSE;
-	gtk_list_store_clear(liststore);
-	liststore = NULL;
+	if (list_store) {
+		gtk_list_store_clear(list_store);
+	}
 
 	gui_repo_scripts_mutex_lock();
 	g_slist_free_full(gui.repo_scripts, g_free);

@@ -28,8 +28,6 @@
 #include <fcntl.h>
 #include <gio/gwin32inputstream.h>
 #else
-#include <sys/types.h> // for waitpid(2)
-#include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
 
@@ -64,12 +62,6 @@
 static fits *current_fit = NULL;
 static gboolean verbose = TRUE;
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("starnet is being closed\n");
-	g_spawn_close_pid(pid);
-	remove_child_from_children(pid);
-}
-
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
 	GPid child_pid;
@@ -85,7 +77,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	if (!get_thread_run()) {
 		return 1;
 	}
-	child_info *child = g_malloc(sizeof(child_info));
 	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
@@ -94,20 +85,19 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
-		g_free(child);
 		return retval;
 	}
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the starnet process. This avoids tracking two children for the same task.
 	if (get_thread_run())
 		remove_child_from_children((GPid) -2);
-	child->childpid = child_pid;
-	child->program = EXT_STARNET;
-	child->name = g_strdup("Starnet");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
+
+	// Add the Starnet child to the list of child processes
+	if (!add_child(child_pid, EXT_STARNET, "Starnet")) {
+		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red", error->message);
+		return 1;
+	}
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -689,8 +679,8 @@ gpointer do_starnet(gpointer p) {
 		}
 	}
 
+	const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 	if (!force_16bit) {
-		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
 
@@ -733,7 +723,9 @@ gpointer do_starnet(gpointer p) {
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
-		retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		//retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		// De-screen starless from original
+		retval = descreen(&fit, &workingfit, !force_16bit, com.max_thread);
 		if (retval) {
 			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
 			goto CLEANUP;
@@ -939,6 +931,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->prepare_hook = multi_prepare;
 	seqargs->image_hook = starnet_image_hook;
 	seqargs->has_output = TRUE;
+	seqargs->stop_on_error = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqargs->save_hook = multi_save;
 	seqargs->new_seq_prefix = strdup(multi_args->seqEntry);

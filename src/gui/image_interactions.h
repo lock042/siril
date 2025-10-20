@@ -19,6 +19,7 @@ void reset_display_offset();
 void reset_menu_toggle_button();
 void reset_zoom_default();
 void update_zoom_label();
+gboolean update_zoom_label_idle(gpointer user_data);
 void enforce_ratio_and_clamp();
 gboolean display_quick_photo();
 GdkModifierType get_primary();

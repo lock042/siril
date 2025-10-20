@@ -475,6 +475,11 @@ void set_cutoff_sliders_values() {
 	gtk_toggle_button_set_active(cutmax, gui.cut_over);
 }
 
+gboolean set_cutoff_sliders_values_idle(gpointer p) {
+	set_cutoff_sliders_values();
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!gtk_check_menu_item_get_active(checkmenuitem)) return;
 
@@ -589,6 +594,11 @@ void set_display_mode() {
 
 }
 
+gboolean set_display_mode_idle(gpointer user_data) {
+	set_display_mode();
+	return FALSE;
+}
+
 void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
@@ -634,6 +644,21 @@ void adjust_sellabel() {
 
 	g_free(buffer_global);
 	g_free(buffer_title);
+}
+
+static gboolean update_seq_gui_idle(gpointer p) {
+	adjust_sellabel();
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	redraw(REDRAW_OVERLAY);
+	drawPlot();
+	writeseqfile(&com.seq);
+	return FALSE;
+}
+
+gpointer update_seq_gui_idle_thread_func(gpointer data) {
+	execute_idle_and_wait_for_it(update_seq_gui_idle, NULL);
+	return FALSE;
 }
 
 void set_icon_entry(GtkEntry *entry, gchar *string) {
@@ -754,6 +779,12 @@ void sliders_mode_set_state(sliders_mode sliders) {
 	g_signal_handlers_block_by_func(radiobutton, func[sliders], NULL);
 	gtk_toggle_button_set_active(radiobutton, TRUE);
 	g_signal_handlers_unblock_by_func(radiobutton, func[sliders], NULL);
+}
+
+gboolean sliders_mode_set_state_idle(gpointer p) {
+	sliders_mode sliders = *(sliders_mode*) p;
+	sliders_mode_set_state(sliders);
+	return FALSE;
 }
 
 display_mode get_display_mode_from_menu() {
@@ -2428,6 +2459,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Populate the list store
 	GtkTreeIter iter;
+	child_mutex_lock();
 	for (GSList *l = children; l != NULL; l = l->next) {
 		child_info *child = (child_info *)l->data;
 
@@ -2445,7 +2477,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		// Free the formatted time string
 		g_free(time_str);
 	}
-
+	child_mutex_unlock();
 	// Add scrolled window to dialog
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);

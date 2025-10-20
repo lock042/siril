@@ -65,6 +65,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	int nb_frames = args->nb_images_to_stack;
 	guint stackcnt = 0;
 	double livetime = 0.0;
+	gboolean drizzle = TRUE;
 	*bitpix = 0;
 	*naxis = 0;
 	*naxes = 0;
@@ -96,6 +97,15 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		double scale = (args->upscale_at_stacking) ? 2. : 1.;
 		for (int i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i]; // image index in sequence
+			if (args->seq->is_drizzle) {
+				const gchar *drizztmp = get_sequence_cache_filename(args->seq, image_index, "drizztmp", "fit", NULL);
+				if (!g_file_test(drizztmp, G_FILE_TEST_EXISTS)) {
+					gchar *basename = g_path_get_basename(drizztmp);
+					siril_log_color_message(_("Drizzle file %s not found in ./drizztmp folder, aborting\n"), "red", basename);
+					g_free(basename);
+					drizzle = FALSE;
+				}
+			}
 			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
@@ -226,6 +236,15 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		return ST_SEQUENCE_ERROR;
 	}
 
+	if (args->seq->is_drizzle) { 
+		if (drizzle) {
+			siril_log_color_message(_("Drizzle stacking will be used.\n"), "blue");
+			args->drizzle = TRUE;
+		} else {
+			siril_log_color_message(_("Drizzle stacking cannot be performed because drizzle weights are missing.\n"), "red");
+			return ST_GENERIC_ERROR;
+		}
+	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
 	return ST_OK;
@@ -420,6 +439,10 @@ static int stack_read_block_data(struct stacking_args *args,
 				if (area.h <= 0) { // as a last safety net
 					clear = TRUE; readdata = FALSE;
 				}
+				if (area.h == INT_MIN) { // mainly to avoid static checker warning
+					siril_debug_print("Error: image #%d has a wrong area height\n", args->image_indices[frame] + 1);
+					area.h += 1;
+				}
 			}
 #ifdef STACK_DEBUG
 			else fprintf(stderr, "NO REGPARAM\n");
@@ -431,6 +454,8 @@ static int stack_read_block_data(struct stacking_args *args,
 				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
 				if (masking)
 					memset(data->mask[frame], 0, my_block->height * naxes[0] * sizeof(float));
+				if (args->drizzle)
+					memset(data->drizz[frame], 0, my_block->height * naxes[0] * sizeof(float));
 			}
 		}
 
@@ -460,7 +485,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			// Re-arrange it if required (as for the image block) for maximize_framing
 			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
 			// And finally apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
-			const gchar *maskfile = get_sequence_cache_filename(args->seq, args->image_indices[frame], "msk", NULL);
+			const gchar *maskfile = get_sequence_cache_filename(args->seq, args->image_indices[frame], "cache", "msk", NULL);
 			float *mask_scaled;
 			int scaled_rx = 0, scaled_ry = 0;
 			double fx = 0., fy = 0.;
@@ -491,6 +516,23 @@ static int stack_read_block_data(struct stacking_args *args,
 				if (data->mask[frame][i]) {
 					data->mask[frame][i] = (data->mask[frame][i] > distf) ? 1.f : get_ramped_value(data->mask[frame][i] * invdistf);
 				}
+			}
+		}
+		if (args->drizzle && (args->reglayer < 0 || readdata)) {
+			const gchar *drizzfile = get_sequence_cache_filename(args->seq, args->image_indices[frame], "drizztmp", "fit", NULL);
+			float *dbuffer = data->drizz[frame] + offset;
+			int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+			int layer = args->seq->nb_layers == 3 ? (int)my_block->channel : 0;
+			if (read_drizz_fits_area(drizzfile, layer, &area, ry, dbuffer)) {
+				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				area.x, area.y, area.w, area.h);
+				return ST_SEQUENCE_ERROR;
+			}
+			flip_buffer(FLOAT_IMG, dbuffer, &area);
+			// siril_debug_print("frame: %d, channel: %d, area.y: %d, area.h: %d, val: %.2f\n", frame, my_block->channel, area.y, area.h, dbuffer[0]);
+			if (args->maximize_framing) {
+				rearrange_block_data(dbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
 		}
 	}
@@ -905,7 +947,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (weighting || masking) {
+			if (weighting || masking || args->drizzle) {
 				double *pweights =  NULL;
 				if (weighting)
 					pweights = args->weights + layer * stack_size;
@@ -926,21 +968,20 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val > 0) {
-						if (masking && weighting) {
-							sum += (double)val * pweights[frame] * data->mstack[frame];
-							norm += pweights[frame] * data->mstack[frame];
-						} else if (weighting) {
-							sum += (double)val * pweights[frame];
-							norm += pweights[frame];
-						} else {
-							sum += (double)val * data->mstack[frame];
-							norm += data->mstack[frame];
-						}
+						double n = 1.;
+						if (args->drizzle)
+							n *= data->dstack[frame];
+						if (masking)
+							n *= data->mstack[frame];
+						if (weighting)
+							n *= pweights[frame];
+						sum += (double)val * n;
+						norm += n;
 					}
 				}
-				if (norm == 0) { // if norm is 0, sum is 0 too
-					//we replaced by the sum without weighting
-					// That will not look good, but it's better than a black pixel
+				if (norm == 0. || sum == 0.) { // if norm is 0, sum is 0 too
+					// We replace by the sum without weighting
+					// Will not look good, but it's better than a black pixel
 					sum = 0.;
 					for (int frame = 0; frame < stack_size; ++frame) {
 						WORD val = ((WORD*)data->o_stack)[frame];
@@ -964,7 +1005,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (weighting || masking) {
+			if (weighting || masking || args->drizzle) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = FLT_MAX, pmax = -FLT_MAX; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -977,21 +1018,20 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				for (int frame = 0; frame < stack_size; ++frame) {
 					float val = ((float*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val != 0.f) {
-						if (masking && weighting) {
-							sum += val * pweights[frame] * data->mstack[frame];
-							norm += pweights[frame] * data->mstack[frame];
-						} else if (weighting) {
-							sum += val * pweights[frame];
-							norm += pweights[frame];
-						} else {
-							sum += val * data->mstack[frame];
-							norm += data->mstack[frame];
-						}
+						double n = 1.;
+						if (args->drizzle)
+							n *= data->dstack[frame];
+						if (masking)
+							n *= data->mstack[frame];
+						if (weighting)
+							n *= pweights[frame];
+						sum += (double)val * n;
+						norm += n;
 					}
 				}
-				if (norm == 0) { // if norm is 0, sum is 0 too
-					//we replaced by the sum without weighting
-					// That will not look good, but it's better than a black pixel
+				if (norm == 0. || sum == 0.) { // if norm is 0, sum is 0 too
+					// We replace by the sum without weighting
+					// Will not look good, but it's better than a black pixel
 					sum = 0.;
 					for (int frame = 0; frame < stack_size; ++frame) {
 						float val = ((float*)data->o_stack)[frame];
@@ -1144,11 +1184,12 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
-static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps, gboolean masking) {
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps, gboolean masking, gboolean drizzle) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
 	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	int mask_elem_size = (masking) ? sizeof(float) : 0;
+	int drizz_elem_size = (drizzle) ? sizeof(float) : 0;
 
 	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
 	guint64 size_of_rejmaps = naxes[0] * naxes[1] * naxes[2] * sizeof(WORD);
@@ -1160,8 +1201,9 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
 	// for each datablock, we store the pixel values
 	// if masking, we also need to store all the masks in float + 1 mask in 32b to conpute the smoothing (this mask is freed for every frame)
+	// if drizzle, we need to store the drizzle weights in float
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
-		(nb_images_to_stack * naxes[0] * (elem_size + mask_elem_size) + (masking) * naxes[0] * sizeof(float));
+		(nb_images_to_stack * naxes[0] * (elem_size + mask_elem_size + drizz_elem_size) + (masking) * naxes[0] * sizeof(float));
 	// this is how many rows we can load in parallel from all images of the
 	// sequence and be under the limit defined in config in megabytes.
 	if (total_nb_rows < number_of_rows)
@@ -1292,7 +1334,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			nb_rejmaps = 1;
 		else nb_rejmaps = 2;
 	}
-	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps, masking);
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps, masking, args->drizzle);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
 					&largest_block_height, &nb_blocks))) {
@@ -1311,6 +1353,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	g_assert(npixels_in_block > 0);
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	int ielem_mask_size = (masking) ? sizeof(float) : 0;
+	int ielem_drizz_size = (args->drizzle) ? sizeof(float) : 0;
 
 	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
@@ -1320,6 +1363,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (masking)
 		bufferSize += ielem_mask_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for masks and mask stack, added 4 byte for alignment
 		// the +1ul pixel is for storing the current mask stack
+	if (args->drizzle)
+		bufferSize += ielem_drizz_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for drizz weights and weights stack, added 4 byte for alignment
+		// the +1ul pixel is for storing the current weight stack
 	if (is_mean) {
 		bufferSize += nb_frames * sizeof(int); // for rejected
 		bufferSize += ielem_size * nb_frames; // for o_stack
@@ -1336,8 +1382,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
 		if (masking)
 			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
+		if (args->drizzle)
+			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
 		data_pool[i].tmp = malloc(bufferSize);
-		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask)) {
+		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask) || (args->drizzle && !data_pool[i].drizz)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
 			fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
@@ -1356,15 +1404,24 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 		size_t mask_offset = 0;
 		if (masking) {
-			data_pool[i].mstack = (float *)((char *)data_pool[i].tmp + stack_offset + ielem_mask_size * nb_frames * npixels_in_block); // mast stack is stored after the masks
+			data_pool[i].mstack = (float *)((char *)data_pool[i].tmp + stack_offset + ielem_mask_size * nb_frames * npixels_in_block); // mask stack is stored after the pixels
 			mask_offset = (size_t)ielem_mask_size * nb_frames * (npixels_in_block + 1);
 			temp = mask_offset % sizeof(int);
 			if (temp > 0) { // align buffer
 				mask_offset += sizeof(int) - temp;
 			}
 		}
+		size_t drizz_offset = 0;
+		if (args->drizzle) {
+			data_pool[i].dstack = (float *)((char *)data_pool[i].tmp + stack_offset + mask_offset + ielem_drizz_size * nb_frames * npixels_in_block); // drizz weight stack is stored after the masks
+			drizz_offset = (size_t)ielem_drizz_size * nb_frames * (npixels_in_block + 1);
+			temp = drizz_offset % sizeof(int);
+			if (temp > 0) { // align buffer
+				drizz_offset += sizeof(int) - temp;
+			}
+		}
 		if (is_mean) {
-			size_t offset = stack_offset + mask_offset;
+			size_t offset = stack_offset + mask_offset + drizz_offset;
 			data_pool[i].rejected = (int*)((char*)data_pool[i].tmp + offset);
 			data_pool[i].o_stack = (void*)((char*)data_pool[i].rejected + sizeof(int) * nb_frames);
 
@@ -1373,7 +1430,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			} else if (args->type_of_rejection == GESDT) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
 				int max_outliers = (int) floor(nb_frames * args->sig[0]);
-				args->critical_value = malloc(max_outliers * sizeof(float));
+				args->critical_value = malloc(max_outliers * sizeof(float)); // why do we malloc here? space has already been booked in tmp
 				for (int j = 0, size = nb_frames; j < max_outliers; j++, size--) {
 					float t_dist = gsl_cdf_tdist_Pinv(1 - args->sig[1] / (2 * size), size - 2);
 					float numerator = (size - 1) * t_dist;
@@ -1403,6 +1460,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
 			if (masking)
 				data_pool[i].mask[j] = (float *)((char*)data_pool[i].tmp + stack_offset + j * npixels_in_block * ielem_mask_size);
+			if (args->drizzle)
+				data_pool[i].drizz[j] = (float *)((char*)data_pool[i].tmp + stack_offset + mask_offset + j * npixels_in_block * ielem_drizz_size);
 		}
 	}
 
@@ -1581,6 +1640,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					if (masking) {
 						data->mstack[frame] = data->mask[frame][pix_idx];
 					}
+					if (args->drizzle) {
+						data->dstack[frame] = data->drizz[frame][pix_idx];
+					}
 				}
 
 				double result; // resulting pixel value, either mean or median
@@ -1679,6 +1741,8 @@ free_and_close:
 	if (data_pool) {
 		for (i=0; i<pool_size; i++) {
 			if (data_pool[i].pix) free(data_pool[i].pix);
+			if (data_pool[i].mask) free(data_pool[i].mask);
+			if (data_pool[i].drizz) free(data_pool[i].drizz);
 			if (data_pool[i].tmp) free(data_pool[i].tmp);
 		}
 		free(data_pool);

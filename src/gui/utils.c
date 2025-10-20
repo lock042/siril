@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
+#include "core/siril_log.h"
 #include "utils.h"
 #include "message_dialog.h"
 
@@ -370,88 +371,21 @@ void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gc
 		gtk_file_chooser_add_filter(chooser, filter);
 }
 
-static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
-	GtkWidget *dialog;
-	GtkWidget *content_area;
-	GtkWidget *hbox;
-	GtkWidget *image;
-	GtkWidget *label;
-
-	dialog = gtk_dialog_new_with_buttons(
-		title,
-		parent,
-		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-		NULL, NULL  // We'll add buttons manually
-	);
-
-	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-
-	// Create a horizontal box to hold the icon and message
-	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
-
-	// Add warning icon
-	image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
-	gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
-
-	// Create label with the message
-	label = gtk_label_new(message);
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
-	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-
-	// Add the hbox to the content area
-	gtk_box_pack_start(GTK_BOX(content_area), hbox, TRUE, TRUE, 0);
-
-	// Create and add buttons vertically
-	const char* button_labels[] = {
-		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)")
-	};
-	const char* button_tooltips[] = {
-		_("Cancel without making any changes"),
-		_("Clip pixel values to the range 0.0 - 1.0"),
-		_("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
-		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negative pixel values into range")
-	};
-	OverrangeResponse responses[] = {
-		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL
-	};
-
-	for (int i = 0; i < G_N_ELEMENTS(responses); i++) {
-		GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
-		// Get the label widget from the button
-		GtkWidget *label = gtk_bin_get_child(GTK_BIN(button));
-
-		// Check if the child is a label
-		if (GTK_IS_LABEL(label)) {
-			// Set the alignment to center
-			gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
-			gtk_label_set_xalign(GTK_LABEL(label), 0.5);
-			gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
-		}
-		gtk_widget_set_tooltip_text(button, button_tooltips[i]);
-	}
-
-	// Set dialog to be not resizable
-	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
-
-	gtk_widget_show_all(dialog);
-
-	return dialog;
-}
-
 // Function to apply limits based on the chosen method
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
 	switch (method) {
 		case RESPONSE_CLIP:;
+			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
 			clip(fit);
 			break;
 		case RESPONSE_RESCALE_CLIPNEG:;
+			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
 			clipneg(fit);
 			if (maxval > 1.0)
 				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
 			break;
 		case RESPONSE_RESCALE_ALL:;
+			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
 			double range = maxval - minval;
 			if (minval < 0.0)
 				soper(fit, minval, OPER_SUB, TRUE);
@@ -480,22 +414,20 @@ gboolean value_check(fits *fit) {
 	int retval = quick_minmax(fit, &minval, &maxval);
 	if (retval)
 		return TRUE;
-
-	if (maxval > 1.0 || minval < 0.0) {
-		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
-		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
-		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		g_free(msg);
-
-		if (result == RESPONSE_CANCEL)
-			return FALSE;
-
-		result = apply_limits(fit, minval, maxval, result);
-		if (result == RESPONSE_CANCEL)
-			return FALSE;
+	OverrangeResponse result;
+	if (maxval > 10) {
+		// All FITS files are scaled to [0,1] on opening, so if we have extreme values at this stage then these are highly likely hot pixels and we should clip
+		result = RESPONSE_CLIP;
+	// Now we know we need a scaling response
+	} else if (minval < -0.1) {
+		// As above, images are opened in [0,1] so significant negative values are outliers and should be cropped, so
+		result = RESPONSE_RESCALE_CLIPNEG;
+	} else {
+		// Small negative values may be legitimate as the result of noise, and in this case we should rescale all
+		result = RESPONSE_RESCALE_ALL;
 	}
-	return TRUE;
+	result = apply_limits(fit, minval, maxval, result);
+	return result == RESPONSE_CANCEL ? FALSE : TRUE;
 }
 
 GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba) {

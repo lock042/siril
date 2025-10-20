@@ -487,6 +487,8 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 
 static gchar *flip_bayer_pattern(const gchar *old_pattern, unsigned int ry) {
 	sensor_pattern old_sensor_pattern = get_cfa_pattern_index_from_string(old_pattern);
+	if (old_sensor_pattern == BAYER_FILTER_NONE)
+		return g_strdup(old_pattern); // unknown pattern, do nothing
 	adjust_Bayer_pattern_orientation(&old_sensor_pattern, ry, TRUE);
 	return g_strdup(filter_pattern[old_sensor_pattern]);
 }
@@ -1412,6 +1414,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	if (pixScale == 0) {
 		free(ima_data);
 		free(pixbuf_data);
+		free(pix);
 		return NULL;
 	}
 	Ws = w / pixScale;             // picture width in pixScale blocks
@@ -1465,6 +1468,8 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 						else
 							break;
 					}
+					if (n == 0)
+						n = 1.f;
 					pix[j] += byte / n;
 				} else {
 					float byte_r = 0., byte_g = 0., byte_b = 0.;
@@ -1477,6 +1482,8 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 							break;
 						}
 					}
+					if (n == 0)
+						n = 1.f;
 					pix_r[j] += byte_r / n;
 					pix_g[j] += byte_g / n;
 					pix_b[j] += byte_b / n;
@@ -1650,11 +1657,11 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			);
 	free(ima_data);
 	free(pix);
-	if (n_channels > 1) {
-		free(pix_r);
-		free(pix_g);
-		free(pix_b);
-	}
+
+	free(pix_r);
+	free(pix_g);
+	free(pix_b);
+
 	*descr = description;
 	return pixbuf;
 }

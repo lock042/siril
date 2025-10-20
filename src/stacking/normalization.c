@@ -425,6 +425,14 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	translation_from_H(seq->regparam[args->reglayer][j].H, &dxj, &dyj);
 	dx = round_to_int(dxj - dxi);
 	dy = round_to_int(dyi - dyj);
+	if (dx == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: images #%d and #%d have a wrong dx value\n", i, j);
+		dx += 1;
+	}
+	if (dy == INT_MIN) { // mainly to avoid static checker warning
+		siril_debug_print("Error: images #%d and #%d have a wrong dy value\n", i, j);
+		dy += 1;
+	}
 	int rxi = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
 	int ryi = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
 	int rxj = (seq->is_variable) ? seq->imgparam[j].rx : seq->rx;
@@ -527,8 +535,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	args->seq->needs_saving = TRUE;
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
-	fit_sequence_get_image_filename(seq, i, file_i, TRUE);
-	fit_sequence_get_image_filename(seq, j, file_j, TRUE);
+	fit_sequence_get_image_filename_checkext(seq, i, file_i);
+	fit_sequence_get_image_filename_checkext(seq, j, file_j);
 	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
 		readfits_partial_all_layers(file_j, &fitj, &areaj)) {
 		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);

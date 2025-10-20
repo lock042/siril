@@ -519,20 +519,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="main_menu_scripts">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.scripts</property>
-            <property name="text" translatable="yes">Get Scripts</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkModelButton" id="main_menu_shortcuts">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -7162,8 +7148,7 @@ The master flat must be set in the Calibration tab.</property>
                                                             <object class="GtkComboBoxText" id="combo_driz_kernel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
-Note that the Gaussian and Lanczos models do not conserve flux and should not be used f you wish to use the output for accurate photometry.</property>
+                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details of when to use each model.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Square</item>

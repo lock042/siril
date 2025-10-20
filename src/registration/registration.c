@@ -137,6 +137,7 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 		seq.rx = args->seq->rx;
 		seq.ry = args->seq->ry;
 	}
+	seq.is_drizzle = args->driz != NULL;
 	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	if (refindex == -1)
@@ -259,6 +260,10 @@ gpointer register_thread_func(gpointer p) {
 		free_disto_args(args->disto);
 	}
 	if (args->driz) {
+		if (args->driz->flat) {
+			clearfits(args->driz->flat);
+			free(args->driz->flat);
+		}
 		free(args->driz);
 	}
 	if (args->reference_date)
@@ -365,4 +370,53 @@ struct registration_method *new_reg_method(const char *name, registration_functi
 	reg->sel = s;
 	reg->type = t;
 	return reg;
+}
+
+gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct star_align_data *sadata = args->user;
+	if (!sadata || !sadata->regargs)
+		return -1;
+	struct registration_args *regargs = sadata->regargs;
+	int w_out = 0, h_out = 0;
+	float scale = 1.0;
+	gint64 im_size = 0; // total size of all images after registration
+	if (regargs->func == &register_star_alignment) {// global registration
+		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		scale = regargs->output_scale;
+		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
+	} else if (regargs->func == &register_apply_reg) { // applyreg
+		im_size = (gint64)(regargs->framingd.total_Mpix * 1.e6); // already includes scale and nb_frames
+	} else {
+		siril_debug_print("Unsupported registration function for size computation\n");
+		return -1;
+	}
+
+	// nblayers
+	int output_nb_layers = regargs->seq->nb_layers;
+	if (regargs->driz && regargs->driz->is_bayer)
+		output_nb_layers = 3;
+	im_size *= output_nb_layers;
+
+	gint64 output_depth = 0;
+	gint64 header_size = 0;
+	gint64 size = 0;
+	if (regargs->seq->type == SEQ_SER) {
+		output_depth = (regargs->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? sizeof(BYTE) : sizeof(WORD);
+		header_size += SER_HEADER_LEN;
+	} else {
+		output_depth = (com.pref.force_16bit) ? sizeof(WORD) : sizeof(float);
+		header_size = nb_frames * (gint64)FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
+	}
+	size = im_size * output_depth + header_size;
+	if (regargs->driz) {
+		if (com.pref.drizz_weight_match_bitpix) {
+			size += im_size * output_depth + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		} else {
+			size += im_size * sizeof(BYTE) + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		}
+	}
+	// temp for debug
+	// siril_log_message("Required storage space: %" G_GINT64_FORMAT " MB\n", (gint64)(size / BYTES_IN_A_MB));
+	return size;
 }

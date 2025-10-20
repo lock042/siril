@@ -177,7 +177,7 @@ static gboolean end_compstars(gpointer p) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
 				refresh_found_objects();
-				redraw(REDRAW_OVERLAY);
+				redraw(REDRAW_OVERLAY); // TODO: think we can remove this, it appears to be duplicated below
 			}
 		}
 	} else {
@@ -495,7 +495,10 @@ gpointer compstars_worker(gpointer p) {
 end:
 	args->retval = retval;
 	args->has_GUI = TRUE;
-	if (!siril_add_idle(end_compstars, args)) {
+	if (!com.headless && com.python_command) {
+		execute_idle_and_wait_for_it(end_compstars, args);
+	}
+	else if (!siril_add_idle(end_compstars, args)) {
 		args->has_GUI = FALSE;
 		end_compstars(args);	// we still need to free all
 	}

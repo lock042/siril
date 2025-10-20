@@ -1655,13 +1655,6 @@ gboolean asnet_is_available() {
 }
 #endif
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("asnet exited with status %d\n", status);
-	g_spawn_close_pid(pid);
-	// GraXpert has exited, reset the stored pid
-	remove_child_from_children(pid);
-}
-
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
@@ -1800,11 +1793,10 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 	GPid child_pid;
-	child_info *child = g_malloc(sizeof(child_info));
 	siril_spawn_host_async_with_pipes(NULL,
 				sfargs,
 				NULL,
-				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 				NULL,
 				NULL,
 				&child_pid,
@@ -1815,18 +1807,13 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	);
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the asnet process. This avoids tracking two children for the same task.
-	// Note: the pid isn't strictly needed here as it isn't used to kill the process
-	// should we need to, but it makes a handy index to search for in com.children, so
-	// we record it anyway.
-	remove_child_from_children((GPid)-2);
-	child->childpid = child_pid;
-	child->program = EXT_ASNET;
-	child->name = g_strdup(_("Astrometry.net local solver"));
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
-
-	// Required in order to remove the child from com.children on exit
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
+	// Note: the asnet pid isn't strictly needed here as it isn't used to kill the process
+	// should we need to, but it makes a handy index to search for in the child process list,
+	// so we record it anyway.
+	remove_child_from_children((GPid) -2);
+	if (!add_child(child_pid, EXT_ASNET, "Astrometry.net local solver")) {
+		siril_log_color_message(_("Warning: failed to add astrometry.net to child process list\n"), "salmon");
+	}
 
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
@@ -2105,7 +2092,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			if (target_coords) {
 				siril_world_cs_unref(aargs->cat_center);
 				aargs->cat_center = target_coords;
-				if (aargs->ref_stars && target_coords) {
+				if (aargs->ref_stars) {
 					aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 					aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 				}
@@ -2173,6 +2160,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
 		return 1;
 	}
@@ -2190,6 +2178,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			g_atomic_int_inc(&aargs_master->seqprogress);
 		}
 		free_fitted_stars(stars);
+		siril_world_cs_unref(aargs->cat_center);
 		free(aargs);
 		return status;
 	}
@@ -2225,6 +2214,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		} else {
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 			arg->seq->imgparam[i].incl = FALSE;
+			siril_world_cs_unref(aargs->cat_center);
 			free(aargs);
 			return 1;
 		}

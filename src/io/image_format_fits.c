@@ -1869,9 +1869,9 @@ int savefits(const char *name, fits *f) {
 	}
 
 	if (save_opened_fits(f)) {
-	    status = 0;
-	    fits_close_file(f->fptr, &status);
-	    f->fptr = NULL;
+		status = 0;
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
 		g_free(filename);
 		return 1;
 	}
@@ -1901,7 +1901,7 @@ int savefits(const char *name, fits *f) {
 	if (!status) {
 		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
 				filename, f->naxes[2], f->rx, f->ry,
-				f->type == DATA_USHORT ? 16 : 32);
+				f->bitpix == FLOAT_IMG ? 32 : (f->bitpix == SHORT_IMG || f->bitpix == USHORT_IMG ? 16 : 8));
 	}
 	g_free(filename);
 	return 0;
@@ -3647,7 +3647,7 @@ int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
 // and dealing with all the types and headers
 int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
 	int status = 0;
-	fitsfile *fptr;
+	fitsfile *fptr = NULL;
 	int naxis = 2;
 	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
 	long naxes[2] = { 1L, 1L};
@@ -3659,7 +3659,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 
 	if (!name)
 		return 1;
-	fits_open_file(&fptr, name, READONLY, &status);
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return 1;
@@ -3671,12 +3671,12 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	}
 	if (naxes[0] < area->w) {
 		siril_debug_print("area too wide\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
 		siril_debug_print("area too high\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
@@ -3687,6 +3687,70 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	fits_close_file(fptr, &status);
 	if (!status) {
 		siril_debug_print("Read mask file %s\n", name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
+// TODO: should not be different than read_mask_fits_area, to be improved
+// read an area form a 32b drizz_weight
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+// if we pass layer == 4, it reads the whole file
+int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz) {
+	if (layer < 0)
+		return read_mask_fits_area(name, area, ry, drizz);
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 3;
+	long fpixel[3], lpixel[3], inc[3] = { 1L, 1L , 1L};
+	long naxes[3] = { 1L, 1L, 1L};
+
+	/* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	fpixel[2] = layer + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+	lpixel[2] = layer + 1;
+
+	if (!name)
+		return 1;
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+	if (layer == 4) { // read the whole file
+		size_t nbdata = area->w * area->h * 3;
+		fits_read_img(fptr, TFLOAT, 1, nbdata, NULL, drizz, NULL, &status);
+	} else {
+		fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
+	}
+	
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read drizz file %s\n", name);
 	} else {
 		report_fits_error(status);
 	}

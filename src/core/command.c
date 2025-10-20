@@ -696,6 +696,7 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
+	starnet_args->multi_args = multi_args;
 	gboolean error = FALSE;
 	multi_args->seq = seq;
 	if (!multi_args->seq) {
@@ -730,7 +731,7 @@ int process_seq_starnet(int nb){
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				sprintf(starnet_args->stride, "%d", stride);
+				starnet_args->stride = g_strdup_printf("%d", stride);
 				starnet_args->customstride = TRUE;
 			}
 		}
@@ -756,7 +757,7 @@ int process_seq_starnet(int nb){
 	if (starnet_args->starmask) {
 		multi_args->prefixes[1] = g_strdup("starmask_");
 	}
-
+	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 	sequence_cfa_warning_check(multi_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(multi_args);
@@ -1313,7 +1314,7 @@ int process_getref(int nb) {
 	if (seq->type == SEQ_REGULAR) {
 		long maxpath = get_pathmax();
 		char filename[maxpath];
-		fit_sequence_get_image_filename(seq, ref_image, filename, TRUE);
+		fit_sequence_get_image_filename_checkext(seq, ref_image, filename);
 		siril_log_message(_("Image %d: '%s'\n"), ref_image, filename);
 	}
 	else siril_log_message(_("Image %d\n"), ref_image);
@@ -2930,7 +2931,7 @@ int process_merge(int nb) {
 			long maxpath = get_pathmax();
 			char filename[maxpath];
 			for (int image = 0; image < seqs[i]->number; image++) {
-				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
+				fit_sequence_get_image_filename_checkext(seqs[i], image, filename);
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}
@@ -4535,14 +4536,14 @@ int process_seq_psf(int nb) {
 		has_area = TRUE;
 	}
 	gboolean followstar_set = FALSE;
-	gboolean use_current_seq = FALSE;
 
 	// First argument is always sequence name
 	seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
+	gboolean use_current_seq = check_seq_is_comseq(seq);
+	if (!com.script && !com.python_script && !use_current_seq) {
 		execute_idle_and_wait_for_it(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
@@ -5427,7 +5428,7 @@ int process_findstar(int nb) {
 	args->starfile = NULL;
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
-	args->update_GUI = !com.script;
+	args->update_GUI = !com.script || com.python_script;
 	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
@@ -5439,6 +5440,12 @@ int process_findstar(int nb) {
 	}
 	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
 		args->selection = com.selection;
+	}
+	if (args->starfile && has_wcs(args->im.fit)) {
+		args->save_eqcoords = TRUE;
+		args->ref_wcs = args->im.fit->keywords.wcslib;
+	} else {
+		args->save_eqcoords = FALSE;
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
@@ -5642,7 +5649,6 @@ int process_seq_cosme(int nb) {
 		char *current = word[3], *value;
 		value = current + 8;
 		if (value[0] == '\0') {
-			free_sequence(seq, TRUE);
 			g_object_unref(file);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
@@ -5721,7 +5727,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list(TRUE);
+	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);
@@ -8059,17 +8065,7 @@ int process_register(int nb) {
 	method->type = REGTYPE_DEEPSKY;
 	regargs->func = method->method_ptr;
 
-	// testing free space
-	if (!regargs->no_output) {
-		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
-		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
-		if (regargs->output_scale != 1.f)
-			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			goto terminate_register_on_error;
-		}
-	} else if (regargs->output_scale != 1.f) {
+	if (regargs->no_output && regargs->output_scale != 1.f) {
 		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
@@ -8714,7 +8710,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	}
 	// manage reframing and upscale
 	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
-	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean can_upscale = can_reframe && !seq->is_variable && !seq->is_drizzle;
 	gboolean must_reframe = can_reframe && seq->is_variable;
 	args.maximize_framing = arg->maximize_framing;
 	args.upscale_at_stacking = arg->upscale_at_stacking;
@@ -8732,7 +8728,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 	if (args.upscale_at_stacking && !can_upscale) {
-		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes or drizzled. Upscale at stacking will be ignored\n"), "red");
 		args.upscale_at_stacking = FALSE;
 	}
 	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {

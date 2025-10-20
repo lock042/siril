@@ -67,7 +67,10 @@ from .enums import (
     SequenceType,
     DistoType,
     PlotType,
-    SirilVport
+    SirilVport,
+    ImageType,
+    STFType,
+    SlidersMode
 )
 from .models import (
     ImageStats,
@@ -81,7 +84,8 @@ from .models import (
     DistoData,
     Sequence,
     FPoint,
-    Polygon
+    Polygon,
+    ImageAnalysis
 )
 from .plot import SeriesData, PlotData
 from .shm import SharedMemoryWrapper
@@ -164,6 +168,10 @@ __all__ = [
     'DistoType',
     'PlotType',
     'SirilVport',
+    'ImageAnalysis',
+    'ImageType',
+    'STFType',
+    'SlidersMode',
     '_'
 ]
 

@@ -30,6 +30,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
@@ -38,6 +39,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 #include <wcsfix.h>
@@ -1172,7 +1174,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	}
 	curr_findstar_args->threading = SINGLE_THREADED;
 
-	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "lst", NULL);
+	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "cache", "lst", NULL);
 	if (!star_filename) {
 		free(curr_findstar_args);
 		return TRUE;
@@ -1223,7 +1225,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
-		star_filename = get_sequence_cache_filename(seq, i, "lst", NULL);
+		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		if (!star_filename) {
 			if (curr_findstar_args->onepass == TRUE) {
 				free(curr_findstar_args->nb_stars);
@@ -1251,7 +1253,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
 			// uncomment these lines to save the green fit for each image
-			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "fit", "green_");
+			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "cache", "fit", "green_");
 			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
@@ -1375,9 +1377,11 @@ gpointer findstar_worker(gpointer p) {
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	fits *green_fit = NULL;
+	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
-	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
+	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
+		orig = args->im.fit;
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(green_fit);
 		args->im.fit = green_fit;
@@ -1386,6 +1390,7 @@ gpointer findstar_worker(gpointer p) {
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			&args->selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 	if (green_fit) {
+		args->im.fit = orig;
 		clearfits(green_fit);
 		free(green_fit);
 	}
@@ -1406,16 +1411,12 @@ gpointer findstar_worker(gpointer p) {
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
 					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
-					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
+					pix2wcs2(args->im.fit->keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
-				}
-				else if (!seq->regparam[args->layer] ||
-						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
-					// image was not registered, ignore
-				}
-				else {
+				} else if (seq && seq->regparam[args->layer] &&
+					guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) > NULL_TRANSFORMATION) {
 					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H, 1.);
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
@@ -1425,6 +1426,9 @@ gpointer findstar_worker(gpointer p) {
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
+				} else { // fallback to a default invalid value
+					stars[i]->ra = 9.99E9;
+					stars[i]->dec = 9.99E9;
 				}
 			}
 			i++;
@@ -1437,7 +1441,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 
 	if (args->update_GUI)
-		update_star_list(stars, TRUE, FALSE);
+		update_star_list(stars, TRUE, com.python_script);
 
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
@@ -1463,7 +1467,7 @@ gpointer findstar_worker(gpointer p) {
 		free_fitted_stars(stars);
 END:
 	if (args->update_GUI)
-		siril_add_idle(end_findstar, args);
+		execute_idle_and_wait_for_it(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
 	gchar *msg = g_strdup_printf("findstar for image %d", args->im.index_in_seq);
 	show_time_msg(t_start, t_end, msg);

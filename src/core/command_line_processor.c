@@ -630,6 +630,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 					break;
 				}
 				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
+				remove_child_from_children((GPid) -2); // remove processing thread from list
 			}
 		}
 

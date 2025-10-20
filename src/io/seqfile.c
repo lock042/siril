@@ -56,8 +56,10 @@
  *  - added overlap statistics in the O* cards:
  *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
  * 		=> with N the layer number and i,j the ith and jth images of the sequence
+ * version 6
+ * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
  */
-#define CURRENT_SEQFILE_VERSION 5	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -115,15 +117,20 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d %d";
+				else
+					scanformat = "%511s %d %d %d %d %d %d %d %d %d";
 
-				if(sscanf(line+2, scanformat,
+				int nbtokens = sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
-						allocated != 0){
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz, &seq->is_drizzle);
+				if((nbtokens < 6 && version < 6) || (nbtokens < 10 && version >= 6) || allocated != 0) {
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				if (version < 0) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
 					goto error;
 				}
 				if (seq->number == 0) {
@@ -686,10 +693,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag drizzle\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz, seq->is_drizzle);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {

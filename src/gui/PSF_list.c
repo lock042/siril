@@ -676,12 +676,6 @@ static void add_star_to_list(psf_star *star, int i) {
 	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
 	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
 
-	if (get_ra_and_dec_from_star_pos(star, &ra, &dec)) {
-		// set a flag to set to N/A
-		ra = 9.99E9;
-		dec = 9.99E9;
-	}
-
 	gtk_list_store_append (liststore_stars, &iter);
 	gtk_list_store_set (liststore_stars, &iter,
 			COLUMN_CHANNEL, star->layer,
@@ -689,8 +683,8 @@ static void add_star_to_list(psf_star *star, int i) {
 			COLUMN_A, star->A,
 			COLUMN_X0, star->xpos,
 			COLUMN_Y0, star->ypos,
-			COLUMN_RA, ra,
-			COLUMN_DEC, dec,
+			COLUMN_RA, star->ra,
+			COLUMN_DEC, star->dec,
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,
@@ -760,6 +754,12 @@ void clear_stars_list(gboolean refresh_GUI) {
 	gui.selected_star = -1;
 	if (refresh_GUI && !com.headless)
 		display_status();
+}
+
+gboolean clear_stars_list_as_idle(gpointer user_data) {
+	gboolean refresh = (gboolean) GPOINTER_TO_INT(user_data);
+	clear_stars_list(refresh);
+	return FALSE;
 }
 
 struct star_update_s {

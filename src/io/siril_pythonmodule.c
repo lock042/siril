@@ -26,6 +26,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -330,7 +331,7 @@ void cleanup_shm_resources(Connection *conn) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview) {
+shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked) {
 	if (!fit || (fit->type == DATA_USHORT && !fit->data) || (fit->type == DATA_FLOAT && !fit->fdata)) {
 		const char* error_msg = _("Failed to retrieve pixel data - no FITS image");
 		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
@@ -383,9 +384,16 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 	if (as_preview) {
 		fits stretched = {0};
 		copyfits(fit, &stretched, CP_ALLOC | CP_FORMAT, -1);
-		struct mtf_params params[3];
-		find_unlinked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
-		apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		if (linked) {
+			struct mtf_params params;
+			find_linked_midtones_balance_default(fit, &params);
+			params.do_red = params.do_green = params.do_blue = TRUE;
+			apply_linked_mtf_to_fits(fit, &stretched, params, TRUE);
+		} else {
+			struct mtf_params params[3];
+			find_unlinked_midtones_balance_default(fit, params);
+			apply_unlinked_mtf_to_fits(fit, &stretched, params);
+		}
 		// Copy data from gfit to shared memory
 		int top = region.y + region.h;
 		int right = region.x + region.w;
@@ -488,7 +496,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd)) {
 		const char* error_msg = _("Failed to allocate shared memory");
-		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
@@ -531,7 +539,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
-	if (!conn->thread_claimed) {
+	if (fit == &gfit && !conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
@@ -961,6 +969,60 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	update_fits_header(&gfit);
 
 	gui_function(update_MenuItem, NULL);
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+	#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+	#endif
+
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info) {
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// convert the bytes into a cmsPROFILE
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
+	color_manage(&gfit, TRUE);
 
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -1757,6 +1819,7 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	);
 
 	if (!success || exit_status != 0) {
+		siril_log_color_message(_("Error checking python magic number: pyc files will not work"), "salmon");
 		g_free(stdout_str);
 		return FALSE;
 	}
@@ -1879,106 +1942,150 @@ void rebuild_venv() {
 }
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
-
-	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
-	siril_debug_print("venv path: %s\n", venv_path);
-	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
-	if (python_exe) {
-		siril_debug_print("Found python executable in venv: %s\n", python_exe);
-	} else {
-		siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
+    gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+    siril_debug_print("venv path: %s\n", venv_path);
+    gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
+    if (python_exe) {
+        siril_debug_print("Found python executable in venv: %s\n", python_exe);
+    } else {
+        siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
 #ifdef _WIN32
-		// Check we aren't in a msys2 environment for the first init
-		gchar **env = g_get_environ();
-		const gchar *msys = g_environ_getenv(env, "MSYSTEM");
-		g_strfreev(env);
-		if (msys) {
-			siril_log_color_message(_("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"), "red");
-			siril_log_color_message(_("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"), "red");
-			siril_log_color_message(_("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"), "red");
-			siril_log_color_message(_("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"), "red");
-			return FALSE;
-		}
+        /* Check we aren't in a msys2 environment for the first init */
+        gchar **env = g_get_environ();
+        const gchar *msys = g_environ_getenv(env, "MSYSTEM");
+        g_strfreev(env);
+        if (msys) {
+            siril_log_color_message(
+                _("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"),
+                "red");
+            siril_log_color_message(
+                _("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"),
+                "red");
+            siril_log_color_message(
+                _("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"),
+                "red");
+            siril_log_color_message(
+                _("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"),
+                "red");
+            g_free(venv_path);
+            return FALSE;
+        }
 #endif
-	}
+    }
 
+    gboolean success = FALSE;
+    GError *local_error = NULL;
+    gchar *sys_python_exe = NULL;
+    gchar **argv = NULL;
 
-	gboolean success = FALSE;
-	GError *local_error = NULL;
-	gchar *sys_python_exe = NULL;
-	gchar **argv = NULL;
-
-	// Check if venv exists
-	if (!python_exe) {
-
+    if (!python_exe) {
 #ifdef _WIN32
-		gchar *bundle_python_exe = NULL;
-		const gchar *sirilrootpath = get_siril_bundle_path();
-		printf("Siril bundle path: %s\n", sirilrootpath);
-		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-		printf("Bundle python path: %s\n", bundle_python_exe);
-		if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
-			printf("Python found in bundle: %s\n", bundle_python_exe);
-		else {
-			g_free(bundle_python_exe);
-			bundle_python_exe = NULL;
-		}
-		if (!bundle_python_exe)
-			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+        gchar *bundle_python_exe = NULL;
+        const gchar *sirilrootpath = get_siril_bundle_path();
+        printf("Siril bundle path: %s\n", sirilrootpath);
+        bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
+        printf("Bundle python path: %s\n", bundle_python_exe);
+        if (!g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE)) {
+            g_free(bundle_python_exe);
+            bundle_python_exe = NULL;
+        }
 
-		if (sys_python_exe)
-			printf("Python found in system: %s\n", sys_python_exe);
+        if (!bundle_python_exe)
+            sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL);
 
-		if (!sys_python_exe && !bundle_python_exe) {
-			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
-			success = FALSE;
-			goto cleanup;
-		}
-		if (!sys_python_exe) {
-			sys_python_exe = g_strdup(bundle_python_exe);
-			g_free(bundle_python_exe);
-		}
-		printf("Python executable: %s\n", sys_python_exe);
+        if (!sys_python_exe && !bundle_python_exe) {
+            siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
+            success = FALSE;
+            goto cleanup;
+        }
+
+        if (!sys_python_exe) {
+            /* transfer ownership */
+            sys_python_exe = bundle_python_exe;
+            bundle_python_exe = NULL;
+        }
+
+        printf("Python executable: %s\n", sys_python_exe);
+        g_free(bundle_python_exe);  /* safe if NULL */
 #else
-		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
+        sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		argv = g_new0(gchar*, 5);
-		argv[0] = sys_python_exe;
-		argv[1] = g_strdup("-m");
-		argv[2] = g_strdup("venv");
-		argv[3] = g_strdup(venv_path);
-		argv[4] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
-		gint exit_status;
-		if (!g_spawn_sync(NULL, argv, NULL,
-						G_SPAWN_SEARCH_PATH,
-						NULL, NULL,
-						NULL, NULL,
-						&exit_status, &local_error)) {
-			siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
-			g_propagate_error(error, local_error);
-			success = FALSE;
-			goto cleanup;
-		}
+        argv = g_new0(gchar*, 5);
+        argv[0] = sys_python_exe;
+        argv[1] = g_strdup("-m");
+        argv[2] = g_strdup("venv");
+        argv[3] = g_strdup(venv_path);
+        argv[4] = NULL;
 
-		success = (exit_status == 0);
-		if (!success) {
-			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"Failed to create virtual environment (exit status: %d)", exit_status);
-			goto cleanup;
-		}
+        siril_debug_print("Trying venv creation command: %s %s %s %s\n",
+                          argv[0] ? argv[0] : "(null)",
+                          argv[1], argv[2], argv[3]);
+
+        gchar *std_out = NULL;
+        gchar *std_err = NULL;
+        gint exit_status;
+
+        if (!g_spawn_sync(NULL, argv, NULL,
+                          G_SPAWN_SEARCH_PATH,
+                          NULL, NULL,
+                          &std_out, &std_err,
+                          &exit_status, &local_error)) {
+            siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
+            g_propagate_error(error, local_error);
+            success = FALSE;
+            goto cleanup;
+        }
+
+        if (!g_spawn_check_wait_status(exit_status, &local_error)) {
+            siril_log_color_message(_("Failed to create virtual environment: %s\n"), "red", local_error->message);
+
+            if (std_err && *std_err) {
+                siril_log_color_message(_("Python stderr:\n%s\n"), "red", std_err);
+
+                /* Special-case: common Debian/Ubuntu error */
+                if (g_strrstr(std_err, "ensurepip is not available")) {
+                    siril_log_color_message(
+                        _("Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' package.\n"),
+                        "salmon");
+                }
+            }
+
+            if (std_out && *std_out) {
+                siril_debug_print("Python stdout:\n%s\n", std_out);
+            }
+
+            g_propagate_error(error, local_error);
+            success = FALSE;
+            g_free(std_out);
+            g_free(std_err);
+            goto cleanup;
+        }
+
+        success = TRUE;
+        g_free(std_out);
+        g_free(std_err);
+    }
 
 cleanup:
-		g_strfreev(argv);
-	} else {
-		success = TRUE;
-		g_free(python_exe);
-	}
+    if (argv) {
+        g_strfreev(argv);
+        argv = NULL;
+        sys_python_exe = NULL;  /* freed by g_strfreev */
+    } else {
+        g_free(sys_python_exe);
+        sys_python_exe = NULL;
+    }
 
-	g_free(venv_path);
-	return success;
+    if (python_exe) {
+        success = TRUE;  /* venv already existed */
+        g_free(python_exe);
+    }
+
+    g_free(venv_path);
+    return success;
 }
+
 
 gboolean python_venv_idle(gpointer user_data) {
 //	g_thread_unref(com.python_init_thread);
@@ -2337,15 +2444,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// Set the flag that a python script is running
 			com.python_script = TRUE;
 			siril_debug_print("***** com.python_script flag set\n");
-			// Prepend this process to the list of child processes com.children
-			child_info *child = g_malloc(sizeof(child_info));
-			child->childpid = child_pid;
-			child->program = EXT_PYTHON;
+			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
-			child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			if (!add_child(child_pid, EXT_PYTHON, childname)) {
+				siril_log_color_message(_("Warning: failed to add %s to child process list\n"), "salmon", childname);
+			}
 			g_free(script_basename);
-			child->datetime = g_date_time_new_now_local();
-			com.children = g_slist_prepend(com.children, child);
+			g_free(childname);
 		}
 	}
 

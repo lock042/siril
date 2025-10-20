@@ -182,6 +182,7 @@ macos:
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "500Mi"
+    ORKA_RUNNER: sonoma-2
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
