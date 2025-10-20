@@ -10,6 +10,7 @@ XX/XX/XX
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
 * Fixed crash in seqstarnet (#1814)
 * Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
+* Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
 * Fixed writing RA/DEC to star lists from a single findstar command (#1794)
 * Fixed issue with RGB composition not always applying registration (!948)
 * Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
