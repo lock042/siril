@@ -539,7 +539,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
-	if (!conn->thread_claimed) {
+	if (fit == &gfit && !conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");

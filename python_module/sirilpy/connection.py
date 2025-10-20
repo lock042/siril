@@ -2065,7 +2065,8 @@ class SirilInterface:
         """
         Send sequence frame image data to Siril using shared memory. Note that this
         method only works with sequences of FITS images: it does **not** work with
-        FITSEQ, SER or AVI single-file sequences.
+        FITSEQ, SER or AVI single-file sequences. The image_lock() context manager
+        is not required in order to use this method.
 
         Args:
             index: integer specifying which frame to set the pixeldata for. This
