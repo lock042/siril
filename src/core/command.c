@@ -5441,6 +5441,12 @@ int process_findstar(int nb) {
 	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
 		args->selection = com.selection;
 	}
+	if (args->starfile && has_wcs(args->im.fit)) {
+		args->save_eqcoords = TRUE;
+		args->ref_wcs = args->im.fit->keywords.wcslib;
+	} else {
+		args->save_eqcoords = FALSE;
+	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
 		free(args);
@@ -5721,7 +5727,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	clear_stars_list(TRUE);
+	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);

@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-08-26 06:13+0000\n"
+"PO-Revision-Date: 2025-10-19 02:12+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -2833,7 +2833,6 @@ msgid "One star registration (deep-sky)"
 msgstr "Регистрация по одной звезде (глубокий космос)"
 
 #: src/gui/uifiles/composition_dialog.ui:487
-#, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2841,13 +2840,11 @@ msgid ""
 "COG - frame to the centre of gravity of the pixels in the set of aligned "
 "images."
 msgstr ""
-"Выберите способ кадрирования для выравнивания изображений глубокого "
-"космоса:\n"
-"Первый канал - кадр к первому каналу (в режиме \"Светимость\" это всегда "
-"L);\n"
-"Максимум - кадр к максимальному размеру выравненных изображений;\n"
-"Минимум - кадр к минимальному перекрытию всех выравненных изображений;\n"
-"COG - кадр к центру тяжести пикселей в группе выравненных изображений."
+"Выберите способ кадрирования для выравнивания изображений глубокого космоса:"
+"\n"
+"Первый канал — кадр к первому каналу (в режиме «Светимость» это всегда L);\n"
+"Минимум — кадр к минимальному перекрытию всех выравненных изображений;\n"
+"COG — кадр к центру тяжести пикселей в группе выравненных изображений."
 
 #: src/gui/uifiles/composition_dialog.ui:493
 msgid "First channel"
@@ -4458,6 +4455,11 @@ msgid ""
 "become insensitive until either Reset or Apply is clicked. Further tweaks "
 "can be made by clicking Apply and then making a second stretch,"
 msgstr ""
+"Предварительный просмотр алгоритма автоматического растяжения изображения. "
+"Из-за особенностей управления цветом при нажатии на эту кнопку ползунки и "
+"виджеты ввода значений становятся нечувствительными до тех пор, пока не "
+"будет нажата кнопка «Сбросить» или «Применить». Для дальнейших настроек "
+"можно нажать «Применить», а затем выполнить повторное растяжение,"
 
 #: src/gui/uifiles/histogram_dialog.ui:519
 msgid "Highlights: "
@@ -5610,18 +5612,16 @@ msgid "_Help"
 msgstr "_Помощь"
 
 #: src/gui/uifiles/python_scratchpad.ui:544
-#, fuzzy
 msgid "Open Python API reference documentation"
-msgstr "Справочник по API Python"
+msgstr "Открыть справочник по API Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:546
 msgid "Python API reference"
 msgstr "Справочник по API Python"
 
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Open Siril command reference documentation"
-msgstr "Справочник по командам Siril"
+msgstr "Открыть справочник по командам Siril"
 
 #: src/gui/uifiles/python_scratchpad.ui:555
 msgid "Siril Command Reference"
@@ -11086,11 +11086,12 @@ msgid "Pixel Fraction"
 msgstr "Доля пикселя"
 
 #: src/gui/uifiles/siril.ui:7151
-#, fuzzy
 msgid ""
 "Select the droplet model. See the documentation for details of when to use "
 "each model."
-msgstr "Укажите тип фильтра. Различия между фильтрами описаны в документации."
+msgstr ""
+"Выберите тип модели. Указания о том, когда следует использовать каждую "
+"модель, даны в документации."
 
 #: src/gui/uifiles/siril.ui:7154
 msgid "Square"
@@ -15118,6 +15119,7 @@ msgstr "Регистрация прервана.\n"
 #: src/compositing/compositing.c:2021
 msgid "Error: internal RGB composition sequence does not exist\n"
 msgstr ""
+"Ошибка: внутренняя последовательность для совмещения RGB не существует\n"
 
 #: src/core/OS_utils.c:359
 msgid "Error while computing available free disk space.\n"
@@ -16654,10 +16656,13 @@ msgstr "CieLAB"
 msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract green channel.\n"
 msgstr ""
+"Это изображение не имеет байеровского шаблона CFA, нельзя извлечь зелёный "
+"канал.\n"
 
 #: src/core/command.c:6429
 msgid "This image does not have a Bayer CFA pattern, cannot extract Ha.\n"
 msgstr ""
+"Это изображение не имеет байеровского шаблона CFA, нельзя извлечь канал Ha.\n"
 
 #: src/core/command.c:6455
 msgid "Upscaling x2\n"
@@ -16668,6 +16673,8 @@ msgid ""
 "This image does not have a Bayer CFA pattern, cannot extract Ha/OIII "
 "channels.\n"
 msgstr ""
+"Это изображение не имеет байеровского шаблона CFA, нельзя извлечь каналы Ha/"
+"OIII.\n"
 
 #: src/core/command.c:6719 src/gui/merge_cfa.c:298
 msgid ""
@@ -16675,7 +16682,7 @@ msgid ""
 "all be the same)\n"
 msgstr ""
 "Ошибка: последовательности не совпадают (размер, разрядность, кол-во "
-"изображений должно быть одинаковым)\n"
+"изображений должны быть одинаковыми)\n"
 
 #: src/core/command.c:6760
 #, c-format
@@ -17141,13 +17148,12 @@ msgstr ""
 "Укладка невозможна, прерывание\n"
 
 #: src/core/command.c:8724
-#, fuzzy
 msgid ""
 "No registration data in the sequence or images with different sizes or "
 "drizzled. Upscale at stacking will be ignored\n"
 msgstr ""
-"В последовательности нет данных регистрации или изображения разного размера. "
-"Увеличение масштаба при укладке будет проигнорировано\n"
+"В последовательности нет данных регистрации или изображения имеют разный "
+"размер. Увеличение масштаба при укладке будет проигнорировано\n"
 
 #: src/core/command.c:8728
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
@@ -25859,7 +25865,6 @@ msgstr ""
 "удаётся создать какой-либо файл"
 
 #: src/gui/compstars.c:232
-#, fuzzy
 msgid "Problem with conversion\n"
 msgstr "Проблема с преобразованием\n"
 
@@ -26282,6 +26287,9 @@ msgid ""
 "Error: cannot open an image processing dialog while a Python script claims "
 "the processing thread. Wait for the Python script to finish processing first."
 msgstr ""
+"Ошибка: не удаётся открыть диалоговое окно обработки изображений, пока "
+"сценарий Python запрашивает поток обработки. Дождитесь завершения сценария "
+"Python."
 
 #: src/gui/dialogs.c:249
 msgid "Select Folder"
@@ -26319,7 +26327,7 @@ msgstr "Перейти по <a href=\""
 #: src/gui/epf.c:147
 #, c-format
 msgid "Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
-msgstr ""
+msgstr "Билатеральный фильтр: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 
 #: src/gui/epf.c:171
 #, fuzzy
@@ -26840,6 +26848,8 @@ msgid ""
 "Error: sequence has more than one channel, this is for mono (CFA subchannel) "
 "sequences"
 msgstr ""
+"Ошибка: последовательность содержит более одного канала, это для монохромных "
+"(подканал CFA) последовательностей"
 
 #: src/gui/merge_cfa.c:349
 msgid "Error: images are not all loaded"
@@ -27428,13 +27438,12 @@ msgstr ""
 "белого.\n"
 
 #: src/gui/photometric_cc.c:609
-#, fuzzy
 msgid ""
 "Error: ensure OSC sensor, OSC filter or NB filter values, and white "
 "reference are selected.\n"
 msgstr ""
-"Ошибка: убедитесь, что указаны цветной сенсор, цветной фильтр и эталон "
-"белого.\n"
+"Ошибка: убедитесь, что указаны цветной сенсор, значения цветного или "
+"узкополосного фильтров и эталон белого.\n"
 
 #: src/gui/photometric_cc.c:1031
 msgid "one-shot color (OSC)"
@@ -27730,11 +27739,12 @@ msgid "No file is currently loaded to reload.\n"
 msgstr ""
 
 #: src/gui/python_gui.c:719
-#, fuzzy
 msgid ""
 "This will replace the entry buffer with the last saved version of the file. "
 "You will not be able to recover any contents."
-msgstr "Это заменит буфер ввода. Содержимое нельзя будет восстановить."
+msgstr ""
+"Это заменит буфер ввода последней сохранённой версией файла. Содержимое "
+"нельзя будет восстановить."
 
 #: src/gui/python_gui.c:785 src/gui/python_gui.c:856
 msgid ""
@@ -27954,9 +27964,8 @@ msgid "Pick object in two images"
 msgstr "Выбрать объект на двух изображениях"
 
 #: src/gui/registration.c:754
-#, fuzzy
 msgid "Pick at least one star"
-msgstr "Выбрать первую звезду"
+msgstr "Выберите хотя бы одну звезду"
 
 #: src/gui/registration.c:832
 msgid "Failed to determine registration method...\n"
@@ -28312,6 +28321,9 @@ msgid ""
 "<b>EXPERIMENTAL</b>: python scripts are currently an experimental feature. "
 "Please read the documentation for details..."
 msgstr ""
+"<b>ЭКСПЕРИМЕНТАЛЬНО</b>: в настоящее время сценарии python это "
+"экспериментальная функция. Пожалуйста, прочтите документацию для получения "
+"подробной информации..."
 
 #: src/gui/script_menu.c:339
 msgid "Script Editor..."
@@ -28905,14 +28917,20 @@ msgstr ""
 #: src/gui/utils.c:378
 msgid "Significantly out of range pixels detected: clipping outliers\n"
 msgstr ""
+"Обнаружены пиксели, существенно выходящие за приделы диапазона: обрезка "
+"выбросов\n"
 
 #: src/gui/utils.c:382
 msgid "Negative-valued pixels detected: clipping and scaling to [0,1]\n"
 msgstr ""
+"Обнаружены пиксели с отрицательными значениями: обрезка и масштабирование к "
+"[0,1]\n"
 
 #: src/gui/utils.c:388
 msgid "Marginally out of range pixels detected: scaling to [0,1]\n"
 msgstr ""
+"Обнаружены пиксели, незначительно выходящие за пределы диапазона: "
+"масштабирование к [0,1]\n"
 
 #: src/io/FITS_symlink.c:78
 msgid ""
@@ -31477,9 +31495,8 @@ msgid "File does not exist or is not accessible"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2618 src/io/siril_pythoncommands.c:2789
-#, fuzzy
 msgid "Failed to read image file"
-msgstr "Не удалось выделить буфер изображения"
+msgstr "Не удалось прочитать файл изображения"
 
 #: src/io/siril_pythoncommands.c:2679
 msgid "imstats_to_py conversion error"
@@ -31487,14 +31504,12 @@ msgstr ""
 
 #: src/io/siril_pythoncommands.c:2694 src/io/siril_pythoncommands.c:2713
 #: src/io/siril_pythoncommands.c:2733
-#, fuzzy
 msgid "Shared memory allocation error"
-msgstr "ошибка выделения памяти"
+msgstr "Ошибка выделения разделяемой памяти"
 
 #: src/io/siril_pythoncommands.c:2867
-#, fuzzy
 msgid "No analysis available"
-msgstr "Данные регистрации недоступны"
+msgstr "Анализ недоступен"
 
 #: src/io/siril_pythoncommands.c:2970
 #, fuzzy
@@ -31573,9 +31588,8 @@ msgid "Failed to map shared memory: %s\n"
 msgstr "Ошибка при сопоставлении разделяемой памяти: %s\n"
 
 #: src/io/siril_pythonmodule.c:336
-#, fuzzy
 msgid "Failed to retrieve pixel data - no FITS image"
-msgstr "Не удалось получить данные пикселей — изображение не загружено"
+msgstr "Не удалось получить данные пикселей — отсутствует изображение FITS"
 
 #: src/io/siril_pythonmodule.c:361 src/io/siril_pythonmodule.c:370
 #: src/io/siril_pythonmodule.c:379 src/io/siril_pythonmodule.c:490
@@ -31770,22 +31784,26 @@ msgid "Error in venv creation command: %s\n"
 msgstr "Ошибка в команде создания venv: %s\n"
 
 #: src/io/siril_pythonmodule.c:2041
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create virtual environment: %s\n"
-msgstr "Не удалось подготовить виртуальное окружение\n"
+msgstr "Не удалось создать виртуальное окружение: %s\n"
 
 #: src/io/siril_pythonmodule.c:2044
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python stderr:\n"
 "%s\n"
-msgstr "Сценарии Python"
+msgstr ""
+"Python stderr:\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2049
 msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
 msgstr ""
+"Подсказка: На Debian/Ubuntu вероятно необходимо установить пакет "
+"'python3-venv'.\n"
 
 #: src/io/siril_pythonmodule.c:2106
 #, c-format
@@ -33083,9 +33101,9 @@ msgstr ""
 "в настройках\n"
 
 #: src/registration/distorsion.c:434
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load image# %d, aborting\n"
-msgstr "Не удалось загрузить изображение, прерывание.\n"
+msgstr "Не удалось загрузить изображение № %d, прерывание\n"
 
 #: src/registration/distorsion.c:444
 msgid "Could not parse master file name for distortion, aborting\n"

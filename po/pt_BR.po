@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-17 09:11+0000\n"
+"PO-Revision-Date: 2025-10-17 22:11+0000\n"
 "Last-Translator: Wagner Trindade <wagner_trindade@msn.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril/pt_BR/>\n"
@@ -13179,6 +13179,8 @@ msgid ""
 "Plate solving image from %s %s for a field of view of %.2f degrees%s, using "
 "a limit magnitude of %.2f\n"
 msgstr ""
+"Resolvendo imagem de %s %s para um campo de visão de %.2f graus%s, usando "
+"uma magnitude limite de %.2f\n"
 
 #: src/algos/astrometry_solver.c:891
 msgid " (uncentered)"
@@ -13335,7 +13337,7 @@ msgstr "Recomputando o registro já existente para esta camada\n"
 #: src/algos/astrometry_solver.c:2070
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
-msgstr ""
+msgstr "Executando resolução de imagem de uma sequência usando o catálogo %s\n"
 
 #: src/algos/astrometry_solver.c:2082 src/algos/astrometry_solver.c:2189
 #, c-format
@@ -14235,12 +14237,13 @@ msgstr "A correção de cor fotométrica não fará nada em imagens monocromáti
 
 #: src/algos/photometric_cc.c:859
 msgid "failed to compute statistics on image, aborting\n"
-msgstr ""
+msgstr "falha ao calcular estatísticas na imagem, cancelando\n"
 
 #: src/algos/photometric_cc.c:869
 #, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr ""
+"Raios de fotometria definidos como %.1f para interno e %.1f para externo\n"
 
 #: src/algos/photometric_cc.c:872
 #, fuzzy
@@ -14256,10 +14259,12 @@ msgid ""
 "Cannot run the standalone photometric color calibration on this image "
 "because it has no WCS data or it is not supported\n"
 msgstr ""
+"Não é possível executar a calibração de cor fotométrica autônoma nesta "
+"imagem porque ela não possui dados WCS ou não é compatível\n"
 
 #: src/algos/photometric_cc.c:916
 msgid "Error computing FWHM for photometry settings adjustment\n"
-msgstr ""
+msgstr "Erro ao calcular FWHM para ajuste de configurações de fotometria\n"
 
 #: src/algos/photometric_cc.c:943
 #, c-format
@@ -14267,18 +14272,20 @@ msgid ""
 "Getting stars from local catalogue %s for %s, with a radius of %.2f degrees "
 "and limit magnitude %.2f\n"
 msgstr ""
+"Obtendo estrelas do catálogo local %s para %s, com um raio de %.2f graus e "
+"magnitude limite %.2f\n"
 
 #: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "SPCC"
-msgstr ""
+msgstr "SPCC"
 
 #: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
 msgid "PCC"
-msgstr ""
+msgstr "PCC"
 
 #: src/algos/photometric_cc.c:959
 msgid "No valid catalog found.\n"
-msgstr ""
+msgstr "Nenhum catálogo válido encontrado.\n"
 
 #: src/algos/photometric_cc.c:962
 #, c-format
@@ -14286,6 +14293,8 @@ msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr ""
+"Obtendo estrelas do catálogo online %s para PCC, com um raio de %.2f graus e "
+"magnitude limite %.2f\n"
 
 #: src/algos/photometric_cc.c:996
 #, c-format
@@ -14311,24 +14320,28 @@ msgid ""
 "Inner and outer radii are too small (%d required for inner). Please update "
 "values in preferences or with setphot.\n"
 msgstr ""
+"Os raios interno e externo são muito pequenos (%d necessário para o interno)"
+". Atualize os valores nas preferências ou com setphot.\n"
 
 #: src/algos/photometry.c:135
 msgid "An error occurred in your selection. Please make another selection.\n"
-msgstr ""
+msgstr "Ocorreu um erro na sua seleção. Por favor, faça outra seleção.\n"
 
 #: src/algos/photometry.c:184
 msgid ""
 "Warning: There aren't enough pixels in the sky annulus. You need to make a "
 "larger selection.\n"
 msgstr ""
+"Aviso: Não há pixels suficientes no anel celeste. Você precisa fazer uma "
+"seleção maior.\n"
 
 #: src/algos/photometry.c:241
 msgid "no error"
-msgstr ""
+msgstr "nenhum erro"
 
 #: src/algos/photometry.c:243
 msgid "memory allocation"
-msgstr ""
+msgstr "alocação de memória"
 
 #: src/algos/photometry.c:245
 msgid "unsupported image type"
@@ -14341,7 +14354,7 @@ msgstr "Filtro Mediano"
 
 #: src/algos/photometry.c:249
 msgid "not in area"
-msgstr ""
+msgstr "fora da área"
 
 #: src/algos/photometry.c:251
 msgid "inner radius too small"
@@ -14349,7 +14362,7 @@ msgstr "raio interno muito pequeno"
 
 #: src/algos/photometry.c:253
 msgid "aperture too small"
-msgstr ""
+msgstr "abertura muito pequena"
 
 #: src/algos/photometry.c:255
 #, fuzzy
@@ -14363,7 +14376,7 @@ msgstr "Estatística"
 
 #: src/algos/photometry.c:259
 msgid "invalid measurement error"
-msgstr ""
+msgstr "erro de medição inválido"
 
 #: src/algos/photometry.c:261
 #, fuzzy
@@ -14372,19 +14385,19 @@ msgstr "Relação de área de pixéis"
 
 #: src/algos/photometry.c:263
 msgid "area too small"
-msgstr ""
+msgstr "área muito pequena"
 
 #: src/algos/photometry.c:265
 msgid "image is invalid"
-msgstr ""
+msgstr "imagem é inválida"
 
 #: src/algos/photometry.c:267
 msgid "flux ratio failed"
-msgstr ""
+msgstr "taxa de fluxo falhou"
 
 #: src/algos/photometry.c:269
 msgid "unknown error"
-msgstr ""
+msgstr "erro desconhecido"
 
 #: src/algos/photometry.c:340 src/io/aavso_extended.c:111
 #: src/io/siril_plot.c:871
@@ -14396,21 +14409,25 @@ msgstr "Não foi possível criar %s, cancelando\n"
 #: src/io/siril_plot.c:722 src/io/siril_plot.c:751 src/io/siril_plot.c:883
 #, c-format
 msgid "%s has been saved.\n"
-msgstr ""
+msgstr "%s foi salvo.\n"
 
 #: src/algos/photometry.c:373 src/io/aavso_extended.c:186
 msgid "No photometry data found, error\n"
-msgstr ""
+msgstr "Nenhum dado de fotometria encontrado, erro\n"
 
 #: src/algos/photometry.c:393
 msgid "There are not enough valid stars to make a photometric analysis.\n"
 msgstr ""
+"Não há estrelas válidas suficientes para fazer uma análise fotométrica.\n"
 
 #: src/algos/photometry.c:408
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the light curve\n"
 msgstr ""
+"As estrelas de referência não são boas o suficiente, provavelmente estão "
+"fora do intervalo de pixels válido configurado, não é possível calibrar a "
+"curva de luz\n"
 
 #: src/algos/photometry.c:413
 msgid ""
@@ -14418,21 +14435,28 @@ msgid ""
 "light curve. Try to add more reference stars or check the configured valid "
 "pixel range\n"
 msgstr ""
+"Apenas uma estrela de referência foi validada, o que não resultará em uma "
+"curva de luz precisa. Tente adicionar mais estrelas de referência ou "
+"verifique o intervalo de pixels válido configurado.\n"
 
 #: src/algos/photometry.c:414
 #, c-format
 msgid "Using %d stars to calibrate the light curve\n"
-msgstr ""
+msgstr "Usando %d estrelas para calibrar a curva de luz\n"
 
 #: src/algos/photometry.c:498
 msgid ""
 "Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"
 msgstr ""
+"Barras de erro-- (%d imagens) mediana: %.2lfmmag, máx.: %.2lfmmag, mín.: %."
+"2lfmmag\n"
 
 #: src/algos/photometry.c:503
 msgid ""
 "Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"
 msgstr ""
+"SNR de estrela variável-- (%d imagens) mediana: %.2lfdB, máx.: %.2lfdB, mín.:"
+" %.2lfdB\n"
 
 #: src/algos/photometry.c:513
 #, c-format
@@ -14440,23 +14464,25 @@ msgid ""
 "Calibrated data for %d points of the light curve, %d excluded because of "
 "invalid photometry\n"
 msgstr ""
+"Dados calibrados para %d pontos da curva de luz, %d excluídos devido à "
+"fotometria inválida\n"
 
 #: src/algos/photometry.c:518 src/algos/photometry.c:520
 msgid "Light curve of star"
-msgstr ""
+msgstr "Curva de luz da estrela"
 
 #: src/algos/photometry.c:534
 msgid "V-C"
-msgstr ""
+msgstr "V-C"
 
 #: src/algos/photometry.c:605
 msgid "Failed to analyse the variable star photometry\n"
-msgstr ""
+msgstr "Falha ao analisar a fotometria da estrela variável\n"
 
 #: src/algos/photometry.c:609
 #, c-format
 msgid "Failed to analyse the photometry of reference star %d\n"
-msgstr ""
+msgstr "Falha ao analisar a fotometria da estrela de referência %d\n"
 
 #: src/algos/quality.c:352 src/algos/quality.c:403
 #, c-format
@@ -14464,38 +14490,44 @@ msgid ""
 "Not enough bright pixels detected for center of gravity computation (%d "
 "found for %d minimum).\n"
 msgstr ""
+"Não foram detectados pixels brilhantes suficientes para o cálculo do centro "
+"de gravidade (%d encontrados para %d mínimo).\n"
 
 #: src/algos/reconstr.c:158 src/algos/reconstr.c:193
 msgid ""
 "Error: dimensions reported by wavelets file are negative, zero or "
 "excessive.\n"
 msgstr ""
+"Erro: as dimensões relatadas pelo arquivo wavelets são negativas, zero ou "
+"excessivas.\n"
 
 #: src/algos/reconstr.c:162 src/algos/reconstr.c:189
 msgid "Error: number of plans reported by wavelets file is out of bounds.\n"
 msgstr ""
+"Erro: o número de planos relatados pelo arquivo wavelets está fora dos "
+"limites.\n"
 
 #: src/algos/reconstr.c:219
 msgid "Unknown transform\n"
-msgstr ""
+msgstr "Transformação desconhecida\n"
 
 #: src/algos/search_objects.c:58
 msgid "SIMBAD server returned:\n"
-msgstr ""
+msgstr "O servidor SIMBAD retornou:\n"
 
 #: src/algos/search_objects.c:61 src/algos/search_objects.c:137
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/algos/search_objects.c:134 src/io/remote_catalogues.c:269
 msgid "IMCCE server returned:\n"
-msgstr ""
+msgstr "O servidor IMCCE retornou:\n"
 
 #: src/algos/search_objects.c:155
 #, c-format
 msgid "Unsupported object type in response: %s\n"
-msgstr ""
+msgstr "Tipo de objeto não suportado na resposta: %s\n"
 
 #: src/algos/search_objects.c:179
 #, c-format
@@ -14505,12 +14537,12 @@ msgstr "Não foi possível analisar a resposta do servidor: %s\n"
 #: src/algos/search_objects.c:218
 #, c-format
 msgid "Found %s"
-msgstr ""
+msgstr "Encontrado %s"
 
 #: src/algos/search_objects.c:220
 #, c-format
 msgid " (aka %s)"
-msgstr ""
+msgstr " (aka %s)"
 
 #: src/algos/search_objects.c:221
 #, c-format
@@ -14521,27 +14553,33 @@ msgstr " nas coordenadas: %s, %s\n"
 #, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
 msgstr ""
+"O objeto %s (correspondência exata: %s) foi encontrado no catálogo %s em: "
+"%s, %s\n"
 
 #: src/algos/search_objects.c:271
 #, c-format
 msgid "Object %s record was found but is not within the bounds of the image\n"
 msgstr ""
+"O registro do objeto %s foi encontrado, mas não está dentro dos limites da "
+"imagem\n"
 
 #: src/algos/search_objects.c:277
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
-msgstr ""
+msgstr "Objeto %s não encontrado ou ocorreu um erro ao processá-lo\n"
 
 #: src/algos/search_objects.c:420 src/io/remote_catalogues.c:727
 #: src/io/siril_catalogues.c:615
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
+"O Siril foi compilado sem suporte de rede, não é possível realizar esta "
+"operação\n"
 
 #: src/algos/search_objects.c:432
 #, c-format
 msgid "Searching %s in CDSESAME...\n"
-msgstr ""
+msgstr "Pesquisando %s em CDSESAME...\n"
 
 #: src/algos/search_objects.c:440
 #, c-format

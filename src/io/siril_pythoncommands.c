@@ -695,7 +695,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 
 			if (result) {
 				if (com.selection.w == 0 && com.selection.h == 0) {
@@ -1198,12 +1198,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+			// Updated to expect optional prefix (256 bytes)
+			size_t expected_len = 4 + sizeof(incoming_image_info_t);
+			size_t expected_len_with_prefix = expected_len + 256;
+
+			if (payload_length != expected_len && payload_length != expected_len_with_prefix) {
+				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
+								payload_length, expected_len, expected_len_with_prefix);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
 			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
@@ -1212,7 +1218,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			const char* info = payload + 4;
+
+			// Extract prefix if present
+			const char* prefix = "";
+			if (payload_length == expected_len_with_prefix) {
+				const char* prefix_start = payload + 4 + sizeof(incoming_image_info_t);
+				// Check if prefix is not just null bytes (meaning None was passed)
+				if (prefix_start[0] != '\x00') {
+					prefix = prefix_start;
+				}
+			}
 
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
@@ -1222,14 +1239,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				free(fit);
 				break;
 			}
-
 			// Update the pixel data in the sequence frame fit
-			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
+			success = handle_set_pixeldata_request(conn, fit, info, sizeof(incoming_image_info_t));
 			int writer_retval;
-			// Write the sequence frame
+			// Write the sequence frame with the provided prefix (or empty string if none)
 			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
-					"", index);
-			siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
+					prefix, index);
+			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
 			free(dest);
@@ -1809,94 +1825,89 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PSFSTARS: {
-			int nb_stars = starcount(com.stars);
-			int channel = 1;
 			psf_star **stars = NULL;
-			gboolean stars_needs_freeing;
-			if (nb_stars < 1) {
-				image *input_image = NULL;
-				input_image = calloc(1, sizeof(image));
-				input_image->fit = &gfit;
-				input_image->from_seq = NULL;
-				input_image->index_in_seq = -1;
-				if (gfit.naxes[2] == 1)
-					channel = 0;
-				stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
-				free(input_image);
-				stars_needs_freeing = TRUE;
-				// Populate some data for each star if we are plate solved
-				for (int i = 0 ; i < nb_stars ; i++) {
-					psf_star *psf = stars[i];
-					psf->xpos = psf->x0;
-					psf->ypos = gfit.ry - psf->y0;
-					if (gfit.keywords.wcslib) {
-						double fx, fy;
-						display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
-						pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
-						fwhm_to_arcsec_if_needed(&gfit, psf);
-					}
+			int nb_stars = 0;
+			gboolean stars_needs_freeing = FALSE;
+
+			// Check if we need to find stars or use existing ones
+			if (starcount(com.stars) < 1) {
+				// Set up starfinder_data structure
+				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
+				if (!sf_data) {
+					const char* error_msg = _("Memory allocation failed");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 
+				sf_data->im.fit = &gfit;
+				sf_data->im.from_seq = NULL;
+				sf_data->im.index_in_seq = -1;
+				sf_data->layer = (gfit.naxes[2] == 1) ? 0 : 1;
+				sf_data->max_stars_fitted = MAX_STARS;
+				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
+				sf_data->save_eqcoords = has_wcs(&gfit); // save coords if plate solved
+				sf_data->ref_wcs = gfit.keywords.wcslib;
+				sf_data->stars = &stars;
+				sf_data->nb_stars = &nb_stars;
+				sf_data->threading = MULTI_THREADED;
+				sf_data->update_GUI = FALSE;
+				sf_data->process_all_images = FALSE;
+				sf_data->already_in_thread = TRUE;
+				sf_data->keep_stars = FALSE;  // Changed to FALSE so worker doesn't try to manage lifecycle
+
+				// Call the worker function
+				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
+				free(sf_data);
+
+				if (retval != 0 || !stars) {
+					const char* error_msg = _("Star detection failed");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (stars)
+						free_fitted_stars(stars);
+					break;
+				}
+				stars_needs_freeing = TRUE;
 			} else {
 				stars = com.stars;
-				stars_needs_freeing = FALSE;
+				nb_stars = starcount(com.stars);
 			}
 
-			// Count the number of stars in com.stars
-			nb_stars = starcount(stars);
-			if (nb_stars < 1) {
+			// Validate we have stars
+			if (nb_stars < 1 || !stars) {
 				const char* error_msg = _("No stars in image");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				if (stars_needs_freeing)
+					free_fitted_stars(stars);
 				break;
 			}
 
+			// Allocate memory for all star data
 			const size_t psf_star_size = 36 * sizeof(double);
 			const size_t total_size = nb_stars * psf_star_size;
-
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
 				const char* error_msg = _("Memory allocation failed");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				if (stars_needs_freeing)
+					free_fitted_stars(stars);
 				break;
 			}
 
+			// Convert stars to binary format
 			gboolean error_occurred = FALSE;
-			for (int i = 0; i < nb_stars; i++) {
-				if(!stars) {
-					const char* error_msg = _("Stars array was cleared mid-process");
-					error_occurred = TRUE;
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
-				}
-				psf_star *psf = stars[i];
-				if (!psf) {
-					error_occurred = TRUE;
-					const char* error_msg = _("Unexpected null star entry");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					if (stars_needs_freeing) {
-						free_psf_starstarstar(stars);
-					}
-					break;
-				}
-
-				// Calculate the correct offset for this star's data
+			for (int i = 0; i < nb_stars && stars[i]; i++) {
 				unsigned char* ptr = allstars + (i * psf_star_size);
-
-				if (psfstar_to_py(psf, ptr, psf_star_size)) {
+				if (psfstar_to_py(stars[i], ptr, psf_star_size)) {
 					error_occurred = TRUE;
-					const char* error_msg = _("Memory allocation error");
+					const char* error_msg = _("Star conversion error");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					if (stars_needs_freeing) {
-						free_psf_starstarstar(stars);
-					}
 					break;
 				}
 			}
 
-			if (stars_needs_freeing) {
-				free_psf_starstarstar(stars);
-			}
+			// Clean up and send response
+			if (stars_needs_freeing)
+				free_fitted_stars(stars);
 
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
@@ -1907,7 +1918,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(allstars);
 			break;
 		}
-
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
 			sample_mutex_lock();
@@ -2825,6 +2835,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			double roundness = 0.0;
 			double fwhm = 0.0;
 			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
+				// Analyse stars. Here we don't use findstar_worker because we only care about the number
+				// of stars, mean roundness and mean FWHM
 				psf_star **stars = NULL;
 				image *input_image = calloc(1, sizeof(image));
 				input_image->fit = fit;
@@ -2843,7 +2855,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					roundness /= nb_stars;
 					fwhm /= (2 * nb_stars);
 				}
-				free_psf_starstarstar(stars);
+				free_fitted_stars(stars);
 			}
 
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
