@@ -2061,7 +2061,7 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
-    def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray) -> bool:
+    def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray, prefix: str) -> bool:
         """
         Send sequence frame image data to Siril using shared memory. Note that this
         method only works with sequences of FITS images: it does **not** work with
@@ -2074,6 +2074,15 @@ class SirilInterface:
             image_data: numpy.ndarray containing the image data.
                 Must be 2D (single channel) or 3D (multi-channel) array
                 with dtype either np.float32 or np.uint16.
+            prefix: String prefix to use when saving the file to make a
+                new sequence. Note that saving sequence frames with a new prefix
+                does not by itself create a new sequence: once all the frames have
+                been saved with the new sequence prefix,
+                ``sirilpy.SirilInterface.create_new_seq()`` must be called to create
+                the actual sequence file. Note that while it is permitted to pass
+                prefix=None, this will overwrite the existing sequence and is not
+                typically what is wanted, therefore the parameter is not optional
+                and must be passed explicitly.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
@@ -2153,10 +2162,20 @@ class SirilInterface:
                 shm_info.shm_name
             )
 
+            # Prepare prefix bytes (256 bytes max, null-terminated)
+            if prefix is None:
+                prefix_bytes = b'\x00' * 256
+            else:
+                # Encode prefix and ensure it fits in 256 bytes (including null terminator)
+                prefix_encoded = prefix.encode('utf-8')
+                if len(prefix_encoded) > 255:
+                    raise ValueError(_("Prefix too long (max 255 bytes)"))
+                prefix_bytes = prefix_encoded + b'\x00' * (256 - len(prefix_encoded))
+
             # Create payload
-            # We don't range check index here as it is done more efficiently in the C code'
+            # We don't range check index here as it is done more efficiently in the C code
             index_bytes = struct.pack('!i', index)
-            payload = index_bytes + info
+            payload = index_bytes + info + prefix_bytes
 
             # Send command using the existing _execute_command method
             if not self._execute_command(_Command.SET_SEQ_FRAME_PIXELDATA, payload):

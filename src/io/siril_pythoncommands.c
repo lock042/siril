@@ -1198,12 +1198,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+			// Updated to expect optional prefix (256 bytes)
+			size_t expected_len = 4 + sizeof(incoming_image_info_t);
+			size_t expected_len_with_prefix = expected_len + 256;
+
+			if (payload_length != expected_len && payload_length != expected_len_with_prefix) {
+				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
+								payload_length, expected_len, expected_len_with_prefix);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
 			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
@@ -1212,7 +1218,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			const char* info = payload + 4;
+
+			// Extract prefix if present
+			const char* prefix = "";
+			if (payload_length == expected_len_with_prefix) {
+				const char* prefix_start = payload + 4 + sizeof(incoming_image_info_t);
+				// Check if prefix is not just null bytes (meaning None was passed)
+				if (prefix_start[0] != '\x00') {
+					prefix = prefix_start;
+				}
+			}
 
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
@@ -1222,14 +1239,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				free(fit);
 				break;
 			}
-
 			// Update the pixel data in the sequence frame fit
-			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
+			success = handle_set_pixeldata_request(conn, fit, info, sizeof(incoming_image_info_t));
 			int writer_retval;
-			// Write the sequence frame
+			// Write the sequence frame with the provided prefix (or empty string if none)
 			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
-					"", index);
-			siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
+					prefix, index);
+			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
 			free(dest);
