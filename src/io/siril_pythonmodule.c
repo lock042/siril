@@ -2444,15 +2444,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// Set the flag that a python script is running
 			com.python_script = TRUE;
 			siril_debug_print("***** com.python_script flag set\n");
-			// Prepend this process to the list of child processes com.children
-			child_info *child = g_malloc(sizeof(child_info));
-			child->childpid = child_pid;
-			child->program = EXT_PYTHON;
+			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
-			child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			if (!add_child(child_pid, EXT_PYTHON, childname)) {
+				siril_log_color_message(_("Warning: failed to add %s to child process list\n"), "salmon", childname);
+			}
 			g_free(script_basename);
-			child->datetime = g_date_time_new_now_local();
-			com.children = g_slist_prepend(com.children, child);
+			g_free(childname);
 		}
 	}
 

@@ -10,8 +10,12 @@ XX/XX/XX
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
 * Fixed crash in seqstarnet (#1814)
 * Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
+* Fixed writing RA/DEC to star lists from a single findstar command (#1794)
 * Fixed issue with RGB composition not always applying registration (!948)
+* Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
 * Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences

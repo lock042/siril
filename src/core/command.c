@@ -5441,6 +5441,12 @@ int process_findstar(int nb) {
 	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
 		args->selection = com.selection;
 	}
+	if (args->starfile && has_wcs(args->im.fit)) {
+		args->save_eqcoords = TRUE;
+		args->ref_wcs = args->im.fit->keywords.wcslib;
+	} else {
+		args->save_eqcoords = FALSE;
+	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
 		free(args);
