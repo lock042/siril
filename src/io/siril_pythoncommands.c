@@ -695,7 +695,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 
 			if (result) {
 				if (com.selection.w == 0 && com.selection.h == 0) {
