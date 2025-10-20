@@ -15,6 +15,7 @@ XX/XX/XX
 * Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
 * Fixed min/max stacking for (0,0) pixel (#1810)
 * Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
+* Fixed using reference image position and updating WCS in Export Sequence (#1824)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
