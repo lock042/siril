@@ -311,7 +311,8 @@ appimage:
     paths:
       - apt-cache
   before_script:
-    - apt-get install -y wget
+    - apt-get update
+    - apt-get install -y wget squashfs-tools
   script:
     - bash -ex build/appimage/generate.sh
   artifacts:
