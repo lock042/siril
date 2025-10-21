@@ -937,7 +937,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA_REGION: {
-			if (payload_length == 17) {
+			if (payload_length == 18) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
 				unsigned char* rectptr = (unsigned char*) payload + 2;

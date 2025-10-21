@@ -338,6 +338,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
+	if (region.h > 0 && region.w > 0)
+		region.y = fit->ry - region.y - region.h; // Flip vertically 
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
