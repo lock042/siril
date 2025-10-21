@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-26 16:14+0200\n"
-"PO-Revision-Date: 2025-10-19 05:36+0000\n"
+"PO-Revision-Date: 2025-10-21 19:36+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -14899,7 +14899,7 @@ msgstr ""
 #: src/algos/star_finder.c:1445
 #, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "Trouvé %d %s profils d'étoiles in %s, canal #%d (FWHM %f)\n"
+msgstr "Trouvé %d profils d'étoiles %s dans %s, canal #%d (FWHM %f)\n"
 
 #: src/algos/star_finder.c:1447
 msgid "selection"
@@ -30356,7 +30356,7 @@ msgstr "Échec\n"
 #: src/io/local_catalogues.c:908
 #, c-format
 msgid "Found %d trixels:\n"
-msgstr "Trouvé %d trixels :\n"
+msgstr "Trouvé %d trixels :\n"
 
 #: src/io/mp4_output.c:94
 #, c-format
