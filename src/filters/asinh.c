@@ -154,14 +154,19 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 							maxval = data.sf[chan];
 					}
 					if (maxval > 1.f) {
+						float invmaxval = 1.f / maxval;
 						for (int chan = 0 ; chan < 3 ; chan++) {
-							data.sf[chan] /= maxval;
+							data.sf[chan] *= invmaxval; // multiply is much quicker than divide so we do it outside this loop
+							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
+						}
+					} else {
+						for (int chan = 0 ; chan < 3 ; chan++) {
 							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
 						}
 					}
 					break;
 				case RGBBLEND:;
-					float out[3];
+					float out[3] = {val[0], val[1], val[2]};
 					rgbblend(&data, &out[RLAYER], &out[GLAYER], &out[BLAYER], m_CB);
 					for (int chan = 0 ; chan < 3 ; chan++) {
 						buf[chan][i] = roundf_to_WORD(norm * out[chan]);

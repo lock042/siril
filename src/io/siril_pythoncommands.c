@@ -2416,6 +2416,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
@@ -3107,7 +3108,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32* values = (guint32*) payload;
 					guint32 lo = GUINT32_FROM_BE(values[0]);
 					guint32 hi = GUINT32_FROM_BE(values[1]);
-					if (lo >= hi || lo < 0 || hi < 0 || lo > 65535 || hi > 65535) {
+					if (lo >= hi || lo > 65535 || hi > 65535) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
