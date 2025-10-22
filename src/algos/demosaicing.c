@@ -245,8 +245,10 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
 	gboolean from_header = FALSE;
-	if (com.pref.debayer.use_bayer_header) {
-		sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
+	sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
+	if (bayer > BAYER_FILTER_MAX)
+		tmp_pattern = bayer;
+	if (bayer <= BAYER_FILTER_MAX && com.pref.debayer.use_bayer_header) {
 		if (bayer == BAYER_FILTER_NONE) {
 			siril_debug_print("No Bayer pattern found in the header file.\n");
 			if (!force_debayer)
@@ -334,8 +336,14 @@ int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolea
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
-		int xbayeroff = fit->keywords.bayer_xoffset;
-		int ybayeroff = fit->keywords.bayer_yoffset;
+		int xbayeroff = 0, ybayeroff = 0;
+		if (!com.pref.debayer.use_bayer_header) {
+			xbayeroff = com.pref.debayer.xbayeroff;
+			ybayeroff = com.pref.debayer.ybayeroff;
+		} else {
+			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
+			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
+		}
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
@@ -465,8 +473,14 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
-		int xbayeroff = fit->keywords.bayer_xoffset;
-		int ybayeroff = fit->keywords.bayer_yoffset;
+		int xbayeroff = 0, ybayeroff = 0;
+		if (!com.pref.debayer.use_bayer_header) {
+			xbayeroff = com.pref.debayer.xbayeroff;
+			ybayeroff = com.pref.debayer.ybayeroff;
+		} else {
+			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
+			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
+		}
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 	}
 	// use librtprocess debayer
@@ -503,8 +517,14 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		int flipoffset = fit->ry % 6;
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
-		int xbayeroff = fit->keywords.bayer_xoffset;
-		int ybayeroff = fit->keywords.bayer_yoffset;
+		int xbayeroff = 0, ybayeroff = 0;
+		if (!com.pref.debayer.use_bayer_header) {
+			xbayeroff = com.pref.debayer.xbayeroff;
+			ybayeroff = com.pref.debayer.ybayeroff;
+		} else {
+			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
+			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
+		}
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 	}
 
