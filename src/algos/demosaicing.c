@@ -166,13 +166,15 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done\n"), "red");
 		return 1;
 	}
+	char bayer_copy[36];
+	memcpy(bayer_copy, bayer, 36 * sizeof(char));
 	if (flip) {
-		unsigned int orig[6][6];
-		memcpy(orig, xtrans, 36 * sizeof(unsigned int));
+		char orig[36];
+		memcpy(orig, bayer, 36 * sizeof(char));
 		for (int i = 0; i < 6; i++) {
 			int y = (5 - i + flip_offset) % 6;
 			for (int j = 0; j < 6; j++) {
-				xtrans[i][j] = orig[y][j];
+				bayer_copy[6 * i + j] = orig[y * 6 + j];
 			}
 		}
 	}
@@ -180,7 +182,7 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 		int yoff = (y + ybayeroff) % 6; // apply y offset
 		for (int x = 0; x < 6; x++) {
 			int xoff = (x + xbayeroff) % 6; // apply x offset
-			switch (bayer[i]) {
+			switch (bayer_copy[i]) {
 			case 'R':
 				xtrans[yoff][xoff] = 0;
 				break;
@@ -191,7 +193,7 @@ static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], 
 				xtrans[yoff][xoff] = 2;
 				break;
 			default:
-				siril_log_color_message(_("Invalid character in X-Trans filter pattern: %c\n"), "red", bayer[i]);
+				siril_log_color_message(_("Invalid character in X-Trans filter pattern: %c\n"), "red", bayer_copy[i]);
 				return 1;
 			}
 			i++;
