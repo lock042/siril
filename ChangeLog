@@ -17,6 +17,7 @@ XX/XX/XX
 * Fixed drizzle registration when compression is on (#1800)
 * Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
 * Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
+* Fixed XTrans sensors debayer afetr changes introduced in beta4 by !903 (!951)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
