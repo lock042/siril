@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -92,11 +92,11 @@ static int allocate_full_surface(struct image_view *view) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
 		view->full_surface_height = gfit.ry;
-		guchar *tmp = realloc(view->buf, stride * gfit.ry * sizeof(guchar));
+		guchar *tmp = siril_realloc(view->buf, stride * gfit.ry * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			if (view->buf)
-				free(view->buf);
+				siril_free(view->buf);
 			return 1;
 		}
 		view->buf = tmp;
@@ -163,8 +163,8 @@ void allocate_hd_remap_indices() {
 	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth;
 	for (unsigned i=0; i < 3; i++) {
 		if (gui.hd_remap_index[i] != NULL)
-			free(gui.hd_remap_index[i]);
-		gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
+			siril_free(gui.hd_remap_index[i]);
+		gui.hd_remap_index[i] = (BYTE*) siril_calloc(gui.hd_remap_max + 1, sizeof(BYTE));
 		if (gui.hd_remap_index[i] == NULL) {
 			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
 			gui.use_hd_remap = FALSE;
@@ -177,7 +177,7 @@ void allocate_hd_remap_indices() {
 void hd_remap_indices_cleanup() {
 	for (unsigned i=0 ; i < 3; i++) {
 		if (gui.hd_remap_index[i] != NULL) {
-			free(gui.hd_remap_index[i]);
+			siril_free(gui.hd_remap_index[i]);
 			gui.hd_remap_index[i] = NULL;
 		}
 	}
@@ -411,9 +411,9 @@ static void remap_all_vports() {
 			// Set up a buffer so that the color space transform can be carried out on
 			//a whole row at a time using OpenMP to parallelize rows and the single
 			// threaded lcms2 context to give SIMD parallelisation within the rows
-			WORD *pixelbuf = malloc(gfit.rx * 3 * sizeof(WORD));
+			WORD *pixelbuf = siril_malloc(gfit.rx * 3 * sizeof(WORD));
 			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
-			BYTE *pixelbuf_byte = malloc(gfit.rx * 3);
+			BYTE *pixelbuf_byte = siril_malloc(gfit.rx * 3);
 			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit.rx) , (pixelbuf_byte + 2 * gfit.rx) };
 			if (gfit.type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
@@ -485,8 +485,8 @@ static void remap_all_vports() {
 					}
 					break;
 			}
-			free(pixelbuf);
-			free(pixelbuf_byte);
+			siril_free(pixelbuf);
+			siril_free(pixelbuf_byte);
 		}
 		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
 			unlock_display_transform();
@@ -505,7 +505,7 @@ static int make_hd_index_for_current_display(int vport) {
 	int i;
 	BYTE *index;
 	float pxl;
-	// Check if the bit depth matches the LUT size, if not we need to realloc
+	// Check if the bit depth matches the LUT size, if not we need to siril_realloc
 	if (gui.hd_remap_max != 1 << com.pref.hd_bitdepth) {
 		gui.hd_remap_max = 1 << com.pref.hd_bitdepth;
 		allocate_hd_remap_indices();

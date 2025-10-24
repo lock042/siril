@@ -1,10 +1,10 @@
 /*
 * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -51,9 +51,9 @@ int do_normalization(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
 
-	args->coeff.offset = malloc(nb_layers * nb_frames * sizeof(double));
-	args->coeff.mul = malloc(nb_layers * nb_frames * sizeof(double));
-	args->coeff.scale = malloc(nb_layers * nb_frames * sizeof(double));
+	args->coeff.offset = siril_malloc(nb_layers * nb_frames * sizeof(double));
+	args->coeff.mul = siril_malloc(nb_layers * nb_frames * sizeof(double));
+	args->coeff.scale = siril_malloc(nb_layers * nb_frames * sizeof(double));
 
 	if (!args->coeff.offset || !args->coeff.mul || !args->coeff.scale) {
 		PRINT_ALLOC_ERR;
@@ -203,7 +203,7 @@ static int normalization_get_max_number_of_threads(sequence *seq) {
 	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
 
 	if (memory_per_image_MB > max_memory_MB) {
-		siril_log_color_message(_("Your system does not have enough memory to normalize images for stacking operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_image_MB);
+		siril_log_color_message(_("Your system does not have enough memory to normalize images for stacking operation (%d MB siril_free for %d MB required)\n"), "red", max_memory_MB, memory_per_image_MB);
 		return 0;
 	}
 
@@ -285,7 +285,7 @@ static int compute_normalization(struct stacking_args *args) {
 		}
 	}
 
-	free(threads_per_thread);
+	siril_free(threads_per_thread);
 	if (!retval)
 		compute_factors_from_estimators(args, ref_image_filtred_idx);
 
@@ -296,8 +296,8 @@ static int compute_normalization(struct stacking_args *args) {
 static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_t **Nij, double **Mij, gboolean additive, double *coeffs) {
 	int c = 0;
 	int N = nb_frames - 1;
-	double *A = calloc(N * N, sizeof(double));
-	double *B = calloc(N, sizeof(double));
+	double *A = siril_calloc(N * N, sizeof(double));
+	double *B = siril_calloc(N, sizeof(double));
 	for (int i = 0; i < N; i ++) {
 		int ii = index[i];
 		B[i] = (additive) ? (double)Nij[ii][index_ref] * (Mij[index_ref][ii] - Mij[ii][index_ref]) :
@@ -348,29 +348,29 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_
 	gsl_vector_fprintf(stdout, x, "%g");
 #endif
 	gsl_permutation_free(p);
-	free(A);
-	free(B);
+	siril_free(A);
+	siril_free(B);
 	memcpy(coeffs, x->data, N * sizeof(double));
 	gsl_vector_free(x);
 }
 
 void free_ostats(overlap_stats_t **ostats, int nb_layers) {
 	for (int n = 0; n < nb_layers; n++) {
-		free(ostats[n]);
+		siril_free(ostats[n]);
 	}
-	free(ostats);
+	siril_free(ostats);
 }
 
 overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
 	g_assert(nb_layers > 0);
 	int Npairs = nb_frames * (nb_frames - 1) / 2;
-	overlap_stats_t **seq_ostats = calloc(nb_layers, sizeof(overlap_stats_t *));
+	overlap_stats_t **seq_ostats = siril_calloc(nb_layers, sizeof(overlap_stats_t *));
 	if (!seq_ostats) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	for (int n = 0; n < nb_layers; n++) {
-		seq_ostats[n] = calloc(Npairs, sizeof(overlap_stats_t));
+		seq_ostats[n] = siril_calloc(Npairs, sizeof(overlap_stats_t));
 		if (!seq_ostats[n]) {
 			PRINT_ALLOC_ERR;
 			free_ostats(seq_ostats, nb_layers);
@@ -533,8 +533,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		return ST_OK;
 	}
 	args->seq->needs_saving = TRUE;
-	float *datai = malloc(nbdata * sizeof(float));
-	float *dataj = malloc(nbdata * sizeof(float));
+	float *datai = siril_malloc(nbdata * sizeof(float));
+	float *dataj = siril_malloc(nbdata * sizeof(float));
 	fit_sequence_get_image_filename_checkext(seq, i, file_i);
 	fit_sequence_get_image_filename_checkext(seq, j, file_j);
 	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
@@ -542,8 +542,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
 		clearfits(&fiti);
 		clearfits(&fitj);
-		free(datai);
-		free(dataj);
+		siril_free(datai);
+		siril_free(dataj);
 		return -1;
 	}
 	for (int n = 0; n < nb_layers; n++) {
@@ -591,8 +591,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			siril_debug_print("No overlap data between image %d and %d on layer %d\n", i + 1, j + 1, n);
 		}
 	}
-	free(datai);
-	free(dataj);
+	siril_free(datai);
+	siril_free(dataj);
 	clearfits(&fiti);
 	clearfits(&fitj);
 	return ST_OK;
@@ -652,7 +652,7 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 	fprintf(stdout, "Memory per pair: %u MB. Max memory: %d MB\n", memory_per_pair_MB, max_memory_MB);
 
 	if (memory_per_pair_MB > max_memory_MB) {
-		siril_log_color_message(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_pair_MB);
+		siril_log_color_message(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB siril_free for %d MB required)\n"), "red", max_memory_MB, memory_per_pair_MB);
 		return 0;
 	}
 
@@ -723,29 +723,29 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		args->seq->needs_saving = TRUE;
 	}
 
-	Mij = calloc(nb_layers, sizeof(double **));
-	Sij = calloc(nb_layers, sizeof(double **));
-	Nij = calloc(nb_layers, sizeof(size_t **));
-	index = calloc(nb_frames, sizeof(int));
-	coeffs = calloc(N, sizeof(double));
+	Mij = siril_calloc(nb_layers, sizeof(double **));
+	Sij = siril_calloc(nb_layers, sizeof(double **));
+	Nij = siril_calloc(nb_layers, sizeof(size_t **));
+	index = siril_calloc(nb_frames, sizeof(int));
+	coeffs = siril_calloc(N, sizeof(double));
 	if (!Mij || !Sij || !Nij || !index || !coeffs) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto cleanup2;
 	}
 	for (int n = 0; n < nb_layers; n++) {
-		Mij[n] = malloc(nb_frames * sizeof(double *));
-		Sij[n] = malloc(nb_frames * sizeof(double *));
-		Nij[n] = malloc(nb_frames * sizeof(size_t *));
+		Mij[n] = siril_malloc(nb_frames * sizeof(double *));
+		Sij[n] = siril_malloc(nb_frames * sizeof(double *));
+		Nij[n] = siril_malloc(nb_frames * sizeof(size_t *));
 		if (!Mij[n] || !Sij[n] || !Nij[n]) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
 			goto cleanup2;
 		}
 		for (int i = 0; i < nb_frames; i++) {
-			Mij[n][i] = calloc(nb_frames, sizeof(double));
-			Sij[n][i] = calloc(nb_frames, sizeof(double));
-			Nij[n][i] = calloc(nb_frames, sizeof(size_t));
+			Mij[n][i] = siril_calloc(nb_frames, sizeof(double));
+			Sij[n][i] = siril_calloc(nb_frames, sizeof(double));
+			Nij[n][i] = siril_calloc(nb_frames, sizeof(size_t));
 			if (!Mij[n][i] || !Sij[n][i] || !Nij[n][i]) {
 				PRINT_ALLOC_ERR;
 				retval = 1;
@@ -909,29 +909,29 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	for (int n = 0; n < nb_layers; n++) {
 		if (Mij && Mij[n]) {
 			for (int i = 0; i < nb_frames; i++) {
-				free(Mij[n][i]);
+				siril_free(Mij[n][i]);
 			}
-			free(Mij[n]);
+			siril_free(Mij[n]);
 		}
 		if (Sij && Sij[n]) {
 			for (int i = 0; i < nb_frames; i++) {
-				free(Sij[n][i]);
+				siril_free(Sij[n][i]);
 			}
-			free(Sij[n]);
+			siril_free(Sij[n]);
 		}
 		if (Nij && Nij[n]) {
 			for (int i = 0; i < nb_frames; i++) {
-				free(Nij[n][i]);
+				siril_free(Nij[n][i]);
 			}
-			free(Nij[n]);
+			siril_free(Nij[n]);
 		}
 	}
 	cleanup2:
-	free(Mij);
-	free(Sij);
-	free(Nij);
-	free(index);
-	free(coeffs);
+	siril_free(Mij);
+	siril_free(Sij);
+	siril_free(Nij);
+	siril_free(index);
+	siril_free(coeffs);
 
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	return retval;

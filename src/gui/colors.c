@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -364,7 +364,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		return;
 	}
 
-	struct extract_channels_data *args = calloc(1, sizeof(struct extract_channels_data));
+	struct extract_channels_data *args = siril_calloc(1, sizeof(struct extract_channels_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -397,25 +397,25 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	    }
 	}
 
-	args->fit = calloc(1, sizeof(fits));
+	args->fit = siril_calloc(1, sizeof(fits));
 	set_cursor_waiting(TRUE);
 	if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_log_message(_("Could not copy the input image, aborting.\n"));
 		clearfits(args->fit);
-		free(args->fit);
-		free(args->channel[0]);
-		free(args->channel[1]);
-		free(args->channel[2]);
-		free(args);
+		siril_free(args->fit);
+		siril_free(args->channel[0]);
+		siril_free(args->channel[1]);
+		siril_free(args->channel[2]);
+		siril_free(args);
 	} else {
 		copy_fits_metadata(&gfit, args->fit);
 		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
-			free(args->fit);
-			free(args->channel[0]);
-			free(args->channel[1]);
-			free(args->channel[2]);
-			free(args);
+			siril_free(args->fit);
+			siril_free(args->channel[0]);
+			siril_free(args->channel[1]);
+			siril_free(args->channel[2]);
+			siril_free(args);
 		}
 	}
 }
@@ -443,7 +443,7 @@ void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
 
 
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
-	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
+	struct ccm_data *args = siril_calloc(1, sizeof(struct ccm_data));
 
 	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
 	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
@@ -467,7 +467,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 	} else {
 		if (seq_toggle) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
-			free(args);
+			siril_free(args);
 			return;
 		} else if (gfit.icc_profile && gfit.color_managed) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
@@ -489,7 +489,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		ccm_calc(&gfit, args->matrix, args->power);
 		invalidate_stats_from_fit(&gfit);
 		notify_gfit_modified();
-		free(args);
+		siril_free(args);
 	}
 }
 

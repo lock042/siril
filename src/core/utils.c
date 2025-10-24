@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -59,7 +59,7 @@
  */
 WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	WORD *buf = malloc(ndata * sizeof(WORD));
+	WORD *buf = siril_malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -78,7 +78,7 @@ WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
  */
 signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	signed short *buf = malloc(ndata * sizeof(signed short));
+	signed short *buf = siril_malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -97,7 +97,7 @@ signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
  */
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	signed short *buf = malloc(ndata * sizeof(signed short));
+	signed short *buf = siril_malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -116,7 +116,7 @@ signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
  */
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	float *buf = malloc(ndata * sizeof(float));
+	float *buf = siril_malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -135,7 +135,7 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
  */
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	float *buf = malloc(ndata * sizeof(float));
+	float *buf = siril_malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -154,7 +154,7 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
  */
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
-	float *buf = malloc(ndata * sizeof(float));
+	float *buf = siril_malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 	} else {
@@ -263,7 +263,7 @@ char *remove_ext_from_filename(const char *filename) {
 	if (ext_index == -1)
 		return strdup(filename);
 
-	file = malloc(ext_index + 1);
+	file = siril_malloc(ext_index + 1);
 	strncpy(file, filename, ext_index);
 	file[ext_index] = '\0';
 	return file;
@@ -285,7 +285,7 @@ char *remove_all_ext_from_filename(const char *filename) {
     if (ext_index == -1)
         return strdup(filename);
 
-    file = malloc(ext_index + 1);
+    file = siril_malloc(ext_index + 1);
     strncpy(file, filename, ext_index);
     file[ext_index] = '\0';
     return file;
@@ -854,7 +854,7 @@ gchar* str_append(gchar** data, const gchar* newdata) {
 
 /**
  * Cut a base name to 120 characters and add a trailing underscore if needed.
- * WARNING: may return a newly allocated string and free the argument
+ * WARNING: may return a newly allocated string and siril_free the argument
  * @param root the original base name
  * @param can_free allow root to be freed in case a new string is allocated
  * @return a string ending with trailing underscore
@@ -869,12 +869,12 @@ char *format_basename(char *root, gboolean can_free) {
 		return root;
 	}
 
-	char *appended = malloc(len + 2);
+	char *appended = siril_malloc(len + 2);
 	if (!appended)
 		return NULL;
 	sprintf(appended, "%s_", root);
 	if (can_free)
-		free(root);
+		siril_free(root);
 	return appended;
 }
 
@@ -1144,8 +1144,8 @@ g_string_replace (GString     *string,
  * functions of similar purpose.
  *
  * Calling function must initialize a char* to hold the result.
- * result is malloc()ed here and is the responsibility of the calling
- * function to free.
+ * result is siril_malloc()ed here and is the responsibility of the calling
+ * function to siril_free.
  */
 
 char *str_replace(char *orig, const char *rep, char *with) {
@@ -1174,7 +1174,7 @@ char *str_replace(char *orig, const char *rep, char *with) {
         ins = tmp + len_rep;
     }
 
-    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+    tmp = result = siril_malloc(strlen(orig) + (len_with - len_rep) * count + 1);
 
     if (!result)
         return NULL;
@@ -1429,7 +1429,7 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 	if (fit->type == DATA_USHORT) {
 		if (fit->orig_bitpix == BYTE_IMG || max_bitdepth == 8) {
 			datalength = width * height * fit->naxes[2] * sizeof(BYTE);
-			buffer = malloc(datalength);
+			buffer = siril_malloc(datalength);
 			image_buffer = (uint8_t*) buffer;
 			if (!image_buffer) {
 				PRINT_ALLOC_ERR;
@@ -1452,7 +1452,7 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			bitdepth = 8;
 		} else {
 			datalength = width * height * fit->naxes[2] * sizeof(WORD);
-			buffer = malloc(datalength);
+			buffer = siril_malloc(datalength);
 			image_bufferW = (uint16_t*) buffer;
 			if (!image_bufferW) {
 				PRINT_ALLOC_ERR;
@@ -1476,7 +1476,7 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 	} else {
 		if (max_bitdepth == 8) {
 			datalength = width * height * fit->naxes[2];
-			buffer = malloc(datalength);
+			buffer = siril_malloc(datalength);
 			image_buffer = (uint8_t*) buffer;
 			if (!image_buffer) {
 				PRINT_ALLOC_ERR;
@@ -1498,7 +1498,7 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			bitdepth = 8;
 		} else if (max_bitdepth < 17) {
 			datalength = width * height * fit->naxes[2] * 2;
-			buffer = malloc(datalength);
+			buffer = siril_malloc(datalength);
 			image_bufferW = (uint16_t*) buffer;
 			if (!image_bufferW) {
 				PRINT_ALLOC_ERR;
@@ -1520,7 +1520,7 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 			bitdepth = max_bitdepth;
 		} else {
 			datalength = width * height * fit->naxes[2] * sizeof(float);
-			buffer = malloc(datalength);
+			buffer = siril_malloc(datalength);
 			image_bufferf = (float*) buffer;
 			if (!image_bufferf) {
 				PRINT_ALLOC_ERR;
@@ -1735,7 +1735,7 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
 				// Recursively search this subdirectory
 				file_result = find_file_recursively(basename, full_path);
 
-				// If file found, free the full path and return
+				// If file found, siril_free the full path and return
 
 				if (file_result) {
 					g_free(full_path);

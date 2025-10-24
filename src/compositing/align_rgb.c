@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -69,9 +69,9 @@ static int initialize_internal_rgb_sequence() {
 
 	seq = create_internal_sequence(3);
 	for (int i = 0; i < 3; i++) {
-		fits *fit = calloc(1, sizeof(fits));
+		fits *fit = siril_calloc(1, sizeof(fits));
 		if (extract_fits(&gfit, fit, i, FALSE)) {
-			free(fit);
+			siril_free(fit);
 			free_sequence(seq, TRUE);
 			return -1;
 		}
@@ -135,9 +135,9 @@ int rgb_align(int m) {
 	com.run_thread = TRUE;	// fix for the canceling check in processing
 
 	retval1 = method->method_ptr(&regargs);
-	free(regargs.imgparam);
+	siril_free(regargs.imgparam);
 	regargs.imgparam = NULL;
-	free(regargs.regparam);
+	siril_free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (retval1) {
 		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);

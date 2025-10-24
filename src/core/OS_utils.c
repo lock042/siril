@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -181,7 +181,7 @@ static gint64 find_space(const gchar *name) {
 				if (freeSpace) {
 					result = (gint64)[freeSpace longLongValue];
 				} else {
-					NSLog(@"Error: no free space information available");
+					NSLog(@"Error: no siril_free space information available");
 				}
 			}
 		} else {
@@ -194,7 +194,7 @@ static gint64 find_space(const gchar *name) {
 				if (freeSpace) {
 					result = (gint64)[freeSpace longLongValue];
 				} else {
-					NSLog(@"Error: no free space information available");
+					NSLog(@"Error: no siril_free space information available");
 				}
 			}
 		}
@@ -322,16 +322,16 @@ static guint64 get_used_RAM_memory() {
 }
 
 /**
- * Test if disk contain free space
+ * Test if disk contain siril_free space
  * @param the path of the folder to be checked
- * @return TRUE if free space disk is available, FALSE otherwise
+ * @return TRUE if siril_free space disk is available, FALSE otherwise
  */
 gboolean is_space_disk_available(const gchar *disk) {
 	return (!(find_space(disk) < 1L));
 }
 
 /**
- * Updates RAM memory used by siril, available free disk space
+ * Updates RAM memory used by siril, available siril_free disk space
  * and displays information on the control window.
  * @return always return TRUE
  */
@@ -347,8 +347,8 @@ gboolean update_displayed_memory(gpointer data) {
 #define MAX_COMP_FREESPACE_RATIO 3
 
 /**
- * Test if there is enough free disk space by returning the difference
- * in bytes between available free disk space and the size given as parameter
+ * Test if there is enough siril_free disk space by returning the difference
+ * in bytes between available siril_free disk space and the size given as parameter
  * @param req_size available space to be tested
  * @return 0 if there is enough disk space, 1 otherwise, -1 on error.
  */
@@ -356,7 +356,7 @@ int test_available_space(gint64 req_size) {
 	gint64 free_space = find_space(com.wd);
 	int res = -1;
 	if (free_space < 0) {
-		siril_log_message(_("Error while computing available free disk space.\n"));
+		siril_log_message(_("Error while computing available siril_free disk space.\n"));
 		return res;
 	}
 	if (req_size <= 0) {
@@ -371,19 +371,19 @@ int test_available_space(gint64 req_size) {
 		gchar *missing = g_format_size_full(req_size - free_space, G_FORMAT_SIZE_IEC_UNITS);
 		if (com.pref.comp.fits_enabled) {
 			if (req_size / free_space < MAX_COMP_FREESPACE_RATIO) {
-				msg = siril_log_message(_("Compression enabled: There may no be enough free disk space to perform this operation: "
+				msg = siril_log_message(_("Compression enabled: There may no be enough siril_free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: There may not be enough siril_free disk space to perform this operation"), msg);
 			} else {
-				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation: "
+				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough siril_free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough siril_free disk space to perform this operation"), msg);
 			}
 			res = 0;
 		} else {
-			msg = siril_log_message(_("Not enough free disk space to perform this operation: "
+			msg = siril_log_message(_("Not enough siril_free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
 			queue_error_message_dialog(_("Not enough disk space"), msg);
@@ -394,7 +394,7 @@ int test_available_space(gint64 req_size) {
 		g_free(missing);
 		return res;
 	}
-	siril_debug_print("Tested free space ok: %" G_GINT64_FORMAT " for %" G_GINT64_FORMAT " MB free\n",
+	siril_debug_print("Tested siril_free space ok: %" G_GINT64_FORMAT " for %" G_GINT64_FORMAT " MB siril_free\n",
 			(gint64)(req_size / BYTES_IN_A_MB), (gint64)(free_space / BYTES_IN_A_MB));
 	return 0;
 }
@@ -806,7 +806,7 @@ guint64 get_available_memory() {
 	}
 	return mem;
 #else
-	fprintf(stderr, "Siril failed to get available free RAM memory\n");
+	fprintf(stderr, "Siril failed to get available siril_free RAM memory\n");
 	return (guint64) 0;
 #endif
 }

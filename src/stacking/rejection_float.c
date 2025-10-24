@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -300,7 +300,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			return kept;
 		}
 		max_outliers -= removed;
-		struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
+		struct ESD_outliers *out = siril_malloc(max_outliers * sizeof(struct ESD_outliers));
 
 		memcpy(w_stack, stack, N * sizeof(float));
 		memset(rejected, 0, N * sizeof(int));
@@ -316,7 +316,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			remove_element(w_stack, max_index, size);
 		}
 		confirm_outliers(out, max_outliers, median, rejected, crej);
-		free(out);
+		siril_free(out);
 
 		for (pixel = 0, output = 0; pixel < N; pixel++) {
 			if (!rejected[pixel]) {

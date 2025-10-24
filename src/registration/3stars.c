@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -171,7 +171,7 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	if (!com.stars)
-		com.stars = calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
+		com.stars = siril_calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
 
 	int index;
 	if (!comboboxreglayer)
@@ -224,13 +224,13 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 		goto psf_end;
 	}
 
-	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
+	com.stars = siril_realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
 	com.stars[3] = NULL;
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
 
 psf_end:
 	g_slist_free(spsfargs->list);
-	free(spsfargs);
+	siril_free(spsfargs);
 	args->user = NULL;
 	return args->retval;
 }
@@ -240,15 +240,15 @@ static void _3stars_free_results() {
 	for (int i = 0; i < results_size; i++) {
 		for (int s = 0; s < 3; s++)
 			if (results[i].stars[s])
-				free(results[i].stars[s]);
+				siril_free(results[i].stars[s]);
 	}
-	free(results);
+	siril_free(results);
 	results = NULL;
 }
 
 static int _3stars_seqpsf(struct registration_args *regargs) {
-	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
-	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	struct seqpsf_args *spsfargs = siril_calloc(1, sizeof(struct seqpsf_args));
+	struct generic_seq_args *args = siril_calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
 	spsfargs->allow_use_as_regdata = BOOL_FALSE;
 	spsfargs->list = NULL;	// GSList init is NULL
@@ -262,24 +262,24 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
 		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
-			free(args);
-			free(spsfargs);
+			siril_free(args);
+			siril_free(spsfargs);
 			return 1;
 		}
 		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
 			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == NULL_TRANSFORMATION) {
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
-				free(args);
-				free(spsfargs);
+				siril_free(args);
+				siril_free(spsfargs);
 				return 1;
 			}
 			selection_H_transform(&args->area, regargs->seq->regparam[regargs->layer][regargs->seq->current].H, regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 			if (args->area.x < 0 || args-> area.x > regargs->seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > regargs->seq->ry - args->area.h) {
 				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
-				free(args);
-				free(spsfargs);
+				siril_free(args);
+				siril_free(spsfargs);
 				return 1;
 			}
 		}
@@ -306,11 +306,11 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	args->already_in_a_thread = TRUE;
 	args->parallel = !regargs->follow_star;	// follow star implies not parallel
 	if (!results) {
-		results = calloc(com.seq.number, sizeof(struct _3psf));
+		results = siril_calloc(com.seq.number, sizeof(struct _3psf));
 		if (!results) {
 			PRINT_ALLOC_ERR;
-			free(spsfargs);
-			free(args);
+			siril_free(spsfargs);
+			siril_free(args);
 			return 1;
 		}
 		results_size = com.seq.number;
@@ -319,7 +319,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	siril_free(args);
 	return regargs->retval;
 }
 
@@ -371,16 +371,16 @@ int register_3stars(struct registration_args *regargs) {
 	int processed = 0, failed = 0;
 
 	// local flag accounting both for process_all_frames flag and collecting failures along the process
-	gboolean *included = calloc(regargs->seq->number, sizeof(gboolean));
+	gboolean *included = siril_calloc(regargs->seq->number, sizeof(gboolean));
 	if (!included) {
 		PRINT_ALLOC_ERR;
 		_3stars_free_results();
 		return 1;
 	}
-	float *scores = calloc(regargs->seq->number, sizeof(float));
+	float *scores = siril_calloc(regargs->seq->number, sizeof(float));
 	if (!scores) {
 		PRINT_ALLOC_ERR;
-		free(included);
+		siril_free(included);
 		_3stars_free_results();
 		return 1;
 	}
@@ -510,8 +510,8 @@ int register_3stars(struct registration_args *regargs) {
 					}
 				}
 				double err = cvCalculRigidTransform(arrayref, arraycur, nb_stars, &H);
-				free(arrayref);
-				free(arraycur);
+				siril_free(arrayref);
+				siril_free(arraycur);
 				if (err > current_regdata[i].fwhm) {
 					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 					printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
@@ -528,8 +528,8 @@ int register_3stars(struct registration_args *regargs) {
 	}
 	// cleaning
 	regargs->new_total = processed - failed;
-	free(included);
-	free(scores);
+	siril_free(included);
+	siril_free(scores);
 	_3stars_free_results();
 
 	fix_selnum(regargs->seq, FALSE);

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -152,24 +152,24 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 	g_assert(xmap != NULL);
 	g_assert(ymap != NULL);
 	double x, y;
-	double *U = malloc(rx * sizeof(double));
-	double *V = malloc(ry * sizeof(double));
+	double *U = siril_malloc(rx * sizeof(double));
+	double *V = siril_malloc(ry * sizeof(double));
 	double *U2 = NULL, *V2 = NULL, *U3 = NULL, *V3 = NULL, *U4 = NULL, *V4 = NULL, *U5 = NULL, *V5 = NULL;
 	if (disto->order >= 2) {
-		U2 = malloc(rx * sizeof(double));
-		V2 = malloc(ry * sizeof(double));
+		U2 = siril_malloc(rx * sizeof(double));
+		V2 = siril_malloc(ry * sizeof(double));
 	}
 	if (disto->order >= 3) {
-		U3 = malloc(rx * sizeof(double));
-		V3 = malloc(ry * sizeof(double));
+		U3 = siril_malloc(rx * sizeof(double));
+		V3 = siril_malloc(ry * sizeof(double));
 	}
 	if (disto->order >= 4) {
-		U4 = malloc(rx * sizeof(double));
-		V4 = malloc(ry * sizeof(double));
+		U4 = siril_malloc(rx * sizeof(double));
+		V4 = siril_malloc(ry * sizeof(double));
 	}
 	if (disto->order >= 5) {
-		U5 = malloc(rx * sizeof(double));
-		V5 = malloc(ry * sizeof(double));
+		U5 = siril_malloc(rx * sizeof(double));
+		V5 = siril_malloc(ry * sizeof(double));
 	}
 	for (int u = 0; u < rx; ++u) {
 		U[u] = (double)u - disto->xref;
@@ -239,16 +239,16 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
  		}
 		r += rx;
  	}
-	free(U);
-	free(U2);
-	free(U3);
-	free(U4);
-	free(U5);
-	free(V);
-	free(V2);
-	free(V3);
-	free(V4);
-	free(V5);
+	siril_free(U);
+	siril_free(U2);
+	siril_free(U3);
+	siril_free(U4);
+	siril_free(U5);
+	siril_free(V);
+	siril_free(V2);
+	siril_free(V3);
+	siril_free(V4);
+	siril_free(V5);
 }
 
 
@@ -258,13 +258,13 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 		return 0;
 
 	if (!disto->xmap) {
-		disto->xmap = malloc(rx * ry *sizeof(float));
-		disto->ymap = malloc(rx * ry *sizeof(float));
+		disto->xmap = siril_malloc(rx * ry *sizeof(float));
+		disto->ymap = siril_malloc(rx * ry *sizeof(float));
 	}
 
 	if (!disto->xmap || !disto->ymap) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 		disto->xmap = NULL;
 		disto->ymap = NULL;
 		return 2;
@@ -355,7 +355,7 @@ static gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	if (!found && seq) {
 		char *namewoext = remove_ext_from_filename(seq->seqname);
 		wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
-		free(namewoext);
+		siril_free(namewoext);
 	}
 	return wcsname;
 }
@@ -425,7 +425,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 
 	if (distoparam->index == DISTO_MASTER) {
 		fits fit  = { 0 };
-		disto = calloc(seq->number, sizeof(disto_data));
+		disto = siril_calloc(seq->number, sizeof(disto_data));
 		gboolean found = FALSE;
 		for (int i = 0;  i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
@@ -489,7 +489,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			distoparam->index = DISTO_UNDEF;
 			return NULL;
 		}
-		disto = calloc(1, sizeof(disto_data));
+		disto = siril_calloc(1, sizeof(disto_data));
 		disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[0].A, disto[0].B, disto[0].AP, disto[0].BP);
 		disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
 		disto[0].yref = wcs->crpix[1] - 1.;
@@ -497,7 +497,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		wcsfree(wcs);
 	}
 	if (distoparam->index == DISTO_FILES) {
-		disto = calloc(seq->number, sizeof(disto_data));
+		disto = siril_calloc(seq->number, sizeof(disto_data));
 		gboolean found = FALSE;
 		for (int i = 0;  i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
@@ -616,12 +616,12 @@ gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source ind
 void free_disto_args(disto_data *disto) {
 	if (!disto)
 		return;
-	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
+	// we only need to siril_free the maps for the 2 types which store them (disto has only one element in that case)
 	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 	}
-	free(disto);
+	siril_free(disto);
 }
 
 void copy_disto(disto_data *disto_in, disto_data *disto_out) {

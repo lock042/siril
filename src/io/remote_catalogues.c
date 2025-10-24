@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -50,7 +50,7 @@ static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
 // - it needs to be added to the siril_cat_index enum
 // Warning: For Vizier, the catcode needs to be enclosed between ", hence the %22 chars
 static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
-	cat_tap_query_fields *tap = calloc(1, sizeof(cat_tap_query_fields));
+	cat_tap_query_fields *tap = siril_calloc(1, sizeof(cat_tap_query_fields));
 	switch (cat) {
 		case CAT_TYCHO2:
 			tap->catcode = g_strdup("%22I/259/tyc2%22");
@@ -178,7 +178,7 @@ static cat_tap_query_fields *catalog_to_tap_fields(siril_cat_index cat) {
 			tap->tap_columns[CAT_FIELD_NAME] = g_strdup("pl_name");
 			break;
 		default:
-			free(tap);
+			siril_free(tap);
 			return NULL;
 	}
 	return tap;
@@ -192,7 +192,7 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
 	for (int i = 0; i < MAX_TAP_QUERY_COLUMNS; i++) {
 		g_free(tap->tap_columns[i]);
 	}
-	free(tap);
+	siril_free(tap);
 }
 
 /// Returns url to be queried based on catalog type and query
@@ -291,7 +291,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	int n = 0;
 	for (int i = 3; i < nb_lines; i++) {
 		if (i == 3) {
-			cat_items = calloc(nstars, sizeof(cat_item));
+			cat_items = siril_calloc(nstars, sizeof(cat_item));
 			if (!cat_items) {
 				PRINT_ALLOC_ERR;
 				siril_catalog_free(siril_cat);
@@ -321,10 +321,10 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	g_strfreev(token);
 	if (nstars && n < nstars) {
 		if (!n) {
-			free(cat_items);
+			siril_free(cat_items);
 			cat_items = NULL;
 		} else {
-			cat_item *new_array = realloc(cat_items, n * sizeof(cat_item));
+			cat_item *new_array = siril_realloc(cat_items, n * sizeof(cat_item));
 			if (!new_array) {
 				PRINT_ALLOC_ERR;
 				siril_catalog_free(siril_cat);
@@ -366,7 +366,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	int n = 0;
 	cat_item *cat_items = NULL;
 	if (nstars > 0) {
-		cat_items = calloc(nstars, sizeof(cat_item));
+		cat_items = siril_calloc(nstars, sizeof(cat_item));
 	}
 
 	// Iterate through stars
@@ -436,10 +436,10 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 	// Resize array if needed
 	if (nstars && n < nstars) {
 		if (!n) {
-			free(cat_items);
+			siril_free(cat_items);
 			cat_items = NULL;
 		} else {
-			cat_item *new_array = realloc(cat_items, n * sizeof(cat_item));
+			cat_item *new_array = siril_realloc(cat_items, n * sizeof(cat_item));
 			if (!new_array) {
 				PRINT_ALLOC_ERR;
 				siril_catalog_free(siril_cat);
@@ -575,7 +575,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
 		return filepath;
 	}
-	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
+	if (!filepath) { // if the path is NULL, an error was caught earlier, just siril_free and abort
 		g_free(str);
 		return NULL;
 	}
@@ -744,11 +744,11 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 	gboolean catalog_is_in_cache, retrieval_product_is_in_cache;
 	gchar *csvfilepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
-	if (!csvfilepath) { // if the path is NULL, an error was caught earlier, just free and abort
+	if (!csvfilepath) { // if the path is NULL, an error was caught earlier, just siril_free and abort
 		return -1;
 	}
 	gchar *filepath = get_remote_catalogue_cached_path(siril_cat, &retrieval_product_is_in_cache, type);
-	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
+	if (!filepath) { // if the path is NULL, an error was caught earlier, just siril_free and abort
 		return -1;
 	}
 

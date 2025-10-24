@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -54,7 +54,7 @@
 /* Used for sanitizing catalogue input. 1<<20 seems reasonable as a maximum limit
  * both for the number of trixels in a catalogue and for the number of stars in a
  * single trixel. These values are mostly used to sanitize the data to prevent
- * asking malloc() to allocate nonsensical amounts of memory.
+ * asking siril_malloc() to allocate nonsensical amounts of memory.
  */
 #define MAX_NUM_TRIXELS 1<<20
 #define MAX_STARS_PER_TRIXEL 1<<20
@@ -162,14 +162,14 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 
 	//if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
 	if (read_trixels_of_target(ra, dec, radius, cat, trixel_stars, trixel_nb_stars)) {
-		free(cat);
+		siril_free(cat);
 		fclose(f);
 		return 1;
 	}
 	fclose(f);
-	free(cat->indices);
-	free(cat->de);
-	free(cat);
+	siril_free(cat->indices);
+	siril_free(cat->de);
+	siril_free(cat);
 	return 0;
 }
 
@@ -194,14 +194,14 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 	}
 
 	if (read_trixels_by_ID(ID, cat, trixel_stars, trixel_nb_stars)) {
-		free(cat);
+		siril_free(cat);
 		fclose(f);
 		return 1;
 	}
 	fclose(f);
-	free(cat->indices);
-	free(cat->de);
-	free(cat);
+	siril_free(cat->indices);
+	siril_free(cat->de);
+	siril_free(cat);
 	return 0;
 }
 
@@ -215,7 +215,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 
 	//siril_debug_print("Opened catalogue '%s'\n", top.description);
 
-	struct catalogue_file *cat = calloc(1, sizeof(struct catalogue_file));
+	struct catalogue_file *cat = siril_calloc(1, sizeof(struct catalogue_file));
 	if (!cat) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -223,7 +223,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	if (top.endian_id != 0x4B53) {
 		if (top.endian_id != 0x534B) {
 			siril_debug_print("invalid endian ID in header\n");
-			free(cat);
+			siril_free(cat);
 			return NULL;
 		}
 		siril_debug_print("Byteswapping required\n");
@@ -234,30 +234,30 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* reading the fields */
 	if (!fread(&cat->nfields, 2, 1, f)) {
 		siril_debug_print("error reading fields\n");
-		free(cat);
+		siril_free(cat);
 		return NULL;
 	}
 	if (cat->nfields != 6 && cat->nfields != 11) {
 		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
-		free(cat);
+		siril_free(cat);
 		return NULL;
 	}
 
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
 	//siril_debug_print("%d fields reported:\n", cat->nfields);
-	cat->de = malloc(cat->nfields * sizeof(dataElement));
+	cat->de = siril_malloc(cat->nfields * sizeof(dataElement));
 	if (!cat->de) {
 		PRINT_ALLOC_ERR;
-		free(cat);
+		siril_free(cat);
 		return NULL;
 	}
 
 	for (int i = 0; i < cat->nfields; ++i) {
 		if (!fread(&(cat->de[i]), sizeof(dataElement), 1, f)) {
 			siril_debug_print("error reading field descriptor %d\n", i);
-			free(cat->de);
-			free(cat);
+			siril_free(cat->de);
+			siril_free(cat);
 			return NULL;
 		}
 		if (cat->byteswap)
@@ -268,8 +268,8 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
-		free(cat->de);
-		free(cat);
+		siril_free(cat->de);
+		siril_free(cat);
 		return NULL;
 	}
 	if (cat->byteswap)
@@ -287,26 +287,26 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	// of headroom)
 	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
 		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
-		free(cat->de);
-		free(cat);
+		siril_free(cat->de);
+		siril_free(cat);
 		return NULL;
 	}
 
 	cat->index_offset = ftell(f);
 
-	cat->indices = malloc(cat->ntrixels * sizeof(struct catalogue_index));
+	cat->indices = siril_malloc(cat->ntrixels * sizeof(struct catalogue_index));
 	if (!cat->indices) {
 		PRINT_ALLOC_ERR;
-		free(cat->de);
-		free(cat);
+		siril_free(cat->de);
+		siril_free(cat);
 		return NULL;
 	}
 
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
 		siril_debug_print("unexpected read failure in index table\n");
-		free(cat->indices);
-		free(cat->de);
-		free(cat);
+		siril_free(cat->indices);
+		siril_free(cat->de);
+		siril_free(cat);
 		return NULL;
 	}
 	for (uint32_t i = 0; i < cat->ntrixels; ++i) {
@@ -319,17 +319,17 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		if (current->trixelID != i) {
 			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
-			free(cat->indices);
-			free(cat->de);
-			free(cat);
+			siril_free(cat->indices);
+			siril_free(cat->de);
+			siril_free(cat);
 			return NULL;
 		}
 		if (current->nrecs > MAX_STARS_PER_TRIXEL) {
 			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
 			// memory safety as this value is used for memory allocation
-			free(cat->indices);
-			free(cat->de);
-			free(cat);
+			siril_free(cat->indices);
+			siril_free(cat->de);
+			siril_free(cat);
 			return NULL;
 		}
 	}
@@ -365,14 +365,14 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 	cat_debug_print("trixel search found %d trixels\n", nb_trixels);
 	deepStarData **stars_list;
 	uint32_t *nb_stars_list;
-	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
+	stars_list = siril_malloc(nb_trixels * sizeof(deepStarData *));
 	if (!stars_list) {
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
-	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t));
+	nb_stars_list = siril_malloc(nb_trixels * sizeof(uint32_t));
 	if (!nb_stars_list) {
-		free(stars_list);
+		siril_free(stars_list);
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
@@ -384,14 +384,14 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 		cat_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
 		total_star_count += nb_stars_list[i];
 	}
-	free(trixels);
+	siril_free(trixels);
 
 	if (!retval) {
 		// aggregate
-		*stars = malloc(total_star_count * sizeof(deepStarData));
+		*stars = siril_malloc(total_star_count * sizeof(deepStarData));
 		if (!*stars) {
-			free(stars_list);
-			free(nb_stars_list);
+			siril_free(stars_list);
+			siril_free(nb_stars_list);
 			PRINT_ALLOC_ERR;
 			return -1;
 		}
@@ -400,11 +400,11 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 		for (int i = 0; i < nb_trixels; i++) {
 			memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
 			offset += nb_stars_list[i];
-			free(stars_list[i]);
+			siril_free(stars_list[i]);
 		}
 	}
-	free(stars_list);
-	free(nb_stars_list);
+	siril_free(stars_list);
+	siril_free(nb_stars_list);
 	return 0;
 }
 
@@ -413,11 +413,11 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 	int nb_trixels;
 
 	if (cat->HTM_Level == 3) {
-		trixels = malloc(1 * sizeof(int));
+		trixels = siril_malloc(1 * sizeof(int));
 		trixels[0] = ID;
 		nb_trixels = 1;
 	} else if (cat->HTM_Level == 6) {
-		trixels = malloc(64 * sizeof(int));
+		trixels = siril_malloc(64 * sizeof(int));
 		nb_trixels = 64;
 		int base = 64 * ID;
 		for (int i = 0; i < 64; i++) {
@@ -431,16 +431,16 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 	cat_debug_print("trixel search found %d trixels\n", nb_trixels);
 	deepStarData **stars_list;
 	uint32_t *nb_stars_list;
-	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
+	stars_list = siril_malloc(nb_trixels * sizeof(deepStarData *));
 	if (!stars_list) {
-		free(trixels);
+		siril_free(trixels);
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
-	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t));
+	nb_stars_list = siril_malloc(nb_trixels * sizeof(uint32_t));
 	if (!nb_stars_list) {
-		free(trixels);
-		free(stars_list);
+		siril_free(trixels);
+		siril_free(stars_list);
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
@@ -454,14 +454,14 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 		cat_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
 		total_star_count += nb_stars_list[i];
 	}
-	free(trixels);
+	siril_free(trixels);
 
 	if (!retval) {
 		// aggregate
-		*stars = malloc(total_star_count * sizeof(deepStarData));
+		*stars = siril_malloc(total_star_count * sizeof(deepStarData));
 		if (!*stars) {
-			free(stars_list);
-			free(nb_stars_list);
+			siril_free(stars_list);
+			siril_free(nb_stars_list);
 			PRINT_ALLOC_ERR;
 			return -1;
 		}
@@ -470,11 +470,11 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 		for (int i = 0; i < nb_trixels; i++) {
 			memcpy(*stars + offset, stars_list[i], nb_stars_list[i] * sizeof(deepStarData));
 			offset += nb_stars_list[i];
-			free(stars_list[i]);
+			siril_free(stars_list[i]);
 		}
 	}
-	free(stars_list);
-	free(nb_stars_list);
+	siril_free(stars_list);
+	siril_free(nb_stars_list);
 	return 0;
 }
 
@@ -493,7 +493,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 		return 1;
 	}
 
-	deepStarData *trix_stars = malloc(index->nrecs * sizeof(deepStarData));
+	deepStarData *trix_stars = siril_malloc(index->nrecs * sizeof(deepStarData));
 	if (!trix_stars) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -504,20 +504,20 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	if (cat->nfields == 6) {
 		if (fread(trix_stars, sizeof(deepStarData), index->nrecs, cat->f) < index->nrecs) {
 			siril_debug_print("error reading trixel data\n");
-			free(trix_stars);
+			siril_free(trix_stars);
 			return 1;
 		}
 	} else {
-		shallowStarData *read_stars = malloc(index->nrecs * sizeof(shallowStarData));
+		shallowStarData *read_stars = siril_malloc(index->nrecs * sizeof(shallowStarData));
 		if (!read_stars) {
 			PRINT_ALLOC_ERR;
-			free(trix_stars);
+			siril_free(trix_stars);
 			return 1;
 		}
 		if (fread(read_stars, sizeof(shallowStarData), index->nrecs, cat->f) < index->nrecs) {
 			siril_debug_print("error reading trixel data\n");
-			free(read_stars);
-			free(trix_stars);
+			siril_free(read_stars);
+			siril_free(trix_stars);
 			return 1;
 		}
 		for (uint32_t i = 0; i < index->nrecs; ++i) {
@@ -533,7 +533,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 			 * while it is 1000 for the deep star catalogue, but we don't know
 			 * where they come from after it has returned */
 		}
-		free(read_stars);
+		siril_free(read_stars);
 	}
 
 	if (cat->byteswap) {
@@ -551,8 +551,8 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 static int get_raw_stars_from_local_catalogues(double target_ra, double target_dec, double radius,
 		float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
 	int nb_catalogues = 4;
-	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
-	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
+	deepStarData **catalogue_stars = siril_malloc(nb_catalogues * sizeof(deepStarData *));
+	uint32_t *catalogue_nb_stars = siril_malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
 	int retval = 0, catalogue = 0;
 	radius /= 60.; // converting to degrees
@@ -579,7 +579,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 
 	if (catalogue == nb_catalogues) {
 		// aggregate and filter
-		*stars = malloc(total_nb_stars * sizeof(deepStarData));
+		*stars = siril_malloc(total_nb_stars * sizeof(deepStarData));
 		if (!*stars) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -604,23 +604,23 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 					(*stars)[j] = *sdd;
 					j++;
 				}
-				free(catalogue_stars[catalogue]);
+				siril_free(catalogue_stars[catalogue]);
 			}
 
 			*nb_stars = j;
-			*stars = realloc(*stars, j * sizeof(deepStarData));
+			*stars = siril_realloc(*stars, j * sizeof(deepStarData));
 		}
 	}
 
-	free(catalogue_nb_stars);
-	free(catalogue_stars);
+	siril_free(catalogue_nb_stars);
+	siril_free(catalogue_stars);
 	return retval;
 }
 
 static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
-	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
-	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
+	deepStarData **catalogue_stars = siril_malloc(nb_catalogues * sizeof(deepStarData *));
+	uint32_t *catalogue_nb_stars = siril_malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
 	int retval = 0, catalogue = 0;
 	int16_t mag_threshold = (int16_t)roundf(max_mag * 1000.f);
@@ -639,7 +639,7 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 
 	if (catalogue == nb_catalogues) {
 		// aggregate and filter
-		*stars = malloc(total_nb_stars * sizeof(deepStarData));
+		*stars = siril_malloc(total_nb_stars * sizeof(deepStarData));
 		if (!*stars) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -658,16 +658,16 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 					(*stars)[j] = *sdd;
 					j++;
 				}
-				free(catalogue_stars[catalogue]);
+				siril_free(catalogue_stars[catalogue]);
 			}
 
 			*nb_stars = j;
-			*stars = realloc(*stars, j * sizeof(deepStarData));
+			*stars = siril_realloc(*stars, j * sizeof(deepStarData));
 		}
 	}
 
-	free(catalogue_nb_stars);
-	free(catalogue_stars);
+	siril_free(catalogue_nb_stars);
+	siril_free(catalogue_stars);
 	return retval;
 }
 
@@ -740,9 +740,9 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 			return 0;
 		siril_cat->nbitems = (int)nb_stars;
 		siril_cat->nbincluded = (int)nb_stars;
-		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		siril_cat->cat_items = siril_calloc(siril_cat->nbitems, sizeof(cat_item));
 		for (int i = 0; i < siril_cat->nbitems; i++) {
-			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].xp_sampled = siril_malloc(XPSAMPLED_LEN * sizeof(double));
 			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
 			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
 			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
@@ -755,7 +755,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 			}
 			siril_cat->cat_items[i].included = TRUE;
 		}
-		free(stars);
+		siril_free(stars);
 		if (!siril_cat->nbitems)
 			return -1;
 		return siril_cat->nbitems;
@@ -794,7 +794,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 
 	siril_cat->nbitems = (int)nb_stars;
 	siril_cat->nbincluded = (int)nb_stars;
-	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+	siril_cat->cat_items = siril_calloc(siril_cat->nbitems, sizeof(cat_item));
 	// Gaia catalogs present RA in deg, others present it in hours
 	double CAT_RA_TO_DEG = siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO ? ra_mult : ra_mult * 15.0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
@@ -809,7 +809,7 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 			siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
 		siril_cat->cat_items[i].included = TRUE;
 	}
-	free(stars);
+	siril_free(stars);
 	if (!siril_cat->nbitems)
 		return -1;
 	return siril_cat->nbitems;
@@ -909,7 +909,7 @@ gpointer list_trixels(gpointer p) {
 	for (int i = 0; i < nb_trixels; i++) {
 		siril_log_message("%d\n", trixels[i]);
 	}
-	free(trixels);
+	siril_free(trixels);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }

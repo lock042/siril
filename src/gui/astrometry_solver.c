@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -470,7 +470,7 @@ gboolean end_plate_solver(gpointer p) {
 }
 
 static void start_image_plate_solve() {
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	struct astrometry_data *args = siril_calloc(1, sizeof(struct astrometry_data));
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!fill_plate_solver_structure_from_GUI(args)) {
@@ -482,8 +482,8 @@ static void start_image_plate_solve() {
 			start_sequence_astrometry(&com.seq, args);
 		}
 	} else {
-		free(args->sfargs);
-		free(args);
+		siril_free(args->sfargs);
+		siril_free(args);
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -562,7 +562,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			struct sky_object obj;
 			parse_resolver_buffer(result, &obj);
 			if (!has_nonzero_coords()) {
-				free(result);
+				siril_free(result);
 				set_cursor_waiting(FALSE);
 				// the list is empty, it will just write "No object found" as the first entry
 				g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -574,7 +574,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 			add_object_to_list();
 			g_signal_handlers_unblock_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-			free(result);
+			siril_free(result);
 			found = TRUE;
 		}
 		free_sky_object_query(args);
@@ -592,7 +592,7 @@ static void add_object_in_tree_view(const gchar *object) {
 	}
 	if (local_obj) {
 		siril_catalog_free_item(local_obj);
-		free(local_obj);
+		siril_free(local_obj);
 	}
 	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_cursor_waiting(FALSE);
@@ -773,7 +773,7 @@ void on_distomaster_save_button_clicked(GtkButton *button, gpointer user_data) {
 		char *root = remove_ext_from_filename(basename);
 		filename = g_strdup_printf("%s.wcs", root);
 		g_free(basename);
-		free(root);
+		siril_free(root);
 	}
 
 	widgetdialog = siril_file_chooser_save(astrometry_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
@@ -821,7 +821,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	} else {
 		args->force = !gtk_toggle_button_get_active(seqskipsolved);
 		args->update_reg = gtk_toggle_button_get_active(sequseforreg) && gtk_widget_get_visible(GTK_WIDGET(sequseforreg)); // not visible for FITSEQ and SER
-		args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		args->sfargs = siril_calloc(1, sizeof(struct starfinder_data));
 		args->sfargs->im.from_seq = &com.seq;
 		args->sfargs->layer = (gfit.naxes[2] == 1) ? RLAYER : GLAYER;
 		args->sfargs->keep_stars = TRUE;
@@ -988,7 +988,7 @@ gboolean end_platesolve_sequence(gpointer p) {
 		set_seq(seqname);
 		g_free(seqname);
 	}
-	free(p);	
+	siril_free(p);	
 	return end_generic(NULL);
 }
 

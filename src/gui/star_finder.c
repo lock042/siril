@@ -1,11 +1,11 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  *
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -227,7 +227,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	}
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
 
-	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
+	struct starfinder_data *args = siril_calloc(1, sizeof(struct starfinder_data));
 	args->im.fit = &gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;
@@ -246,7 +246,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
-		free(args);
+		siril_free(args);
 	}
 }
 
@@ -289,7 +289,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		}
 	} else {
 		if (com.star_is_seqdata) {
-			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
+			/* com.stars was allocated with a size of 2, we need to siril_free it before reallocating */
 			clear_stars_list(TRUE);
 		}
 		com.stars = new_fitted_stars(MAX_STARS);
@@ -309,7 +309,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		if (i < MAX_STARS) {
 			result->xpos = result->x0 + com.selection.x;
 			result->ypos = com.selection.y + com.selection.h - result->y0;
-			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
+			psf_star **newstars = siril_realloc(com.stars, (i + 2) * sizeof(psf_star *));
 			if (!newstars)
 				PRINT_ALLOC_ERR;
 			else {
@@ -351,7 +351,7 @@ gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 

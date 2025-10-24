@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -179,7 +179,7 @@ gchar *initialize_converters() {
 	nb_raw = get_nb_raw_supported();
 	for (i = 0; i < nb_raw; i++) {
 		// add the '.' to the extension
-		char *ext = malloc(strlen(supported_raw[i].extension) + 2 * sizeof(char));
+		char *ext = siril_malloc(strlen(supported_raw[i].extension) + 2 * sizeof(char));
 		sprintf(ext, ".%s", supported_raw[i].extension);
 		supported_extensions[count_ext+i] = ext;
 	}
@@ -410,7 +410,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 
 #ifdef HAVE_FFMS2
 int convert_single_film_to_ser(sequence *seq) {
-	char **files_to_convert = malloc(1 * sizeof(char *));
+	char **files_to_convert = siril_malloc(1 * sizeof(char *));
 
 	if (!files_to_convert) {
 		PRINT_ALLOC_ERR;
@@ -418,7 +418,7 @@ int convert_single_film_to_ser(sequence *seq) {
 	}
 	files_to_convert[0] = g_strdup(seq->film_file->filename);
 
-	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
+	struct _convert_data *args = siril_calloc(1, sizeof(struct _convert_data));
 	args->start = 1;
 	args->list = files_to_convert;
 	args->total = 1;
@@ -435,7 +435,7 @@ int convert_single_film_to_ser(sequence *seq) {
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
 		g_free(args->destroot);
-		free(args);
+		siril_free(args);
 		return 1;
 	}
 	return 0;
@@ -587,7 +587,7 @@ static gboolean end_convert(gpointer p) {
 			if (args->output_type != SEQ_REGULAR) {
 				int extidx = get_extension_index(args->destroot);
 				if (extidx > 0) {
-					converted_seqname = malloc(extidx + 5);
+					converted_seqname = siril_malloc(extidx + 5);
 					strncpy(converted_seqname, args->destroot, extidx);
 					strcpy(converted_seqname+extidx, ".seq");
 				} else {
@@ -606,7 +606,7 @@ static gboolean end_convert(gpointer p) {
 				update_sequences_list(converted_seqname);
 			}
 		}
-		free(converted_seqname);
+		siril_free(converted_seqname);
 	}
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
@@ -614,9 +614,9 @@ static gboolean end_convert(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	stop_processing_thread();
-	free(args->destroot);
-	free(args->report);
-	free(args);
+	siril_free(args->destroot);
+	siril_free(args->report);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -645,24 +645,24 @@ gpointer convert_thread_worker(gpointer p) {
 	init_report(args);
 
 	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
-	free(args->destroot);
+	siril_free(args->destroot);
 	args->destroot = strdup(newdestroot);
 	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
 	if (args->output_type == SEQ_REGULAR) {
 		// to make sure destroot has an extension (will be removed when creating the filenames)
-		free(args->destroot);
+		siril_free(args->destroot);
 		args->destroot = strdup(seqname);
 	}
 	g_free(seqname);
-	free(newdestroot);
+	siril_free(newdestroot);
 
 	convert_status convert = { 0 };
 	convert.args = args;
 	convert.output_file_number = args->start ? args->start : args->start + 1;
 	convert.number_of_threads = com.max_thread;
-	convert.threads = calloc(com.max_thread, sizeof(void *));
+	convert.threads = siril_calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
 	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_16bit;
 
@@ -672,39 +672,39 @@ gpointer convert_thread_worker(gpointer p) {
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
 	do {
-		struct reader_data *reader = calloc(1, sizeof(struct reader_data));
+		struct reader_data *reader = siril_calloc(1, sizeof(struct reader_data));
 		seqread_status rstatus = get_next_read_details(&convert, reader);
 		if (rstatus == GOT_READ_ERROR) {
 			siril_debug_print("got reader error\n");
-			free(reader);
+			siril_free(reader);
 			break;
 		}
 		print_reader(reader);
 		g_atomic_int_inc(&convert.nb_input_images);
 
-		writer = calloc(1, sizeof(struct writer_data));
+		writer = siril_calloc(1, sizeof(struct writer_data));
 		seqwrite_status wstatus = get_next_write_details(args, &convert, writer,
 				rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE,
 				rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE || rstatus == GOT_OK_LAST_FILE);
 		if (wstatus == GOT_WRITE_ERROR) {
 			siril_debug_print("got writer error\n");
-			free(reader);
-			free(writer);
+			siril_free(reader);
+			siril_free(writer);
 			writer = NULL;
 			break;
 		}
 		print_writer(writer);
-		struct readwrite_data *rwarg = malloc(sizeof(struct readwrite_data));
+		struct readwrite_data *rwarg = siril_malloc(sizeof(struct readwrite_data));
 		rwarg->reader = reader;
 		rwarg->writer = writer;
 		report_file_conversion(args, rwarg);
 
 		if (!g_thread_pool_push(args->pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
-			free(reader);
-			free(writer);
+			siril_free(reader);
+			siril_free(writer);
 			writer = NULL;
-			free(rwarg);
+			siril_free(rwarg);
 			break;
 		}
 		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
@@ -759,8 +759,8 @@ gpointer convert_thread_worker(gpointer p) {
 	}
 	// TODO still need to understand why, in case of error while writing a frame,
 	// sometimes we do create the file and sometimes the error is caught and we get convert.fatal_error to 1...
-	free(convert.output_fitseq);
-	free(convert.output_ser);
+	siril_free(convert.output_fitseq);
+	siril_free(convert.output_ser);
 	args->update_GUI = TRUE;
 	if (!siril_add_idle(end_convert, args)) {
 		args->update_GUI = FALSE;
@@ -771,14 +771,14 @@ gpointer convert_thread_worker(gpointer p) {
 }
 
 static struct reader_seq_counter *get_new_read_counter() {
-	struct reader_seq_counter *counter = malloc(sizeof(struct reader_seq_counter));
+	struct reader_seq_counter *counter = siril_malloc(sizeof(struct reader_seq_counter));
 	counter->count = 0;
 	counter->close_sequence_after_read = 0;
 	return counter;
 }
 
 static struct writer_seq_counter *get_new_write_counter() {
-	struct writer_seq_counter *counter = malloc(sizeof(struct writer_seq_counter));
+	struct writer_seq_counter *counter = siril_malloc(sizeof(struct writer_seq_counter));
 	counter->count = 0;
 	counter->close_sequence_after_write = 0;
 	return counter;
@@ -812,7 +812,7 @@ static void finish_read_seq(struct reader_data *reader) {
 			film_close_file(reader->film);
 		}
 #endif
-		free(reader->seq_count);
+		siril_free(reader->seq_count);
 	}
 }
 
@@ -836,7 +836,7 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 			}
 			else fitseq_close_and_delete_file(writer->fitseq);
 		}
-		free(writer->seq_count);
+		siril_free(writer->seq_count);
 	}
 }
 
@@ -935,7 +935,7 @@ static void open_next_input_seq(convert_status *conv) {
 /* open the file with path source from any image type and load it into a new FITS object */
 static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean force_debayer, gboolean allow_32bits) {
 	int retval = 0;
-	fits *tmpfit = calloc(1, sizeof(fits));
+	fits *tmpfit = siril_calloc(1, sizeof(fits));
 	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE);
 
 	if (!retval) {
@@ -948,7 +948,7 @@ static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean 
 
 	if (retval) {
 		clearfits(tmpfit);
-		free(tmpfit);
+		siril_free(tmpfit);
 		return NULL;
 	}
 
@@ -970,13 +970,13 @@ static int get_thread_id(struct reader_data *reader) {
 static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// reentrant
 	fits *fit = NULL;
 	if (reader->ser) {
-		fit = calloc(1, sizeof(fits));
+		fit = siril_calloc(1, sizeof(fits));
 		if (ser_read_frame(reader->ser, reader->index, fit, FALSE, com.pref.debayer.open_debayer))
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
 		finish_read_seq(reader);
 	} else if (reader->fitseq) {
-		fit = calloc(1, sizeof(fits));
+		fit = siril_calloc(1, sizeof(fits));
 		if (fitseq_read_frame(reader->fitseq, reader->index, fit, FALSE, get_thread_id(reader)))
 			*retval = READ_FAILED;
 		else {
@@ -988,7 +988,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 	}
 #ifdef HAVE_FFMS2
 	else if (reader->film) {
-		fit = calloc(1, sizeof(fits));
+		fit = siril_calloc(1, sizeof(fits));
 		if (film_read_frame(reader->film, reader->index, fit) != FILM_SUCCESS)
 			*retval = READ_FAILED;
 		else *retval = READ_OK;
@@ -1000,7 +1000,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		image_type imagetype = get_type_for_extension(src_ext);
 		if (imagetype == TYPEFITS && reader->allow_link) {
 			*retval = CAN_BE_LINKED;
-			return NULL;	// do not free reader, we need it for links
+			return NULL;	// do not siril_free reader, we need it for links
 		} else {
 			fit = any_to_new_fits(imagetype, reader->filename,
 					reader->debayer, reader->allow_32bits);
@@ -1013,7 +1013,7 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 		}
 	}
 	else *retval = NOT_READ;
-	free(reader);
+	siril_free(reader);
 	return fit;
 }
 
@@ -1023,7 +1023,7 @@ static int make_link(struct readwrite_data *rwdata) {
 	if (rwdata->writer->filename) {
 		if (!symlink_uniq_file(rwdata->reader->filename, rwdata->writer->filename, TRUE))
 			retval = 0;
-		free(rwdata->reader);
+		siril_free(rwdata->reader);
 	}
 	return retval;
 }
@@ -1063,11 +1063,11 @@ static void handle_error(struct readwrite_data *rwdata) {
 	seqwriter_release_memory();
 	if (rwdata->reader) {
 		finish_read_seq(rwdata->reader);
-		free(rwdata->reader);
+		siril_free(rwdata->reader);
 	}
 	finish_write_seq(rwdata->writer, FALSE);
-	free(rwdata->writer);
-	free(rwdata);
+	siril_free(rwdata->writer);
+	siril_free(rwdata);
 }
 
 static void pool_worker(gpointer data, gpointer user_data) {
@@ -1093,10 +1093,10 @@ static void pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&conv->converted_images);
 			g_atomic_int_inc(&conv->converted_files);
 		}
-		free(rwdata);	// reader and writer are freed in their function
+		siril_free(rwdata);	// reader and writer are freed in their function
 		if (fit) {
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 		}
 		signal_memory_limit(conv);
 		return;
@@ -1107,10 +1107,10 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		finish_write_seq(rwdata->writer, FALSE);
 		if (rwdata->writer->have_seqwriter)
 			seqwriter_release_memory();
-		free(rwdata);
+		siril_free(rwdata);
 		if (fit) {
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 		}
 		signal_memory_limit(conv);
 		return;
@@ -1120,7 +1120,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
-		free(fit);
+		siril_free(fit);
 		if (rwdata->writer->have_seqwriter)
 			handle_error(rwdata);
 		return;
@@ -1128,7 +1128,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 
 	seqwrite_status write_status = write_image(fit, rwdata->writer);
 	// clearfits is managed in write_image or sequence writer
-	free(rwdata);	// reader and writer are freed in their function
+	siril_free(rwdata);	// reader and writer are freed in their function
 	if (write_status == WRITE_FAILED) {
 		g_atomic_int_inc(&conv->failed_images);
 		g_atomic_int_set(&conv->fatal_error, 1);
@@ -1147,7 +1147,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (!conv->output_ser) {
-				conv->output_ser = calloc(1, sizeof(struct ser_struct));
+				conv->output_ser = siril_calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
@@ -1168,7 +1168,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
-				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
+				conv->output_fitseq = siril_calloc(1, sizeof(struct fits_sequence));
 				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
@@ -1218,7 +1218,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++);
-				conv->output_ser = calloc(1, sizeof(struct ser_struct));
+				conv->output_ser = siril_calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
@@ -1233,7 +1233,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
-				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
+				conv->output_fitseq = siril_calloc(1, sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
 					g_free(dest_filename);
@@ -1267,11 +1267,11 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_film = calloc(1, sizeof(struct film_struct));
+		convert->current_film = siril_calloc(1, sizeof(struct film_struct));
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (film_open_file(src_filename, convert->current_film) != FILM_SUCCESS) {
 			siril_log_message(_("Error while opening film %s, aborting.\n"), src_filename);
-			free(convert->current_film);
+			siril_free(convert->current_film);
 			convert->current_film = NULL;
 			g_free(name);
 			return OPEN_ERROR;
@@ -1291,12 +1291,12 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_ser = malloc(sizeof(struct ser_struct)); // no need for calloc as init follows
+		convert->current_ser = siril_malloc(sizeof(struct ser_struct)); // no need for siril_calloc as init follows
 		ser_init_struct(convert->current_ser);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (ser_open_file(src_filename, convert->current_ser)) {
 			siril_log_message(_("Error while opening ser file %s, aborting.\n"), src_filename);
-			free(convert->current_ser);
+			siril_free(convert->current_ser);
 			convert->current_ser = NULL;
 			g_free(name);
 			return OPEN_ERROR_AND_STOP;
@@ -1312,12 +1312,12 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_fitseq = malloc(sizeof(fitseq)); // no need for calloc as init follows
+		convert->current_fitseq = siril_malloc(sizeof(fitseq)); // no need for siril_calloc as init follows
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (fitseq_open(name, convert->current_fitseq, READONLY)) {
 			siril_log_message(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
-			free(convert->current_fitseq);
+			siril_free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
 			g_free(name);
 			return OPEN_ERROR;
@@ -1327,7 +1327,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		if (!convert->allow_32bits && get_data_type(convert->current_fitseq->bitpix) == DATA_FLOAT) {
 			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", src_filename);
 			fitseq_close_file(convert->current_fitseq);
-			free(convert->current_fitseq);
+			siril_free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
 			return OPEN_ERROR_AND_STOP;
 		}
@@ -1356,7 +1356,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
-	free(destroot_noext);
+	siril_free(destroot_noext);
 	return output;
 }
 
@@ -1392,7 +1392,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 			g_atomic_int_inc(writer->converted_files);
 		}
 		clearfits(fit);
-		free(fit);
+		siril_free(fit);
 		g_free(writer->filename);
 	}
 	else {
@@ -1400,7 +1400,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	}
 
 
-	free(writer);
+	siril_free(writer);
 	return retval;
 }
 
@@ -1478,7 +1478,7 @@ static void print_writer(struct writer_data *writer) {
 }
 
 static void init_report(struct _convert_data *args) {
-	args->report = malloc(args->total * sizeof(char *));
+	args->report = siril_malloc(args->total * sizeof(char *));
 	args->report_length = 0;
 }
 
@@ -1510,7 +1510,7 @@ static void write_conversion_report(struct _convert_data *args) {
 	else filename = g_strdup_printf("%s_conversion.txt", filename_noext);
 	FILE *fd = g_fopen(filename, "w+");
 	g_free(filename);
-	free(filename_noext);
+	siril_free(filename_noext);
 	if (!fd)
 		return;
 

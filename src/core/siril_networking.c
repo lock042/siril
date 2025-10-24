@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -38,7 +38,7 @@ static gboolean online_status = TRUE;
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct ucontent *mem = (struct ucontent *) userp;
-	mem->data = realloc(mem->data, mem->len + realsize + 1);
+	mem->data = siril_realloc(mem->data, mem->len + realsize + 1);
 	memcpy(&(mem->data[mem->len]), buffer, realsize);
 	mem->len += realsize;
 	mem->data[mem->len] = 0;
@@ -82,7 +82,7 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 
 static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, long *code, gboolean verbose) {
 	char *result = NULL;
-	content->data = calloc(1, 1);
+	content->data = siril_calloc(1, 1);
 	if (content->data == NULL) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -132,7 +132,7 @@ gpointer fetch_url_async(gpointer p) {
 	CURL *curl = initialize_curl(args->url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		g_free(args->url);
-		free(args);
+		siril_free(args);
 		return NULL;
 	}
 	char *result = handle_curl_response(curl, &content, args->url, &args->code, args->verbose);
@@ -162,7 +162,7 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	*length = content.len;
 	if (!result || content.len == 0 || code != 200) {
-		free(content.data);
+		siril_free(content.data);
 		result = NULL;
 		*error = 1;
 	}
@@ -170,10 +170,10 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 }
 
 int submit_post_request(const char *url, const char *post_data, char **post_response) {
-	struct ucontent chunk = {NULL, 0};  // will be grown as needed by realloc above
+	struct ucontent chunk = {NULL, 0};  // will be grown as needed by siril_realloc above
 	CURL *curl = initialize_curl(url, &chunk, HTTP_POST, post_data);
 	if (!curl) {
-		free(chunk.data);
+		siril_free(chunk.data);
 		return 1;
 	}
 	CURLcode res = curl_easy_perform(curl);
@@ -182,7 +182,7 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 	} else {
 		*post_response = g_strdup(chunk.data);
 	}
-	free(chunk.data);
+	siril_free(chunk.data);
 	curl_easy_cleanup(curl);
 	return (res != CURLE_OK ? 1 : 0);
 }

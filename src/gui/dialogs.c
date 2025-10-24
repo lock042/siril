@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -235,7 +235,7 @@ void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 	patterns = g_strsplit(pattern, ";", -1);
 	for (i = 0; patterns[i] != NULL; i++)
 		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
+	/* siril_free the patterns */
 	g_strfreev(patterns);
 	gtk_file_chooser_add_filter(file_chooser, f);
 	if (set_default)

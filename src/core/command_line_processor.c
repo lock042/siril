@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -246,7 +246,7 @@ static gboolean log_status_bar_idle_callback(gpointer p) {
 	g_free(newline);
 	g_free(status);
 	g_free(data->myline);
-	free(data);
+	siril_free(data);
 
 	return FALSE;	// only run once
 }
@@ -255,7 +255,7 @@ static void display_command_on_status_bar(int line, char *myline) {
 	if (!com.headless) {
 		struct log_status_bar_idle_data *data;
 
-		data = malloc(sizeof(struct log_status_bar_idle_data));
+		data = siril_malloc(sizeof(struct log_status_bar_idle_data));
 		data->line = line;
 		data->myline = myline ? g_strdup(myline) : NULL;
 		gdk_threads_add_idle(log_status_bar_idle_callback, data);
@@ -619,7 +619,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
 			}
-			free(myline);
+			siril_free(myline);
 			return ret;
 		}
 
@@ -634,7 +634,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			}
 		}
 
-		free(myline);
+		siril_free(myline);
 	}
 
 	return ret;
@@ -667,20 +667,20 @@ sequence *load_sequence(const char *name, char **get_filename) {
 	if ((seq = readseqfile(file))) {
 		if (get_filename) {
 			*get_filename = file;
-			file = NULL; // do not free
+			file = NULL; // do not siril_free
 		}
 	}
 	else if (altfile && (seq = readseqfile(altfile))) {
 		if (get_filename) {
 			*get_filename = altfile;
-			altfile = NULL; // do not free
+			altfile = NULL; // do not siril_free
 		}
 	}
 	if (!seq)
 		siril_log_color_message(_("Loading sequence `%s' failed.\n"), "red", name);
 	else {
 		if (seq_check_basic_data(seq, FALSE) == -1) {
-			free(seq);
+			siril_free(seq);
 			seq = NULL;
 		}
 		else if (seq->type == SEQ_SER)
@@ -803,7 +803,7 @@ void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
 static void history_add_line(char *line) {
 	if (!gui.cmd_history) {
 		gui.cmd_hist_size = CMD_HISTORY_SIZE;
-		gui.cmd_history = calloc(gui.cmd_hist_size, sizeof(const char*));
+		gui.cmd_history = siril_calloc(gui.cmd_hist_size, sizeof(const char*));
 		gui.cmd_hist_current = 0;
 		gui.cmd_hist_display = 0;
 	}
@@ -813,7 +813,7 @@ static void history_add_line(char *line) {
 	if (gui.cmd_hist_current == gui.cmd_hist_size)
 		gui.cmd_hist_current = 0;
 	if (gui.cmd_history[gui.cmd_hist_current]) {
-		free(gui.cmd_history[gui.cmd_hist_current]);
+		siril_free(gui.cmd_history[gui.cmd_hist_current]);
 		gui.cmd_history[gui.cmd_hist_current] = NULL;
 	}
 	gui.cmd_hist_display = gui.cmd_hist_current;

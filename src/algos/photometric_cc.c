@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -280,10 +280,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
 	cat_item *stars = args->ref_stars->cat_items;
-	double *irg = malloc(sizeof(double) * nb_stars);
-	double *ibg = malloc(sizeof(double) * nb_stars);
-	double *crg = malloc(sizeof(double) * nb_stars);
-	double *cbg = malloc(sizeof(double) * nb_stars);
+	double *irg = siril_malloc(sizeof(double) * nb_stars);
+	double *ibg = siril_malloc(sizeof(double) * nb_stars);
+	double *crg = siril_malloc(sizeof(double) * nb_stars);
+	double *cbg = siril_malloc(sizeof(double) * nb_stars);
 	double wrg = 0.f, wbg = 0.f;
 	gboolean plotrg = args->nb_mode ? should_plot(RLAYER, args) : TRUE;
 	gboolean plotbg = args->nb_mode ? should_plot(BLAYER, args) : TRUE;
@@ -404,7 +404,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		g_atomic_int_inc(errors + PSF_NO_ERR);
 		g_atomic_int_inc(&ngood);
 	}
-	free(ps);
+	siril_free(ps);
 	// Calculate white reference ratios
 	double white_flux[3];
 	xpsampled white_spectrum = init_xpsampled();
@@ -436,10 +436,10 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	int n_rg = filterArrays(crg, irg, nb_stars);
 	int n_bg = filterArrays(cbg, ibg, nb_stars);
 	if (n_rg != n_bg) {
-		free(irg);
-		free(ibg);
-		free(crg);
-		free(cbg);
+		siril_free(irg);
+		siril_free(ibg);
+		siril_free(crg);
+		siril_free(cbg);
 		siril_log_message(_("Array mismatch after discarding photometrically invalid stars\n"));
 		return 1;
 	}
@@ -452,32 +452,32 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 	if (excl > 0)
 		print_psf_error_summary(errors);
 	if (ngood < 3) {
-		free(irg);
-		free(ibg);
-		free(crg);
-		free(cbg);
+		siril_free(irg);
+		siril_free(ibg);
+		siril_free(crg);
+		siril_free(cbg);
 		siril_log_message(_("Error: insufficient photometrically valid stars\n"));
 		return 1;
 	}
-	maskrg = calloc(ngood, sizeof(gboolean));
+	maskrg = siril_calloc(ngood, sizeof(gboolean));
 	if (repeated_median_fit(crg, irg, ngood, &arg, &brg, &deviation[0], maskrg)) {
-		free(irg);
-		free(ibg);
-		free(crg);
-		free(cbg);
-		free(maskrg);
+		siril_free(irg);
+		siril_free(ibg);
+		siril_free(crg);
+		siril_free(cbg);
+		siril_free(maskrg);
 		siril_log_color_message(_("Error: unable to compute a fit to the data. "
 				"Check your sensor and filter selections are correct.\n"), "red");
 		return 1;
 	}
-	maskbg = calloc(ngood, sizeof(gboolean));
+	maskbg = siril_calloc(ngood, sizeof(gboolean));
 	if (repeated_median_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1], maskbg)) {
-		free(irg);
-		free(ibg);
-		free(crg);
-		free(cbg);
-		free(maskrg);
-		free(maskbg);
+		siril_free(irg);
+		siril_free(ibg);
+		siril_free(crg);
+		siril_free(cbg);
+		siril_free(maskrg);
+		siril_free(maskbg);
 		siril_log_color_message(_("Error: unable to compute a fit to the data. "
 				"Check your sensor and filter selections are correct.\n"), "red");
 		return 1;
@@ -550,12 +550,12 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		siril_add_idle(end_generic, NULL);
 	}
-	free(irg);
-	free(ibg);
-	free(crg);
-	free(cbg);
-	free(maskrg);
-	free(maskbg);
+	siril_free(irg);
+	siril_free(ibg);
+	siril_free(crg);
+	siril_free(cbg);
+	siril_free(maskrg);
+	siril_free(maskbg);
 	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
 		siril_log_color_message(_("Error calculating white balance coefficients: kw contains negative values.\n"),"red");
 		return 1;
@@ -578,9 +578,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	fits *fit = args->fit;
 	cat_item *stars = args->ref_stars->cat_items;
 	float *data[3];
-	data[RLAYER] = malloc(sizeof(float) * nb_stars);
-	data[GLAYER] = malloc(sizeof(float) * nb_stars);
-	data[BLAYER] = malloc(sizeof(float) * nb_stars);
+	data[RLAYER] = siril_malloc(sizeof(float) * nb_stars);
+	data[GLAYER] = siril_malloc(sizeof(float) * nb_stars);
+	data[BLAYER] = siril_malloc(sizeof(float) * nb_stars);
 	if (!data[RLAYER] || !data[GLAYER] || !data[BLAYER]) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -632,7 +632,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	}
 	if (!transform) {
 		siril_log_color_message(_("Error: failed to set up colorspace transform.\n"), "red");
-		free(ps);
+		siril_free(ps);
 		return 1;
 	}
 
@@ -702,11 +702,11 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	}
 	if (transform)
 		cmsDeleteTransform(transform);
-	free(ps);
+	siril_free(ps);
 	if (!get_thread_run()) {
-		free(data[RLAYER]);
-		free(data[GLAYER]);
-		free(data[BLAYER]);
+		siril_free(data[RLAYER]);
+		siril_free(data[GLAYER]);
+		siril_free(data[BLAYER]);
 		return 1;
 	}
 	int excl = nb_stars - ngood;
@@ -719,9 +719,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 
 	if (ngood == 0) {
 		siril_log_message(_("No valid stars found.\n"));
-		free(data[RLAYER]);
-		free(data[GLAYER]);
-		free(data[BLAYER]);
+		siril_free(data[RLAYER]);
+		siril_free(data[GLAYER]);
+		siril_free(data[BLAYER]);
 		return 1;
 	}
 	/* sort in ascending order before using siril_stats_mean_from_linearFit
@@ -736,9 +736,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	kw[GLAYER] = siril_stats_robust_mean(data[GLAYER], 1, ngood, &(deviation[GLAYER]));
 	kw[BLAYER] = siril_stats_robust_mean(data[BLAYER], 1, ngood, &(deviation[BLAYER]));
 	if (kw[RLAYER] < 0.f || kw[GLAYER] < 0.f || kw[BLAYER] < 0.f) {
-		free(data[RLAYER]);
-		free(data[GLAYER]);
-		free(data[BLAYER]);
+		siril_free(data[RLAYER]);
+		siril_free(data[GLAYER]);
+		siril_free(data[BLAYER]);
 		return 1;
 	}
 	/* normalize factors */
@@ -754,9 +754,9 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
 	else if (deviation[RLAYER] > 0.1 || deviation[GLAYER] > 0.1 || deviation[BLAYER] > 0.1)
 		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
-	free(data[RLAYER]);
-	free(data[GLAYER]);
-	free(data[BLAYER]);
+	siril_free(data[RLAYER]);
+	siril_free(data[GLAYER]);
+	siril_free(data[BLAYER]);
 	return 0;
 }
 
@@ -857,7 +857,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	 * the reference channel expressed in terms of order of middle median value */
 	if (get_stats_coefficients(args->fit, bkg_sel, bg, args->t0, args->t1)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
-		free(args);
+		siril_free(args);
 		return 1;
 	}
 
@@ -892,7 +892,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	}
 
 	com.pref.phot_set = backup;
-	free(args);
+	siril_free(args);
 	return ret;
 }
 
@@ -975,7 +975,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		} else {
 			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
 				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+				siril_cat->cat_items[i].xp_sampled = siril_malloc(XPSAMPLED_LEN * sizeof(double));
 				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
 			}
 		}
@@ -999,7 +999,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
 	} else {
-		free(args);
+		siril_free(args);
 		siril_log_color_message(_("Catalog error, no stars identified!\n"), "red");
 	}
 	args = NULL;

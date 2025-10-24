@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -528,7 +528,7 @@ void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean c
 	siril_catalogue *siril_cat = NULL;
 	GSList *cur = find_catalogue_by_index(cat_index);
 	if (!cur || !cur->data) {// the catalog does not exist yet
-		annotations_catalogue_t *annot_cat = calloc(1, sizeof(annotations_catalogue_t));
+		annotations_catalogue_t *annot_cat = siril_calloc(1, sizeof(annotations_catalogue_t));
 		siril_cat = siril_catalog_new(cat_index);
 		annot_cat->cat = siril_cat;
 		annot_cat->show = TRUE;
@@ -543,7 +543,7 @@ void add_item_in_catalogue(cat_item *item, siril_cat_index cat_index, gboolean c
 // search DSO by name in all annotation catalogues, but remember the result does not
 // contain magnitudes, only name and J2000 equatorial coordinates
 // if *cat_index is non NULL, fills it with the catalogue type enum
-// The caller must free the result
+// The caller must siril_free the result
 cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_index) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
@@ -623,13 +623,13 @@ cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_
 
 	if (found) {
 		siril_debug_print("object found in annotation catalogues: %s\n", found->name);
-		cat_item *output = calloc(1, sizeof(cat_item));
+		cat_item *output = siril_calloc(1, sizeof(cat_item));
 		siril_catalogue_copy_item(found, output);
 		return output;
 	}
 	if (probable) {
 		siril_debug_print("probable object found in annotation catalogues: %s\n", probable->name);
-		cat_item *output = calloc(1, sizeof(cat_item));
+		cat_item *output = siril_calloc(1, sizeof(cat_item));
 		siril_catalogue_copy_item(probable, output);
 		return output;
 	}
@@ -638,7 +638,7 @@ cat_item *search_in_annotations_by_name(const char *input, siril_cat_index *cat_
 }
 
 // search SSO user catalog by name /datobs/ site position
-// The caller must free the result
+// The caller must siril_free the result
 cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
@@ -649,7 +649,7 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	}
 	siril_catalogue *solar_cat = ((annotations_catalogue_t *)solar_an_cat->data)->cat;
 
-	cat_item *ref_item = calloc(1, sizeof(cat_item));
+	cat_item *ref_item = siril_calloc(1, sizeof(cat_item));
 	double ref = date_time_to_Julian(args->fit->keywords.date_obs);
 	ref_item->name = g_strdup(args->name);
 	ref_item->dateobs = ref;
@@ -673,7 +673,7 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 		}
 	}
 	siril_catalog_free_item(ref_item);
-	free(ref_item);
+	siril_free(ref_item);
 	return NULL;
 }
 

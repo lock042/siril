@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -47,7 +47,7 @@ static int satu_update_preview();
 void satu_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
@@ -128,7 +128,7 @@ static int satu_process_all() {
 	else if (gui.roi.active)
 		restore_roi();
 
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = siril_calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = &gfit;
@@ -139,7 +139,7 @@ static int satu_process_all() {
 	args->for_final = TRUE;
 
 	if (!start_in_new_thread(enhance_saturation, args))
-		free(args);
+		siril_free(args);
 
 	return 0;
 }
@@ -155,7 +155,7 @@ static int satu_update_preview() {
 		copy_backup_to_gfit();
 	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = siril_calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = fit;
@@ -166,7 +166,7 @@ static int satu_update_preview() {
 	args->for_final = FALSE;
 
 	if (!start_in_new_thread(enhance_saturation, args))
-		free(args);
+		siril_free(args);
 
 	return 0;
 }
@@ -328,7 +328,7 @@ gpointer enhance_saturation(gpointer p) {
 		populate_roi();
 	notify_gfit_modified();
 
-	free(args);
+	siril_free(args);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -352,7 +352,7 @@ void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
 void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
 	satu_hue_type = gtk_combo_box_get_active(box);
 
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
@@ -388,7 +388,7 @@ void apply_satu_cancel() {
 void on_spin_satu_value_changed(GtkSpinButton *button, gpointer user_data) {
 	satu_amount = gtk_spin_button_get_value(button);
 
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = 	satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
@@ -397,7 +397,7 @@ void on_spin_satu_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_spin_satu_bkg_value_changed(GtkSpinButton *button, gpointer user_data) {
 	background_factor = gtk_spin_button_get_value(button);
 
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = 	satu_update_preview;
 	param->show_preview = satu_show_preview;
 	notify_update((gpointer) param);
@@ -414,7 +414,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	} else {
 		copy_gfit_to_backup();
 
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = satu_update_preview;
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);

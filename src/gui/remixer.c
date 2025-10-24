@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -157,7 +157,7 @@ void display_remix_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width
 	if (nb_bins_allocated != width) {
 		gfloat *tmp;
 		nb_bins_allocated = width;
-		tmp = realloc(displayed_values, nb_bins_allocated * sizeof(gfloat));
+		tmp = siril_realloc(displayed_values, nb_bins_allocated * sizeof(gfloat));
 		if (!tmp) {
 			if (displayed_values != NULL) {
 				g_free(displayed_values);
@@ -417,7 +417,7 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 		result = a->fdata;
 	}
 	else if (a->type == DATA_USHORT) {
-		result = malloc(n * sizeof(float));
+		result = siril_malloc(n * sizeof(float));
 		if (!result) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -447,7 +447,7 @@ int imoper_scaled(fits *a, fits *b, image_operator oper, float factor) {
 	if (a->type == DATA_USHORT) {
 		for (size_t i = 0; i < n ; i++)
 			a->data[i] = float_to_ushort_range(result[i]);
-		free(result);
+		siril_free(result);
 	} else invalidate_stats_from_fit(a);
 	return 0;
 }
@@ -662,7 +662,7 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	remixer_show_preview = TRUE;
 
 	/* default parameters transform image, we need to update preview */
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -689,7 +689,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_left, &fit_left);
 			clearfits(_fit_left);
-			free(_fit_left);
+			siril_free(_fit_left);
 			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
@@ -702,7 +702,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copy_fits_metadata(_fit_right, &fit_right);
 			remix_histo_startup_right();
 			clearfits(_fit_right);
-			free(_fit_right);
+			siril_free(_fit_right);
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
@@ -715,7 +715,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), FALSE);
-			update_image *param = malloc(sizeof(update_image));
+			update_image *param = siril_malloc(sizeof(update_image));
 			param->update_preview_fn = remixer_update_preview;
 			param->show_preview = TRUE;
 			notify_update((gpointer) param);
@@ -765,7 +765,7 @@ gboolean on_remix_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remix_reset_left_clicked(GtkButton *button, gpointer user_data) {
 	reset_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -773,7 +773,7 @@ void on_remix_reset_left_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remix_reset_right_clicked(GtkButton *button, gpointer user_data) {
 	reset_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -793,7 +793,7 @@ void on_remix_apply_left_clicked(GtkButton *button, gpointer user_data) {
 	reset_left();
 	close_histograms(TRUE, FALSE);
 	remix_histo_startup_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -821,7 +821,7 @@ void on_spin_remix_D_left_value_changed(GtkSpinButton *button, gpointer user_dat
 	left_changed = TRUE;
 	leftD = expm1f((float)gtk_spin_button_get_value(button));
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -831,7 +831,7 @@ void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_da
 	right_changed = TRUE;
 	rightD = expm1f((float)gtk_spin_button_get_value(button));
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -845,7 +845,7 @@ void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_dat
 		gtk_spin_button_set_value(button, 0.f);
 	}
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -857,7 +857,7 @@ void on_spin_remix_B_right_value_changed(GtkSpinButton *button, gpointer user_da
 		rightB = 0.f;
 		gtk_spin_button_set_value(button, 0.f);
 	}	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -871,7 +871,7 @@ void on_spin_remix_LP_left_value_changed(GtkSpinButton *button, gpointer user_da
 		gtk_spin_button_set_value(button, (double) leftLP);
 	}
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -885,7 +885,7 @@ void on_spin_remix_LP_right_value_changed(GtkSpinButton *button, gpointer user_d
 		gtk_spin_button_set_value(button, (float) rightLP);
 	}
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -905,7 +905,7 @@ void on_spin_remix_SP_left_value_changed(GtkSpinButton *button, gpointer user_da
 		gtk_spin_button_set_value(spin_remix_HP_left, (double) leftSP);
 	}
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -924,7 +924,7 @@ void on_spin_remix_SP_right_value_changed(GtkSpinButton *button, gpointer user_d
 		gtk_spin_button_set_value(spin_remix_HP_right, (double) rightSP);
 	}
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -938,7 +938,7 @@ void on_spin_remix_HP_left_value_changed(GtkSpinButton *button, gpointer user_da
 		gtk_spin_button_set_value(button, (double) leftHP);
 	}
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -951,7 +951,7 @@ void on_spin_remix_HP_right_value_changed(GtkSpinButton *button, gpointer user_d
 		gtk_spin_button_set_value(button, (double) rightHP);
 	}
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -961,7 +961,7 @@ void on_spin_remix_BP_left_value_changed(GtkSpinButton *button, gpointer user_da
 	leftBP_changed = TRUE;
 	leftBP = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -978,7 +978,7 @@ void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_d
 	rightBP_changed = TRUE;
 	rightBP = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -995,7 +995,7 @@ void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	colour_left = gtk_combo_box_get_active(combo);
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1005,7 +1005,7 @@ void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	colour_right = gtk_combo_box_get_active(combo);
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1019,7 +1019,7 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	else
 		gtk_widget_set_visible(lookup_widget("ghtBcontrols2"), TRUE);
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1033,7 +1033,7 @@ void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	else
 		gtk_widget_set_visible(lookup_widget("ghtBcontrols1"), TRUE);
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1122,7 +1122,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 	clearfits(&fit_left_calc);
 	copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	left_changed = TRUE;
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1214,7 +1214,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 	clearfits(&fit_right_calc);
 	copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	right_changed = TRUE;
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
@@ -1263,7 +1263,7 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_left")),leftSP);
 	left_changed = TRUE;
 	update_remix_histo_left();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE; // no need of preview button. This is always in preview
 	notify_update((gpointer) param);
@@ -1311,7 +1311,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),rightSP);
 	right_changed = TRUE;
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE; // no need of preview button. This is always in preview
 	notify_update((gpointer) param);
@@ -1377,7 +1377,7 @@ void on_remixer_clipmode_changed(GtkComboBox *combo, gpointer user_data) {
 	clip_mode = (clip_mode_t) gtk_combo_box_get_active(combo);
 	update_remix_histo_left();
 	update_remix_histo_right();
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);

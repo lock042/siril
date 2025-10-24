@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -59,7 +59,7 @@ static double getMagErr(double intensity, double area, int nsky, double skysig, 
 }
 
 struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
-	struct phot_config *retval = malloc(sizeof(struct phot_config));
+	struct phot_config *retval = siril_malloc(sizeof(struct phot_config));
 	if (!retval) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -136,7 +136,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		if (error) *error = PSF_ERR_OUT_OF_WINDOW;
 		return NULL;
 	}
-	double *data = calloc(ndata, sizeof(double));
+	double *data = siril_calloc(ndata, sizeof(double));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		if (error) *error = PSF_ERR_ALLOC;
@@ -175,7 +175,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	}
 	if (area < 1.0) {
 		siril_debug_print("area is < 1: not enough pixels of star data, too small aperture?\n");
-		free(data);
+		siril_free(data);
 		if (error) *error = PSF_ERR_APERTURE_TOO_SMALL;
 		return NULL;
 	}
@@ -184,18 +184,18 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			siril_log_message(_("Warning: There aren't enough pixels"
 						" in the sky annulus. You need to make a larger selection.\n"));
 		if (error) *error = PSF_ERR_TOO_FEW_BG_PIX;
-		free(data);
+		siril_free(data);
 		return NULL;
 	}
 
 	ret = robustmean(n_sky, data, &mean, &stdev);
-	free(data);
+	siril_free(data);
 	if (ret > 0) {
 		if (error) *error = PSF_ERR_MEAN_FAILED;
 		return NULL;
 	}
 
-	phot = calloc(1, sizeof(photometry));
+	phot = siril_calloc(1, sizeof(photometry));
 	if (!phot) {
 		if (error) *error = PSF_ERR_ALLOC;
 		PRINT_ALLOC_ERR;
@@ -313,7 +313,7 @@ static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const
 	nbpoints = plots->nb;
 
 	// gathering all the data
-	data = malloc(nbpoints * nbcols * sizeof(double));
+	data = siril_malloc(nbpoints * nbcols * sizeof(double));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		retval = FALSE;
@@ -353,7 +353,7 @@ static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const
 
 clean_and_exit:
 	g_string_free(header, TRUE);
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -415,13 +415,13 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 
 	// arrays containing the graph data: X, Y and Y error bars
-	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
-	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
-	double *err = calloc(nbImages, sizeof(double));		// Y error bar
-	double *snr_opt = calloc(nbImages, sizeof(double));	// SNR
+	double *date = siril_calloc(nbImages, sizeof(double));	// X is the julian date
+	double *vmag = siril_calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
+	double *err = siril_calloc(nbImages, sizeof(double));		// Y error bar
+	double *snr_opt = siril_calloc(nbImages, sizeof(double));	// SNR
 	if (!date || !vmag || !err || !snr_opt) {
 		PRINT_ALLOC_ERR;
-		free(date); free(vmag); free(err); free(snr_opt);
+		siril_free(date); siril_free(vmag); siril_free(err); siril_free(snr_opt);
 		free_siril_plot_data(spl_data);
 		return -1;
 	}
@@ -528,13 +528,13 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	spl_data->revertY = TRUE;
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
-	double *date0 = malloc(nb_valid_images * sizeof(double));
+	double *date0 = siril_malloc(nb_valid_images * sizeof(double));
 	for (int k = 0; k < nb_valid_images; k++)
 		date0[k] = date[k] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
 	lc->plots[0]->x_offset = (double)julian0;
-	free(date0);
+	siril_free(date0);
 
 	// now we sort to have all dates ascending
 	siril_plot_sort_x(spl_data);
@@ -547,7 +547,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
-		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
+		if (!lcargs->display_graph) { // if not used for display we can siril_free spl_data now
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
@@ -564,9 +564,9 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (lcargs->display_graph && spl_data)
 		lcargs->spl_data = spl_data;
 
-	free(date);
-	free(vmag);
-	free(err);
+	siril_free(date);
+	siril_free(vmag);
+	siril_free(err);
 	return ret;
 }
 
@@ -582,11 +582,11 @@ static gboolean end_light_curve_worker(gpointer p) {
 void free_light_curve_args(struct light_curve_args *args) {
 	if (args->seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	free(args->areas);
+	siril_free(args->areas);
 	g_free(args->target_descr);
 	if (args->metadata)
-		free(args->metadata);
-	free(args);
+		siril_free(args->metadata);
+	siril_free(args);
 	return;
 }
 
@@ -621,7 +621,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_pythonsafe_idle(create_new_siril_plot_window, args->spl_data);
 	}
-	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
+	free_light_curve_args(args); // this will not siril_free args->spl_data which is siril_free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
 }

@@ -54,6 +54,7 @@ For log = natural log uncomment the next line. */
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include "core/siril_alloc.h"
 
 #ifndef NAN
 #define NAN (0.0/0.0)
@@ -113,7 +114,7 @@ static te_expr *new_expr(const int type, const te_expr *parameters[]) {
     const int arity = ARITY(type);
     const int psize = sizeof(void*) * arity;
     const int size = (sizeof(te_expr) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-    te_expr *ret = malloc(size);
+    te_expr *ret = siril_malloc(size);
     memset(ret, 0, size);
     if (arity && parameters) {
         memcpy(ret->parameters, parameters, psize);
@@ -141,7 +142,7 @@ void te_free_parameters(te_expr *n) {
 void te_free(te_expr *n) {
     if (!n) return;
     te_free_parameters(n);
-    free(n);
+    siril_free(n);
 }
 
 
@@ -571,7 +572,7 @@ static te_expr *factor(state *s) {
         ret->function == negate_logical_not || ret->function == negate_logical_notnot)) {
         left_function = ret->function;
         te_expr *se = ret->parameters[0];
-        free(ret);
+        siril_free(ret);
         ret = se;
     }
 

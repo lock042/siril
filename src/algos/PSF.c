@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -452,7 +452,7 @@ static int psf_Moffat_f_ang(const gsl_vector * x, void *PSF_data, gsl_vector * f
 	double ca = cos(alpha);
 	double sa = sin(alpha);
 	double beta = MOFFAT_BETA_UBOUND * 0.5 * (cos(gsl_vector_get(x, 7)) + 1.);
-	// // bounding beta to MOFFAT_BETA_UBOUND if free, otherwise setting to PSF_data->beta
+	// // bounding beta to MOFFAT_BETA_UBOUND if siril_free, otherwise setting to PSF_data->beta
 	// double beta = (((struct PSF_data *) PSF_data)->betafree ?
 	// 		min(gsl_vector_get(x, 6), MOFFAT_BETA_UBOUND) :
 	// 		((struct PSF_data *) PSF_data)->beta);
@@ -493,7 +493,7 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 	double sa = sin(alpha);
 	double beta = MOFFAT_BETA_UBOUND * 0.5 * (cos(gsl_vector_get(x, 7)) + 1.);
 	double sfbeta = sin(gsl_vector_get(x, 7));
-	// // bounding beta to MOFFAT_BETA_UBOUND if free, otherwise setting to PSF_data->beta
+	// // bounding beta to MOFFAT_BETA_UBOUND if siril_free, otherwise setting to PSF_data->beta
 	// double beta = (((struct PSF_data *) PSF_data)->betafree ?
 	// 		min(gsl_vector_get(x, 6), MOFFAT_BETA_UBOUND) :
 	// 		((struct PSF_data *) PSF_data)->beta);
@@ -593,7 +593,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	if (error) *error = PSF_NO_ERR;
 	// computing the mask to discard clipped values
-	mask = malloc(NbRows * NbCols * sizeof(gboolean));
+	mask = siril_malloc(NbRows * NbCols * sizeof(gboolean));
 	if (!mask) {
 		PRINT_ALLOC_ERR;
 		if (error) *error = PSF_ERR_ALLOC;
@@ -614,7 +614,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	psf = new_psf_star();
 	covar = gsl_matrix_alloc(p, p);
-	y = malloc(n * sizeof(double));
+	y = siril_malloc(n * sizeof(double));
 	if (!psf || !covar || !y) {
 		PRINT_ALLOC_ERR;
 		if (error) *error = PSF_ERR_ALLOC;
@@ -787,10 +787,10 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->ang_err = ERR(6) / FIT(6);
 	psf->beta_err = (profile == PSF_GAUSSIAN) ? 0. : ERR(7) / FIT(7);
 
-	//we free the memory
+	//we siril_free the memory
 free_and_exit:
-	if (y) free(y);
-	if (mask) free(mask);
+	if (y) siril_free(y);
+	if (mask) siril_free(mask);
 	if (MaxV) gsl_vector_free(MaxV);
 	if(work) gsl_multifit_nlinear_free(work);
 	if (covar) gsl_matrix_free(covar);
@@ -1112,7 +1112,7 @@ void psf_star_init(psf_star *s) {
 }
 
 psf_star *new_psf_star() {
-	psf_star *star = calloc(1, sizeof(psf_star));
+	psf_star *star = siril_calloc(1, sizeof(psf_star));
 	star->phot = NULL;
 	star->units = "px";
 	return star;
@@ -1124,7 +1124,7 @@ psf_star *duplicate_psf(psf_star *psf) {
 	psf_star *new_psf = new_psf_star();
 	memcpy(new_psf, psf, sizeof(psf_star));
 	if (psf->phot) {
-		new_psf->phot = malloc(sizeof(photometry));
+		new_psf->phot = siril_malloc(sizeof(photometry));
 		memcpy(new_psf->phot, psf->phot, sizeof(photometry));
 	} else {
 		new_psf->phot = NULL;
@@ -1136,7 +1136,7 @@ psf_star *duplicate_psf(psf_star *psf) {
 
 void free_psf(psf_star *psf) {
 	if (!psf) return;
-	if (psf->phot) free(psf->phot);
+	if (psf->phot) siril_free(psf->phot);
 	if (psf->star_name) g_free(psf->star_name);
-	free(psf);
+	siril_free(psf);
 }

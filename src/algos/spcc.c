@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -51,9 +51,9 @@ xpsampled init_xpsampled() {
 cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minwl, const double maxwl) {
 	cmsCIEXYZ XYZ;
 	cmsCIExyY xyY;
-	double	*dbl_si_x = malloc(XPSAMPLED_LEN * sizeof(double)),
-			*dbl_si_y = malloc(XPSAMPLED_LEN * sizeof(double)),
-			*dbl_si_z = malloc(XPSAMPLED_LEN * sizeof(double));
+	double	*dbl_si_x = siril_malloc(XPSAMPLED_LEN * sizeof(double)),
+			*dbl_si_y = siril_malloc(XPSAMPLED_LEN * sizeof(double)),
+			*dbl_si_z = siril_malloc(XPSAMPLED_LEN * sizeof(double));
 	if (cmf == CMF_1931_2DEG) {
 		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
 			dbl_si_x[i] = xps->y[i] * x1931(xps->x[i]);
@@ -75,16 +75,16 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 	gsl_interp_accel *acc = gsl_interp_accel_alloc();
 	XYZ.X = gsl_interp_eval_integ(interp, xps->x, dbl_si_x, minwl, maxwl, acc);
 	gsl_interp_accel_reset(acc);
-	free(dbl_si_x);
+	siril_free(dbl_si_x);
 
 	gsl_interp_init(interp, xps->x, dbl_si_y, XPSAMPLED_LEN);
 	XYZ.Y = gsl_interp_eval_integ(interp, xps->x, dbl_si_y, minwl, maxwl, acc);
 	gsl_interp_accel_reset(acc);
-	free(dbl_si_y);
+	siril_free(dbl_si_y);
 
 	gsl_interp_init(interp, xps->x, dbl_si_z, XPSAMPLED_LEN);
 	XYZ.Z = gsl_interp_eval_integ(interp, xps->x, dbl_si_z, minwl, maxwl, acc);
-	free(dbl_si_z);
+	siril_free(dbl_si_z);
 	gsl_interp_free(interp);
 	gsl_interp_accel_free(acc);
 	cmsXYZ2xyY(&xyY, &XYZ);
@@ -320,7 +320,7 @@ int spcc_set_source_profile(struct photometric_cc_data *args) {
 	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};
 	cmsCIEXYZ d50_illuminant_specs_media_whitepoint = {0.964199999, 1.000000000, 0.824899998};
 	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
-	cmsMLUsetASCII(copyright, "en", "US", "Copyright "SIRIL_GIT_LAST_COMMIT_YEAR", Team free-astro (https://siril.org), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/");
+	cmsMLUsetASCII(copyright, "en", "US", "Copyright "SIRIL_GIT_LAST_COMMIT_YEAR", Team siril_free-astro (https://siril.org), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/");
 	cmsToneCurve *curve[3], *tonecurve;
 	tonecurve = cmsBuildGamma(NULL, 1.00);
 	curve[0] = curve[1] = curve[2] = tonecurve;

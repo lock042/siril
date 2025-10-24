@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -109,7 +109,7 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 int banding_finalize_hook(struct generic_seq_args *args) {
 	struct banding_data *data = (struct banding_data *) args->user;
 	int retval = seq_finalize_hook(args);
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -132,8 +132,8 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	banding_args->fit = NULL;	// not used here
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(banding_args->seqEntry);
-		free(banding_args);
+		siril_free(banding_args->seqEntry);
+		siril_free(banding_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -148,7 +148,7 @@ gboolean end_BandingEngine(gpointer p) {
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -222,7 +222,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 			return 1;
 		}
 		double background = stat->median;
-		double *rowvalue = calloc(fit->ry, sizeof(double));
+		double *rowvalue = siril_calloc(fit->ry, sizeof(double));
 		if (rowvalue == NULL) {
 			PRINT_ALLOC_ERR;
 			clearfits(fiximage);
@@ -235,10 +235,10 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 		free_stats(stat);
 		for (row = 0; row < fit->ry; row++) {
 			line = fit->pdata[chan] + row * fit->rx;
-			WORD *cpyline = calloc(fit->rx, sizeof(WORD));
+			WORD *cpyline = siril_calloc(fit->rx, sizeof(WORD));
 			if (cpyline == NULL) {
 				PRINT_ALLOC_ERR;
-				free(rowvalue);
+				siril_free(rowvalue);
 				clearfits(fiximage);
 				return 1;
 			}
@@ -261,14 +261,14 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 
 			rowvalue[row] = background - median;
 			minimum = min(minimum, rowvalue[row]);
-			free(cpyline);
+			siril_free(cpyline);
 		}
 		for (row = 0; row < fit->ry; row++) {
 			fixline = fiximage->pdata[chan] + row * fiximage->rx;
 			for (i = 0; i < fit->rx; i++)
 				fixline[i] = round_to_WORD(rowvalue[row] - minimum);
 		}
-		free(rowvalue);
+		siril_free(rowvalue);
 	}
 	for (chan = 0; chan < fit->naxes[2]; chan++)
 		fmul_layer_ushort(fiximage, chan, amount);
@@ -304,7 +304,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 			return 1;
 		}
 		double background = stat->median;
-		double *rowvalue = calloc(fit->ry, sizeof(double));
+		double *rowvalue = siril_calloc(fit->ry, sizeof(double));
 		if (rowvalue == NULL) {
 			PRINT_ALLOC_ERR;
 			free_stats(stat);
@@ -316,10 +316,10 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 		free_stats(stat);
 		for (row = 0; row < fit->ry; row++) {
 			line = fit->fpdata[chan] + row * fit->rx;
-			float *cpyline = calloc(fit->rx, sizeof(float));
+			float *cpyline = siril_calloc(fit->rx, sizeof(float));
 			if (cpyline == NULL) {
 				PRINT_ALLOC_ERR;
-				free(rowvalue);
+				siril_free(rowvalue);
 				return 1;
 			}
 			memcpy(cpyline, line, fit->rx * sizeof(float));
@@ -340,14 +340,14 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 
 			rowvalue[row] = background - median;
 			minimum = min(minimum, rowvalue[row]);
-			free(cpyline);
+			siril_free(cpyline);
 		}
 		for (row = 0; row < fit->ry; row++) {
 			fixline = fiximage->fpdata[chan] + row * fiximage->rx;
 			for (i = 0; i < fit->rx; i++)
 				fixline[i] = rowvalue[row] - minimum;
 		}
-		free(rowvalue);
+		siril_free(rowvalue);
 	}
 	for (chan = 0; chan < fit->naxes[2]; chan++)
 		fmul_layer_float(fiximage, chan, amount);
@@ -355,7 +355,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
-	free(fiximage);
+	siril_free(fiximage);
 	if ((!ret) && applyRotation) {
 		if (cvRotateImage(fit, -90)) return 1;
 	}
@@ -400,7 +400,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct banding_data *args = calloc(1, sizeof(struct banding_data));
+	struct banding_data *args = siril_calloc(1, sizeof(struct banding_data));
 
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
@@ -432,7 +432,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		if (args->seqEntry && args->seqEntry[0] == '\0') {
-			free(args->seqEntry);
+			siril_free(args->seqEntry);
 			args->seqEntry = strdup("unband_");
 		}
 		gtk_toggle_button_set_active(seq, FALSE);
@@ -440,8 +440,8 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		apply_banding_to_sequence(args);
 	} else {
 		if (!start_in_new_thread(BandingEngineThreaded, args)) {
-			free(args->seqEntry);
-			free(args);
+			siril_free(args->seqEntry);
+			siril_free(args);
 		}
 	}
 }

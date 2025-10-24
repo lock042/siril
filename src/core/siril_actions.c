@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -301,7 +301,7 @@ void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer
 void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	mouse_status = g_variant_get_boolean(state) ? MOUSE_ACTION_PHOTOMETRY : MOUSE_ACTION_SELECT_REG_AREA;
 	g_simple_action_set_state(action, state);
-	free(gui.qphot);
+	siril_free(gui.qphot);
 	gui.qphot = NULL;
 	redraw(REDRAW_OVERLAY);
 }
@@ -393,7 +393,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 	psf_error error = PSF_NO_ERR;
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
-	free(ps);
+	siril_free(ps);
 	if (result)
 		popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);

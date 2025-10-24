@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -195,7 +195,7 @@ static void compute_compositor_mem_limits(fits* fit) {
  * layers grid. Indices start at 0, but row 0 holds only one label, and row 1 is
  * reserved to the luminance layer. */
 layer *create_layer(int index) {
-	layer *ret = malloc(sizeof(layer));
+	layer *ret = siril_malloc(sizeof(layer));
 	/* create the widgets and set properties and signals */
 	ret->remove_button = GTK_BUTTON(gtk_button_new());
 	gtk_button_set_image(ret->remove_button,
@@ -328,7 +328,7 @@ static void remove_layer(int layer) {
 		refresh = 1;
 	}
 	grid_remove_row(layer, 1);	// remove these widgets for good
-	free(layers[layer]);
+	siril_free(layers[layer]);
 
 	do {
 		layers[layer] = layers[layer+1];
@@ -435,7 +435,7 @@ void open_compositing_window() {
 		grid_layers = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_layers"));
 		add_the_layer_add_button();
 
-		layers[0] = calloc(1, sizeof(layer));
+		layers[0] = siril_calloc(1, sizeof(layer));
 		layers[0]->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
 		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[0]->chooser), com.wd);
 		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
@@ -576,7 +576,7 @@ static void check_gfit_is_ours() {
 	if (!create_uniq_from_gfit(temp, FALSE))
 		com.uniq->comment = strdup(_("Compositing result image"));
 	else
-		free(temp);
+		siril_free(temp);
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
@@ -596,7 +596,7 @@ static void check_gfit_is_ours() {
 // Called from the filechooser
 static void update_metadata(gboolean do_sum) {
 	int nb = number_of_images_loaded();
-	fits **f = malloc((nb + 1) * sizeof(fits *));
+	fits **f = siril_malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
 	int firstlayer = -1;
 	for (int i = 0; layers[i] ; i++)
@@ -610,13 +610,13 @@ static void update_metadata(gboolean do_sum) {
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	update_fits_header(&gfit);
 	gui_function(update_MenuItem, NULL);
-	free(f);
+	siril_free(f);
 }
 
 // Called after alignment
 static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	int nb = number_of_images_loaded();
-	fits **f = malloc((nb + 1) * sizeof(fits *));
+	fits **f = siril_malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < nb ; i++)
 		if (seq->internal_fits[i])
@@ -626,7 +626,7 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	update_fits_header(&gfit);
 	gui_function(update_MenuItem, NULL);
-	free(f);
+	siril_free(f);
 }
 
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
@@ -926,9 +926,9 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
 	int ret1 = method->method_ptr(&regargs);
-	free(regargs.imgparam);
+	siril_free(regargs.imgparam);
 	regargs.imgparam = NULL;
-	free(regargs.regparam);
+	siril_free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (ret1) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
@@ -964,9 +964,9 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Using Luminance channel as reference.\n"));
 	}
 	int ret2 = register_apply_reg(&regargs);
-	free(regargs.imgparam);
+	siril_free(regargs.imgparam);
 	regargs.imgparam = NULL;
-	free(regargs.regparam);
+	siril_free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (ret2) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
@@ -1538,7 +1538,7 @@ void reset_compositing_module() {
 		if (has_fit(i))
 			clearfits(&layers[i]->the_fit);
 		grid_remove_row(i, 1);
-		free(layers[i]);
+		siril_free(layers[i]);
 		layers[i] = NULL;
 		layers_count--;
 	}
@@ -1675,10 +1675,10 @@ void on_compositing_autoadjust_clicked(GtkButton *button, gpointer user_data){
 
 static void coeff_clear() {
 	if (coeff) {
-		free(coeff->offset);
-		free(coeff->scale);
-		free(coeff->mul);
-		free(coeff);
+		siril_free(coeff->offset);
+		siril_free(coeff->scale);
+		siril_free(coeff->mul);
+		siril_free(coeff);
 		coeff = NULL;
 	}
 }
@@ -1800,8 +1800,8 @@ int manual_align_prepare_results(struct generic_seq_args *args) {
 
 	if (!regargs->no_output) {
 		// allocate destination sequence data
-		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+		regargs->imgparam = siril_calloc(args->nb_filtered_images, sizeof(imgdata));
+		regargs->regparam = siril_calloc(args->nb_filtered_images, sizeof(regdata));
 		if (!regargs->imgparam  || !regargs->regparam) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -1811,7 +1811,7 @@ int manual_align_prepare_results(struct generic_seq_args *args) {
 			return 1;
 	}
 
-	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
+	sadata->success = siril_calloc(args->nb_filtered_images, sizeof(BYTE));
 	if (!sadata->success) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -1828,7 +1828,7 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		return 1;
 	}
 	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
@@ -1928,17 +1928,17 @@ int manual_align_finalize_hook(struct generic_seq_args *args) {
 		}
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
+		siril_free(args->seq->regparam[regargs->layer]);
 		args->seq->regparam[regargs->layer] = NULL;
 
 		if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
-			free(args->new_fitseq);
+			siril_free(args->new_fitseq);
 		}
 	}
 
-	if (sadata->success) free(sadata->success);
-	free(sadata);
+	if (sadata->success) siril_free(sadata->success);
+	siril_free(sadata);
 	args->user = NULL;
 	if (!args->retval) {
 		siril_log_message(_("Registration finished.\n"));
@@ -1983,7 +1983,7 @@ int register_manual(struct registration_args *regargs) {
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	struct star_align_data *sadata = siril_calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
 		free_generic_seq_args(args, FALSE);
 		return -1;
@@ -2003,7 +2003,7 @@ int crop_rgbcomp_seq() {
 		siril_log_color_message(_("Error: internal RGB composition sequence does not exist\n"), "red");
 		return 1;
 	}
-	struct crop_sequence_data *crop_args = calloc(1, sizeof(struct crop_sequence_data));
+	struct crop_sequence_data *crop_args = siril_calloc(1, sizeof(struct crop_sequence_data));
 
 	crop_args->seq = seq;
 	memcpy(&crop_args->area, &com.selection, sizeof(rectangle));
@@ -2026,8 +2026,8 @@ int crop_rgbcomp_seq() {
 	args->user = crop_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(crop_args->prefix);
-		free(crop_args);
+		siril_free(crop_args->prefix);
+		siril_free(crop_args);
 		free_generic_seq_args(args, FALSE);
 		return 1;
 	}

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -48,10 +48,10 @@ static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	datasize = rx * ry;
 
 	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, 3 * datasize * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, 3 * datasize * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(fit->data);
+			siril_free(fit->data);
 		return 1;
 	}
 
@@ -85,10 +85,10 @@ static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	size_t newdatasize = ry * rx;
 
 	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(fit->data);
+			siril_free(fit->data);
 		return 1;
 	}
 	rdata = fit->pdata[RLAYER] = fit->data;
@@ -120,10 +120,10 @@ static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	size_t newdatasize = ry * rx;
 
 	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, 3 * newdatasize * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(fit->data);
+			siril_free(fit->data);
 		return 1;
 	}
 	rdata = fit->pdata[RLAYER] = fit->data;
@@ -160,10 +160,10 @@ static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fi
 	nbdata = rx * ry;
 
 	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(fit->data);
+			siril_free(fit->data);
 		return 1;
 	}
 	data = fit->pdata[BW_LAYER] = fit->data;
@@ -250,7 +250,7 @@ int readbmp(const char *name, fits *fit) {
 		return -1;
 	}
 
-	buf = malloc(nbdata);
+	buf = siril_malloc(nbdata);
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		fclose(file);
@@ -259,7 +259,7 @@ int readbmp(const char *name, fits *fit) {
 	unsigned long f;
 	if (nbdata != (f = fread(buf, 1, nbdata, file))) {
 		siril_log_color_message(_("readbmp: could not read all data: (%zu, %lu)\n"), "red", nbdata, f);
-		free(buf);
+		siril_free(buf);
 		fclose(file);
 		return -1;
 	}
@@ -285,7 +285,7 @@ int readbmp(const char *name, fits *fit) {
 						"open this kind of BMP. Try to convert it before.\n"), "red");
 	}
 	fit->type = DATA_USHORT;
-	free(buf);
+	siril_free(buf);
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want for 8-bit BMPs
 	fits_initialize_icc(fit, NULL, 0);
@@ -333,10 +333,10 @@ int savebmp(const char *name, fits *fit) {
 		size_t nchans = fit->naxes[2];
 		cmsUInt32Number trans_type;
 		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
 		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
 		gboolean threaded = !get_thread_run();
@@ -394,7 +394,7 @@ int savebmp(const char *name, fits *fit) {
 	f = g_fopen(filename, "wb");
 	if (f == NULL) {
 		siril_log_color_message(_("Can't create BMP file.\n"), "red");
-		free(filename);
+		siril_free(filename);
 		return 1;
 	}
 
@@ -450,8 +450,8 @@ int savebmp(const char *name, fits *fit) {
 	fclose(f);
 	siril_log_message(_("Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"), filename,
 			fit->naxes[2], fit->rx, fit->ry);
-	free(filename);
-	free(dest);
+	siril_free(filename);
+	siril_free(dest);
 	return 0;
 }
 
@@ -552,17 +552,17 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			stride = fit->rx;
 		else
 			stride = fit->rx * 3;
-		tmpbuf = malloc(stride * fit->ry);
-		WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+		tmpbuf = siril_malloc(stride * fit->ry);
+		WORD *tmp = siril_realloc(fit->data, stride * fit->ry * sizeof(WORD));
 		if (tmp == NULL || tmpbuf == NULL) {
 			PRINT_ALLOC_ERR;
 			fclose(file);
 			if (fit->data && !tmp)
-				free(fit->data);
+				siril_free(fit->data);
 			if (tmpbuf)
-				free(tmpbuf);
+				siril_free(tmpbuf);
 			if (tmp)
-				free(tmp);
+				siril_free(tmp);
 			fit->data = NULL;
 			return -1;
 		}
@@ -570,8 +570,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
 			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
 			fclose(file);
-			free(tmpbuf);
-			free(fit->data);
+			siril_free(tmpbuf);
+			siril_free(fit->data);
 			fit->data = NULL;
 			return -1;
 		}
@@ -579,7 +579,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			rgb24bit_to_fits48bit(tmpbuf, fit, FALSE);
 		else
 			rgb8bit_to_fits16bit(tmpbuf, fit);
-		free(tmpbuf);
+		siril_free(tmpbuf);
 		fit->bitpix = BYTE_IMG;
 		fit->keywords.binning_x = fit->keywords.binning_y = 1;
 		fits_flip_top_to_bottom(fit);
@@ -588,19 +588,19 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		if (fit->naxes[2] == 1) {
 			WORD *olddata = fit->data;
 			stride = fit->rx * sizeof(WORD);
-			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			fit->data = siril_realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (fit->data == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
 				if (olddata)
-					free(olddata);
+					siril_free(olddata);
 				return -1;
 			}
 			if (fread(fit->data, stride, fit->ry, file) < fit->ry) {
 				siril_log_color_message(
 						_("Error reading 16-bit gray PPM image data.\n"), "red");
 				fclose(file);
-				free(fit->data);
+				siril_free(fit->data);
 				fit->data = NULL;
 				return -1;
 			}
@@ -616,17 +616,17 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			/* RGB 16-bit image */
 			WORD *tmpbuf;
 			stride = fit->rx * 3 * sizeof(WORD);
-			tmpbuf = malloc(stride * fit->ry);
-			WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			tmpbuf = siril_malloc(stride * fit->ry);
+			WORD *tmp = siril_realloc(fit->data, stride * fit->ry * sizeof(WORD));
 			if (tmp == NULL || tmpbuf == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
 				if (fit->data && !tmp)
-					free(fit->data);
+					siril_free(fit->data);
 				if (tmpbuf)
-					free(tmpbuf);
+					siril_free(tmpbuf);
 				if (tmp)
-					free(tmp);
+					siril_free(tmp);
 				return -1;
 			}
 			fit->data = tmp;
@@ -634,13 +634,13 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				siril_log_color_message(
 						_("Error reading 16-bit color PPM image data.\n"), "red");
 				fclose(file);
-				free(tmpbuf);
-				free(fit->data);
+				siril_free(tmpbuf);
+				siril_free(fit->data);
 				fit->data = NULL;
 				return -1;
 			}
 			rgb48bit_to_fits48bit(tmpbuf, fit, FALSE, TRUE);
-			free(tmpbuf);
+			siril_free(tmpbuf);
 		}
 		fit->bitpix = USHORT_IMG;
 		fit->keywords.binning_x = fit->keywords.binning_y = 1;
@@ -690,9 +690,9 @@ static int saveppm(const char *name, fits *fit) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		gboolean threaded = !get_thread_run();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
@@ -742,7 +742,7 @@ static int saveppm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
-	free(dest);
+	siril_free(dest);
 	return 0;
 }
 
@@ -763,9 +763,9 @@ static int savepgm(const char *name, fits *fit) {
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		const size_t npixels = fit->rx * fit->ry;
 		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		gboolean threaded = get_thread_run();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
@@ -810,7 +810,7 @@ static int savepgm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
-	free(dest);
+	siril_free(dest);
 	return 0;
 }
 
@@ -829,7 +829,7 @@ int saveNetPBM(const char *name, fits *fit) {
 		}
 		retval = saveppm(filename, fit);
 	}
-	free(filename);
+	siril_free(filename);
 	return retval;
 }
 
@@ -838,10 +838,10 @@ static int pictofit(const WORD *buf, fits *fit) {
 	WORD *data, *olddata = fit->data;
 
 	size_t i, nbdata = fit->rx * fit->ry;
-	if ((fit->data = realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, nbdata * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(olddata);
+			siril_free(olddata);
 		return -1;
 	}
 	data = fit->pdata[BW_LAYER] = fit->data;
@@ -864,10 +864,10 @@ static int pictofitrgb(const WORD *buf, fits *fit) {
 	WORD *data[3], *olddata = fit->data;
 
 	size_t i, nbdata = fit->rx * fit->ry;
-	if ((fit->data = realloc(fit->data, nbdata * 3 * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, nbdata * 3 * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(olddata);
+			siril_free(olddata);
 		return -1;
 	}
 	data[RLAYER] = fit->pdata[RLAYER] = fit->data;
@@ -939,7 +939,7 @@ static int _pic_close_file(struct pic_struct *pic_file) {
 	}
 	g_free(pic_file->date);
 	g_free(pic_file->time);
-	free(pic_file);
+	siril_free(pic_file);
 	return retval;
 }
 
@@ -948,12 +948,12 @@ int readpic(const char *name, fits *fit) {
 	WORD *buf;
 	int retval = 0;
 
-	pic_file = calloc(1, sizeof(struct pic_struct));
+	pic_file = siril_calloc(1, sizeof(struct pic_struct));
 
 	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
 		siril_log_color_message(
 				_("Sorry but Siril cannot open the PIC file: %s.\n"), "red", name);
-		free(pic_file);
+		siril_free(pic_file);
 		return -1;
 	}
 
@@ -979,7 +979,7 @@ int readpic(const char *name, fits *fit) {
 		_pic_close_file(pic_file);
 		return -1;
 	}
-	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
+	buf = siril_malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 	if (!buf) {
 		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
 		_pic_close_file(pic_file);
@@ -989,7 +989,7 @@ int readpic(const char *name, fits *fit) {
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
 			!= nbdata * pic_file->nbplane * sizeof(WORD)) {
 		siril_log_color_message(_("Error: Cannot read the data\n"), "red");
-		free(buf);
+		siril_free(buf);
 		_pic_close_file(pic_file);
 		return -1;
 	}
@@ -1005,7 +1005,7 @@ int readpic(const char *name, fits *fit) {
 			retval = -1;
 			siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
 	}
-	free(buf);
+	siril_free(buf);
 
 	if (retval) {
 		_pic_close_file(pic_file);

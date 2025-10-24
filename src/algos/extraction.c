@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -203,8 +203,8 @@ void apply_extractGreen_to_sequence(struct simple_extract_data *extract_args) {
 	args->user = extract_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(extract_args->seqEntry);
-		free(extract_args);
+		siril_free(extract_args->seqEntry);
+		siril_free(extract_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -361,8 +361,8 @@ void apply_extractHa_to_sequence(struct simple_extract_data *extract_args) {
 	args->user = extract_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(extract_args->seqEntry);
-		free(extract_args);
+		siril_free(extract_args->seqEntry);
+		siril_free(extract_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -815,11 +815,11 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	}
 	extraction_scaling scaling = *(extraction_scaling*) multi_args->user_data;
 	/* Demosaic and store images for write */
-	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
+	struct _multi_split *multi_data = siril_calloc(1, sizeof(struct _multi_split));
 	multi_data->index = o;
-	multi_data->images = calloc(3, sizeof(fits*));
+	multi_data->images = siril_calloc(3, sizeof(fits*));
 	for (int i = 0 ; i < 3 ; i++) {
-		multi_data->images[i] = calloc(1, sizeof(fits));
+		multi_data->images[i] = siril_calloc(1, sizeof(fits));
 	}
 
 	if (fit->type == DATA_USHORT) {
@@ -832,7 +832,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	if (ret) {
 		for (int i = 0 ; i < 2 ; i++) {
 			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
+			siril_free(multi_data->images[i]);
 		}
 	} else {
 #ifdef _OPENMP
@@ -865,7 +865,7 @@ void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
 	args->user = multi_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(multi_args->user_data);
+		siril_free(multi_args->user_data);
 		free_multi_args(multi_args);
 		free_generic_seq_args(args, TRUE);
 	}
@@ -1014,11 +1014,11 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
+	struct _multi_split *multi_data = siril_calloc(1, sizeof(struct _multi_split));
 	multi_data->index = o;
-	multi_data->images = calloc(5, sizeof(fits*));
+	multi_data->images = siril_calloc(5, sizeof(fits*));
 	for (int i = 0 ; i < 4 ; i++) {
-		multi_data->images[i] = calloc(1, sizeof(fits));
+		multi_data->images[i] = siril_calloc(1, sizeof(fits));
 	}
 	if (fit->type == DATA_USHORT) {
 		ret = split_cfa_ushort(fit, multi_data->images[0], multi_data->images[1], multi_data->images[2], multi_data->images[3]);
@@ -1029,7 +1029,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	if (ret) {
 		for (int i = 0 ; i < 4 ; i++) {
 			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
+			siril_free(multi_data->images[i]);
 		}
 	} else {
 #ifdef _OPENMP
@@ -1132,7 +1132,7 @@ void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
 	args->user = multi_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		// multi_args->user_data not used in this operation, no need to free
+		// multi_args->user_data not used in this operation, no need to siril_free
 		free_multi_args(multi_args);
 		free_generic_seq_args(args, TRUE);
 	}

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -69,11 +69,11 @@ static gboolean progress_bar_idle_callback(gpointer p) {
 
 	if (data->progress_bar_text) {
 		progress_bar_set_text(data->progress_bar_text);
-		free(data->progress_bar_text);
+		siril_free(data->progress_bar_text);
 	}
 	if (data->progress_bar_percent != PROGRESS_NONE)
 		progress_bar_set_percent(data->progress_bar_percent);
-	free(data);
+	siril_free(data);
 	return FALSE;	// only run once
 }
 
@@ -94,7 +94,7 @@ void set_progress_bar_data(const char *text, double percent) {
 		pipe_send_message(PIPE_PROGRESS, PIPE_NA, buf);
 	} else {
 		struct progress_bar_idle_data *data;
-		data = malloc(sizeof(struct progress_bar_idle_data));
+		data = siril_malloc(sizeof(struct progress_bar_idle_data));
 		data->progress_bar_text = text ? strdup(text) : NULL;
 		data->progress_bar_percent = percent;
 		assert(percent == PROGRESS_PULSATE || percent == PROGRESS_NONE ||
@@ -139,9 +139,9 @@ static gboolean idle_messaging(gpointer p) {
 	if (log->message[0] == '\n' && log->message[1] == '\0') {
 		gtk_text_buffer_get_start_iter(tbuf, &iter);
 		gtk_text_buffer_insert(tbuf, &iter, log->message, strlen(log->message));
-		free(log->timestamp);
-		free(log->message);
-		free(log);
+		siril_free(log->timestamp);
+		siril_free(log->message);
+		siril_free(log);
 		return FALSE;
 	}
 
@@ -161,9 +161,9 @@ static gboolean idle_messaging(gpointer p) {
 	 */
 	g_timeout_add(50, scroll_to_end, (gpointer) text);
 
-	free(log->timestamp);
-	free(log->message);
-	free(log);
+	siril_free(log->timestamp);
+	siril_free(log->message);
+	siril_free(log);
 	return FALSE;
 }
 
@@ -177,7 +177,7 @@ void gui_log_message(const char* msg, const char* color) {
 	g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,
 			now->tm_min, now->tm_sec);
 
-	struct log_message *new_msg = malloc(sizeof(struct log_message));
+	struct log_message *new_msg = siril_malloc(sizeof(struct log_message));
 	new_msg->timestamp = strdup(timestamp);
 	new_msg->message = strdup(msg);
 	new_msg->color = color;
@@ -314,13 +314,13 @@ static gboolean idle_set_cursor(gpointer garg) {
 		}
 		else {
 			// it's the current cursor
-			free(arg);
+			siril_free(arg);
 			return FALSE;
 		}
 	} else {
 		if (!current_name) {
 			// it's the current default
-			free(arg);
+			siril_free(arg);
 			return FALSE;
 		}
 		current_name = NULL;
@@ -340,13 +340,13 @@ static gboolean idle_set_cursor(gpointer garg) {
 	gdk_display_flush(display);
 	g_list_free(list);
 
-	free(arg);
+	siril_free(arg);
 	return FALSE;
 }
 
 void set_cursor_waiting(gboolean waiting) {
 	if (com.headless) return;
-	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
+	struct _cursor_data *arg = siril_malloc(sizeof (struct _cursor_data));
 
 	arg->change = waiting;
 	arg->cursor_name = "progress";
@@ -355,7 +355,7 @@ void set_cursor_waiting(gboolean waiting) {
 }
 
 void set_cursor(const gchar* cursor_name) {
-	struct _cursor_data *arg = malloc(sizeof (struct _cursor_data));
+	struct _cursor_data *arg = siril_malloc(sizeof (struct _cursor_data));
 
 	arg->change = TRUE;
 	arg->cursor_name = cursor_name;

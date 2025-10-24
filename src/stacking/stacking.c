@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -413,7 +413,7 @@ static gboolean end_stacking(gpointer p) {
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
-		com.uniq = calloc(1, sizeof(single));
+		com.uniq = siril_calloc(1, sizeof(single));
 		com.uniq->comment = strdup(_("Stacking result image"));
 		com.uniq->nb_layers = gfit.naxes[2];
 		com.uniq->fit = &gfit;
@@ -530,10 +530,10 @@ static gboolean end_stacking(gpointer p) {
 	memset(&args->result, 0, sizeof(fits));
 	if (args->create_rejmaps) {
 		clearfits(args->rejmap_low);
-		free(args->rejmap_low);
+		siril_free(args->rejmap_low);
 		if (!args->merge_lowhigh_rejmaps) {
 			clearfits(args->rejmap_high);
-			free(args->rejmap_high);
+			siril_free(args->rejmap_high);
 		}
 	}
 	set_cursor_waiting(FALSE);
@@ -660,17 +660,17 @@ void init_stacking_args(struct stacking_args *args) {
 void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to) {
 	memcpy(to, from, sizeof(struct stacking_args));
 	// sequence is not duplicated
-	to->image_indices = malloc(from->nb_images_to_stack * sizeof(int));
+	to->image_indices = siril_malloc(from->nb_images_to_stack * sizeof(int));
 	memcpy(to->image_indices, from->image_indices, from->nb_images_to_stack * sizeof(int));
 	to->description = g_strdup(from->description);
 	// output_filename is not duplicated, can be changed until the last minute
 }
 
 void stacking_args_deep_free(struct stacking_args *args) {
-	free(args->image_indices);
-	free(args->description);
-	free(args->critical_value);
-	free(args);
+	siril_free(args->image_indices);
+	siril_free(args->description);
+	siril_free(args->critical_value);
+	siril_free(args);
 }
 
 // used by sum, min and max stacking

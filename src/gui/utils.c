@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -62,13 +62,13 @@ static gboolean set_label_text_idle(gpointer p) {
 	}
 	if (strcmp(gtk_label_get_text(label), args->text))
 		gtk_label_set_text(label, args->text);
-	free(args->text);
-	free(args);
+	siril_free(args->text);
+	siril_free(args);
 	return FALSE;
 }
 
 static void set_label_text_from_main_thread(const char *label_name, const char *text, const char *class_to_add, const char *class_to_remove) {
-	struct _label_data *data = malloc(sizeof(struct _label_data));
+	struct _label_data *data = siril_malloc(sizeof(struct _label_data));
 	data->label_name = label_name;
 	data->text = strdup(text);
 	data->class_to_add = class_to_add;

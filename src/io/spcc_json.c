@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -403,7 +403,7 @@ static gboolean processJsonFile(const char *file_path) {
 /*********************** PUBLIC FUNCTIONS ****************************/
 
 spcc_object* spcc_object_copy(spcc_object *data) {
-	spcc_object *copy = malloc(sizeof(spcc_object));
+	spcc_object *copy = siril_malloc(sizeof(spcc_object));
 	if (!copy) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -434,7 +434,7 @@ spcc_object* spcc_object_copy(spcc_object *data) {
 		g_free(copy->comment);
 		g_free(copy->manufacturer);
 		g_free(copy->source);
-		free(copy);
+		siril_free(copy);
 		return NULL;
 	}
 
@@ -447,7 +447,7 @@ spcc_object* spcc_object_copy(spcc_object *data) {
 	return copy;
 }
 
-// Call to free the members of a spcc_object
+// Call to siril_free the members of a spcc_object
 void spcc_object_free(spcc_object *data, gboolean free_struct) {
 	if (!data)
 		return;
@@ -461,9 +461,9 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 	data->filepath = NULL;
 	g_free(data->source);
 	data->source = NULL;
-	free(data->x);
+	siril_free(data->x);
 	data->x = NULL;
-	free(data->y);
+	siril_free(data->y);
 	data->y = NULL;
 	if (free_struct) {
 		g_free(data);
@@ -486,9 +486,9 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 		data->channel[i].filepath = NULL;
 		g_free(data->channel[i].source);
 		data->channel[i].source = NULL;
-		free(data->channel[i].x);
+		siril_free(data->channel[i].x);
 		data->channel[i].x = NULL;
-		free(data->channel[i].y);
+		siril_free(data->channel[i].y);
 		data->channel[i].y = NULL;
 	}
 	if (free_struct) {
@@ -505,9 +505,9 @@ void spcc_object_free_arrays(spcc_object *data) {
 	if (!data)
 		return;
 
-	free(data->x);
+	siril_free(data->x);
 	data->x = NULL;
-	free(data->y);
+	siril_free(data->y);
 	data->y = NULL;
 	data->arrays_loaded = FALSE;
 }
@@ -545,8 +545,8 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		return TRUE;
 
 	// Clear existing arrays
-	free(data->x);
-	free(data->y);
+	siril_free(data->x);
+	siril_free(data->y);
 	data->x = data->y = NULL;
 
 	// Read JSON file
@@ -653,7 +653,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		data->n = (data->n == 0 || data->n > wavelengthCount) ? wavelengthCount : data->n;
 
 	// Allocate temporary storage
-	point *pairs = malloc(data->n * sizeof(point));
+	point *pairs = siril_malloc(data->n * sizeof(point));
 	if (!pairs) {
 		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
 		goto error_cleanup;
@@ -670,7 +670,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		v_val = yyjson_arr_get(valuesArray, w_idx);
 		if (!v_val || !yyjson_is_num(w_val) || !yyjson_is_num(v_val)) {
 			siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", idx);
-			free(pairs);
+			siril_free(pairs);
 			goto error_cleanup;
 		}
 
@@ -684,13 +684,13 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	data->n = remove_duplicate_x(pairs, data->n, data->filepath);
 
 	// Allocate final arrays
-	data->x = malloc(data->n * sizeof(double));
-	data->y = malloc(data->n * sizeof(double));
+	data->x = siril_malloc(data->n * sizeof(double));
+	data->y = siril_malloc(data->n * sizeof(double));
 	if (!data->x || !data->y) {
 		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
-		free(pairs);
-		free(data->x);
-		free(data->y);
+		siril_free(pairs);
+		siril_free(data->x);
+		siril_free(data->y);
 		data->x = data->y = NULL;
 		goto error_cleanup;
 	}
@@ -714,7 +714,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 		}
 	}
 
-	free(pairs);
+	siril_free(pairs);
 	yyjson_doc_free(doc);
 	data->arrays_loaded = TRUE;
 	return TRUE;

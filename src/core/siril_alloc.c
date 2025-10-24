@@ -2,8 +2,8 @@
 
 /**
 * Allocate memory optimally for the given size.
-* On POSIX systems, uses malloc (which automatically switches to mmap for large allocations).
-* On Windows, small allocations use malloc/free, large allocations use VirtualAlloc
+* On POSIX systems, uses siril_malloc (which automatically switches to mmap for large allocations).
+* On Windows, small allocations use siril_malloc/siril_free, large allocations use VirtualAlloc
 * to avoid heap fragmentation, with SIMD-aligned pointers (64-byte).
 *
 * @param size Number of bytes to allocate
@@ -125,14 +125,14 @@ void siril_free(void* ptr) {
 		free(header->original_ptr);
 	}
 #else
-	// POSIX: use standard free
+	// POSIX: use standard siril_free
 	free(ptr);
 #endif
 }
 
 /**
 * Reallocate memory allocated with optimal_alloc.
-* On POSIX systems, uses realloc.
+* On POSIX systems, uses siril_realloc.
 * On Windows, handles transitions between allocation methods if size crosses threshold,
 * and for large allocations, the returned pointer is SIMD-aligned.
 *
@@ -210,5 +210,3 @@ void* siril_realloc(void* ptr, size_t new_size) {
 	return realloc(ptr, new_size);
 #endif
 }
-
-#endif /* OPTIMAL_ALLOC_H */

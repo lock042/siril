@@ -1,5 +1,5 @@
-// Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-// Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+// Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+// Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -593,10 +593,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		offset += sizeof(uint32_t);
 
 		// Create a new dataseries and add it to plot_data
-		double *xdata = malloc(num_points * sizeof(double));
-		double *ydata = malloc(num_points * sizeof(double));
-		double *nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
-		double *perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		double *xdata = siril_malloc(num_points * sizeof(double));
+		double *ydata = siril_malloc(num_points * sizeof(double));
+		double *nerror = with_errors ? siril_malloc(num_points * sizeof(double)) : NULL;
+		double *perror = with_errors ? siril_malloc(num_points * sizeof(double)) : NULL;
 		// Read coordinates (network byte-order)
 		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
 			double x, y, x_BE, y_BE, ne, pe, ne_BE, pe_BE;
@@ -633,10 +633,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, perror, nerror);
 		siril_plot_set_nth_plot_type(plot_data, series_idx+1, (enum kplottype) plot_type);
 		g_free(series_label);
-		free(xdata);
-		free(ydata);
-		free(nerror);
-		free(perror);
+		siril_free(xdata);
+		siril_free(ydata);
+		siril_free(nerror);
+		siril_free(perror);
 	}
 
 	plot_data->plottype = KPLOT_LINES;  // Default plot type
@@ -788,7 +788,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				// Send shared memory info to Python
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				free(info);
+				siril_free(info);
 			} else {
 				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA\n"), payload_length);
 			}
@@ -948,7 +948,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.h)};
 				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				free(info);
+				siril_free(info);
 			} else {
 				siril_debug_print(_("Unexpected payload length %u received for GET_PIXELDATA_REGION\n"), payload_length);
 			}
@@ -1069,7 +1069,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (!modal) {
 				queue_message_dialog(type, title, log_msg);
 			} else {
-				struct message_data *data = malloc(sizeof(struct message_data));
+				struct message_data *data = siril_malloc(sizeof(struct message_data));
 				data->type = type;
 				data->title = strdup(title);
 				data->text = strdup(log_msg);
@@ -1231,12 +1231,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 			}
 
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
 				const char* error_msg = _("Failed to load sequence frame");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				break;
 			}
 			// Update the pixel data in the sequence frame fit
@@ -1248,7 +1248,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
-			free(dest);
+			siril_free(dest);
 			if (fit->rx != com.seq.rx || fit->ry != com.seq.ry) {
 				// Mark the sequence as variable
 				com.seq.is_variable = TRUE;
@@ -1259,7 +1259,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				clean_sequence(&com.seq, TRUE, TRUE, TRUE);
 			}
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			if (writer_retval) {
 				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
 			}
@@ -1621,10 +1621,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if(enforce_area_in_image(&region, &com.seq, index)) {
 				siril_log_message(_("Selection cropped to frame boundaries\n"));
 			}
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				const char* error_msg = _("Failed to read sequence frame");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1637,7 +1637,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (region.x < 0 || region.y < 0 || region.x + region.w > fit->rx ||
 									region.y + region.h > fit->ry) {
 					clearfits(fit);
-					free(fit);
+					siril_free(fit);
 					const char* error_msg = _("Invalid dimensions");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -1645,9 +1645,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			shared_memory_info_t *info = handle_pixeldata_request(conn, fit, region, as_preview, linked);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			break;
 		}
 
@@ -1675,9 +1675,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
-				free(fit);
+				siril_free(fit);
 				const char* error_msg = _("Failed to read frame metadata");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -1702,7 +1702,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_message = _("Memory allocation error: response buffer");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				break;
 			}
 
@@ -1741,7 +1741,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				pixel_info->height = GUINT32_TO_BE(pixel_info->height);
 				pixel_info->channels = GUINT32_TO_BE(pixel_info->channels);
 				memcpy(ptr, pixel_info, sizeof(shared_memory_info_t));
-				free(pixel_info);
+				siril_free(pixel_info);
 				ptr += sizeof(shared_memory_info_t);
 			}
 
@@ -1762,7 +1762,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				header_info->height = GUINT32_TO_BE(header_info->height);
 				header_info->channels = GUINT32_TO_BE(header_info->channels);
 				memcpy(ptr, header_info, sizeof(shared_memory_info_t));
-				free(header_info);
+				siril_free(header_info);
 			} else {
 				// Fill with zeros if no header available
 				memset(ptr, 0, sizeof(shared_memory_info_t));
@@ -1786,7 +1786,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				icc_info->height = GUINT32_TO_BE(icc_info->height);
 				icc_info->channels = GUINT32_TO_BE(icc_info->channels);
 				memcpy(ptr, icc_info, sizeof(shared_memory_info_t));
-				free(icc_info);
+				siril_free(icc_info);
 			} else {
 				// Fill with zeros if no ICC profile available
 				memset(ptr, 0, sizeof(shared_memory_info_t));
@@ -1797,7 +1797,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		CLEANUP:
 			g_free(response_buffer);
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			break;
 		}
 
@@ -1832,7 +1832,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Check if we need to find stars or use existing ones
 			if (starcount(com.stars) < 1) {
 				// Set up starfinder_data structure
-				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
+				struct starfinder_data *sf_data = siril_calloc(1, sizeof(struct starfinder_data));
 				if (!sf_data) {
 					const char* error_msg = _("Memory allocation failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1857,7 +1857,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 				// Call the worker function
 				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
-				free(sf_data);
+				siril_free(sf_data);
 
 				if (retval != 0 || !stars) {
 					const char* error_msg = _("Star detection failed");
@@ -1912,7 +1912,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				free(info);
+				siril_free(info);
 			}
 
 			g_free(allstars);
@@ -1974,7 +1974,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allsamples, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				free(info);
+				siril_free(info);
 			}
 
 			g_free(allsamples);
@@ -2021,7 +2021,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			break;
 		}
 
@@ -2038,7 +2038,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			break;
 		}
 
@@ -2059,7 +2059,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 length = strlen(fit->header) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			break;
 		}
 
@@ -2081,7 +2081,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				gchar *str = (gchar *)item->data;
 				total_length += strlen(str) + 1;  // +1 to account for the null terminator
 			}
-			gchar *buffer = malloc(total_length * sizeof(char));
+			gchar *buffer = siril_malloc(total_length * sizeof(char));
 			gchar *ptr = buffer;
 			for (GSList *item = fit->history; item != NULL; item = item->next) {
 				gchar *str = (gchar *)item->data;
@@ -2091,7 +2091,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			shared_memory_info_t *info = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			g_free(buffer);
 			break;
 		}
@@ -2113,7 +2113,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			break;
 		}
 
@@ -2301,7 +2301,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				total_size = GUINT64_FROM_BE(*(uint64_t*) payload);
 				shared_memory_info_t *info = handle_rawdata_request(conn, NULL, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-				free(info);
+				siril_free(info);
 
 			} else {
 				const char* error_msg = _("Incorrect payload length");
@@ -2467,7 +2467,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				g_free(serialized);
-				free(info);
+				siril_free(info);
 			} else {
 				siril_debug_print("Invalid payload length for GET_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
@@ -2492,7 +2492,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_list_size);
 					success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 					g_free(serialized);
-					free(info);
+					siril_free(info);
 				}
 			}
 			break;
@@ -2537,10 +2537,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			if (seq_read_frame_metadata(&com.seq, index, fit)) {
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				const char* error_msg = _("Failed to read frame metadata");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -2549,16 +2549,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Image has no FITS header");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				break;
 			}
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
-			free(info);
+			siril_free(info);
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			break;
 		}
 
@@ -2628,9 +2628,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_free(filepath);
 				break;
 			}
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			if (read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE)) {
-				free(fit);
+				siril_free(fit);
 				g_free(filepath);
 				const char* error_msg = _("Failed to read image file");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2654,7 +2654,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_message = _("Memory allocation error: response buffer");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				break;
 			}
 			unsigned char *ptr = response_buffer;
@@ -2674,7 +2674,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Ensure stats are computed
 			gboolean cfa = fit->keywords.bayer_pattern[0] != '\0';
-			fit->stats = calloc(fit->naxes[2], sizeof(imstats*));
+			fit->stats = siril_calloc(fit->naxes[2], sizeof(imstats*));
 			for (int layer = 0; layer < fit->naxes[2]; layer++) {
 				int super_layer = layer;
 				if (cfa)
@@ -2719,7 +2719,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				info->height = GUINT32_TO_BE(info->height);
 				info->channels = GUINT32_TO_BE(info->channels);
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
-				free(info);
+				siril_free(info);
 			}
 			ptr += sizeof(shared_memory_info_t);
 
@@ -2738,7 +2738,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			headerinfo->height = GUINT32_TO_BE(headerinfo->height);
 			headerinfo->channels = GUINT32_TO_BE(headerinfo->channels);
 			memcpy(ptr, headerinfo, sizeof(shared_memory_info_t));
-			free(headerinfo);
+			siril_free(headerinfo);
 			ptr += sizeof(shared_memory_info_t);
 
 			// Add icc profile here as another shm (if there is an ICC profile)
@@ -2758,14 +2758,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				info->height = GUINT32_TO_BE(info->height);
 				info->channels = GUINT32_TO_BE(info->channels);
 				memcpy(ptr, info, sizeof(shared_memory_info_t));
-				free(info);
+				siril_free(info);
 			}
 
 			success = send_response(conn, STATUS_OK, response_buffer, total_size);
 		CLEANUP_FILE:
 			g_free(response_buffer);
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			break;
 		}
 
@@ -2795,13 +2795,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			fits *fit = calloc(1, sizeof(fits));
+			fits *fit = siril_calloc(1, sizeof(fits));
 			gboolean debayer_pref = com.pref.debayer.open_debayer;
 			com.pref.debayer.open_debayer = FALSE; // disable debayering
 			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
 			com.pref.debayer.open_debayer = debayer_pref;
 			if (retval) {
-				free(fit);
+				siril_free(fit);
 				g_free(filepath);
 				const char* error_msg = _("Failed to read image file");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2838,13 +2838,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Analyse stars. Here we don't use findstar_worker because we only care about the number
 				// of stars, mean roundness and mean FWHM
 				psf_star **stars = NULL;
-				image *input_image = calloc(1, sizeof(image));
+				image *input_image = siril_calloc(1, sizeof(image));
 				input_image->fit = fit;
 				input_image->from_seq = NULL;
 				input_image->index_in_seq = -1;
 				stars = peaker(input_image, layer, &com.pref.starfinder_conf, &nb_stars,
 						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
-				free(input_image);
+				siril_free(input_image);
 
 				for (int i = 0; i < nb_stars ; i++) {
 					psf_star *star = stars[i];
@@ -2869,7 +2869,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_strlcpy(filter_str, fit->keywords.filter, FLEN_VALUE-1);
 
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 
 			// --- Response ---
 			size_t total_size = 10 * sizeof(int64_t) + FLEN_VALUE; // numeric fields + filter string
@@ -3199,15 +3199,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			if (payload_length > 0) {
 				// Allocate memory for the filename string (payload + null terminator)
-				gchar* filename = malloc(payload_length + 1);
+				gchar* filename = siril_malloc(payload_length + 1);
 				memcpy(filename, payload, payload_length);
 				filename[payload_length] = '\0'; // Null-terminate the string
 				gboolean exists = g_file_test(filename, G_FILE_TEST_EXISTS);
 				if (!com.uniq) {
-					create_uniq_from_gfit(filename, exists);  // com.uniq takes ownership of filename, no need to free it here
+					create_uniq_from_gfit(filename, exists);  // com.uniq takes ownership of filename, no need to siril_free it here
 				} else {
-					free(com.uniq->filename);
-					com.uniq->filename = filename; // com.uniq takes ownership of filename, no need to free it here
+					siril_free(com.uniq->filename);
+					com.uniq->filename = filename; // com.uniq takes ownership of filename, no need to siril_free it here
 					com.uniq->fileexist = exists;
 				}
 

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -111,14 +111,14 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads) {
 		// RawTherapee gaussianBlur (mono only)
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
-		float **src = malloc(ry * sizeof(float *));
+		float **src = siril_malloc(ry * sizeof(float *));
 		if (!src) { PRINT_ALLOC_ERR; return 1; }
 		for (int k = 0; k < ry; k++) {
 			src[k] = fit->fdata + k * rx;
 		}
 
 		gaussianBlurC(src, src, rx, ry, sigma, threads);
-		free(src);
+		siril_free(src);
 		return 0;
 	}
 	else {
@@ -135,20 +135,20 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 		size_t n = fit->naxes[0] * fit->naxes[1];
 		int rx = (int)fit->naxes[0];
 		int ry = (int)fit->naxes[1];
-		float *result = malloc(n * sizeof(float));
+		float *result = siril_malloc(n * sizeof(float));
 		if (!result) { PRINT_ALLOC_ERR; return 1; }
-		float **src = malloc(ry * sizeof(float *));
-		if (!src) { PRINT_ALLOC_ERR; free(result); return 1; }
-		float **dst = malloc(ry * sizeof(float *));
-		if (!dst) { PRINT_ALLOC_ERR; free(src); free(result); return 1; }
+		float **src = siril_malloc(ry * sizeof(float *));
+		if (!src) { PRINT_ALLOC_ERR; siril_free(result); return 1; }
+		float **dst = siril_malloc(ry * sizeof(float *));
+		if (!dst) { PRINT_ALLOC_ERR; siril_free(src); siril_free(result); return 1; }
 		for (int k = 0; k < ry; k++) {
 			src[k] = fit->fdata + k * rx;
 			dst[k] = result + k * rx;
 		}
 
 		gaussianBlurC(src, dst, rx, ry, sigma, threads);
-		free(src);
-		free(dst);
+		siril_free(src);
+		siril_free(dst);
 		float *olddata = gfit.fdata;
 		gfit.fdata = result;
 		gfit.fpdata[RLAYER] = gfit.fdata;
@@ -159,7 +159,7 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 			gfit.fpdata[GLAYER] = gfit.fdata;
 			gfit.fpdata[BLAYER] = gfit.fdata;
 		}
-		free(olddata);
+		siril_free(olddata);
 		return 0;
 	}
 	else {

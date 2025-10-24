@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -55,8 +55,8 @@ clock_t perf_test(double (*function)(WORD *data, size_t datasize),
 				  int nb_draws,
 				  int nb_times_each)
 {
-	WORD *data = malloc(datasize * sizeof(WORD));
-	WORD *data_backup = malloc(datasize * sizeof(WORD));
+	WORD *data = siril_malloc(datasize * sizeof(WORD));
+	WORD *data_backup = siril_malloc(datasize * sizeof(WORD));
 	int i, draws, times;
 
 	clock_t t_start = clock();
@@ -76,8 +76,8 @@ clock_t perf_test(double (*function)(WORD *data, size_t datasize),
 	}
 	clock_t t_end = clock();
 
-	free(data);
-	free(data_backup);
+	siril_free(data);
+	siril_free(data_backup);
 
 	return t_end - t_start;
 }

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -501,7 +501,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 	float globalmax = -FLT_MAX;
 
 	// Set up a LUT
-	WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+	WORD *lut = siril_malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
@@ -572,7 +572,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 				break;
 		}
 	}
-	free(lut);
+	siril_free(lut);
 	if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
@@ -619,7 +619,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 
 	// Set up a LUT
-	WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+	WORD *lut = siril_malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
@@ -639,7 +639,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 			Wpout[chan][i] = do_channel[chan] ? lut[Wpbuf[chan][i]] : Wpbuf[chan][i];
 		}
 	}
-	free(lut);
+	siril_free(lut);
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {

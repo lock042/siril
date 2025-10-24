@@ -10,7 +10,7 @@
  *           E-mail: mwrsps@rit.edu
  *
  *
- *  This program is free software; you can redistribute it and/or
+ *  This program is siril_free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
@@ -190,7 +190,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n1, int n2, int nobj_overri
 	}
 
 	/* we start with an "empty" TRANS; atFindTrans will try to fill it */
-	trans = calloc(1, sizeof(TRANS));
+	trans = siril_calloc(1, sizeof(TRANS));
 	trans->order = trans_order;
 
 #ifdef DEBUG

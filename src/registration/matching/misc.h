@@ -41,7 +41,7 @@
 #define AT_TRANS_QUINTIC     5           /* linear plus quadratic plus cubic plus quartic plus quintic*/
 
    /*
-    * little wrappers around 'malloc' and 'free' functions.
+    * little wrappers around 'siril_malloc' and 'siril_free' functions.
     */
 
 void *

@@ -1,11 +1,11 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  *
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -218,7 +218,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	}
 
 	/* Build 2D representation of smoothed image upside-down */
-	smooth_image = malloc(ny * sizeof(float *));
+	smooth_image = siril_malloc(ny * sizeof(float *));
 	if (!smooth_image) {
 		PRINT_ALLOC_ERR;
 		clearfits(&smooth_fit);
@@ -237,7 +237,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 		if (areaX1 > nx || areaY1 > ny) {
 			siril_log_color_message(_("Selection is larger than image\n"), "red");
 			clearfits(&smooth_fit);
-			free(smooth_image);
+			siril_free(smooth_image);
 			return NULL;
 		}
 	}
@@ -245,22 +245,22 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	/* Build 2D representation of input image upside-down */
 	data_type itype = image->fit->type;
 	if (itype == DATA_USHORT) {
-		image_ushort = malloc(ny * sizeof(WORD *));
+		image_ushort = siril_malloc(ny * sizeof(WORD *));
 		for (int k = 0; k < ny; k++)
 			image_ushort[ny - k - 1] = image->fit->pdata[layer] + k * nx;	}
 	else if (itype == DATA_FLOAT) {
-		image_float = malloc(ny * sizeof(float *));
+		image_float = siril_malloc(ny * sizeof(float *));
 		for (int k = 0; k < ny; k++)
 			image_float[ny - k - 1] = image->fit->fpdata[layer] + k * nx;
 	}
 	else return 0;
 
-	candidates = malloc(MAX_STARS * sizeof(starc));
+	candidates = siril_malloc(MAX_STARS * sizeof(starc));
 	if (!candidates) {
-		free(image_ushort);
-		free(image_float);
+		siril_free(image_ushort);
+		siril_free(image_float);
 		clearfits(&smooth_fit);
-		free(smooth_image);
+		siril_free(smooth_image);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
@@ -542,7 +542,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 		}
 		if (nbstars == MAX_STARS) break;
 	}
-	free(smooth_image);
+	siril_free(smooth_image);
 	clearfits(&smooth_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 	/* Check if candidates are stars by minimizing a PSF on each */
@@ -551,15 +551,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars_by_mag(results, nbstars);
-	free(candidates);
+	siril_free(candidates);
 
 	if (showtime) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
 
-	if (image_ushort) free(image_ushort);
-	if (image_float) free(image_float);
+	if (image_ushort) siril_free(image_ushort);
+	if (image_float) siril_free(image_float);
 
 	if (nb_stars)
 		*nb_stars = nbstars;
@@ -591,12 +591,12 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	}
 
 	if (image->type == DATA_USHORT) {
-		image_ushort = malloc(ny * sizeof(WORD *));
+		image_ushort = siril_malloc(ny * sizeof(WORD *));
 		for (int k = 0; k < ny; k++)
 			image_ushort[ny - k - 1] = image->pdata[layer] + k * nx;
 	}
 	else {
-		image_float = malloc(ny * sizeof(float *));
+		image_float = siril_malloc(ny * sizeof(float *));
 		for (int k = 0; k < ny; k++)
 			image_float[ny - k - 1] = image->fpdata[layer] + k * nx;
 	}
@@ -605,9 +605,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	if (!results) {
 		PRINT_ALLOC_ERR;
 		if (image_float)
-			free(image_float);
+			siril_free(image_float);
 		if (image_ushort)
-			free(image_ushort);
+			siril_free(image_ushort);
 		return 0;
 	}
 
@@ -707,8 +707,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		siril_log_color_message(_("More than half of PSF fits have failed - try increasing the convergence criterion\n"), "red");
 	if (retval)
 		*retval = results;
-	if (image_ushort) free(image_ushort);
-	if (image_float) free(image_float);
+	if (image_ushort) siril_free(image_ushort);
+	if (image_float) siril_free(image_float);
 	return nbstars;
 }
 
@@ -729,7 +729,7 @@ void sort_stars_by_mag(psf_star **stars, int total) {
 
 /* allocates a new psf_star structure with a size of n + 1. First element is initialized to NULL */
 psf_star **new_fitted_stars(size_t n) {
-	psf_star **stars = malloc((n + 1) * sizeof(psf_star *));
+	psf_star **stars = siril_malloc((n + 1) * sizeof(psf_star *));
 	if (stars) stars[0] = NULL;
 
 	return stars;
@@ -739,7 +739,7 @@ void free_fitted_stars(psf_star **stars) {
 	int i = 0;
 	while (stars && stars[i])
 		free_psf(stars[i++]);
-	free(stars);
+	siril_free(stars);
 }
 
 psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbfilteredstars) {
@@ -790,7 +790,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 		*B = (float)(b / (double)n);
 
 		if (Acut) {
-			float *A = malloc(nb * sizeof(float));
+			float *A = siril_malloc(nb * sizeof(float));
 			if (!A) {
 				PRINT_ALLOC_ERR;
 				return;
@@ -799,7 +799,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 				A[i] = stars[i]->A;
 			quicksort_f(A, nb);
 			*Acut = (float)gsl_stats_float_quantile_from_sorted_data(A, 1, nb, Acutp);
-			free(A);
+			siril_free(A);
 		}
 	}
 }
@@ -807,7 +807,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 float filtered_FWHM_average(psf_star **stars, int nb) {
 	if (!stars || !stars[0])
 		return 0.0f;
-	float *fwhms = malloc(nb * sizeof(float));
+	float *fwhms = siril_malloc(nb * sizeof(float));
 	if (!fwhms) {
 		PRINT_ALLOC_ERR;
 		return 0.0f;
@@ -816,7 +816,7 @@ float filtered_FWHM_average(psf_star **stars, int nb) {
 		fwhms[i] = stars[i]->fwhmx;
 	quicksort_f(fwhms, nb);
 	float retval = siril_stats_trmean_from_sorted_data(0.15, fwhms, 1, nb);
-	free(fwhms);
+	siril_free(fwhms);
 	return retval;
 }
 
@@ -839,7 +839,7 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) { // nbstars tainted as based on data from file, needs extra checking
 				siril_debug_print("nb stars: %d\n", nb_stars);
 				if (nb_stars > 0 && nb_stars < MAX_STARS && sfargs->stars) { // check nbstars against lower and upper bounds
-					*sfargs->stars = malloc((nb_stars + 1) * sizeof(struct psf_star *));
+					*sfargs->stars = siril_malloc((nb_stars + 1) * sizeof(struct psf_star *));
 					if (!(*sfargs->stars)) {
 						PRINT_ALLOC_ERR;
 						read_failure = TRUE;
@@ -898,7 +898,7 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
 			discard_file = TRUE;
-			free(s);
+			siril_free(s);
 			s = NULL;
 			break;
 		}
@@ -913,7 +913,7 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 		if (sfargs->nb_stars) *sfargs->nb_stars = star;
 	} else {
 		if (sfargs->stars) {
-			free(*sfargs->stars);
+			siril_free(*sfargs->stars);
 			(*sfargs->stars) = NULL;
 		}
 	}
@@ -1046,7 +1046,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		siril_debug_print("Failed to write the IMAGEW and IMAGEH headers to the FITS table\n");
 
 	/* reorganize data per row for saving */
-	float *data = malloc(nbstars * sizeof(float));
+	float *data = siril_malloc(nbstars * sizeof(float));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		fits_close_file(fptr, &status);
@@ -1060,7 +1060,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
-		free(data);
+		siril_free(data);
 		return 1;
 	}
 
@@ -1070,7 +1070,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
-		free(data);
+		siril_free(data);
 		return 1;
 	}
 
@@ -1080,7 +1080,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
-		free(data);
+		siril_free(data);
 		return 1;
 	}
 
@@ -1090,14 +1090,14 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
-		free(data);
+		siril_free(data);
 		return 1;
 	}
 
 	int retval = status;
 	status = 0;
 	fits_close_file(fptr, &status);
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -1164,7 +1164,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
-	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = siril_calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = index;
 	curr_findstar_args->im.fit = NULL;
@@ -1176,7 +1176,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 
 	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "cache", "lst", NULL);
 	if (!star_filename) {
-		free(curr_findstar_args);
+		siril_free(curr_findstar_args);
 		return TRUE;
 	}
 
@@ -1185,12 +1185,12 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 
 	cache_status status = check_cachefile_date(args->seq, index, star_filename);
 	if (status <= CACHE_NOT_FOUND) { // cached file is older and was deleted or does not exist, we need to read the image
-		free(curr_findstar_args);
+		siril_free(curr_findstar_args);
 		g_free(star_filename);
 		return TRUE; 
 	}
 	status = (int)check_star_list(star_filename, curr_findstar_args);
-	free(curr_findstar_args);
+	siril_free(curr_findstar_args);
 	g_free(star_filename);
 	return !status; // check_star_list returns TRUE on success
 }
@@ -1202,7 +1202,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 // - wrapped by findstar_image_hook
 // - called by registration
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = siril_calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
@@ -1212,8 +1212,8 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
 		curr_findstar_args->onepass = FALSE;
 	} else if (findstar_args->keep_stars) { // used by global reg which needs to store the current star list
-		curr_findstar_args->stars = calloc(1, sizeof(psf_star **));
-		curr_findstar_args->nb_stars = calloc(1, sizeof(int));
+		curr_findstar_args->stars = siril_calloc(1, sizeof(psf_star **));
+		curr_findstar_args->nb_stars = siril_calloc(1, sizeof(int));
 		curr_findstar_args->onepass = TRUE;
 	}
 	curr_findstar_args->threading = threads;
@@ -1228,10 +1228,10 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
 		if (!star_filename) {
 			if (curr_findstar_args->onepass == TRUE) {
-				free(curr_findstar_args->nb_stars);
-				free(curr_findstar_args->stars);
+				siril_free(curr_findstar_args->nb_stars);
+				siril_free(curr_findstar_args->stars);
 			}
-			free(curr_findstar_args);
+			siril_free(curr_findstar_args);
 			curr_findstar_args = NULL;
 			return curr_findstar_args;
 		}
@@ -1248,7 +1248,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	if (!can_use_cache) {
 		fits *green_fit = NULL;
 		if (fit->keywords.bayer_pattern[0] != '\0') {
-			green_fit = calloc(1, sizeof(fits));
+			green_fit = siril_calloc(1, sizeof(fits));
 			copyfits(fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
@@ -1258,13 +1258,13 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
-		free(green_fit);
+		siril_free(green_fit);
 		if (retval) {
 			if (curr_findstar_args->onepass == TRUE) {
-				free(curr_findstar_args->nb_stars);
-				free(curr_findstar_args->stars);
+				siril_free(curr_findstar_args->nb_stars);
+				siril_free(curr_findstar_args->stars);
 			}
-			free(curr_findstar_args);
+			siril_free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
 	}
@@ -1275,7 +1275,7 @@ static int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits
 	const struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 	struct starfinder_data *curr_findstar_args = findstar_image_worker(findstar_args, o, i, fit, _, threads);
 	gboolean retval = !curr_findstar_args;
-	free(curr_findstar_args);
+	siril_free(curr_findstar_args);
 	return retval;
 }
 
@@ -1294,8 +1294,8 @@ gboolean end_findstar_sequence(gpointer p) {
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 
-	free(findstar_args);
-	free(p);
+	siril_free(findstar_args);
+	siril_free(p);
 	return end_generic(NULL);
 }
 
@@ -1303,7 +1303,7 @@ int findstar_finalize_hook(struct generic_seq_args *args) {
 	struct starfinder_data *data = (struct starfinder_data *) args->user;
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
-			free(data->ref_wcs);
+			siril_free(data->ref_wcs);
 	}
 	if (data->startable)
 		g_free(data->startable);
@@ -1339,7 +1339,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		int refidx = sequence_find_refimage(args->seq);
 		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
-			free(args);
+			siril_free(args);
 			return 1;
 		}
 		if (!has_wcs(&ref))
@@ -1352,16 +1352,16 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
 			}
 		}
-		ref.keywords.wcslib = NULL;	// don't free it
+		ref.keywords.wcslib = NULL;	// don't siril_free it
 		clearfits(&ref);
 	}
 	if (findstar_args->already_in_thread) {
 		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
-		free(args);
+		siril_free(args);
 		return retval;
 	}
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(args->user);
+		siril_free(args->user);
 		free_generic_seq_args(args, TRUE);
 	}
 	return 0;
@@ -1380,7 +1380,7 @@ gpointer findstar_worker(gpointer p) {
 	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
 	if (fit_is_cfa(args->im.fit)) {
-		green_fit = calloc(1, sizeof(fits));
+		green_fit = siril_calloc(1, sizeof(fits));
 		orig = args->im.fit;
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(green_fit);
@@ -1392,7 +1392,7 @@ gpointer findstar_worker(gpointer p) {
 	if (green_fit) {
 		args->im.fit = orig;
 		clearfits(green_fit);
-		free(green_fit);
+		siril_free(green_fit);
 	}
 
 	double fwhm = 0.0;
@@ -1506,12 +1506,12 @@ float measure_image_FWHM(fits *fit, int channel) {
 
 			for (int i = 0; i < nb_stars; i++)
 				free_psf(stars[i]);
-			free(stars);
+			siril_free(stars);
 		}
 		else failed = TRUE;
 	}
 #ifdef _OPENMP
-	free(threads);
+	siril_free(threads);
 #endif
 	if (failed)
 		return 0.0f;

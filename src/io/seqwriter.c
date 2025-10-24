@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -62,7 +62,7 @@ static void notify_data_freed(struct seqwriter_data *writer, int index);
 int seqwriter_append_write(struct seqwriter_data *writer, fits *image, int index) {
 	if (g_atomic_int_get(&writer->failed))
 		return -1;
-	struct _pending_write *newtask = malloc(sizeof(struct _pending_write));
+	struct _pending_write *newtask = siril_malloc(sizeof(struct _pending_write));
 	if (!newtask)
 		return 1;
 	newtask->image = image;
@@ -141,7 +141,7 @@ static void *write_worker(void *a) {
 			if (task->image)
 				clearfits(task->image);
 			notify_data_freed(writer, task->index);
-			free(task);
+			siril_free(task);
 			break;
 		}
 		if (!task->image) {
@@ -150,7 +150,7 @@ static void *write_worker(void *a) {
 			notify_data_freed(writer, task->index);
 			current_index++;
 			writer->frame_count--;
-			free(task);
+			siril_free(task);
 			continue;
 		}
 
@@ -167,8 +167,8 @@ static void *write_worker(void *a) {
 			nb_frames_written++;
 			current_index++;
 		}
-		free(task->image);
-		free(task);
+		siril_free(task->image);
+		siril_free(task);
 	} while (retval == SEQ_OK &&
 			(writer->frame_count <= 0 || nb_frames_written < writer->frame_count));
 
@@ -282,7 +282,7 @@ void seqwriter_wait_for_memory() {
 	siril_debug_print("entering the wait function\n");
 	g_mutex_lock(&pool_mutex);
 	while (nb_blocks_active >= configured_max_active_blocks) {
-		siril_debug_print("  waiting for free memory slot (%d active)\n", nb_blocks_active);
+		siril_debug_print("  waiting for siril_free memory slot (%d active)\n", nb_blocks_active);
 		g_cond_wait(&pool_cond, &pool_mutex);
 	}
 	nb_blocks_active++;
@@ -348,10 +348,10 @@ void seqwriter_set_number_of_outputs(int number_of_outputs) {
 	siril_debug_print("seqwriter number of outputs: %d\n", number_of_outputs);
 	nb_outputs = number_of_outputs;
 	if (number_of_outputs > 1) {
-		outputs = calloc(number_of_outputs, sizeof(struct _outputs_struct));
+		outputs = siril_calloc(number_of_outputs, sizeof(struct _outputs_struct));
 	} else {
 		if (outputs)
-			free(outputs);
+			siril_free(outputs);
 		outputs = NULL;
 	}
 }

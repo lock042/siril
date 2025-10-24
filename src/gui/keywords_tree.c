@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -101,17 +101,17 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 	int status = 0;
     int nkeys, ii;
 	fitsfile *fptr = NULL;
-	memptr = malloc(memsize);
+	memptr = siril_malloc(memsize);
 	if (!memptr) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, siril_realloc, &status);
 	if (status) {
 		report_fits_error(status);
 		if (fptr)
 			fits_close_file(fptr, &status);
-		free(memptr);
+		siril_free(memptr);
 		return 1;
 	}
 
@@ -119,7 +119,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 		report_fits_error(status);
 		if (fptr)
 			fits_close_file(fptr, &status);
-		free(memptr);
+		siril_free(memptr);
 		return 1;
 	}
 
@@ -160,7 +160,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 	fits_close_file(fptr, &status);
 	clearfits(&tmpfit);
 
-	free(memptr);
+	siril_free(memptr);
 
 	return (status);
 }
@@ -185,7 +185,7 @@ static void remove_selected_keys () {
 		if (valid_selection) {
 			gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
 			if (G_VALUE_HOLDS_STRING(&g_key)) {
-				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+				struct keywords_data *kargs = siril_calloc(1, sizeof(struct keywords_data));
 
 				kargs->FITS_key = g_strdup((gchar *)g_value_get_string(&g_key));
 				kargs->value = NULL;
@@ -198,7 +198,7 @@ static void remove_selected_keys () {
 
 					start_sequence_keywords(&com.seq, kargs);
 				} else {
-					free(kargs);
+					siril_free(kargs);
 				}
 		        g_value_unset(&g_key);
 			}
@@ -590,7 +590,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 				process_keyword_string_value(value, valstring, string_has_space(value));
 
 				if (sequence_is_loaded()) {
-					struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+					struct keywords_data *kargs = siril_calloc(1, sizeof(struct keywords_data));
 
 					kargs->FITS_key = g_strdup(key);
 					kargs->value = valstring[0] == '\0' ? NULL : g_strdup(valstring);
@@ -602,7 +602,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 						start_sequence_keywords(&com.seq, kargs);
 						break;
 					} else {
-						free(kargs);
+						siril_free(kargs);
 						continue;
 					}
 				} else {

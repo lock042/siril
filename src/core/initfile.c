@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -273,7 +273,7 @@ int writeinitfile() {
 			case STYPE_STRLIST:
 				list = *((GSList**)desc->data);
 				count = g_slist_length(list);
-				strs = malloc((count + 1) * sizeof(gchar *));
+				strs = siril_malloc((count + 1) * sizeof(gchar *));
 				for (i = 0; i < count; i++) {
 					strs[i] = list->data;
 					list = list->next;
@@ -281,7 +281,7 @@ int writeinitfile() {
 				strs[i] = NULL;
 				g_key_file_set_string_list(kf, desc->group, desc->key,
 						(const gchar * const*)strs, (gsize)count);
-				free(strs);
+				siril_free(strs);
 				break;
 		}
 		desc++;

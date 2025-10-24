@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -35,7 +35,7 @@ void init_ramp() {
 	if (ramp_array)
 		return;
 	int nbpoints = RAMP_PACE + 1;
-	ramp_array = malloc(nbpoints * sizeof(float));
+	ramp_array = siril_malloc(nbpoints * sizeof(float));
 	float norm = 1.f / (float)RAMP_PACE;
 	for (int i = 0; i < nbpoints; i++) {
 		float r = (float)i * norm;
@@ -133,13 +133,13 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 		rectangle *_, int threads) {
 	size_t nbpix = fit->naxes[0] * fit->naxes[1];
 	int layer = (fit->naxes[2] == 3) ? GLAYER : RLAYER;
-	uint8_t *buffer8in = calloc(nbpix, sizeof(uint8_t));
+	uint8_t *buffer8in = siril_calloc(nbpix, sizeof(uint8_t));
 	float *buffer32out = NULL;
 
 	if (!buffer8in) {
 		PRINT_ALLOC_ERR;
 		siril_debug_print("failed to allocate mask buffer\n");
-		free(buffer8in);
+		siril_free(buffer8in);
 		return 1;
 	}
 	// we convert the ref layer to 0 or 255 vals
@@ -155,7 +155,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 		}
 	} else {
 		siril_debug_print("wrong data type\n");
-		free(buffer8in);
+		siril_free(buffer8in);
 		return 1;
 	}
 	// we downscale the buffer
@@ -163,11 +163,11 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	int ry = fit->naxes[1];
 	int rx_out = 0, ry_out = 0;
 	compute_downscaled_mask_size(rx, ry, &rx_out, &ry_out, NULL, NULL);
-	buffer32out = calloc((size_t)(rx_out * ry_out), sizeof(float));
+	buffer32out = siril_calloc((size_t)(rx_out * ry_out), sizeof(float));
 	if (!buffer32out) {
 		PRINT_ALLOC_ERR;
 		siril_debug_print("failed to allocate mask downscaled buffer\n");
-		free(buffer8in);
+		siril_free(buffer8in);
 		return 1;
 	}
 	cvDownscaleBlendMask(rx, ry, rx_out, ry_out, buffer8in, buffer32out);
@@ -176,24 +176,24 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	const gchar *mask_filename = get_sequence_cache_filename(args->seq, i, "cache", "msk", NULL);
 	if (!mask_filename) {
 		siril_debug_print("failed to create the mask filename");
-		free(buffer8in);
-		free(buffer32out);
+		siril_free(buffer8in);
+		siril_free(buffer32out);
 		return 1;
 	}
 	if (save_mask_fits(rx_out, ry_out, buffer32out, mask_filename)) {
 		siril_log_color_message(_("Failed to save mask for image %d\n"), "red", i + 1);
-		free(buffer8in);
-		free(buffer32out);
+		siril_free(buffer8in);
+		siril_free(buffer32out);
 		return 1;
 	}
-	free(buffer8in);
-	free(buffer32out);
+	siril_free(buffer8in);
+	siril_free(buffer32out);
 	return 0;
 }
 
 gboolean end_compute_masks(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 

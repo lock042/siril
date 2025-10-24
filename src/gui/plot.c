@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -135,16 +135,16 @@ static const gchar *registration_labels[] = {
 };
 
 pldata *alloc_plot_data(int size) {
-	pldata *plot = malloc(sizeof(pldata));
-	plot->frame = calloc(size, sizeof(double));
-	plot->data = calloc(size, sizeof(struct kpair));
-	plot->err = calloc(size, sizeof(struct kpair));
+	pldata *plot = siril_malloc(sizeof(pldata));
+	plot->frame = siril_calloc(size, sizeof(double));
+	plot->data = siril_calloc(size, sizeof(struct kpair));
+	plot->err = siril_calloc(size, sizeof(struct kpair));
 	if (!plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
-		free(plot->frame);
-		free(plot->data);
-		free(plot->err);
-		free(plot);
+		siril_free(plot->frame);
+		siril_free(plot->data);
+		siril_free(plot->err);
+		siril_free(plot);
 		return NULL;
 	}
 	plot->nb = size;
@@ -602,7 +602,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 				//siril_debug_print("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
-				xlabel = malloc(XLABELSIZE * sizeof(char));
+				xlabel = siril_malloc(XLABELSIZE * sizeof(char));
 				g_snprintf(xlabel, XLABELSIZE, "(JD) %d +", julian0);
 			} else {
 				xlabel = _("Frames");
@@ -697,7 +697,7 @@ static int get_number_of_stars(const sequence *seq) {
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
 static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
-	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
+	struct light_curve_args *lcargs = siril_calloc(1, sizeof(struct light_curve_args));
 
 	lcargs->seq = seq;
 	lcargs->layer = 0; // We don't care. This is not used in our case
@@ -711,7 +711,7 @@ static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **err
 		if (retval)
 			control_window_switch_to_tab(OUTPUT_LOGS);
 	}
-	free_light_curve_args(lcargs); // this will not free args->spl_data which is free by siril_plot window upon closing
+	free_light_curve_args(lcargs); // this will not siril_free args->spl_data which is siril_free by siril_plot window upon closing
 
 	return retval;
 }
@@ -857,16 +857,16 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 
 		pldata *tmp_plot = plot;
 
-		double **x = malloc(MAX_SEQPSF * sizeof(double*));
-		double **y = malloc(MAX_SEQPSF * sizeof(double*));
-		double **yerr = malloc(MAX_SEQPSF * sizeof(double*));
-		double **real_x = malloc(MAX_SEQPSF * sizeof(double*));
+		double **x = siril_malloc(MAX_SEQPSF * sizeof(double*));
+		double **y = siril_malloc(MAX_SEQPSF * sizeof(double*));
+		double **yerr = siril_malloc(MAX_SEQPSF * sizeof(double*));
+		double **real_x = siril_malloc(MAX_SEQPSF * sizeof(double*));
 
 		for (int i = 0; i < MAX_SEQPSF; i++) {
-			x[i] = calloc(seq->number, sizeof(double));
-			y[i] = calloc(seq->number, sizeof(double));
-			yerr[i] = calloc(seq->number, sizeof(double));
-			real_x[i] = calloc(seq->number, sizeof(double));
+			x[i] = siril_calloc(seq->number, sizeof(double));
+			y[i] = siril_calloc(seq->number, sizeof(double));
+			yerr[i] = siril_calloc(seq->number, sizeof(double));
+			real_x[i] = siril_calloc(seq->number, sizeof(double));
 		}
 		int j = 0;
 		for (int i = 0; i < seq->number; i++) {
@@ -891,19 +891,19 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		}
 		for (int r = 0; r < nb_plot + 1; r++) {
 			if (j != seq->number) {
-				double *xtmp = realloc(x[r], j * sizeof(double));
+				double *xtmp = siril_realloc(x[r], j * sizeof(double));
 				if (xtmp) {
 					x[r] = xtmp;
 				}
-				double *ytmp = realloc(y[r], j * sizeof(double));
+				double *ytmp = siril_realloc(y[r], j * sizeof(double));
 				if (ytmp) {
 					y[r] = ytmp;
 				}
-				double *yerrtmp = realloc(yerr[r], j * sizeof(double));
+				double *yerrtmp = siril_realloc(yerr[r], j * sizeof(double));
 				if (yerrtmp) {
 					yerr[r] = yerrtmp;
 				}
-				double *real_xtmp = realloc(real_x[r], j * sizeof(double));
+				double *real_xtmp = siril_realloc(real_x[r], j * sizeof(double));
 				if (real_xtmp) {
 					real_x[r] = real_xtmp;
 				}
@@ -914,27 +914,27 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			} else {
 				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], NULL, NULL);
 			}
-			free(label);
+			siril_free(label);
 		}
 		for (int i = 0; i < MAX_SEQPSF; i++) {
-			free(x[i]);
-			free(y[i]);
-			free(yerr[i]);
-			free(real_x[i]);
+			siril_free(x[i]);
+			siril_free(y[i]);
+			siril_free(yerr[i]);
+			siril_free(real_x[i]);
 		}
 
-		free(x);
-		free(y);
-		free(yerr);
-		free(real_x);
+		siril_free(x);
+		siril_free(y);
+		siril_free(yerr);
+		siril_free(real_x);
 
 	} else {
 		const gchar *title = registration_labels[registration_selected_source];
 		siril_plot_set_title(spl_data, _("Registration"));
 		siril_plot_set_savename(spl_data, _("Registration"));
 
-		double *x = calloc(seq->number, sizeof(double));
-		double *y = calloc(seq->number, sizeof(double));
+		double *x = siril_calloc(seq->number, sizeof(double));
+		double *y = siril_calloc(seq->number, sizeof(double));
 
 		if (X_selected_source != r_FRAME) {
 			spl_data->plottype = KPLOT_POINTS;
@@ -952,19 +952,19 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 			j++;
 		}
 		if (j != seq->number) {
-			double *xtmp = realloc(x, j * sizeof(double));
+			double *xtmp = siril_realloc(x, j * sizeof(double));
 			if (xtmp) {
 				x = xtmp;
 			}
-			double *ytmp = realloc(y, j * sizeof(double));
+			double *ytmp = siril_realloc(y, j * sizeof(double));
 			if (ytmp) {
 				y = ytmp;
 			}
 		}
 		siril_plot_add_xydata(spl_data, title, j, x, y, NULL, NULL);
 
-		free(x);
-		free(y);
+		siril_free(x);
+		siril_free(y);
 	}
 	create_new_siril_plot_window(spl_data);
 
@@ -975,16 +975,16 @@ void free_plot_data() {
 	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
-		free(plot->frame);
-		free(plot->data);
-		free(plot->err);
-		free(plot);
+		siril_free(plot->frame);
+		siril_free(plot->data);
+		siril_free(plot->err);
+		siril_free(plot);
 		plot = next;
 	}
 	julian0 = 0;
 	xlabel = NULL;
 	plot_data = NULL;
-	free(pdd.selected);
+	siril_free(pdd.selected);
 	pdd.selected = NULL;
 }
 
@@ -1158,7 +1158,7 @@ static int comparey_desc(const void *a, const void *b) {
 
 static void sort_photometry_dataset(pldata *plot) {
 	if (julian0 && force_Julian) {
-		photdata_t *photdata = calloc(plot->nb, sizeof(photdata_t));
+		photdata_t *photdata = siril_calloc(plot->nb, sizeof(photdata_t));
 		for (int i = 0; i < plot->nb; i++) {
 			photdata[i].data = plot->data[i];
 			photdata[i].err = plot->err[i];
@@ -1170,7 +1170,7 @@ static void sort_photometry_dataset(pldata *plot) {
 			plot->err[i] = photdata[i].err;
 			plot->frame[i] = (double)photdata[i].frame;
 		}
-		free(photdata);
+		siril_free(photdata);
 	}
 }
 
@@ -1302,7 +1302,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
 	// we want get some information from a dialog
 	/* temporary code */
-	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
+	aavso_dlg *aavso_ptr = siril_calloc(1, sizeof(aavso_dlg));
 
 	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("observationcode_entry")));
 	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
@@ -1318,13 +1318,13 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
-		free(aavso_ptr);
+		siril_free(aavso_ptr);
 		return;
 	}
 
 	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
-		free(aavso_ptr);
+		siril_free(aavso_ptr);
 		return;
 	}
 
@@ -1487,7 +1487,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 					registration_selected_source == r_BACKGROUND || registration_selected_source == r_NBSTARS)) {
 			if (X_selected_source == r_FRAME) {
 				struct kpair *sorted_data;
-				sorted_data = calloc(plot_data->nb, sizeof(struct kpair));
+				sorted_data = siril_calloc(plot_data->nb, sizeof(struct kpair));
 				for (int i = 0; i < plot_data->nb; i++) {
 					sorted_data[i].x = plot_data->data[i].x;
 					sorted_data[i].y = plot_data->data[i].y;
@@ -1503,19 +1503,19 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 				}
 				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
 				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
-				free(sorted_data);
+				siril_free(sorted_data);
 				kdata_destroy(d1);
 			}
 		} else if (use_photometry){
 			int nb_data = max_data - min_data + 1;
-			struct kpair *avg = calloc(nb_data, sizeof(struct kpair));
+			struct kpair *avg = siril_calloc(nb_data, sizeof(struct kpair));
 			for (int i = 0, j = min_data; i < nb_data; i++, j++) {
 				avg[i].x = plot_data->data[j].x;
 				avg[i].y = mean;
 			}
 			mean_d = kdata_array_alloc(avg, nb_data);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
-			free(avg);
+			siril_free(avg);
 			kdata_destroy(mean_d);
 		}
 
@@ -1546,8 +1546,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
 	pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
 	// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
-	if (pdd.selected) free(pdd.selected);
-	pdd.selected = calloc(com.seq.number, sizeof(gboolean));
+	if (pdd.selected) siril_free(pdd.selected);
+	pdd.selected = siril_calloc(com.seq.number, sizeof(gboolean));
 	if (selection_is_active()) {
 		double xmin, ymin, xmax, ymax;
 		int n = 0;
@@ -1761,7 +1761,7 @@ static const int color_tab[][3] = {
 
 static void set_colors(struct kplotcfg *cfg) {
 	cfg->clrsz = MAX_SEQPSF;
-	cfg->clrs = calloc(cfg->clrsz, sizeof(struct kplotccfg));
+	cfg->clrs = siril_calloc(cfg->clrsz, sizeof(struct kplotccfg));
 	for (int i = 0; i < cfg->clrsz; i++) {
 		cfg->clrs[i].type = KPLOTCTYPE_RGBA;
 		cfg->clrs[i].rgba[3] = 1.0;
@@ -1780,7 +1780,7 @@ static void set_colors(struct kplotcfg *cfg) {
 }
 
 static void free_colors(struct kplotcfg *cfg) {
-	free(cfg->clrs);
+	siril_free(cfg->clrs);
 }
 
 gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -92,7 +92,7 @@ static gboolean _print_version_and_exit(const gchar *option_name,
 
 static gboolean _print_copyright_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
-	g_print("Copyright © 2012-%s team free-astro\n", SIRIL_GIT_LAST_COMMIT_YEAR);
+	g_print("Copyright © 2012-%s team siril_free-astro\n", SIRIL_GIT_LAST_COMMIT_YEAR);
 	exit(EXIT_SUCCESS);
 	return TRUE;
 }
@@ -383,7 +383,7 @@ int main(int argc, char *argv[]) {
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	//g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
 
-	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
+	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A siril_free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);

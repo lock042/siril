@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -84,8 +84,8 @@ int registration_prepare_results(struct generic_seq_args *args) {
 
 	if (!regargs->no_output) {
 		// allocate destination sequence data
-		regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-		regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+		regargs->imgparam = siril_calloc(args->nb_filtered_images, sizeof(imgdata));
+		regargs->regparam = siril_calloc(args->nb_filtered_images, sizeof(regdata));
 		if (!regargs->imgparam  || !regargs->regparam) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -95,7 +95,7 @@ int registration_prepare_results(struct generic_seq_args *args) {
 			return 1;
 	}
 
-	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
+	sadata->success = siril_calloc(args->nb_filtered_images, sizeof(BYTE));
 	if (!sadata->success) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -118,7 +118,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_color_message(_("Could not load reference image\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		return 1;
 	}
 
@@ -130,7 +130,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (sf_data) {
 		sadata->refstars = *sf_data->stars;
 		nb_stars = *sf_data->nb_stars;
-		free(sf_data);
+		siril_free(sf_data);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -139,7 +139,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 				_("There are not enough stars in reference image to perform alignment\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -169,7 +169,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -178,7 +178,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 				_("Could not init drizzle\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -195,7 +195,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 			_("Could not correct the stars position with SIP coeffients\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -334,7 +334,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (sf_data) {
 			stars = *sf_data->stars;
 			nb_stars = *sf_data->nb_stars;
-			free(sf_data);
+			siril_free(sf_data);
 		}
 
 		if (!stars || nb_stars < get_min_requires_stars(regargs->type)) {
@@ -458,18 +458,18 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		}
 	} else {
 		regargs->new_total = 0;
-		free(args->seq->regparam[regargs->layer]);
+		siril_free(args->seq->regparam[regargs->layer]);
 		args->seq->regparam[regargs->layer] = NULL;
 
 		// args->new_ser can be null if stars were not detected in the reference image
 		// same as seq_finalize_hook but with file deletion
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 			ser_close_and_delete_file(args->new_ser);
-			free(args->new_ser);
+			siril_free(args->new_ser);
 		}
 		else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
-			free(args->new_fitseq);
+			siril_free(args->new_fitseq);
 		} else if (args->seq->type == SEQ_REGULAR) {
 			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
@@ -495,8 +495,8 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Registration aborted.\n"));
 	}
 	if (sadata->success)
-		free(sadata->success);
-	free(sadata);
+		siril_free(sadata->success);
+	siril_free(sadata);
 	args->user = NULL;
 	clear_stars_list(FALSE);
 	return regargs->new_total == 0;
@@ -629,7 +629,7 @@ int register_star_alignment(struct registration_args *regargs) {
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
 		if (status) {
-			free(args);
+			siril_free(args);
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			return -1;
 		}
@@ -639,7 +639,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	}
 
 	// preparing detection params
-	regargs->sfargs = calloc(1, sizeof(struct starfinder_data));
+	regargs->sfargs = siril_calloc(1, sizeof(struct starfinder_data));
 	regargs->sfargs->im.from_seq = regargs->seq;
 	regargs->sfargs->layer = regargs->layer;
 	regargs->sfargs->keep_stars = TRUE;
@@ -664,7 +664,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
 
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	struct star_align_data *sadata = siril_calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
 		free_generic_seq_args(args, FALSE);
 		return -1;
@@ -860,17 +860,17 @@ int register_multi_step_global(struct registration_args *regargs) {
 		}
 	}
 
-	struct starfinder_data *sfargs = calloc(1, sizeof(struct starfinder_data));
+	struct starfinder_data *sfargs = siril_calloc(1, sizeof(struct starfinder_data));
 	sfargs->im.from_seq = regargs->seq;
 	sfargs->layer = regargs->layer;
 	sfargs->max_stars_fitted = regargs->max_stars_candidates;
-	sfargs->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	sfargs->stars = siril_calloc(regargs->seq->number, sizeof(psf_star **));
 	if (!sfargs->stars) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
 	}
-	sfargs->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	sfargs->nb_stars = siril_calloc(regargs->seq->number, sizeof(int));
 	if (!sfargs->nb_stars) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
@@ -891,16 +891,16 @@ int register_multi_step_global(struct registration_args *regargs) {
 	}
 
 	// 2. searching for the best image and set it as reference
-	fwhm = calloc(regargs->seq->number, sizeof(float));
-	roundness = calloc(regargs->seq->number, sizeof(float));
-	A = calloc(regargs->seq->number, sizeof(float));
-	B = calloc(regargs->seq->number, sizeof(float));
-	Acut = calloc(regargs->seq->number, sizeof(float));
-	included = calloc(regargs->seq->number, sizeof(gboolean));
-	tmp_included = calloc(regargs->seq->number, sizeof(gboolean));
-	meaningful = calloc(regargs->seq->number, sizeof(gboolean));
-	scores = calloc(regargs->seq->number, sizeof(float));
-	dist = calloc(regargs->seq->number, sizeof(float));
+	fwhm = siril_calloc(regargs->seq->number, sizeof(float));
+	roundness = siril_calloc(regargs->seq->number, sizeof(float));
+	A = siril_calloc(regargs->seq->number, sizeof(float));
+	B = siril_calloc(regargs->seq->number, sizeof(float));
+	Acut = siril_calloc(regargs->seq->number, sizeof(float));
+	included = siril_calloc(regargs->seq->number, sizeof(gboolean));
+	tmp_included = siril_calloc(regargs->seq->number, sizeof(gboolean));
+	meaningful = siril_calloc(regargs->seq->number, sizeof(gboolean));
+	scores = siril_calloc(regargs->seq->number, sizeof(float));
+	dist = siril_calloc(regargs->seq->number, sizeof(float));
 	if (!fwhm || !roundness || !B || !A || !included || !tmp_included || !meaningful || !scores || !dist) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
@@ -1100,19 +1100,19 @@ free_all:
 		for (int i = 0; i < regargs->seq->number; i++)
 			free_fitted_stars(sfargs->stars[i]);
 	}
-	free(sfargs->stars);
-	free(sfargs->nb_stars);
-	free(sfargs);
-	free(fwhm);
-	free(roundness);
-	free(B);
-	free(A);
-	free(Acut);
-	free(included);
-	free(tmp_included);
-	free(meaningful);
-	free(scores);
-	free(dist);
+	siril_free(sfargs->stars);
+	siril_free(sfargs->nb_stars);
+	siril_free(sfargs);
+	siril_free(fwhm);
+	siril_free(roundness);
+	siril_free(B);
+	siril_free(A);
+	siril_free(Acut);
+	siril_free(included);
+	siril_free(tmp_included);
+	siril_free(meaningful);
+	siril_free(scores);
+	siril_free(dist);
 	return retval;
 }
 

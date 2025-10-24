@@ -27,7 +27,7 @@ struct fwhm_struct {
 
 	// Moffat parameters
 	double beta; /* Moffat equation beta parameter */
-	starprofile profile; // Whether the profile is Gaussian or Moffat with beta {free|fixed}
+	starprofile profile; // Whether the profile is Gaussian or Moffat with beta {siril_free|fixed}
 	// The other parameters B, A, x0, y0, angle, rmse, sat... are the same as for Gaussian
 
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -96,7 +96,7 @@ regdata *registration_get_current_regdata(struct registration_args *regargs) {
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
 	} else {
-		current_regdata = calloc(regargs->seq->number, sizeof(regdata));
+		current_regdata = siril_calloc(regargs->seq->number, sizeof(regdata));
 		if (current_regdata == NULL) {
 			PRINT_ALLOC_ERR;
 			return NULL;
@@ -112,18 +112,18 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 
 	/* we are not interested in the whole path */
 	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
+	char *rseqname = siril_malloc(strlen(args->prefix) + strlen(seqname) + 5);
 	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
 	g_unlink(rseqname);	// remove previous to overwrite
 	args->new_seq_name = remove_ext_from_filename(rseqname);
-	free(rseqname);
+	siril_free(rseqname);
 	seq.seqname = strdup(args->new_seq_name);
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
+	seq.regparam = siril_calloc(seq.nb_layers, sizeof(regdata*));
 	if (args->driz && args->driz->is_bayer)
 		seq.regparam[GLAYER] = args->regparam;
 	else
@@ -262,9 +262,9 @@ gpointer register_thread_func(gpointer p) {
 	if (args->driz) {
 		if (args->driz->flat) {
 			clearfits(args->driz->flat);
-			free(args->driz->flat);
+			siril_free(args->driz->flat);
 		}
-		free(args->driz);
+		siril_free(args->driz);
 	}
 	if (args->reference_date)
 		g_date_time_unref(args->reference_date);
@@ -274,7 +274,7 @@ gpointer register_thread_func(gpointer p) {
 		stop_processing_thread();
 		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
 			free_sequence(args->seq, TRUE);
-		free(args);
+		siril_free(args);
 	}
 	return GINT_TO_POINTER(retval);
 }
@@ -364,7 +364,7 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t) {
-	struct registration_method *reg = calloc(1, sizeof(struct registration_method));
+	struct registration_method *reg = siril_calloc(1, sizeof(struct registration_method));
 	reg->name = strdup(name);
 	reg->method_ptr = f;
 	reg->sel = s;

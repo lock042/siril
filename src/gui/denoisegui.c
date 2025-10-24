@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -114,11 +114,11 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	if (gui.roi.active)
 		restore_roi();
-	denoise_args *args = calloc(1, sizeof(denoise_args));
+	denoise_args *args = siril_calloc(1, sizeof(denoise_args));
 	args->modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
 	if (args->modulation == 0.f) {
 		siril_log_message(_("Modulation is zero: doing nothing.\n"));
-		free(args);
+		siril_free(args);
 		return;
 	}
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -145,6 +145,6 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->sos = gtk_spin_button_get_value(spin_sos_iters);
 	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
 	if (!start_in_new_thread(run_nlbayes_on_fit, args)) {
-		free(args);
+		siril_free(args);
 	}
 }

@@ -34,7 +34,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * The code as integrated into Siril is modified from the original
- * AURA code by team free-astro. */
+ * AURA code by team siril_free-astro. */
 
 #ifndef CDRIZZLEMAP_H
 #define CDRIZZLEMAP_H

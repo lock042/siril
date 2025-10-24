@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -49,8 +49,8 @@ int compare_median_algos(int datasize, int threads)
 	double result_qsel1, result_qsel2, result_qsort;
 	int i, retval = 0;
 
-	data = malloc(datasize * sizeof(WORD));
-	data_backup = malloc(datasize * sizeof(WORD));
+	data = siril_malloc(datasize * sizeof(WORD));
+	data_backup = siril_malloc(datasize * sizeof(WORD));
 	for (i=0; i<datasize; i++) {
 		int val = rand() % USHRT_MAX;
 		data[i] = (WORD)val;
@@ -73,8 +73,8 @@ int compare_median_algos(int datasize, int threads)
 		retval = 1;
 	}
 
-	free(data);
-	free(data_backup);
+	siril_free(data);
+	siril_free(data_backup);
 	return retval;
 }
 

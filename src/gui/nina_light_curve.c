@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -270,14 +270,14 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	clear_all_photometry_and_plot();
 	init_plot_colors();
 
-	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
+	struct light_curve_args *args = siril_calloc(1, sizeof(struct light_curve_args));
 	gboolean use_c1 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp1));
 	gboolean use_c2 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp2));
 
 	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, &gfit)) {
 		// fail
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
-		free(args);
+		siril_free(args);
 		g_free(nina_file);
 		return;
 	}
@@ -288,7 +288,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
 	if (!start_in_new_thread(light_curve_worker, args)) {
-		free(args);
+		siril_free(args);
 		g_free(nina_file);
 		return;
 	}

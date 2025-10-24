@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -207,11 +207,11 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 
 	switch (msgtype) {
 		case PIPE_LOG:
-			msg = malloc(strlen(arg) + 6);
+			msg = siril_malloc(strlen(arg) + 6);
 			sprintf(msg, "log: %s", arg);
 			break;
 		case PIPE_STATUS:
-			msg = malloc((arg ? strlen(arg) : 0) + 20);
+			msg = siril_malloc((arg ? strlen(arg) : 0) + 20);
 			switch (verb) {
 				case PIPE_STARTING:
 					sprintf(msg, "status: starting %s", arg);
@@ -229,7 +229,7 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 					sprintf(msg, "status: busy\n");
 					break;
 				case PIPE_NA:
-					free(msg);
+					siril_free(msg);
 					return -1;
 			}
 			break;
@@ -281,7 +281,7 @@ int enqueue_command(char *command) {
 void empty_command_queue() {
 	g_mutex_lock(&read_mutex);
 	while (command_list) {
-		free(command_list->data);
+		siril_free(command_list->data);
 		command_list = g_list_next(command_list);
 	}
 	g_mutex_unlock(&read_mutex);
@@ -426,7 +426,7 @@ void *read_pipe(void *p) {
 
 								if (enqueue_command(command)) {
 									read_return = PIPE_READ_ERROR;
-									free(command);
+									siril_free(command);
 									break;
 								}
 							}
@@ -483,7 +483,7 @@ void *process_commands(void *p) {
 		if (check_requires(&checked_requires, com.pref.pipe_check_requires)) {
 			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
 			empty_command_queue();
-			free(command);
+			siril_free(command);
 			g_free(command_name);
 			continue;
 		}
@@ -500,7 +500,7 @@ void *process_commands(void *p) {
 		if (retval)
 			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
 		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command_name);
-		free(command);
+		siril_free(command);
 		g_free(command_name);
 	}
 
@@ -556,10 +556,10 @@ static void *write_pipe(void *p) {
 				close(pipe_fd_w);
 				pipe_fd_w = -1;
 #endif
-				free(msg);
+				siril_free(msg);
 				break;
 			}
-			free(msg);
+			siril_free(msg);
 		} while (1);
 	} while (pipe_active);
 	siril_log_message("exiting pipe output thread\n");

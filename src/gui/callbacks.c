@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -252,7 +252,7 @@ int populate_roi() {
 	gui.roi.fit.naxes[2] = nchans;
 	gui.roi.fit.naxis = nchans == 1 ? 2 : 3;
 	if (gui.roi.fit.type == DATA_FLOAT) {
-		gui.roi.fit.fdata = malloc(npixels_roi * nchans * sizeof(float));
+		gui.roi.fit.fdata = siril_malloc(npixels_roi * nchans * sizeof(float));
 		if (!gui.roi.fit.fdata)
 			retval = 1;
 		gui.roi.fit.fpdata[0] = gui.roi.fit.fdata;
@@ -266,7 +266,7 @@ int populate_roi() {
 			}
 		}
 	} else {
-		gui.roi.fit.data = malloc(npixels_roi * nchans * sizeof(WORD));
+		gui.roi.fit.data = siril_malloc(npixels_roi * nchans * sizeof(WORD));
 		if (!gui.roi.fit.data)
 			retval = 1;
 		gui.roi.fit.pdata[0] = gui.roi.fit.data;
@@ -1018,7 +1018,7 @@ void display_filename() {
 		orig_filename = g_file_read_link(filename, &error);
 		nb_layers = com.uniq->nb_layers;
 	} else if (sequence_is_loaded()) {	// sequence
-		filename = malloc(256);
+		filename = siril_malloc(256);
 		strcpy(filename, " ");
 		local_filename = TRUE;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
@@ -1057,7 +1057,7 @@ void display_filename() {
 	}
 
 	if (local_filename)
-		free(filename);
+		siril_free(filename);
 	g_free(base_name);
 	g_free(orig_filename);
 	g_free(orig_base_name);
@@ -2040,7 +2040,7 @@ gboolean load_main_window_state(gpointer user_data) {
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
-	close_single_image();	// close the previous image and free resources
+	close_single_image();	// close the previous image and siril_free resources
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
@@ -2265,7 +2265,7 @@ static gboolean end_checkSeq(gpointer p) {
 		update_sequences_list(NULL);
 	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -2286,12 +2286,12 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(_("Searching for sequences in "
 				"the current working directory..."), PROGRESS_NONE);
 
-	struct checkSeq_filter_data *args = calloc(1, sizeof(struct checkSeq_filter_data));
+	struct checkSeq_filter_data *args = siril_calloc(1, sizeof(struct checkSeq_filter_data));
 
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(checkSeq, args)) {
-		free(args);
+		siril_free(args);
 	}
 }
 

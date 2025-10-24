@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -466,7 +466,7 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 	struct _seq_list *args;
 	if (seq == NULL || layer >= seq->nb_layers) return;
 
-	args = calloc(1, sizeof(struct _seq_list));
+	args = siril_calloc(1, sizeof(struct _seq_list));
 	args->seq = seq;
 	args->layer = layer;
 	args->tview = GTK_TREE_VIEW(lookup_widget("treeview1"));
@@ -577,7 +577,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	sequence_list_select_row_from_index(args->seq->current, FALSE);
 	g_signal_handlers_unblock_by_func(args->tview, on_treeview1_cursor_changed, NULL);
 
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -947,7 +947,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		if (g_str_has_suffix(sequence_name_to_select, ".seq"))
 			seqname = strdup(sequence_name_to_select);
 		else {
-			seqname = malloc(strlen(sequence_name_to_select) + 5);
+			seqname = siril_malloc(strlen(sequence_name_to_select) + 5);
 			sprintf(seqname, "%s.seq", sequence_name_to_select);
 		}
 	}
@@ -981,20 +981,20 @@ int update_sequences_list(const char *sequence_name_to_select) {
 		}
 	}
 	for (i = 0; i < n; i++)
-		free(list[i]);
-	free(list);
+		siril_free(list[i]);
+	siril_free(list);
 #endif
 
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
-		if (seqname) free(seqname);
+		if (seqname) siril_free(seqname);
 		return -1;
 	} else if (!seqname || found) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
 	} else return -1;
 
-	if (seqname) free(seqname);
+	if (seqname) siril_free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
 		gtk_combo_box_popup(GTK_COMBO_BOX(seqcombo));

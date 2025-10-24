@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -294,14 +294,14 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_color_message(_("Could not parse coordinates or name, aborting\n"), "red");
 		return;
 	}
-	cat_item *item = calloc(1, sizeof(cat_item));
+	cat_item *item = siril_calloc(1, sizeof(cat_item));
 	item->name = name;
 	item->ra = ra;
 	item->dec = dec;
 	add_item_in_catalogue(item, CAT_AN_USER_DSO, TRUE);
 	set_annotation_visibility(CAT_AN_USER_DSO, TRUE);	// and display it
 	siril_catalog_free_item(item);
-	free(item);
+	siril_free(item);
 	refresh_found_objects();
 }
 

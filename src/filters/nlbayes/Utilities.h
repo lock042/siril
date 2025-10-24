@@ -2,7 +2,7 @@
  * Copyright (c) 2013, Marc Lebrun <marc.lebrun.ik@gmail.com>
  * All rights reserved.
  *
- * This program is free software: you can use, modify and/or
+ * This program is siril_free software: you can use, modify and/or
  * redistribute it under the terms of the GNU General Public
  * License as published by the Free Software Foundation, either
  * version 3 of the License, or (at your option) any later

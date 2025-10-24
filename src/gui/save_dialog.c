@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -299,7 +299,7 @@ static gchar *get_filename_and_replace_ext() {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
 		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
-		free(file_no_ext);
+		siril_free(file_no_ext);
 	}
 
 	return basename;
@@ -475,7 +475,7 @@ static gboolean end_save(gpointer p) {
 
 	g_free(args->copyright);
 	g_free(args->description);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -583,7 +583,7 @@ static gboolean end_calculate_jpeg_size(gpointer p) {
 	set_cursor_waiting(FALSE);
 	g_free(args->copyright);
 	g_free(args->description);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -663,7 +663,7 @@ static gpointer mini_save_dialog(gpointer p) {
 				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
 				if (!g_str_has_suffix(args->filename, com.pref.ext)) {
 					gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
-					free(com.uniq->filename);  // Free the previously allocated memory
+					siril_free(com.uniq->filename);  // Free the previously allocated memory
 					com.uniq->filename = strdup(tempfilename);
 					g_free(tempfilename);  // Use g_free for GLib allocated memory
 				}
@@ -687,7 +687,7 @@ void set_entry_filename() {
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		char *file_no_ext = remove_ext_from_filename(filename);
 		gtk_entry_set_text(entry, file_no_ext);
-		free(file_no_ext);
+		siril_free(file_no_ext);
 	}
 }
 
@@ -700,7 +700,7 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
-	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+	struct savedial_data *args = siril_calloc(1, sizeof(struct savedial_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -712,7 +712,7 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
-				free(args);
+				siril_free(args);
 			}
 			return;
 		}
@@ -722,12 +722,12 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 
 	g_free(args->description);
 	g_free(args->copyright);
-	free (args);
+	siril_free (args);
 }
 
 void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("size_estimate_toggle")))) {
-		struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+		struct savedial_data *args = siril_calloc(1, sizeof(struct savedial_data));
 		if (!args) {
 			PRINT_ALLOC_ERR;
 			return;
@@ -737,19 +737,19 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
-				free(args);
+				siril_free(args);
 			}
 		} else {
 			g_free(args->description);
 			g_free(args->copyright);
-			free (args);
+			siril_free (args);
 			return;
 		}
 	}
 }
 
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
-	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+	struct savedial_data *args = siril_calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
@@ -757,18 +757,18 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
-			free(args);
+			siril_free(args);
 		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
-		free(args);
+		siril_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
 
 void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
-	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+	struct savedial_data *args = siril_calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
@@ -776,12 +776,12 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
-			free(args);
+			siril_free(args);
 		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
-		free(args);
+		siril_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -797,7 +797,7 @@ void on_header_save_as_button_clicked() {
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
-				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+				struct savedial_data *args = siril_calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
 				initialize_data(args);
@@ -805,12 +805,12 @@ void on_header_save_as_button_clicked() {
 					if (!start_in_new_thread(mini_save_dialog, args)) {
 						g_free(args->description);
 						g_free(args->copyright);
-						free(args);
+						siril_free(args);
 					}
 				} else {
 					g_free(args->copyright);
 					g_free(args->description);
-					free(args);
+					siril_free(args);
 					siril_add_idle(end_generic, NULL);
 				}
 			} else {

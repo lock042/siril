@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -71,7 +71,7 @@ static void signal_handled(int s) {
 		SymInitialize(process, NULL, TRUE);
 
 		size = CaptureStackBackTrace(0, sizeof(stack) / sizeof(void*), stack, NULL);
-		symbol = (SYMBOL_INFO*) calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+		symbol = (SYMBOL_INFO*) siril_calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
 		symbol->MaxNameLen = 255;
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -81,7 +81,7 @@ static void signal_handled(int s) {
 			g_printf("[#%i]: in %s\n", i, symbol->Name);
 		}
 
-		free(symbol);
+		siril_free(symbol);
 #elif HAVE_EXECINFO_H
 		void *stack[STACK_DEPTH];
 

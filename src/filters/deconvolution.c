@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -142,7 +142,7 @@ void reset_conv_args(estk_data* args) {
 
 void reset_conv_kernel() {
 	if (com.kernel != NULL) {
-		free(com.kernel);
+		siril_free(com.kernel);
 		com.kernel = NULL;
 		com.kernelchannels = 1;
 		com.kernelsize = 0;
@@ -159,7 +159,7 @@ void check_orientation() {
 	int npixels = com.kernelsize * com.kernelsize;
 	int ndata = npixels * com.kernelchannels;
 	if (get_imageorientation() != args.kernelorientation) {
-		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		float *flip_the_kernel = (float*) siril_malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
 				for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -167,7 +167,7 @@ void check_orientation() {
 				}
 			}
 		}
-		free(com.kernel);
+		siril_free(com.kernel);
 		com.kernel = flip_the_kernel;
 		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
@@ -212,7 +212,7 @@ int load_kernel(gchar* filename) {
 	int npixels = com.kernelsize * com.kernelsize;
 	int orig_pixels = orig_size * orig_size;
 	int ndata = npixels * com.kernelchannels;
-	com.kernel = (float*) malloc(ndata * sizeof(float));
+	com.kernel = (float*) siril_malloc(ndata * sizeof(float));
 	if (load_fit.type == DATA_FLOAT) {
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -232,7 +232,7 @@ int load_kernel(gchar* filename) {
 	}
 	// Handle SER orientation issues, if the image orientation is TOP_DOWN we need to match it
 	if (get_imageorientation() == TOP_DOWN) {
-		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		float *flip_the_kernel = (float*) siril_malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
 				for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -240,13 +240,13 @@ int load_kernel(gchar* filename) {
 				}
 			}
 		}
-		free(com.kernel);
+		siril_free(com.kernel);
 		com.kernel = flip_the_kernel;
 		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
 	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
-		float* desatkernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
+		float* desatkernel = siril_malloc(com.kernelsize * com.kernelsize * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
 				float val = 0.f;
@@ -256,7 +256,7 @@ int load_kernel(gchar* filename) {
 				desatkernel[i + j * com.kernelsize] = val / com.kernelchannels;
 			}
 		}
-		free(com.kernel);
+		siril_free(com.kernel);
 		com.kernel = desatkernel;
 		com.kernelchannels = 1;
 		args.kchans = 1;
@@ -280,14 +280,14 @@ int save_kernel(gchar* filename) {
 	int npixels = com.kernelsize * com.kernelsize;
 	int ndata = npixels * com.kernelchannels;
 	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
-	float* copy_kernel = malloc(ndata * com.kernelchannels * sizeof(float));
+	float* copy_kernel = siril_malloc(ndata * com.kernelchannels * sizeof(float));
 	memcpy(copy_kernel, com.kernel, ndata * com.kernelchannels * sizeof(float));
 
 	// Handle SER orientation issues, if the kernel orientation is TOP_DOWN then we need to reverse it: we always save the
 	// kernel in BOTTOM_UP orientation. Note that we don't actually change args->kernelorientation here as we are only flipping
 	// the sacrificial copy.
 	if (get_imageorientation() == TOP_DOWN) {
-		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		float *flip_the_kernel = (float*) siril_malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
 				for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -295,7 +295,7 @@ int save_kernel(gchar* filename) {
 				}
 			}
 		}
-		free(copy_kernel);
+		siril_free(copy_kernel);
 		copy_kernel = flip_the_kernel;
 	}
 
@@ -316,7 +316,7 @@ int save_kernel(gchar* filename) {
 #endif
 	}
 	clearfits(save_fit); // also frees copy_kernel
-	free(save_fit);
+	siril_free(save_fit);
 	return retval;
 }
 
@@ -360,7 +360,7 @@ int get_kernel() {
 			}
 			reset_conv_kernel();
 			calculate_parameters();
-			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
+			com.kernel = (float*) siril_calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
 				makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f,args.psf_ratio, -args.psf_angle);
 			else
@@ -369,7 +369,7 @@ int get_kernel() {
 			break;
 		case PSF_MANUAL: // Kernel from provided parameters
 			reset_conv_kernel();
-			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
+			com.kernel = (float*) siril_calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			switch (args.profile) {
 				case PROFILE_GAUSSIAN:
 					makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_ratio, -args.psf_angle);
@@ -439,7 +439,7 @@ gpointer estimate_only(gpointer p) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
+		siril_free(command_data);
 	}
 	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
@@ -449,7 +449,7 @@ gpointer estimate_only(gpointer p) {
 		sfpar.min_A = 0.07;
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
-		image *input_image = calloc(1, sizeof(image));
+		image *input_image = siril_calloc(1, sizeof(image));
 		input_image->fit = the_fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -457,7 +457,7 @@ gpointer estimate_only(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		free(input_image);
+		siril_free(input_image);
 		if (!com.stars || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			retval = 1;
@@ -495,7 +495,7 @@ gpointer estimate_only(gpointer p) {
 		}
 	}
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
-	args.fdata = malloc(args.ndata * sizeof(float));
+	args.fdata = siril_malloc(args.ndata * sizeof(float));
 	if (the_fit->type == DATA_FLOAT)
 		memcpy(args.fdata, the_fit->fdata, args.ndata * sizeof(float));
 	else {
@@ -524,14 +524,14 @@ ENDEST:
 	}
 	if(!retval && args.save_after) {
 		save_kernel(args.savepsf_filename);
-		free(args.savepsf_filename);
+		siril_free(args.savepsf_filename);
 		args.savepsf_filename = NULL;
 		args.save_after = FALSE;
 	}
 	unlock_roi_mutex();
 	siril_add_idle(estimate_idle, NULL);
 	if (com.script) {
-		free(args.fdata);
+		siril_free(args.fdata);
 		args.fdata = NULL;
 	}
 	return GINT_TO_POINTER(retval);
@@ -544,7 +544,7 @@ gpointer deconvolve(gpointer p) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
+		siril_free(command_data);
 		the_fit = &gfit;
 	}
 	gboolean stars_need_clearing = FALSE;
@@ -569,7 +569,7 @@ gpointer deconvolve(gpointer p) {
 		sfpar.min_A = 0.07;
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
-		image *input_image = calloc(1, sizeof(image));
+		image *input_image = siril_calloc(1, sizeof(image));
 		input_image->fit = the_fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -577,7 +577,7 @@ gpointer deconvolve(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		free(input_image);
+		siril_free(input_image);
 		if (retval || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDDECONV;
@@ -602,7 +602,7 @@ gpointer deconvolve(gpointer p) {
 		if (!com.script && !com.headless && !args.previewing)
 			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
-	args.fdata = malloc(args.ndata * sizeof(float));
+	args.fdata = siril_malloc(args.ndata * sizeof(float));
 	if (the_fit->type == DATA_FLOAT)
 		memcpy(args.fdata, the_fit->fdata, args.ndata * sizeof(float));
 	else {
@@ -631,7 +631,7 @@ gpointer deconvolve(gpointer p) {
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
 		int npixels = the_fit->rx * the_fit->ry;
-		yuvdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
+		yuvdata = siril_malloc(npixels * the_fit->naxes[2] * sizeof(float));
 #ifdef _OPENMP
 		threads = sequence_is_running ? 1 : com.max_thread;
 #pragma omp parallel for simd num_threads(threads) schedule(static)
@@ -640,7 +640,7 @@ gpointer deconvolve(gpointer p) {
 			rgb_to_yuvf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
 		}
 		args.nchans = 1;
-		free(args.fdata);
+		siril_free(args.fdata);
 		args.fdata = yuvdata; // fdata now points to the Y part of yuvdata
 	}
 
@@ -681,14 +681,14 @@ gpointer deconvolve(gpointer p) {
 		// Put things back as they were
 		int npixels = the_fit->rx * the_fit->ry;
 		args.nchans = 3;
-		args.fdata = malloc(npixels * args.nchans * sizeof(float));
+		args.fdata = siril_malloc(npixels * args.nchans * sizeof(float));
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
 		}
-		free(yuvdata);
+		siril_free(yuvdata);
 	}
 
 	// Update the_fit with the result
@@ -706,7 +706,7 @@ gpointer deconvolve(gpointer p) {
 		}
 	}
 ENDDECONV:
-	// Do not free the PSF here as it is populated into com.kernel
+	// Do not siril_free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
@@ -722,7 +722,7 @@ ENDDECONV:
 	if (sequence_is_running == 0)
 		siril_add_idle(deconvolve_idle, NULL);
 	else {
-		free(args.fdata);
+		siril_free(args.fdata);
 		args.fdata = NULL;
 	}
 	unlock_roi_mutex();
@@ -740,7 +740,7 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 // Allocations table
 // Assume kernel size is small c/w image size
 // All: allocate float whc (fdata)
-// Color images - allocate float whc (xyzdata) but then free fdata
+// Color images - allocate float whc (xyzdata) but then siril_free fdata
 // c == 1 when passed to deconvolve.cpp
 // Allocate float wh (img_t<float> f)
 // Wiener: 8 x wh (3 x complex float buffers) + 1 x complex buffer used by fftw as the transform is not in-place
@@ -777,9 +777,9 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	int retval = seq_finalize_hook(seqargs);
 	if (data && data->from_command && data->deconv_data)
-		free(data->deconv_data);
+		siril_free(data->deconv_data);
 	if (data)
-		free(data);
+		siril_free(data);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	args.psftype = args.oldpsftype; // Restore consistency
@@ -818,9 +818,9 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, seqargs->seq->seqname);
 
-		seqargs->new_ser = calloc(1, sizeof(struct ser_struct));
+		seqargs->new_ser = siril_calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, seqargs->new_ser, TRUE, seqargs->seq->ser_file)) {
-			free(seqargs->new_ser);
+			siril_free(seqargs->new_ser);
 			seqargs->new_ser = NULL;
 			retval = 1;
 		}
@@ -833,9 +833,9 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 			dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
 
-		seqargs->new_fitseq = calloc(1, sizeof(fitseq));
+		seqargs->new_fitseq = siril_calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, seqargs->new_fitseq, seqargs->nb_filtered_images)) {
-			free(seqargs->new_fitseq);
+			siril_free(seqargs->new_fitseq);
 			seqargs->new_fitseq = NULL;
 			retval = 1;
 		}
@@ -865,8 +865,8 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->user = seqdata;
 
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
-		free(seqdata->seqEntry);
-		free(seqdata);
+		siril_free(seqdata->seqEntry);
+		siril_free(seqdata);
 		free_generic_seq_args(seqargs, TRUE);
 	}
 }
@@ -876,9 +876,9 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
+		siril_free(command_data);
 	}
-	deconvolution_sequence_data* seqargs = calloc(1, sizeof(deconvolution_sequence_data));
+	deconvolution_sequence_data* seqargs = siril_calloc(1, sizeof(deconvolution_sequence_data));
 	seqargs->seqEntry = strdup("dec_");
 	seqargs->seq = seqname;
 	seqargs->from_command = TRUE;

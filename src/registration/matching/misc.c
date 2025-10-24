@@ -10,7 +10,7 @@
  *           E-mail: mwrsps@rit.edu
  *
  *
- *  This program is free software; you can redistribute it and/or
+ *  This program is siril_free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
@@ -80,7 +80,7 @@ shMalloc(int nbytes /* I: allocate a chunk of this many bytes */
 ) {
 	void *vptr;
 
-	if ((vptr = (void *) malloc(nbytes)) == NULL) {
+	if ((vptr = (void *) siril_malloc(nbytes)) == NULL) {
 		shError("shMalloc: failed to allocate for %d bytes", nbytes);
 		exit(1);
 	}
@@ -90,15 +90,15 @@ shMalloc(int nbytes /* I: allocate a chunk of this many bytes */
 /*********************************************************************
  * ROUTINE: shFree
  *
- * Attempt to free the given piece of memory.
+ * Attempt to siril_free the given piece of memory.
  *
  * RETURNS:
  *      nothing
  */
 
-void shFree(void *vptr /* I: free this chunk of memory */
+void shFree(void *vptr /* I: siril_free this chunk of memory */
 ) {
-	free(vptr);
+	siril_free(vptr);
 }
 
 

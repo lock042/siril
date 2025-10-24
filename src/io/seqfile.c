@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -93,7 +93,7 @@ sequence * readseqfile(const char *name){
 	fprintf(stdout, "Reading sequence file `%s'.\n", name);
 
 	if(!g_str_has_suffix(name, ".seq")){
-		seqfilename = malloc(strlen(name) + 6);	/* 6 stands for a max length of 4 + '.' + '\0' */
+		seqfilename = siril_malloc(strlen(name) + 6);	/* 6 stands for a max length of 4 + '.' + '\0' */
 		sprintf(seqfilename, "%s.seq", name);
 	} else {
 		seqfilename = strdup(name);
@@ -101,11 +101,11 @@ sequence * readseqfile(const char *name){
 
 	if ((seqfile = g_fopen(seqfilename, "r")) == NULL) {
 		fprintf(stderr, "Reading sequence failed, file cannot be opened: %s.\n", seqfilename);
-		free(seqfilename);
+		siril_free(seqfilename);
 		return NULL;
 	}
 
-	seq = calloc(1, sizeof(sequence));
+	seq = siril_calloc(1, sizeof(sequence));
 	initialize_sequence(seq, TRUE);
 	i = 0;
 	while (fgets(line, 511, seqfile)) {
@@ -144,7 +144,7 @@ sequence * readseqfile(const char *name){
 							"salmon");
 				/* for now, only the R* line is not supported in the previous version */
 				seq->seqname = strdup(filename);
-				seq->imgparam = calloc(seq->number, sizeof(imgdata));
+				seq->imgparam = siril_calloc(seq->number, sizeof(imgdata));
 				allocated = 1;
 				break;
 
@@ -171,10 +171,10 @@ sequence * readseqfile(const char *name){
 					// enabled, we keep 1 in the nb_layers, which will be set in
 					// the seq_check_basic_data() call later
 					if (seq->nb_layers >= 1) {
-						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
+						seq->regparam = siril_calloc(seq->nb_layers, sizeof(regdata*));
 						if (ser_is_cfa(seq->ser_file))
-							seq->regparam_bkp = calloc(3, sizeof(regdata*));
-						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+							seq->regparam_bkp = siril_calloc(3, sizeof(regdata*));
+						seq->distoparam = siril_calloc(seq->nb_layers, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */
@@ -249,7 +249,7 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				if (!seq->distoparam)
-					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+					seq->distoparam = siril_calloc(seq->nb_layers, sizeof(disto_params));
 				seq->distoparam[current_layer].index = index;
 				if (index == DISTO_FILE || index == DISTO_MASTER) {
 					if (nb_tokens == 1) {
@@ -320,7 +320,7 @@ sequence * readseqfile(const char *name){
 				}
 
 				if (!regparam) {
-					regparam = calloc(seq->number, sizeof(regdata));
+					regparam = siril_calloc(seq->number, sizeof(regdata));
 					if (!regparam) {
 						PRINT_ALLOC_ERR;
 						goto error;
@@ -332,7 +332,7 @@ sequence * readseqfile(const char *name){
 					else seq->regparam[current_layer] = regparam;
 				}
 				if (!seq->distoparam)
-					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+					seq->distoparam = siril_calloc(seq->nb_layers, sizeof(disto_params));
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;
@@ -350,7 +350,7 @@ sequence * readseqfile(const char *name){
 						if (nb_tokens == 3) {
 							// old format, with quality as third token
 							regparam[i].quality = rot_centre_x;
-							// the rest is already zero due to the calloc
+							// the rest is already zero due to the siril_calloc
 						} else {
 							fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 							goto error;
@@ -419,11 +419,11 @@ sequence * readseqfile(const char *name){
 					seq->ext = "ser";
 #endif
 					if (seq->ser_file) break;
-					seq->ser_file = malloc(sizeof(struct ser_struct));
+					seq->ser_file = siril_malloc(sizeof(struct ser_struct));
 					ser_init_struct(seq->ser_file);
 					seqfilename[strlen(seqfilename)-1] = 'r';
 					if (ser_open_file(seqfilename, seq->ser_file)) {
-						free(seq->ser_file);
+						siril_free(seq->ser_file);
 						seq->ser_file = NULL;
 						goto error;
 					}
@@ -437,7 +437,7 @@ sequence * readseqfile(const char *name){
 						}
 						seq->nb_layers = 3;
 						if (seq->regparam)
-							seq->regparam = realloc(seq->regparam, seq->nb_layers * sizeof(regdata *));
+							seq->regparam = siril_realloc(seq->regparam, seq->nb_layers * sizeof(regdata *));
 						seq->needs_saving = TRUE;
 					}
 				}
@@ -447,7 +447,7 @@ sequence * readseqfile(const char *name){
 					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = calloc(1, sizeof(struct fits_sequence));
+					seq->fitseq_file = siril_calloc(1, sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
 					int i = 0;
 					static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
@@ -465,7 +465,7 @@ sequence * readseqfile(const char *name){
 						}
 					}
 					if (!seq->fitseq_file->filename) {
-						free(seq->fitseq_file);
+						siril_free(seq->fitseq_file);
 						seq->fitseq_file = NULL;
 						goto error;
 					}
@@ -474,7 +474,7 @@ sequence * readseqfile(const char *name){
 				else if (line[1] == 'A') {
 					seq->type = SEQ_AVI;
 					if (seq->film_file) break;
-					seq->film_file = malloc(sizeof(struct film_struct));
+					seq->film_file = siril_malloc(sizeof(struct film_struct));
 					int nb_film = get_nb_film_ext_supported();
 					gchar *filmname = NULL;
 
@@ -511,7 +511,7 @@ sequence * readseqfile(const char *name){
 					}
 
 					if (film_open_file(filmname, seq->film_file)) {
-						free(seq->film_file);
+						siril_free(seq->film_file);
 						seq->film_file = NULL;
 						g_free(filmname);
 						goto error;
@@ -652,23 +652,23 @@ sequence * readseqfile(const char *name){
 			seq->regparam_bkp && seq->regparam_bkp[0] &&
 			seq->regparam && seq->nb_layers == 3 && !seq->regparam[1]) {
 		siril_log_color_message(_("%s: Copying registration data from non-demosaiced layer to green layer\n"), "salmon", seqfilename);
-		seq->regparam[1] = calloc(seq->number, sizeof(regdata));
+		seq->regparam[1] = siril_calloc(seq->number, sizeof(regdata));
 		for (image = 0; image < seq->number; image++) {
 			memcpy(&seq->regparam[1][image], &seq->regparam_bkp[0][image], sizeof(regdata));
 		}
 	}
 
 
-	free(seqfilename);
+	siril_free(seqfilename);
 	return seq;
 error:
 	fclose(seqfile);
 	if (seq->seqname)
-		free(seq->seqname);
-	free(seq);
+		siril_free(seq->seqname);
+	siril_free(seq);
 	siril_log_message(_("Could not load sequence %s\n"), name);
 
-	free(seqfilename);
+	siril_free(seqfilename);
 	return NULL;
 }
 
@@ -680,17 +680,17 @@ int writeseqfile(sequence *seq){
 
 	if (!seq->seqname || seq->seqname[0] == '\0') return 1;
 	if (!seq->imgparam) return 1;
-	filename = malloc(strlen(seq->seqname)+5);
+	filename = siril_malloc(strlen(seq->seqname)+5);
 	sprintf(filename, "%s.seq", seq->seqname);
 	seqfile = g_fopen(filename, "w+t");
 	if (seqfile == NULL) {
 		perror("writeseqfile, fopen");
 		fprintf(stderr, "Writing sequence file: cannot open %s for writing\n", filename);
-		free(filename);
+		siril_free(filename);
 		return 1;
 	}
 	fprintf(stdout, "Writing sequence file %s\n", filename);
-	free(filename);
+	siril_free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
 	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag drizzle\n");
@@ -883,13 +883,13 @@ gboolean existseq(const char *name){
 	char *filename;
 	GStatBuf sts;
 	if (!name || name[0] == '\0') return FALSE;
-	filename = malloc(strlen(name)+5);
+	filename = siril_malloc(strlen(name)+5);
 	sprintf(filename, "%s.seq", name);
 	if(g_stat(filename, &sts)==0){
-		free(filename);
+		siril_free(filename);
 		return TRUE;
 	}
-	free(filename);
+	siril_free(filename);
 	return FALSE;
 }
 
@@ -911,7 +911,7 @@ int buildseqfile(sequence *seq, int force_recompute) {
 			clear_stats(seq, i);
 	}
 
-	filename = malloc(strlen(seq->seqname) + 20);
+	filename = siril_malloc(strlen(seq->seqname) + 20);
 	if (filename == NULL) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -924,23 +924,23 @@ int buildseqfile(sequence *seq, int force_recompute) {
 			siril_log_message(_("The sequence %s doesn't start at the frame number %d"
 					" with the specified fixed size index (%d). Cannot load.\n"),
 					seq->seqname, seq->beg, seq->fixed);
-			free(filename);
+			siril_free(filename);
 			return 1;
 		}
 	}
 
 	int alloc_size = 30;
 	//seq->number = 0;
-	// fill in one pass: realloc needed
+	// fill in one pass: siril_realloc needed
 	if (seq->type == SEQ_REGULAR) {
 		if (seq->end - seq->beg < 111)
 			alloc_size = seq->end - seq->beg + 1;	// last index IS included
 	} else alloc_size = seq->end - seq->beg + 1;		// always continuous
 	oldparam = seq->imgparam;
-	if ((seq->imgparam = realloc(seq->imgparam, alloc_size*sizeof(imgdata))) == NULL) {
+	if ((seq->imgparam = siril_realloc(seq->imgparam, alloc_size*sizeof(imgdata))) == NULL) {
 		fprintf(stderr, "Could not reallocate image parameters structure in sequence\n");
-		if (oldparam) free(oldparam);
-		free(filename);
+		if (oldparam) siril_free(oldparam);
+		siril_free(filename);
 		return 2;
 	}
 	for (i = seq->beg; i <= seq->end; i++) {
@@ -950,10 +950,10 @@ int buildseqfile(sequence *seq, int force_recompute) {
 				if (seq->number + 1 > alloc_size - 1) {
 					alloc_size += 25;
 					oldparam = seq->imgparam;
-					if (!(seq->imgparam = realloc(seq->imgparam, alloc_size * sizeof(imgdata)))) {
+					if (!(seq->imgparam = siril_realloc(seq->imgparam, alloc_size * sizeof(imgdata)))) {
 						PRINT_ALLOC_ERR;
-						if (oldparam) free(oldparam);
-						free(filename);
+						if (oldparam) siril_free(oldparam);
+						siril_free(filename);
 						return 2;
 					}
 				}
@@ -976,7 +976,7 @@ int buildseqfile(sequence *seq, int force_recompute) {
 	writeseqfile(seq);
 
 	fprintf(stdout, "Sequence found: %s %d->%d\n", seq->seqname, seq->beg, seq->end);
-	free(filename);
+	siril_free(filename);
 	return 0;
 }
 

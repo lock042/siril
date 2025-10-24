@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -447,51 +447,51 @@ int *status) /* error status */
 		do_range = 1;
 
 	/* allocate arrays used to compute the median and noise estimates */
-	differences2 = calloc(nx, sizeof(int));
+	differences2 = siril_calloc(nx, sizeof(int));
 	if (!differences2) {
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
-	differences3 = calloc(nx, sizeof(int));
+	differences3 = siril_calloc(nx, sizeof(int));
 	if (!differences3) {
-		free(differences2);
+		siril_free(differences2);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
-	differences5 = calloc(nx, sizeof(int));
+	differences5 = siril_calloc(nx, sizeof(int));
 	if (!differences5) {
-		free(differences2);
-		free(differences3);
+		siril_free(differences2);
+		siril_free(differences3);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs2 = calloc(ny, sizeof(double));
+	diffs2 = siril_calloc(ny, sizeof(double));
 	if (!diffs2) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs3 = calloc(ny, sizeof(double));
+	diffs3 = siril_calloc(ny, sizeof(double));
 	if (!diffs3) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
-		free(diffs2);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
+		siril_free(diffs2);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs5 = calloc(ny, sizeof(double));
+	diffs5 = siril_calloc(ny, sizeof(double));
 	if (!diffs5) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
-		free(diffs2);
-		free(diffs3);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
+		siril_free(diffs2);
+		siril_free(diffs3);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
@@ -752,12 +752,12 @@ int *status) /* error status */
 	if (noise5)
 		*noise5 = 0.1772048 * xnoise5;
 
-	free(diffs5);
-	free(diffs3);
-	free(diffs2);
-	free(differences5);
-	free(differences3);
-	free(differences2);
+	siril_free(diffs5);
+	siril_free(diffs3);
+	siril_free(diffs2);
+	siril_free(differences5);
+	siril_free(differences3);
+	siril_free(differences2);
 
 	return (*status);
 }
@@ -836,51 +836,51 @@ int *status) /* error status */
 		do_range = 1;
 
 	/* allocate arrays used to compute the median and noise estimates */
-	differences2 = calloc(nx, sizeof(float));
+	differences2 = siril_calloc(nx, sizeof(float));
 	if (!differences2) {
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
-	differences3 = calloc(nx, sizeof(float));
+	differences3 = siril_calloc(nx, sizeof(float));
 	if (!differences3) {
-		free(differences2);
+		siril_free(differences2);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
-	differences5 = calloc(nx, sizeof(float));
+	differences5 = siril_calloc(nx, sizeof(float));
 	if (!differences5) {
-		free(differences2);
-		free(differences3);
+		siril_free(differences2);
+		siril_free(differences3);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs2 = calloc(ny, sizeof(double));
+	diffs2 = siril_calloc(ny, sizeof(double));
 	if (!diffs2) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs3 = calloc(ny, sizeof(double));
+	diffs3 = siril_calloc(ny, sizeof(double));
 	if (!diffs3) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
-		free(diffs2);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
+		siril_free(diffs2);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
-	diffs5 = calloc(ny, sizeof(double));
+	diffs5 = siril_calloc(ny, sizeof(double));
 	if (!diffs5) {
-		free(differences2);
-		free(differences3);
-		free(differences5);
-		free(diffs2);
-		free(diffs3);
+		siril_free(differences2);
+		siril_free(differences3);
+		siril_free(differences5);
+		siril_free(diffs2);
+		siril_free(diffs3);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
@@ -1139,12 +1139,12 @@ int *status) /* error status */
 	if (noise5)
 		*noise5 = 0.1772048 * xnoise5;
 
-	free(diffs5);
-	free(diffs3);
-	free(diffs2);
-	free(differences5);
-	free(differences3);
-	free(differences2);
+	siril_free(diffs5);
+	siril_free(diffs3);
+	siril_free(diffs2);
+	siril_free(differences5);
+	siril_free(differences3);
+	siril_free(differences2);
 
 	return (*status);
 }
@@ -1175,7 +1175,7 @@ int *status) /* error status */
 	}
 
 	/* allocate arrays used to compute the median and noise estimates */
-	diffs = calloc(ny, sizeof(double));
+	diffs = siril_calloc(ny, sizeof(double));
 	if (!diffs) {
 		*status = MEMORY_ALLOCATION;
 		return (*status);
@@ -1196,7 +1196,7 @@ int *status) /* error status */
 		WORD *rowpix, v1;
 		double mean, stdev;
 		int *differences;
-		differences = calloc(nx, sizeof(int)); // no check here at the moment, allocation is small, should be no problem
+		differences = siril_calloc(nx, sizeof(int)); // no check here at the moment, allocation is small, should be no problem
 
 #ifdef _OPENMP
 #pragma omp for schedule(static)
@@ -1272,7 +1272,7 @@ int *status) /* error status */
 					}
 				}
 			} /* end of loop over rows */
-		free(differences);
+		siril_free(differences);
 
 	}
 	/* compute median of the values for each row */
@@ -1286,7 +1286,7 @@ int *status) /* error status */
 
 	*noise = .70710678 * xnoise;
 
-	free(diffs);
+	siril_free(diffs);
 
 	return (*status);
 }
@@ -1317,13 +1317,13 @@ row of the image.
 	}
 
 //	/* allocate arrays used to compute the median and noise estimates */
-//	differences = calloc(nx, sizeof(float));
+//	differences = siril_calloc(nx, sizeof(float));
 //	if (!differences) {
 //		*status = MEMORY_ALLOCATION;
 //		return (*status);
 //	}
 
-	diffs = calloc(ny, sizeof(double));
+	diffs = siril_calloc(ny, sizeof(double));
 	if (!diffs) {
 		*status = MEMORY_ALLOCATION;
 		return (*status);
@@ -1344,7 +1344,7 @@ row of the image.
 		float *rowpix, v1;
 		double mean, stdev;
 		float *differences;
-		differences = calloc(nx, sizeof(float)); // no check here at the moment, allocation is small, should be no problem
+		differences = siril_calloc(nx, sizeof(float)); // no check here at the moment, allocation is small, should be no problem
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
@@ -1419,7 +1419,7 @@ row of the image.
 				}
 			}
 		} /* end of loop over rows */
-		free(differences);
+		siril_free(differences);
 	}
 	/* compute median of the values for each row */
 	if (nrows == 0) {
@@ -1433,7 +1433,7 @@ row of the image.
 
 	*noise = .70710678 * xnoise;
 
-	free(diffs);
+	siril_free(diffs);
 
 	return (*status);
 }

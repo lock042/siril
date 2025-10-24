@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -45,12 +45,12 @@ static void fits_rotate_pi_ushort(fits *fit) {
 	WORD *line1 = NULL, *line2 = NULL, *src, *dst, swap;
 
 	size_t line_size = fit->rx * sizeof(WORD);
-	line1 = malloc(line_size);
-	line2 = malloc(line_size);
+	line1 = siril_malloc(line_size);
+	line2 = siril_malloc(line_size);
 	if (!line1 || !line2) {
 		PRINT_ALLOC_ERR;
-		if (line1) free(line1);
-		if (line2) free(line2);
+		if (line1) siril_free(line1);
+		if (line2) siril_free(line2);
 		return;
 	}
 
@@ -84,8 +84,8 @@ static void fits_rotate_pi_ushort(fits *fit) {
 			}
 		}
 	}
-	free(line1);
-	free(line2);
+	siril_free(line1);
+	siril_free(line2);
 }
 
 static void fits_rotate_pi_float(fits *fit) {
@@ -93,12 +93,12 @@ static void fits_rotate_pi_float(fits *fit) {
 	float *line1 = NULL, *line2 = NULL, *src, *dst, swap;
 
 	size_t line_size = fit->rx * sizeof(float);
-	line1 = malloc(line_size);
-	line2 = malloc(line_size);
+	line1 = siril_malloc(line_size);
+	line2 = siril_malloc(line_size);
 	if (!line1 || !line2) {
 		PRINT_ALLOC_ERR;
-		if (line1) free(line1);
-		if (line2) free(line2);
+		if (line1) siril_free(line1);
+		if (line2) siril_free(line2);
 		return;
 	}
 
@@ -132,8 +132,8 @@ static void fits_rotate_pi_float(fits *fit) {
 			}
 		}
 	}
-	free(line1);
-	free(line2);
+	siril_free(line1);
+	siril_free(line2);
 }
 
 static void fits_rotate_pi(fits *fit) {
@@ -152,7 +152,7 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 
 	if (fit->type == DATA_USHORT) {
 		if (fit->data)
-			free(fit->data);
+			siril_free(fit->data);
 		fit->data = (WORD *)newbuf;
 		fit->pdata[RLAYER] = fit->data;
 		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + nbdata : fit->data;
@@ -160,7 +160,7 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 	}
 	else if (fit->type == DATA_FLOAT) {
 		if (fit->fdata)
-			free(fit->fdata);
+			siril_free(fit->fdata);
 		fit->fdata = (float *)newbuf;
 		fit->fpdata[RLAYER] = fit->fdata;
 		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + nbdata : fit->fdata;
@@ -195,7 +195,7 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 
 	size_t npixels = new_width * new_height;
 
-	float *newbuf = malloc(npixels * fit->naxes[2] * sizeof(float));
+	float *newbuf = siril_malloc(npixels * fit->naxes[2] * sizeof(float));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -234,7 +234,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 
 	size_t npixels = new_width * new_height;
 
-	WORD *newbuf = malloc(npixels * fit->naxes[2] * sizeof(WORD));
+	WORD *newbuf = siril_malloc(npixels * fit->naxes[2] * sizeof(WORD));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -447,7 +447,7 @@ static void mirrorx_ushort(fits *fit, gboolean verbose) {
 	}
 
 	size_t line_size = fit->rx * sizeof(WORD);
-	swapline = malloc(line_size);
+	swapline = siril_malloc(line_size);
 	if (!swapline) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -463,7 +463,7 @@ static void mirrorx_ushort(fits *fit, gboolean verbose) {
 			memcpy(dst, swapline, line_size);
 		}
 	}
-	free(swapline);
+	siril_free(swapline);
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
@@ -481,7 +481,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 	}
 
 	size_t line_size = fit->rx * sizeof(float);
-	swapline = malloc(line_size);
+	swapline = siril_malloc(line_size);
 	if (!swapline) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -497,7 +497,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 			memcpy(dst, swapline, line_size);
 		}
 	}
-	free(swapline);
+	siril_free(swapline);
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
@@ -561,7 +561,7 @@ void mirrory(fits *fit, gboolean verbose) {
 }
 
 /* inplace cropping of the image in fit
- * fit->data is not realloc, only fit->pdata points to a different area and
+ * fit->data is not siril_realloc, only fit->pdata points to a different area and
  * data is correctly written to this new area, which makes this function
  * quite dangerous to use when fit is used for something else afterwards.
  */
@@ -714,7 +714,7 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 int crop_finalize_hook(struct generic_seq_args *args) {
 	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
 	int retval = seq_finalize_hook(args);
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -799,7 +799,7 @@ int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 int scale_finalize_hook(struct generic_seq_args *args) {
 	struct scale_sequence_data *data = (struct scale_sequence_data *) args->user;
 	int retval = seq_finalize_hook(args);
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -822,8 +822,8 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->user = crop_sequence_data;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(crop_sequence_data->prefix);
-		free(crop_sequence_data);
+		siril_free(crop_sequence_data->prefix);
+		siril_free(crop_sequence_data);
 		free_generic_seq_args(args, TRUE);
 		return GINT_TO_POINTER(1);
 	}
@@ -849,8 +849,8 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	args->user = scale_sequence_data;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(scale_sequence_data->prefix);
-		free(scale_sequence_data);
+		siril_free(scale_sequence_data->prefix);
+		siril_free(scale_sequence_data);
 		free_generic_seq_args(args, TRUE);
 		return GINT_TO_POINTER(1);
 	}

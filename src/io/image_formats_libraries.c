@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -97,7 +97,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
 	size_t npixels = width * height;
-	*data = malloc(npixels * sizeof(WORD) * nsamples);
+	*data = siril_malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
@@ -180,7 +180,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
 	size_t npixels = width * height;
-	*data = malloc(npixels * sizeof(float) * nsamples);
+	*data = siril_malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
@@ -263,7 +263,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	TIFFGetFieldDefaulted(tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
 
 	size_t npixels = width * height;
-	*data = malloc(npixels * sizeof(float) * nsamples);
+	*data = siril_malloc(npixels * sizeof(float) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
@@ -341,7 +341,7 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	int retval = nsamples;
 
 	size_t npixels = width * height;
-	*data = malloc(npixels * sizeof(WORD) * nsamples);
+	*data = siril_malloc(npixels * sizeof(WORD) * nsamples);
 	if (!*data) {
 		PRINT_ALLOC_ERR;
 		return OPEN_IMAGE_ERROR;
@@ -521,17 +521,17 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	}
 	cmsUInt8Number *embed = NULL;
 	if (EmbedLen) {
-		embed = malloc(EmbedLen * sizeof(cmsUInt8Number));
+		embed = siril_malloc(EmbedLen * sizeof(cmsUInt8Number));
 		memcpy(embed, EmbedBuffer, EmbedLen * sizeof(cmsUInt8Number));
 	}
 	cmsUInt32Number len = EmbedLen;
 
 	TIFFClose(tif);
 	if (retval < 0) {
-		free(data);
-		free(fdata);
+		siril_free(data);
+		siril_free(fdata);
 		g_free(description);
-		free(embed);
+		siril_free(embed);
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -629,19 +629,19 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		if (g_str_has_prefix(description, "SIMPLE  =")) {
 			// It is FITS header, copy it
 			siril_debug_print("ASTRO-TIFF detected.\n");
-			if (fit->header) free(fit->header);
+			if (fit->header) siril_free(fit->header);
 			fit->header = description;
 			int ret = fits_parse_header_str(fit, description);
 			if (ret) {
 				siril_debug_print("ASTRO-TIFF is not well formed.\n");
 			}
 		} else {
-			free(description);
+			siril_free(description);
 		}
 	}
 
 	fits_initialize_icc(fit, embed, len);
-	free(embed);
+	siril_free(embed);
 
 	retval = nsamples;
 
@@ -697,7 +697,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFF* tif = Siril_TIFFOpen(filename, "w");
 	if (!tif) {
 		siril_log_color_message(_("Siril cannot create TIFF file.\n"), "red");
-		free(filename);
+		siril_free(filename);
 		return 1;
 	}
 	const uint16_t nsamples = (uint16_t) fit->naxes[2];
@@ -733,7 +733,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	} else {
 		TIFFClose(tif);
 		siril_log_color_message(_("TIFF file has unexpected number of channels (not 1 or 3).\n"), "red");
-		free(filename);
+		siril_free(filename);
 		return 1;
 	}
 
@@ -759,9 +759,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		if (src_is_float) {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
-			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			dest = siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 		// Check what is the appropriate color space to save in
 		// Covers 8- and high-bitdepth files
@@ -785,8 +785,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(dest);
-						free(filename);
+						siril_free(dest);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -803,8 +803,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(dest);
-						free(filename);
+						siril_free(dest);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -826,8 +826,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(dest);
-						free(filename);
+						siril_free(dest);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -844,8 +844,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(dest);
-						free(filename);
+						siril_free(dest);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -989,8 +989,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 			siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 				bitspersample, filename, nsamples, width, height);
 	}
-	free(dest);
-	free(profile);
+	siril_free(dest);
+	siril_free(profile);
 	g_free(filename);
 	return retval;
 }
@@ -1016,7 +1016,7 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 	// Check if the header starts with SIMPLE
 	if (strncmp(original_header, "SIMPLE", 6) != 0) {
 		// If the header doesn't start with SIMPLE, create a minimal header with essential information
-		char *basic_header = malloc(1024); // Arbitrary size for a minimalist header
+		char *basic_header = siril_malloc(1024); // Arbitrary size for a minimalist header
 		if (!basic_header) {
 			return NULL;
 		}
@@ -1039,9 +1039,9 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 
 	// Allocate buffer to build the new header (generous estimation)
 	size_t header_size = strlen(original_header) + 1024; // Extra for new lines
-	char *formatted_header = malloc(header_size);
+	char *formatted_header = siril_malloc(header_size);
 	if (!formatted_header) {
-		free((char*)original_header);
+		siril_free((char*)original_header);
 		return NULL;
 	}
 
@@ -1151,13 +1151,13 @@ char* format_fits_header_for_xisf(fits *fit, const char *original_header) {
 	}
 
 	// Free memory allocated for the duplicated original header
-	free((char*)original_header);
+	siril_free((char*)original_header);
 
 	return formatted_header;
 }
 
 int readxisf(const char* name, fits *fit, gboolean force_float) {
-	struct xisf_data *xdata = (struct xisf_data *) calloc(1, sizeof(struct xisf_data));
+	struct xisf_data *xdata = (struct xisf_data *) siril_calloc(1, sizeof(struct xisf_data));
 
 	siril_get_xisf_buffer(name, xdata);
 	size_t npixels = xdata->width * xdata->height;
@@ -1183,13 +1183,13 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	switch (xdata->sampleFormat) {
 	case BYTE_IMG:
 			buffer8 = (unsigned char *)xdata->data;
-			fit->data = (WORD *)malloc(npixels * fit->naxes[2] * sizeof(WORD));
+			fit->data = (WORD *)siril_malloc(npixels * fit->naxes[2] * sizeof(WORD));
 			if (!fit->data) {
 				siril_log_message(_("Memory allocation error for image data.\n"));
-				free(xdata->fitsHeader);
-				free(xdata->icc_buffer);
-				free(xdata->data);
-				free(xdata);
+				siril_free(xdata->fitsHeader);
+				siril_free(xdata->icc_buffer);
+				siril_free(xdata->data);
+				siril_free(xdata);
 				return -1;
 			}
 
@@ -1197,7 +1197,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 				fit->data[i] = (WORD)buffer8[i];
 			}
 
-			free(xdata->data);
+			siril_free(xdata->data);
 			xdata->data = NULL;
 
 			fit->pdata[RLAYER] = fit->data;
@@ -1255,10 +1255,10 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 		break;
 	default:
 		siril_log_message(_("This image type is not handled.\n"));
-		free(xdata->fitsHeader);
-		free(xdata->icc_buffer);
-		free(xdata->data);
-		free(xdata);
+		siril_free(xdata->fitsHeader);
+		siril_free(xdata->icc_buffer);
+		siril_free(xdata->data);
+		siril_free(xdata);
 		return -1;
 	}
 
@@ -1269,7 +1269,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	} else {
 		color_manage(fit, FALSE);
 	}
-	free(xdata->icc_buffer);
+	siril_free(xdata->icc_buffer);
 
 	/* let's do it before header parsing. */
 	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
@@ -1298,9 +1298,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
 
-	/* free data */
-	free(xdata->fitsHeader);
-	free(xdata);
+	/* siril_free data */
+	siril_free(xdata->fitsHeader);
+	siril_free(xdata);
 
 	return 0;
 }
@@ -1332,7 +1332,7 @@ int readjpg(const char* name, fits *fit){
 	jpeg_start_decompress(&cinfo);
 
 	size_t npixels = cinfo.output_width * cinfo.output_height;
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	WORD *data = siril_malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		fclose(f);
@@ -1395,7 +1395,7 @@ int readjpg(const char* name, fits *fit){
 	// Initialize ICC profile and display transform
 	fits_initialize_icc(fit, (cmsUInt8Number*) EmbedBuffer,
 							 (cmsUInt32Number) EmbedLen);
-	free(EmbedBuffer);
+	siril_free(EmbedBuffer);
 
 	gchar *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading JPG: file %s, %ld layer(s), %ux%u pixels\n"),
@@ -1422,7 +1422,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	FILE *f = g_fopen(filename, "wb");
 	if (f == NULL) {
 		siril_log_color_message(_("Siril cannot create JPG file.\n"), "red");
-		free(filename);
+		siril_free(filename);
 		return 1;
 	}
 	jpeg_stdio_dest(&cinfo, f);
@@ -1451,9 +1451,9 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		if (src_is_float) {
-			dest = (float*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			dest = (float*) siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
 		} else {
-			dest = (WORD*) malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			dest = (WORD*) siril_malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
 
 #if LIBJPEG_TURBO_VERSION_NUMBER >= 2000000
@@ -1474,8 +1474,8 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 					profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 					break;
 				default:
-					free(dest);
-					free(filename);
+					siril_free(dest);
+					siril_free(filename);
 					return 1;
 			}
 		} else { // rgb
@@ -1492,8 +1492,8 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 					profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 					break;
 				default:
-					free(dest);
-					free(filename);
+					siril_free(dest);
+					siril_free(filename);
 					return 1;
 			}
 		}
@@ -1527,11 +1527,11 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	jpeg_set_quality(&cinfo, quality, TRUE);
 
 	//## CREATE IMAGE BUFFER TO WRITE FROM AND MODIFY THE IMAGE TO LOOK LIKE CHECKERBOARD:
-	unsigned char *image_buffer = (unsigned char*) malloc(
+	unsigned char *image_buffer = (unsigned char*) siril_malloc(
 			cinfo.image_width * cinfo.image_height * cinfo.num_components);
 	if (!image_buffer) {
 		PRINT_ALLOC_ERR;
-		free(filename);
+		siril_free(filename);
 		fclose(f);
 		return 1;
 	}
@@ -1590,13 +1590,13 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 
 	fclose(f);
 	jpeg_destroy_compress(&cinfo);
-	free(image_buffer);
+	siril_free(image_buffer);
 	if (verbose)
 		siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, quality, fit->naxes[2], fit->rx, fit->ry);
-	free(filename);
-	free(profile);
-	free(dest);
+	siril_free(filename);
+	siril_free(profile);
+	siril_free(dest);
 	return OPEN_IMAGE_OK;
 }
 
@@ -1637,7 +1637,7 @@ int readpng(const char *name, fits* fit) {
 	png_byte color_type = png_get_color_type(png, info);
 	png_byte bit_depth = png_get_bit_depth(png, info);
 
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
+	WORD *data = siril_malloc(npixels * sizeof(WORD) * 3);
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		fclose(f);
@@ -1667,9 +1667,9 @@ int readpng(const char *name, fits* fit) {
 
 	png_read_update_info(png, info);
 
-	png_bytep *row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
+	png_bytep *row_pointers = (png_bytep*) siril_malloc(sizeof(png_bytep) * height);
 	for (int y = 0; y < height; y++) {
-		row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png, info));
+		row_pointers[y] = (png_byte*) siril_malloc(png_get_rowbytes(png, info));
 	}
 
 	cmsUInt8Number *embed = NULL;
@@ -1686,7 +1686,7 @@ int readpng(const char *name, fits* fit) {
 		if (png_get_iCCP(png, info,
 						&name_str, &comp_type, &profile, &len) ==
 						PNG_INFO_iCCP) {
-			embed = malloc(len * sizeof(cmsUInt8Number));
+			embed = siril_malloc(len * sizeof(cmsUInt8Number));
 			memcpy(embed, profile, len * sizeof(cmsUInt8Number));
 		}
     }
@@ -1733,10 +1733,10 @@ int readpng(const char *name, fits* fit) {
 		nbplanes = 0;
 	}
 
-	// free allocated memory
+	// siril_free allocated memory
 	for (int y = 0; y < height; y++)
-		free(row_pointers[y]);
-	free(row_pointers);
+		siril_free(row_pointers[y]);
+	siril_free(row_pointers);
 
 	if (data != NULL) {
 		clearfits(fit);
@@ -1765,7 +1765,7 @@ int readpng(const char *name, fits* fit) {
 		fill_date_obs_if_any(fit, name);
 		// Initialize ICC profile and display transform
 		fits_initialize_icc(fit, embed, len);
-		free(embed);
+		siril_free(embed);
 	}
 
 	gchar *basename = g_path_get_basename(name);
@@ -1780,7 +1780,7 @@ static WORD *convert_data(fits *image) {
 	size_t ndata = image->rx * image->ry;
 	int ch = image->naxes[2];
 
-	WORD *buffer = malloc(ndata * ch * sizeof(WORD));
+	WORD *buffer = siril_malloc(ndata * ch * sizeof(WORD));
 	if (!buffer) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1800,7 +1800,7 @@ static WORD *convert_data(fits *image) {
 			}
 		}
 		else {
-			free(buffer);
+			siril_free(buffer);
 			return NULL;
 		}
 	}
@@ -1811,7 +1811,7 @@ static uint8_t *convert_data8(fits *image) {
 	size_t ndata = image->rx * image->ry;
 	const long ch = image->naxes[2];
 
-	uint8_t *buffer = malloc(ndata * ch * sizeof(uint8_t));
+	uint8_t *buffer = siril_malloc(ndata * ch * sizeof(uint8_t));
 	if (!buffer) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1831,7 +1831,7 @@ static uint8_t *convert_data8(fits *image) {
 			}
 		}
 		else {
-			free(buffer);
+			siril_free(buffer);
 			return NULL;
 		}
 	}
@@ -1853,7 +1853,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	FILE *p_png_file = g_fopen(filename, "wb");
 	if (p_png_file == NULL) {
-		free(filename);
+		siril_free(filename);
 		return ret;
 	}
 
@@ -1866,7 +1866,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL) {
 		fclose(p_png_file);
-		free(filename);
+		siril_free(filename);
 		return ret;
 	}
 
@@ -1875,7 +1875,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	if (info_ptr == NULL) {
 		fclose(p_png_file);
 		png_destroy_write_struct(&png_ptr, NULL);
-		free(filename);
+		siril_free(filename);
 		return ret;
 	}
 
@@ -1886,7 +1886,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		/* If we get here, we had a problem writing the file */
 		fclose(p_png_file);
 		png_destroy_write_struct(&png_ptr, &info_ptr);
-		free(filename);
+		siril_free(filename);
 		return ret;
 	}
 
@@ -1948,7 +1948,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -1965,7 +1965,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -1988,7 +1988,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -2005,7 +2005,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -2021,7 +2021,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	/* Write the file header information.  REQUIRED */
 	png_write_info(png_ptr, info_ptr);
 
-	png_bytep *row_pointers = malloc((size_t) height * sizeof(png_bytep));
+	png_bytep *row_pointers = siril_malloc((size_t) height * sizeof(png_bytep));
 
 	WORD *data = NULL;
 	uint8_t *data8 = NULL;
@@ -2055,7 +2055,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	png_write_image(png_ptr, row_pointers);
 
-	/* Clean up after the write, and free any memory allocated */
+	/* Clean up after the write, and siril_free any memory allocated */
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
@@ -2064,11 +2064,11 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	/* Close the file */
 	fclose(p_png_file);
-	if (data) free(data);
-	if (data8) free(data8);
-	free(row_pointers);
-	free(profile);
-	free(filename);
+	if (data) siril_free(data);
+	if (data8) siril_free(data8);
+	siril_free(row_pointers);
+	siril_free(profile);
+	siril_free(filename);
 	return 0;
 }
 #endif	// HAVE_LIBPNG
@@ -2252,7 +2252,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 		siril_log_message(_("Filter pattern: %s\n"), pattern);
 	}
 
-	WORD *data = (WORD*) calloc(1, npixels * sizeof(WORD));
+	WORD *data = (WORD*) siril_calloc(1, npixels * sizeof(WORD));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		libraw_recycle(raw);
@@ -2267,7 +2267,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	if (!raw->rawdata.raw_image) {
 		libraw_recycle(raw);
 		libraw_close(raw);
-		free(buf);
+		siril_free(buf);
 		return OPEN_IMAGE_ERROR;
 	}
 	int i = 0;
@@ -2355,7 +2355,7 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 
 	// get list of all (top level) image IDs
 
-	uint32_t *IDs = malloc(numImages * sizeof(uint32_t));
+	uint32_t *IDs = siril_malloc(numImages * sizeof(uint32_t));
 	heif_context_get_list_of_top_level_image_IDs(heif, IDs, numImages);
 
 	// --- Load a thumbnail for each image.
@@ -2485,10 +2485,10 @@ static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *ima
 static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 	int numImages = heif_context_get_number_of_top_level_images(heif);
 
-	struct HeifImage *heif_images = malloc(numImages * sizeof(struct HeifImage));
+	struct HeifImage *heif_images = siril_malloc(numImages * sizeof(struct HeifImage));
 	gboolean success = load_thumbnails(heif, heif_images);
 	if (!success) {
-		free(heif_images);
+		siril_free(heif_images);
 		return FALSE;
 	}
 
@@ -2586,7 +2586,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 		heif_image_release(heif_images[i].thumbnail);
 	}
 
-	free(heif_images);
+	siril_free(heif_images);
 
 	return run;
 }
@@ -2828,7 +2828,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	if (cp_type == heif_color_profile_type_rICC || cp_type == heif_color_profile_type_prof) {
 		icc_length = heif_image_handle_get_raw_color_profile_size(handle);
 		if (icc_length > 0) {
-			icc_buffer = malloc(icc_length);
+			icc_buffer = siril_malloc(icc_length);
 			err = heif_image_handle_get_raw_color_profile(handle, icc_buffer);
 			if (err.code) {
 				siril_log_color_message(_("Error getting ICC profile from HEIF file. Continuing: you will need to manually assign an ICC profile\n"), "red");
@@ -2912,7 +2912,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	WORD *data = NULL;
 	unsigned int nchannels = has_alpha ? 4 : 3;
 
-	data = malloc(height * width * 3 * sizeof(WORD));
+	data = siril_malloc(height * width * 3 * sizeof(WORD));
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		heif_image_handle_release(handle);
@@ -2975,7 +2975,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	}
 
 	if (mono) {
-		WORD *tmp = realloc(data, npixels* sizeof(WORD));
+		WORD *tmp = siril_realloc(data, npixels* sizeof(WORD));
 		if (tmp) {
 			data = tmp;
 		} else {
@@ -3008,7 +3008,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 
 	fits_initialize_icc(fit, icc_buffer, icc_length);
 	color_manage(fit, (fit->icc_profile != NULL));
-	free(icc_buffer);
+	siril_free(icc_buffer);
 
 	heif_image_handle_release(handle);
 	heif_context_free(ctx);
@@ -3069,12 +3069,12 @@ int readjxl(const char* name, fits *fit) {
 	fit->naxes[2] = zsize;
 	size_t npixels = xsize * ysize;
 	if (fit->bitpix == FLOAT_IMG) {
-		fit->fdata = malloc(xsize * ysize * zsize * sizeof(float));
+		fit->fdata = siril_malloc(xsize * ysize * zsize * sizeof(float));
 		fit->fpdata[RLAYER] = fit->fdata;
 		fit->fpdata[GLAYER] = zsize == 3 ? fit->fdata + npixels : fit->fdata;
 		fit->fpdata[BLAYER] = zsize == 3 ? fit->fdata + npixels * 2 : fit->fdata;
 	} else {
-		fit->data = malloc(xsize * ysize * zsize * sizeof(WORD));
+		fit->data = siril_malloc(xsize * ysize * zsize * sizeof(WORD));
 		fit->pdata[RLAYER] = fit->data;
 		fit->pdata[GLAYER] = zsize == 3 ? fit->data + npixels : fit->data;
 		fit->pdata[BLAYER] = zsize == 3 ? fit->data + npixels * 2 : fit->data;
@@ -3108,7 +3108,7 @@ int readjxl(const char* name, fits *fit) {
 			}
 		}
 	}
-	free(pixels);
+	siril_free(pixels);
 	cmsHPROFILE internal = cmsOpenProfileFromMem(internal_icc_profile, internal_icc_profile_length);
 	cmsHPROFILE original = cmsOpenProfileFromMem(icc_profile, icc_profile_length);
 	if (internal && original) {
@@ -3128,8 +3128,8 @@ int readjxl(const char* name, fits *fit) {
 	color_manage(fit, (fit->icc_profile != NULL));
 	if (original) cmsCloseProfile(original);
 	if (internal) cmsCloseProfile(internal);
-	free(icc_profile);
-	free(internal_icc_profile);
+	siril_free(icc_profile);
+	siril_free(internal_icc_profile);
 
 	mirrorx(fit, FALSE);
 //	fill_date_obs_if_any(fit, name);
@@ -3184,7 +3184,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -3201,7 +3201,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -3227,7 +3227,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			} else { // rgb
@@ -3244,7 +3244,7 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 						profile = get_icc_profile_data(fit->icc_profile, &profile_len);
 						break;
 					default:
-						free(filename);
+						siril_free(filename);
 						return 1;
 				}
 			}
@@ -3278,9 +3278,9 @@ int savejxl(const char *name, fits *fit, int effort, double quality, gboolean fo
 	siril_log_color_message(_("Save complete.\n"), "green");
 	GError *error = NULL;
 	g_file_set_contents(name, (const gchar *) compressed, compressed_length, &error);
-	free(buffer);
-	free(compressed);
-	free(filename);
+	siril_free(buffer);
+	siril_free(compressed);
+	siril_free(filename);
 	g_error_free(error);
 	return OPEN_IMAGE_OK;
 }

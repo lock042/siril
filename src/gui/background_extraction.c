@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -103,7 +103,7 @@ gboolean end_background(gpointer p) {
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
-		free(args);
+		siril_free(args);
 	}
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -149,7 +149,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	struct background_data *args = calloc(1, sizeof(struct background_data));
+	struct background_data *args = siril_calloc(1, sizeof(struct background_data));
 	args->threads = com.max_thread;
 	args->from_ui = TRUE;
 	args->correction = correction;
@@ -164,8 +164,8 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_cfa = gfit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
 						remove_gradient_from_image, args)) {
-		free(args->seqEntry);
-		free(args);
+		siril_free(args->seqEntry);
+		siril_free(args);
 	}
 }
 
@@ -173,7 +173,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkBkgSeq"));
 	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
-		struct background_data *args = calloc(1, sizeof(struct background_data));
+		struct background_data *args = siril_calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();
@@ -189,7 +189,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 						"gradients are often linear and a correction with a polynomial "
 						"function of degree 1 is probably enough."), _("Extract Background"));
 			if (!confirm) {
-				free(args);
+				siril_free(args);
 				set_cursor_waiting(FALSE);
 				return;
 			}
@@ -200,7 +200,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 						"and we advise you to use the polynomial algorithm with a "
 						"degree order of 1."), _("Extract Background"));
 			if (!confirm) {
-				free(args);
+				siril_free(args);
 				set_cursor_waiting(FALSE);
 				return;
 			}
@@ -210,7 +210,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
 		if (args->seqEntry && args->seqEntry[0] == '\0') {
-			free(args->seqEntry);
+			siril_free(args->seqEntry);
 			args->seqEntry = strdup("bkg_");
 		}
 		args->seq = &com.seq;

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -51,7 +51,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 	r3 = diag * (((m3 - m) / m) + 1);
 	r4 = diag * (((m4 - m) / m) + 1);
 
-	com.tilt = malloc(sizeof(sensor_tilt));
+	com.tilt = siril_malloc(sizeof(sensor_tilt));
 
 	com.tilt->pt[0].x = c.x + (r1 * sin(7.0 * M_PI / 4.0));
 	com.tilt->pt[0].y = ry - (c.y + (r1 * cos(7.0 * M_PI / 4.0)));
@@ -75,7 +75,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 }
 
 void clear_sensor_tilt() {
-	free(com.tilt);
+	siril_free(com.tilt);
 	com.tilt = NULL;
 }
 
@@ -88,15 +88,15 @@ static int compute_tilt_values(fits *fit, int nbstars, psf_star **stars, float *
 	float r1 = 0.25f * r;
 	float r2 = 0.75f * r;
 
-	float *f = malloc(nbstars * sizeof(float));
+	float *f = siril_malloc(nbstars * sizeof(float));
 
-	float *f1 = calloc(nbstars, sizeof(float));
-	float *f2 = calloc(nbstars, sizeof(float));
-	float *f3 = calloc(nbstars, sizeof(float));
-	float *f4 = calloc(nbstars, sizeof(float));
+	float *f1 = siril_calloc(nbstars, sizeof(float));
+	float *f2 = siril_calloc(nbstars, sizeof(float));
+	float *f3 = siril_calloc(nbstars, sizeof(float));
+	float *f4 = siril_calloc(nbstars, sizeof(float));
 
-	float *fr1 = calloc(nbstars, sizeof(float));
-	float *fr2 = calloc(nbstars, sizeof(float));
+	float *fr1 = siril_calloc(nbstars, sizeof(float));
+	float *fr2 = siril_calloc(nbstars, sizeof(float));
 
 	for (int i = 0; i < nbstars; i++) {
 		float x = (float) stars[i]->xpos;
@@ -143,15 +143,15 @@ static int compute_tilt_values(fits *fit, int nbstars, psf_star **stars, float *
 		ret = 0;
 	}
 
-	free(f);
+	siril_free(f);
 
-	free(f1);
-	free(f2);
-	free(f3);
-	free(f4);
+	siril_free(f1);
+	siril_free(f2);
+	siril_free(f3);
+	siril_free(f4);
 
-	free(fr1);
-	free(fr2);
+	siril_free(fr1);
+	siril_free(fr2);
 
 	return ret;
 }
@@ -252,7 +252,7 @@ static int tilt_finalize_hook(struct generic_seq_args *args) {
 	siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
 			t_args->nbstars, t_args->m, worst - best, roundf(((worst - best) / ref) * 100.f), t_args->mr2 - t_args->mr1);
 
-	free(t_args);
+	siril_free(t_args);
 
 	return 0;
 }
@@ -283,7 +283,7 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 	tilt_args->fit = NULL;	// not used here
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(tilt_args);
+		siril_free(tilt_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }

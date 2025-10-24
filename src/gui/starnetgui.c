@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -177,7 +177,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	if (sgui_starnet_stride > 256)
 		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
-	starnet_args = calloc(1, sizeof(starnet_data));
+	starnet_args = siril_calloc(1, sizeof(starnet_data));
 	starnet_args->starnet_fit = &gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
@@ -202,13 +202,13 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		if (sequence_is_loaded()) {
 			starnet_args->follow_on = FALSE;
-			struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
+			struct multi_output_data *multi_args = siril_calloc(1, sizeof(struct multi_output_data));
 			multi_args->user_data = (gpointer) starnet_args;
 			starnet_args->multi_args = multi_args;
 			multi_args->seq = &com.seq;
 			multi_args->n = sgui_starmask ? 2 : 1;
 			multi_args->new_seq_index = gtk_combo_box_get_active(combo_starnet_next_sequence);
-			multi_args->prefixes = calloc(multi_args->n, sizeof(char*));
+			multi_args->prefixes = siril_calloc(multi_args->n, sizeof(char*));
 			multi_args->prefixes[0] = g_strdup("starless_");
 			if (sgui_starmask) {
 				multi_args->prefixes[1] = g_strdup("starmask_");

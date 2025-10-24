@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -93,7 +93,7 @@ float siril_stats_float_sd(const float data[], const int N, float *m) {
 double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer) {
 	double mad;
 	const float median = (float)m;
-	float *tmp = buffer ? buffer : malloc(n * sizeof(float));
+	float *tmp = buffer ? buffer : siril_malloc(n * sizeof(float));
 	if (!tmp) {
 		PRINT_ALLOC_ERR;
 		return 0.0;
@@ -109,7 +109,7 @@ double siril_stats_float_mad(const float *data, const size_t n, const double m, 
 
 	mad = histogram_median_float(tmp, n, threads);
 	if (!buffer) {
-	    free(tmp);
+	    siril_free(tmp);
 	}
 	return mad;
 }
@@ -170,7 +170,7 @@ int IKSS(float *data, size_t n, double *location, double *scale, gboolean multit
 	i = 0;
 	j = n;
 	s0 = 1;
-	float *buffer = malloc(n * sizeof(float));
+	float *buffer = siril_malloc(n * sizeof(float));
 	if (!buffer) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -183,7 +183,7 @@ int IKSS(float *data, size_t n, double *location, double *scale, gboolean multit
 		m = gsl_stats_float_median_from_sorted_data(data + i, 1, j - i);
 		mad = siril_stats_float_mad(data + i, j - i, m, multithread, buffer);
 		if (mad == 0.0f) {
-			free(buffer);
+			siril_free(buffer);
 			return 1;
 		}
 		s = sqrt(siril_stats_float_bwmv(data + i, j - i, mad, m, multithread));
@@ -205,7 +205,7 @@ int IKSS(float *data, size_t n, double *location, double *scale, gboolean multit
 		while (data[j - 1] > xhigh)
 			j--;
 	}
-	free(buffer);
+	siril_free(buffer);
 	return 0;
 }
 #endif
@@ -244,7 +244,7 @@ int IKSSlite(float *data, size_t n, const float median, float mad, double *locat
 
 static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size_t outputlen, int free_input) {
 	size_t i, j = 0;
-	float *ndata = malloc(outputlen * sizeof(float));
+	float *ndata = siril_malloc(outputlen * sizeof(float));
 	if (!ndata) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -261,7 +261,7 @@ static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size
 		}
 	}
 	if (free_input)
-		free(data);
+		siril_free(data);
 	return ndata;
 }
 
@@ -325,10 +325,10 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				nx = newsz;
 				ny = 1;
 			} else {
-				data = malloc(nx * ny * sizeof(float));
+				data = siril_malloc(nx * ny * sizeof(float));
 				if (!data) {
 					PRINT_ALLOC_ERR;
-					if (stat_is_local) free(stat);
+					if (stat_is_local) siril_free(stat);
 					return NULL;
 				}
 				g_assert(layer < fit->naxes[2]);
@@ -358,8 +358,8 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		}
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
-			if (stat_is_local) free(stat);
-			if (free_data) free(data);
+			if (stat_is_local) siril_free(stat);
+			if (free_data) siril_free(data);
 			return NULL;
 		}
 	}
@@ -369,7 +369,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	 * - if from fit, the original fit bitpix is passed as argument
 	 * - if from cache, so from seq file, we take it from seq->bitpix and pass it as argument
 	 * This is really important because we can compute float statistics from ushort images.
-	 * Fixes https://gitlab.com/free-astro/siril/-/issues/700
+	 * Fixes https://gitlab.com/siril_free-astro/siril/-/issues/700
 	 */
 
 	if (stat->normValue == NULL_STATS) {
@@ -381,7 +381,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	if ((option & (STATS_MINMAX | STATS_BASIC)) && (stat->min == NULL_STATS || stat->max == NULL_STATS)) {
 		float min = 0, max = 0;
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
@@ -395,7 +395,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			stat->sigma == NULL_STATS || stat->bgnoise == NULL_STATS)) {
 		int status = 0;
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
@@ -403,8 +403,8 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
-			if (free_data) free(data);
-			if (stat_is_local) free(stat);
+			if (free_data) siril_free(data);
+			if (stat_is_local) siril_free(stat);
 			siril_log_message("fits_img_stats_float failed\n");
 			return NULL;
 		}
@@ -413,8 +413,8 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		stat->bgnoise *= stat->normValue;
 	}
 	if (stat->ngoodpix == 0L) {
-		if (free_data) free(data);
-		if (stat_is_local) free(stat);
+		if (free_data) siril_free(data);
+		if (stat_is_local) siril_free(stat);
 		return NULL;
 	}
 
@@ -424,7 +424,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	if (fit && compute_median && stat->total != stat->ngoodpix) {
 		data = reassign_to_non_null_data_float(data, stat->total, stat->ngoodpix, free_data);
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;
 		}
 		free_data = 1;
@@ -434,7 +434,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	/* Calculation of median */
 	if (compute_median && stat->median == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
@@ -444,7 +444,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	/* Calculation of average absolute deviation from the median */
 	if ((option & STATS_AVGDEV) && stat->avgDev == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing absdev\n", stat, fit, layer);
@@ -454,7 +454,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	/* Calculation of median absolute deviation */
 	if (((option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS)) && stat->mad == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
@@ -464,7 +464,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	/* Calculation of Bidweight Midvariance */
 	if ((option & STATS_BWMV) && stat->sqrtbwmv == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
@@ -475,13 +475,13 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	/* Calculation of IKSS. Only used for stacking normalization */
 	if ((option & STATS_IKSS) && (stat->location == NULL_STATS || stat->scale == NULL_STATS)) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
 		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, threads)) {
-			if (stat_is_local) free(stat);
-			if (free_data) free(data);
+			if (stat_is_local) siril_free(stat);
+			if (free_data) siril_free(data);
 			return
 			 NULL;
 		}
@@ -489,7 +489,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		stat->scale *= stat->normValue;
 	}
 
-	if (free_data) free(data);
+	if (free_data) siril_free(data);
 	return stat;
 }
 
@@ -615,7 +615,7 @@ static float Qn0(const float sorted_data[], const size_t stride, const size_t n)
 	if (n < 2)
 		return (0.0);
 
-	float *work = malloc(wsize * sizeof(float));
+	float *work = siril_malloc(wsize * sizeof(float));
 	if (!work) {
 		PRINT_ALLOC_ERR;
 		return -1.0f;
@@ -629,7 +629,7 @@ static float Qn0(const float sorted_data[], const size_t stride, const size_t n)
 	quicksort_f(work, idx);
 	float Qn = work[k - 1];
 
-	free(work);
+	siril_free(work);
 	return Qn;
 }
 
@@ -644,7 +644,7 @@ float siril_stats_robust_mean(const float sorted_data[],
 	float *x, mean;
 	int i, j;
 
-	x = malloc(size * sizeof(float));
+	x = siril_malloc(size * sizeof(float));
 	if (!x) {
 		PRINT_ALLOC_ERR;
 		return -1.0f;
@@ -662,7 +662,7 @@ float siril_stats_robust_mean(const float sorted_data[],
 	} else {
 		mean = (float) gsl_stats_float_mean(x, stride, j);
 	}
-	free(x);
+	siril_free(x);
 
 	/* compute the deviation of the mean against the values */
 	if (deviation) {
@@ -709,7 +709,7 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 	/* initial values:
 	   - median is the first approximation of location
 	   - MAD/0.6745 is the first approximation of scale */
-	xx = malloc(n * sizeof(double));
+	xx = siril_malloc(n * sizeof(double));
 	if (!xx) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -719,7 +719,7 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 	for (i = 0; i < n; i++)
 		xx[i] = fabs(x[i] - a);
 	s = qmedD(n, xx) / 0.6745;
-	free(xx);
+	siril_free(xx);
 
 	/* almost identical points on input */
 	if (fabs(s) < epsilon(s)) {
@@ -776,7 +776,7 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 	}
 	size_t npixels = (x1 - x0) * (y1 - y0);
 	float *data = fit->fpdata[chan];
-	float *filtered_data = malloc(npixels * sizeof(float));
+	float *filtered_data = siril_malloc(npixels * sizeof(float));
 	size_t count = 0;
 	for (uint32_t y = y0 ; y < y1 ; y++) {
 		size_t j = y * fit->rx;
@@ -789,7 +789,7 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 	}
 	// Check if there are any elements in the specified range
 	if (count == 0) {
-		free(filtered_data);
+		siril_free(filtered_data);
 		return 0.0; // No elements in the range, return 0 as median
 	}
 	// Sort the filtered data
@@ -797,7 +797,7 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 	double retval = histogram_median_float(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
-	free(filtered_data);
+	siril_free(filtered_data);
 
 	return retval;
 }

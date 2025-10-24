@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -243,7 +243,7 @@ static int FnCompare_functions(const void *v1, const void *v2) {
 }
 
 static _pm_op_func *concat_functions() {
-	_pm_op_func *all_functions = malloc((MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS) * sizeof(_pm_op_func));
+	_pm_op_func *all_functions = siril_malloc((MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS) * sizeof(_pm_op_func));
 	memcpy(all_functions, functions, MAX_FUNCTIONS * sizeof(_pm_op_func));
 	memcpy(all_functions + MAX_FUNCTIONS, image_functions, MAX_IMAGE_FUNCTIONS * sizeof(_pm_op_func));
 
@@ -340,8 +340,8 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	if (args->from_ui)
 		output_status_bar(args->ret);
 
-	free(args->fit);
-	free(args);
+	siril_free(args->fit);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -470,7 +470,7 @@ static float get_max_rescale_value() {
 }
 
 static void update_metadata(fits *fit, gboolean do_sum) {
-	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
+	fits **f = siril_malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
 		if (var_fit[i].rx > 0 && var_fit_mask[i])
@@ -484,7 +484,7 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
 	update_fits_header(fit);
-	free(f);
+	siril_free(f);
 }
 
 static gchar* parse_image_functions(gpointer p, int idx, int c) {
@@ -652,8 +652,8 @@ gpointer apply_pixel_math_operation(gpointer p) {
 		// we build the expressions in parallel because tr_eval() is not thread-safe
 		int k = 0;
 		if (args->has_gfit) k = 1;
-		te_variable *vars = malloc((nb_rows + k) * sizeof(te_variable));
-		double *x = malloc((nb_rows + k) * sizeof(double));
+		te_variable *vars = siril_malloc((nb_rows + k) * sizeof(te_variable));
+		double *x = siril_malloc((nb_rows + k) * sizeof(double));
 		if (!vars || !x) {
 			failed = TRUE;
 			goto failure;
@@ -802,8 +802,8 @@ failure: // failure before the eval loop
 			te_free(n2);
 			te_free(n3);
 		}
-		free(vars);
-		free(x);
+		siril_free(vars);
+		siril_free(x);
 	} // end of parallel block
 
 	if (args->rescale) {
@@ -830,7 +830,7 @@ failure: // failure before the eval loop
 		args->ret = 1;
 	else update_metadata(args->fit, args->do_sum);
 
-	/* free memory */
+	/* siril_free memory */
 	g_free(args->expression1);
 	if (args->expression2) {
 		g_free(args->expression2);
@@ -838,7 +838,7 @@ failure: // failure before the eval loop
 	}
 	for (int i = 0; i < args->nb_rows; i++)
 		g_free(args->varname[i]);
-	free(args->varname);
+	siril_free(args->varname);
 	free_pm_var(args->nb_rows);
 
 	/* manage result and display */
@@ -851,8 +851,8 @@ failure: // failure before the eval loop
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
 		else clearfits(args->fit);
-		free(args->fit);
-		free(args);
+		siril_free(args->fit);
+		siril_free(args);
 	}
 	else {
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
@@ -1092,7 +1092,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	channel = single_rgb ? channel : 3;
 
-	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
+	struct pixel_math_data *args = siril_calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
 		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
@@ -1116,7 +1116,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->from_ui = TRUE;
 	args->has_gfit = FALSE;
 
-	args->varname = malloc(nb_rows * sizeof(gchar *));
+	args->varname = siril_malloc(nb_rows * sizeof(gchar *));
 	for (int i = 0; i < nb_rows; i++) {
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
@@ -1160,7 +1160,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		g_free(args->expression1);
 		g_free(args->expression2);
 		g_free(args->expression3);
-		free(args);
+		siril_free(args);
 	}
 
 free_expressions:
@@ -1464,7 +1464,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
 			&model, &path, &iter)) {
-		free(all_functions);
+		siril_free(all_functions);
 		return FALSE;
 	}
 
@@ -1476,7 +1476,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 
 	gtk_tree_path_free(path);
-	free(all_functions);
+	siril_free(all_functions);
 
 	return TRUE;
 }
@@ -1518,7 +1518,7 @@ static void add_functions_to_list() {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
 		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, all_functions[i].name, COLUMN_INDEX, i, -1);
 	}
-	free(all_functions);
+	siril_free(all_functions);
 }
 
 static void add_operators_to_list() {
@@ -1665,7 +1665,7 @@ static gboolean foreach_func(GtkTreeModel *model, GtkTreePath *path,
 }
 
 static void save_presets_list() {
-	/* First we free the original list */
+	/* First we siril_free the original list */
 	g_slist_free_full(com.pref.gui.pm_presets, g_free);
 	com.pref.gui.pm_presets = NULL;
 

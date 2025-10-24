@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -584,7 +584,7 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 	threading = SINGLE_THREADED;
 #endif
 	const size_t s = sizeof(unsigned int);
-	unsigned int *h = (unsigned int*) calloc(USHRT_MAX + 1, s);
+	unsigned int *h = (unsigned int*) siril_calloc(USHRT_MAX + 1, s);
 	if (!h) {
 		PRINT_ALLOC_ERR;
 		return -1.0;
@@ -600,7 +600,7 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 		/* parallel version */
 #pragma omp parallel num_threads(threading) if (threading > 1)
 		{
-			unsigned int *hthr = (unsigned int*) calloc(USHRT_MAX + 1, s);
+			unsigned int *hthr = (unsigned int*) siril_calloc(USHRT_MAX + 1, s);
 			if (!hthr) {
 				PRINT_ALLOC_ERR;
 			}
@@ -620,7 +620,7 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 						h[ii] += hthr[ii];
 					}
 				}
-				free(hthr);
+				siril_free(hthr);
 			}
 		}
 	}
@@ -637,7 +637,7 @@ double histogram_median(WORD *a, size_t n, threading_type threading) {
 	for (; sum <= k; i++)
 		sum += h[i];
 
-	free(h);
+	siril_free(h);
 	return (n % 2 == 0) ? (double) (i + j - 2) / 2.0 : (double) (i - 1);
 }
 

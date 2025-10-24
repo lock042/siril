@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -96,7 +96,7 @@ static void create_seq_of_2(sequence *seq, char *name, int index) {
 	seq->reference_image = 0;
 	seq->number = 2;
 	seq->selnum = 2;
-	seq->imgparam = malloc(2 * sizeof(imgdata));
+	seq->imgparam = siril_malloc(2 * sizeof(imgdata));
 	seq->imgparam[0].filenum = 1;
 	seq->imgparam[0].incl = TRUE;
 	seq->imgparam[0].date_obs = NULL;
@@ -127,16 +127,16 @@ void stop_live_stacking_engine() {
 	}
 	if (prepro) {
 		clear_preprocessing_data(prepro);
-		free(prepro);
+		siril_free(prepro);
 		prepro = NULL;
 	}
 	if (sadata) {
 		free_fitted_stars(sadata->refstars);
-		free(sadata);
+		siril_free(sadata);
 		sadata = NULL;
 	}
 	if (regparam_bkp) {
-		free(regparam_bkp);
+		siril_free(regparam_bkp);
 		regparam_bkp = NULL;
 	}
 
@@ -197,7 +197,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 	gchar *filename = g_file_get_basename(file);
 	siril_debug_print("File %s added\n", filename);
 	if (filename[0] == '.' || // hidden files
-			paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
+			paused)	{ // manage in https://gitlab.com/siril_free-astro/siril/-/issues/786
 		g_free(filename);
 		return;
 	}
@@ -288,19 +288,19 @@ int start_livestacking(gboolean with_filewatcher) {
 }
 
 static void init_preprocessing_from_command(char *dark, char *flat, gboolean use_32bits) {
-	prepro = calloc(1, sizeof(struct preprocessing_data));
+	prepro = siril_calloc(1, sizeof(struct preprocessing_data));
 	if (dark) {
-		prepro->dark = calloc(1, sizeof(fits));
+		prepro->dark = siril_calloc(1, sizeof(fits));
 		if (readfits(dark, prepro->dark, NULL, FALSE)) {
 			siril_log_message(_("NOT USING DARK: cannot open file '%s'\n"), dark);
-			free(prepro->dark);
+			siril_free(prepro->dark);
 			prepro->use_dark = FALSE;
 			prepro->use_cosmetic_correction = FALSE;
 		} else {
 			prepro->use_dark = TRUE;
 			if (prepro->dark->naxes[2] > 1) {
 				clearfits(prepro->dark);
-				free(prepro->dark);
+				siril_free(prepro->dark);
 				prepro->use_dark = FALSE;
 				prepro->use_cosmetic_correction = FALSE;
 				siril_log_message(_("Calibration with color images is not yet supported\n"));
@@ -319,16 +319,16 @@ static void init_preprocessing_from_command(char *dark, char *flat, gboolean use
 		}
 	}
 	if (flat) {
-		prepro->flat = calloc(1, sizeof(fits));
+		prepro->flat = siril_calloc(1, sizeof(fits));
 		if (readfits(flat, prepro->flat, NULL, FALSE)) {
 			siril_log_message(_("NOT USING FLAT: cannot open file '%s'\n"), flat);
-			free(prepro->flat);
+			siril_free(prepro->flat);
 			prepro->use_flat = FALSE;
 		}
 		else {
 			if (prepro->flat->naxes[2] > 1) {
 				clearfits(prepro->flat);
-				free(prepro->flat);
+				siril_free(prepro->flat);
 				prepro->use_flat = FALSE;
 				siril_log_message(_("Calibration with color images is not yet supported\n"));
 			} else {
@@ -357,11 +357,11 @@ void init_preprocessing_finalize(struct preprocessing_data *prepro_data, gboolea
 		struct generic_seq_args generic = { .user = prepro };
 		if (prepro_prepare_hook(&generic)) {
 			clear_preprocessing_data(prepro);
-			free(prepro);
+			siril_free(prepro);
 			prepro = NULL;
 		}
 	} else {
-		free(prepro);
+		siril_free(prepro);
 		prepro = NULL;
 	}
 
@@ -383,7 +383,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 		return 1;
 	}
 
-	prepro = calloc(1, sizeof(struct preprocessing_data));
+	prepro = siril_calloc(1, sizeof(struct preprocessing_data));
 	init_preprocessing_from_command(dark, flat, use_32b);
 
 	init_registration_finalize(shift_only);
@@ -391,7 +391,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 	int retval = start_livestacking(use_file_watcher);
 	if (retval && prepro) {
 		clear_preprocessing_data(prepro);
-		free(prepro);
+		siril_free(prepro);
 		prepro = NULL;
 	}
 	return retval;
@@ -456,8 +456,8 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 		return star_align_prepare_hook(args);
 	}
 	struct registration_args *regargs = sadata->regargs;
-	regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-	regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
+	regargs->imgparam = siril_calloc(args->nb_filtered_images, sizeof(imgdata));
+	regargs->regparam = siril_calloc(args->nb_filtered_images, sizeof(regdata));
 	if (!regargs->imgparam  || !regargs->regparam) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -492,7 +492,7 @@ static int start_global_registration(sequence *seq) {
 	regargs.framingd.roi_out = (framing_roi){ 0, 0, seq->rx, seq->ry};
 
 	// preparing detection params
-	regargs.sfargs = calloc(1, sizeof(struct starfinder_data));
+	regargs.sfargs = siril_calloc(1, sizeof(struct starfinder_data));
 	regargs.sfargs->im.from_seq = regargs.seq;
 	regargs.sfargs->layer = regargs.layer;
 	regargs.sfargs->keep_stars = TRUE;
@@ -516,7 +516,7 @@ static int start_global_registration(sequence *seq) {
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
-		sadata = calloc(1, sizeof(struct star_align_data));
+		sadata = siril_calloc(1, sizeof(struct star_align_data));
 		sadata->regargs = &regargs;
 	}
 	args->user = sadata;
@@ -525,13 +525,13 @@ static int start_global_registration(sequence *seq) {
 	reserve_thread(); // hack: generic function fails otherwise
 	int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
 
-	// hack to not free the regparam, because it's referenced by
+	// hack to not siril_free the regparam, because it's referenced by
 	// sadata->current_regdata because of the first call to the prepare,
 	// and used for reference frame params in the registration
 	regparam_bkp = seq->regparam[regargs.layer];
 	seq->regparam[regargs.layer] = NULL;
 	free_sequence(seq, FALSE);
-	free(regargs.sfargs);
+	siril_free(regargs.sfargs);
 	return retval || !sadata->success[1];
 }
 
@@ -656,14 +656,14 @@ static gpointer live_stacker(gpointer arg) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
 				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
-				free(seq.seqname);
+				siril_free(seq.seqname);
 				continue;
 			}
 			first_loop = FALSE;
 		} else {
 			seq.number = 2;
 			seq.selnum = 2;
-			seq.imgparam = malloc(2 * sizeof(imgdata));
+			seq.imgparam = siril_malloc(2 * sizeof(imgdata));
 			seq.imgparam[0].filenum = 1;
 			seq.imgparam[0].incl = TRUE;
 			seq.imgparam[0].date_obs = NULL;
@@ -695,7 +695,7 @@ static gpointer live_stacker(gpointer arg) {
 				prepro->use_flat = FALSE;
 			}
 			if (prepro && !prepro->dark && !prepro->flat) {
-				free(prepro);
+				siril_free(prepro);
 				prepro = NULL;
 			}
 		} else {
@@ -721,7 +721,7 @@ static gpointer live_stacker(gpointer arg) {
 
 		/*sequence *r_seq = readseqfile("r_live_stack_.seq");
 		if (!r_seq || seq_check_basic_data(r_seq, FALSE) < 0) {
-			free(r_seq);
+			siril_free(r_seq);
 			return FALSE;
 		}*/
 		sequence r_seq;	// registered sequence
@@ -776,7 +776,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 		clean_end_stacking(&stackparam);
 		free_sequence(&r_seq, FALSE);
-		free(stackparam.image_indices);
+		siril_free(stackparam.image_indices);
 		g_free(stackparam.description);
 
 		if (retval) {

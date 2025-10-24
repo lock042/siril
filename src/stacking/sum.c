@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -56,7 +56,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 
 	if (ssdata->input_32bits || args->seq->is_drizzle) {
-		ssdata->fsum[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
+		ssdata->fsum[0] = siril_calloc(nbdata, sizeof(double) * args->seq->nb_layers);
 		if (ssdata->fsum[0] == NULL){
 			PRINT_ALLOC_ERR;
 			return ST_ALLOC_ERROR;
@@ -69,7 +69,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 			ssdata->fsum[2] = NULL;
 		}
 		if (args->seq->is_drizzle) {
-			ssdata->fweight[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
+			ssdata->fweight[0] = siril_calloc(nbdata, sizeof(double) * args->seq->nb_layers);
 			if (ssdata->fweight[0] == NULL){
 				PRINT_ALLOC_ERR;
 				return ST_ALLOC_ERROR;
@@ -85,7 +85,7 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 			ssdata->fweight[0] = NULL;
 		ssdata->sum[0] = NULL;
 	} else {
-		ssdata->sum[0] = calloc(nbdata, sizeof(guint64) * args->seq->nb_layers);
+		ssdata->sum[0] = siril_calloc(nbdata, sizeof(guint64) * args->seq->nb_layers);
 		if (ssdata->sum[0] == NULL){
 			PRINT_ALLOC_ERR;
 			return ST_ALLOC_ERROR;
@@ -118,14 +118,14 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		int rx = (args->seq->is_variable) ? args->seq->imgparam[i].rx : args->seq->rx;
 		int ry = (args->seq->is_variable) ? args->seq->imgparam[i].ry : args->seq->ry;
 		rectangle drizz_area = { 0, 0, rx, ry};
-		dweights = calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
+		dweights = siril_calloc(rx * ry, sizeof(float) * args->seq->nb_layers);
 		int layer = (args->seq->nb_layers == 1) ? 0 : 4; // 4 means all layers, 0 means only the first layer
 		if (read_drizz_fits_area(drizzfile, layer, &drizz_area, ry, dweights)) {
 			siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", i + 1,
 			drizz_area.x, drizz_area.y, drizz_area.w, drizz_area.h);
 			return ST_SEQUENCE_ERROR;
 		}
-		weights = malloc(sizeof(float *) * args->seq->nb_layers);
+		weights = siril_malloc(sizeof(float *) * args->seq->nb_layers);
 		for (int l = 0; l < args->seq->nb_layers; ++l) {
 			weights[l] = dweights + (l * rx * ry);
 		}
@@ -212,8 +212,8 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		}
 	}
 	if (is_drizzle) {
-		free(dweights);
-		free(weights);
+		siril_free(dweights);
+		siril_free(weights);
 	}
 	return ST_OK;
 }
@@ -227,9 +227,9 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	int layer;
 
 	if (args->retval) {
-		if (ssdata->sum[0]) free(ssdata->sum[0]);
-		if (ssdata->fsum[0]) free(ssdata->fsum[0]);
-		if (ssdata->fweight[0]) free(ssdata->fweight[0]);
+		if (ssdata->sum[0]) siril_free(ssdata->sum[0]);
+		if (ssdata->fsum[0]) siril_free(ssdata->fsum[0]);
+		if (ssdata->fweight[0]) siril_free(ssdata->fweight[0]);
 		args->user = NULL;
 		return args->retval;
 	}
@@ -353,9 +353,9 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	if (ssdata->sum[0]) free(ssdata->sum[0]);
-	if (ssdata->fsum[0]) free(ssdata->fsum[0]);
-	if (ssdata->fweight[0]) free(ssdata->fweight[0]);
+	if (ssdata->sum[0]) siril_free(ssdata->sum[0]);
+	if (ssdata->fsum[0]) siril_free(ssdata->fsum[0]);
+	if (ssdata->fweight[0]) siril_free(ssdata->fweight[0]);
 	args->user = NULL;
 
 	return ST_OK;
@@ -372,7 +372,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->description = _("Sum stacking");
 	args->already_in_a_thread = TRUE;
 
-	struct sum_stacking_data *ssdata = calloc(1, sizeof(struct sum_stacking_data));
+	struct sum_stacking_data *ssdata = siril_calloc(1, sizeof(struct sum_stacking_data));
 	ssdata->reglayer = stackargs->reglayer;
 	ssdata->ref_image = stackargs->ref_image;
 	assert(ssdata->ref_image >= 0 && ssdata->ref_image < args->seq->number);
@@ -418,7 +418,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		reframe_wcs(result->keywords.wcslib, &Hs);
 		update_wcsdata_from_wcs(result);
 	}
-	free(ssdata);
+	siril_free(ssdata);
 	return args->retval;
 }
 

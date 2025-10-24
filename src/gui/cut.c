@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -133,7 +133,7 @@ void free_cut_args(cut_struct *arg) {
 		g_free(arg->filename);
 	}
 	if (arg != &gui.cut)
-		free(arg);
+		siril_free(arg);
 	return;
 }
 
@@ -464,12 +464,12 @@ gpointer cut_profile(gpointer p) {
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 
-	r = malloc(nbr_points * sizeof(double));
+	r = siril_malloc(nbr_points * sizeof(double));
 	if (arg->fit->naxes[2] > 1) {
-		g = malloc(nbr_points * sizeof(double));
-		b = malloc(nbr_points * sizeof(double));
+		g = siril_malloc(nbr_points * sizeof(double));
+		b = siril_malloc(nbr_points * sizeof(double));
 	}
-	x = malloc(nbr_points * sizeof(double));
+	x = siril_malloc(nbr_points * sizeof(double));
 	double zero = 0.0, spectro_spacing = 1.0;
 	if (xscale)
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
@@ -555,7 +555,7 @@ gpointer cut_profile(gpointer p) {
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
 		siril_plot_save_png(spl_data, imagefilename, 0, 0);
-	if (!arg->display_graph) { // if not used for display we can free spl_data now
+	if (!arg->display_graph) { // if not used for display we can siril_free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
 	}
@@ -571,10 +571,10 @@ END:
 	g_free(spl_legend);
 	g_free(arg->title);
 	arg->title = NULL;
-	free(x);
-	free(r);
-	free(g);
-	free(b);
+	siril_free(x);
+	siril_free(r);
+	siril_free(g);
+	siril_free(b);
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
 	if (in_sequence || !arg->display_graph) {
@@ -585,7 +585,7 @@ END:
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
-		free(arg);
+		siril_free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -629,8 +629,8 @@ gpointer tri_cut(gpointer p) {
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 	for (int i = 0 ; i < 3 ; i++)
-		r[i] = malloc(nbr_points * sizeof(double));
-	x = malloc(nbr_points * sizeof(double));
+		r[i] = siril_malloc(nbr_points * sizeof(double));
+	x = siril_malloc(nbr_points * sizeof(double));
 	double zero = 0.0, spectro_spacing = 1.0;
 	if (do_spec)
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
@@ -686,8 +686,8 @@ gpointer tri_cut(gpointer p) {
 			r[0][i] = (double) i;
 		}
 		int degree = arg->bg_poly_order;
-		double *coeffs = calloc(degree + 1, sizeof(double));
-		double *uncertainties = calloc(degree + 1, sizeof(double));
+		double *coeffs = siril_calloc(degree + 1, sizeof(double));
+		double *uncertainties = siril_calloc(degree + 1, sizeof(double));
 		double sigma;
 		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
 		GString *text = g_string_new(_("Coefficients: y = "));
@@ -763,7 +763,7 @@ gpointer tri_cut(gpointer p) {
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
 		siril_plot_save_png(spl_data, imagefilename, 0, 0);
-	if (!arg->display_graph) { // if not used for display we can free spl_data now
+	if (!arg->display_graph) { // if not used for display we can siril_free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
 	}
@@ -776,11 +776,11 @@ END:
 	arg->filename = NULL;
 	g_free(filename);
 	g_free(imagefilename);
-	free(x);
+	siril_free(x);
 	g_free(arg->title);
 	arg->title = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
-		free(r[i]);
+		siril_free(r[i]);
 		g_free(spllabels[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
@@ -790,7 +790,7 @@ END:
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
-		free(arg);
+		siril_free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -862,8 +862,8 @@ gpointer cfa_cut(gpointer p) {
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 	for (int i = 0 ; i < 4 ; i++)
-		r[i] = malloc(nbr_points * sizeof(double));
-	x = malloc(nbr_points * sizeof(double));
+		r[i] = siril_malloc(nbr_points * sizeof(double));
+	x = siril_malloc(nbr_points * sizeof(double));
 	for (int j = 0 ; j < 4 ; j++) {
 		for (int i = 0 ; i < nbr_points ; i++) {
 			x[i] = i * point_spacing;
@@ -923,7 +923,7 @@ gpointer cfa_cut(gpointer p) {
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
 		siril_plot_save_png(spl_data, imagefilename, 0, 0);
-	if (!arg->display_graph) { // if not used for display we can free spl_data now
+	if (!arg->display_graph) { // if not used for display we can siril_free spl_data now
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
 	}
@@ -937,9 +937,9 @@ END:
 	g_free(imagefilename);
 	g_free(arg->title);
 	arg->title = NULL;
-	free(x);
+	siril_free(x);
 	for (int i = 0 ; i < 4 ; i++) {
-		free(r[i]);
+		siril_free(r[i]);
 		clearfits(&cfa[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
@@ -949,7 +949,7 @@ END:
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
-		free(arg);
+		siril_free(arg);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -969,7 +969,7 @@ void apply_cut_to_sequence(cut_struct* cut_args);
 
 void on_cut_sequence_apply_from_gui() {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
-	cut_struct *arg = calloc(1, sizeof(cut_struct));
+	cut_struct *arg = siril_calloc(1, sizeof(cut_struct));
 	memcpy(arg, &gui.cut, sizeof(cut_struct));
 	arg->title = g_strdup(gui.cut.title);
 	arg->user_title = g_strdup(gui.cut.user_title);
@@ -1015,22 +1015,22 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gui.cut.seq = NULL;
 		gui.cut.display_graph = TRUE;
 		// We have to pass a dynamically allocated copy of gui.cut
-		// otherwise start_in_new_thread() can try to free gui.cut
+		// otherwise start_in_new_thread() can try to siril_free gui.cut
 		// if the processing thread is already running
-		cut_struct *p = malloc(sizeof(cut_struct));
+		cut_struct *p = siril_malloc(sizeof(cut_struct));
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
 			if (!start_in_new_thread(tri_cut, p))
-				free(p);
+				siril_free(p);
 		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
 			if (!start_in_new_thread(cfa_cut, p))
-				free(p);
+				siril_free(p);
 		} else {
 			siril_debug_print("Single profile\n");
 			if (!start_in_new_thread(cut_profile, p))
-				free(p);
+				siril_free(p);
 		}
 	}
 }
@@ -1373,7 +1373,7 @@ static gboolean cut_idle_function(gpointer p) {
 	if (data != &gui.cut) {
 		g_free(data->user_title);
 		data->user_title = NULL;
-		free(data);
+		siril_free(data);
 	}
 	gboolean retval = end_generic_sequence(args);
 	return retval;
@@ -1382,7 +1382,7 @@ static gboolean cut_idle_function(gpointer p) {
 static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	cut_struct *cut_args = (cut_struct*) args->user;
 	int ret = 0;
-	cut_struct *private_args = malloc(sizeof(cut_struct));
+	cut_struct *private_args = siril_malloc(sizeof(cut_struct));
 	memcpy(private_args, cut_args, sizeof(cut_struct));
 	private_args->fit = fit;
 	private_args->imgnumber = i;
@@ -1411,7 +1411,7 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->user = cut_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(args->user);
+		siril_free(args->user);
 		free_generic_seq_args(args, TRUE);
 	}
 }

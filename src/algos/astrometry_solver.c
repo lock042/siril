@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -110,7 +110,7 @@ static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star 
 }
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
-	struct astrometry_data *ret = calloc(1, sizeof(struct astrometry_data));
+	struct astrometry_data *ret = siril_calloc(1, sizeof(struct astrometry_data));
 	if (!ret) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -119,7 +119,7 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 	if (args->cat_center)
 		ret->cat_center = siril_world_cs_copy(args->cat_center);
 	if (args->ref_stars) {
-		ret->ref_stars = calloc(1, sizeof(siril_catalogue));
+		ret->ref_stars = siril_calloc(1, sizeof(siril_catalogue));
 		siril_catalogue_copy(args->ref_stars, ret->ref_stars, args->nocache); // if nocache, we only copy metadata
 	}
 	ret->fit = NULL;
@@ -424,7 +424,7 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	}
 
 	// We can now fill the disprm structure and assign it to wcslib->lin
-	struct disprm *dis = calloc(1, sizeof(struct disprm));
+	struct disprm *dis = siril_calloc(1, sizeof(struct disprm));
 	int ipx = 0;
 	int dpmax = 10 + 2 * (N + 1) * (N + 2);
 	dis->flag = -1;
@@ -654,17 +654,17 @@ static void transform_disto_coeff(struct disprm *dis, Homography *H) {
 
 	// allocations
 	int size = (N + 1) * (N + 2) / 2;
-	double *va = calloc(size, sizeof(double));
-	double *vb = calloc(size, sizeof(double));
-	double *vap = calloc(size, sizeof(double));
-	double *vbp = calloc(size, sizeof(double));
-	double *tva = calloc(size, sizeof(double));
-	double *tvb = calloc(size, sizeof(double));
-	double *tvap = calloc(size, sizeof(double));
-	double *tvbp = calloc(size, sizeof(double));
-	double **t = malloc(sizeof(double*) * size);
+	double *va = siril_calloc(size, sizeof(double));
+	double *vb = siril_calloc(size, sizeof(double));
+	double *vap = siril_calloc(size, sizeof(double));
+	double *vbp = siril_calloc(size, sizeof(double));
+	double *tva = siril_calloc(size, sizeof(double));
+	double *tvb = siril_calloc(size, sizeof(double));
+	double *tvap = siril_calloc(size, sizeof(double));
+	double *tvbp = siril_calloc(size, sizeof(double));
+	double **t = siril_malloc(sizeof(double*) * size);
 	for (int i = 0; i < size; ++i) {
-		t[i] = calloc(size, sizeof(double));
+		t[i] = siril_calloc(size, sizeof(double));
 	}
 	// we will form the matrix T to transform the Aij/Bij/APij/BPij
 	// terms to the new coordinates system
@@ -743,19 +743,19 @@ static void transform_disto_coeff(struct disprm *dis, Homography *H) {
 	update_SIP_keys(dis, A, B, AP, BP);
 	dis->flag = 0;
 	disset(dis);
-	// and free
-	free(va);
-	free(vb);
-	free(vap);
-	free(vbp);
-	free(tva);
-	free(tvb);
-	free(tvap);
-	free(tvbp);
+	// and siril_free
+	siril_free(va);
+	siril_free(vb);
+	siril_free(vap);
+	siril_free(vbp);
+	siril_free(tva);
+	siril_free(tvb);
+	siril_free(tvap);
+	siril_free(tvbp);
 	for (int i = 0; i < size; ++i) {
-		free(t[i]);
+		siril_free(t[i]);
 	}
-	free(t);
+	siril_free(t);
 }
 
 /******
@@ -930,7 +930,7 @@ gpointer plate_solver(gpointer p) {
 		fits *green_fit = NULL;
 		image im =  (image){ .fit = NULL, .from_seq = NULL, .index_in_seq = -1 };
 		if (args->fit->keywords.bayer_pattern[0] != '\0') {
-			green_fit = calloc(1, sizeof(fits));
+			green_fit = siril_calloc(1, sizeof(fits));
 			copyfits(args->fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			interpolate_nongreen(green_fit);
 			im.fit = green_fit;
@@ -943,7 +943,7 @@ gpointer plate_solver(gpointer p) {
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, args->numthreads);
 
 		clearfits(green_fit);
-		free(green_fit);
+		siril_free(green_fit);
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
@@ -1087,7 +1087,7 @@ clearup:
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);
-		free(stars);
+		siril_free(stars);
 	}
 	if (args->cat_center) {
 		siril_world_cs_unref(args->cat_center);
@@ -1119,7 +1119,7 @@ clearup:
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {
-		free(args);
+		siril_free(args);
 		args = NULL;
 	}
 	if (is_verbose)
@@ -1133,7 +1133,7 @@ static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
 		return;
 	}
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue *siril_cat = siril_calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(nswdata->search_cat, siril_cat, TRUE); // this only copies the query parameters
 	siril_cat->center_ra = nswdata->centers[n].x;
 	siril_cat->center_dec = nswdata->centers[n].y;
@@ -1148,7 +1148,7 @@ static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&nswdata->solved);
 			// we assign the center as a point so that if more than one worker
 			// succeed, we are sure we have a consistent (ra,dec) pair
-			point *center = calloc(1, sizeof(point));
+			point *center = siril_calloc(1, sizeof(point));
 			*center = (point){ra, dec};
 			g_atomic_pointer_set(&(nswdata->center), center);
 		}
@@ -1166,16 +1166,16 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 	int N;
 	double radius = fov_deg * 0.5 * DEGTORAD;
 	int n = (int)ceil(2. * search_radius_deg / fov_deg) - 1; // number of dec rings
-	double *d = malloc(n * sizeof(double));
-	int *nl = malloc(n * sizeof(int));
+	double *d = siril_malloc(n * sizeof(double));
+	int *nl = siril_malloc(n * sizeof(int));
 	N = 0;
 	for (int i = 1; i <= n; i++) {  // we don't search the initial point which has already failed
 		d[i - 1] = M_PI_2 - i * radius;
 		nl[i - 1] = (int)ceil(2. * M_PI * sin(i * radius) / radius); // number of points of ith ring
 		N += nl[i - 1];
 	}
-	point *centers0 = malloc(N * sizeof(point)); // points in native coordinates
-	centers = malloc(N * sizeof(point)); // points in celestial coordinates
+	point *centers0 = siril_malloc(N * sizeof(point)); // points in native coordinates
+	centers = siril_malloc(N * sizeof(point)); // points in celestial coordinates
 	int s = 0;
 	double init = 0.;
 	// setting the points in native coordinates
@@ -1205,9 +1205,9 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 		centers[i].x = (ra0 + atan2(cos_t * sin_p, sin_t * cos_d0 + cos_t * sin_d0 * cos_p)) * RADTODEG;
 		centers[i].y = asin(sin_t * sin_d0 - cos_t * cos_d0 * cos_p) * RADTODEG;
 	}
-	free(d);
-	free(nl);
-	free(centers0);
+	siril_free(d);
+	siril_free(nl);
+	siril_free(centers0);
 	*nb = N;
 	siril_debug_print("%d center points to test\n", N);
 	return centers;
@@ -1226,7 +1226,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	// We prepare the larger catalogue containing the search cone
 	// we limit the magnitude as we don't want as many stars (50 instead of 500 per fov)
 	// we just want to have a good enough linear solution to resend a normal solve afterwards
-	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
+	siril_catalogue *siril_search_cat = siril_calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
 	siril_search_cat->radius = args->searchradius * 60.;
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE) {
@@ -1297,8 +1297,8 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	if (args->verbose) {
 		set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
 	}
-	free(centers);
-	free(nsdata.center);
+	siril_free(centers);
+	siril_free(nsdata.center);
 	siril_catalog_free(siril_search_cat);
 	if (ret != SOLVE_OK)
 		return ret; // the near search has failed, we stop there
@@ -1351,7 +1351,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 		}
 		siril_debug_print("order: %d, nmatched: %d, sigx:%g, sigy:%g\n", t.order, t.nr, t.sx, t.sy);
 		/**** Fill solution wcslib structure ***/
-		wcsprm_t *prm = calloc(1, sizeof(wcsprm_t));
+		wcsprm_t *prm = siril_calloc(1, sizeof(wcsprm_t));
 		prm->flag = -1;
 		wcsinit(1, 2, prm, 0, 0, 0);
 		prm->equinox = 2000.0;
@@ -2032,7 +2032,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	// prepare for astrometric registration
 	if (args->update_reg) {
 		if (!arg->seq->regparam[args->layer]) {
-			regdata *current_regdata = calloc(arg->seq->number, sizeof(regdata));
+			regdata *current_regdata = siril_calloc(arg->seq->number, sizeof(regdata));
 			if (current_regdata == NULL) {
 				PRINT_ALLOC_ERR;
 				return 1;
@@ -2043,7 +2043,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 			/* we reset all values as we may register different images */
 			memset(arg->seq->regparam[args->layer], 0, arg->seq->number * sizeof(regdata));
 		}
-		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
+		args->WCSDATA = siril_calloc(arg->seq->number, sizeof(struct wcsprm));
 		arg->seq->distoparam[args->layer].index = DISTO_FILES;
 	}
 	if (arg->has_output && seq_prepare_hook(arg))
@@ -2080,7 +2080,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_catalog_free(aargs->ref_stars);
 		if (aargs->cat_center) // not filled if asnet blind solve
 			siril_world_cs_unref(aargs->cat_center);
-		free(aargs);
+		siril_free(aargs);
 		if (aargs_master->update_reg) // we don't want to exclude if it's just a seqplatesolve without astrometric registration
 			arg->seq->imgparam[i].incl = FALSE;
 		return 1;
@@ -2139,7 +2139,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	if (sf_data) {
 		stars = *sf_data->stars;
 		nb_stars = *sf_data->nb_stars;
-		free(sf_data);
+		siril_free(sf_data);
 	}
 
 	if (aargs_master->update_reg && nb_stars) {
@@ -2161,7 +2161,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
 		siril_world_cs_unref(aargs->cat_center);
-		free(aargs);
+		siril_free(aargs);
 		return 1;
 	}
 
@@ -2179,7 +2179,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		}
 		free_fitted_stars(stars);
 		siril_world_cs_unref(aargs->cat_center);
-		free(aargs);
+		siril_free(aargs);
 		return status;
 	}
 
@@ -2215,7 +2215,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 			arg->seq->imgparam[i].incl = FALSE;
 			siril_world_cs_unref(aargs->cat_center);
-			free(aargs);
+			siril_free(aargs);
 			return 1;
 		}
 	}
@@ -2265,7 +2265,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	}
 	if (aargs->solver == SOLVER_LOCALASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
-	free(aargs);
+	siril_free(aargs);
 	return retval;
 }
 
@@ -2282,7 +2282,7 @@ void free_astrometry_data(struct astrometry_data *args) {
 		g_free(args->filename);
 	if (args->distofilename)
 		g_free(args->distofilename);
-	free(args);
+	siril_free(args);
 }
 
 

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2023 team siril_free-astro (see more in AUTHORS file)
+ * Reference site is https://siril_free-astro.org/index.php/Siril
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -240,13 +240,13 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
 	int n = seq->number;
-	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
-	double *DEC = calloc(n, sizeof(double)); // as above
-	double *dist = calloc(n, sizeof(double));
+	double *RA = siril_calloc(n, sizeof(double)); // siril_calloc to prevent possibility of uninit variable highlighted by coverity
+	double *DEC = siril_calloc(n, sizeof(double)); // as above
+	double *dist = siril_calloc(n, sizeof(double));
 	Homography *Ks = NULL, *Rstmp = NULL;
-	Rstmp = calloc(n, sizeof(Homography)); // camera tmp rotation matrices
-	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
-	gboolean *incl = calloc(n, sizeof(gboolean));
+	Rstmp = siril_calloc(n, sizeof(Homography)); // camera tmp rotation matrices
+	Ks = siril_calloc(n, sizeof(Homography)); // camera intrinsic matrices
+	gboolean *incl = siril_calloc(n, sizeof(gboolean));
 	gboolean included_passed = included != NULL;
 	if (!RA || !DEC || !dist || !WCSDATA || !Rstmp || !Ks || !incl) {
 		PRINT_ALLOC_ERR;
@@ -364,7 +364,7 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 			reframe_wcs(wcsref, &H);
 		}
 	} else {
-		wcsref = calloc(1, sizeof(wcsprm_t));
+		wcsref = siril_calloc(1, sizeof(wcsprm_t));
 		double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
 		create_wcs(ra0, dec0, scale, framingref, 
 			(seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, 
@@ -415,17 +415,17 @@ int compute_Hs_from_astrometry(sequence *seq, int *included, int ref_index, stru
 	}
 
 free_all:
-	free(RA);
-	free(DEC);
-	free(dist);
-	free(incl);
-	free(Ks);
-	free(Rstmp);
+	siril_free(RA);
+	siril_free(DEC);
+	siril_free(dist);
+	siril_free(incl);
+	siril_free(Ks);
+	siril_free(Rstmp);
 	siril_log_message(_("Astrometric registration computed.\n"));
 	if (Hout) {
 		cvGetEye(Hout);
 	}
-	// we don't free WCSDATA as it will be further used to initialize distortion data
+	// we don't siril_free WCSDATA as it will be further used to initialize distortion data
 	return retval;
 }
 

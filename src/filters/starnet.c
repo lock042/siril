@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -270,9 +270,9 @@ END:
 }
 
 void free_starnet_args(starnet_data *args) {
-	// do not free multi_args, it is only a reference
+	// do not siril_free multi_args, it is only a reference
 	g_free(args->stride);
-	free(args);
+	siril_free(args);
 	siril_debug_print("starnet_args freed\n");
 }
 
@@ -286,7 +286,7 @@ gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
 	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
-	free(blendargs);
+	siril_free(blendargs);
 	return end_generic(NULL);
 }
 
@@ -637,7 +637,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
-	clearfits(&workingfit); // Clear it first to free the data
+	clearfits(&workingfit); // Clear it first to siril_free the data
 	retval = readtif(starlesstif, &workingfit, FALSE, FALSE);
 	if (retval < 1 || retval > 3) {
 		siril_log_color_message(_("Error: unable to read StarNet output file...\n"), "red");
@@ -661,7 +661,7 @@ gpointer do_starnet(gpointer p) {
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
 	copy_fits_metadata(current_fit, &fit);
-	workingfit.header = malloc(strlen(current_fit->header)+1);
+	workingfit.header = siril_malloc(strlen(current_fit->header)+1);
 	memcpy(workingfit.header, current_fit->header, strlen(current_fit->header)+1);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
@@ -770,19 +770,19 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	copy_fits_metadata(&workingfit, current_fit);
-	current_fit->header = malloc(strlen(workingfit.header)+1);
+	current_fit->header = siril_malloc(strlen(workingfit.header)+1);
 	memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
 	if ((!args->multi_args)) {
-		free(com.uniq->filename);
+		siril_free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
-			blendargs = calloc(1, sizeof(struct remixargs));
-			blendargs->fit1 = calloc(1, sizeof(fits));
-			blendargs->fit2 = calloc(1, sizeof(fits));
+			blendargs = siril_calloc(1, sizeof(struct remixargs));
+			blendargs->fit1 = siril_calloc(1, sizeof(fits));
+			blendargs->fit2 = siril_calloc(1, sizeof(fits));
 			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
 			if (retval) {
 				siril_log_color_message(_("Error: image copy failed...\n"), "red");
@@ -844,14 +844,14 @@ gpointer do_starnet(gpointer p) {
 			} else {
 				if (blendargs && blendargs->fit1) {
 					clearfits(blendargs->fit1);
-					free(blendargs->fit1);
+					siril_free(blendargs->fit1);
 				}
 				if (blendargs && blendargs->fit2) {
 					clearfits(blendargs->fit2);
-					free(blendargs->fit2);
+					siril_free(blendargs->fit2);
 				}
 				if (blendargs)
-					free(blendargs);
+					siril_free(blendargs);
 				return GINT_TO_POINTER(retval);
 			}
 		} else {
@@ -885,21 +885,21 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	starnet_data *seqdata = (starnet_data *) multi_args->user_data;
 	seqdata->starnet_fit = fit;
 	if (seqdata->starmask)
-		seqdata->starmask_fit = calloc(1, sizeof(fits));
+		seqdata->starmask_fit = siril_calloc(1, sizeof(fits));
 	seqdata->force_ser = args->force_ser_output;
 	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
 	// Call the starnet process
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
 		// Store results in a struct _multi_split
-		struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
+		struct _multi_split *multi_data = siril_calloc(1, sizeof(struct _multi_split));
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
-		multi_data->images = calloc(nb_out, sizeof(fits*));
+		multi_data->images = siril_calloc(nb_out, sizeof(fits*));
 		// We allocate images[0] and move the data from fit. This avoids any clash
 		// between the generic sequence worker which frees fit and the multi_save
 		// hook which frees all the fits in images.
-		multi_data->images[0] = calloc(1, sizeof(fits));
+		multi_data->images[0] = siril_calloc(1, sizeof(fits));
 		copy_fits_metadata(fit, multi_data->images[0]);
 		fits_swap_image_data(fit, multi_data->images[0]);
 		seqdata->starnet_fit = NULL;

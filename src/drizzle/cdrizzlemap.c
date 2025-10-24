@@ -34,7 +34,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 * The code as integrated into Siril is modified from the original
-* AURA code by team free-astro. */
+* AURA code by team siril_free-astro. */
 
 #include <assert.h>
 #include <math.h>
@@ -315,7 +315,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
-	p->xmap = malloc(source_rx * source_ry * 2 * sizeof(float));
+	p->xmap = siril_malloc(source_rx * source_ry * 2 * sizeof(float));
 	if (!p->xmap)
 		return 1;
 	p->ymap = p->xmap + (source_rx * source_ry);

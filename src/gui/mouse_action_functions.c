@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -300,7 +300,7 @@ static gboolean draw_poly_release(mouse_data *data) {
 	add_existing_polygon(poly, &gui.poly_ink, gui.poly_fill);
 	queue_redraw(REDRAW_OVERLAY);
 	// Free and NULL gui.drawing_polypoints
-	g_slist_free_full(gui.drawing_polypoints, free);
+	g_slist_free_full(gui.drawing_polypoints, siril_free);
 	gui.drawing_polypoints = NULL;
 	return TRUE;
 }
@@ -496,7 +496,7 @@ gboolean main_action_click(mouse_data *data) {
 					ps = phot_set_adjusted_for_image(&gfit);
 					psf_error error = PSF_NO_ERR;
 					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
-					free(ps);
+					siril_free(ps);
 					if (gui.qphot) {
 						if (!gui.qphot->phot_is_valid || error != PSF_NO_ERR) {
 							free_psf(gui.qphot);
@@ -547,7 +547,7 @@ gboolean main_action_click(mouse_data *data) {
 				break;
 			case MOUSE_ACTION_DRAW_POLY:
 				g_assert(gui.drawing_polypoints == NULL);
-				point *ev = malloc(sizeof(point));
+				point *ev = siril_malloc(sizeof(point));
 				ev->x = data->zoomed.x;
 				ev->y = data->zoomed.y;
 				gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -83,7 +83,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
 		if (args->weighting_type == NBSTACK_WEIGHT) {
 			int nb_layers = args->seq->nb_layers;
-			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+			args->weights = siril_malloc(nb_layers * nb_frames * sizeof(double));
 		}
 		if (args->seq->type == SEQ_FITSEQ) {
 			g_assert(args->seq->fitseq_file);
@@ -307,7 +307,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 
 	*largest_block_height = 0;
 	long channel = 0, row = 0, j = 0;
-	*blocksptr = malloc(*nb_blocks * sizeof(struct _image_block));
+	*blocksptr = siril_malloc(*nb_blocks * sizeof(struct _image_block));
 	if (!*blocksptr) {
 		PRINT_ALLOC_ERR;
 		return ST_ALLOC_ERROR;
@@ -495,16 +495,16 @@ static int stack_read_block_data(struct stacking_args *args,
 			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
 			if (area.h == 0 || area.w == 0 || maskscaled_area.w == 0 || maskscaled_area.h == 0)
 				continue;
-			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
+			mask_scaled = siril_malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
-				free(mask_scaled);
+				siril_free(mask_scaled);
 				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
 				maskscaled_area.x, maskscaled_area.y, maskscaled_area.w, maskscaled_area.h);
 				return ST_SEQUENCE_ERROR;
 			}
 			float *mbuffer = data->mask[frame] + offset;
 			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
-			free(mask_scaled);
+			siril_free(mask_scaled);
 			if (args->maximize_framing) {
 				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
@@ -901,7 +901,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				return kept;
 			}
 			max_outliers -= removed;
-			struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
+			struct ESD_outliers *out = siril_malloc(max_outliers * sizeof(struct ESD_outliers));
 
 			memcpy(w_stack, stack, N * sizeof(WORD));
 			memset(rejected, 0, N * sizeof(int));
@@ -917,7 +917,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				remove_element(w_stack, max_index, size);
 			}
 			confirm_outliers(out, max_outliers, median, rejected, rej);
-			free(out);
+			siril_free(out);
 
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
 				if (!rejected[pixel]) {
@@ -1065,7 +1065,7 @@ static int compute_noise_weights(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
 
-	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	args->weights = siril_malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
 
 	for (int layer = 0; layer < nb_layers; ++layer) {
@@ -1099,7 +1099,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 		return ST_GENERIC_ERROR;
 	}
 
-	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	args->weights = siril_malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
@@ -1146,7 +1146,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		return ST_GENERIC_ERROR;
 	}
 
-	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	args->weights = siril_malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
@@ -1357,7 +1357,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
-	data_pool = calloc(pool_size, sizeof(struct _data_block));
+	data_pool = siril_calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for tmp and stack, added 4 byte for alignment
 	// the +1ul pixel is for storing the current pixel stack
 	if (masking)
@@ -1379,16 +1379,16 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 	}
 	for (i = 0; i < pool_size; i++) {
-		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
+		data_pool[i].pix = siril_malloc(nb_frames * sizeof(void *));
 		if (masking)
-			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
+			data_pool[i].mask = siril_malloc(nb_frames * sizeof(float *));
 		if (args->drizzle)
-			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
-		data_pool[i].tmp = malloc(bufferSize);
+			data_pool[i].drizz = siril_malloc(nb_frames * sizeof(float *));
+		data_pool[i].tmp = siril_malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask) || (args->drizzle && !data_pool[i].drizz)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
-			fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
+			fprintf(stderr, "Cannot allocate %zu (siril_free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
 			fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
 
 			g_free(available);
@@ -1430,7 +1430,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			} else if (args->type_of_rejection == GESDT) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
 				int max_outliers = (int) floor(nb_frames * args->sig[0]);
-				args->critical_value = malloc(max_outliers * sizeof(float)); // why do we malloc here? space has already been booked in tmp
+				args->critical_value = siril_malloc(max_outliers * sizeof(float)); // why do we siril_malloc here? space has already been booked in tmp
 				for (int j = 0, size = nb_frames; j < max_outliers; j++, size--) {
 					float t_dist = gsl_cdf_tdist_Pinv(1 - args->sig[1] / (2 * size), size - 2);
 					float numerator = (size - 1) * t_dist;
@@ -1733,33 +1733,33 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 free_and_close:
-	fprintf(stdout, "free and close (%d)\n", retval);
+	fprintf(stdout, "siril_free and close (%d)\n", retval);
 	for (i = 0; i < nb_frames; ++i) {
 		seq_close_image(args->seq, args->image_indices[i]);
 	}
 
 	if (data_pool) {
 		for (i=0; i<pool_size; i++) {
-			if (data_pool[i].pix) free(data_pool[i].pix);
-			if (data_pool[i].mask) free(data_pool[i].mask);
-			if (data_pool[i].drizz) free(data_pool[i].drizz);
-			if (data_pool[i].tmp) free(data_pool[i].tmp);
+			if (data_pool[i].pix) siril_free(data_pool[i].pix);
+			if (data_pool[i].mask) siril_free(data_pool[i].mask);
+			if (data_pool[i].drizz) siril_free(data_pool[i].drizz);
+			if (data_pool[i].tmp) siril_free(data_pool[i].tmp);
 		}
-		free(data_pool);
+		siril_free(data_pool);
 	}
 	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
-	if (blocks) free(blocks);
+	if (blocks) siril_free(blocks);
 	if (args->normalize) {
-		free(args->coeff.offset);
-		free(args->coeff.scale);
-		free(args->coeff.mul);
+		siril_free(args->coeff.offset);
+		siril_free(args->coeff.scale);
+		siril_free(args->coeff.mul);
 	}
 
-	if (args->weights) free(args->weights);
+	if (args->weights) siril_free(args->weights);
 	if (retval) {
 		/* if retval is set, gfit has not been modified */
-		if (fit.data) free(fit.data);
-		if (fit.fdata) free(fit.fdata);
+		if (fit.data) siril_free(fit.data);
+		if (fit.fdata) siril_free(fit.fdata);
 		if (is_mean)
 			set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
 		else	set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);

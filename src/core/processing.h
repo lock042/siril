@@ -91,7 +91,7 @@ struct generic_seq_args {
 	/** idle function to register at the end, if not already_in_a_thread and
 	 *  not when the generic function is used from a script. If NULL, the
 	 *  default idle function that stops the thread is used.
-	 *  Return false for single execution. It should free its argument. */
+	 *  Return false for single execution. It should siril_free its argument. */
 	GSourceFunc idle_function;
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
@@ -145,11 +145,11 @@ struct generic_seq_args {
 
 /* The following structs are for multi-output sequences */
 struct multi_output_data {
-	sequence *seq; // don't free, this is a reference and should be freed in the generic_seq_args
+	sequence *seq; // don't siril_free, this is a reference and should be freed in the generic_seq_args
 	int n;
-	char *seqEntry; // don't free, this is a reference and should be freed in the operation-specific args
+	char *seqEntry; // don't siril_free, this is a reference and should be freed in the operation-specific args
 	int new_seq_index; // if a new sequence is to be loaded on completion,
-					   // which one? Defaults to 0 if the struct is made with calloc()
+					   // which one? Defaults to 0 if the struct is made with siril_calloc()
 	gchar **prefixes; // this is freed in free_multi_args()
 	struct ser_struct **new_ser; // this is freed in
 	fitseq **new_fitseq; // this is freed in

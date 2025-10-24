@@ -27,7 +27,7 @@ static gboolean label_update_idle(gpointer ptr) {
 	gtk_label_set_text(arg->label, arg->text);
 	if (arg->free_text)
 		g_free(arg->text);
-	free(arg);
+	siril_free(arg);
 	return FALSE;
 }
 
@@ -51,7 +51,7 @@ void force_unlinked_channels() {
 }
 
 static void set_label(GtkLabel *label, gchar *text, gboolean free_after_display) {
-	struct _label_struct *arg = malloc(sizeof(struct _label_struct));
+	struct _label_struct *arg = siril_malloc(sizeof(struct _label_struct));
 	arg->label = label;
 	arg->text = text;
 	arg->free_text = free_after_display;
@@ -191,7 +191,7 @@ void init_preprocessing_from_GUI() {
 	 * already loaded here. Error management is different too.
 	 * Some options also come from on_prepro_button_clicked()
 	 */
-	struct preprocessing_data *prepro = calloc(1, sizeof(struct preprocessing_data));
+	struct preprocessing_data *prepro = siril_calloc(1, sizeof(struct preprocessing_data));
 
 	/* checking for dark master and associated options */
 	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
@@ -203,12 +203,12 @@ void init_preprocessing_from_GUI() {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
-			prepro->dark = calloc(1, sizeof(fits));
+			prepro->dark = siril_calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
 				prepro->use_dark = TRUE;
 			} else {
 				livestacking_display(_("NOT USING DARK: cannot open the file"), FALSE);
-				free(prepro->dark);
+				siril_free(prepro->dark);
 				gtk_entry_set_text(entry, "");
 				prepro->use_dark = FALSE;
 			}
@@ -274,12 +274,12 @@ void init_preprocessing_from_GUI() {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-			prepro->flat = calloc(1, sizeof(fits));
+			prepro->flat = siril_calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_16bit)) {
 				prepro->use_flat = TRUE;
 			} else {
 				livestacking_display(_("NOT USING FLAT: cannot open the file"), FALSE);
-				free(prepro->flat);
+				siril_free(prepro->flat);
 				gtk_entry_set_text(entry, "");
 				prepro->use_flat = FALSE;
 			}

@@ -1,5 +1,5 @@
-// Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-// Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+// Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+// Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -87,7 +87,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 
     // Allocate a single buffer with header and data
     size_t total_size = sizeof(header) + (data && length > 0 ? length : 0);
-    void* combined_buffer = malloc(total_size);
+    void* combined_buffer = siril_malloc(total_size);
     if (!combined_buffer) {
         siril_log_message("Memory allocation failed for combined write\n");
         return FALSE;
@@ -105,11 +105,11 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
     if (!WriteFile(conn->pipe_handle, combined_buffer, total_size, &bytes_written, NULL) ||
         bytes_written != total_size) {
         siril_log_message("Failed to send response: %lu\n", GetLastError());
-        free(combined_buffer);
+        siril_free(combined_buffer);
         return FALSE;
     }
 
-    free(combined_buffer);
+    siril_free(combined_buffer);
 #else
 	ssize_t bytes_written;
 
@@ -460,7 +460,7 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 #endif
 
 	// Prepare shared memory info structure
-	shared_memory_info_t *info = calloc(1, sizeof(shared_memory_info_t));
+	shared_memory_info_t *info = siril_calloc(1, sizeof(shared_memory_info_t));
 	*info = (shared_memory_info_t) {
 		.size = total_bytes,
 		.data_type = (fit->type == DATA_FLOAT) ? 1 : 0,
@@ -524,7 +524,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 #endif
 
 	// Prepare shared memory info structure
-	shared_memory_info_t *info = calloc(1, sizeof(shared_memory_info_t));
+	shared_memory_info_t *info = siril_calloc(1, sizeof(shared_memory_info_t));
 	*info = (shared_memory_info_t) {
 		.size = total_bytes,
 		.data_type = 0,
@@ -645,13 +645,13 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 
 	// Allocate new image buffer
 	fit->type = DATA_UNSUPPORTED; // prevents a potential crash in on_drawingarea_motion_notify_event while we are messing with gfit
-	free(fit->data);
-	free(fit->fdata);
+	siril_free(fit->data);
+	siril_free(fit->fdata);
 	fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = NULL;
 	fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = NULL;
 	gboolean alloc_err = FALSE;
 	if (info->data_type == 0) { // WORD data
-		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = calloc(ncpixels, sizeof(WORD));
+		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = siril_calloc(ncpixels, sizeof(WORD));
 		if (!fit->data) {
 			alloc_err = TRUE;
 		} else {
@@ -660,7 +660,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			}
 		}
 	} else { // FLOAT data
-		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = calloc(ncpixels, sizeof(float));
+		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = siril_calloc(ncpixels, sizeof(float));
 		if (!fit->fdata) {
 			alloc_err = TRUE;
 		} else {
@@ -696,8 +696,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Ensure fit->stats is sized correctly
 	if (info->channels != fit->naxes[2]) {
 		siril_debug_print("Resizing stats allocation to match new channels\n");
-		free(fit->stats);
-		fit->stats = calloc(info->channels, sizeof(imstats*));
+		siril_free(fit->stats);
+		fit->stats = siril_calloc(info->channels, sizeof(imstats*));
 	}
 	// Update gfit metadata
 	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
@@ -830,7 +830,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 			g_free(lext);
 		}
 	}
-	if (!display) { // if we are displaying, we mustn't free the plot data here
+	if (!display) { // if we are displaying, we mustn't siril_free the plot data here
 		free_siril_plot_data(plot_data);
 	}
 	return send_response(conn, STATUS_OK, NULL, 0);
@@ -888,7 +888,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	// add_background_samples
 	if (recalculate) {
 		for (int i = 0 ; i < nb_samples ; i++) {
-			point* p = malloc(sizeof(point));
+			point* p = siril_malloc(sizeof(point));
 			memcpy(p, &samples[i].position, sizeof(point));
 			pts = g_slist_append(pts, p);
 		}
@@ -898,7 +898,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	// to com.grad_samples
 	else {
 		for (int i = 0 ; i < nb_samples ; i++) {
-			background_sample *s = malloc(sizeof(background_sample));
+			background_sample *s = siril_malloc(sizeof(background_sample));
 			memcpy(s, (background_sample*) (samples + i), sizeof(background_sample));
 			// protect against zero sample size
 			s->size = s->size ? s->size : SAMPLE_SIZE;
@@ -913,7 +913,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 	}
 
 	// Free the positions list
-	g_slist_free_full(pts, free);
+	g_slist_free_full(pts, siril_free);
 
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -2223,7 +2223,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 			cleanup_shm_resources(cleanup->python_conn);
 
 			// Clean up the Connection
-			free(cleanup->python_conn);
+			siril_free(cleanup->python_conn);
 		}
 
 		// Remove from children list
@@ -2363,7 +2363,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #else
 	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
-	// Finished with connection_path regardless of OS now, so we can free it
+	// Finished with connection_path regardless of OS now, so we can siril_free it
 	g_free(connection_path);
 
 	// Set from_cli env
@@ -2386,7 +2386,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
 		// Clean up on error
 		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		siril_free(commstate.python_conn);
 		g_strfreev(env);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
@@ -2436,7 +2436,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			&stderr_fd,
 			&error
 		);
-		// Free the GPtrArray (but not its contents - the caller must free argv_script)
+		// Free the GPtrArray (but not its contents - the caller must siril_free argv_script)
 		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
 
@@ -2458,7 +2458,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	if (!success) {
 		// Clean up on error
 		cleanup_shm_resources(commstate.python_conn);
-		free(commstate.python_conn);
+		siril_free(commstate.python_conn);
 		g_strfreev(env);
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -73,7 +73,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 	FFMS_Init(0, 0);
 
 	/* Index the source file. Note that this example does not index any audio tracks. */
-	film->errmsg = malloc(FILM_ERROR_LENGTH);
+	film->errmsg = siril_malloc(FILM_ERROR_LENGTH);
 	film->errinfo.Buffer      = film->errmsg;
 	film->errinfo.BufferSize  = FILM_ERROR_LENGTH;
 	film->errinfo.ErrorType   = FFMS_ERROR_SUCCESS;
@@ -87,7 +87,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 	FFMS_Indexer *indexer;
 #endif
 	char *idxfilename;
-	idxfilename = malloc(strlen(sourcefile) + 5);
+	idxfilename = siril_malloc(strlen(sourcefile) + 5);
 	sprintf(idxfilename, "%s.idx", sourcefile);
 	index = FFMS_ReadIndex(idxfilename, &film->errinfo);
 	if (index == NULL) {
@@ -103,7 +103,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 #endif
 			/* handle error (print errinfo.Buffer somewhere) */
 			fprintf(stderr, "FILM error: %s\n", film->errmsg);
-			free(idxfilename);
+			siril_free(idxfilename);
 			return FILM_ERROR;
 		}
 #if (FFMS_VERSION > ((2 << 24) | (20 << 16) | (0 << 8) | 0))
@@ -112,7 +112,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 		if (index == NULL) {
 			/* handle error (print errinfo.Buffer somewhere) */
 			fprintf(stderr, "FILM error: %s\n", film->errmsg);
-			free(idxfilename);
+			siril_free(idxfilename);
 			return FILM_ERROR;
 		}
 #endif
@@ -123,7 +123,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 		}
 		else fprintf(stdout, "FILM: index saved into file '%s'\n", idxfilename);
 	} else fprintf(stdout, "FILM: loaded previously computed index from file '%s'\n", idxfilename);
-	free(idxfilename);
+	siril_free(idxfilename);
 
 	/* Retrieve the track number of the first video track */
 	int trackno = FFMS_GetFirstTrackOfType(index, FFMS_TYPE_VIDEO, &film->errinfo);
@@ -225,7 +225,7 @@ static int *randomIndex(int n) {
 	int *index;
 	int i, x, tmp;
 
-	index = calloc(n, sizeof (int));
+	index = siril_calloc(n, sizeof (int));
 	if (index == NULL) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -295,7 +295,7 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 					++pixel_tested;
 
 			} while (pixel_tested < 100 && n < nb_pixels * 3);
-			free(randIndex);
+			siril_free(randIndex);
 			printf("total n = %d et k = %d et npixel = %d\n", n, pixel_tested, nb_pixels);
 		}
 	}
@@ -305,10 +305,10 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 	/* do something with frame */
 	WORD *ptr;
 
-	if ((ptr = realloc(fit->data, nb_pixels * film->nb_layers * sizeof(WORD)))
+	if ((ptr = siril_realloc(fit->data, nb_pixels * film->nb_layers * sizeof(WORD)))
 			== NULL) {
 		PRINT_ALLOC_ERR;
-		free(fit->data);
+		siril_free(fit->data);
 		return -1;
 	}
 	memset(fit, 0, sizeof(fits));
@@ -370,8 +370,8 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 
 void film_close_file(struct film_struct *film) {
 	/* now it's time to clean up */
-	free(film->errmsg);
-	free(film->filename);
+	siril_free(film->errmsg);
+	siril_free(film->filename);
 	FFMS_DestroyVideoSource(film->videosource);
 }
 

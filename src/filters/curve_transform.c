@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -114,11 +114,11 @@ void cubic_spline_fit(GList *points, cubic_spline_data *cspline_data) {
 	g_assert(g_list_length(points) >= 2);
 
 	cspline_data->n = g_list_length(points);
-	double *h = malloc((cspline_data->n - 1) * sizeof(double));
-	double *alpha = malloc((cspline_data->n - 1) * sizeof(double));
-	double *l = malloc(cspline_data->n * sizeof(double));
-	double *mu = malloc(cspline_data->n * sizeof(double));
-	double *z = malloc(cspline_data->n * sizeof(double));
+	double *h = siril_malloc((cspline_data->n - 1) * sizeof(double));
+	double *alpha = siril_malloc((cspline_data->n - 1) * sizeof(double));
+	double *l = siril_malloc(cspline_data->n * sizeof(double));
+	double *mu = siril_malloc(cspline_data->n * sizeof(double));
+	double *z = siril_malloc(cspline_data->n * sizeof(double));
 
 	l[0] = 1;
 	mu[0] = 0;
@@ -157,11 +157,11 @@ void cubic_spline_fit(GList *points, cubic_spline_data *cspline_data) {
 		cspline_data->d[j] = (cspline_data->c[j + 1] - cspline_data->c[j]) / (3 * h[j]);
 	}
 
-	free(h);
-	free(alpha);
-	free(l);
-	free(mu);
-	free(z);
+	siril_free(h);
+	siril_free(alpha);
+	siril_free(l);
+	siril_free(mu);
+	siril_free(z);
 }
 
 float cubic_spline_interpolate(float x, cubic_spline_data *cspline_data) {

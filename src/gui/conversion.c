@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -212,7 +212,7 @@ static void initialize_convert() {
 	/* convert the list to an array for parallel processing */
 	gchar **files_to_convert = glist_to_array(list, &count);
 
-	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
+	struct _convert_data *args = siril_calloc(1, sizeof(struct _convert_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		g_strfreev(files_to_convert);
@@ -532,12 +532,12 @@ void process_destroot(sequence_type output_type) {
 
 	const gchar *name = gtk_entry_get_text(convroot_entry);
 	if (*name == '\0') {
-		free(destroot);
+		siril_free(destroot);
 		destroot = NULL;
 		return;
 	}
 	if (destroot) {
-		free(destroot);
+		siril_free(destroot);
 		destroot = NULL;
 	}
 
@@ -563,7 +563,7 @@ void process_destroot(sequence_type output_type) {
 				PRINT_ALLOC_ERR;
 				return;
 			}
-			free(destroot);
+			siril_free(destroot);
 			destroot = temp;
 		}
 		seq_exists = check_if_seq_exist(destroot, TRUE);

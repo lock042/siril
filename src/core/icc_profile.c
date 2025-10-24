@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -215,13 +215,13 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename) {
 		}
 	}
 	path = g_build_filename(com.wd, filename, NULL);
-	free(filename);
+	siril_free(filename);
 	if (cmsSaveProfileToFile(profile, path)) {
 		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
 	} else {
 		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
 	}
-	free(path);
+	siril_free(path);
 }
 
 void lock_display_transform() {
@@ -764,7 +764,7 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
 	cmsUInt32Number length;
 	cmsBool ret = cmsSaveProfileToMem(profile, NULL, &length);
 	if (length > 0) {
-		block = malloc(length * sizeof(BYTE));
+		block = siril_malloc(length * sizeof(BYTE));
 		ret = cmsSaveProfileToMem(profile, (void*) block, &length);
 	}
 	if (!ret) {
@@ -1077,13 +1077,13 @@ cmsHPROFILE copyICCProfile(cmsHPROFILE profile) {
 		ret = cmsSaveProfileToMem(profile, NULL, &length);
 	}
 	if (length > 0) {
-		block = malloc(length * sizeof(BYTE));
+		block = siril_malloc(length * sizeof(BYTE));
 		ret = cmsSaveProfileToMem(profile, (void*) block, &length);
 	}
 	if (ret) {
 		retval = cmsOpenProfileFromMem(block, length);
 	}
-	free(block);
+	siril_free(block);
 	return retval;
 }
 
@@ -1112,7 +1112,7 @@ cmsUInt8Number *siril_icc_profile_to_buffer(cmsHPROFILE profile, cmsUInt32Number
 	cmsBool ret = cmsSaveProfileToMem(profile, NULL, length);
 	if (!ret || length == 0)
 		return NULL;
-	void *buffer = malloc (*length * sizeof(cmsUInt8Number));
+	void *buffer = siril_malloc (*length * sizeof(cmsUInt8Number));
 	if (!buffer) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1159,8 +1159,8 @@ cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b) {
 
 ERROR_OR_FINISH:
 
-	free(block_a);
-	free(block_b);
+	siril_free(block_a);
+	siril_free(block_b);
 	return retval;
 }
 
@@ -1507,7 +1507,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	char *description = NULL;
 	int length = cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", NULL, 0);
 	if (length) {
-		description = (char*) malloc(length * sizeof(char));
+		description = (char*) siril_malloc(length * sizeof(char));
 		cmsGetProfileInfoASCII(profile, cmsInfoDescription, "en", "US", description, length);
 	}
 
@@ -1528,7 +1528,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	cmsXYZ2xyY(&whitexyY, &whitepoint);
 	double white_x = whitexyY.x;
 	double white_y = whitexyY.y;
-	double *horseshoe_x = malloc(322 * sizeof(double)), *horseshoe_y = malloc(322 * sizeof(double));
+	double *horseshoe_x = siril_malloc(322 * sizeof(double)), *horseshoe_y = siril_malloc(322 * sizeof(double));
 	for (int i = 0 ; i < 321 ; i++) {
 		double w = 380 + i;
 		cmsCIEXYZ XYZ = { x1931(w), y1931(w), z1931(w)};
@@ -1549,7 +1549,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 					"<span size=\"small\">"
 					"%s"
 					"</span>"), description);
-	free(description);
+	siril_free(description);
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);
@@ -1580,8 +1580,8 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	spl_data->height = 600;
 	spl_data->cfgdata.line.sz = 2;
 
-	free(horseshoe_x);
-	free(horseshoe_y);
+	siril_free(horseshoe_x);
+	siril_free(horseshoe_y);
 
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -26,8 +26,8 @@
 #include "about_dialog.h"
 
 static gchar **authors = (gchar *[] ) {
-				"Vincent Hourdin <vh@free-astro.vinvin.tf>",
-				"Cyril Richard <cyril@free-astro.org>",
+				"Vincent Hourdin <vh@siril_free-astro.vinvin.tf>",
+				"Cyril Richard <cyril@siril_free-astro.org>",
 				"Cécile Melis <cissou8@gmail.com>",
 				"Adrian Knagg-Baugh <aje.baugh@gmail.com>",
 				"François Meyer",
@@ -36,14 +36,14 @@ static gchar **authors = (gchar *[] ) {
 
 static gchar **documenters = (gchar *[] ) {
 				"Laurent Rogé <l.roge@siril.org> (2016-2022)",
-				"Team free-astro (2022-"SIRIL_GIT_LAST_COMMIT_YEAR")",
+				"Team siril_free-astro (2022-"SIRIL_GIT_LAST_COMMIT_YEAR")",
 				NULL
 };
 
 static gchar **artists = (gchar *[] ) {
 				"Maxime Oudoux <max.oudoux@gmail.com>",
 				"Tobias Bernard <tbernard@gnome.org>",
-				"Cyril Richard <cyril@free-astro.org>",
+				"Cyril Richard <cyril@siril_free-astro.org>",
 				NULL
 };
 
@@ -59,7 +59,7 @@ void siril_show_about_dialog() {
 	version = g_strdup_printf("%s\ncommit %s", VERSION, SIRIL_GIT_VERSION_ABBREV);
 #endif
 	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
-			"Copyright © 2012-%s Team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
+			"Copyright © 2012-%s Team siril_free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
 
 	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	/* Create pixbuf from siril.svg file */

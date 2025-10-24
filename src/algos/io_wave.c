@@ -2,7 +2,7 @@
 /*===========================================================================
  Copyright (C) 1995 European Southern Observatory (ESO)
 
- This program is free software; you can redistribute it and/or
+ This program is siril_free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as
  published by the Free Software Foundation; either version 2 of
  the License, or (at your option) any later version.
@@ -113,7 +113,7 @@
 
 // This is bigger than the actual supported maximum, it is only used as a
 // sanitization value to prevent memory allocation issues when using a number
-// read from a file as an argument to calloc.
+// read from a file as an argument to siril_calloc.
 #define MAX_NBR_PLANS 10
 
 /****************************************************************************/
@@ -278,7 +278,7 @@ int wave_io_free(wave_transf_des *Wave_Trans) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:
 		if ((Wave_Trans->Pave).Data)
-			free((char *) ((Wave_Trans->Pave).Data));
+			siril_free((char *) ((Wave_Trans->Pave).Data));
 		break;
 	default:
 		printf("wave_io_free: wrong transform type\n");

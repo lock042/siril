@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -146,7 +146,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	g_object_unref(args->file_info);
 	g_free(args->filename);
 
-	free(args);
+	siril_free(args);
 	args = NULL;
 	set_cursor_waiting(FALSE);
 	callback_is_called = TRUE;
@@ -249,7 +249,7 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 
 			cleanup: gdk_pixbuf_loader_close(loader, NULL);
-			free(buffer);
+			siril_free(buffer);
 			g_object_unref(loader); // This should clean up tmp as well
 		}
 
@@ -269,7 +269,7 @@ static gpointer update_preview(gpointer p) {
 #ifdef HAVE_LIBJXL
 	cleanup2:
 #endif
-	free(mime_type);
+	siril_free(mime_type);
 	args->pixbuf = pixbuf;
 	gdk_threads_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);
@@ -297,7 +297,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 
 	gtk_file_chooser_set_preview_widget_active(file_chooser, TRUE);
 
-	struct _updta_preview_data *data = calloc(1, sizeof(struct _updta_preview_data));
+	struct _updta_preview_data *data = siril_calloc(1, sizeof(struct _updta_preview_data));
 	data->filename = g_file_get_path(file);
 	data->file_info = file_info;
 	data->file_chooser = file_chooser;

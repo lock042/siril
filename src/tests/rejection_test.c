@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -41,7 +41,7 @@ float set2[] = { 7.7110e-2f, 4.7330e-1f, 5.7340e-1f, 3.3310e-1f, 5.3160e-1f, 3.6
 
 
 static float *duplicate(const float *f, int size) {
-	float *d = malloc(size * sizeof(float));
+	float *d = siril_malloc(size * sizeof(float));
 	memcpy(d, f, size * sizeof(float));
 	return d;
 }
@@ -69,12 +69,12 @@ static float calculate_critical_value(int size, float alpha) {
 }
 
 static float ESD_test(float *stack, int size, float alpha, int max_outliers) {
-	struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
+	struct ESD_outliers *out = siril_malloc(max_outliers * sizeof(struct ESD_outliers));
 
 	quicksort_f(stack, size);
 	double median = gsl_stats_float_median_from_sorted_data(stack, 1, size);
 	float *w_stack = duplicate(stack, size);
-	int *rejected = calloc(size, sizeof(int));
+	int *rejected = siril_calloc(size, sizeof(int));
 	int w_size = size;
 	int cold = 0;
 
@@ -162,7 +162,7 @@ Test(rejection, percentile) { test_percentile_float(); }
 
 
 static float linearfit_test(float *stack, int size, float sig[2], int rej[2]) {
-	float *xf = malloc(sizeof(float) * size);
+	float *xf = siril_malloc(sizeof(float) * size);
 	float m_x = (size - 1) * 0.5f;
 	float m_dx2 = 0.f;
 	for (int j = 0; j < size; ++j) {
@@ -171,7 +171,7 @@ static float linearfit_test(float *stack, int size, float sig[2], int rej[2]) {
 		m_dx2 += (dx * dx - m_dx2) * xf[j];
 	}
 	m_dx2 = 1.f / m_dx2;
-	int *rejected = calloc(size, sizeof(int));
+	int *rejected = siril_calloc(size, sizeof(int));
 
 	int changed, r = 0, N = size;
 	do {

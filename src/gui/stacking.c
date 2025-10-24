@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -201,7 +201,7 @@ static void start_stacking() {
 	stackparam.output_filename = gtk_entry_get_text(output_file);
 
 	/* Stacking. Result is in gfit if success */
-	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
+	struct stacking_args *params = siril_calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
 	if (!start_in_new_thread(stack_function_handler, params)) {
 		stacking_args_deep_free(params);

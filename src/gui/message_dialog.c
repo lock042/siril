@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -104,7 +104,7 @@ static gboolean siril_confirm_data_dialog_internal(gpointer p, gchar *button_acc
 gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text, gchar *button_accept, gchar *data) {
 	if (com.headless || com.script)
 		return FALSE;	// should never happen
-	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = siril_calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -121,7 +121,7 @@ gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text,
 	args->data = data;
 	args->type = type;
 	gboolean retval = siril_confirm_data_dialog_internal(args, button_accept);
-	free(args);
+	siril_free(args);
 	return retval;
 }
 
@@ -180,7 +180,7 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	 * so it's not safe to use dialogs in the calling thread, we just ignore it for now. */
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = siril_calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -202,16 +202,16 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 gboolean siril_message_dialog_idle(gpointer p) {
 	struct message_data *data = (struct message_data *) p;
 	siril_message_dialog(data->type, data->title, data->text);
-	free(data->title);
-	free(data->text);
-	free(data);
+	siril_free(data->title);
+	siril_free(data->text);
+	siril_free(data);
 	return FALSE;
 }
 
 void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct message_data *data = calloc(1, sizeof(struct message_data));
+	struct message_data *data = siril_calloc(1, sizeof(struct message_data));
 	data->type = type;
 	data->title = strdup(title);
 	data->text = strdup(text);
@@ -230,7 +230,7 @@ void queue_warning_message_dialog(const char *title, const char *text) {
 void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = siril_calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {

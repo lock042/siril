@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -494,7 +494,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 			// g_slist_prepend takes ownership of script_path
 			com.pref.selected_scripts = g_slist_prepend(com.pref.selected_scripts, script_path);
 		} else {
-			// Already in list, free our copy
+			// Already in list, siril_free our copy
 			g_free(script_path);
 		}
 	} else {

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -82,7 +82,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
+	struct median_filter_data *args = siril_calloc(1, sizeof(struct median_filter_data));
 
 	args->previewing = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
 
@@ -116,7 +116,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(median_filter, args))
-		free(args);
+		siril_free(args);
 
 }
 
@@ -139,7 +139,7 @@ double get_median_ushort(const WORD *buf, const int xx, const int yy, const int 
 		radius *= 2;
 	}
 	ksize = radius * 2 + 1;
-	values = calloc(ksize * ksize, sizeof(WORD));
+	values = siril_calloc(ksize * ksize, sizeof(WORD));
 
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
@@ -153,7 +153,7 @@ double get_median_ushort(const WORD *buf, const int xx, const int yy, const int 
 		}
 	}
 	median = quickmedian(values, n);
-	free(values);
+	siril_free(values);
 	return median;
 }
 
@@ -168,7 +168,7 @@ double get_median_float(const float *buf, const int xx, const int yy, const int 
 		radius *= 2;
 	}
 	ksize = radius * 2 + 1;
-	values = calloc(ksize * ksize, sizeof(float));
+	values = siril_calloc(ksize * ksize, sizeof(float));
 
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
@@ -182,7 +182,7 @@ double get_median_float(const float *buf, const int xx, const int yy, const int 
 		}
 	}
 	median = quickmedian_float(values, n);
-	free(values);
+	siril_free(values);
 	return median;
 }
 
@@ -236,7 +236,7 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
 		radius *= 2;
 	}
 	ksize = radius * 2 + 1;
-	values = calloc(ksize * ksize, sizeof(double));
+	values = siril_calloc(ksize * ksize, sizeof(double));
 
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
@@ -250,7 +250,7 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
 		}
 	}
 	median = quickmedian_double(values, n);
-	free(values);
+	siril_free(values);
 	return median;
 }
 
@@ -270,7 +270,7 @@ static gboolean end_median_filter(gpointer p) {
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -293,7 +293,7 @@ static gpointer median_filter_ushort(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(WORD);
-	WORD *temp = calloc(1, alloc_size); // we need a temporary buffer
+	WORD *temp = siril_calloc(1, alloc_size); // we need a temporary buffer
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return GINT_TO_POINTER(-1);
@@ -488,7 +488,7 @@ static gpointer median_filter_ushort(gpointer p) {
 			}
 		}
 	}
-	free(temp);
+	siril_free(temp);
 	invalidate_stats_from_fit(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -517,7 +517,7 @@ static gpointer median_filter_float(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(float);
-	float *temp = calloc(1, alloc_size); // we need a temporary buffer
+	float *temp = siril_calloc(1, alloc_size); // we need a temporary buffer
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return GINT_TO_POINTER(-1);
@@ -779,7 +779,7 @@ static gpointer median_filter_float(gpointer p) {
 			}
 		}
 	}
-	free(temp);
+	siril_free(temp);
 	invalidate_stats_from_fit(args->fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);

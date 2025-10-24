@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -355,7 +355,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 				_("Could not init distortion mapping\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -364,7 +364,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(
 				_("Could not init drizzle\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
+		siril_free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
@@ -451,11 +451,11 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	if (regargs->driz) {
-		p = calloc(1, sizeof(struct driz_param_t));
+		p = siril_calloc(1, sizeof(struct driz_param_t));
 		driz_param_init(p);
 		p->kernel = driz->kernel;
 		p->driz = driz;
-		p->error = malloc(sizeof(struct driz_error_t));
+		p->error = siril_malloc(sizeof(struct driz_error_t));
 		p->scale = scale;
 		p->pixel_fraction = driz->pixel_fraction;
 		BYTE cfa[36];
@@ -463,9 +463,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		if (fit_is_cfa(fit)) {
 			if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
 				siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
-				free(p->error);
-				free(p->pixmap);
-				free(p);
+				siril_free(p->error);
+				siril_free(p->pixmap);
+				siril_free(p);
 				return 1;
 			}
 			if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
@@ -478,23 +478,23 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->xmin = p->ymin = 0;
 		p->xmax = fit->rx - 1;
 		p->ymax = fit->ry - 1;
-		p->pixmap = calloc(1, sizeof(imgmap_t));
+		p->pixmap = siril_calloc(1, sizeof(imgmap_t));
 		p->pixmap->rx = fit->rx;
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
 		if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, scale, disto, threads)) {
-			free(p->error);
-			free(p->pixmap);
-			free(p);
+			siril_free(p->error);
+			siril_free(p->pixmap);
+			siril_free(p);
 			return 1;
 		}
 
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
-			free(p->error);
-			free(p->pixmap);
-			free(p);
+			siril_free(p->error);
+			siril_free(p->pixmap);
+			siril_free(p);
 			return 1;
 		}
 		p->data = fit;
@@ -503,7 +503,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		if (fit->type == DATA_USHORT) {
 			siril_debug_print("Replacing ushort buffer for drizzling\n");
 			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
-			newbuf = malloc(ndata * sizeof(float));
+			newbuf = siril_malloc(ndata * sizeof(float));
 			float invnorm = 1.f / USHRT_MAX_SINGLE;
 			for (size_t i = 0 ; i < ndata ; i++) {
 				newbuf[i] = fit->data[i] * invnorm;
@@ -526,16 +526,16 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry;
-		out.fdata = calloc(out.naxes[2] * chansize, sizeof(float));
+		out.fdata = siril_calloc(out.naxes[2] * chansize, sizeof(float));
 		out.fpdata[RLAYER] = out.fdata;
 		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
 		p->output_data = &out;
 
 		// Set up the output_counts fits to store pixel hit counts
-		fits *output_counts = calloc(1, sizeof(fits));
+		fits *output_counts = siril_calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
-		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		output_counts->fdata = siril_calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 		output_counts->fpdata[RLAYER] = output_counts->fdata;
 		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
 		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
@@ -573,8 +573,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			clear_Bayer_information(fit); // we also reset the bayerpattern
 		}
 
-		free(p->pixmap->xmap);
-		free(p->pixmap);
+		siril_free(p->pixmap->xmap);
+		siril_free(p->pixmap);
 
 		// Save drizzle weights to the drizztmp folder
 		const gchar *count_filename = get_sequence_cache_filename(args->seq, in_index, "drizztmp", "fit", args->new_seq_prefix);
@@ -598,7 +598,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 		savefits(count_filename, output_counts);
 		clearfits(output_counts);
-		free(output_counts);
+		siril_free(output_counts);
 		output_counts = NULL;
 	}
 	else {
@@ -677,10 +677,10 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		// same as seq_finalize_hook but with file deletion
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 			ser_close_and_delete_file(args->new_ser);
-			free(args->new_ser);
+			siril_free(args->new_ser);
 		} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
-			free(args->new_fitseq);
+			siril_free(args->new_fitseq);
 		} else if (args->seq->type == SEQ_REGULAR) {
 			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
 			remove_prefixed_drizzle_files(regargs->seq, regargs->prefix);
@@ -688,8 +688,8 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	if (sadata->success)
-		free(sadata->success);
-	free(sadata);
+		siril_free(sadata->success);
+	siril_free(sadata);
 	args->user = NULL;
 
 	if (!args->retval) {
@@ -726,7 +726,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 
 		* the original image
 		* the transformed image, including force_float, scale and x 3 for bayer drizzle if required
-			Note: If drizzle, we should always assume force_float as the output of drizzle is always float (realloc'ed to 16b if set in pref)
+			Note: If drizzle, we should always assume force_float as the output of drizzle is always float (siril_realloc'ed to 16b if set in pref)
 
 		*** Maps ***
 		* For interpolation, if undistortion is included:
@@ -857,11 +857,11 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 }
 
 static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, disto_data *disto) {
-	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
+	struct driz_param_t *p = siril_calloc(1, sizeof(struct driz_param_t));
 	driz_param_init(p);
 	p->kernel = driz->kernel;
 	p->driz = driz;
-	p->error = malloc(sizeof(struct driz_error_t));
+	p->error = siril_malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
 	p->pixel_fraction = driz->pixel_fraction;
 	if (driz->is_bayer) {
@@ -893,19 +893,19 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	p->xmin = p->ymin = 0;
 	p->xmax = src_rx - 1;
 	p->ymax = src_ry - 1;
-	p->pixmap = calloc(1, sizeof(imgmap_t));
+	p->pixmap = siril_calloc(1, sizeof(imgmap_t));
 	p->pixmap->rx = src_rx;
 	p->pixmap->ry = src_ry;
 	size_t size_in = src_rx * src_ry;
 
-	float *buffer = calloc(size_in, sizeof(float));
+	float *buffer = siril_calloc(size_in, sizeof(float));
 	if (!buffer) {
 		siril_log_color_message(_("Drizzle: Could not allocate memory for weight calculation.\n"), "red");
 		retval = 1;
 		goto clean_and_exit;
 	}
 	if (driz->flat && !disto) {
-		flatbuf = calloc(size_in, sizeof(float));
+		flatbuf = siril_calloc(size_in, sizeof(float));
 		if (!flatbuf) {
 			siril_log_color_message(_("Drizzle: Could not allocate memory for tiny flat calculation.\n"), "red");
 			retval = 1;
@@ -973,16 +973,16 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	out.ry = out.naxes[1] = dst_ry;
 	out.naxes[2] = driz->is_bayer ? 3 : 1;
 	size_t chansize = out.rx * out.ry * sizeof(float);
-	out.fdata = calloc(out.naxes[2] * chansize, 1);
+	out.fdata = siril_calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[RLAYER] = out.fdata;
 	out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 	out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
 	p->output_data = &out;
 
 	// Set up the output_counts fits to store pixel hit counts
-	output_counts = calloc(1, sizeof(fits));
+	output_counts = siril_calloc(1, sizeof(fits));
 	copyfits(&out, output_counts, CP_FORMAT, -1);
-	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+	output_counts->fdata = siril_calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 	output_counts->fpdata[RLAYER] = output_counts->fdata;
 	output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + out.rx * out.ry;
 	output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * out.rx * out.ry;
@@ -1047,16 +1047,16 @@ clean_and_exit:
 	clearfits(fit);
 	clearfits(&out);
 	clearfits(output_counts);
-	free(fit);
-	free(output_counts);
+	siril_free(fit);
+	siril_free(output_counts);
 	if (tiny_flat) {
 		clearfits(tiny_flat);
-		free(tiny_flat);
+		siril_free(tiny_flat);
 	}
-	free(p->pixmap->xmap);
-	free(p->pixmap);
-	free(p->error);
-	free(p);
+	siril_free(p->pixmap->xmap);
+	siril_free(p->pixmap);
+	siril_free(p->error);
+	siril_free(p);
 	return retval;
 }
 
@@ -1090,7 +1090,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 			if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
 				disto = regargs->disto;
 			} else {
-				disto = calloc(1, sizeof(disto_data));
+				disto = siril_calloc(1, sizeof(disto_data));
 				copy_disto(&regargs->disto[regargs->reference_image], disto);
 				free_disto = TRUE;
 			}
@@ -1144,8 +1144,8 @@ int register_apply_reg(struct registration_args *regargs) {
 	// We will also unselected unsolved images before recomputing the filters
 	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
 	if (regargs->undistort == DISTO_FILES) {
-		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
-		included = calloc(regargs->seq->number, sizeof(int));
+		regargs->WCSDATA = siril_calloc(regargs->seq->number, sizeof(struct wcsprm));
+		included = siril_calloc(regargs->seq->number, sizeof(int));
 		if (collect_sequence_astrometry(regargs, included)) {
 			retval = -1;
 			goto END;
@@ -1197,7 +1197,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	struct star_align_data *sadata = siril_calloc(1, sizeof(struct star_align_data));
 	if (!sadata) {
 		retval = -1;
 		goto END;
@@ -1213,10 +1213,10 @@ int register_apply_reg(struct registration_args *regargs) {
 		int status = 1;
 		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it will be set to UNDEF
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
-		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
+		siril_free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now siril_free the array
 		if (status) {
 			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
-			free(sadata);
+			siril_free(sadata);
 			args->user = NULL;
 			retval = 1;
 			goto END;
@@ -1253,7 +1253,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
-			free(sadata);
+			siril_free(sadata);
 			args->user = NULL;
 			retval = -1;
 			goto END;
@@ -1269,7 +1269,7 @@ int register_apply_reg(struct registration_args *regargs) {
 
 END:
 	free_generic_seq_args(args, FALSE);
-	free(included);
+	siril_free(included);
 
 	return retval;
 }

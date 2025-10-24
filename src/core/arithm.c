@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -91,7 +91,7 @@ static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	data = a->data;
-	result = malloc(n * sizeof(float));
+	result = siril_malloc(n * sizeof(float));
 	if (!result) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -132,7 +132,7 @@ int soper_unscaled_div_ushort_to_float(fits *a, int scalar) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	WORD *data = a->data;
-	float *result = malloc(n * sizeof(float));
+	float *result = siril_malloc(n * sizeof(float));
 	if (!result) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -469,7 +469,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 		result = a->fdata;
 	}
 	else if (a->type == DATA_USHORT) {
-		result = malloc(n * sizeof(float));
+		result = siril_malloc(n * sizeof(float));
 		if (!result) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -477,9 +477,9 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	}
 	else return 1;
 
-	if (b->type == DATA_USHORT && (!b->data)) { free(result); return 1; }
-	if (b->type == DATA_FLOAT && (!b->fdata)) { free(result); return 1; }
-	if (!(b->type == DATA_FLOAT || b->type == DATA_USHORT)) { free(result); return 1; }
+	if (b->type == DATA_USHORT && (!b->data)) { siril_free(result); return 1; }
+	if (b->type == DATA_FLOAT && (!b->fdata)) { siril_free(result); return 1; }
+	if (!(b->type == DATA_FLOAT || b->type == DATA_USHORT)) { siril_free(result); return 1; }
 
 	size_t nb_negative = 0;
 	for (size_t i = 0; i < n; ++i) {
@@ -642,7 +642,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_plan p = fftwf_plan_dft_2d(h, w, a, fx, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftwf_plan q = fftwf_plan_dft_2d(h, w, a, fk, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftwf_plan r = fftwf_plan_dft_2d(h, w, a, fk, FFTW_BACKWARD, FFTW_ESTIMATE);
-	float *k = malloc(w * h * sizeof(float));
+	float *k = siril_malloc(w * h * sizeof(float));
 	float (*kk)[w] = (void *)k;
 	float invss = 1/(sigma * sigma);
 	float alpha = invss / (M_PI);
@@ -703,7 +703,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 #pragma omp single
 {
 #endif
-	free(k);
+	siril_free(k);
 	fftwf_execute(p);
 	fftwf_destroy_plan(p);
 #ifdef _OPENMP
@@ -807,7 +807,7 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 	float xf = inw/(float)outw;
 	float yf = inh/(float)outh;
 	float blur_size = sigma * sqrtf((xf * yf - 1) / 3);
-	float *gaussian = malloc(inw * inh * sizeof(float));
+	float *gaussian = siril_malloc(inw * inh * sizeof(float));
 	if (outw < inw || outh < inh) {
 		gaussblur(gaussian, in, inw, inh, blur_size);
 	} else {
@@ -823,7 +823,7 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 			out[outw * j + i] = bilinear(gaussian, inw, inh, x, y);
 		}
 	}
-	free(gaussian);
+	siril_free(gaussian);
 }
 
 #ifdef __has_builtin

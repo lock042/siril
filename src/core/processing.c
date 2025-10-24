@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -138,7 +138,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	 * done in parallel.
 	 * This is mandatory for SER contiguous output. */
 	if (args->filtering_criterion) {
-		index_mapping = malloc(nb_frames * sizeof(int));
+		index_mapping = siril_malloc(nb_frames * sizeof(int));
 		if (!index_mapping) {
 			PRINT_ALLOC_ERR;
 			args->retval = 1;
@@ -229,7 +229,7 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		gboolean read_image = args->image_read_hook ? args->image_read_hook(args, input_idx) : TRUE;
 
-		fits *fit = calloc(1, sizeof(fits));
+		fits *fit = siril_calloc(1, sizeof(fits));
 		if (!fit) {
 			PRINT_ALLOC_ERR;
 			abort = 1;
@@ -277,7 +277,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (read_image && seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				continue;
 			}
 			// TODO: for seqwriter, we need to notify the failed frame
@@ -288,14 +288,14 @@ gpointer generic_sequence_worker(gpointer p) {
 						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			continue;
 		}
 		// If not reading image, we still load its metadata to fill imgparam
 		if (!read_image && seq_read_frame_metadata(args->seq, input_idx, fit)) {
 			abort = 1;
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			continue;
 		}
 
@@ -312,7 +312,7 @@ gpointer generic_sequence_worker(gpointer p) {
 				fit->fdata = NULL;
 			}
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 			// for seqwriter, we need to notify the failed frame
 			if (have_seqwriter) {
 				int retval;
@@ -333,7 +333,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (retval) {
 				abort = 1;
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 				continue;
 			}
 		} else {
@@ -347,10 +347,10 @@ gpointer generic_sequence_worker(gpointer p) {
 		if (!have_seqwriter) {
 			if (!(args->seq->type == SEQ_INTERNAL)) {
 				clearfits(fit);
-				free(fit);
+				siril_free(fit);
 			} else {
 				clearfits_header(fit);
-				free(fit);
+				siril_free(fit);
 			}
 		}
 
@@ -390,15 +390,15 @@ gpointer generic_sequence_worker(gpointer p) {
 #endif
 the_end:
 #ifdef _OPENMP
-	free(threads_per_image);
+	siril_free(threads_per_image);
 #endif
 
-	if (index_mapping) free(index_mapping);
+	if (index_mapping) siril_free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
-	int retval = args->retval;	// so we can free args if needed in the idle
+	int retval = args->retval;	// so we can siril_free args if needed in the idle
 #ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
 		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
@@ -434,10 +434,10 @@ the_end:
 }
 
 void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq) {
-	free(args->new_seq_prefix);
+	siril_free(args->new_seq_prefix);
 	if (free_seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	free(args);
+	siril_free(args);
 }
 
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
@@ -525,9 +525,9 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
-		args->new_ser = calloc(1, sizeof(struct ser_struct));
+		args->new_ser = siril_calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
-			free(args->new_ser);
+			siril_free(args->new_ser);
 			args->new_ser = NULL;
 			retval = 1;
 		}
@@ -540,9 +540,9 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
 
-		args->new_fitseq = calloc(1, sizeof(fitseq));
+		args->new_fitseq = siril_calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
-			free(args->new_fitseq);
+			siril_free(args->new_fitseq);
 			args->new_fitseq = NULL;
 			retval = 1;
 		}
@@ -564,12 +564,12 @@ int seq_prepare_writer(struct generic_seq_args *args) {
 	if (limit == 0) {
 		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 			ser_close_file(args->new_ser);
-			free(args->new_ser);
+			siril_free(args->new_ser);
 			args->new_ser = NULL;
 		}
 		else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
 			fitseq_close_file(args->new_fitseq);
-			free(args->new_fitseq);
+			siril_free(args->new_fitseq);
 			args->new_fitseq = NULL;
 		}
 		return 1;
@@ -583,11 +583,11 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 	g_assert(args->has_output); // don't call this hook otherwise
 	if ((args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) && args->new_ser) {
 		retval = ser_write_and_close(args->new_ser);
-		free(args->new_ser);
+		siril_free(args->new_ser);
 	}
 	else if ((args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) && args->new_fitseq) {
 		retval = fitseq_close_file(args->new_fitseq);
-		free(args->new_fitseq);
+		siril_free(args->new_fitseq);
 	}
 	return retval;
 }
@@ -645,7 +645,7 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 					args->new_seq_prefix, in_index);
 			fit->bitpix = fit->orig_bitpix;
 			int retval = savefits(dest, fit);
-			free(dest);
+			siril_free(dest);
 			return retval;
 		}
 	}
@@ -657,9 +657,9 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 int multi_prepare(struct generic_seq_args *args) {
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
 	int n = max(multi_args->n, 1);
-	multi_args->n = n; // Deal with cases where multi_args->n has not been set after calloc
-	multi_args->new_ser = calloc(n, sizeof(char*));
-	multi_args->new_fitseq = calloc(n, sizeof(char*));
+	multi_args->n = n; // Deal with cases where multi_args->n has not been set after siril_calloc
+	multi_args->new_ser = siril_calloc(n, sizeof(char*));
+	multi_args->new_fitseq = siril_calloc(n, sizeof(char*));
 	// we call the generic prepare n times with different prefixes
 	for (int i = 0 ; i < n ; i++) {
 		args->new_seq_prefix = strdup(multi_args->prefixes[i]);
@@ -668,7 +668,7 @@ int multi_prepare(struct generic_seq_args *args) {
 		// but we copy the result between each call
 		multi_args->new_ser[i] = args->new_ser;
 		multi_args->new_fitseq[i] = args->new_fitseq;
-		free(args->new_seq_prefix);
+		siril_free(args->new_seq_prefix);
 		args->new_seq_prefix = NULL;
 	}
 
@@ -724,7 +724,7 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 		if (!retval) {
 			/* special case because it's not done in the generic */
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 		}
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		for (int i = 0 ; i < n ; i++) {
@@ -734,13 +734,13 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 		if (!retval) {
 			/* special case because it's not done in the generic */
 			clearfits(fit);
-			free(fit);
+			siril_free(fit);
 		}
 	} else {
 		for (int i = 0 ; i < n ; i++) {
 			char *dest = fit_sequence_get_image_filename_prefixed(args->seq, multi_args->prefixes[i], in_index);
 			retval |= savefits(dest, multi_data->images[i]);
-			free(dest);
+			siril_free(dest);
 		}
 	}
 	gboolean tally_fitseq = FALSE, tally_ser = FALSE;
@@ -753,19 +753,19 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	if (!tally_ser && !tally_fitseq) { // detect if there is a seqwriter
 		for (int i = 0 ; i < n ; i++) {
 			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
+			siril_free(multi_data->images[i]);
 		}
 	}
-	free(multi_data->images);
-	free(multi_data);
+	siril_free(multi_data->images);
+	siril_free(multi_data);
 	return retval;
 }
 void free_multi_args(struct multi_output_data *multi_args) {
 	for (int i = 0 ; i < multi_args->n ; i++) {
 		g_free(multi_args->prefixes[i]);
 	}
-	free(multi_args->prefixes);
-	free(multi_args);
+	siril_free(multi_args->prefixes);
+	siril_free(multi_args);
 }
 
 int multi_finalize(struct generic_seq_args *args) {
@@ -780,11 +780,11 @@ int multi_finalize(struct generic_seq_args *args) {
 		multi_args->new_fitseq[i] = NULL;
 	}
 	seqwriter_set_number_of_outputs(1);
-	free(multi_args->prefixes);
-	free(multi_args->new_ser);
-	free(multi_args->new_fitseq);
-	free(multi_args->user_data);
-	free(multi_args);
+	siril_free(multi_args->prefixes);
+	siril_free(multi_args->new_ser);
+	siril_free(multi_args->new_fitseq);
+	siril_free(multi_args->user_data);
+	siril_free(multi_args);
 	return retval;
 }
 
@@ -804,7 +804,7 @@ gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		// We can't free p here as it may have unknown members. We must
+		// We can't siril_free p here as it may have unknown members. We must
 		// indicate failure and allow the caller to clean up
 		return FALSE;
 	}
@@ -1259,7 +1259,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {
-	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
+	struct generic_seq_args *args = siril_calloc(1, sizeof(struct generic_seq_args));
 	args->seq = seq;
 	args->filtering_criterion = seq_filter_all;
 	args->nb_filtered_images = seq->number;
@@ -1285,7 +1285,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	}
 
 	if (args->filtering_criterion) {
-		index_mapping = malloc(nb_frames * sizeof(int));
+		index_mapping = siril_malloc(nb_frames * sizeof(int));
 		if (!index_mapping) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -1393,8 +1393,8 @@ cleanup:
 	if (args->output_stream)
 		g_object_unref(args->output_stream);
 	if (index_mapping)
-		free(index_mapping);
-	free(args);
+		siril_free(index_mapping);
+	siril_free(args);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -1432,7 +1432,7 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
  * max threads to all workers.
  */
 int *compute_thread_distribution(int nb_workers, int max) {
-	int *threads = malloc(nb_workers * sizeof(int));
+	int *threads = siril_malloc(nb_workers * sizeof(int));
 	if (!threads) {
 		PRINT_ALLOC_ERR;
 		return NULL;

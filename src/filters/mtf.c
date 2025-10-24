@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -38,7 +38,7 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+		WORD *lut = siril_malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 		// because of the thread startup cost
@@ -61,7 +61,7 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 			} else
 				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
 		}
-		free(lut);
+		siril_free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -124,7 +124,7 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+		WORD *lut = siril_malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if(multithreaded)
 #endif
@@ -142,7 +142,7 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 			} else
 				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
 		}
-		free(lut);
+		siril_free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -246,7 +246,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+		WORD *lut = siril_malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 #ifdef _OPENMP
@@ -264,7 +264,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 				to->pdata[chan][i] = lut[from->pdata[chan][i]];
 			}
 		}
-		free(lut);
+		siril_free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {

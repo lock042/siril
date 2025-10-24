@@ -20,9 +20,13 @@
 typedef struct {
 	void* original_ptr;    // Original pointer from OS (for freeing)
 	size_t size;           // Size of allocation
-	unsigned char method;  // 0 = malloc, 1 = OS allocation
+	unsigned char method;  // 0 = siril_malloc, 1 = OS allocation
 	unsigned char padding[7]; // Padding for alignment
 } AllocHeader;
+
+#else
+
+#include <stdlib.h>
 
 #endif /* _WIN32 */
 

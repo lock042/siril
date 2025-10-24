@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -66,7 +66,7 @@ static selection_update_callback _registered_selection_callbacks[MAX_CALLBACKS_P
 static int _nb_selection_callbacks = 0;
 
 mouse_action* create_mouse_action(guint button, GdkEventType type, GdkModifierType state, const mouse_function_metadata *metadata) {
-	mouse_action* action = (mouse_action*) malloc(sizeof(mouse_action));
+	mouse_action* action = (mouse_action*) siril_malloc(sizeof(mouse_action));
 	action->button = button;
 	action->type = type;
 	action->state = state;
@@ -75,7 +75,7 @@ mouse_action* create_mouse_action(guint button, GdkEventType type, GdkModifierTy
 }
 
 scroll_action* create_scroll_action(GdkModifierType state, const scroll_function_metadata *metadata, SirilScrollDirection direction) {
-	scroll_action* action = (scroll_action*)malloc(sizeof(scroll_action));
+	scroll_action* action = (scroll_action*)siril_malloc(sizeof(scroll_action));
 	action->direction = direction;
 	action->state = state;
 	action->data = metadata;
@@ -586,7 +586,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gtk_label_set_text(labels_density[gui.cvport], " ");
 
 	if (gui.drawing_polygon) {
-		point *ev = malloc(sizeof(point));
+		point *ev = siril_malloc(sizeof(point));
 		ev->x = zoomed.x;
 		ev->y = zoomed.y;
 		gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);

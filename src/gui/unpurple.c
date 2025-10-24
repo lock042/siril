@@ -1,10 +1,10 @@
  /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
+ * Reference site is https://siril_free-astro.org/index.php/Siril
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -51,13 +51,13 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	// Do we have stars from Dynamic PSF or not?
 	if (nb_stars < 1) {
 		image *input_image = NULL;
-		input_image = calloc(1, sizeof(image));
+		input_image = siril_calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
 						NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
-		free(input_image);
+		siril_free(input_image);
 		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
@@ -143,12 +143,12 @@ static int unpurple_update_preview() {
 		}
 	}
 
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
+	struct unpurpleargs *args = siril_calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
 	set_cursor_waiting(TRUE);
 	// we call the unpurple_filter directly here because update_preview already handles the ROI mutex lock
 	if (!start_in_new_thread(unpurple_filter, args)) {
-		free(args);
+		siril_free(args);
 	}
 	return 0;
 }
@@ -157,7 +157,7 @@ void unpurple_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
 	gui.roi.operation_supports_roi = TRUE;
 	roi_supported(TRUE);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);
@@ -200,12 +200,12 @@ static int unpurple_process_all() {
 		generate_binary_starmask(fit, &starmask_ptr, thresh);
 	}
 
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
+	struct unpurpleargs *args = siril_calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
 
 	// We call the unpurple handler here because we don't have update_preview to handle the ROI mutex for us
 	if (!start_in_new_thread(unpurple_handler, args)) {
-		free(args);
+		siril_free(args);
 	}
 
 	return 0;
@@ -237,7 +237,7 @@ void on_unpurple_dialog_show(GtkWidget *widget, gpointer user_data) {
 	set_notify_block(FALSE);
 
 	// Default parameters transform the image, so update the preview if toggle is active
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);
@@ -276,7 +276,7 @@ void on_unpurple_undo_clicked(GtkButton *button, gpointer user_data) {
 	copy_backup_to_gfit();
 
 	/* default parameters transform image, we need to update preview */
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);
@@ -285,7 +285,7 @@ void on_unpurple_undo_clicked(GtkButton *button, gpointer user_data) {
 /*** adjusters **/
 void on_spin_unpurple_mod_b_value_changed(GtkSpinButton *button, gpointer user_data) {
 	mod_b = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);
@@ -293,7 +293,7 @@ void on_spin_unpurple_mod_b_value_changed(GtkSpinButton *button, gpointer user_d
 
 void on_spin_unpurple_thresh_value_changed(GtkSpinButton *button, gpointer user_data) {
 	thresh = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);
@@ -307,7 +307,7 @@ void on_unpurple_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = unpurple_update_preview;
 		param->show_preview = TRUE;
 		notify_update((gpointer)param);
@@ -315,7 +315,7 @@ void on_unpurple_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_unpurple_stars_toggled(GtkToggleButton *button, gpointer user_data) {
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
 	notify_update((gpointer)param);

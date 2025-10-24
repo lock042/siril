@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -173,7 +173,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	}
 
 	// TODO: avoid duplicating with soper+imoper together
-	// https://gitlab.com/free-astro/siril/-/issues/671
+	// https://gitlab.com/siril_free-astro/siril/-/issues/671
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
@@ -441,7 +441,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	}
 
 	if (prepro->debayer) {
-		// debayering SER is now allowed - https://gitlab.com/free-astro/siril/-/issues/549
+		// debayering SER is now allowed - https://gitlab.com/siril_free-astro/siril/-/issues/549
 		if (!prepro->seq || prepro->seq->type == SEQ_REGULAR || prepro->seq->type == SEQ_FITSEQ || prepro->seq->type == SEQ_SER ) {
 			debayer_if_needed(TYPEFITS, fit, TRUE);
 		}
@@ -476,13 +476,13 @@ void clear_preprocessing_data(struct preprocessing_data *prepro) {
 	if (prepro->use_flat && prepro->flat)
 		clearfits(prepro->flat);
 	if (prepro->dev)
-		free(prepro->dev);
+		siril_free(prepro->dev);
 }
 
 static int prepro_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	clear_preprocessing_data((struct preprocessing_data *)args->user);
-	free(args->user);
+	siril_free(args->user);
 	return retval;
 }
 
@@ -512,7 +512,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 		DATA_USHORT : DATA_FLOAT;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(prepro->ppprefix);
+		siril_free(prepro->ppprefix);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -549,7 +549,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 			// make the result the open image
 			clearfits(com.uniq->fit);
 			if (com.uniq->filename)
-				free(com.uniq->filename);
+				siril_free(com.uniq->filename);
 
 			memcpy(com.uniq->fit, &fit, sizeof(fits));
 			com.uniq->nb_layers = fit.naxes[2];
@@ -558,7 +558,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 		}
 		else clearfits(&fit);
 
-		free(filename_noext);
+		siril_free(filename_noext);
 		g_free(dest_filename);
 		g_free(msg);
 	}
@@ -591,7 +591,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
 		siril_log_message(_("Saving image %s\n"), filename_noext);
 		ret = savefits(dest_filename, &fit);
-		free(filename_noext);
+		siril_free(filename_noext);
 		g_free(dest_filename);
 		clearfits(&fit);
 	}
@@ -723,7 +723,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					error = _("NOT USING OFFSET: could not parse the expression\n");
 					has_error = TRUE;
 				} else {
-					args->bias = calloc(1, sizeof(fits));
+					args->bias = siril_calloc(1, sizeof(fits));
 					set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
 					if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
 						if (args->bias->naxes[2] != gfit.naxes[2]) {
@@ -747,7 +747,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
 				if (args->bias)
-					free(args->bias);
+					siril_free(args->bias);
 				args->use_bias = FALSE;
 				has_error = TRUE;
 			}
@@ -770,7 +770,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				has_error = TRUE;
 			} else {
 				set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
-				args->dark = calloc(1, sizeof(fits));
+				args->dark = siril_calloc(1, sizeof(fits));
 				if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
 					if (args->dark->naxes[2] != gfit.naxes[2]) {
 						error = _("NOT USING DARK: number of channels is different");
@@ -880,7 +880,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				has_error = TRUE;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-				args->flat = calloc(1, sizeof(fits));
+				args->flat = siril_calloc(1, sizeof(fits));
 				if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
 					if (args->flat->naxes[2] != gfit.naxes[2]) {
 						error = _("NOT USING FLAT: number of channels is different");
@@ -894,12 +894,12 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 
 				} else error = _("NOT USING FLAT: cannot open the file");
 			}
-			g_free(expression); // expression not used again after here, free before it falls out of scope
+			g_free(expression); // expression not used again after here, siril_free before it falls out of scope
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
 				if (args->flat)
-					free(args->flat);
+					siril_free(args->flat);
 				args->use_flat = FALSE;
 				has_error = TRUE;
 			}
@@ -935,10 +935,10 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
 	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 
-	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
+	struct preprocessing_data *args = siril_calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
 		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
-		free(args);
+		siril_free(args);
 		return;
 	}
 
@@ -975,7 +975,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 
 		retval = calibrate_single_image(args);
 
-		free(args);
+		siril_free(args);
 
 		if (retval)
 			set_progress_bar_data(_("Error in preprocessing."), PROGRESS_NONE);

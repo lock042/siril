@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2023 team siril_free-astro (see more in AUTHORS file)
+ * Reference site is https://siril_free-astro.org/index.php/Siril
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -73,7 +73,7 @@ int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	guide_roi->naxes[2] = nchans;
 	guide_roi->naxis = nchans == 1 ? 2 : 3;
 	if (guide->type == DATA_FLOAT) {
-		guide_roi->fdata = malloc(npixels_roi * nchans * sizeof(float));
+		guide_roi->fdata = siril_malloc(npixels_roi * nchans * sizeof(float));
 		if (!guide_roi->fdata)
 			retval = 1;
 		guide_roi->fpdata[0] = gui.roi.fit.fdata;
@@ -87,7 +87,7 @@ int match_guide_to_roi(fits *guide, fits *guide_roi) {
 			}
 		}
 	} else {
-		guide_roi->data = malloc(npixels_roi * nchans * sizeof(WORD));
+		guide_roi->data = siril_malloc(npixels_roi * nchans * sizeof(WORD));
 		if (!guide_roi->data)
 			retval = 1;
 		guide_roi->pdata[0] = gui.roi.fit.data;
@@ -160,14 +160,14 @@ int edge_preserving_filter(struct epfargs *args) {
 			cvBilateralFilter(fit, d, eps, sigma_space);
 			break;
 		case EP_GUIDED:
-			guide_roi = calloc(1, sizeof(fits));
+			guide_roi = siril_calloc(1, sizeof(fits));
 			roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
 			guidance = roi_fitting_needed ? guide_roi : guide;
 			cvGuidedFilter(fit, guidance, d, eps);
 			clearfits(guide_roi);
-			free(guide_roi);
+			siril_free(guide_roi);
 			break;
 	}
 	if (mod < (1.0 - DBL_EPSILON)) {
@@ -211,7 +211,7 @@ int edge_preserving_filter(struct epfargs *args) {
 	}
 
 	if (args->guide_needs_freeing)
-		free(args->guidefit);
-	free(args);
+		siril_free(args->guidefit);
+	siril_free(args);
 	return 0;
 }

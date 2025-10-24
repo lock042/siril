@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -352,7 +352,7 @@ void update_mouse_actions_from_treeview(GtkTreeView *tree_view) {
 	}
 	if (validate_mouse_actions(new_mouse_actions)) {
 		if (gui.mouse_actions) {
-			g_slist_free_full(gui.mouse_actions, free);
+			g_slist_free_full(gui.mouse_actions, siril_free);
 		}
 		gui.mouse_actions = new_mouse_actions;
 		fill_mouse_actions_list(FALSE);
@@ -605,7 +605,7 @@ void update_scroll_actions_from_treeview(GtkTreeView *tree_view) {
 	}
 	if (validate_scroll_actions(new_scroll_actions)) {
 		if (gui.scroll_actions) {
-			g_slist_free_full(gui.scroll_actions, free);
+			g_slist_free_full(gui.scroll_actions, siril_free);
 		}
 		gui.scroll_actions = new_scroll_actions;
 		fill_scroll_actions_list(FALSE);
@@ -651,14 +651,14 @@ void on_mouse_actions_reset_clicked(GtkButton *button, gpointer user_data) {
 	if (siril_confirm_dialog(_("Reset Mouse Actions"), _("This will reset all mouse button and scroll actions to the default settings. "
 							   "It is not possible to undo this and you will need to reconfigure any changes. Are you sure?"), _("Reset"))) {
 		if (gui.mouse_actions) {
-			g_slist_free_full(gui.mouse_actions, free);
+			g_slist_free_full(gui.mouse_actions, siril_free);
 			gui.mouse_actions = NULL;
 		}
 		initialize_mouse_actions();
 		fill_mouse_actions_list(FALSE);
 
 		if (gui.scroll_actions) {
-			g_slist_free_full(gui.scroll_actions, free);
+			g_slist_free_full(gui.scroll_actions, siril_free);
 			gui.scroll_actions = NULL;
 		}
 		initialize_scroll_actions();
@@ -804,7 +804,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 		gchar *input = (gchar*)current->data;
 		// Split the input string by commas
 		gchar **tokens = g_strsplit(input, ",", -1);
-		mouse_action *action = (mouse_action*) malloc(sizeof(mouse_action));
+		mouse_action *action = (mouse_action*) siril_malloc(sizeof(mouse_action));
 		if (tokens[0] && tokens[1] && tokens[2] && tokens[3]) {
 			// Convert the first and second parts to guint
 			action->button = g_ascii_strtoull(tokens[0], NULL, 10);
@@ -814,7 +814,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			mouse_function_ref reference = (mouse_function_ref) g_ascii_strtoull(tokens[3], NULL, 10);
 			if (reference == MOUSE_REF_NULL || reference >= MOUSE_REF_MAX || map_ref_to_metadata(reference) == &null_action) {
 				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
-				free(action);
+				siril_free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
 				continue;
@@ -822,7 +822,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 			action->data = map_ref_to_metadata(reference);
 			if (action->data == &null_action) {
 				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
-				free(action);
+				siril_free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
 				continue;
@@ -830,7 +830,7 @@ GSList *mouse_actions_config_to_list(GSList *config) {
 		} else {
 			// Handle error: input format is incorrect
 			siril_log_color_message(_("Warning: when parsing mouse action config, config string has incorrect format: \"%s\". Skipping..."), "salmon", input);
-			free(action);
+			siril_free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);
 			continue;
@@ -876,7 +876,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 		gchar *input = (gchar*)current->data;
 		// Split the input string by commas
 		gchar **tokens = g_strsplit(input, ",", -1);
-		scroll_action *action = (scroll_action*) malloc(sizeof(scroll_action));
+		scroll_action *action = (scroll_action*) siril_malloc(sizeof(scroll_action));
 		if (tokens[0] && tokens[1] && tokens[2]) {
 			// Convert the first and second parts to guint
 			action->direction = g_ascii_strtoull(tokens[0], NULL, 10);
@@ -885,7 +885,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			scroll_function_ref reference = (scroll_function_ref) g_ascii_strtoull(tokens[2], NULL, 10);
 			if (reference == SCROLL_REF_NULL || reference >= SCROLL_REF_MAX || map_scroll_ref_to_metadata(reference) == &scroll_null_action) {
 				siril_log_color_message(_("Warning: when parsing mouse action config, config string parsed to an unknown function: \"%s\". Skipping..."), "salmon", input);
-				free(action);
+				siril_free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
 				continue;
@@ -893,7 +893,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 			action->data = map_scroll_ref_to_metadata(reference);
 			if (action->data == &scroll_null_action) {
 				siril_log_color_message(_("Warning: when parsing scroll action config, string parsed to an unknown function: \"%s\". Skipping...\n"), "salmon", input);
-				free(action);
+				siril_free(action);
 				g_strfreev(tokens);
 				current = g_slist_next(current);
 				continue;
@@ -901,7 +901,7 @@ GSList *scroll_actions_config_to_list(GSList *config) {
 		} else {
 			// Handle error: input format is incorrect
 			siril_log_color_message(_("Warning: when parsing mouse action config, string has incorrect format: \"%s\". Skipping...\n"), "salmon", input);
-			free(action);
+			siril_free(action);
 			g_strfreev(tokens);
 			current = g_slist_next(current);
 			continue;

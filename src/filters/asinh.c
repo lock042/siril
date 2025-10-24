@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -56,7 +56,7 @@ static int asinh_update_preview() {
 void asinh_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
@@ -424,7 +424,7 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	copy_backup_to_gfit();
 	// Update the preview if the parameters have changed
 	if (prev_stretch != 0.0 || prev_bp != 0.0) {
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = asinh_update_preview;
 		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 		notify_update((gpointer) param);
@@ -434,7 +434,7 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 /*** adjusters **/
 void on_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
 	asinh_stretch_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
@@ -442,7 +442,7 @@ void on_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_black_point_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
 	asinh_black_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
@@ -450,7 +450,7 @@ void on_black_point_spin_asinh_value_changed(GtkSpinButton *button, gpointer use
 
 void on_asinh_RGBspace_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	asinh_rgb_space = gtk_toggle_button_get_active(togglebutton);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
@@ -464,7 +464,7 @@ void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	} else {
 		copy_gfit_to_backup();
 
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = asinh_update_preview;
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
@@ -473,7 +473,7 @@ void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_asinh_clipmode_changed(GtkComboBox *combo, gpointer user_data) {
 	clip_mode = (clip_mode_t) gtk_combo_box_get_active(combo);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);

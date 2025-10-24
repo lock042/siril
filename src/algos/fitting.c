@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -238,8 +238,8 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
 		ssize_t j = 0;
-		double *x = malloc(ref_size * sizeof(double));
-		double *y = malloc(ref_size * sizeof(double));
+		double *x = siril_malloc(ref_size * sizeof(double));
+		double *y = siril_malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
 			if (inInterval(reference_fit->pdata[channel][i], low, high) && (reference_fit->pdata[channel][i] != 0)) {
 				if (target_fit->type == DATA_FLOAT && (target_fit->fpdata[channel][i] != 0)) {
@@ -255,8 +255,8 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 		if (j > 1) {
 			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
 			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-			free(x);
-			free(y);
+			siril_free(x);
+			siril_free(y);
 			a[channel] = c1;
 			b[channel] = c0;
 		} else {
@@ -264,8 +264,8 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 			if (error) {
 				*error = err;
 			}
-			free(x);
-			free(y);
+			siril_free(x);
+			siril_free(y);
 			return -1;
 		}
 	}
@@ -288,8 +288,8 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 	siril_log_color_message(_("Linear fit functions:\n"), "green");
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
 		ssize_t j = 0;
-		double *x = malloc(ref_size * sizeof(double));
-		double *y = malloc(ref_size * sizeof(double));
+		double *x = siril_malloc(ref_size * sizeof(double));
+		double *y = siril_malloc(ref_size * sizeof(double));
 		for (size_t i = 0; i < ref_size; i++) {
 			if (inInterval(reference_fit->fpdata[channel][i], low, high) && (reference_fit->fpdata[channel][i] != 0)) {
 				if (target_fit->type == DATA_FLOAT && (target_fit->fpdata[channel][i] != 0)) {
@@ -305,8 +305,8 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 		if (j > 1) {
 			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
 			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-			free(x);
-			free(y);
+			siril_free(x);
+			siril_free(y);
 			a[channel] = c1;
 			b[channel] = c0;
 		} else {
@@ -314,8 +314,8 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 			if (error) {
 				*error = err;
 			}
-			free(x);
-			free(y);
+			siril_free(x);
+			siril_free(y);
 			return -1;
 		}
 	}

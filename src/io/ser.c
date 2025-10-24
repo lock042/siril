@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -56,7 +56,7 @@ static int display_date(guint64 timestamp, char *txt) {
 	if (date) {
 		gchar *str = date_time_to_FITS_date(date);
 		siril_log_message("%s%s\n", txt, str);
-		free(str);
+		siril_free(str);
 		g_date_time_unref(date);
 	}
 	return SER_OK;
@@ -109,7 +109,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
 	/* Check if file is large enough to have timestamps */
 	if (ser_file->filesize >= offset + (8 * ser_file->frame_count)) {
-		ser_file->ts = calloc(8, ser_file->frame_count);
+		ser_file->ts = siril_calloc(8, ser_file->frame_count);
 		if (!ser_file->ts) {
 			PRINT_ALLOC_ERR;
 			return SER_OK;
@@ -522,7 +522,7 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
 	omp_set_lock(&ser_file->ts_lock);
 #endif
 	if (ser_file->ts_alloc <= frame_no) {
-		guint64 *new = realloc(ser_file->ts, (frame_no + 1) * 2 * sizeof(guint64));
+		guint64 *new = siril_realloc(ser_file->ts, (frame_no + 1) * 2 * sizeof(guint64));
 		if (!new) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -554,8 +554,8 @@ gboolean ser_is_cfa(const struct ser_struct *ser_file) {
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 	int i = 0;
 	if (ser_file->ts)
-		free(ser_file->ts);
-	ser_file->ts = calloc(sizeof(guint64), ser_file->frame_count);
+		siril_free(ser_file->ts);
+	ser_file->ts = siril_calloc(sizeof(guint64), ser_file->frame_count);
 	if (!ser_file->ts) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -614,7 +614,7 @@ static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
 	if (ser_file->writer) {
 		retval = stop_writer(ser_file->writer, abort);
 		ser_file->frame_count = ser_file->writer->frame_count;
-		free(ser_file->writer);
+		siril_free(ser_file->writer);
 		ser_file->writer = NULL;
 	}
 	return retval;
@@ -629,7 +629,7 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 	siril_log_message(_("Removing failed SER file: %s\n"), filename);
 	if (g_unlink(filename))
 		siril_debug_print("Error unlinking file\n");
-	free(filename);
+	siril_free(filename);
 	return retval;
 }
 
@@ -685,7 +685,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		ser_file->number_of_planes = 0;	// used as an indicator of new SER
 
 		if (copy_from->ts && copy_from->frame_count > 0) {
-			ser_file->ts = calloc(8, copy_from->frame_count);
+			ser_file->ts = siril_calloc(8, copy_from->frame_count);
 			if (!ser_file->ts) {
 				PRINT_ALLOC_ERR;
 			}
@@ -712,7 +712,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	omp_init_lock(&ser_file->fd_lock);
 	omp_init_lock(&ser_file->ts_lock);
 #endif
-	ser_file->writer = malloc(sizeof(struct seqwriter_data));
+	ser_file->writer = siril_malloc(sizeof(struct seqwriter_data));
 	ser_file->writer->write_image_hook = ser_write_image_for_writer;
 	ser_file->writer->sequence = ser_file;
 	ser_file->writer->output_type = SEQ_SER;
@@ -770,11 +770,11 @@ int ser_close_file(struct ser_struct *ser_file) {
 		ser_file->file = NULL;
 	}
 	if (ser_file->file_id)
-		free(ser_file->file_id);
+		siril_free(ser_file->file_id);
 	if (ser_file->ts)
-		free(ser_file->ts);
+		siril_free(ser_file->ts);
 	if (ser_file->filename)
-		free(ser_file->filename);
+		siril_free(ser_file->filename);
 #ifdef _OPENMP
 	omp_destroy_lock(&ser_file->fd_lock);
 	omp_destroy_lock(&ser_file->ts_lock);
@@ -843,10 +843,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	read_size = frame_size * ser_file->byte_pixel_depth;
 
 	olddata = fit->data;
-	if ((fit->data = realloc(fit->data, frame_size * sizeof(WORD))) == NULL) {
+	if ((fit->data = siril_realloc(fit->data, frame_size * sizeof(WORD))) == NULL) {
 		PRINT_ALLOC_ERR;
 		if (olddata)
-			free(olddata);
+			siril_free(olddata);
 		return SER_GENERIC_ERROR;
 	}
 
@@ -901,7 +901,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		swap = 2;
 		/* no break */
 	case SER_RGB:
-		tmp = malloc(frame_size * sizeof(WORD));
+		tmp = siril_malloc(frame_size * sizeof(WORD));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
@@ -919,7 +919,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 			fit->pdata[1][j] = tmp[i + GLAYER];
 			fit->pdata[2 - swap][j] = tmp[i + BLAYER];
 		}
-		free(tmp);
+		siril_free(tmp);
 		break;
 	case SER_BAYER_CYYM:
 	case SER_BAYER_YCMY:
@@ -1024,7 +1024,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	if (layer != -1 || area->w != ser_file->image_width) {
 		// allocated space is probably not enough to
 		// store whole lines or RGB data
-		read_buffer = malloc(read_size);
+		read_buffer = siril_malloc(read_size);
 		if (!read_buffer) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
@@ -1082,7 +1082,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 		}
 	}
 	if (layer != -1 || area->w != ser_file->image_width)
-		free(read_buffer);
+		siril_free(read_buffer);
 	return retval;
 }
 
@@ -1126,13 +1126,13 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		get_debayer_area(area, &debayer_area, &image_area, &xoffset, &yoffset);
 
 		// allocating a buffer for WORD because it's going to be converted in-place
-		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
+		rawbuf = siril_malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
 		}
 		if (read_area_from_image(ser_file, frame_no, rawbuf, &debayer_area, -1)) {
-			free(rawbuf);
+			siril_free(rawbuf);
 			return SER_GENERIC_ERROR;
 		}
 		ser_manage_endianess_and_depth(ser_file, rawbuf, (gint64) debayer_area.w * debayer_area.h);
@@ -1143,7 +1143,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		sensor_pattern sensortmp = convert_color_id_to_bayer_pattern(type_ser);
 		demosaiced_buf = debayer_buffer_new_ushort(rawbuf, &debayer_area.w,
 				&debayer_area.h, BAYER_BILINEAR, sensortmp, NULL, ser_file->bit_pixel_depth);
-		free(rawbuf);
+		siril_free(rawbuf);
 		if (!demosaiced_buf)
 			return SER_GENERIC_ERROR;
 
@@ -1158,7 +1158,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 			}
 		}
 
-		free(demosaiced_buf);
+		siril_free(demosaiced_buf);
 		break;
 
 	case SER_BGR:
@@ -1253,13 +1253,13 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 			(gint64)ser_file->byte_pixel_depth * (gint64)frame_no;
 
 	if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) {
-		data8 = malloc(frame_size * ser_file->byte_pixel_depth);
+		data8 = siril_malloc(frame_size * ser_file->byte_pixel_depth);
 		if (!data8) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
 		}
 	} else {
-		data16 = malloc(frame_size * ser_file->byte_pixel_depth);
+		data16 = siril_malloc(frame_size * ser_file->byte_pixel_depth);
 		if (!data16) {
 			PRINT_ALLOC_ERR;
 			return SER_GENERIC_ERROR;
@@ -1325,8 +1325,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	}
 
 free_and_quit:
-	if (data8) free(data8);
-	if (data16) free(data16);
+	if (data8) siril_free(data8);
+	if (data16) siril_free(data16);
 	return retval;
 }
 
@@ -1350,8 +1350,8 @@ int import_metadata_from_serfile(const struct ser_struct *ser_file, fits *to) {
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
-	free(pixels);
-	free(data);
+	siril_free(pixels);
+	siril_free(data);
 	return FALSE;
 }
 
@@ -1374,7 +1374,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	if (ser_open_file(filename, &ser)) {
 		return NULL;
 	}
-	float *pix = malloc(MAX_SIZE * sizeof(float));
+	float *pix = siril_malloc(MAX_SIZE * sizeof(float));
 	float *ima_data = NULL, *ptr = NULL, byte, n, max, min, wd, avr;
 	guchar *pixbuf_data = NULL;
 
@@ -1390,8 +1390,8 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		n_channels = 3;
 	}
 
-	ima_data = malloc(sz * n_channels * sizeof(float));
-	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
+	ima_data = siril_malloc(sz * n_channels * sizeof(float));
+	pixbuf_data = siril_malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
 
 	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
 
@@ -1412,9 +1412,9 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	j = (int) ceil((float) h / MAX_SIZE);
 	pixScale = (i > j) ? i : j;    // picture scale factor
 	if (pixScale == 0) {
-		free(ima_data);
-		free(pixbuf_data);
-		free(pix);
+		siril_free(ima_data);
+		siril_free(pixbuf_data);
+		siril_free(pix);
 		return NULL;
 	}
 	Ws = w / pixScale;             // picture width in pixScale blocks
@@ -1435,9 +1435,9 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 				ngettext("frame", "frames", n_frames));
 	}
 
-	float *pix_r = malloc(MAX_SIZE * sizeof(float));
-	float *pix_g = malloc(MAX_SIZE * sizeof(float));
-	float *pix_b = malloc(MAX_SIZE * sizeof(float));
+	float *pix_r = siril_malloc(MAX_SIZE * sizeof(float));
+	float *pix_g = siril_malloc(MAX_SIZE * sizeof(float));
+	float *pix_b = siril_malloc(MAX_SIZE * sizeof(float));
 
 	M = 0; // line number
 	for (i = 0; i < Hs; i++) { // cycle through a blocks by lines
@@ -1513,7 +1513,7 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		/* Convert interleaved (h,w,c) -> channel-major (c, h, w) for processing */
 		float *ima_ch = NULL;
 		if (n_channels > 1) {
-			ima_ch = malloc(prev_size * n_channels * sizeof(float));
+			ima_ch = siril_malloc(prev_size * n_channels * sizeof(float));
 			if (!ima_ch) {
 				// allocation failed: skip autostretch but continue gracefully
 				ima_ch = NULL;
@@ -1565,16 +1565,16 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 				/* mono: ima_ch == ima_data already updated */
 			}
 
-			/* Prevent clearfits from freeing the ima_ch memory (we own/free it) */
+			/* Prevent clearfits from freeing the ima_ch memory (we own/siril_free it) */
 			tmp->fdata = NULL;
 			tmp->fpdata[0] = NULL;
 			tmp->fpdata[1] = NULL;
 			tmp->fpdata[2] = NULL;
 			clearfits(tmp);
-			free(tmp);
+			siril_free(tmp);
 
 			if (n_channels > 1) {
-				free(ima_ch);
+				siril_free(ima_ch);
 			}
 		}
 	}
@@ -1655,12 +1655,12 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 			(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
 			NULL
 			);
-	free(ima_data);
-	free(pix);
+	siril_free(ima_data);
+	siril_free(pix);
 
-	free(pix_r);
-	free(pix_g);
-	free(pix_b);
+	siril_free(pix_r);
+	siril_free(pix_g);
+	siril_free(pix_b);
 
 	*descr = description;
 	return pixbuf;

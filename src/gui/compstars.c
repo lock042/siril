@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -247,7 +247,7 @@ static void manual_photometry_data (sequence *seq) {
 	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
 	siril_log_message("Star type        RA      DEC\n");
 	// Allocating final sorted list to the required size
-	cat_item *result = calloc(nb_ref_stars, sizeof(cat_item));
+	cat_item *result = siril_calloc(nb_ref_stars, sizeof(cat_item));
 	// Write the target star
 	fill_compstar_item(&result[0], sel_item[0].x, sel_item[0].y, 0.0, "V", "Target");
 	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"), sel_item[0].x, sel_item[0].y);
@@ -264,7 +264,7 @@ static void manual_photometry_data (sequence *seq) {
 	comp_sta->nbitems = nb_ref_stars;
 	comp_sta->nbincluded = nb_ref_stars;
 	// Fill the other catalogue  structure
-	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	struct compstars_arg *args = siril_calloc(1, sizeof(struct compstars_arg));
 
 	args->comp_stars = comp_sta;
 	args->nina_file = g_strdup(target_name);
@@ -275,12 +275,12 @@ static void manual_photometry_data (sequence *seq) {
 	args->cat = CAT_COMPSTARS;
 	// Finally create the csv file
 	write_nina_file(args);
-	// and free the stuff
+	// and siril_free the stuff
 	siril_catalog_free(comp_sta);
 	g_free(args->nina_file);
 	g_free(target_name);
 	g_free(entered_target_name);
-	free(args);
+	siril_free(args);
 }
 
 // The process to perform an **Automatic** Compstar List
@@ -321,7 +321,7 @@ static void auto_photometry_data () {
 	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	struct compstars_arg *args = siril_calloc(1, sizeof(struct compstars_arg));
 	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
 	g_free(target_name);
@@ -334,7 +334,7 @@ static void auto_photometry_data () {
 
 	if(!start_in_new_thread(compstars_worker, args)) {
 		g_free(args->target_name);
-		free(args);
+		siril_free(args);
 	}
 }
 

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -153,8 +153,8 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
 
-	free(args->content);
-	free(args);
+	siril_free(args->content);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -167,7 +167,7 @@ void check_gaia_archive_status() {
 		siril_log_color_message("%s\n", "red", text);
 		return;
 	}
-	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
+	fetch_url_async_data *args = siril_calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/latest_check_value.out");
 	args->idle_function = end_gaiacheck_idle;
 	g_thread_unref(g_thread_new("gaia-status-check", fetch_url_async, args));
@@ -181,14 +181,14 @@ static void start_photometric_cc(gboolean spcc) {
 		return;
 	}
 
-	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	struct photometric_cc_data *pcc_args = siril_calloc(1, sizeof(struct photometric_cc_data));
 	set_bg_sigma(pcc_args);
 	if (spcc) {
 		pcc_args->catalog = get_spcc_catalog_from_GUI();
 		siril_debug_print(_("Using Gaia DR3 for SPCC\n"));
 		pcc_args->spcc = TRUE;
 		if (set_spcc_args(pcc_args)) {
-			free(pcc_args);
+			siril_free(pcc_args);
 			return;
 		}
 	} else {
@@ -207,7 +207,7 @@ static void start_photometric_cc(gboolean spcc) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!start_in_new_thread(photometric_cc_standalone, pcc_args)) {
 		g_free(pcc_args->datalink_path);
-		free(pcc_args);
+		siril_free(pcc_args);
 	}
 }
 

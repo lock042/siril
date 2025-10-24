@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -69,7 +69,7 @@ static fits *create_image(int w, int h, int layers) {
 }
 
 int test_ser_image_number() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE1, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
@@ -81,14 +81,14 @@ int test_ser_image_number() {
 	CHECK(!ser_write_and_close(ser), "close file\n");
 	CHECK(!ser_open_file(TMP_FILE1, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
-	free(ser);
+	siril_free(ser);
 	CHECK(!unlink(TMP_FILE1), "error unlinking file " TMP_FILE1);
 	fprintf(stdout, "* test 1 passed *\n\n");
 	return 0;
 }
 
 int test_ser_image_overwrite() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE2, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
@@ -99,14 +99,14 @@ int test_ser_image_overwrite() {
 
 	CHECK(ser_open_file(TMP_FILE2, ser), "reopen found a file\n");
 
-	free(ser);
+	siril_free(ser);
 	unlink(TMP_FILE2);
 	fprintf(stdout, "* test 2 passed *\n\n");
 	return 0;
 }
 
 int test_ser_image_sizes() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE3, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
@@ -117,7 +117,7 @@ int test_ser_image_sizes() {
 
 	CHECK(ser_open_file(TMP_FILE3, ser), "reopen found a file\n");
 
-	free(ser);
+	siril_free(ser);
 	unlink(TMP_FILE3);
 	fprintf(stdout, "* test 3 passed *\n\n");
 	return 0;
@@ -128,7 +128,7 @@ static void set_fits_date(fits *fit, gint64 time) {
 }
 
 int test_ser_dates() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE4, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
@@ -152,14 +152,14 @@ int test_ser_dates() {
 	CHECK(g_date_time_to_unix(ser_timestamp_to_date_time(ser->ts[2])) == 300,
 			"third image date is wrong\n");
 
-	free(ser);
+	siril_free(ser);
 	CHECK(!unlink(TMP_FILE4), "error unlinking file " TMP_FILE4);
 	fprintf(stdout, "* test 4 passed *\n\n");
 	return 0;
 }
 
 int test_ser_with_holes() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE5, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
@@ -173,14 +173,14 @@ int test_ser_with_holes() {
 	CHECK(!ser_open_file(TMP_FILE5, ser), "reopen\n");
 	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 
-	free(ser);
+	siril_free(ser);
 	CHECK(!unlink(TMP_FILE5), "error unlinking file " TMP_FILE5);
 	fprintf(stdout, "* test 5 passed *\n\n");
 	return 0;
 }
 
 int test_ser_ooo_write() {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	CHECK(!ser_create_file(TMP_FILE6, ser, TRUE, NULL), "create file\n");
 	CHECK(!ser_write_frame_from_fit(ser, NULL, 0), "writing image\n");
@@ -208,14 +208,14 @@ int test_ser_ooo_write() {
 	CHECK(g_date_time_to_unix(ser_timestamp_to_date_time(ser->ts[2])) == 300,
 			"third image date is wrong\n");
 
-	free(ser);
+	siril_free(ser);
 	CHECK(!unlink(TMP_FILE6), "error unlinking file " TMP_FILE6);
 	fprintf(stdout, "* test 6 passed *\n\n");
 	return 0;
 }
 
 static struct ser_struct *create_fake_ser(int w, int h, int with_nb_frames, char *obs, guint64 utc) {
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 	ser->file_id = strdup("LUCAM-RECORDER");
 	ser->lu_id = 0;
@@ -232,7 +232,7 @@ static struct ser_struct *create_fake_ser(int w, int h, int with_nb_frames, char
 	ser->date_utc = utc;
 	ser->byte_pixel_depth = SER_PIXEL_DEPTH_16;
 	ser->number_of_planes = 1;
-	ser->ts = malloc(with_nb_frames * sizeof(guint64));
+	ser->ts = siril_malloc(with_nb_frames * sizeof(guint64));
 	ser->ts_alloc = with_nb_frames;
 	return ser;
 }
@@ -241,7 +241,7 @@ int test_ser_create_from_copy() {
 	char *observer_str = "super observer";
 	guint64 utc_time = (guint64)100;
 	struct ser_struct *orig = create_fake_ser(20, 10, 3, observer_str, utc_time);
-	struct ser_struct *ser = malloc(sizeof(struct ser_struct));
+	struct ser_struct *ser = siril_malloc(sizeof(struct ser_struct));
 	ser_init_struct(ser);
 
 	CHECK(!ser_create_file(TMP_FILE7, ser, TRUE, orig), "create file\n");
@@ -268,7 +268,7 @@ int test_ser_create_from_copy() {
 			"first image date is wrong\n");
 	CHECK(g_date_time_to_unix(ser_timestamp_to_date_time(ser->ts[1])) == 200,
 			"second image date is wrong\n");
-	free(ser);
+	siril_free(ser);
 
 	CHECK(!unlink(TMP_FILE7), "error unlinking file " TMP_FILE7);
 	fprintf(stdout, "* test 7 passed *\n\n");

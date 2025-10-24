@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -144,7 +144,7 @@ static int curves_update_preview();
 
 static void curves_update_image() {
 	set_cursor_waiting(TRUE);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = curves_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(curves_preview_check);
 	notify_update((gpointer) param);
@@ -565,14 +565,14 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		struct curve_params params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
 																									do_channel[1],
 																									do_channel[2]}};
-		struct curve_data *args = calloc(1, sizeof(struct mtf_data));
+		struct curve_data *args = siril_calloc(1, sizeof(struct mtf_data));
 
 		args->params = params;
 		args->seq_entry = strdup(gtk_entry_get_text(curves_seq_entry));
 		args->seq = &com.seq;
 		// If entry text is empty, set the sequence prefix to default 'curve_'
 		if (args->seq_entry && args->seq_entry[0] == '\0') {
-			free(args->seq_entry);
+			siril_free(args->seq_entry);
 			args->seq_entry = strdup("stretch_");
 		}
 
@@ -610,7 +610,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 int curve_finalize_hook(struct generic_seq_args *args) {
 	struct curve_data *curve_data = (struct curve_data *) args->user;
 	int return_value = seq_finalize_hook(args);
-	free(curve_data);
+	siril_free(curve_data);
 	return return_value;
 }
 
@@ -637,8 +637,8 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 	curve_args->fit = NULL;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(curve_args->seq_entry);
-		free(curve_args);
+		siril_free(curve_args->seq_entry);
+		siril_free(curve_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }

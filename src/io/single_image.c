@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -109,7 +109,7 @@ static gboolean free_image_data_gui(gpointer p) {
 	reset_display_offset();
 	reset_menu_toggle_button();
 	reset_zoom_default();
-	free(gui.qphot);
+	siril_free(gui.qphot);
 	gui.qphot = NULL;
 	gui.show_wcs_disto = FALSE;
 	clear_sensor_tilt();
@@ -119,11 +119,11 @@ static gboolean free_image_data_gui(gpointer p) {
 	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
 	siril_debug_print("free_image_data_idle() complete\n");
 
-	/* free display image data */
+	/* siril_free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
 		if (view->buf) {
-			free(view->buf);
+			siril_free(view->buf);
 			view->buf = NULL;
 		}
 		if (view->full_surface) {
@@ -160,10 +160,10 @@ void free_image_data() {
 	invalidate_gfit_histogram();
 
 	if (com.uniq) {
-		free(com.uniq->filename);
+		siril_free(com.uniq->filename);
 		com.uniq->fileexist = FALSE;
-		free(com.uniq->comment);
-		free(com.uniq);
+		siril_free(com.uniq->comment);
+		siril_free(com.uniq);
 		com.uniq = NULL;
 	}
 	/* this function frees resources used in the GUI, some of these resources
@@ -210,7 +210,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
 		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", filename);
-		free(realname);
+		siril_free(realname);
 		return 1;
 	}
 	if (imagetype == TYPESER || imagetype == TYPEAVI ||
@@ -220,7 +220,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			single_sequence = TRUE;
 		} else {
 			siril_log_color_message(_("Cannot open a sequence from here\n"), "red");
-			free(realname);
+			siril_free(realname);
 			return 1;
 		}
 	} else {
@@ -238,7 +238,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	if (realname_out)
 		*realname_out = realname;
 	else
-		free(realname);
+		siril_free(realname);
 	gui.file_ext_filter = (int) imagetype;
 	update_gain_from_gfit();
 	siril_add_idle(end_read_single_image, NULL);
@@ -254,7 +254,7 @@ gboolean end_open_single_image(gpointer arg) {
 
 /* filename will be freed when the unique file is closed */
 int create_uniq_from_gfit(char *filename, gboolean exists) {
-	com.uniq = calloc(1, sizeof(single));
+	com.uniq = siril_calloc(1, sizeof(single));
 	if (!com.uniq) {
 		PRINT_ALLOC_ERR;
 		return -1;
@@ -286,7 +286,7 @@ int open_single_image(const char* filename) {
 	/* first, close everything */
 	if (!retval) {
 		close_sequence(FALSE);	// closing a sequence if loaded
-		close_single_image();	// close the previous image and free resources
+		close_single_image();	// close the previous image and siril_free resources
 
 		/* open the new file */
 		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
@@ -295,7 +295,7 @@ int open_single_image(const char* filename) {
 		queue_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
-		free(realname);
+		siril_free(realname);
 		return 1;
 	}
 
@@ -308,7 +308,7 @@ int open_single_image(const char* filename) {
 		if (!com.headless)
 			execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
-		free(realname);
+		siril_free(realname);
 	}
 	gui_function(reset_cut_gui_filedependent, NULL);
 	check_gfit_profile_identical_to_monitor();

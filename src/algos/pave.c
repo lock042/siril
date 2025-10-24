@@ -2,7 +2,7 @@
 /*===========================================================================
   Copyright (C) 1995 European Southern Observatory (ESO)
 
-  This program is free software; you can redistribute it and/or
+  This program is siril_free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public License as
   published by the Free Software Foundation; either version 2 of
   the License, or (at your option) any later version.
@@ -175,7 +175,7 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 	Plan = Pave + (Nl * Nc * (Nbr_Plan - 1));
 	memcpy(Plan, Imag, Nl * Nc * sizeof(float));
 
-	free((char *) Imag);
+	siril_free((char *) Imag);
 
 	return 0;
 }

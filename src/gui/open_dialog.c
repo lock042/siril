@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -70,7 +70,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		int i;
 
 		nb_raw = get_nb_raw_supported();
-		raw = calloc(sizeof(char), nb_raw * 12 + 1); // we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
+		raw = siril_calloc(sizeof(char), nb_raw * 12 + 1); // we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
 		for (i = 0; i < nb_raw; i++) {
 			char *ext;
 			gchar *upcase;
@@ -89,7 +89,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		all_filter = g_string_append(all_filter, raw);
 
 
-		free(raw);
+		siril_free(raw);
 
 #endif
 		/* GRAPHICS FILES */
@@ -148,7 +148,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		int j;
 
 		nb_film = get_nb_film_ext_supported();
-		film_filter = calloc(sizeof(char), nb_film * 14 + 1);// we assume the extension size of 4 char "*.xxxx;*.XXXX;" = 14
+		film_filter = siril_calloc(sizeof(char), nb_film * 14 + 1);// we assume the extension size of 4 char "*.xxxx;*.XXXX;" = 14
 		for (j = 0; j < nb_film; j++) {
 			char *ext;
 			gchar *upcase;
@@ -168,7 +168,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		all_filter = g_string_append(all_filter, ";");
 		all_filter = g_string_append(all_filter, film_filter);
 
-		free(film_filter);
+		siril_free(film_filter);
 #endif
 		g_free(graphics_supported);
 		g_free(graphics_filter);

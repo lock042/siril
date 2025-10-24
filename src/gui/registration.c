@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -977,7 +977,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 		fits reffit = { 0 };
 		if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
 			siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
-			free(driz);
+			siril_free(driz);
 			clearfits(&reffit);
 			return 1;
 		}
@@ -986,16 +986,16 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 		clearfits(&reffit);
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
-			free(driz);
+			siril_free(driz);
 			return 1;
 		} else {
 			if (expression[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
-				free(driz);
+				siril_free(driz);
 				return 1;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-				driz->flat = calloc(1, sizeof(fits));
+				driz->flat = siril_calloc(1, sizeof(fits));
 				if (!readfits(expression, driz->flat, NULL, TRUE)) {
 					if (driz->flat->naxes[2] != com.seq.nb_layers) {
 						error = _("NOT USING FLAT: number of channels is different");
@@ -1012,9 +1012,9 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 					set_progress_bar_data(error, PROGRESS_DONE);
 					if (driz->flat) {
 						clearfits(driz->flat);
-						free(driz->flat);
+						siril_free(driz->flat);
 					}
-					free(driz);
+					siril_free(driz);
 					return 1;
 				}
 			}
@@ -1102,7 +1102,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->prefix = strdup(gtk_entry_get_text(regseqname_entry));
 		regargs->output_scale = (float)gtk_spin_button_get_value(reg_scaling_spin);
 		if (has_drizzle) {
-			regargs->driz = calloc(1, sizeof(struct driz_args_t));
+			regargs->driz = siril_calloc(1, sizeof(struct driz_args_t));
 			if (populate_drizzle_data(regargs->driz, regargs->seq)) {
 				return 1;
 			}
@@ -1132,7 +1132,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 #ifndef HAVE_CV44
 	if (regargs->type == SHIFT_TRANSFORMATION && is_star_align) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-		free(regargs->prefix);
+		siril_free(regargs->prefix);
 		return 1;
 	}
 #endif
@@ -1168,11 +1168,11 @@ int get_registration_layer_from_GUI(const sequence *seq) {
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
-	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
+	struct registration_args *regargs = siril_calloc(1, sizeof(struct registration_args));
 
 	char *msg;
 	if (fill_registration_structure_from_GUI(regargs)) {
-		free(regargs);
+		siril_free(regargs);
 		unreserve_thread();
 		return;
 	}
@@ -1180,7 +1180,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
 	if (ret) {
 		siril_log_message(_("Error: unable to read reference frame metadata\n"));
-		free(regargs);
+		siril_free(regargs);
 		unreserve_thread();
 		return;
 	}
@@ -1203,7 +1203,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	if (!start_in_reserved_thread(register_thread_func, regargs)) {
-		free(regargs);
+		siril_free(regargs);
 		unreserve_thread();
 	}
 }
@@ -1247,7 +1247,7 @@ gboolean end_register_idle(gpointer p) {
 			control_window_switch_to_tab(REGISTRATION); // if there are some warnings we stay on the Console tab
 	}
 
-	free(args->new_seq_name);
-	free(args);
+	siril_free(args->new_seq_name);
+	siril_free(args);
 	return FALSE;
 }

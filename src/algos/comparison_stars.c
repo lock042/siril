@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -102,7 +102,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		int length = g_strv_length(tokens);
 		for (int i = 0; i < length; i++) {
 			if (g_str_has_prefix(tokens[i], "# Siril: ")) {
-				args->metadata = calloc(1, sizeof(struct compstars_arg));
+				args->metadata = siril_calloc(1, sizeof(struct compstars_arg));
 				/* parse the siril header */
 				int nb = sscanf(tokens[i], "# Siril: %d stars, dVmag %lf, dBV %lf, max e_mag %lf",
 						&args->metadata->nb_comp_stars,
@@ -110,7 +110,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 						&args->metadata->delta_BV,
 						&args->metadata->max_emag);
 				if (nb != 4) {
-					free(args->metadata);
+					siril_free(args->metadata);
 					args->metadata = NULL;
 				}
 			}
@@ -118,7 +118,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		g_strfreev(tokens);
 	}
 
-	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
+	rectangle *areas = siril_malloc(MAX_REF_STARS * sizeof(rectangle));
 	areas[0].x = 0; areas[0].y = 0;
 	int stars_count = 0;
 	gboolean target_acquired = FALSE;
@@ -154,7 +154,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		args->areas = areas;
 		args->nb = stars_count;
 	} else {
-		free(areas);
+		siril_free(areas);
 	}
 	siril_catalog_free(siril_cat);
 	return !target_acquired;
@@ -181,7 +181,7 @@ static gboolean end_compstars(gpointer p) {
 			}
 		}
 	} else {
-		siril_catalog_free(args->comp_stars); // we don't free args->compstars if it's being used for the annotations
+		siril_catalog_free(args->comp_stars); // we don't siril_free args->compstars if it's being used for the annotations
 	}
 	g_free(args->nina_file);
 	siril_catalog_free(args->cat_stars);
@@ -190,7 +190,7 @@ static gboolean end_compstars(gpointer p) {
 	g_free(args->AAVSO_chartid);
 	g_free(args->AAVSO_uri);
 	redraw(REDRAW_OVERLAY);
-	free(args);
+	siril_free(args);
 	return end_generic(NULL);
 }
 
@@ -284,7 +284,7 @@ int sort_compstars(struct compstars_arg *args) {
 			args->target_star->mag, args->target_star->bmag - args->target_star->mag);
 
 	// we will just measure distance to center, we will copy them later
-	compstar_dist *sorter = calloc(args->cat_stars->nbincluded, sizeof(compstar_dist));
+	compstar_dist *sorter = siril_calloc(args->cat_stars->nbincluded, sizeof(compstar_dist));
 	int nb_phot_stars = 0;
 
 	// prepare the reference values
@@ -342,7 +342,7 @@ int sort_compstars(struct compstars_arg *args) {
 		args->comp_stars = siril_catalog_new(CAT_COMPSTARS);
 		args->comp_stars->columns |= (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
 		// allocating final sorted list to the required size
-		cat_item *result = calloc(nb_phot_stars + 1, sizeof(cat_item));
+		cat_item *result = siril_calloc(nb_phot_stars + 1, sizeof(cat_item));
 		// write the target star
 		fill_compstar_item(&result[0], args->target_star->ra, args->target_star->dec, args->target_star->mag, args->target_star->name, "Target");
 		// and write the stars sorted by radius
@@ -367,8 +367,8 @@ int sort_compstars(struct compstars_arg *args) {
 		args->comp_stars->nbincluded = nb_phot_stars + 1;
 		args->nb_comp_stars = nb_phot_stars;
 	}
-	// free the intermediate sorting list
-	free(sorter);
+	// siril_free the intermediate sorting list
+	siril_free(sorter);
 	// and log results
 	siril_log_message(_("%d comparison stars after sort.\n"), nb_phot_stars);
 	if (nb_phot_stars && args->nina_file)
@@ -456,7 +456,7 @@ gpointer compstars_worker(gpointer p) {
 		retval = 1;
 		goto end;
 	}
-	args->target_star = calloc(1, sizeof(cat_item));
+	args->target_star = siril_calloc(1, sizeof(cat_item));
 	siril_catalogue_copy_item(query_args->item, args->target_star);
 	if (!args->target_star) {
 		siril_log_color_message(_("No variable star selected\n"), "salmon");
@@ -500,7 +500,7 @@ end:
 	}
 	else if (!siril_add_idle(end_compstars, args)) {
 		args->has_GUI = FALSE;
-		end_compstars(args);	// we still need to free all
+		end_compstars(args);	// we still need to siril_free all
 	}
 	free_sky_object_query(query_args);
 	return GINT_TO_POINTER(retval);

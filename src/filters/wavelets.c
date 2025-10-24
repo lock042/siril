@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -146,7 +146,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 
 	/* Free */
 	if (fit->type == DATA_USHORT)
-		free(Imag);
+		siril_free(Imag);
 	return retval;
 }
 
@@ -156,7 +156,7 @@ static gboolean end_wavelets_filter(gpointer p) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
 
 	set_cursor_waiting(FALSE);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -215,7 +215,7 @@ void apply_wavelets_cancel() {
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_active = gtk_widget_get_sensitive(lookup_widget("frame_wavelets")) == TRUE;
 	if (is_active && wavelet_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = update_wavelets;
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
@@ -271,28 +271,28 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 
 	if (gfit.type == DATA_USHORT) {
 		size_t n = gfit.naxes[0] * gfit.naxes[1] * sizeof(float);
-		float *Imag = malloc(n);
+		float *Imag = siril_malloc(n);
 		if (Imag) {
 			for (i = 0; i < nb_chan; i++) {
-				dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
+				dir[i] = siril_malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
 				strcpy(dir[i], tmpdir);
 				strcat(dir[i], G_DIR_SEPARATOR_S);
 				strcat(dir[i], File_Name_Transform[i]);
 				wavelet_transform_file(Imag, gfit.ry, gfit.rx, dir[i],
 						Type_Transform, Nbr_Plan, gfit.pdata[i]);
-				free(dir[i]);
+				siril_free(dir[i]);
 			}
-			free(Imag);
+			siril_free(Imag);
 		}
 	} else {
 		for (i = 0; i < nb_chan; i++) {
-			dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
+			dir[i] = siril_malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
 			strcpy(dir[i], tmpdir);
 			strcat(dir[i], G_DIR_SEPARATOR_S);
 			strcat(dir[i], File_Name_Transform[i]);
 			wavelet_transform_file_float(gfit.fpdata[i], gfit.ry, gfit.rx, dir[i],
 					Type_Transform, Nbr_Plan);
-			free(dir[i]);
+			siril_free(dir[i]);
 		}
 	}
 	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
@@ -330,13 +330,13 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct wavelets_filter_data *args = calloc(1, sizeof(struct wavelets_filter_data));
+	struct wavelets_filter_data *args = siril_calloc(1, sizeof(struct wavelets_filter_data));
 
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = &gfit;
 	if (!start_in_new_thread(extract_plans, args))
-		free(args);
+		siril_free(args);
 }
 
 void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {
@@ -355,7 +355,7 @@ void on_spinbutton_plans_w_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_w0_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[0] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -363,7 +363,7 @@ void on_spin_w0_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_w1_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[1] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -371,7 +371,7 @@ void on_spin_w1_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_w2_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[2] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -379,7 +379,7 @@ void on_spin_w2_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_w3_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[3] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -387,7 +387,7 @@ void on_spin_w3_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_w4_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[4] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -395,7 +395,7 @@ void on_spin_w4_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_w5_value_changed(GtkSpinButton *button, gpointer user_data) {
 	wavelet_value[5] = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = update_wavelets;
 	param->show_preview = wavelet_show_preview;
 	notify_update((gpointer) param);
@@ -411,7 +411,7 @@ void on_wavelet_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	} else {
 		copy_gfit_to_backup();
 
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = update_wavelets;
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);

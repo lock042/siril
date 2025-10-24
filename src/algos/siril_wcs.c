@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -52,7 +52,7 @@ void reset_wcsdata(fits *fit) {
 void free_wcs(fits *fit) {
 	if (fit->keywords.wcslib) {
 		if (!wcsfree(fit->keywords.wcslib))
-			free(fit->keywords.wcslib);
+			siril_free(fit->keywords.wcslib);
 		fit->keywords.wcslib = NULL;
 	}
 }
@@ -67,7 +67,7 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 	nsub = 2;
 	axes[0] = WCSSUB_LONGITUDE;
 	axes[1] = WCSSUB_LATITUDE;
-	wcsdst = calloc(1, sizeof(wcsprm_t));
+	wcsdst = siril_calloc(1, sizeof(wcsprm_t));
 	if (!wcsdst) {
 		PRINT_ALLOC_ERR;
 		if (status)
@@ -130,7 +130,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						// siril_debug_print("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
 						siril_debug_print("wcs did not contain enough info\n");
-						free(wcs);
+						siril_free(wcs);
 						wcs = NULL;
 						break;
 					}
@@ -166,7 +166,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	}
 
 	wcs = load_WCS_from_hdr(header, nkeyrec);
-	free(header);
+	siril_free(header);
 
 	if (!wcs) {
 		siril_debug_print("No world coordinate systems found.\n");
@@ -265,12 +265,12 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 			y[i] = -1.0;
 	}
 	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta)
-	double *intcrd = malloc((2 * n) * sizeof(double));
-	double *pixcrd = malloc((2 * n) * sizeof(double));
-	double *phi = malloc(n * sizeof(double));
-	double *theta = malloc(n * sizeof(double));
+	double *intcrd = siril_malloc((2 * n) * sizeof(double));
+	double *pixcrd = siril_malloc((2 * n) * sizeof(double));
+	double *phi = siril_malloc(n * sizeof(double));
+	double *theta = siril_malloc(n * sizeof(double));
 	int c = 0;
-	int *status = calloc((unsigned)n , sizeof(int));
+	int *status = siril_calloc((unsigned)n , sizeof(int));
 	int globstatus = wcss2p(fit->keywords.wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
 	if (globstatus == WCSERR_SUCCESS || globstatus == WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
@@ -291,13 +291,13 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 			}
 		}
 	} else {
-		free(status);
+		siril_free(status);
 		status = NULL;
 	}
-	free(intcrd);
-	free(pixcrd);
-	free(phi);
-	free(theta);
+	siril_free(intcrd);
+	siril_free(pixcrd);
+	siril_free(phi);
+	siril_free(theta);
 	return status;
 }
 
@@ -586,7 +586,7 @@ wcsprm_t *wcs_copy_linear(wcsprm_t *prm_in) {
 	wcsprm_t *prm = wcs_deepcopy(prm_in, &status);
 	if (status != 0) {
 		siril_debug_print("wcs_copy_linear: error copying WCS structure: %d\n", status);
-		free(prm);
+		siril_free(prm);
 		return NULL;
 	}
 	remove_dis_from_wcs(prm);

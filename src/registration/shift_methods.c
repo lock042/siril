@@ -1,11 +1,11 @@
 
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -86,7 +86,7 @@ int register_shift_dft(struct registration_args *args) {
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-		current_regdata = calloc(args->seq->number, sizeof(regdata));
+		current_regdata = siril_calloc(args->seq->number, sizeof(regdata));
 		if (current_regdata == NULL) {
 			PRINT_ALLOC_ERR;
 			return -2;
@@ -109,7 +109,7 @@ int register_shift_dft(struct registration_args *args) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
-		free(current_regdata);
+		siril_free(current_regdata);
 		clearfits(&fit_ref);
 		return ret;
 	}
@@ -298,7 +298,7 @@ int register_shift_dft(struct registration_args *args) {
 		} else {
 			//report_fits_error(ret, error_buffer);
 			args->seq->regparam[args->layer] = NULL;
-			free(current_regdata);
+			siril_free(current_regdata);
 			abort = ret = 1;
 			continue;
 		}
@@ -313,7 +313,7 @@ int register_shift_dft(struct registration_args *args) {
 		siril_log_message(_("Registration finished.\n"));
 		siril_log_color_message(_("Best frame: #%d.\n"), "bold", q_index + 1);
 	} else {
-		free(args->seq->regparam[args->layer]);
+		siril_free(args->seq->regparam[args->layer]);
 		args->seq->regparam[args->layer] = NULL;
 	}
 	gettimeofday(&t_end, NULL);
@@ -366,7 +366,7 @@ int register_kombat(struct registration_args *args) {
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-		current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		current_regdata = (regdata*) siril_calloc(args->seq->number, sizeof(regdata));
 		if (current_regdata == NULL) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -400,7 +400,7 @@ int register_kombat(struct registration_args *args) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
-		free(current_regdata);
+		siril_free(current_regdata);
 		clearfits(&fit_ref);
 		clearfits(&fit_templ);
 		return 1;

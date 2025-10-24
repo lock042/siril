@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -53,12 +53,12 @@ void remove_tmp_upscaled_files(struct stacking_args *args) {
 
 	gchar *seqname;
 	int len = strlen(basename) + 5;
-	seqname = malloc(len);
+	seqname = siril_malloc(len);
 	g_snprintf(seqname, len, "%s.seq", basename);
 	siril_debug_print("Removing %s\n", seqname);
 	if (g_unlink(seqname))
 		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
-	free(seqname);
+	siril_free(seqname);
 	g_free(basename);
 
 	switch (args->seq->type) {
@@ -125,7 +125,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		return 0;
 
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
-	struct upscale_args *upargs = calloc(1, sizeof(struct upscale_args));
+	struct upscale_args *upargs = siril_calloc(1, sizeof(struct upscale_args));
 
 	upargs->factor = 2.;
 
@@ -148,7 +148,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	if (nb_threads == 0) {
 		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
 		stackargs->upscale_at_stacking = FALSE;
-		free(upargs);
+		siril_free(upargs);
 		free_generic_seq_args(args, TRUE);
 		return 0;
 	}
@@ -159,12 +159,12 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	generic_sequence_worker(args);
 
 	stackargs->retval = args->retval;
-	free(upargs);
-	free(args);
+	siril_free(upargs);
+	siril_free(args);
 
 	if (!stackargs->retval) {
 		gchar *basename = g_path_get_basename(stackargs->seq->seqname);
-		char *seqname = malloc(strlen(TMP_UPSCALED_PREFIX) + strlen(basename) + 5);
+		char *seqname = siril_malloc(strlen(TMP_UPSCALED_PREFIX) + strlen(basename) + 5);
 		sprintf(seqname, "%s%s.seq", TMP_UPSCALED_PREFIX, basename);
 		if (g_unlink(seqname))
 			siril_debug_print("g_unlink() failed\n");
@@ -172,17 +172,17 @@ int upscale_sequence(struct stacking_args *stackargs) {
 
 		// replace active sequence by upscaled
 		if (check_seq()) {	// builds the new .seq
-			free(seqname);
+			siril_free(seqname);
 			return 1;
 		}
 
 		sequence *oldseq = stackargs->seq;
 		sequence *newseq = readseqfile(seqname);
 		if (!newseq) {
-			free(seqname);
+			siril_free(seqname);
 			return 1;
 		}
-		free(seqname);
+		siril_free(seqname);
 
 		/* The original sequence and the up-scaled sequence differ by:
 		 * - size, managed in the seq_check_basic_data() call below
@@ -196,7 +196,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		 *   in stacking, they must be multiplied by the factor upscale_at_stacking.
 		 */
 		if (seq_check_basic_data(newseq, FALSE) == -1) {
-			free(newseq);
+			siril_free(newseq);
 			stackargs->retval = -1;
 			return stackargs->retval;
 		}
@@ -208,7 +208,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		newseq->reference_image = find_refimage_in_indices(stackargs->image_indices,
 				stackargs->nb_images_to_stack, stackargs->ref_image);
 		stackargs->ref_image = newseq->reference_image;
-		newseq->regparam[stackargs->reglayer] = malloc(stackargs->nb_images_to_stack * sizeof(regdata));
+		newseq->regparam[stackargs->reglayer] = siril_malloc(stackargs->nb_images_to_stack * sizeof(regdata));
 		int i;
 		for (i = 0; i < stackargs->nb_images_to_stack; i++) {
 			regdata *data = &oldseq->regparam[stackargs->reglayer][stackargs->image_indices[i]];
@@ -217,7 +217,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		}
 		stackargs->retval = stack_fill_list_of_unfiltered_images(stackargs);
 
-		// don't free oldseq, it's either still com.seq with GUI or freed in
+		// don't siril_free oldseq, it's either still com.seq with GUI or freed in
 		// stack_one_seq in scripts
 		delete_selected_area();
 	}

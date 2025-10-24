@@ -902,7 +902,7 @@ struct cominf {
 	rectangle selection;		// coordinates of the selection rectangle
 
 	psf_star **stars;		// list of stars detected in the current image
-	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
+	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't siril_free it
 	double magOffset;		// offset to reduce the real magnitude, single image
 
 	/* history of operations, for the FITS header and the undo feature */

@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -113,7 +113,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			}
 			rank++;
 		}
-		item = calloc(1, sizeof(cat_item));
+		item = siril_calloc(1, sizeof(cat_item));
 		item->mag = Vmag;
 		item->bmag = Bmag;
 		item->ra = ra;
@@ -184,7 +184,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			return 1;
 		}
 		// and preparing to store
-		item = calloc(1, sizeof(cat_item));
+		item = siril_calloc(1, sizeof(cat_item));
 		item->ra = ra;
 		item->dec = dec;
 		item->name = g_strdup(objname); // we use the offical name returned by the server
@@ -259,7 +259,7 @@ int cached_object_lookup(sky_object_query_args *args) {
 		gchar *result = search_in_online_catalogs(args);
 		if (result) {
 			parse_catalog_buffer(result, args);
-			free(result);
+			siril_free(result);
 		} else {
 			args->retval = 1;
 		}
@@ -414,7 +414,7 @@ static gchar *retrieve_site_coord(fits *fit) {
 }
 #endif
 
-// free the result with free
+// siril_free the result with siril_free
 char *search_in_online_catalogs(sky_object_query_args *args) {
 #ifndef HAVE_LIBCURL
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
@@ -513,7 +513,7 @@ gpointer catsearch_worker(gpointer p) {
 	gboolean found_it = !cached_object_lookup(args);
 
 	if (!com.script) { // we need to update GUI
-		siril_add_idle(end_process_catsearch, args); // this will free the args
+		siril_add_idle(end_process_catsearch, args); // this will siril_free the args
 	} else {
 		free_sky_object_query(args);
 	}

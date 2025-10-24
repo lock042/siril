@@ -31,7 +31,7 @@ extern  complex_float  **cf_matrix_alloc();
 extern  void    cf_matrix_free();
 */
 
-/* extern  char    *malloc(); */
+/* extern  char    *siril_malloc(); */
 
 
 /* error definitions */

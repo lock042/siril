@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -73,18 +73,18 @@ static void create_output_sequence_for_comet(struct registration_args *args, int
 
 	/* we are not interested in the whole path */
 	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
+	char *rseqname = siril_malloc(strlen(args->prefix) + strlen(seqname) + 5);
 	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
 	g_unlink(rseqname);	// remove previous to overwrite
 	args->new_seq_name = remove_ext_from_filename(rseqname);
-	free(rseqname);
+	siril_free(rseqname);
 	seq.seqname = strdup(args->new_seq_name);
 	seq.number = args->seq->number;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
+	seq.regparam = siril_calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number - 1].filenum;
@@ -108,8 +108,8 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	struct registration_args *regargs = cadata->regargs;
 
 	// allocate destination sequence data
-	regargs->imgparam = malloc(args->seq->number * sizeof(imgdata));
-	regargs->regparam = calloc(args->seq->number, sizeof(regdata));
+	regargs->imgparam = siril_malloc(args->seq->number * sizeof(imgdata));
+	regargs->regparam = siril_calloc(args->seq->number, sizeof(regdata));
 	if (!regargs->imgparam  || !regargs->regparam) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -137,7 +137,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
-		free(cadata->current_regdata);
+		siril_free(cadata->current_regdata);
 		return 1;
 	}
 	regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
@@ -145,7 +145,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	// we must copy the disto data from the originating sequence
 	if (layer_has_distortion(args->seq, regargs->layer)) {
 		disto_params *disto_orig = args->seq->distoparam;
-		cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
+		cadata->distoparam = siril_calloc(args->seq->nb_layers, sizeof(disto_params));
 		if (disto_orig[regargs->layer].index != DISTO_FILES) {
 			cadata->distoparam[regargs->layer].index = disto_orig[regargs->layer].index;
 			if (cadata->distoparam[regargs->layer].filename)
@@ -168,7 +168,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 
 	if (layer_has_registration(args->seq, regargs->layer)) { // we must keep track to correctly recompute astrometry during applyreg
 		if (!cadata->distoparam) // there was no distorsion in any layer
-			cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
+			cadata->distoparam = siril_calloc(args->seq->nb_layers, sizeof(disto_params));
 		cadata->distoparam[regargs->layer].index = DISTO_FILE_COMET;
 		cadata->distoparam[regargs->layer].velocity = regargs->velocity;
 		if (cadata->flipped)
@@ -243,7 +243,7 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 		regargs->load_new_sequence = TRUE;
 	}
 
-	free(cadata);
+	siril_free(cadata);
 	args->user = NULL;
 	new_ref_index = -1;
 	return 0;
@@ -275,7 +275,7 @@ int register_comet(struct registration_args *regargs) {
 	args->already_in_a_thread = TRUE;
 	args->stop_on_error = FALSE;
 
-	struct comet_align_data *cadata = calloc(1, sizeof(struct comet_align_data));
+	struct comet_align_data *cadata = siril_calloc(1, sizeof(struct comet_align_data));
 	if (!cadata) {
 		free_generic_seq_args(args, FALSE);
 		return -1;
@@ -286,6 +286,6 @@ int register_comet(struct registration_args *regargs) {
 	generic_sequence_worker(args);
 
 	regargs->retval = args->retval;
-	free(args);
+	siril_free(args);
 	return regargs->retval;
 }

@@ -12,7 +12,7 @@
 #include "core/siril.h"
 #include "io/seqwriter.h"
 
-/* This file is part of Siril, https://free-astro.org/
+/* This file is part of Siril, https://siril_free-astro.org/
  *
  * WARNING: the code in this file and its .c counterpart will not work properly
  * on big endian systems.

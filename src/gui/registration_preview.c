@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -153,12 +153,12 @@ void test_and_allocate_reference_image(int vport) {
 		struct image_view *view = &gui.view[vport];
 		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
 			guchar *oldbuf = gui.refimage_regbuffer;
-			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
+			gui.refimage_regbuffer = siril_realloc(gui.refimage_regbuffer,
 					view->full_surface_stride * gfit.ry * sizeof(guchar));
 			if (gui.refimage_regbuffer == NULL) {
 				PRINT_ALLOC_ERR;
 				if (oldbuf)
-					free(oldbuf);
+					siril_free(oldbuf);
 				return;
 			}
 
@@ -195,7 +195,7 @@ gboolean redraw_previews(gpointer user_data) {
 }
 
 void clear_previews() {
-	/* free alignment preview data */
+	/* siril_free alignment preview data */
 	for (int i = 0; i < PREVIEW_NB; i++) {
 		if (gui.preview_surface[i]) {
 			cairo_surface_destroy(gui.preview_surface[i]);
@@ -334,7 +334,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 
 	if (com.seq.regparam[current_layer] == NULL) {
 		printf("Allocating registration data for this layer\n");
-		com.seq.regparam[current_layer] = calloc(com.seq.number, sizeof(regdata));
+		com.seq.regparam[current_layer] = siril_calloc(com.seq.number, sizeof(regdata));
 		if (com.seq.regparam[current_layer] == NULL) {
 			PRINT_ALLOC_ERR;
 			return;

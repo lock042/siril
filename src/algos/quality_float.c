@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -56,7 +56,7 @@ double QualityEstimate_float(fits *fit, int layer) {
 	region_h = height - 1;
 
 	// Allocate the intermediate buffer. Will be 16bpp greyscale
-	buf = calloc((region_w / QSUBSAMPLE_MIN + 1) * (region_h / QSUBSAMPLE_MIN + 1), sizeof(float));
+	buf = siril_calloc((region_w / QSUBSAMPLE_MIN + 1) * (region_h / QSUBSAMPLE_MIN + 1), sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return -1.0;
@@ -145,7 +145,7 @@ double QualityEstimate_float(fits *fit, int layer) {
 	 histo_val = histo_val / (50 * 255 * 255);
 	 dval = dval * histo_val;
 	 */
-	free(buf);
+	siril_free(buf);
 	return dval;
 }
 
@@ -172,7 +172,7 @@ static double Gradient(const float *buf, int width, int height) {
 	double d1, d2;
 	double val;
 	float threshold = THRESHOLD_FLOAT;
-	unsigned char *map = calloc(width * height, sizeof(unsigned char));
+	unsigned char *map = siril_calloc(width * height, sizeof(unsigned char));
 	if (!map) {
 		PRINT_ALLOC_ERR;
 		return -1.0;
@@ -221,7 +221,7 @@ static double Gradient(const float *buf, int width, int height) {
 	val = val / (double)pixels; // normalise value to per-pixel
 	val = val / 10.0;
 end:
-	free(map);
+	siril_free(map);
 
 	return val;
 }

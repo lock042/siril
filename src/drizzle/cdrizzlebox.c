@@ -34,7 +34,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * The code as integrated into Siril is modified from the original
- * AURA code by team free-astro. */
+ * AURA code by team siril_free-astro. */
 
 #include "driz_portability.h"
 #include "cdrizzlemap.h"
@@ -660,7 +660,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
     pfo = (float)kernel_order * input_pixel_size_in_output;
 
     /* Allocate memory for Lanczos lookup table */
-    if ((lanczos.lut = malloc(nlut * sizeof(float))) == NULL) {
+    if ((lanczos.lut = siril_malloc(nlut * sizeof(float))) == NULL) {
         driz_error_set_message(p->error, _("Out of memory"));
         return driz_error_is_set(p->error);
     }
@@ -673,7 +673,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
     lanczos.nlut = nlut;
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) {
-        free(lanczos.lut);
+        siril_free(lanczos.lut);
         return 1;
     }
 
@@ -785,7 +785,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
                         dow = (float)(dover * w);
 
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
-                            free(lanczos.lut);
+                            siril_free(lanczos.lut);
                             return 1;
                         }
                     }
@@ -800,7 +800,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
     }
 
     /* Clean up allocated memory */
-    free(lanczos.lut);
+    siril_free(lanczos.lut);
     lanczos.lut = NULL;
 
     return 0;

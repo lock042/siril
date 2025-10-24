@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -385,7 +385,7 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 			}
 		}
 	}
-	brow[4] = calloc(width * 3, sizeof **brow);
+	brow[4] = siril_calloc(width * 3, sizeof **brow);
 	//merror (brow[4], "vng_interpolate()");
 	for (row = 0; row < 3; row++)
 		brow[row] = brow[4] + row * width;
@@ -447,7 +447,7 @@ static int bayer_VNG(const WORD *bayer, WORD *dst, int sx, int sy,
 			(width - 4) * 3 * sizeof *dst);
 	memcpy(dst + 3 * ((row - 1) * width + 2), brow[1] + 2,
 			(width - 4) * 3 * sizeof *dst);
-	free(brow[4]);
+	siril_free(brow[4]);
 
 	return 0;
 }
@@ -539,7 +539,7 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 	}
 	/* end - code from border_interpolate(int border) */
 
-	buffer = (char *) malloc(26 * TS * TS); /* 1664 kB */
+	buffer = (char *) siril_malloc(26 * TS * TS); /* 1664 kB */
 	/* merror (buffer, "ahd_interpolate()"); */
 	rgb = (uint16_t (*)[TS][TS][3]) buffer; /* [SA] */
 	lab = (short (*)[TS][TS][3]) (buffer + 12 * TS * TS);
@@ -651,7 +651,7 @@ static int bayer_AHD(const WORD *bayer, WORD *dst, int sx, int sy,
 				}
 			}
 		}
-	free(buffer);
+	siril_free(buffer);
 
 	return 0;
 }
@@ -747,7 +747,7 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 			npixels = (*width / 2 + *width % 2) * (*height / 2 + *height % 2);
 			break;
 	}
-	newbuf = calloc(3, npixels * sizeof(WORD));
+	newbuf = siril_calloc(3, npixels * sizeof(WORD));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -775,14 +775,14 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		break;
 	case XTRANS:
 		if (!xtrans) {
-			free(newbuf);
+			siril_free(newbuf);
 			return NULL;
 		}
 		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
 		break;
 	}
 	if (retval) {
-		free(newbuf);
+		siril_free(newbuf);
 		return NULL;
 	}
 	return newbuf;
@@ -792,7 +792,7 @@ WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, senso
 	int new_rx = *width / 2 + *width % 2;
 	int new_ry = *height / 2 + *height % 2;
 	size_t npixels = new_rx * new_ry;
-	WORD *newbuf = malloc(3 * npixels * sizeof(WORD));
+	WORD *newbuf = siril_malloc(3 * npixels * sizeof(WORD));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -807,7 +807,7 @@ float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sens
 	int new_rx = *width / 2 + *width % 2;
 	int new_ry = *height / 2 + *height % 2;
 	size_t npixels = new_rx * new_ry;
-	float *newbuf = malloc(3 * npixels * sizeof(float));
+	float *newbuf = siril_malloc(3 * npixels * sizeof(float));
 	if (!newbuf) {
 		PRINT_ALLOC_ERR;
 		return NULL;

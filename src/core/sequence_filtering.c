@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -145,7 +145,7 @@ static int seq_filter_output_doesnt_already_exists(sequence *seq, int in_index, 
 	char *dest = fit_sequence_get_image_filename_prefixed(seq, _filter_prefix, in_index);
 	int retval = is_readable_file(dest);
 	//fprintf(stdout, "file %s exists: %d\n", dest, retval);
-	free(dest);
+	siril_free(dest);
 	return !retval;
 }
 
@@ -311,7 +311,7 @@ int setup_filtered_data(struct stacking_args *args) {
 		return 1;
 	}
 	if (args->image_indices) {
-		free(args->image_indices);
+		siril_free(args->image_indices);
 		args->image_indices = NULL;
 	}
 	return stack_fill_list_of_unfiltered_images(args);
@@ -322,16 +322,16 @@ int setup_filtered_data(struct stacking_args *args) {
 int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 	int i, j;
 	if (args->image_indices) {
-		int *newptr = realloc(args->image_indices, args->nb_images_to_stack * sizeof(int));
+		int *newptr = siril_realloc(args->image_indices, args->nb_images_to_stack * sizeof(int));
 		if (!newptr) {
 			PRINT_ALLOC_ERR;
-			free(args->image_indices);
+			siril_free(args->image_indices);
 			args->image_indices = NULL;
 			return 1;
 		}
 		args->image_indices = newptr;
 	} else {
-		args->image_indices = calloc(args->nb_images_to_stack, sizeof(int));
+		args->image_indices = siril_calloc(args->nb_images_to_stack, sizeof(int));
 		if (!args->image_indices) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -376,7 +376,7 @@ static double generic_compute_accepted_value(sequence *seq, int layer, double pe
 	if (layer < 0 || !seq->regparam || !seq->regparam[layer]) {
 		return 0.0;
 	}
-	val = malloc(seq->number * sizeof(double));
+	val = siril_malloc(seq->number * sizeof(double));
 	if (!val) return 0.0;
 
 	// copy values
@@ -410,7 +410,7 @@ static double generic_compute_accepted_value(sequence *seq, int layer, double pe
 		threshold = val[(int)((100.0 - percent) * images_number / 100.0)];
 	}
 
-	free(val);
+	siril_free(val);
 	return threshold;
 }
 
@@ -422,7 +422,7 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 	if (layer < 0 || !seq->regparam || !seq->regparam[layer]) {
 		return 0.0;
 	}
-	val = malloc(seq->number * sizeof(double));
+	val = siril_malloc(seq->number * sizeof(double));
 	if (!val) return 0.0;
 
 	// copy values
@@ -433,7 +433,7 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 			val[n++] = data * factor;
 	}
 	if (!n) {
-		free(val);
+		siril_free(val);
 		return 0.0;
 	}
 	if (n < seq->number) {
@@ -462,12 +462,12 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 	} while (j > 0);
 
 	if (n < 0) {
-		free(val);
+		siril_free(val);
 		return 0.0;
 	}
 
 	threshold = factor * val[n - 1]; // we return a positive value
-	free(val);
+	siril_free(val);
 	return threshold;
 }
 

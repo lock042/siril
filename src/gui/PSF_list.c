@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -473,7 +473,7 @@ static void remove_selected_star() {
 	references = get_row_references_of_selected_rows(selection, treeModel);
 
 	guint size = g_list_length(references);
-	guint *sel = calloc(size, sizeof(guint));
+	guint *sel = siril_calloc(size, sizeof(guint));
 
 	int i = 0;
 	for (list = references; list; list = list->next) {
@@ -501,7 +501,7 @@ static void remove_selected_star() {
 
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
-	free(sel);
+	siril_free(sel);
 	gui.selected_star = -1;
 	display_status();
 }
@@ -743,7 +743,7 @@ void clear_stars_list(gboolean refresh_GUI) {
 				while (i < MAX_STARS && stars[i])
 					free_psf(stars[i++]);
 			}
-			free(stars);
+			siril_free(stars);
 		}
 	} else {
 		g_mutex_unlock(&com.mutex); // Unlock if com.stars is NULL
@@ -773,7 +773,7 @@ static gboolean update_stars_idle(gpointer p) {
 	if (args->update_GUI && !com.headless)
 		fill_stars_list(&gfit, com.stars);
 	redraw(REDRAW_OVERLAY);
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -782,7 +782,7 @@ static gboolean update_stars_idle(gpointer p) {
  * the PSF window's list will be cleared, only refilled if update_PSF_list is true
  */
 void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update) {
-	struct star_update_s *args = calloc(1, sizeof(struct star_update_s));
+	struct star_update_s *args = siril_calloc(1, sizeof(struct star_update_s));
 	args->stars = new_stars;
 	args->update_GUI = update_PSF_list;
 	if (!com.headless) {

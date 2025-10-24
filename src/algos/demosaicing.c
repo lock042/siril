@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -674,7 +674,7 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		clearfits(fit);
 		copyfits(out, fit, (CP_ALLOC | CP_COPYA | CP_FORMAT), -1);
 		clearfits(out);
-		free(out);
+		siril_free(out);
 	}
 	copy_fits_metadata(&metadata, fit);
 	update_sampling_information(fit, 0.5f);
@@ -708,7 +708,7 @@ int mergecfa_finalize_hook(struct generic_seq_args *args) {
 		free_sequence(data->seq3, TRUE);
 		data->seq3 = NULL;
 	}
-	free(data);
+	siril_free(data);
 	return retval;
 }
 
@@ -738,7 +738,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 			free_sequence(merge_cfa_args->seq2, TRUE);
 		if (!check_seq_is_comseq(merge_cfa_args->seq3))
 			free_sequence(merge_cfa_args->seq3, TRUE);
-		free(merge_cfa_args);
+		siril_free(merge_cfa_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -846,7 +846,7 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 
 	// alloc buffer
 	size_t npixels = fit->naxes[0] * fit->naxes[1];
-	WORD *buf = malloc(npixels * sizeof(WORD));
+	WORD *buf = siril_malloc(npixels * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -867,10 +867,10 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	void * tmp = realloc(buf, j * sizeof(WORD));
+	void * tmp = siril_realloc(buf, j * sizeof(WORD));
 	if (!tmp) {
 		PRINT_ALLOC_ERR;
-		free(buf);
+		siril_free(buf);
 		return NULL;
 	} else {
 		buf = tmp;
@@ -888,7 +888,7 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 
 	// alloc buffer
 	size_t npixels = bounds->w * bounds->h;
-	WORD *buf = malloc(npixels * sizeof(WORD));
+	WORD *buf = siril_malloc(npixels * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -911,9 +911,9 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	void *tmp = realloc(buf, j * sizeof(WORD));
+	void *tmp = siril_realloc(buf, j * sizeof(WORD));
 	if (!tmp) {
-		free(buf);
+		siril_free(buf);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	} else {
@@ -931,7 +931,7 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 
 	// alloc buffer
 	size_t npixels = fit->naxes[0] * fit->naxes[1];
-	float *buf = malloc(npixels * sizeof(float));
+	float *buf = siril_malloc(npixels * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -952,9 +952,9 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	void *tmp = realloc(buf, j * sizeof(float));
+	void *tmp = siril_realloc(buf, j * sizeof(float));
 	if (!tmp) {
-		free(buf);
+		siril_free(buf);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	} else {
@@ -973,7 +973,7 @@ float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, si
 
 	// alloc buffer
 	size_t npixels = bounds->w * bounds->h;
-	float *buf = malloc(npixels * sizeof(float));
+	float *buf = siril_malloc(npixels * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -996,9 +996,9 @@ float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, si
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	void *tmp = realloc(buf, j * sizeof(float));
+	void *tmp = siril_realloc(buf, j * sizeof(float));
 	if (!tmp) {
-		free(buf);
+		siril_free(buf);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	} else {

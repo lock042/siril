@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -82,7 +82,7 @@ static uint8_t *fits_to_uint8(fits *fit) {
 	int channel = fit->naxes[2];
 	int step = (channel == 3 ? 2 : 0);
 
-	uint8_t *data = malloc(n);
+	uint8_t *data = siril_malloc(n);
 	if (fit->orig_bitpix == BYTE_IMG) {
 		for (i = 0, j = 0; i < n; i += channel, j++) {
 			data[i + step] = (BYTE)fit->pdata[RLAYER][j];
@@ -166,10 +166,10 @@ static gpointer export_sequence(gpointer ptr) {
 			clearfits(&ref);
 			break;
 		case EXPORT_FITSEQ:
-			fitseq_file = calloc(1, sizeof(fitseq));
+			fitseq_file = siril_calloc(1, sizeof(fitseq));
 			snprintf(dest, 256, "%s%s", args->basename, com.pref.ext);
 			if (fitseq_create_file(dest, fitseq_file, -1)) {
-				free(fitseq_file);
+				siril_free(fitseq_file);
 				fitseq_file = NULL;
 				retval = -1;
 				goto free_and_reset_progress_bar;
@@ -184,10 +184,10 @@ static gpointer export_sequence(gpointer ptr) {
 			break;
 
 		case EXPORT_SER:
-			ser_file = calloc(1, sizeof(struct ser_struct));
+			ser_file = siril_calloc(1, sizeof(struct ser_struct));
 			snprintf(dest, 256, "%s.ser", args->basename);
 			if (ser_create_file(dest, ser_file, TRUE, args->seq->ser_file)) {
-				free(ser_file);
+				siril_free(ser_file);
 				ser_file = NULL;
 				retval = -1;
 				goto free_and_reset_progress_bar;
@@ -324,10 +324,10 @@ static gpointer export_sequence(gpointer ptr) {
 				coeff.pscale[layer][i] = stackargs.coeff.pscale[layer][i];
 			}
 		}
-		free(stackargs.coeff.mul);
+		siril_free(stackargs.coeff.mul);
 
 		// and dispose them, because we don't need them anymore
-		free(stackargs.image_indices);
+		siril_free(stackargs.image_indices);
 	}
 
 	long naxes[3];
@@ -574,15 +574,15 @@ free_and_reset_progress_bar:
 	if (destfit && !have_seqwriter)
 		clearfits(destfit);
 	if (args->normalize) {
-		free(coeff.offset);
-		free(coeff.scale);
+		siril_free(coeff.offset);
+		siril_free(coeff.scale);
 	}
 	// close the sequence file for single-file sequence formats
 	switch (args->output) {
 		case EXPORT_FITSEQ:
 			if (fitseq_file) {
 				fitseq_close_file(fitseq_file);
-				free(fitseq_file);
+				siril_free(fitseq_file);
 			}
 			break;
 		case EXPORT_SER:
@@ -590,7 +590,7 @@ free_and_reset_progress_bar:
 				if (timestamp)
 					ser_convertTimeStamp(ser_file, timestamp);
 				ser_write_and_close(ser_file);
-				free(ser_file);
+				siril_free(ser_file);
 			}
 			g_slist_free_full(timestamp, (GDestroyNotify) g_date_time_unref);
 			break;
@@ -603,7 +603,7 @@ free_and_reset_progress_bar:
 #ifdef HAVE_FFMPEG
 			if (mp4_file) {
 				mp4_close(mp4_file, aborted);
-				free(mp4_file);
+				siril_free(mp4_file);
 			}
 #endif
 			break;
@@ -641,8 +641,8 @@ free_and_reset_progress_bar:
 		}
 	}
 
-	free(args->basename);
-	free(args);
+	siril_free(args->basename);
+	siril_free(args);
 	args = NULL;
 	siril_add_idle(end_generic, args);
 	return NULL;
@@ -670,7 +670,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 			return;
 	}
 
-	struct exportseq_args *args = calloc(1, sizeof(struct exportseq_args));
+	struct exportseq_args *args = siril_calloc(1, sizeof(struct exportseq_args));
 	args->seq = &com.seq;
 	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
 	args->basename = g_str_to_ascii(bname, NULL);
@@ -726,7 +726,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(export_sequence, args)) {
 		g_free(args->basename);
-		free(args);
+		siril_free(args);
 	}
 }
 

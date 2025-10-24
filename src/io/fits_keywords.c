@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -514,7 +514,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	int num_keywords = G_N_ELEMENTS(keyword_list) - 1; // remove last line
 
 	// Allocate memory dynamically for the keyword array
-	KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
+	KeywordInfo *all_keywords = (KeywordInfo*) siril_malloc((num_keywords + 1) * sizeof(KeywordInfo));
 	if (!all_keywords) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -642,7 +642,7 @@ int save_fits_keywords(fits *fit) {
 		keys++;
 	}
 
-	free(keys_start);
+	siril_free(keys_start);
 
 	return 0;
 }
@@ -928,7 +928,7 @@ void set_all_keywords_default(fits *fit) {
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
-	free(keys);
+	siril_free(keys);
 }
 
 #ifdef DEBUG_PRINT_HEADER
@@ -1151,7 +1151,7 @@ int read_fits_keywords(fits *fit) {
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
-	free(keys);
+	siril_free(keys);
 	return 0;
 }
 
@@ -1204,7 +1204,7 @@ void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit) {
 	remove_keyword(keyword, fit, keys_hash);
 
 	g_hash_table_destroy(keys_hash);
-	free(keys);
+	siril_free(keys);
 }
 
 static int keywords_prepare_hook(struct generic_seq_args *arg) {
@@ -1268,10 +1268,10 @@ static int keywords_finalize_hook(struct generic_seq_args *arg) {
 	if (!arg->retval)
 		writeseqfile(arg->seq);
 finish:
-	free(kargs->FITS_key);
-	free(kargs->value);
-	free(kargs->comment);
-	free(kargs);
+	siril_free(kargs->FITS_key);
+	siril_free(kargs->value);
+	siril_free(kargs->comment);
+	siril_free(kargs);
 	return retval;
 }
 
@@ -1288,7 +1288,7 @@ gboolean end_keywords_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
-	free(p);
+	siril_free(p);
 	return end_generic(NULL);
 }
 
@@ -1307,7 +1307,7 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 	seqargs->description = "keywords update";
 	if (seq->type == SEQ_SER) {
 		siril_log_color_message(_("This command won't work for SER sequence.\n"), "red");
-		free(seqargs);
+		siril_free(seqargs);
 		return;
 	}
 	seqargs->user = args;
@@ -1372,7 +1372,7 @@ gboolean keyword_is_protected(char *card, fits *fit) {
 		}
 
 		g_hash_table_destroy(keys_hash);
-		free(keys);
+		siril_free(keys);
 
 		if (is_wcslib) {
 			return TRUE;

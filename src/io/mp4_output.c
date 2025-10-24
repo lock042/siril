@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -487,7 +487,7 @@ static void cleanup_video_st(struct mp4_struct *video_st) {
 	if (video_st->tmp_frame)
 		av_frame_free(&video_st->tmp_frame);
 
-	free(video_st);
+	siril_free(video_st);
 }
 
 struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fps, int nb_layers, int quality, int src_w, int src_h, export_format type) {
@@ -502,7 +502,7 @@ struct mp4_struct* mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		return NULL;
 	}
 
-	video_st = calloc(1, sizeof(struct mp4_struct));
+	video_st = siril_calloc(1, sizeof(struct mp4_struct));
 	if (!video_st) {
 		siril_log_message("Memory allocation failed");
 		return NULL;
@@ -621,7 +621,7 @@ int mp4_close(struct mp4_struct *video_st, gboolean aborted) {
 		/* Close the output file. */
 		avio_closep(&video_st->oc->pb);
 
-	/* free the stream */
+	/* siril_free the stream */
 	avformat_free_context(video_st->oc);
 	avcodec_free_context(&video_st->enc);
 	av_frame_free(&video_st->frame);

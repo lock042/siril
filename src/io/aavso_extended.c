@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2020 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -235,22 +235,22 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 	}
 	else siril_log_message(_("Using %d stars to calibrate the data\n"), nb_ref_stars);
 
-	vmag = calloc(nbImages, sizeof(double));
-	err = calloc(nbImages, sizeof(double));
-	x = calloc(nbImages, sizeof(double));
-	cstar = calloc(nbImages, sizeof(double));
-	kstar = calloc(nbImages, sizeof(double));
-	airmass = calloc(nbImages, sizeof(double));
+	vmag = siril_calloc(nbImages, sizeof(double));
+	err = siril_calloc(nbImages, sizeof(double));
+	x = siril_calloc(nbImages, sizeof(double));
+	cstar = siril_calloc(nbImages, sizeof(double));
+	kstar = siril_calloc(nbImages, sizeof(double));
+	airmass = siril_calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !cstar || !kstar || !airmass) {
 		PRINT_ALLOC_ERR;
 		gchar *msg = siril_log_color_message(_("Out of memory\n"), "red");
 		*error = g_strdup(msg);
-		free(vmag);
-		free(err);
-		free(x);
-		free(airmass);
-		free(cstar);
-		free(kstar);
+		siril_free(vmag);
+		siril_free(err);
+		siril_free(x);
+		siril_free(airmass);
+		siril_free(cstar);
+		siril_free(kstar);
 		return -1;
 	}
 
@@ -346,11 +346,11 @@ int export_AAVSO(pldata *plot, sequence *seq, gchar *filename, gchar **error, vo
 		free_siril_plot_data(spl_data);
 	}
 
-	free(vmag);
-	free(err);
-	free(x);
-	free(airmass);
-	free(cstar);
-	free(kstar);
+	siril_free(vmag);
+	siril_free(err);
+	siril_free(x);
+	siril_free(airmass);
+	siril_free(cstar);
+	siril_free(kstar);
 	return ret;
 }

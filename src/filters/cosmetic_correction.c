@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -84,7 +84,7 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 	else
 		step = radius = 1;
 
-	cpyline = calloc(w, sizeof(WORD));
+	cpyline = siril_calloc(w, sizeof(WORD));
 	for (xx = 0; xx < w; ++xx) {
 		int n = 0;
 		float value = 0.f;
@@ -114,7 +114,7 @@ static float* getAverage3x3Line_float(const float *buf, const int yy, const int 
 	else
 		step = radius = 1;
 
-	cpyline = calloc(w, sizeof(float));
+	cpyline = siril_calloc(w, sizeof(float));
 	for (xx = 0; xx < w; ++xx) {
 		int n = 0;
 		float value = 0.f;
@@ -244,7 +244,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 	int n = (*icold) + (*ihot);
 	if (n <= 0)
 		return NULL;
-	dev = malloc(n * sizeof(deviant_pixel));
+	dev = siril_malloc(n * sizeof(deviant_pixel));
 	if (!dev) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -313,7 +313,7 @@ int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 		newline = getAverage3x3Line_float(buf, row, width, height, is_cfa);
 		memcpy(line, newline, width * sizeof(float));
 
-		free(newline);
+		siril_free(newline);
 		//invalidate_stats_from_fit(fit);
 		return 0;
 	} else if (fit->type == DATA_USHORT) {
@@ -327,7 +327,7 @@ int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa) {
 		newline = getAverage3x3Line(buf, row, width, height, is_cfa);
 		memcpy(line, newline, width * sizeof(WORD));
 
-		free(newline);
+		siril_free(newline);
 		//invalidate_stats_from_fit(fit);
 		return 0;
 	}
@@ -345,7 +345,7 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 /**** Autodetect *****/
 static int cosmetic_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
-	free(args->user);
+	siril_free(args->user);
 	return retval;
 }
 
@@ -441,8 +441,8 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	cosme_args->fit = NULL;	// not used here
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(cosme_args->seqEntry);
-		free(cosme_args);
+		siril_free(cosme_args->seqEntry);
+		siril_free(cosme_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -481,7 +481,7 @@ gpointer autoDetectThreaded(gpointer p) {
 	siril_log_message(str);
 	g_free(str);
 
-	free(args);
+	siril_free(args);
 	siril_add_idle(end_autoDetect, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -591,9 +591,9 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cosme_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
-	free(c_args->prefix);
+	siril_free(c_args->prefix);
 	g_clear_object(&c_args->file);
-	free(args->user);
+	siril_free(args->user);
 	return retval;
 }
 
@@ -616,8 +616,8 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
 		g_clear_object(&cosme_args->file);
-		free(cosme_args->prefix);
-		free(cosme_args);
+		siril_free(cosme_args->prefix);
+		siril_free(cosme_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -656,7 +656,7 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	const float coldVal = doCold ? bkg - k : 0.0;
 	const float hotVal = doHot ? bkg + k1 : isFloat ? 1.f : 65535.f;
 	size_t n = fit->naxes[0] * fit->naxes[1];
-	float *temp = malloc(n * sizeof(float));
+	float *temp = siril_malloc(n * sizeof(float));
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -741,7 +741,7 @@ static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, lo
 	}
 	(*icold) = icoldL;
 	(*ihot) = ihotL;
-	free(temp);
+	siril_free(temp);
 
 	invalidate_stats_from_fit(fit);
 	return 0;
@@ -785,7 +785,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
 	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
-	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = siril_calloc(1, sizeof(struct cosmetic_data));
 
 	if (gtk_toggle_button_get_active(
 				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))
@@ -808,7 +808,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		if (args->seqEntry && args->seqEntry[0] == '\0') {
-			free(args->seqEntry);
+			siril_free(args->seqEntry);
 			args->seqEntry = strdup("cc_");
 		}
 		args->seq = &com.seq;
@@ -819,8 +819,8 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
 		if (!start_in_new_thread(autoDetectThreaded, args)) {
-			free(args->seqEntry);
-			free(args);
+			siril_free(args->seqEntry);
+			siril_free(args);
 		}
 	}
 }

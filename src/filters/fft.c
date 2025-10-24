@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -100,7 +100,7 @@ static void centered_ushort(WORD *buf, unsigned int width, unsigned int height,
 		int type) {
 	unsigned int i, j;
 
-	WORD *temp = malloc(width * height * sizeof(WORD));
+	WORD *temp = siril_malloc(width * height * sizeof(WORD));
 	for (j = 0; j < height; j++) {
 		for (i = 0; i < width; i++) {
 			unsigned int x = i;
@@ -116,14 +116,14 @@ static void centered_ushort(WORD *buf, unsigned int width, unsigned int height,
 	}
 
 	memcpy(buf, temp, sizeof(WORD) * width * height);
-	free(temp);
+	siril_free(temp);
 }
 
 static void centered_float(float *buf, unsigned int width, unsigned int height,
 		int type) {
 	unsigned int i, j;
 
-	float *temp = malloc(width * height * sizeof(float));
+	float *temp = siril_malloc(width * height * sizeof(float));
 	for (j = 0; j < height; j++) {
 		for (i = 0; i < width; i++) {
 			unsigned int x = i;
@@ -139,7 +139,7 @@ static void centered_float(float *buf, unsigned int width, unsigned int height,
 	}
 
 	memcpy(buf, temp, sizeof(float) * width * height);
-	free(temp);
+	siril_free(temp);
 }
 
 static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const float *modul, const float *phase,
@@ -202,8 +202,8 @@ static void FFTD_ushort(fits *fit, fits *x, fits *y, int type_order, int layer) 
 	fftwf_execute(p);
 
 	/* we compute modulus and phase */
-	float *modul = malloc(nbdata * sizeof(float));
-	float *phase = malloc(nbdata * sizeof(float));
+	float *modul = siril_malloc(nbdata * sizeof(float));
+	float *phase = siril_malloc(nbdata * sizeof(float));
 
 	fft_to_spectra(frequency_repr, modul, phase, &maxi, nbdata);
 
@@ -219,8 +219,8 @@ static void FFTD_ushort(fits *fit, fits *x, fits *y, int type_order, int layer) 
 	strcpy(y->keywords.dft.ord, x->keywords.dft.ord);
 	x->keywords.dft.norm[layer] = maxi / USHRT_MAX_SINGLE;
 
-	free(modul);
-	free(phase);
+	siril_free(modul);
+	siril_free(phase);
 	fftwf_destroy_plan(p);
 	fftwf_free(spatial_repr);
 	fftwf_free(frequency_repr);
@@ -260,8 +260,8 @@ static void FFTD_float(fits *fit, fits *x, fits *y, int type_order, int layer) {
 	fftwf_execute(p);
 
 	/* we compute modulus and phase */
-	float *modul = malloc(nbdata * sizeof(float));
-	float *phase = malloc(nbdata * sizeof(float));
+	float *modul = siril_malloc(nbdata * sizeof(float));
+	float *phase = siril_malloc(nbdata * sizeof(float));
 
 	fft_to_spectra(frequency_repr, modul, phase, &maxi, nbdata);
 
@@ -277,8 +277,8 @@ static void FFTD_float(fits *fit, fits *x, fits *y, int type_order, int layer) {
 	strcpy(y->keywords.dft.ord, x->keywords.dft.ord);
 	x->keywords.dft.norm[layer] = maxi;
 
-	free(modul);
-	free(phase);
+	siril_free(modul);
+	siril_free(phase);
 	fftwf_destroy_plan(p);
 	fftwf_free(spatial_repr);
 	fftwf_free(frequency_repr);
@@ -300,8 +300,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	unsigned int height = xfit->ry;
 	size_t i, nbdata = width * height;
 
-	float *modul = calloc(1, nbdata * sizeof(float));
-	float *phase = calloc(1, nbdata * sizeof(float));
+	float *modul = siril_calloc(1, nbdata * sizeof(float));
+	float *phase = siril_calloc(1, nbdata * sizeof(float));
 
 	if (type_order == TYPE_CENTERED) {
 		centered_ushort(xbuf, width, height, FFTW_BACKWARD);
@@ -317,8 +317,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);
 	if (!spatial_repr) {
 		PRINT_ALLOC_ERR;
-		free(modul);
-		free(phase);
+		siril_free(modul);
+		siril_free(phase);
 		return;
 	}
 
@@ -326,8 +326,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	if (!frequency_repr) {
 		PRINT_ALLOC_ERR;
 		fftwf_free(spatial_repr);
-		free(modul);
-		free(phase);
+		siril_free(modul);
+		siril_free(phase);
 		return;
 	}
 
@@ -344,8 +344,8 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	delete_selected_area();
 	invalidate_stats_from_fit(fit);
 
-	free(modul);
-	free(phase);
+	siril_free(modul);
+	siril_free(phase);
 	fftwf_destroy_plan(p);
 	fftwf_free(spatial_repr);
 	fftwf_free(frequency_repr);
@@ -359,8 +359,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	unsigned int height = xfit->ry;
 	size_t i, nbdata = width * height;
 
-	float *modul = calloc(1, nbdata * sizeof(float));
-	float *phase = calloc(1, nbdata * sizeof(float));
+	float *modul = siril_calloc(1, nbdata * sizeof(float));
+	float *phase = siril_calloc(1, nbdata * sizeof(float));
 
 	if (type_order == TYPE_CENTERED) {
 		centered_float(xbuf, width, height, FFTW_BACKWARD);
@@ -376,8 +376,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	fftwf_complex* spatial_repr = fftwf_malloc(sizeof(fftwf_complex) * nbdata);
 	if (!spatial_repr) {
 		PRINT_ALLOC_ERR;
-		free(modul);
-		free(phase);
+		siril_free(modul);
+		siril_free(phase);
 		return;
 	}
 
@@ -385,8 +385,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	if (!frequency_repr) {
 		PRINT_ALLOC_ERR;
 		fftwf_free(spatial_repr);
-		free(modul);
-		free(phase);
+		siril_free(modul);
+		siril_free(phase);
 		return;
 	}
 
@@ -403,8 +403,8 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	delete_selected_area();
 	invalidate_stats_from_fit(fit);
 
-	free(modul);
-	free(phase);
+	siril_free(modul);
+	siril_free(phase);
 	fftwf_destroy_plan(p);
 	fftwf_free(spatial_repr);
 	fftwf_free(frequency_repr);
@@ -428,7 +428,7 @@ static gboolean end_fourier_transform(gpointer p) {
 	g_free(args->type);
 	g_free(args->modulus);
 	g_free(args->phase);
-	free(args);
+	siril_free(args);
 	set_cursor_waiting(FALSE);
 
 	return FALSE;
@@ -499,13 +499,13 @@ gpointer fourier_transform(gpointer p) {
 		break;
 	case 'i':
 	case 'I':
-		tmp = calloc(1, sizeof(fits));
+		tmp = siril_calloc(1, sizeof(fits));
 		if (!tmp || readfits(args->modulus, tmp, NULL, FALSE)) {
 			PRINT_ALLOC_ERR;
 			args->retval = 1;
 			goto end;
 		}
-		tmp1 = calloc(1, sizeof(fits));
+		tmp1 = siril_calloc(1, sizeof(fits));
 		if (!tmp1 || readfits(args->phase, tmp1, NULL, FALSE)) {
 			PRINT_ALLOC_ERR;
 			args->retval = 1;
@@ -543,9 +543,9 @@ end:
 	}
 
 	invalidate_stats_from_fit(args->fit);
-	if (tmp)  { clearfits(tmp);  free(tmp);  }
-	if (tmp1) { clearfits(tmp1); free(tmp1); }
-	if (tmp2) { clearfits(tmp2); free(tmp2); }
+	if (tmp)  { clearfits(tmp);  siril_free(tmp);  }
+	if (tmp1) { clearfits(tmp1); siril_free(tmp1); }
+	if (tmp2) { clearfits(tmp2); siril_free(tmp2); }
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -609,7 +609,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 			char *msg = siril_log_message(_("Select magnitude and phase before !\n"));
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 			set_cursor_waiting(FALSE);
-			free(type);
+			siril_free(type);
 			g_free(mag);
 			g_free(phase);
 			return;
@@ -619,7 +619,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if ((mag != NULL) && (phase != NULL)) {
 		set_cursor_waiting(TRUE);
-		struct fft_data *args = calloc(1, sizeof(struct fft_data));
+		struct fft_data *args = siril_calloc(1, sizeof(struct fft_data));
 		args->fit = &gfit;
 		args->type = type;
 		args->modulus = mag;
@@ -627,13 +627,13 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->type_order = type_order;
 		set_cursor_waiting(TRUE);
 		if (!start_in_new_thread(fourier_transform, args)) {
-			free(args->type);
+			siril_free(args->type);
 			g_free(args->modulus);
 			g_free(args->phase);
-			free(args);
+			siril_free(args);
 		}
 	} else {
-		free(type);
+		siril_free(type);
 		g_free(mag);
 		g_free(phase);
 	}

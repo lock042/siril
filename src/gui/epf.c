@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2023 team siril_free-astro (see more in AUTHORS file)
+ * Reference site is https://siril_free-astro.org/index.php/Siril
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -107,14 +107,14 @@ static int epf_update_preview() {
 	} else {
 		guide = NULL;
 	}
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	struct epfargs *args = siril_calloc(1, sizeof(struct epfargs));
 	*args = (struct epfargs) {.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = FALSE };
 	set_cursor_waiting(TRUE);
 	// We call epf_filter here as update_preview already handles the ROI mutex lock
 	if (!start_in_new_thread(epf_filter, args)) {
-		free(args);
+		siril_free(args);
 		return 1;
 	}
 	return 0;
@@ -123,7 +123,7 @@ static int epf_update_preview() {
 void epf_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
 	roi_supported(TRUE);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -159,7 +159,7 @@ static int epf_process_all() {
 		copy_backup_to_gfit();
 	fits *fit = &gfit;
 	gboolean guide_needs_freeing = FALSE;
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	struct epfargs *args = siril_calloc(1, sizeof(struct epfargs));
 	if (filter_type != EP_BILATERAL) {
 		if (gtk_toggle_button_get_active(guided_filter_selfguide)) {
 			guide = fit;
@@ -169,7 +169,7 @@ static int epf_process_all() {
 				guide_needs_freeing = TRUE;
 			} else {
 				siril_log_color_message(_("Error, no guide image loaded."), "red");
-				free(args);
+				siril_free(args);
 				return 1;
 			}
 		}
@@ -181,7 +181,7 @@ static int epf_process_all() {
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = TRUE};
 	// We call epfhandler here as we need to take care of the ROI mutex lock
 	if (!start_in_new_thread(epfhandler, args)) {
-		free(args);
+		siril_free(args);
 		return 1;
 	}
 	return 0;
@@ -256,7 +256,7 @@ void on_epf_undo_clicked(GtkButton *button, gpointer user_data) {
 	copy_backup_to_gfit();
 
 	/* default parameters transform image, we need to update preview */
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -267,7 +267,7 @@ void on_ep_filter_type_changed(GtkComboBox *combo, gpointer user_data) {
 	filter_type = gtk_combo_box_get_active(combo);
 	gtk_widget_set_visible(GTK_WIDGET(guide_image_widgets), filter_type != EP_BILATERAL);
 	gtk_widget_set_visible(GTK_WIDGET(epf_sigma_spatial_settings), filter_type == EP_BILATERAL);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -281,7 +281,7 @@ void on_guided_filter_selfguide_toggled(GtkToggleButton *button, gpointer user_d
 		gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), FALSE);
 
 	}
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -306,7 +306,7 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 	}
 	gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), TRUE);
 	gtk_toggle_button_set_active(guided_filter_selfguide, FALSE);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -314,7 +314,7 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 
 void on_spin_epf_d_value_changed(GtkSpinButton *button, gpointer user_data) {
 	epf_d_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -322,7 +322,7 @@ void on_spin_epf_d_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_epf_sigma_col_value_changed(GtkSpinButton *button, gpointer user_data) {
 	epf_sigma_col_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -330,7 +330,7 @@ void on_spin_epf_sigma_col_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_epf_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
 	mod = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -338,7 +338,7 @@ void on_spin_epf_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_epf_sigma_spatial_value_changed(GtkSpinButton *button, gpointer user_data) {
 	epf_sigma_spatial_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
+	update_image *param = siril_malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
 	notify_update((gpointer) param);
@@ -352,7 +352,7 @@ void on_epf_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();
-		update_image *param = malloc(sizeof(update_image));
+		update_image *param = siril_malloc(sizeof(update_image));
 		param->update_preview_fn = epf_update_preview;
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);

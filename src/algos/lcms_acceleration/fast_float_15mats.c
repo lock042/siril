@@ -4,7 +4,7 @@
 //  Copyright (c) 1998-2023 Marti Maria Saguer, all rights reserved
 //
 //
-// This program is free software: you can redistribute it and/or modify
+// This program is siril_free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
@@ -60,8 +60,8 @@ typedef struct {
 
 } XMatShaperData;
 
-// A special malloc that returns memory aligned to DWORD boundary. Aligned memory access is way faster than unaligned
-// reference to the real block is kept for later free
+// A special siril_malloc that returns memory aligned to DWORD boundary. Aligned memory access is way faster than unaligned
+// reference to the real block is kept for later siril_free
 static XMatShaperData* malloc_aligned(cmsContext ContextID)
 {
        cmsUInt8Number* real_ptr = (cmsUInt8Number*)_cmsMallocZero(ContextID, sizeof(XMatShaperData) + 32);

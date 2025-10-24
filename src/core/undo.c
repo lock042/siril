@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -107,7 +107,7 @@ static void undo_add_item(fits *fit, char *filename, const char *histo) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;
-		com.history = calloc(com.hist_size, sizeof(historic));
+		com.history = siril_calloc(com.hist_size, sizeof(historic));
 		com.hist_current = 0;
 		com.hist_display = 0;
 	}
@@ -159,20 +159,20 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(WORD);
-	WORD *buf = calloc(1, size);
+	WORD *buf = siril_calloc(1, size);
 	// read the data from temporary file
 	if ((read(fd, buf, size)) < size) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
-		free(buf);
+		siril_free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
 	/* need to reallocate data as size may have changed */
-	WORD *newdata = (WORD*) realloc(fit->data, size);
+	WORD *newdata = (WORD*) siril_realloc(fit->data, size);
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
-		free(newdata);
-		free(buf);
+		siril_free(newdata);
+		siril_free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
@@ -198,7 +198,7 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	fit->keywords.focal_length = hist->focal_length;
 
 	full_stats_invalidation_from_fit(fit);
-	free(buf);
+	siril_free(buf);
 	g_close(fd, NULL);
 	return 0;
 }
@@ -217,20 +217,20 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(float);
-	float *buf = calloc(1, size);
+	float *buf = siril_calloc(1, size);
 	// read the data from temporary file
 	if ((read(fd, buf, size) < size)) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
-		free(buf);
+		siril_free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
 	/* need to reallocate data as size may have changed */
-	float *newdata = (float*) realloc(fit->fdata, size);
+	float *newdata = (float*) siril_realloc(fit->fdata, size);
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
-		free(newdata);
-		free(buf);
+		siril_free(newdata);
+		siril_free(buf);
 		g_close(fd, NULL);
 		return 1;
 	}
@@ -256,7 +256,7 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	fit->keywords.focal_length = hist->focal_length;
 
 	full_stats_invalidation_from_fit(fit);
-	free(buf);
+	siril_free(buf);
 	g_close(fd, NULL);
 	return 0;
 }
@@ -430,7 +430,7 @@ int undo_flush() {
 	for (int i = 0; i < com.hist_current; i++) {
 		undo_remove_item(com.history, i);
 	}
-	free(com.history);
+	siril_free(com.history);
 	com.history = NULL;
 	com.hist_current = 0;
 	com.hist_display = 0;

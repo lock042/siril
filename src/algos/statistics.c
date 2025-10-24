@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -113,7 +113,7 @@ float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m,
 		threading_type threads) {
 	float mad;
 	int median = round_to_int(m);	// we use it on integer data anyway
-	WORD *tmp = malloc(n * sizeof(WORD));
+	WORD *tmp = siril_malloc(n * sizeof(WORD));
 	if (!tmp) {
 		PRINT_ALLOC_ERR;
 		return 0.0f;
@@ -128,7 +128,7 @@ float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m,
 	}
 
 	mad = (float) histogram_median(tmp, n, threads);
-	free(tmp);
+	siril_free(tmp);
 	return mad;
 }
 
@@ -161,7 +161,7 @@ static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
 
 static WORD* reassign_to_non_null_data_ushort(WORD *data, size_t inputlen, size_t outputlen, int free_input) {
 	size_t i, j = 0;
-	WORD *ndata = malloc(outputlen * sizeof(WORD));
+	WORD *ndata = siril_malloc(outputlen * sizeof(WORD));
 	if (!ndata) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -178,7 +178,7 @@ static WORD* reassign_to_non_null_data_ushort(WORD *data, size_t inputlen, size_
 		}
 	}
 	if (free_input)
-		free(data);
+		siril_free(data);
 	return ndata;
 }
 
@@ -243,10 +243,10 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 				nx = newsz;
 				ny = 1;
 			} else {
-				data = malloc(nx * ny * sizeof(WORD));
+				data = siril_malloc(nx * ny * sizeof(WORD));
 				if (!data) {
 					PRINT_ALLOC_ERR;
-					if (stat_is_local) free(stat);
+					if (stat_is_local) siril_free(stat);
 					return NULL;
 				}
 				g_assert(layer < fit->naxes[2]);
@@ -276,8 +276,8 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		}
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
-			if (stat_is_local) free(stat);
-			if (free_data) free(data);
+			if (stat_is_local) siril_free(stat);
+			if (free_data) siril_free(data);
 			return NULL;
 		}
 	}
@@ -290,7 +290,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	if ((option & (STATS_MINMAX | STATS_BASIC)) && (stat->min == NULL_STATS || stat->max == NULL_STATS)) {
 		WORD min = 0, max = 0;
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
@@ -304,7 +304,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		stat->sigma == NULL_STATS || stat->bgnoise == NULL_STATS)) {
 		int status = 0;
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
@@ -312,15 +312,15 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
-			if (free_data) free(data);
-			if (stat_is_local) free(stat);
+			if (free_data) siril_free(data);
+			if (stat_is_local) siril_free(stat);
 			return NULL;
 		}
 	}
 
 	if (stat->ngoodpix == 0L) {
-		if (free_data) free(data);
-		if (stat_is_local) free(stat);
+		if (free_data) siril_free(data);
+		if (stat_is_local) siril_free(stat);
 		return NULL;
 	}
 
@@ -329,7 +329,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	if (fit && compute_median && stat->total != stat->ngoodpix) {
 		data = reassign_to_non_null_data_ushort(data, stat->total, stat->ngoodpix, free_data);
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;
 		}
 		free_data = 1;
@@ -338,7 +338,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	/* Calculation of median */
 	if (compute_median && stat->median == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
@@ -348,7 +348,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	/* Calculation of average absolute deviation from the median */
 	if ((option & STATS_AVGDEV) && stat->avgDev == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing absdev\n", stat, fit, layer);
@@ -358,7 +358,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	/* Calculation of median absolute deviation */
 	if (((option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS)) && stat->mad == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
@@ -368,7 +368,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	/* Calculation of Bidweight Midvariance */
 	if ((option & STATS_BWMV) && stat->sqrtbwmv == NULL_STATS) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
@@ -380,14 +380,14 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	/* Calculation of IKSS. Only used for stacking normalization */
 	if ((option & STATS_IKSS) && (stat->location == NULL_STATS || stat->scale == NULL_STATS)) {
 		if (!data) {
-			if (stat_is_local) free(stat);
+			if (stat_is_local) siril_free(stat);
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		float *newdata = malloc(stat->ngoodpix * sizeof(float));
+		float *newdata = siril_malloc(stat->ngoodpix * sizeof(float));
 		if (!newdata) {
-			if (stat_is_local) free(stat);
-			if (free_data) free(data);
+			if (stat_is_local) siril_free(stat);
+			if (free_data) siril_free(data);
 			PRINT_ALLOC_ERR;
 			return NULL;
 		}
@@ -405,18 +405,18 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		float med = (float)(stat->median) * invertNormValue;
 		float mad = (float)(stat->mad) * invertNormValue;
 		if (IKSSlite(newdata, stat->ngoodpix, med, mad, &stat->location, &stat->scale, threads)) {
-			if (stat_is_local) free(stat);
-			if (free_data) free(data);
-			free(newdata);
+			if (stat_is_local) siril_free(stat);
+			if (free_data) siril_free(data);
+			siril_free(newdata);
 			return NULL;
 		}
 		/* go back to the original range */
 		stat->location *= normValue;
 		stat->scale *= normValue;
-		free(newdata);
+		siril_free(newdata);
 	}
 
-	if (free_data) free(data);
+	if (free_data) siril_free(data);
 	return stat;
 }
 
@@ -556,7 +556,7 @@ int compute_means_from_flat_cfa(fits *fit, double mean[36]) {
 /* reference an imstats struct to a fits, creates the stats array if needed */
 void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 	if (!fit->stats) {
-		fit->stats = calloc(fit->naxes[2], sizeof(imstats *));
+		fit->stats = siril_calloc(fit->naxes[2], sizeof(imstats *));
 		if (!fit->stats) {
 			PRINT_ALLOC_ERR;
 			return;
@@ -575,14 +575,14 @@ void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 
 static void add_stats_to_stats(sequence *seq, int nb_layers, imstats ****stats, int image_index, int layer, imstats *stat) {
 	if (!*stats) {
-		*stats = calloc(nb_layers, sizeof(imstats **));
+		*stats = siril_calloc(nb_layers, sizeof(imstats **));
 		if (!*stats) {
 			PRINT_ALLOC_ERR;
 			return;
 		}
 	}
 	if (!(*stats)[layer]) {
-		(*stats)[layer] = calloc(seq->number, sizeof(imstats *));
+		(*stats)[layer] = siril_calloc(seq->number, sizeof(imstats *));
 		if (!(*stats)[layer]) {
 			PRINT_ALLOC_ERR;
 			return;
@@ -651,7 +651,7 @@ void invalidate_stats_from_fit(fits *fit) {
 void full_stats_invalidation_from_fit(fits *fit) {
 	if (fit->stats) {
 		invalidate_stats_from_fit(fit);
-		free(fit->stats);
+		siril_free(fit->stats);
 		fit->stats = NULL;
 	}
 }
@@ -664,12 +664,12 @@ static void stats_set_default_values(imstats *stat) {
 
 /* allocates an imstat structure and initializes it with default values that
  * are used by the statistics() function.
- * Only use free_stats() to free the return value.
+ * Only use free_stats() to siril_free the return value.
  * Increment the _nb_refs if a new reference to the struct's address is made. */
 void allocate_stats(imstats **stat) {
 	if (stat) {
 		if (!*stat)
-			*stat = malloc(sizeof(imstats));
+			*stat = siril_malloc(sizeof(imstats));
 		if (!*stat) { PRINT_ALLOC_ERR; return; } // OOM
 		stats_set_default_values(*stat);
 		(*stat)->_nb_refs = 1;
@@ -682,7 +682,7 @@ void allocate_stats(imstats **stat) {
 imstats* free_stats(imstats *stat) {
 	if (stat && (g_atomic_int_dec_and_test(&stat->_nb_refs)) == TRUE) {
 		siril_debug_print("- stats %p has no more refs, freed\n", stat);
-		free(stat);
+		siril_free(stat);
 		return NULL;
 	}
 	if (stat)
@@ -724,7 +724,7 @@ static void free_stat_list(gchar **list, int nb) {
 	for (int i = 0; i < nb; i++) {
 		g_free(list[i]);
 	}
-	free(list);
+	siril_free(list);
 }
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
@@ -736,7 +736,7 @@ static int stat_prepare_hook(struct generic_seq_args *args) {
 	}
 	int nb_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
 	// cfa may be set to TRUE for a non CFA sequence, but we don't know yet, so we still alloc for 3
-	s_args->list = calloc(args->nb_filtered_images * nb_layers, sizeof(char*));
+	s_args->list = siril_calloc(args->nb_filtered_images * nb_layers, sizeof(char*));
 	return 0;
 }
 
@@ -820,7 +820,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	int result = 1; // Default to error
 
 	if (!s_args->list) {
-		free(s_args);
+		siril_free(s_args);
 		return 1;
 	}
 
@@ -888,7 +888,7 @@ cleanup:
 	if (s_args->list) {
 		free_stat_list(s_args->list, size);
 	}
-	free(s_args);
+	siril_free(s_args);
 
 	return result;
 }
@@ -951,7 +951,7 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
 		int size = nb_data_layers * args->nb_filtered_images;
 		free_stat_list(stat_args->list, size);
-		free (stat_args);
+		siril_free (stat_args);
 		free_generic_seq_args(args, TRUE);
 	}
 }
@@ -1048,7 +1048,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 		}
 
 #ifdef _OPENMP
-		free(threads_per_thread);
+		siril_free(threads_per_thread);
 #endif
 
 		if (seq->type != SEQ_INTERNAL && fit == &local_fit)
@@ -1116,7 +1116,7 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 	}
 
 #ifdef _OPENMP
-	free(threads_per_thread);
+	siril_free(threads_per_thread);
 #endif
 
 	return retval;
@@ -1185,7 +1185,7 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 	}
 	size_t npixels = (x1 - x0) * (y1 - y0);
 	WORD *data = fit->pdata[chan];
-	WORD *filtered_data = malloc(npixels * sizeof(WORD));
+	WORD *filtered_data = siril_malloc(npixels * sizeof(WORD));
 	size_t count = 0;
 	WORD lowerw = roundf_to_WORD(lower);
 	WORD upperw = roundf_to_WORD(upper);
@@ -1201,7 +1201,7 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 
 	// Check if there are any elements in the specified range
 	if (count == 0) {
-		free(filtered_data);
+		siril_free(filtered_data);
 		return 0.0; // No elements in the range, return 0 as median
 	}
 
@@ -1209,7 +1209,7 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 	double retval = histogram_median(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
-	free(filtered_data);
+	siril_free(filtered_data);
 
 	return retval;
 }

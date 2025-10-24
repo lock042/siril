@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -701,7 +701,7 @@ gboolean estimate_idle(gpointer arg) {
 	set_cursor_waiting(FALSE);
 	siril_debug_print("Estimate idle stopping processing thread\n");
 	stop_processing_thread();
-	free(args.fdata);
+	siril_free(args.fdata);
 	args.fdata = NULL;
 	DrawPSF(NULL);
 	return FALSE;
@@ -721,7 +721,7 @@ void set_deconvolve_params() {
 
 gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	free(args.fdata);
+	siril_free(args.fdata);
 	args.fdata = NULL;
 	if (!args.previewing) {
 		copy_gfit_to_backup();
@@ -770,12 +770,12 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	set_cursor_waiting(TRUE);
 	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
-		seqargs = calloc(1, sizeof(deconvolution_sequence_data));
+		seqargs = siril_calloc(1, sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;
 		seqargs->from_command = FALSE;
 		seqargs->seqEntry = strdup(gtk_entry_get_text(bdeconv_seq_prefix));
 		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0') {
-			free(seqargs->seqEntry);
+			siril_free(seqargs->seqEntry);
 			seqargs->seqEntry = strdup("dec_");
 		}
 		apply_deconvolve_to_sequence(seqargs);
@@ -822,7 +822,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	float invrange = (maxval == minval) ? 1.f : 1.f / (maxval - minval);
 	int kpixels = com.kernelsize * com.kernelsize;
 
-	guchar *buf = calloc(com.kernelsize * com.kernelsize * 4, sizeof(guchar));
+	guchar *buf = siril_calloc(com.kernelsize * com.kernelsize * 4, sizeof(guchar));
 	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
 			float val[3] = { 0.f };
@@ -851,7 +851,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	cairo_surface_set_device_scale(surface, (double)com.kernelsize / (double)width, (double)com.kernelsize / (double)height);
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
-	free(buf);
+	siril_free(buf);
 	g_mutex_unlock(&psf_preview_mutex);
 	return;
 }

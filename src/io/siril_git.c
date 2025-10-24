@@ -1,10 +1,10 @@
 /*
 * This file is part of Siril, an astronomy image processor.
-* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-* Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+* Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+* Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
 * Reference site is https://siril.org
 *
-* Siril is free software: you can redistribute it and/or modify
+* Siril is siril_free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
@@ -57,8 +57,8 @@ void gui_repo_scripts_mutex_unlock() {
 	g_mutex_unlock(&gui_repo_scripts_mutex);
 }
 
-const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
-const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
+const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/siril_free-astro/siril-scripts";
+const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/siril_free-astro/siril-spcc-database";
 
 /**
 * Removes Git lock files from a repository directory path.

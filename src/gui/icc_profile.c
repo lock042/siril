@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -128,19 +128,19 @@ void set_source_information() {
 	gchar *buffer = siril_color_profile_get_description(gfit.icc_profile);
 	if (buffer)
 		gtk_label_set_text(label, buffer);
-	free(buffer);
+	siril_free(buffer);
 
 	// Set manufacturer
 	buffer = siril_color_profile_get_manufacturer(gfit.icc_profile);
 	if (buffer)
 		gtk_label_set_text(mfr_label, buffer);
-	free(buffer);
+	siril_free(buffer);
 
 	// Set copyright
 	buffer = siril_color_profile_get_copyright(gfit.icc_profile);
 	if (buffer)
 		gtk_label_set_text(copyright_label, buffer);
-	free(buffer);
+	siril_free(buffer);
 }
 
 void set_icc_description_in_TIFF() {
@@ -173,28 +173,28 @@ static void set_target_information() {
 	int length = cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", NULL, 0);
 	char *buffer = NULL;
 	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
+		buffer = (char*) siril_malloc(length * sizeof(char));
 		cmsGetProfileInfoASCII(target, cmsInfoDescription, "en", "US", buffer, length);
 		gtk_label_set_text(label, buffer);
-		free(buffer);
+		siril_free(buffer);
 	}
 
 	// Set manufacturer
 	length = cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", NULL, 0);
 	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
+		buffer = (char*) siril_malloc(length * sizeof(char));
 		cmsGetProfileInfoASCII(target, cmsInfoManufacturer, "en", "US", buffer, length);
 		gtk_label_set_text(mfr_label, buffer);
-		free(buffer);
+		siril_free(buffer);
 	}
 
 	// Set copyright
 	length = cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", NULL, 0);
 	if (length) {
-		buffer = (char*) malloc(length * sizeof(char));
+		buffer = (char*) siril_malloc(length * sizeof(char));
 		cmsGetProfileInfoASCII(target, cmsInfoCopyright, "en", "US", buffer, length);
 		gtk_label_set_text(copyright_label, buffer);
-		free(buffer);
+		siril_free(buffer);
 	}
 }
 
@@ -522,14 +522,14 @@ void on_icc_export_clicked(GtkButton *button, gpointer user_data) {
 	else
 		filename = strdup("image");
 	gchar* temp = g_strdup_printf("%s.icc", filename);
-	free(filename);
+	siril_free(filename);
 	filename = strdup(temp);
 	g_free(temp);
 	if (cmsSaveProfileToFile(gfit.icc_profile, filename))
 		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", filename);
 	else
 		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", filename);
-	free(filename);
+	siril_free(filename);
 }
 
 void on_icc_export_builtin_clicked(GtkButton *button, gpointer user_data) {

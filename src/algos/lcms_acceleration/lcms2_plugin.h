@@ -3,7 +3,7 @@
 //  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //
-// Permission is hereby granted, free of charge, to any person obtaining
+// Permission is hereby granted, siril_free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -382,7 +382,7 @@ typedef struct {
 
 //----------------------------------------------------------------------------------------------------------
 
-// Tag type handler. Each type is free to return anything it wants, and it is up to the caller to
+// Tag type handler. Each type is siril_free to return anything it wants, and it is up to the caller to
 // know in advance what is the type contained in the tag.
 typedef struct _cms_typehandler_struct {
 
@@ -501,7 +501,7 @@ CMSAPI cmsStage* CMSEXPORT _cmsStageAllocPlaceholder(cmsContext ContextID,
                                 cmsUInt32Number       OutputChannels,
                                 _cmsStageEvalFn       EvalPtr,            // Points to fn that evaluates the element (always in floating point)
                                 _cmsStageDupElemFn    DupElemPtr,         // Points to a fn that duplicates the stage
-                                _cmsStageFreeElemFn   FreePtr,            // Points to a fn that sets the element free
+                                _cmsStageFreeElemFn   FreePtr,            // Points to a fn that sets the element siril_free
                                 void*                 Data);              // A generic pointer to whatever memory needed by the element
 typedef struct {
       cmsPluginBase     base;
@@ -566,7 +566,7 @@ typedef void (* _cmsPipelineEvalFloatFn)(const cmsFloat32Number In[],
 
 
 // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
-// duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
+// duplicator and siril_free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
 
 CMSAPI void CMSEXPORT _cmsPipelineSetOptimizationParameters(cmsPipeline* Lut,
                                                _cmsPipelineEval16Fn Eval16,

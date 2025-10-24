@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -160,7 +160,7 @@ gpointer scnr(gpointer p) {
 		populate_roi();
 	}
 
-	free(args);
+	siril_free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
@@ -224,7 +224,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
+	struct scnr_data *args = siril_calloc(1, sizeof(struct scnr_data));
 	// Tell the threaded function if this is a preview or for real
 	args->previewing = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
 	// undo_save_state(...) // We don't do this here, it has to be done
@@ -238,7 +238,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->preserve = preserve;
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(scnr, args))
-		free(args);
+		siril_free(args);
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {

@@ -23,6 +23,9 @@
 #ifndef BINFILE_H
 #define BINFILE_H
 
+// Siril addition in order to support siril_* alloc functions
+#include "core/siril_alloc.h"
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <string.h>
@@ -119,7 +122,7 @@ void swapbytes(char byteswap, void *ptr, int nbytes)
 	if (!byteswap)
 		return;
 
-	destptr = (char *)malloc(nbytes);
+	destptr = (char *)siril_malloc(nbytes);
 	i       = ((char *)ptr + (nbytes - 1));
 	while (i >= (char *)ptr)
 	{
@@ -131,7 +134,7 @@ void swapbytes(char byteswap, void *ptr, int nbytes)
 	destptr -= nbytes;
 
 	memcpy(ptr, (void *)destptr, nbytes);
-	free(destptr);
+	siril_free(destptr);
 }
 
 /*

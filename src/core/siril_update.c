@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -40,7 +40,7 @@
 #define DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
-#define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
+#define GITLAB_URL "https://gitlab.com/siril_free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
@@ -450,10 +450,10 @@ static gboolean end_update_idle(gpointer p) {
 	if (args->content)
 		check_update_version(args);
 
-	/* free data */
+	/* siril_free data */
 	set_cursor_waiting(FALSE);
-	free(args->content);
-	free(args);
+	siril_free(args->content);
+	siril_free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
 	return FALSE;
@@ -599,7 +599,7 @@ static gboolean end_notifier_idle(gpointer p) {
 		goto end_notifier_idle_error;
 	}
 
-	// Print and then free valid notifications
+	// Print and then siril_free valid notifications
 	for (GSList *iter = validNotifications; iter; iter = iter->next) {
 		notification *notif = (notification *) iter->data;
 		char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
@@ -614,9 +614,9 @@ static gboolean end_notifier_idle(gpointer p) {
 end_notifier_idle_error:
 
 	set_cursor_waiting(FALSE);
-	/* free data */
-	free(args->content);
-	free(args);
+	/* siril_free data */
+	siril_free(args->content);
+	siril_free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
 	return FALSE;
@@ -627,7 +627,7 @@ void siril_check_updates(gboolean verbose) {
 		siril_log_color_message(_("Error: Siril is in offline mode, cannot check updates.\n"), "red");
 		return;
 	}
-	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
+	fetch_url_async_data *args = siril_calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup(SIRIL_VERSIONS);
 	args->content = NULL;
 	args->verbose = verbose;
@@ -644,7 +644,7 @@ void siril_check_updates(gboolean verbose) {
 void siril_check_notifications(gboolean verbose) {
 	fetch_url_async_data *args;
 
-	args = calloc(1, sizeof(fetch_url_async_data));
+	args = siril_calloc(1, sizeof(fetch_url_async_data));
 	GString *url = g_string_new(GITLAB_URL);
 	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);

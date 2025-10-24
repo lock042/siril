@@ -10,7 +10,7 @@
  *           E-mail: mwrsps@rit.edu
  *
  *
- *  This program is free software; you can redistribute it and/or
+ *  This program is siril_free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
@@ -637,7 +637,7 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 	 */
 	free_star_array(star_array_A);
 	free_star_array(star_array_B);
-	free(mask);
+	siril_free(mask);
 
 	return ret;
 }
@@ -1248,8 +1248,8 @@ int numstars /* I: with this many elements */
  * ROUTINE: free_distances
  *
  * DESCRIPTION:
- * Given a 2-D array of "num"-by-"num" double elements, free up
- * each row of the array, then free the array itself.
+ * Given a 2-D array of "num"-by-"num" double elements, siril_free up
+ * each row of the array, then siril_free the array itself.
  *
  * RETURN:
  *    nothing
@@ -1257,7 +1257,7 @@ int numstars /* I: with this many elements */
  * </AUTO>
  */
 
-static void free_distances(double **array, /* I: square array we'll free */
+static void free_distances(double **array, /* I: square array we'll siril_free */
 int num /* I: number of elems in each row */
 ) {
 	int i;
@@ -3169,7 +3169,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->sig = (nr > 1) ? find_percentile(dist2_sorted, nr, ONE_STDEV_PERCENTILE) : 0.;
 
 	/*
-	 * free up the arrays we allocated
+	 * siril_free up the arrays we allocated
 	 */
 	shFree(a_prime);
 	shFree(dist2);
@@ -3926,7 +3926,7 @@ int *num_stars_M /* O: number of stars in output array M */
  *                                  allocate an array 2x as big as total_num
  *                                  copy existing elements into new array
  *                                  copy new element into new array
- *                                  free old array
+ *                                  siril_free old array
  *                                  make old array pointer point to new array
  *                                  increment current_num
  *
@@ -3943,7 +3943,7 @@ static int add_element(s_star *new_star, /* I: want to copy this into next slot 
 s_star **star_array, /* I/O: will copy into this array */
 /*       if necessary, will allocate a new array, */
 /*       copy entire contents into it, including */
-/*       new_star, then free the old array */
+/*       new_star, then siril_free the old array */
 int *total_num, /* I/O: total number of stars allocated in */
 /*       star_array.  We may increase this if */
 /*       we have to extend star_array */
@@ -4589,7 +4589,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->y01 = solved_f;
 
 	/*
-	 * free up memory we allocated for this function
+	 * siril_free up memory we allocated for this function
 	 */
 	free_matrix(matrix, 3);
 
@@ -4995,7 +4995,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->y02 = solved_l;
 
 	/*
-	 * free up memory we allocated for this function
+	 * siril_free up memory we allocated for this function
 	 */
 	free_matrix(matrix, 6);
 
@@ -5570,7 +5570,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->y03 = solved_t;
 
 	/*
-	 * free up memory we allocated for this function
+	 * siril_free up memory we allocated for this function
 	 */
 	free_matrix(matrix, 10);
 
@@ -6456,7 +6456,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->y04 = solved_y04;
 
 	/*
-	 * free up memory we allocated for this function
+	 * siril_free up memory we allocated for this function
 	 */
 	free_matrix(matrix, 15);
 
@@ -7020,7 +7020,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	trans->y05 = solved_y05;
 
 	/*
-	 * free up memory we allocated for this function
+	 * siril_free up memory we allocated for this function
 	 */
 	free_matrix(matrix, 21);
 

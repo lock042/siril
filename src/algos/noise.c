@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -44,7 +44,7 @@ static gboolean end_noise(gpointer p) {
 		gettimeofday(&t_end, NULL);
 		show_time(args->t_start, t_end);
 	}
-	free(args);
+	siril_free(args);
 	return FALSE;
 }
 
@@ -113,25 +113,25 @@ void evaluate_noise_in_image() {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	struct noise_data *args = calloc(1, sizeof(struct noise_data));
+	struct noise_data *args = siril_calloc(1, sizeof(struct noise_data));
 	args->fit = &gfit;
 	args->use_idle = TRUE;
 	args->display_results = TRUE;
 	args->display_start_end = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
 	if (!start_in_new_thread(noise_worker, args)) {
-		free(args);
+		siril_free(args);
 	}
 }
 
 // called in general from another function like stacking,
-// bgnoise_await() has to be called to free resources
+// bgnoise_await() has to be called to siril_free resources
 void bgnoise_async(fits *fit, gboolean display_values) {
 	if (thread) {
 		siril_debug_print("bgnoise request ignored, still running\n");
 		return;
 	}
-	struct noise_data *args = calloc(1, sizeof(struct noise_data));
+	struct noise_data *args = siril_calloc(1, sizeof(struct noise_data));
 	args->fit = fit;
 	args->use_idle = FALSE;
 	args->display_start_end = FALSE;
@@ -149,7 +149,7 @@ double bgnoise_await() {
 	if (!args)
 		return -1.0;
 	double value = args->mean_noise;
-	free(args);
+	siril_free(args);
 	return value;
 }
 

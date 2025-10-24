@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -39,7 +39,7 @@
 // static functions
 
 static void free_xyplot_data(splxydata *plot) {
-	free(plot->data);
+	siril_free(plot->data);
 	g_free(plot->label);
 }
 
@@ -67,13 +67,13 @@ static void free_bkg(splbkg *bkg) {
 	g_free(bkg->bkgfilepath);
 	if (bkg->img)
 		g_object_unref(bkg->img);
-	free(bkg);
+	siril_free(bkg);
 }
 
 // allocate a simple xy data structure
 static splxydata *alloc_xyplot_data(int nb) {
 	splxydata *plot = g_slice_new(splxydata);
-	plot->data = calloc(nb, sizeof(struct kpair));
+	plot->data = siril_calloc(nb, sizeof(struct kpair));
 	if (!plot->data) {
 		PRINT_ALLOC_ERR;
 		g_slice_free(splxydata, plot);
@@ -154,10 +154,10 @@ static int comparex(const void *a, const void *b) {
 // 	return subbkg;
 // }
 
-// init/free spl_data
+// init/siril_free spl_data
 
 siril_plot_data* init_siril_plot_data() {
-	siril_plot_data *spl_data = malloc(sizeof(siril_plot_data));
+	siril_plot_data *spl_data = siril_malloc(sizeof(siril_plot_data));
 	if (!spl_data) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -229,9 +229,9 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_list_free_full(spl_data->plot, (GDestroyNotify)free_list_plot);
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
-	free(spl_data->cfgplot.clrs);
+	siril_free(spl_data->cfgplot.clrs);
 	free_bkg(spl_data->bkg);
-	free(spl_data);
+	siril_free(spl_data);
 
 }
 
@@ -308,7 +308,7 @@ gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfi
 		free_bkg(spl_data->bkg);
 	}
 	GError *error = NULL;
-	spl_data->bkg = calloc(1, sizeof(splbkg));
+	spl_data->bkg = siril_calloc(1, sizeof(splbkg));
 	spl_data->bkg->bkgfilepath = g_build_filename("/org/siril/ui/pixmaps/plot_background", bkgfilename, NULL);
 	spl_data->bkg->img = gdk_pixbuf_new_from_resource(spl_data->bkg->bkgfilepath, &error);
 	if (error) {
@@ -813,7 +813,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 
 	// gathering all the data
-	data = calloc(nbpoints, nbcols * sizeof(double)); // Initialize data to avoid possible use of uninitalized var in the loop that writes to the file
+	data = siril_calloc(nbpoints, nbcols * sizeof(double)); // Initialize data to avoid possible use of uninitalized var in the loop that writes to the file
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		retval = FALSE;
@@ -884,7 +884,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 
 clean_and_exit:
 	g_string_free(header, TRUE);
-	free(data);
-	free(newfilename);
+	siril_free(data);
+	siril_free(newfilename);
 	return retval;
 }

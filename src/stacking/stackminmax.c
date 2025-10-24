@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -124,9 +124,9 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			size_t nbpixels = nbdata * fit.naxes[2];
 			if (is_float) {
 				if (ismax)
-					ffinal_pixel[0] = calloc(nbpixels, sizeof(float));
+					ffinal_pixel[0] = siril_calloc(nbpixels, sizeof(float));
 				else {
-					ffinal_pixel[0] = malloc(nbpixels * sizeof(float));
+					ffinal_pixel[0] = siril_malloc(nbpixels * sizeof(float));
 					for (long k = 0; k < nbpixels; k++)
 						ffinal_pixel[0][k] = 1.0;
 				}
@@ -141,9 +141,9 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				}
 			} else {
 				if (ismax)
-					final_pixel[0] = calloc(nbpixels, sizeof(WORD));
+					final_pixel[0] = siril_calloc(nbpixels, sizeof(WORD));
 				else {
-					final_pixel[0] = malloc(nbpixels * sizeof(WORD));
+					final_pixel[0] = siril_malloc(nbpixels * sizeof(WORD));
 					for (long k = 0; k < nbpixels; k++)
 						final_pixel[0][k] = USHRT_MAX;
 				}

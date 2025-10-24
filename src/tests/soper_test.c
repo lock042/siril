@@ -1,10 +1,10 @@
 /*
  * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at siril_free.fr)
+ * Copyright (C) 2012-2025 team siril_free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
- * Siril is free software: you can redistribute it and/or modify
+ * Siril is siril_free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -37,13 +37,13 @@ static void set_float_data(fits *fit, float *data, int length) {
 }
 
 static WORD *alloc_data(const WORD *from, int length) {
-	WORD *data = malloc(5 * sizeof(WORD));
+	WORD *data = siril_malloc(5 * sizeof(WORD));
 	memcpy(data, from, length * sizeof(WORD));
 	return data;
 }
 
 static float *alloc_fdata(const float *from, int length) {
-	float *data = malloc(5 * sizeof(float));
+	float *data = siril_malloc(5 * sizeof(float));
 	memcpy(data, from, length * sizeof(float));
 	return data;
 }
