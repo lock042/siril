@@ -1002,6 +1002,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		imstats* stat = statistics(NULL, -1, cfachans[i], 0, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
+			cfachans_cleanup(cfachans);
 			return GINT_TO_POINTER(1);
 		}
 		float median = (float) stat->median;

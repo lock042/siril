@@ -37,9 +37,9 @@
 #include "core/siril_update.h"
 
 
-#define DOMAIN "https://siril.org/"
-#define SIRIL_VERSIONS DOMAIN"siril_versions.json"
-#define SIRIL_DOWNLOAD DOMAIN"download/"
+#define SIRIL_DOMAIN "https://siril.org/"
+#define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
+#define SIRIL_DOWNLOAD SIRIL_DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"

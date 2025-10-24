@@ -8740,10 +8740,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_color_message(_("Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"), "red");
 		args.overlap_norm = FALSE;
 	}
-	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT || args.weighting_type == NBSTACK_WEIGHT)) {
-		siril_log_color_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"), "red");
+	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT)) {
+		siril_log_color_message(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"), "red");
 		args.weighting_type = NO_WEIGHT;
 	}
+	if (args.overlap_norm && (args.weighting_type == NOISE_WEIGHT)) {
+		siril_log_color_message(_("Weighting by noise cannot be used with overlap normalization, ignoring weights.\n"), "red");
+		args.weighting_type = NO_WEIGHT;
+	}
+
 
 	// manage filters
 	if (convert_parsed_filter_to_filter(&arg->filters, seq,

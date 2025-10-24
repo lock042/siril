@@ -238,6 +238,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 				data = extract_CFA_buffer_area_ushort(fit, -layer - 1, selection, &newsz);
 				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					free(data);
 					return NULL;
 				}
 				nx = newsz;

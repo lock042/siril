@@ -144,8 +144,13 @@ static void start_stacking() {
 	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
 	if (weighing_is_enabled) {
 		int weight_type = gtk_combo_box_get_active(weighing_combo);
-		if (weight_type == NOISE_WEIGHT || weight_type == NBSTACK_WEIGHT) {
-			stackparam.weighting_type = (gtk_combo_box_get_active(norm_combo) != NO_NORM) ? weight_type : NO_WEIGHT;
+		if (weight_type == NOISE_WEIGHT) {
+			int norm_type = gtk_combo_box_get_active(norm_combo);
+			if (norm_type == NO_NORM) {
+				siril_log_color_message(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"), "red");
+				weight_type = NO_WEIGHT;
+			} else
+				stackparam.weighting_type = norm_type;
 		} else {
 			stackparam.weighting_type = weight_type;
 		}
@@ -154,6 +159,10 @@ static void start_stacking() {
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 	stackparam.feather_dist = (int)gtk_spin_button_get_value(feather_dist) * gtk_widget_get_visible(blend_frame);
 	stackparam.overlap_norm = gtk_toggle_button_get_active(overlap_norm) * gtk_widget_get_visible(blend_frame);
+	if (stackparam.overlap_norm && stackparam.weighting_type == NOISE_WEIGHT) {
+		siril_log_color_message(_("Weighting by noise cannot be used with overlap normalization, ignoring weights.\n"), "red");
+		stackparam.weighting_type = NO_WEIGHT;
+	}
 
 	stackparam.use_32bit_output = gtk_toggle_button_get_active(force32b) || evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);

@@ -35,6 +35,7 @@
 #include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/Astro-TIFF.h"
+#include "opencv/opencv.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -43,6 +44,7 @@
 #include "io/mp4_output.h"
 #endif
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
 
 /* same order as in the combo box 'combo_export_preset' */
 typedef enum {
@@ -118,6 +120,8 @@ static gpointer export_sequence(gpointer ptr) {
 	GDateTime *strTime;
 	gboolean aborted = FALSE;
 	cmsHPROFILE ref_icc = NULL;
+	gboolean preserve_wcs = TRUE;
+	double dxref = 0., dyref = 0.;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
@@ -140,6 +144,7 @@ static gpointer export_sequence(gpointer ptr) {
 		out_height = args->dest_height;
 		if (out_width == in_width && out_height == in_height)
 			args->resample = FALSE;
+		preserve_wcs = !args->resample;
 	} else {
 		out_width = in_width;
 		out_height = in_height;
@@ -182,6 +187,7 @@ static gpointer export_sequence(gpointer ptr) {
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
 			break;
+			preserve_wcs = FALSE;
 
 		case EXPORT_SER:
 			ser_file = calloc(1, sizeof(struct ser_struct));
@@ -196,6 +202,7 @@ static gpointer export_sequence(gpointer ptr) {
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
 			break;
+			preserve_wcs = FALSE;
 
 		case EXPORT_AVI:
 			snprintf(dest, 256, "%s.avi", args->basename);
@@ -222,6 +229,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 
 			output_bitpix = BYTE_IMG;
+			preserve_wcs = FALSE;
 			break;
 
 		case EXPORT_MP4:
@@ -281,6 +289,7 @@ static gpointer export_sequence(gpointer ptr) {
 				goto free_and_reset_progress_bar;
 			}
 			output_bitpix = BYTE_IMG;
+			preserve_wcs = FALSE;
 			break;
 #endif
 	}
@@ -294,6 +303,16 @@ static gpointer export_sequence(gpointer ptr) {
 			args->filtering_parameter);
 	siril_log_message(filter_descr);
 	g_free(filter_descr);
+
+	if (reglayer != -1 && args->seq->regparam[reglayer]) {
+		if (!test_regdata_is_valid_and_shift(args->seq, reglayer)) {
+			siril_log_color_message(_("Export has detected registration data with more than simple shifts, this is not supported\n"), "red");
+			goto free_and_reset_progress_bar;
+		}
+		translation_from_H(args->seq->regparam[reglayer][refindex].H, &dxref, &dyref);
+	} else {
+		reglayer = -1;
+	}
 
 	if (args->normalize) {
 		struct stacking_args stackargs = { 0 };
@@ -450,8 +469,19 @@ static gpointer export_sequence(gpointer ptr) {
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
 			double dx, dy;
 			translation_from_H(args->seq->regparam[reglayer][i].H, &dx, &dy);
-			shiftx = round_to_int(dx);
-			shifty = round_to_int(dy);
+			shiftx = round_to_int(dx - dxref);
+			shifty = round_to_int(dy - dyref);
+			if (has_wcs(destfit)) {
+				if (preserve_wcs) {
+					Homography H = { 0 };
+					cvGetEye(&H);
+					H.h02 = (double)shiftx;
+					H.h12 = -(double)shifty;
+					cvApplyFlips(&H, in_height, out_height);
+					reframe_wcs(destfit->keywords.wcslib, &H);
+			} else
+				free_wcs(destfit);
+			}
 		} else {
 			shiftx = 0;
 			shifty = 0;
