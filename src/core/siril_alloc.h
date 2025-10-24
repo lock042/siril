@@ -11,8 +11,6 @@
 
 #ifdef _WIN32
 
-#include <windows.h>
-
 // Threshold for switching to OS-level allocation on Windows
 #define LARGE_ALLOC_THRESHOLD (128 * 1024)
 

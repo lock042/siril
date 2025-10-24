@@ -1,5 +1,8 @@
 #include "core/siril_alloc.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 /**
 * Allocate memory optimally for the given size.
 * On POSIX systems, uses siril_malloc (which automatically switches to mmap for large allocations).
