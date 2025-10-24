@@ -87,6 +87,7 @@ src_files = [
   'core/signals.c',
   'core/siril.c',
   'core/siril_actions.c',
+  'core/siril_alloc.c',
   'core/siril_app_dirs.c',
   'core/siril_cmd_help.c',
   'core/siril_date.c',

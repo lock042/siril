@@ -16,6 +16,8 @@
 
 #include <fitsio.h>	// fitsfile
 
+#include "core/siril_alloc.h"
+
 #include "core/settings.h"
 
 #define _(String) gettext (String)
