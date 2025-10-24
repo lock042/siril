@@ -320,6 +320,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
 				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					free(data);
 					return NULL;
 				}
 				nx = newsz;

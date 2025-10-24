@@ -2282,6 +2282,8 @@ void free_astrometry_data(struct astrometry_data *args) {
 		g_free(args->filename);
 	if (args->distofilename)
 		g_free(args->distofilename);
+	if (args->sfargs)
+		free(args->sfargs);
 	free(args);
 }
 
