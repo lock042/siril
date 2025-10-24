@@ -4,15 +4,17 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <stdlib.h>
+#ifndef _WIN32
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 // SIMD alignment requirement
 // 64 bytes covers AVX-512, which is the most demanding current SIMD instruction set
 #define SIMD_ALIGNMENT 64
-
-#ifdef _WIN32
+#define LARGE_ALLOC_THRESHOLD (128 * 1024)
 
 // Threshold for switching to OS-level allocation on Windows
-#define LARGE_ALLOC_THRESHOLD (128 * 1024)
 
 // Header stored before each allocation to track allocation method
 typedef struct {
@@ -21,12 +23,6 @@ typedef struct {
 	unsigned char method;  // 0 = siril_malloc, 1 = OS allocation
 	unsigned char padding[7]; // Padding for alignment
 } AllocHeader;
-
-#else
-
-#include <stdlib.h>
-
-#endif /* _WIN32 */
 
 /**
 	* Check if a pointer is properly aligned for SIMD operations.
