@@ -158,6 +158,16 @@ static int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern, gboolean fli
 	return 0;
 }
 
+static void get_pattern_offset(fits *fit, int *xbayeroff, int *ybayeroff) {
+	if (!com.pref.debayer.use_bayer_header) {
+		*xbayeroff = com.pref.debayer.xbayeroff;
+		*ybayeroff = com.pref.debayer.ybayeroff;
+	} else {
+		*xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? com.pref.debayer.xbayeroff : fit->keywords.bayer_xoffset;
+		*ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? com.pref.debayer.ybayeroff : fit->keywords.bayer_yoffset;
+	}
+}
+
 /* convert the string-described X-Trans pattern into an int array with value corresponding to filter */
 static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6], gboolean flip, int xbayeroff, int ybayeroff, int flip_offset) {
 	int i = 0;
@@ -273,14 +283,11 @@ static sensor_pattern get_bayer_pattern(fits *fit, gboolean force_debayer, gbool
 
 	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
 		int xbayeroff = 0, ybayeroff = 0;
-		if (!com.pref.debayer.use_bayer_header) {
-			xbayeroff = com.pref.debayer.xbayeroff;
-			ybayeroff = com.pref.debayer.ybayeroff;
-		} else {
-			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
-			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
+		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
+		if (xbayeroff > 1 || ybayeroff > 1) {
+			siril_log_color_message(_("Offsets: %d, %d not suitable for a Bayer pattern (%d), check your preferences\n"), "red", xbayeroff, ybayeroff, tmp_pattern);
 		}
-		// x_offset amd y_offset are non null only when we do a partial read
+		// x_offset and y_offset are non null only when we do a partial read
 		xbayeroff += fit->x_offset;
 		ybayeroff += fit->y_offset;
 	 	if (adjust_Bayer_pattern(fit, &tmp_pattern, !top_down, xbayeroff, ybayeroff)) {
@@ -339,13 +346,7 @@ int get_compiled_pattern(fits *fit, BYTE pattern[36], int *pattern_size, gboolea
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
-		if (!com.pref.debayer.use_bayer_header) {
-			xbayeroff = com.pref.debayer.xbayeroff;
-			ybayeroff = com.pref.debayer.ybayeroff;
-		} else {
-			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
-			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
-		}
+		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
@@ -476,13 +477,7 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
-		if (!com.pref.debayer.use_bayer_header) {
-			xbayeroff = com.pref.debayer.xbayeroff;
-			ybayeroff = com.pref.debayer.ybayeroff;
-		} else {
-			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
-			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
-		}
+		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 	}
 	// use librtprocess debayer
@@ -520,13 +515,7 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		if (flipoffset)
 			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		int xbayeroff = 0, ybayeroff = 0;
-		if (!com.pref.debayer.use_bayer_header) {
-			xbayeroff = com.pref.debayer.xbayeroff;
-			ybayeroff = com.pref.debayer.ybayeroff;
-		} else {
-			xbayeroff = (fit->keywords.bayer_xoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_xoffset;
-			ybayeroff = (fit->keywords.bayer_yoffset == DEFAULT_INT_VALUE) ? 0: fit->keywords.bayer_yoffset;
-		}
+		get_pattern_offset(fit, &xbayeroff, &ybayeroff);
 		compile_XTrans_pattern(xtrans_str, xtrans, !top_down, xbayeroff, ybayeroff, flipoffset);
 	}
 
