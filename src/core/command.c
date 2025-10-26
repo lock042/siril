@@ -7081,6 +7081,7 @@ int process_seq_stat(int nb) {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
+			g_free(args->csv_name);
 			free(args);
 			return CMD_ARG_ERROR;
 		}
