@@ -23,6 +23,8 @@ XX/XX/XX
 * Fixed min/max stacking for (0,0) pixel (#1810)
 * Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
 * Fixed using reference image position and updating WCS in Export Sequence (#1824)
+* Fixed issue with deconvolution using RGB PSFs (#1829)
+* Fixed issue where sirilpy.SirilInterface.confirm_messsagebox() could hang Siril (#1832)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
