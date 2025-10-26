@@ -25,6 +25,7 @@ XX/XX/XX
 * Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
 * Added prefix arg to SirilInterface.set_seq_frame_pixeldata() to make it easier to create new sequences
 * SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
+* Starlink pre- and post-autostretch is unlinked for better star removal from images with very uneven channels (!952)
 
 siril 1.4.0-beta4
 09/28/25
