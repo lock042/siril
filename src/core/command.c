@@ -8357,11 +8357,13 @@ int process_seq_applyreg(int nb) {
 			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
 			clearfits(&reffit);
 			if (status) {
+				g_free(expression);
 				error = _("NOT USING FLAT: could not parse the expression");
 				goto terminate_register_on_error;
 			} else {
 				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					g_free(expression);
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
