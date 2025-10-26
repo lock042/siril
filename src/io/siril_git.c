@@ -1068,9 +1068,9 @@ static int find_file_commit_by_modifications(git_repository *repo,
 		size_t workdir_len = strlen(tmpworkdir);
 		if (strncmp(filepath, tmpworkdir, workdir_len) == 0) {
 			const char *rel_start = filepath + workdir_len;
-			while (*rel_start == '/' || *rel_start == '\\') rel_start++;
-			const gchar *tmprelpath =  posix_path_separators(rel_start);
-			relative_path = g_strdup(tmprelpath);
+			while (*rel_start == '/' || *rel_start == '\\')
+				rel_start++;
+			relative_path = posix_path_separators(rel_start);
 		} else {
 			g_free(tmpworkdir);
 			return -1;

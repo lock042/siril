@@ -13,6 +13,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/OS_utils.h"
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
@@ -584,6 +585,10 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
 		num_points = GUINT32_FROM_BE(num_points);
+		if (num_points > get_available_memory() / 64)
+			// Error if the unpacked data would use more than half the available memory
+			return NULL;
+
 		offset += sizeof(uint32_t);
 
 		// Read plot type (network byte-order)
