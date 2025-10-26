@@ -602,6 +602,9 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 						start_sequence_keywords(&com.seq, kargs);
 						break;
 					} else {
+						g_free(kargs->FITS_key);
+						g_free(kargs->comment);
+						g_free(kargs->value);
 						free(kargs);
 						continue;
 					}
