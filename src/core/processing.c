@@ -1320,6 +1320,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
 			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 			g_free(seqfilename);
+			seqfilename = NULL;
 			if (!retval) goto after_fitseq_check;
 		}
 		g_free(seqfilename);
