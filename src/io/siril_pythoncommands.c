@@ -2523,7 +2523,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			uint8_t retval = siril_confirm_dialog_async((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
 			break;
 		}

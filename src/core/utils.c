@@ -190,6 +190,9 @@ const char *channel_number_to_name(int channel) {
  *  @return the index of the first '.' found
  */
 int get_extension_index(const char *filename) {
+	if (strlen(filename) > 4096)
+		return -1; // sanitize against excessive filename lengths
+
 	if (filename == NULL || filename[0] == '\0')
 		return -1;
 	for (int i = strlen(filename) - 1; i > 0; i--) {
