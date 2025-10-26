@@ -10983,6 +10983,7 @@ static show_params* parse_show_args(int nb) {
 				params->display_tag = BOOL_FALSE;
 			} else {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				g_free(params->file);
 				g_free(params);
 				return NULL;
 			}
