@@ -175,15 +175,15 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 
 	// Log the parameters for each channel
 	if (from->naxes[2] == 3) {
-		siril_log_message(_("Applying inverse MTF with values:\n"
+		siril_debug_print("Applying inverse MTF with values:\n"
 				"  Red:   %f, %f, %f\n"
 				"  Green: %f, %f, %f\n"
-				"  Blue:  %f, %f, %f\n"),
+				"  Blue:  %f, %f, %f\n",
 				params[0].shadows, params[0].midtones, params[0].highlights,
 				params[1].shadows, params[1].midtones, params[1].highlights,
 				params[2].shadows, params[2].midtones, params[2].highlights);
 	} else {
-		siril_log_message(_("Applying inverse MTF with values %f, %f, %f\n"),
+		siril_debug_print("Applying inverse MTF with values %f, %f, %f\n",
 				params[0].shadows, params[0].midtones, params[0].highlights);
 	}
 
