@@ -198,6 +198,7 @@ static void remove_selected_keys () {
 
 					start_sequence_keywords(&com.seq, kargs);
 				} else {
+					g_free(kargs->FITS_key);
 					free(kargs);
 				}
 		        g_value_unset(&g_key);

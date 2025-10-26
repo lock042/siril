@@ -1411,7 +1411,7 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->user = cut_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(args->user);
+		free_cut_args((cut_struct*) args->user);
 		free_generic_seq_args(args, TRUE);
 	}
 }
