@@ -4143,6 +4143,7 @@ int process_pm(int nb) {
 		return CMD_ARG_ERROR;
 	} else if (count % 2 != 0) {
 		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
+		g_free(expression);
 		return CMD_ARG_ERROR;
 	}
 
@@ -7989,10 +7990,12 @@ int process_register(int nb) {
 			clearfits(&reffit);
 			if (status) {
 				error = _("NOT USING FLAT: could not parse the expression");
+				// no need to free expression as we do not call path_parse with the NOFAIL mode
 				goto terminate_register_on_error;
 			} else {
 				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					g_free(expression);
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
@@ -8008,6 +8011,7 @@ int process_register(int nb) {
 						}
 
 					} else error = _("NOT USING FLAT: cannot open the file");
+					g_free(expression);
 					if (error) {
 						goto terminate_register_on_error;
 					}
@@ -8360,6 +8364,7 @@ int process_seq_applyreg(int nb) {
 			if (status) {
 				g_free(expression);
 				error = _("NOT USING FLAT: could not parse the expression");
+				// no need to free expression as we don't call path_parse with the NOFAIL mode
 				goto terminate_register_on_error;
 			} else {
 				if (expression[0] == '\0') {
@@ -8380,6 +8385,7 @@ int process_seq_applyreg(int nb) {
 						}
 
 					} else error = _("NOT USING FLAT: cannot open the file");
+					g_free(expression);
 					if (error) {
 						goto terminate_register_on_error;
 					}
@@ -10868,6 +10874,7 @@ int process_findcompstars(int nb) {
 
 	if (!start_in_new_thread(compstars_worker, args)) {
 		g_free(args->target_name);
+		g_free(args->nina_file);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -11562,6 +11569,7 @@ typedef struct _pyscript_data {
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
 	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
+	// execute_python_script() frees data->script_name
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11609,6 +11617,7 @@ int process_pyscript(int nb) {
 		// so we use a generic GThread
 		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
+		// data->script_name freed by execute_python_script_wrapper
 		if (!thread) {
 			free(data);
 			g_free(script_name);

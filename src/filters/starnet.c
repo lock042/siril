@@ -95,7 +95,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// Add the Starnet child to the list of child processes
 	if (!add_child(child_pid, EXT_STARNET, "Starnet")) {
-		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red", error->message);
+		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red");
 		return 1;
 	}
 

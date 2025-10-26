@@ -1227,6 +1227,7 @@ static int get_commit_from_file_revision(git_repository *repo,
 	git_commit *target_commit = NULL;
 	int error = 0;
 	gchar *relative_path = NULL;
+	gchar *msg = NULL;
 
 	if (!repo || !filepath || !message || !message_size || file_revisions_to_backtrack < 0)
 		return -1;
@@ -1234,11 +1235,12 @@ static int get_commit_from_file_revision(git_repository *repo,
 	*message = NULL;
 	*message_size = 0;
 
-	gchar *msg = NULL;
 	error = find_file_commit_by_modifications(repo, filepath, file_revisions_to_backtrack + 1,
 											&target_commit, &relative_path, &msg);
-	if (error != 0)
-		return -1;
+	if (error != 0) {
+		error = -1;
+		goto cleanup;
+	}
 
 	if (!msg) {
 		error = -1;
@@ -1257,6 +1259,7 @@ static int get_commit_from_file_revision(git_repository *repo,
 	*message_size = len;
 
 cleanup:
+	g_free(msg);
 	if (relative_path)
 		g_free(relative_path);
 	if (target_commit)
