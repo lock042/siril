@@ -11022,12 +11022,15 @@ parse_coords:
 		}
 		if (!params->coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
+			g_free(params->name);
 			g_free(params);
 			return NULL;
 		}
 		if (nb > next_arg) {
+			g_free(params->name);
 			params->name = g_strdup(word[next_arg]);
 		} else {
+			g_free(params->name);
 			params->name = g_strdup("object");
 		}
 	}
