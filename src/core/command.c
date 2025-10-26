@@ -8362,6 +8362,7 @@ int process_seq_applyreg(int nb) {
 			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
 			clearfits(&reffit);
 			if (status) {
+				g_free(expression);
 				error = _("NOT USING FLAT: could not parse the expression");
 				// no need to free expression as we don't call path_parse with the NOFAIL mode
 				goto terminate_register_on_error;
@@ -11029,12 +11030,15 @@ parse_coords:
 		}
 		if (!params->coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
+			g_free(params->name);
 			g_free(params);
 			return NULL;
 		}
 		if (nb > next_arg) {
+			g_free(params->name);
 			params->name = g_strdup(word[next_arg]);
 		} else {
+			g_free(params->name);
 			params->name = g_strdup("object");
 		}
 	}

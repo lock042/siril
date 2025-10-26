@@ -212,7 +212,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					size_t ii = ny * fit.rx + nx;		// index in final_pixel[0] too
 					//printf("shiftx=%d shifty=%d i=%d ii=%d\n",shiftx,shifty,i,ii);
-					if (ii >= 0 && ii < nbdata) {
+					if (ii < nbdata) {
 						for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 							if (is_float) {
 								float current_pixel = fit.fpdata[layer][ii];
