@@ -334,6 +334,7 @@ static void auto_photometry_data () {
 
 	if(!start_in_new_thread(compstars_worker, args)) {
 		g_free(args->target_name);
+		g_free(args->nina_file);
 		free(args);
 	}
 }
