@@ -557,11 +557,13 @@ gpointer do_starnet(gpointer p) {
 	// default shadow clipping and target background. This does marginally clip the
 	// shadows but generally by less than 0.001% of pixels. The result of starnet using
 	// this stretch is much better than either asinh or GHT stretches.
-	struct mtf_params params;
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	retval = find_linked_midtones_balance_default(&workingfit, &params);
+	struct mtf_params params[3];
+	for (int i = 0 ; i < 3 ; i++) {
+		params[i].do_red = TRUE;
+		params[i].do_green = TRUE;
+		params[i].do_blue = TRUE;
+	}
+	retval = find_unlinked_midtones_balance_default(&workingfit, params);
 	if (retval && args->linear) {
 		siril_log_color_message(_("Error: unable to find the MTF stretch factors...\n"), "red");
 		goto CLEANUP;
@@ -569,8 +571,17 @@ gpointer do_starnet(gpointer p) {
 	if (args->linear) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
-		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
+		apply_unlinked_mtf_to_fits(&workingfit, &workingfit, params);
+		if  (workingfit.naxes[2] == 1)
+			siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params[0].shadows, params[0].midtones, params[0].highlights);
+		else
+			siril_log_message(_("Applying MTF with values:\n"
+					"  Red:   %f, %f, %f\n"
+					"  Green: %f, %f, %f\n"
+					"  Blue:  %f, %f, %f\n"),
+					params[0].shadows, params[0].midtones, params[0].highlights,
+					params[1].shadows, params[1].midtones, params[1].highlights,
+					params[2].shadows, params[2].midtones, params[2].highlights);
 	}
 
 	// Upscale if needed
@@ -700,7 +711,7 @@ gpointer do_starnet(gpointer p) {
 	if (args->linear) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"));
-		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
+		apply_unlinked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Chdir back to the Siril working directory, we don't need to be in the starnet
