@@ -585,9 +585,12 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
 		num_points = GUINT32_FROM_BE(num_points);
-		if (num_points > get_available_memory() / 64)
+		if (num_points > get_available_memory() / 64) {
 			// Error if the unpacked data would use more than half the available memory
+			free_plot_data(plot_data);
+			g_free(series_label);
 			return NULL;
+		}
 
 		offset += sizeof(uint32_t);
 
@@ -2469,6 +2472,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));

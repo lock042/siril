@@ -4140,10 +4140,13 @@ int process_pm(int nb) {
 
 	if (count == 0 && !has_gfit) {
 		siril_log_message(_("You need to add at least a loaded image or one image as variable. Use $ tokens to surround the file names .\n"));
+		g_free(expression);
+		g_free(cleaned_expression);
 		return CMD_ARG_ERROR;
 	} else if (count % 2 != 0) {
 		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
 		g_free(expression);
+		g_free(cleaned_expression);
 		return CMD_ARG_ERROR;
 	}
 
@@ -10375,6 +10378,8 @@ int process_platesolve(int nb) {
 				retval = CMD_ARG_ERROR;
 				goto clean_and_exit_platesolve;
 			}
+			if (distofilename)
+				g_free(distofilename); // in case -disto= is passed twice, don't leak distofilename
 			distofilename = g_strdup(arg);
 		}
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {

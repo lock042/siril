@@ -208,6 +208,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 				}
 				g_object_unref(file);
 				script_widgets_enable(TRUE);
+				g_free(script_file);
 				return;
 			}
 			com.script_thread = g_thread_new("script", execute_script, input_stream);

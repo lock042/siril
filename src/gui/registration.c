@@ -992,6 +992,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 			if (expression[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
+				g_free(expression);
 				return 1;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);

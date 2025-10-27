@@ -129,9 +129,12 @@ void initialize_cut_struct(cut_struct *arg) {
 }
 
 void free_cut_args(cut_struct *arg) {
-	if (arg->filename) {
-		g_free(arg->filename);
-	}
+	g_free(arg->filename);
+	arg->filename = NULL;
+	g_free(arg->title);
+	arg->title = NULL;
+	g_free(arg->user_title);
+	arg->user_title = NULL;
 	if (arg != &gui.cut)
 		free(arg);
 	return;
