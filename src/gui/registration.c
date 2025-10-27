@@ -987,6 +987,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
 			free(driz);
+			g_free(expression);
 			return 1;
 		} else {
 			if (expression[0] == '\0') {
@@ -1008,6 +1009,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 						siril_log_message(_("Master flat read for use as initial pixel weight\n"));
 					}
 				} else error = _("NOT USING FLAT: cannot open the file");
+				g_free(expression);
 				if (error) {
 					siril_log_color_message("%s\n", "red", error);
 					set_progress_bar_data(error, PROGRESS_DONE);

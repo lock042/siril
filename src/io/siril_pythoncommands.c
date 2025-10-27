@@ -573,7 +573,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
-		char* series_label = g_strdup((const char*)buffer + offset);
+		gchar* series_label = g_strdup((const char*)buffer + offset);
 		offset += strlen(series_label) + 1;
 
 		// Unpack with_errors (as a single byte)
@@ -587,7 +587,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		num_points = GUINT32_FROM_BE(num_points);
 		if (num_points > get_available_memory() / 64) {
 			// Error if the unpacked data would use more than half the available memory
-			free_plot_data(plot_data);
+			free_siril_plot_data(plot_data);
 			g_free(series_label);
 			return NULL;
 		}
