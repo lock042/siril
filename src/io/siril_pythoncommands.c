@@ -2465,6 +2465,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
