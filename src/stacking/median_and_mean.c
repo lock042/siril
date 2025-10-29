@@ -717,6 +717,27 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			kept++;
 		}
 	}
+	/* remove null pixels (or null drizzle weights or both)*/
+	if (args->drizzle) {
+		float *d_stack = (float*) data->dstack;
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] > 0 && d_stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
+		}
+	} else {
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
+		}
+	}
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */

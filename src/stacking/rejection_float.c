@@ -113,13 +113,25 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 
 	memcpy(o_stack, stack, N * sizeof(float)); /* making a copy of unsorted stack to apply weights*/
 
-	/* remove null pixels */
-	for (int frame = 0; frame < N; frame++) {
-		if (stack[frame] != 0.f) {
-			if (frame != kept) {
-				stack[kept] = stack[frame];
-			} 
-			kept++;
+	/* remove null pixels (or null drizzle weights or both)*/
+	if (args->drizzle) {
+		float *d_stack = (float*) data->dstack;
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] != 0.f && d_stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
+		}
+	} else {
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
 		}
 	}
 	/* Preventing problems
