@@ -5445,7 +5445,7 @@ int process_findstar(int nb) {
 	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
 		args->selection = com.selection;
 	}
-	if (args->starfile && has_wcs(args->im.fit)) {
+	if (has_wcs(args->im.fit) && (args->starfile || args->update_GUI)) {
 		args->save_eqcoords = TRUE;
 		args->ref_wcs = args->im.fit->keywords.wcslib;
 	} else {
