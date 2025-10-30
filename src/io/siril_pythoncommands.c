@@ -3225,6 +3225,24 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_GET_SIRIL_LOG: {
+			if (com.headless) {
+				const char* error_msg = _("Log only available in GUI mode");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			gchar *log = get_log_as_string();
+			guint32 length = strlen(log) + 1;
+			shared_memory_info_t *info = handle_rawdata_request(conn, log, length);
+			// Send data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			// Clean up
+			free(info);
+			g_free(log);
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

@@ -239,6 +239,27 @@ static void save_log_file(gchar *filename) {
 	g_free(str);
 }
 
+static gboolean get_log_as_string_idle(gpointer user_data) {
+	GtkTextBuffer *log;
+	GtkTextView *tv;
+	GtkTextIter start, end;
+	const gchar *str;
+	gchar **strptr = (gchar **) user_data;
+
+	tv = GTK_TEXT_VIEW(lookup_widget("output"));
+	log = gtk_text_view_get_buffer(tv);
+	gtk_text_buffer_get_bounds(log, &start, &end);
+	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
+	*strptr = g_strdup(str);
+	return FALSE;
+}
+
+gchar *get_log_as_string() {
+	gchar *log = NULL;
+	execute_idle_and_wait_for_it(get_log_as_string_idle, &log);
+	return log;
+}
+
 static void set_filter(GtkFileChooser *dialog) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("Log files (*.log)"));

@@ -99,6 +99,7 @@ typedef enum {
 	CMD_GET_STF_LINKED = 82,
 	CMD_SET_STF_LINKED = 83,
 	CMD_SET_IMAGE_FILENAME = 84,
+	CMD_GET_SIRIL_LOG = 85,
 	CMD_ERROR = 0xFF
 } CommandType;
 
