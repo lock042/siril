@@ -1403,7 +1403,7 @@ gpointer findstar_worker(gpointer p) {
 			sum += stars[i]->fwhmx;
 			fwhm_to_arcsec_if_needed(args->im.fit, stars[i]);
 
-			if (args->starfile && args->save_eqcoords) {
+			if (args->starfile || args->save_eqcoords) {
 				sequence *seq = args->im.from_seq;
 				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {

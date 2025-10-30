@@ -586,7 +586,7 @@ static gboolean end_convert(gpointer p) {
 		if (!string_is_a_path(args->destroot)) {
 			if (args->output_type != SEQ_REGULAR) {
 				int extidx = get_extension_index(args->destroot);
-				if (extidx > 0) {
+				if (extidx > 0 && extidx < INT_MAX - 5) {
 					converted_seqname = malloc(extidx + 5);
 					strncpy(converted_seqname, args->destroot, extidx);
 					strcpy(converted_seqname+extidx, ".seq");

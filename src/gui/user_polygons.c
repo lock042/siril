@@ -30,6 +30,8 @@ do { \
 	(dest) = conv.v; \
 } while(0)
 
+#define MAX_LEGEND_LENGTH 4095  // Allows for +1 null terminator without exceeding 4096
+
 static gint unused_polygon_id = 0;
 
 UserPolygon *find_polygon_by_id(int id) {
@@ -248,6 +250,12 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 
 	// Handle the legend string
 	if (legend_length > 0) {
+		if (legend_length > MAX_LEGEND_LENGTH) {
+			fprintf(stderr, "Legend length exceeds maximum allowed\n");
+			g_free(polygon->points);
+			g_free(polygon);
+			return NULL;
+		}
 		polygon->legend = g_malloc0(legend_length + 1);  // +1 for null terminator
 		if (!polygon->legend) {
 			fprintf(stderr, "Memory allocation for legend failed\n");
