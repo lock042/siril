@@ -1095,22 +1095,30 @@ void remove_child_from_children(GPid pid) {
 
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
+
 		if (!child) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
 			if (prev)
-				prev->next = iter->next;
-			iter = iter->next;
-			g_slist_free1(iter);
+				prev->next = next;
+			else
+				com.children = next;  // Don't forget to update head!
+
+			g_slist_free_1(iter);
+			iter = next;
 			continue;
 		}
 
 		if (child->childpid == pid) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
 			// Remove the node from the list
 			if (prev == NULL) {
-				// If it's the first node
-				com.children = iter->next;
+				com.children = next;
 			} else {
-				// If it's a middle or last node
-				prev->next = iter->next;
+				prev->next = next;
 			}
 
 			// Free the node and the child
@@ -1320,6 +1328,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
 			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 			g_free(seqfilename);
+			seqfilename = NULL;
 			if (!retval) goto after_fitseq_check;
 		}
 		g_free(seqfilename);

@@ -95,7 +95,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// Add the Starnet child to the list of child processes
 	if (!add_child(child_pid, EXT_STARNET, "Starnet")) {
-		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red", error->message);
+		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red");
 		return 1;
 	}
 
@@ -572,13 +572,14 @@ gpointer do_starnet(gpointer p) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
 		apply_unlinked_mtf_to_fits(&workingfit, &workingfit, params);
+		siril_log_message(_("StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"));
 		if  (workingfit.naxes[2] == 1)
-			siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params[0].shadows, params[0].midtones, params[0].highlights);
+			siril_debug_print("Applying MTF with values %f, %f, %f\n", params[0].shadows, params[0].midtones, params[0].highlights);
 		else
-			siril_log_message(_("Applying MTF with values:\n"
+			siril_debug_print("Applying MTF with values:\n"
 					"  Red:   %f, %f, %f\n"
 					"  Green: %f, %f, %f\n"
-					"  Blue:  %f, %f, %f\n"),
+					"  Blue:  %f, %f, %f\n",
 					params[0].shadows, params[0].midtones, params[0].highlights,
 					params[1].shadows, params[1].midtones, params[1].highlights,
 					params[2].shadows, params[2].midtones, params[2].highlights);
@@ -710,7 +711,7 @@ gpointer do_starnet(gpointer p) {
 	// stretch to the starless version and re-save the final result
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"));
+			siril_log_message(_("StarNet: linear mode. Applying inverse autostretch to starless image.\n"));
 		apply_unlinked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 

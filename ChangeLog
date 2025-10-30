@@ -23,6 +23,8 @@ XX/XX/XX
 * Fixed min/max stacking for (0,0) pixel (#1810)
 * Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
 * Fixed using reference image position and updating WCS in Export Sequence (#1824)
+* Fixed issue with deconvolution using RGB PSFs (#1829)
+* Fixed issue where sirilpy.SirilInterface.confirm_messsagebox() could hang Siril (#1832)
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
@@ -32,6 +34,7 @@ XX/XX/XX
 * Added prefix arg to SirilInterface.set_seq_frame_pixeldata() to make it easier to create new sequences
 * SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
 * Starlink pre- and post-autostretch is unlinked for better star removal from images with very uneven channels (!952)
+* Stacking with rejection: make sure pixels with non-null values but 0 weight are now discarded at rejection step (!953)
 
 siril 1.4.0-beta4
 09/28/25

@@ -952,6 +952,7 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
 		int size = nb_data_layers * args->nb_filtered_images;
 		free_stat_list(stat_args->list, size);
+		g_free(stat_args->csv_name);
 		free (stat_args);
 		free_generic_seq_args(args, TRUE);
 	}

@@ -1230,6 +1230,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		const char *pattern_str = fit->keywords.bayer_pattern;
 		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
 		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		g_free(new_pattern_str);
 	}
 	fits_flip_top_to_bottom(fit);
 

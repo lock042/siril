@@ -117,7 +117,10 @@ static int add_stream(struct mp4_struct *ost, const AVCodec **codec,
 		if (c->thread_count > max_threads) {
 			c->thread_count = max_threads;
 		}
-		av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
+		int retval = av_opt_set_int(c->priv_data, "frame-threads", MIN(c->thread_count, 8), 0);
+		if (retval) {
+			siril_log_color_message("An error occurred setting thread count for mp4 encoding\n", "red");
+		}
 	}
 
 	c->codec_id = codec_id;

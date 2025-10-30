@@ -186,8 +186,8 @@ static gpointer export_sequence(gpointer ptr) {
 			// limit to 16 bits for TIFF
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
-			break;
 			preserve_wcs = FALSE;
+			break;
 
 		case EXPORT_SER:
 			ser_file = calloc(1, sizeof(struct ser_struct));
@@ -201,8 +201,8 @@ static gpointer export_sequence(gpointer ptr) {
 			output_bitpix = args->seq->bitpix;
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
-			break;
 			preserve_wcs = FALSE;
+			break;
 
 		case EXPORT_AVI:
 			snprintf(dest, 256, "%s.avi", args->basename);

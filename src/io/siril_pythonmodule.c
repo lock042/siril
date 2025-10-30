@@ -2241,8 +2241,9 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		gui_function(script_widgets_idle, NULL);
 
 		// Free the cleanup structure
-		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename))
+		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
 			siril_debug_print("g_unlink() failed in python_process_cleanup()\n");
+		}
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
@@ -2479,7 +2480,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	}
 
 	// Create cleanup info structure for either synchronous or async operation
-	python_cleanup_info *cleanup = g_malloc(sizeof(python_cleanup_info));
+	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));
 	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;

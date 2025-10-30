@@ -561,6 +561,8 @@ int calibrate_single_image(struct preprocessing_data *args) {
 		free(filename_noext);
 		g_free(dest_filename);
 		g_free(msg);
+	} else {
+		clearfits(&fit);
 	}
 
 	return ret;
