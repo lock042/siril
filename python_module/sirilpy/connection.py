@@ -1092,7 +1092,7 @@ class SirilInterface:
         except CommandError:
             raise
         except Exception as e:
-            raise SirilError(_("Error in cmd(): {e}")) from e
+            raise SirilError(_(f"Error in cmd(): {e}")) from e
 
     def set_siril_selection(self,
                             x: Optional[int] = None,
