@@ -129,9 +129,12 @@ void initialize_cut_struct(cut_struct *arg) {
 }
 
 void free_cut_args(cut_struct *arg) {
-	if (arg->filename) {
-		g_free(arg->filename);
-	}
+	g_free(arg->filename);
+	arg->filename = NULL;
+	g_free(arg->title);
+	arg->title = NULL;
+	g_free(arg->user_title);
+	arg->user_title = NULL;
 	if (arg != &gui.cut)
 		free(arg);
 	return;
@@ -1411,7 +1414,7 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->user = cut_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(args->user);
+		free_cut_args((cut_struct*) args->user);
 		free_generic_seq_args(args, TRUE);
 	}
 }
