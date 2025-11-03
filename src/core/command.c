@@ -5453,6 +5453,7 @@ int process_findstar(int nb) {
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
+		g_free(args->starfile);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
