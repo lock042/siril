@@ -100,6 +100,7 @@ typedef enum {
 	CMD_SET_STF_LINKED = 83,
 	CMD_SET_IMAGE_FILENAME = 84,
 	CMD_GET_SIRIL_LOG = 85,
+	CMD_SAVE_IMAGE_FILE = 86,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -197,6 +198,18 @@ typedef struct {
 
 } CommunicationState;
 
+typedef struct {
+    guint32 width;
+    guint32 height;
+    guint32 channels;
+    guint32 data_type;  // 0 = WORD, 1 = float
+    guint64 image_size;
+    char image_shm_name[256];
+    guint64 header_size;
+    char header_shm_name[256];
+    char filename[256];
+} save_image_info_t;
+
 // Public functions
 //gpointer open_python_channel(gpointer user_data);
 //int release_python_channel();
@@ -210,6 +223,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_save_image_file_request(Connection *conn, const char* payload, size_t payload_length);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();

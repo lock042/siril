@@ -3253,6 +3253,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_SAVE_IMAGE_FILE: {
+			if (payload_length != sizeof(save_image_info_t)) {
+				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				success = handle_save_image_file_request(conn, payload, payload_length);
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
