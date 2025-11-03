@@ -5199,7 +5199,7 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def save_image_to_file(self, data: np.ndarray, header: str, filename: str) -> bool:
+    def save_image_file(self, data, header=None, filename=None) -> bool:
         """
         Save image pixeldata and metadata to a FITS file. This uses Siril to
         save the image and can therefore be used to avoid a script dependency on
@@ -5210,11 +5210,14 @@ class SirilInterface:
         loaded in Siril.
 
         Args:
-            data: numpy.ndarray containing the image data.
-                Must be 2D (single channel) or 3D (multi-channel) array
-                with dtype either np.float32 or np.uint16.
-            header: string containing the FITS header data
-            filename: string containing the path where the file should be saved
+            data: Either a numpy.ndarray containing the image data (must be 2D or 3D
+                array with dtype float32 or uint16), OR a FFit object containing
+                both data and header.
+            header: string containing the FITS header data. Required if data is a
+                    numpy array, ignored if data is a FFit object.
+            filename: string containing the path where the file should be saved.
+                    Required if data is a numpy array. If data is a FFit object
+                    and filename is None, will use fit.filename.
 
         Returns:
             bool: True if successful, False otherwise
@@ -5223,6 +5226,16 @@ class SirilInterface:
             ValueError: if the input array or header is invalid,
             TypeError: if invalid parameter types are provided,
             SirilError: if there was an error in handling the command.
+
+        Examples:
+            # Using numpy array and header string
+            siril.save_image_file(data_array, header_string, "output.fit")
+
+            # Using FFit object
+            siril.save_image_file(fit, filename="output.fit")
+
+            # Using FFit object with its own filename
+            siril.save_image_file(fit)
         """
 
         shm_data = None
@@ -5231,28 +5244,51 @@ class SirilInterface:
         shm_header_info = None
 
         try:
+            # Check if data is a FFit object
+            is_ffit = hasattr(data, 'data') and hasattr(data, 'header')
+
+            if is_ffit:
+                # Extract data and header from FFit object
+                image_data = data.data
+                header_str = data.header
+                # Use FFit's filename if none provided
+                if filename is None:
+                    if hasattr(data, 'filename') and data.filename:
+                        filename = data.filename
+                    else:
+                        raise ValueError(_("No filename provided and FFit object has no filename"))
+            else:
+                # data is a numpy array
+                image_data = data
+                header_str = header
+
+                if header is None:
+                    raise ValueError(_("Header must be provided when data is a numpy array"))
+                if filename is None:
+                    raise ValueError(_("Filename must be provided when data is a numpy array"))
+
             # Validate input array
-            if not isinstance(data, np.ndarray):
+            if not isinstance(image_data, np.ndarray):
                 raise ValueError(_("Image data must be a numpy array"))
 
-            if data.ndim not in (2, 3):
+            if image_data.ndim not in (2, 3):
                 raise ValueError(_("Image must be 2D or 3D array"))
 
-            if data.dtype not in (np.float32, np.uint16):
+            if image_data.dtype not in (np.float32, np.uint16):
                 raise ValueError(_("Image data must be float32 or uint16"))
 
-            if not isinstance(header, str):
+            if not isinstance(header_str, str):
                 raise TypeError(_("Header data must be a string"))
 
             if not isinstance(filename, str):
                 raise TypeError(_("Filename must be a string"))
 
             # Get image dimensions
-            if data.ndim == 2:
-                height, width = data.shape
+            if image_data.ndim == 2:
+                height, width = image_data.shape
                 channels = 1
             else:
-                channels, height, width = data.shape
+                channels, height, width = image_data.shape
 
             if channels > 3:
                 raise ValueError(_("Image cannot have more than 3 channels"))
@@ -5261,11 +5297,11 @@ class SirilInterface:
                 raise ValueError(_("Invalid image dimensions: {}x{}").format(width, height))
 
             # Calculate image data size
-            element_size = 4 if data.dtype == np.float32 else 2
+            element_size = 4 if image_data.dtype == np.float32 else 2
             image_bytes = width * height * channels * element_size
 
             # Prepare header data
-            header_bytes = header.encode('utf-8')
+            header_bytes = header_str.encode('utf-8')
             header_size = len(header_bytes) + 1
 
             # Calculate total payload size
@@ -5294,8 +5330,8 @@ class SirilInterface:
             # Copy image data to shared memory
             try:
                 buffer = memoryview(shm_data.buf).cast('B')
-                shared_array = np.frombuffer(buffer, dtype=data.dtype).reshape(data.shape)
-                np.copyto(shared_array, data)
+                shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
+                np.copyto(shared_array, image_data)
                 del buffer
                 del shared_array
             except Exception as e:
@@ -5322,7 +5358,7 @@ class SirilInterface:
                 width,
                 height,
                 channels,
-                1 if data.dtype == np.float32 else 0,
+                1 if image_data.dtype == np.float32 else 0,
                 image_bytes,
                 shm_data_info.shm_name,
                 header_size,
