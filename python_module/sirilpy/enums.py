@@ -169,6 +169,7 @@ class _Command(IntEnum):
     SET_STF_LINKED = 83
     SET_IMAGE_FILENAME = 84
     GET_SIRIL_LOG = 85
+    SAVE_IMAGE_FILE = 86
     ERROR = 0xFF
 
 @unique
