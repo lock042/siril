@@ -934,6 +934,18 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	char *header = (char*)shm_header_ptr;
 	if (fits_parse_header_str(&fit, header)) {
 		clearfits(&fit);
+		// Cleanup shared memory
+#ifdef _WIN32
+		UnmapViewOfFile(shm_header_ptr);
+		CloseHandle(win_header_handle.mapping);
+		UnmapViewOfFile(shm_data_ptr);
+		CloseHandle(win_data_handle.mapping);
+#else
+		munmap(shm_header_ptr, info->header_size);
+		close(header_fd);
+		munmap(shm_data_ptr, info->image_size);
+		close(data_fd);
+#endif
 		siril_debug_print("Error parsing FITS header in save_image_to_file()\n");
 		return FALSE;
 	}
@@ -952,17 +964,17 @@ gboolean handle_save_image_file_request(Connection *conn, const char* payload, s
 	siril_debug_print("Saving image to file: %s\n", info->filename);
 
 	// Cleanup shared memory
-	#ifdef _WIN32
-		UnmapViewOfFile(shm_header_ptr);
-		CloseHandle(win_header_handle.mapping);
-		UnmapViewOfFile(shm_data_ptr);
-		CloseHandle(win_data_handle.mapping);
-	#else
-		munmap(shm_header_ptr, info->header_size);
-		close(header_fd);
-		munmap(shm_data_ptr, info->image_size);
-		close(data_fd);
-	#endif
+#ifdef _WIN32
+	UnmapViewOfFile(shm_header_ptr);
+	CloseHandle(win_header_handle.mapping);
+	UnmapViewOfFile(shm_data_ptr);
+	CloseHandle(win_data_handle.mapping);
+#else
+	munmap(shm_header_ptr, info->header_size);
+	close(header_fd);
+	munmap(shm_data_ptr, info->image_size);
+	close(data_fd);
+#endif
 
 	// Cleanup fit structure
 	clearfits(&fit);
@@ -1203,11 +1215,17 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 
 	// Unpack the FITS header string
 	char *header = (char*) shm_ptr;
-	fits_parse_header_str(&gfit, header);
+	if (fits_parse_header_str(&gfit, header)) {
+		const char* error_msg = _("Error: could not parse FITS header string");
+		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response()\n");
+		goto cleanup;
+	}
 	update_fits_header(&gfit);
 
 	gui_function(update_MenuItem, NULL);
 
+cleanup:
 	// Cleanup shared memory
 	#ifdef _WIN32
 	UnmapViewOfFile(shm_ptr);

@@ -2442,6 +2442,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
