@@ -352,6 +352,7 @@ gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
+	g_free(args->starfile);
 	free(args);
 	return FALSE;
 }

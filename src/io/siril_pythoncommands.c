@@ -2442,6 +2442,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -3250,6 +3251,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Clean up
 			free(info);
 			g_free(log);
+			break;
+		}
+
+		case CMD_SAVE_IMAGE_FILE: {
+			if (payload_length != sizeof(save_image_info_t)) {
+				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				success = handle_save_image_file_request(conn, payload, payload_length);
+			}
 			break;
 		}
 
