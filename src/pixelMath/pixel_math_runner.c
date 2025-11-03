@@ -489,11 +489,9 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 
 static gchar* parse_image_functions(gpointer p, int idx, int c) {
 	struct pixel_math_data *args = (struct pixel_math_data*) p;
-
 	gchar *expression;
 	gchar **image = args->varname;
 	int nb_images = args->nb_rows;
-
 	switch (idx) {
 	case 1:
 		expression = args->expression1;
@@ -510,113 +508,134 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 	if (!expression)
 		return expression;
 
+	gchar *result = g_strdup(expression);
 	GRegex *regex = g_regex_new("(\\w+)\\((\\w+)\\)", 0, 0, NULL);
-	GMatchInfo *match_info;
 
-	g_regex_match(regex, expression, 0, &match_info);
-	while (g_match_info_matches(match_info)) {
-		gchar *function = g_match_info_fetch(match_info, 1);
-		gchar *param = g_match_info_fetch(match_info, 2);
+	gboolean replaced = TRUE;
+	while (replaced) {
+		replaced = FALSE;
+		GMatchInfo *match_info;
+		g_regex_match(regex, result, 0, &match_info);
 
-		double median = 0.0, mean = 0.0, min = 0.0, max = 0.0, noise = 0.0, adev = 0.0, bwmv = 0.0, mad = 0.0, sdev = 0.0;
-		double w = 0.0, h = 0.0;
-		imstats *stats = NULL;
+		if (g_match_info_matches(match_info)) {
+			gchar *function = g_match_info_fetch(match_info, 1);
+			gchar *param = g_match_info_fetch(match_info, 2);
+			gchar *full_match = g_match_info_fetch(match_info, 0);
+			double median = 0.0, mean = 0.0, min = 0.0, max = 0.0, noise = 0.0, adev = 0.0, bwmv = 0.0, mad = 0.0, sdev = 0.0;
+			double w = 0.0, h = 0.0;
+			imstats *stats = NULL;
 
-		if (g_strcmp0(param, T_CURRENT) == 0) {
-			stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
-			if (!stats) return expression;
-
-			median = stats->median;
-			mean = stats->mean;
-			min = stats->min;
-			max = stats->max;
-			noise = stats->bgnoise;
-			adev = stats->avgDev;
-			bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
-			mad = stats->mad;
-			sdev = stats->sigma;
-
-			w = (double) gfit.rx;
-			h = (double) gfit.ry;
-
-			free_stats(stats);
-		} else {
-			for (int j = 0; j < nb_images; j++) {
-				if (g_strcmp0(param, image[j]) == 0) {
-					stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
-					if (!stats) return expression;
-
-					median = stats->median;
-					mean = stats->mean;
-					min = stats->min;
-					max = stats->max;
-					noise = stats->bgnoise;
-					adev = stats->avgDev;
-					bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
-					mad = stats->mad;
-					sdev = stats->sigma;
-
-					w = (double) var_fit[j].rx;
-					h = (double) var_fit[j].ry;
-
-					free_stats(stats);
+			if (g_strcmp0(param, T_CURRENT) == 0) {
+				stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
+				if (!stats) {
+					g_free(full_match);
+					g_free(function);
+					g_free(param);
+					g_match_info_free(match_info);
+					g_regex_unref(regex);
+					return result;
+				}
+				median = stats->median;
+				mean = stats->mean;
+				min = stats->min;
+				max = stats->max;
+				noise = stats->bgnoise;
+				adev = stats->avgDev;
+				bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+				mad = stats->mad;
+				sdev = stats->sigma;
+				w = (double) gfit.rx;
+				h = (double) gfit.ry;
+				free_stats(stats);
+			} else {
+				for (int j = 0; j < nb_images; j++) {
+					if (g_strcmp0(param, image[j]) == 0) {
+						stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
+						if (!stats) {
+							g_free(full_match);
+							g_free(function);
+							g_free(param);
+							g_match_info_free(match_info);
+							g_regex_unref(regex);
+							return result;
+						}
+						median = stats->median;
+						mean = stats->mean;
+						min = stats->min;
+						max = stats->max;
+						noise = stats->bgnoise;
+						adev = stats->avgDev;
+						bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+						mad = stats->mad;
+						sdev = stats->sigma;
+						w = (double) var_fit[j].rx;
+						h = (double) var_fit[j].ry;
+						free_stats(stats);
+						break;
+					}
 				}
 			}
+
+			gchar *replace = NULL;
+			if (!g_strcmp0(function, "mean")) {
+				replace = g_strdup_printf("%g", mean);
+			} else if (!g_strcmp0(function, "med") || !g_strcmp0(function, "median")) {
+				replace = g_strdup_printf("%g", median);
+			} else if (!g_strcmp0(function, "min")) {
+				replace = g_strdup_printf("%g", min);
+			} else if (!g_strcmp0(function, "max")) {
+				replace = g_strdup_printf("%g", max);
+			} else if (!g_strcmp0(function, "noise")) {
+				replace = g_strdup_printf("%g", noise);
+			} else if (!g_strcmp0(function, "adev")) {
+				replace = g_strdup_printf("%g", adev);
+			} else if (!g_strcmp0(function, "bwmv")) {
+				replace = g_strdup_printf("%g", bwmv);
+			} else if (!g_strcmp0(function, "mad") || !g_strcmp0(function, "mdev")) {
+				replace = g_strdup_printf("%g", mad);
+			} else if (!g_strcmp0(function, "sdev")) {
+				replace = g_strdup_printf("%g", sdev);
+			} else if (!g_strcmp0(function, "width") || !g_strcmp0(function, "w")) {
+				replace = g_strdup_printf("%g", w);
+			} else if (!g_strcmp0(function, "height") || !g_strcmp0(function, "h")) {
+				replace = g_strdup_printf("%g", h);
+			}
+
+			if (replace) {
+				gchar *temp = result;
+				// Replace the specific matched string with the calculated value
+				gchar **split = g_strsplit(result, full_match, 2);
+				if (split[0] && split[1]) {
+					result = g_strconcat(split[0], replace, split[1], NULL);
+				} else {
+					result = g_strdup(result);
+				}
+				g_strfreev(split);
+				g_free(temp);
+				g_free(replace);
+				replaced = TRUE;
+				siril_debug_print("Expression%d: %s\n", c, result);
+			}
+
+			g_free(full_match);
+			g_free(function);
+			g_free(param);
 		}
 
-		gchar *replace = NULL;
-		if (!g_strcmp0(function, "mean")) {
-			replace = g_strdup_printf("%g", mean);
-		} else if (!g_strcmp0(function, "med") || !g_strcmp0(function, "median")) {
-			replace = g_strdup_printf("%g", median);
-		} else if (!g_strcmp0(function, "min")) {
-			replace = g_strdup_printf("%g", min);
-		} else if (!g_strcmp0(function, "max")) {
-			replace = g_strdup_printf("%g", max);
-		} else if (!g_strcmp0(function, "noise")) {
-			replace = g_strdup_printf("%g", noise);
-		} else if (!g_strcmp0(function, "adev")) {
-			replace = g_strdup_printf("%g", adev);
-		} else if (!g_strcmp0(function, "bwmv")) {
-			replace = g_strdup_printf("%g", bwmv);
-		} else if (!g_strcmp0(function, "mad") || !g_strcmp0(function, "mdev")) {
-			replace = g_strdup_printf("%g", mad);
-		} else if (!g_strcmp0(function, "sdev")) {
-			replace = g_strdup_printf("%g", sdev);
-		} else if (!g_strcmp0(function, "width") || !g_strcmp0(function, "w")) {
-			replace = g_strdup_printf("%g", w);
-		} else if (!g_strcmp0(function, "height") || !g_strcmp0(function, "h")) {
-			replace = g_strdup_printf("%g", h);
-		}
-
-		if (replace) {
-#if GLIB_CHECK_VERSION(2, 74, 0)
-			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
-#else
-			// Use an alternative flag or no flag if G_REGEX_MATCH_DEFAULT is not available
-			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, 0, NULL);
-#endif
-			g_free(replace);
-			siril_debug_print("Expression%d: %s\n", c, expression);
-		}
-
-		g_free(function);
-		g_free(param);
-		g_match_info_next(match_info, NULL);
+		g_match_info_free(match_info);
 	}
 
-	g_match_info_free(match_info);
 	g_regex_unref(regex);
 
 	for (int j = 0; j < nb_images; j++) {
-		const gchar *test = g_strrstr(expression, image[j]);
+		const gchar *test = g_strrstr(result, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
-			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
+			siril_debug_print("found image name %s in the expression %s\n", image[j], result);
 		}
 	}
 
-	return expression;
+	return result;
 }
 
 gpointer apply_pixel_math_operation(gpointer p) {
@@ -1075,7 +1094,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 			}
 		}
 		// Check channels are compatible
-		if (channel == - 1) {
+		if (channel == -1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
 			channel = var_fit[nb_rows].naxes[2];
