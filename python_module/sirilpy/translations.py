@@ -39,7 +39,7 @@ def setup_translations(domain: str = 'sirilpy', localedir: str = None) -> Callab
         pass
 
     # Get default locale
-    lang, encoding = locale.getdefaultlocale()
+    lang, encoding = locale.getlocale()
 
     # Try to set locale with progressive fallback
     try:
