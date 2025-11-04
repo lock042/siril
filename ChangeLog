@@ -25,6 +25,9 @@ XX/XX/XX
 * Fixed using reference image position and updating WCS in Export Sequence (#1824)
 * Fixed issue with deconvolution using RGB PSFs (#1829)
 * Fixed issue where sirilpy.SirilInterface.confirm_messsagebox() could hang Siril (#1832)
+* Fixed issue with create_new_seq() where the seqname contained . (#1841)
+* Fixed issue where the locale fix previously added to sirilpy would fail if no English locale was available (siril-scripts:#67)
+* Fixed incorrect variable substitution regex handling in Pixelmath
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences

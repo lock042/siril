@@ -4211,7 +4211,7 @@ class SirilInterface:
             home_folder = self.get_siril_wd()
             all_files = os.listdir(home_folder)
             ext = self.get_siril_config('core','extension')
-            pattern = fr'^{seq_root}\d{{5}}{ext}$'
+            pattern = fr'^{re.escape(seq_root)}\d{{5}}{re.escape(ext)}$'
             regex = re.compile(pattern)
             exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
             if len(exact_matches) == 0:
@@ -4219,7 +4219,8 @@ class SirilInterface:
                 return False
             if len(exact_matches) == 1:
                 self.log(_(f'Only one file matching {seq_root} found in the Home folder, cannot create sequence'), LogColor.RED)
-            message_bytes = seq_root.encode('utf-8')
+            seq_root_dummy_ext = seq_root + ".ext" # We have to add this to work around remove_ext_from_filename in create_one_regular_seq
+            message_bytes = seq_root_dummy_ext.encode('utf-8')
             return self._execute_command(_Command.CREATE_NEW_SEQ, message_bytes)
 
         except Exception as e:
