@@ -228,7 +228,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
-	args->im.fit = &gfit;
+	args->im.fit = gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;
 		args->im.index_in_seq = com.seq.current;
@@ -272,7 +272,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
+	psf_star *result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
 	if (!result) // we don't check for errors as we assume the user has selected a star
 		return NULL;
 	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer

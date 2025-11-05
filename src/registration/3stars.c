@@ -181,7 +181,7 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		fprintf(stderr, "invalid registration layer\n");
 		return;
 	}
-	add_star(&gfit, layer, &index);
+	add_star(gfit, layer, &index);
 	if (index == -1) {
 		update_label(_("No star found, make another selection"));
 	} else {

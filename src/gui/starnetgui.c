@@ -100,7 +100,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 				gtk_label_set_text(label_starnetinfo, bothtext);
 			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
-				if (gfit.naxes[2] == 3)
+				if (gfit->naxes[2] == 3)
 					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			}
 			g_free(temp);
@@ -118,7 +118,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 				gtk_label_set_text(label_starnetinfo, bothtext);
 			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
-				if (gfit.naxes[2] == 1)
+				if (gfit->naxes[2] == 1)
 					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			}
 			g_free(temp);
@@ -178,7 +178,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
 	starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->starnet_fit = &gfit;
+	starnet_args->starnet_fit = gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
 	starnet_args->upscale = sgui_upscale;

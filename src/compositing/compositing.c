@@ -69,8 +69,8 @@ typedef enum {
 
 static coloring_type_enum coloring_type = HSL;
 
-/* The result is stored in gfit.
- * gfit.rx and gfit.ry are the reference 1x1 binning output image size. */
+/* The result is stored in gfit->
+ * gfit->rx and gfit->ry are the reference 1x1 binning output image size. */
 
 // Absolute maximum possible layers
 #define MAX_LAYERS 8
@@ -540,18 +540,18 @@ static void check_gfit_is_ours() {
 	int update_from_layer = -1;
 	if (luminance_mode) {
 		if (has_fit(0) &&
-				(layers[0]->the_fit.rx != gfit.rx ||
-				 layers[0]->the_fit.ry != gfit.ry ||
-				 !gfit.fdata)) {
+				(layers[0]->the_fit.rx != gfit->rx ||
+				 layers[0]->the_fit.ry != gfit->ry ||
+				 !gfit->fdata)) {
 			update_needed = TRUE;
 			update_from_layer = 0;
 		}
 	} else {
 		for (int i = 1; layers[i]; i++)
 			if (has_fit(i) &&
-					(layers[i]->the_fit.rx != gfit.rx ||
-					 layers[i]->the_fit.ry != gfit.ry ||
-					 !gfit.fdata)) {
+					(layers[i]->the_fit.rx != gfit->rx ||
+					 layers[i]->the_fit.ry != gfit->ry ||
+					 !gfit->fdata)) {
 				update_needed = TRUE;
 				update_from_layer = i;
 				break;
@@ -562,12 +562,12 @@ static void check_gfit_is_ours() {
 		return;
 	/* create the new result image if it's the first opened image */
 	close_single_image();
-	if (copyfits(&layers[update_from_layer]->the_fit, &gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
+	if (copyfits(&layers[update_from_layer]->the_fit, gfit, CP_ALLOC | CP_FORMAT | CP_INIT | CP_EXPAND, -1)) {
 		clearfits(&layers[update_from_layer]->the_fit);
 		siril_log_color_message(_("Could not display image, unloading it\n"), "red");
 		return;
 	}
-	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
+	icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
 	/* open the single image.
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
@@ -607,8 +607,8 @@ static void update_metadata(gboolean do_sum) {
 		}
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f, do_sum);
-	update_fits_header(&gfit);
+	merge_fits_headers_to_result2(gfit, f, do_sum);
+	update_fits_header(gfit);
 	gui_function(update_MenuItem, NULL);
 	free(f);
 }
@@ -623,8 +623,8 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 			f[j++] = seq->internal_fits[i];
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f, do_sum);
-	update_fits_header(&gfit);
+	merge_fits_headers_to_result2(gfit, f, do_sum);
+	update_fits_header(gfit);
 	gui_function(update_MenuItem, NULL);
 	free(f);
 }
@@ -706,10 +706,10 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				}
 			}
 			if (number_of_images_loaded() > 1 &&
-					(gfit.rx != layers[layer]->the_fit.rx ||
-							gfit.ry != layers[layer]->the_fit.ry)) {
-				if (gfit.rx < layers[layer]->the_fit.rx ||
-						gfit.ry < layers[layer]->the_fit.ry) {
+					(gfit->rx != layers[layer]->the_fit.rx ||
+							gfit->ry != layers[layer]->the_fit.ry)) {
+				if (gfit->rx < layers[layer]->the_fit.rx ||
+						gfit->ry < layers[layer]->the_fit.ry) {
 					siril_log_message(_("The first loaded image should have the greatest sizes for now\n"));
 					sprintf(buf, _("NOT OK %ux%u"), layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
 					gtk_label_set_text(layers[layer]->label, buf);
@@ -718,10 +718,10 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 				} else {
 					siril_log_message(_("Resizing the loaded image from %dx%d to %dx%d\n"),
 							layers[layer]->the_fit.rx,
-							layers[layer]->the_fit.ry, gfit.rx, gfit.ry);
+							layers[layer]->the_fit.ry, gfit->rx, gfit->ry);
 						sprintf(buf, _("OK upscaled from %ux%u"),
 								layers[layer]->the_fit.rx, layers[layer]->the_fit.ry);
-						cvResizeGaussian(&layers[layer]->the_fit, gfit.rx, gfit.ry, OPENCV_LANCZOS4, TRUE);
+						cvResizeGaussian(&layers[layer]->the_fit, gfit->rx, gfit->ry, OPENCV_LANCZOS4, TRUE);
 						gtk_label_set_text(layers[layer]->label, buf);
 						layers[layer]->center.x = layers[layer]->the_fit.rx / 2.0;
 						layers[layer]->center.y = layers[layer]->the_fit.ry / 2.0;
@@ -807,9 +807,9 @@ void create_the_internal_sequence() {
 			}
 		}
 	}
-	seq->bitpix = gfit.bitpix;
-	seq->rx = gfit.rx;
-	seq->ry = gfit.ry;
+	seq->bitpix = gfit->bitpix;
+	seq->rx = gfit->rx;
+	seq->ry = gfit->ry;
 }
 
 void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -855,7 +855,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	gboolean do_sum = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_rgb_button")));
 
 	// Avoid crash if gfit has been closed since populating the layers
-	if (!gfit.data && !gfit.fdata) {
+	if (!gfit->data && !gfit->fdata) {
 		update_result(1);
 	}
 
@@ -1007,8 +1007,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer]) {
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layers[layer]->centerbutton), FALSE);
-			layers[layer]->center.x = gfit.rx / 2.0;
-			layers[layer]->center.y = gfit.ry / 2.0;
+			layers[layer]->center.x = gfit->rx / 2.0;
+			layers[layer]->center.y = gfit->ry / 2.0;
 		}
 	}
 }
@@ -1135,7 +1135,7 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 }
 
 /* Image composition without luminance. Used for RGB composition for example.
- * Result is in gfit. */
+ * Result is in gfit-> */
 static void colors_align_and_compose() {
 	int x, y;
 	if (no_color_available()) return;
@@ -1162,18 +1162,18 @@ static void colors_align_and_compose() {
 		} else {
 			timespan_warning_given = FALSE;
 		}
-		if (gfit.keywords.date_obs) {
-			g_date_time_unref(gfit.keywords.date_obs);
+		if (gfit->keywords.date_obs) {
+			g_date_time_unref(gfit->keywords.date_obs);
 		}
-		gfit.keywords.date_obs = g_date_time_ref(earliest);
+		gfit->keywords.date_obs = g_date_time_ref(earliest);
 	}
 	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
 #endif
-	for (y = 0; y < gfit.ry; ++y) {
-		for (x = 0; x < gfit.rx; ++x) {
+	for (y = 0; y < gfit->ry; ++y) {
+		for (x = 0; x < gfit->rx; ++x) {
 			int layer;
 			GdkRGBA pixel;
 			clear_pixel(&pixel);
@@ -1187,10 +1187,10 @@ static void colors_align_and_compose() {
 			}
 
 			rgb_pixel_limiter(&pixel);
-			size_t dst_index = y * gfit.rx + x;
-			gfit.fpdata[RLAYER][dst_index] = pixel.red;
-			gfit.fpdata[GLAYER][dst_index] = pixel.green;
-			gfit.fpdata[BLAYER][dst_index] = pixel.blue;
+			size_t dst_index = y * gfit->rx + x;
+			gfit->fpdata[RLAYER][dst_index] = pixel.red;
+			gfit->fpdata[GLAYER][dst_index] = pixel.green;
+			gfit->fpdata[BLAYER][dst_index] = pixel.blue;
 		}
 	}
 }
@@ -1205,19 +1205,19 @@ static void luminance_and_colors_align_and_compose() {
 	assert(has_fit(0));
 	// Copy the date_obs field from the luminance layer
 	if (layers[0]->the_fit.keywords.date_obs) {
-		if (gfit.keywords.date_obs) {
-			g_date_time_unref(gfit.keywords.date_obs);
+		if (gfit->keywords.date_obs) {
+			g_date_time_unref(gfit->keywords.date_obs);
 		}
 		g_date_time_ref(layers[0]->the_fit.keywords.date_obs);
-		gfit.keywords.date_obs = layers[0]->the_fit.keywords.date_obs;
+		gfit->keywords.date_obs = layers[0]->the_fit.keywords.date_obs;
 	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
 		int i;
-		size_t nbdata = gfit.rx * gfit.ry;
+		size_t nbdata = gfit->rx * gfit->ry;
 		fprintf(stdout, "luminance-only, no composition\n");
 		for (i=0; i<3; i++)
-			memcpy(gfit.fpdata[i], layers[0]->the_fit.fdata, nbdata*sizeof(float));
+			memcpy(gfit->fpdata[i], layers[0]->the_fit.fdata, nbdata*sizeof(float));
 		return;
 	}
 	fprintf(stdout, "luminance-enabled composition\n");
@@ -1228,8 +1228,8 @@ static void luminance_and_colors_align_and_compose() {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
 #endif
-	for (y = 0; y < gfit.ry; y++) {
-		for (x = 0; x < gfit.rx; x++) {
+	for (y = 0; y < gfit->ry; y++) {
+		for (x = 0; x < gfit->rx; x++) {
 			int layer;
 			gdouble h, s, i;
 			gdouble X, Y, Z;
@@ -1274,10 +1274,10 @@ static void luminance_and_colors_align_and_compose() {
 			rgb_pixel_limiter(&pixel);
 
 			/* and store in gfit */
-			size_t dst_index = y * gfit.rx + x;
-			gfit.fpdata[RLAYER][dst_index] = pixel.red;
-			gfit.fpdata[GLAYER][dst_index] = pixel.green;
-			gfit.fpdata[BLAYER][dst_index] = pixel.blue;
+			size_t dst_index = y * gfit->rx + x;
+			gfit->fpdata[RLAYER][dst_index] = pixel.red;
+			gfit->fpdata[GLAYER][dst_index] = pixel.green;
+			gfit->fpdata[BLAYER][dst_index] = pixel.blue;
 		}
 	}
 }
@@ -1314,7 +1314,7 @@ static void clear_pixel(GdkRGBA *pixel) {
 
 /* recompute the layer composition and optionally refresh the displayed result image */
 static void update_result(int and_refresh) {
-	icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
+	icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
 
 	check_gfit_is_ours();
 	if (luminance_mode && has_fit(0)) {
@@ -1377,8 +1377,8 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 						  (float) layers[current_layer_color_choosing]->display_color.blue };
 		float img[3];
 		cmsHPROFILE image_profile = NULL;
-		if (gfit.icc_profile)
-			image_profile = copyICCProfile(gfit.icc_profile);
+		if (gfit->icc_profile)
+			image_profile = copyICCProfile(gfit->icc_profile);
 		else if ((com.pref.icc.autoassignment & ICC_ASSIGN_ON_COMPOSITION) && com.icc.working_standard)
 			image_profile = copyICCProfile(com.icc.working_standard);
 		if (image_profile) {

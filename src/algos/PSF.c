@@ -939,9 +939,9 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 }
 
 static gchar *build_wcs_url(gchar *ra, gchar *dec) {
-	if (!has_wcs(&gfit)) return NULL;
+	if (!has_wcs(gfit)) return NULL;
 
-	double resolution = get_wcs_image_resolution(&gfit);
+	double resolution = get_wcs_image_resolution(gfit);
 
 	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
 
@@ -984,13 +984,13 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	double xpos = result->x0 + area->x;
 	double ypos = area->y + area->h - result->y0;
 
-	if (has_wcs(&gfit)) {
+	if (has_wcs(gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_siril(xpos, ypos, &fx, &fy, gfit.ry);
+		display_to_siril(xpos, ypos, &fx, &fy, gfit->ry);
 
 		double ra, dec;
-		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		pix2wcs(gfit, fx, fy, &ra, &dec);
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			gchar *strra, *strdec;

@@ -400,14 +400,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	gboolean is_as;
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
-	double bin_X = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+	double bin_X = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
 	}
 	if (is_as) {
-		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x / gfit.keywords.focal_length) * bin_X;
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit->keywords.pixel_size_x / gfit->keywords.focal_length) * bin_X;
 	}
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
@@ -637,13 +637,13 @@ static void save_stars_dialog() {
 
 int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
-	if (has_wcs(&gfit)) {
+	if (has_wcs(gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit.ry);
+		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit->ry);
 
 		double ra, dec;
-		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		pix2wcs(gfit, fx, fy, &ra, &dec);
 		// *alpha = ra would work too instead of all this?
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
@@ -716,7 +716,7 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 void refresh_star_list(){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
-	fill_stars_list(&gfit, com.stars);
+	fill_stars_list(gfit, com.stars);
 }
 
 /* this can be called from any thread as long as refresh_GUI is false, it's
@@ -771,7 +771,7 @@ static gboolean update_stars_idle(gpointer p) {
 	clear_stars_list(TRUE);
 	com.stars = args->stars;
 	if (args->update_GUI && !com.headless)
-		fill_stars_list(&gfit, com.stars);
+		fill_stars_list(gfit, com.stars);
 	redraw(REDRAW_OVERLAY);
 	free(args);
 	return FALSE;
@@ -811,7 +811,7 @@ void pick_a_star() {
 			return;
 		}
 		int new_index;
-		psf_star *new_star = add_star(&gfit, layer, &new_index);
+		psf_star *new_star = add_star(gfit, layer, &new_index);
 		if (new_star) {
 			add_star_to_list(new_star, get_comstar_count() - 1);
 			display_status();
@@ -896,7 +896,7 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	if (layer == -1)
 		layer = 1;
 	int index;
-	add_star(&gfit, layer, &index);
+	add_star(gfit, layer, &index);
 	if (index > -1)
 		add_star_to_list(com.stars[index], index);
 	display_status();

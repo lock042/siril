@@ -147,14 +147,14 @@ void test_and_allocate_reference_image(int vport) {
 		vport = gtk_combo_box_get_active(cbbt_layers);
 
 	if (sequence_is_loaded() && com.seq.current == com.seq.reference_image
-			&& gtk_combo_box_get_active(cbbt_layers) == vport && vport < gfit.naxes[2]) {
+			&& gtk_combo_box_get_active(cbbt_layers) == vport && vport < gfit->naxes[2]) {
 		/* this is the registration layer and the reference frame,
 		 * save the buffer for alignment preview */
 		struct image_view *view = &gui.view[vport];
 		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
 			guchar *oldbuf = gui.refimage_regbuffer;
 			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
-					view->full_surface_stride * gfit.ry * sizeof(guchar));
+					view->full_surface_stride * gfit->ry * sizeof(guchar));
 			if (gui.refimage_regbuffer == NULL) {
 				PRINT_ALLOC_ERR;
 				if (oldbuf)
@@ -165,8 +165,8 @@ void test_and_allocate_reference_image(int vport) {
 			if (gui.refimage_surface)
 				cairo_surface_destroy(gui.refimage_surface);
 			gui.refimage_surface = cairo_image_surface_create_for_data(
-					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, gfit.rx,
-					gfit.ry, view->full_surface_stride);
+					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, gfit->rx,
+					gfit->ry, view->full_surface_stride);
 			if (cairo_surface_status(gui.refimage_surface)
 					!= CAIRO_STATUS_SUCCESS) {
 				fprintf(stderr,
@@ -180,7 +180,7 @@ void test_and_allocate_reference_image(int vport) {
 			}
 		}
 		memcpy(gui.refimage_regbuffer, view->buf,
-				view->full_surface_stride * gfit.ry * sizeof(guchar));
+				view->full_surface_stride * gfit->ry * sizeof(guchar));
 		cairo_surface_flush(gui.refimage_surface);
 		cairo_surface_mark_dirty(gui.refimage_surface);
 	}
@@ -221,16 +221,16 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 	com.seq.previewH[preview_area] = area_height;
 
 	struct image_view *view = &gui.view[gui.cvport];
-	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx) !=
+	if (cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx) !=
 			view->full_surface_stride ||
-			gfit.ry != view->full_surface_height ||
+			gfit->ry != view->full_surface_height ||
 			!gui.preview_surface[preview_area]) {
 		if (gui.preview_surface[preview_area])
 			cairo_surface_destroy(gui.preview_surface[preview_area]);
 		gui.preview_surface[preview_area] =
 			cairo_image_surface_create_for_data(view->buf,
 					CAIRO_FORMAT_RGB24,
-					gfit.rx, gfit.ry,
+					gfit->rx, gfit->ry,
 					view->full_surface_stride);
 		if (cairo_surface_status(gui.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
 			fprintf(stderr, "Error creating the Cairo image surface for preview %d\n", preview_area);

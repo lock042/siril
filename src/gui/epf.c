@@ -93,7 +93,7 @@ static int epf_update_preview() {
 	gboolean guide_needs_freeing = FALSE;
 	if (gtk_toggle_button_get_active(epf_preview))
 		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
 	if (filter_type == EP_GUIDED) {
 		if (gtk_toggle_button_get_active(guided_filter_selfguide)) {
 			guide = fit;
@@ -142,7 +142,7 @@ static void epf_close(gboolean revert) {
 		copy_backup_to_gfit();
 		notify_gfit_modified();
 	} else {
-		invalidate_stats_from_fit(&gfit);
+		invalidate_stats_from_fit(gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"),
 				epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value);
@@ -157,7 +157,7 @@ static void epf_close(gboolean revert) {
 static int epf_process_all() {
 	if (gtk_toggle_button_get_active(epf_preview))
 		copy_backup_to_gfit();
-	fits *fit = &gfit;
+	fits *fit = gfit;
 	gboolean guide_needs_freeing = FALSE;
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	if (filter_type != EP_BILATERAL) {
@@ -297,7 +297,7 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 		clearfits(&loaded_fit);
 		return;
 	}
-	if (loaded_fit.rx != gfit.rx || loaded_fit.ry != gfit.ry) {
+	if (loaded_fit.rx != gfit->rx || loaded_fit.ry != gfit->ry) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image dimensions do not match"),
 			_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);

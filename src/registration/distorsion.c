@@ -343,7 +343,7 @@ static gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	gboolean found = FALSE;
 	if (com.pref.prepro.disto_lib && com.pref.prepro.use_disto_lib) { //we have a distortion master and we should use it
 		int status = 0; 
-		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, mode, &status);
+		wcsname = path_parse(gfit, com.pref.prepro.disto_lib, mode, &status);
 		if (status) {
 			siril_log_color_message(_("Could not parse the distortion master, aborting\n"), "red");
 			g_free(wcsname);
@@ -368,9 +368,9 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	disto_data *disto = NULL;
 	switch (distoparam->index) {
 		case DISTO_IMAGE:
-			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+			wcs = wcs_deepcopy(gfit->keywords.wcslib, NULL);
 			gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
-			if (!wcsname || save_wcs_fits(&gfit, wcsname)) {
+			if (!wcsname || save_wcs_fits(gfit, wcsname)) {
 				siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
 				wcsfree(wcs);
 				return NULL;
