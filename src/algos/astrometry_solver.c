@@ -198,7 +198,14 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
-	g_assert(args->ref_stars != NULL);
+	if (!args->ref_stars) {
+		siril_debug_print("Error: cannot compute limit mag without stars\n");
+		return;
+	}
+	if (!args->cat_center) {
+		siril_debug_print("Error: cannot compute limit mag without cat_center\n");
+		return;
+	}
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
@@ -2282,6 +2289,8 @@ void free_astrometry_data(struct astrometry_data *args) {
 		g_free(args->filename);
 	if (args->distofilename)
 		g_free(args->distofilename);
+	if (args->sfargs)
+		free(args->sfargs);
 	free(args);
 }
 

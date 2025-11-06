@@ -187,7 +187,7 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 62d80e546e5ddf4455a837c943b865b37edc82b7
+    SM_REPO_REF: 3193478c1c5696160d1f482c24598c555e3cca57
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -311,7 +311,8 @@ appimage:
     paths:
       - apt-cache
   before_script:
-    - apt-get install -y wget
+    - apt-get update
+    - apt-get install -y wget squashfs-tools
   script:
     - bash -ex build/appimage/generate.sh
   artifacts:

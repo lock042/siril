@@ -663,7 +663,6 @@ int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta)
 static void add_star_to_list(psf_star *star, int i) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
-	double ra, dec;
 
 	get_stars_list_store();
 	if (!selection)

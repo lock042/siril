@@ -352,7 +352,7 @@ static inline BYTE truncate_to_BYTE(WORD x) {
  * Round WORD to BYTE with scaling (branchless)
  */
 static inline BYTE roundw_to_BYTE(WORD input) {
-	input = (input >= USHRT_MAX - 127) ? (USHRT_MAX - 127) : input;
+	input = (input >= USHRT_MAX - 128) ? (USHRT_MAX - 128) : input;
 	return (uint8_t)((input + 128) >> 8);
 }
 

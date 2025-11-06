@@ -3097,6 +3097,11 @@ int check_loaded_fits_params(fits *ref, ...) {
 
 // f is NULL-terminated and not empty
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
+	// input validation
+	if (!f || !f[0] || !f[1] || !result) {
+		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
+		return;
+	}
 	/* copy all from the first */
 	copy_fits_metadata(f[0], result);
 
@@ -3161,7 +3166,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 // NULL-terminated list of fits, given with decreasing importance
 // HISTORY is not managed, neither is some conflicting information
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) {
-	if (!f1) return;
+	if (!f1 || !result) return;
 	// converting variadic to array of args
 	va_list ap;
 	va_start(ap, f1);

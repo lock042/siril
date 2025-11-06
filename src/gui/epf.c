@@ -236,7 +236,7 @@ void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	apply_epf_changes();
 
-	siril_close_dialog("epf_dialog");
+//	siril_close_dialog("epf_dialog");
 }
 
 void on_epf_dialog_close(GtkDialog *dialog, gpointer user_data) {

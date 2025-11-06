@@ -99,6 +99,48 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.0-rc1" date="2025-11-08">
+      <url type="details">https://siril.org/download/1.4.0-rc1</url>
+      <description>
+        <p>
+          First release candidate of the 1.4.0 series, focusing on stability and bug fixes ahead of the
+          final stable release. This version resolves critical crashes, improves stacking reliability,
+          and enhances Python integration for script developers.
+        </p>
+        <ul>
+          <li>
+            Fixed multiple critical crashes (seqstarnet, clearstar with Dynamic PSF, noise weights with overlap normalization)
+          </li>
+          <li>
+            Fixed XTrans sensor debayering issues introduced in beta4 and Bayer pattern interpretation after background extraction
+          </li>
+          <li>
+            Fixed Drizzle registration with compression enabled and global registration reference image handling
+          </li>
+          <li>
+            Improved stacking rejection algorithm to properly discard pixels with zero weight
+          </li>
+          <li>
+            Enhanced StarNet workflow using descreening for better star mask integration with recomposition tool
+          </li>
+          <li>
+            Fixed OIII extraction normalization strategy between B and G pixels for better color balance
+          </li>
+          <li>
+            Improved Python API with new SirilInterface methods (save_image_to_file, prefix arg for set_seq_frame_pixeldata)
+          </li>
+          <li>
+            Fixed various RGB composition, curves preview, and deconvolution issues
+          </li>
+          <li>
+            Enabled compiler optimizations through function inlining for improved performance
+          </li>
+          <li>
+            Added support for arbitrary script categories in preferences tree view
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.0-beta4" date="2025-09-28">
       <url type="details">https://siril.org/download/1.4.0-beta4</url>
       <description>

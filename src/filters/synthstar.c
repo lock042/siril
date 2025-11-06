@@ -473,10 +473,7 @@ int generate_synthstars(fits *fit) {
 			moffat_count++;
 			avg_moffat_beta += stars[n]->beta;
 		}
-		if (moffat_count > 0)
-			avg_moffat_beta /= moffat_count;
-		else
-			avg_moffat_beta = -1;
+		avg_moffat_beta /= moffat_count;
 		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 	}
 	for (int n = 0; n < nb_stars; n++) {

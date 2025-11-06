@@ -4140,9 +4140,13 @@ int process_pm(int nb) {
 
 	if (count == 0 && !has_gfit) {
 		siril_log_message(_("You need to add at least a loaded image or one image as variable. Use $ tokens to surround the file names .\n"));
+		g_free(expression);
+		g_free(cleaned_expression);
 		return CMD_ARG_ERROR;
 	} else if (count % 2 != 0) {
 		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
+		g_free(expression);
+		g_free(cleaned_expression);
 		return CMD_ARG_ERROR;
 	}
 
@@ -5441,7 +5445,7 @@ int process_findstar(int nb) {
 	if (!com.script && com.selection.w != 0 && com.selection.h != 0) {
 		args->selection = com.selection;
 	}
-	if (args->starfile && has_wcs(args->im.fit)) {
+	if (has_wcs(args->im.fit) && (args->starfile || args->update_GUI)) {
 		args->save_eqcoords = TRUE;
 		args->ref_wcs = args->im.fit->keywords.wcslib;
 	} else {
@@ -5449,6 +5453,7 @@ int process_findstar(int nb) {
 	}
 
 	if (!start_in_new_thread(findstar_worker, args)) {
+		g_free(args->starfile);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -7081,6 +7086,7 @@ int process_seq_stat(int nb) {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
 			if (!check_seq_is_comseq(seq))
 				free_sequence(seq, TRUE);
+			g_free(args->csv_name);
 			free(args);
 			return CMD_ARG_ERROR;
 		}
@@ -7091,6 +7097,7 @@ int process_seq_stat(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
+				g_free(args->csv_name);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -7988,10 +7995,12 @@ int process_register(int nb) {
 			clearfits(&reffit);
 			if (status) {
 				error = _("NOT USING FLAT: could not parse the expression");
+				// no need to free expression as we do not call path_parse with the NOFAIL mode
 				goto terminate_register_on_error;
 			} else {
 				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					g_free(expression);
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
@@ -8007,6 +8016,7 @@ int process_register(int nb) {
 						}
 
 					} else error = _("NOT USING FLAT: cannot open the file");
+					g_free(expression);
 					if (error) {
 						goto terminate_register_on_error;
 					}
@@ -8357,11 +8367,14 @@ int process_seq_applyreg(int nb) {
 			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
 			clearfits(&reffit);
 			if (status) {
+				g_free(expression);
 				error = _("NOT USING FLAT: could not parse the expression");
+				// no need to free expression as we don't call path_parse with the NOFAIL mode
 				goto terminate_register_on_error;
 			} else {
 				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					g_free(expression);
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
@@ -8377,6 +8390,7 @@ int process_seq_applyreg(int nb) {
 						}
 
 					} else error = _("NOT USING FLAT: cannot open the file");
+					g_free(expression);
 					if (error) {
 						goto terminate_register_on_error;
 					}
@@ -8740,10 +8754,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_color_message(_("Cannot compute overlap statistics if -maximize is not enabled. Disabling\n"), "red");
 		args.overlap_norm = FALSE;
 	}
-	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT || args.weighting_type == NBSTACK_WEIGHT)) {
-		siril_log_color_message(_("Weighting is allowed only if normalization has been activated, ignoring.\n"), "red");
+	if (args.normalize == NO_NORM && (args.weighting_type == NOISE_WEIGHT)) {
+		siril_log_color_message(_("Weighting by noise is allowed only if normalization has been activated, ignoring weights.\n"), "red");
 		args.weighting_type = NO_WEIGHT;
 	}
+	if (args.overlap_norm && (args.weighting_type == NOISE_WEIGHT)) {
+		siril_log_color_message(_("Weighting by noise cannot be used with overlap normalization, ignoring weights.\n"), "red");
+		args.weighting_type = NO_WEIGHT;
+	}
+
 
 	// manage filters
 	if (convert_parsed_filter_to_filter(&arg->filters, seq,
@@ -10361,6 +10380,8 @@ int process_platesolve(int nb) {
 				retval = CMD_ARG_ERROR;
 				goto clean_and_exit_platesolve;
 			}
+			if (distofilename)
+				g_free(distofilename); // in case -disto= is passed twice, don't leak distofilename
 			distofilename = g_strdup(arg);
 		}
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
@@ -10860,6 +10881,7 @@ int process_findcompstars(int nb) {
 
 	if (!start_in_new_thread(compstars_worker, args)) {
 		g_free(args->target_name);
+		g_free(args->nina_file);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -10978,6 +11000,7 @@ static show_params* parse_show_args(int nb) {
 				params->display_tag = BOOL_FALSE;
 			} else {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				g_free(params->file);
 				g_free(params);
 				return NULL;
 			}
@@ -11014,12 +11037,15 @@ parse_coords:
 		}
 		if (!params->coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
+			g_free(params->name);
 			g_free(params);
 			return NULL;
 		}
 		if (nb > next_arg) {
+			g_free(params->name);
 			params->name = g_strdup(word[next_arg]);
 		} else {
+			g_free(params->name);
 			params->name = g_strdup("object");
 		}
 	}
@@ -11550,6 +11576,7 @@ typedef struct _pyscript_data {
 gpointer execute_python_script_wrapper(gpointer user_data) {
 	pyscript_data *data = (pyscript_data*) user_data;
 	execute_python_script(data->script_name, TRUE, TRUE, data->argv_script, FALSE, data->from_cli, FALSE);
+	// execute_python_script() frees data->script_name
 	g_strfreev(data->argv_script);
 	free(data);
 	return GINT_TO_POINTER(0);
@@ -11597,6 +11624,7 @@ int process_pyscript(int nb) {
 		// so we use a generic GThread
 		gboolean already_in_a_python_script = com.python_script;
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
+		// data->script_name freed by execute_python_script_wrapper
 		if (!thread) {
 			free(data);
 			g_free(script_name);

@@ -239,6 +239,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->layer = select_vport(gui.cvport);
 	args->max_stars_fitted = 0;
 	args->starfile = NULL;
+	args->save_eqcoords = TRUE;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
 	if (com.selection.w != 0 && com.selection.h != 0) {
@@ -351,6 +352,7 @@ gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
 	set_cursor_waiting(FALSE);
+	g_free(args->starfile);
 	free(args);
 	return FALSE;
 }

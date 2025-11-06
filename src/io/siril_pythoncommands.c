@@ -13,6 +13,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/OS_utils.h"
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
@@ -572,7 +573,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
-		char* series_label = g_strdup((const char*)buffer + offset);
+		gchar* series_label = g_strdup((const char*)buffer + offset);
 		offset += strlen(series_label) + 1;
 
 		// Unpack with_errors (as a single byte)
@@ -584,6 +585,13 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
 		num_points = GUINT32_FROM_BE(num_points);
+		if (num_points > get_available_memory() / 64) {
+			// Error if the unpacked data would use more than half the available memory
+			free_siril_plot_data(plot_data);
+			g_free(series_label);
+			return NULL;
+		}
+
 		offset += sizeof(uint32_t);
 
 		// Read plot type (network byte-order)
@@ -937,7 +945,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA_REGION: {
-			if (payload_length == 17) {
+			if (payload_length == 18) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
 				unsigned char* rectptr = (unsigned char*) payload + 2;
@@ -2416,6 +2424,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
@@ -2433,6 +2442,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -2456,6 +2466,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
@@ -2463,6 +2474,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2517,7 +2529,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			uint8_t retval = siril_confirm_dialog_async((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
 			break;
 		}
@@ -3107,7 +3119,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32* values = (guint32*) payload;
 					guint32 lo = GUINT32_FROM_BE(values[0]);
 					guint32 hi = GUINT32_FROM_BE(values[1]);
-					if (lo >= hi || lo < 0 || hi < 0 || lo > 65535 || hi > 65535) {
+					if (lo >= hi || lo > 65535 || hi > 65535) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
@@ -3220,6 +3232,35 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				if (!success)
 					siril_debug_print("Error in send_response\n");
+			}
+			break;
+		}
+
+		case CMD_GET_SIRIL_LOG: {
+			if (com.headless) {
+				const char* error_msg = _("Log only available in GUI mode");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			gchar *log = get_log_as_string();
+			guint32 length = strlen(log) + 1;
+			shared_memory_info_t *info = handle_rawdata_request(conn, log, length);
+			// Send data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			// Clean up
+			free(info);
+			g_free(log);
+			break;
+		}
+
+		case CMD_SAVE_IMAGE_FILE: {
+			if (payload_length != sizeof(save_image_info_t)) {
+				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				success = handle_save_image_file_request(conn, payload, payload_length);
 			}
 			break;
 		}
