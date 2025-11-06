@@ -15,7 +15,7 @@ siril 1.4.0-RC1
 * Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
 * Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
 * Fixed drizzle registration when compression is on (#1800)
-* Fixed computing storage space after seqpplyreg to better account for max framing (#1802)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802, #1843)
 * Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
 * Fixed XTrans sensors debayer after changes introduced in beta4 by !903 (#1826)
 * Fixed some issues with rescale and rgbblend clipping protection in asinh stretch (!950)
