@@ -146,7 +146,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					retval = FALSE;
 				}
 			}
-			total_Mpix = (double)(n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6);
+			total_Mpix = (double)n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		case FRAMING_MAX:
 			xmin = DBL_MAX;
@@ -172,7 +172,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					if (img_ymax < current_framing.pt[j].y) img_ymax = current_framing.pt[j].y;
 					// siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 				}
-				total_Mpix += (double)((img_xmax - img_xmin + 1) * (img_ymax - img_ymin + 1)) * 1.e-6;
+				total_Mpix += (double)(img_xmax - img_xmin + 1) * (img_ymax - img_ymin + 1) * 1.e-6;
 			}
 			rx_0 = (int)xmax - (int)xmin + 1;
 			ry_0 = (int)ymax - (int)ymin + 1;
@@ -222,7 +222,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
-			total_Mpix = (double)(n * rx_0 * ry_0 * regargs->output_scale * regargs->output_scale * 1.e-6);
+			total_Mpix = (double)n * rx_0 * ry_0 * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		case FRAMING_COG:
 			cogx = 0.;
@@ -274,7 +274,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					retval = FALSE;
 				}
 			}
-			total_Mpix = (double)(n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6);
+			total_Mpix = (double)n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		default:
 			return FALSE;
