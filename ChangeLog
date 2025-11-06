@@ -1,5 +1,5 @@
 siril 1.4.0-RC1
-XX/XX/XX
+11/08/25
 
 **Fixes:**
 * Fixed wrong interpretation of bayer pattern after a background extraction on CFA images (#1799)
