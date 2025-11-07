@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-07 21:02+0100\n"
-"PO-Revision-Date: 2025-10-21 19:36+0000\n"
+"PO-Revision-Date: 2025-11-07 20:27+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -13478,6 +13478,8 @@ msgstr "Résolution Astrometry.net à l'aveugle\n"
 #: src/algos/astrometry_solver.c:1822
 msgid "Warning: failed to add astrometry.net to child process list\n"
 msgstr ""
+"Avertissement : impossible d'ajouter astrometry.net à la liste des processus "
+"enfants\n"
 
 #: src/algos/astrometry_solver.c:1856
 msgid "No astrometric solution found\n"
@@ -14000,6 +14002,8 @@ msgid ""
 "Offsets: %d, %d not suitable for a Bayer pattern (%d), check your "
 "preferences\n"
 msgstr ""
+"Décalages : %d, %d ne convient pas à un motif Bayer (%d), vérifiez vos "
+"préférences\n"
 
 #: src/algos/demosaicing.c:560
 msgid "Cannot perform debayering on image with more than one channel\n"
@@ -17462,22 +17466,20 @@ msgstr ""
 "-maximize n'est pas activée. Désactivation\n"
 
 #: src/core/command.c:8758 src/gui/stacking.c:150
-#, fuzzy
 msgid ""
 "Weighting by noise is allowed only if normalization has been activated, "
 "ignoring weights.\n"
 msgstr ""
-"La pondération n'est autorisée que si la normalisation a été activée, option "
-"ignorée.\n"
+"La pondération par le bruit n'est autorisée que si la normalisation a été "
+"activée, les poids seront ignorés.\n"
 
 #: src/core/command.c:8762 src/gui/stacking.c:163
-#, fuzzy
 msgid ""
 "Weighting by noise cannot be used with overlap normalization, ignoring "
 "weights.\n"
 msgstr ""
-"La pondération n'est autorisée qu'en cas d'empilement par moyenne, paramètre "
-"ignoré.\n"
+"La pondération par bruit ne peut pas être utilisée avec la normalisation par "
+"chevauchement, les poids seront ignorés.\n"
 
 #: src/core/command.c:8783
 #, c-format
@@ -23534,9 +23536,9 @@ msgid "Image %d not found for writing\n"
 msgstr "Image %d introuvable pour l'écriture\n"
 
 #: src/core/processing.c:819 src/core/processing.c:840
-#, fuzzy
 msgid "Warning: failed to add processing thread to child list\n"
-msgstr "Avertissement : échec de l'obtention de l'entrée d'index du dépôt.\n"
+msgstr ""
+"Avertissement : échec de l'ajout du thread de traitement à la liste enfant\n"
 
 #: src/core/processing.c:1183
 msgid "Process aborted by user\n"
@@ -25156,7 +25158,7 @@ msgstr "Échec de l'utilisation de starnet : %s\n"
 
 #: src/filters/starnet.c:98
 msgid "Error adding Starnet to child process list\n"
-msgstr ""
+msgstr "Erreur lors de l'ajout de Starnet à la liste des processus enfants\n"
 
 #: src/filters/starnet.c:134
 msgid "Running StarNet"
@@ -25289,12 +25291,11 @@ msgstr ""
 "transfert des tons moyens (MTF) à l'image.\n"
 
 #: src/filters/starnet.c:575
-#, fuzzy
 msgid ""
 "StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"
 msgstr ""
-"StarNet : mode linéaire. Application de l'étirement MTF inverse à l'image "
-"sans étoile.\n"
+"StarNet : mode linéaire. Application de l'étirement automatique MTF à "
+"l'image d'entrée StarNet.\n"
 
 #: src/filters/starnet.c:591
 msgid "StarNet: 2x upscaling selected. Upscaling image...\n"
@@ -25343,11 +25344,10 @@ msgstr ""
 "sans étoile à la taille originale...\n"
 
 #: src/filters/starnet.c:714
-#, fuzzy
 msgid "StarNet: linear mode. Applying inverse autostretch to starless image.\n"
 msgstr ""
-"StarNet : mode linéaire. Application de l'étirement MTF inverse à l'image "
-"sans étoile.\n"
+"StarNet : mode linéaire. Application d'un étirement automatique inverse à "
+"une image sans étoiles.\n"
 
 #: src/filters/starnet.c:731
 msgid "Error: unable to save starless image as FITS...\n"
@@ -25398,14 +25398,12 @@ msgstr ""
 "traitement...\n"
 
 #: src/filters/synthstar.c:349
-#, fuzzy
 msgid "Memory allocation failed\n"
-msgstr "Échec de l'allocation de mémoire"
+msgstr "Échec de l'allocation de mémoire\n"
 
 #: src/filters/synthstar.c:375
-#, fuzzy
 msgid "Star detection failed\n"
-msgstr "L'exécution du script a échoué.\n"
+msgstr "La détection des étoiles a échoué\n"
 
 #: src/filters/synthstar.c:388 src/gui/unpurple.c:68
 msgid "No stars detected in the image.\n"
@@ -25423,9 +25421,9 @@ msgstr ""
 "traitement...\n"
 
 #: src/filters/synthstar.c:729
-#, fuzzy, c-format
+#, c-format
 msgid "Star detection failed for channel %u\n"
-msgstr "L'empilement a échoué pour l'image %d"
+msgstr "La détection des étoiles a échoué pour le canal %u\n"
 
 #: src/filters/synthstar.c:736
 #, c-format
@@ -26129,7 +26127,7 @@ msgstr "Valeur : "
 
 #: src/gui/colors.c:386
 msgid "Error in value_check(). This should not happen...\n"
-msgstr ""
+msgstr "Erreur dans value_check(). Cela ne devrait pas arriver...\n"
 
 #: src/gui/colors.c:469 src/gui/cut.c:1013
 msgid "No sequence is loaded"
@@ -31031,15 +31029,12 @@ msgstr ""
 "sélection redimensionnée.\n"
 
 #: src/io/sequence_export.c:309
-#, fuzzy
 msgid ""
 "Export has detected registration data with more than simple shifts, this is "
 "not supported\n"
 msgstr ""
-"L'empilement a détecté des données d'alignement avec plus qu'une simple "
-"translation.\n"
-"Normalement, vous devriez appliquer l'alignement existant avant "
-"l'exportation."
+"L'exportation a détecté des données d'alignement comportant plus que de "
+"simples décalages, ce qui n'est pas pris en charge\n"
 
 #: src/io/sequence_export.c:363
 #, c-format
@@ -31910,18 +31905,16 @@ msgid "Pixel shared memory allocation error"
 msgstr "Erreur d'allocation de mémoire partagée des pixels"
 
 #: src/io/siril_pythoncommands.c:1871
-#, fuzzy
 msgid "Star detection failed"
-msgstr "Détection d'étoiles"
+msgstr "La détection d'étoiles a échoué"
 
 #: src/io/siril_pythoncommands.c:1885
 msgid "No stars in image"
 msgstr "Pas d'étoiles dans l'image"
 
 #: src/io/siril_pythoncommands.c:1910
-#, fuzzy
 msgid "Star conversion error"
-msgstr "Erreur de conversion fits_to_py"
+msgstr "Erreur de conversion des étoiles"
 
 #: src/io/siril_pythoncommands.c:1938
 msgid "No background samples list available"
@@ -32127,15 +32120,13 @@ msgstr ""
 "chargée"
 
 #: src/io/siril_pythoncommands.c:3231
-#, fuzzy
 msgid "Failed to set image filename - empty filename provided"
 msgstr ""
-"Échec de l'extraction des dimensions de l'image - aucune image n'a été "
-"chargée"
+"Échec de la définition du nom du fichier image - nom de fichier vide fourni"
 
 #: src/io/siril_pythoncommands.c:3241
 msgid "Log only available in GUI mode"
-msgstr ""
+msgstr "Journal disponible uniquement en mode GUI"
 
 #: src/io/siril_pythoncommands.c:3270
 msgid "Unknown command"
@@ -32247,29 +32238,26 @@ msgid "Failed to allocate image buffer"
 msgstr "Échec de l'allocation de la mémoire tampon de l'image"
 
 #: src/io/siril_pythonmodule.c:739
-#, fuzzy
 msgid "Invalid save image info size"
-msgstr "Taille invalide des informations sur l'image"
+msgstr "Taille d'image enregistrée non valide"
 
 #: src/io/siril_pythonmodule.c:810
-#, fuzzy
 msgid "Failed to open shared memory for image data"
-msgstr "Échec de l'ouverture de la mémoire partagée"
+msgstr "Échec de l'ouverture de la mémoire partagée pour les données d'image"
 
 #: src/io/siril_pythonmodule.c:818
-#, fuzzy
 msgid "Failed to map shared memory for image data"
-msgstr "Échec du mappage de la mémoire partagée"
+msgstr ""
+"Échec de la mise en correspondance de la mémoire partagée pour les données "
+"d'image"
 
 #: src/io/siril_pythonmodule.c:865
-#, fuzzy
 msgid "Failed to open shared memory for header"
-msgstr "Échec de l'ouverture de la mémoire partagée"
+msgstr "Échec de l'ouverture de la mémoire partagée pour l'en-tête"
 
 #: src/io/siril_pythonmodule.c:875
-#, fuzzy
 msgid "Failed to map shared memory for header"
-msgstr "Échec du mappage de la mémoire partagée"
+msgstr "Échec de la cartographie de la mémoire partagée pour l'en-tête"
 
 #: src/io/siril_pythonmodule.c:1021 src/io/siril_pythonmodule.c:1121
 #: src/io/siril_pythonmodule.c:1212 src/io/siril_pythonmodule.c:1273
@@ -32292,9 +32280,8 @@ msgid "Saved plot to %s\n"
 msgstr "Tracé sauvegardé dans %s\n"
 
 #: src/io/siril_pythonmodule.c:1219
-#, fuzzy
 msgid "Error: could not parse FITS header string"
-msgstr "Erreur : Impossible d'analyser les valeurs de l'option -to.\n"
+msgstr "Erreur : impossible d'analyser la chaîne d'en-tête FITS"
 
 #: src/io/siril_pythonmodule.c:1299
 msgid "Failed to add user polygon: no image loaded"
@@ -32464,9 +32451,10 @@ msgstr ""
 "python.\n"
 
 #: src/io/siril_pythonmodule.c:2708
-#, fuzzy, c-format
+#, c-format
 msgid "Warning: failed to add %s to child process list\n"
-msgstr "Avertissement : échec de l'obtention de l'entrée d'index du dépôt.\n"
+msgstr ""
+"Avertissement : impossible d'ajouter %s à la liste des processus enfants\n"
 
 #: src/io/siril_pythonmodule.c:2727
 #, c-format
