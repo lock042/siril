@@ -39,7 +39,7 @@ siril 1.4.0-RC1
 * SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
 * Starlink pre- and post-autostretch is unlinked for better star removal from images with very uneven channels (!952)
 * Stacking with rejection: make sure pixels with non-null values but 0 weight are now discarded at rejection step (!953)
-* Add SirilInterface.save_image_to_file() method to save from python to FITS files without needing numpy (!955)
+* Add SirilInterface.save_image_to_file() method to save from python to FITS files without needing astropy (!955)
 
 siril 1.4.0-beta4
 09/28/25
