@@ -11679,7 +11679,7 @@ int process_gps(int nb) {
 				/* read from header instead of from pixels */
 				struct _qhy_struct qhy_header = { 0 };
 				gchar *filename = get_image_filename_no_ext(NULL, -1);
-				int retval = parse_gps_from_header(&gfit, filename, &qhy_header);
+				int retval = parse_gps_from_header(gfit, filename, &qhy_header);
 				g_free(filename);
 				if (retval >= 0) {
 					print_qhy_data(&qhy_header);
@@ -11692,7 +11692,7 @@ int process_gps(int nb) {
 			if (!g_strcmp0(word[1], "-ro")) {
 				/* gps -ro */
 				struct _qhy_struct qhy_header = { 0 };
-				int retval = parse_gps_image(&gfit, &qhy_header);
+				int retval = parse_gps_image(gfit, &qhy_header);
 				if (retval >= 0) {
 					print_qhy_data(&qhy_header);
 					release_qhy_struct(&qhy_header);
@@ -11711,11 +11711,11 @@ int process_gps(int nb) {
 			else return CMD_ARG_ERROR;
 		} else {
 			/* gps row_number */
-			if (!gfit.keywords.gps_data) {
+			if (!gfit->keywords.gps_data) {
 				siril_log_message(_("The loaded image does not have the expected QHY GPS headers from NINA\n"));
 				return CMD_INVALID_IMAGE;
 			}
-			if (pix_y < 0 || pix_y >= gfit.ry) {
+			if (pix_y < 0 || pix_y >= gfit->ry) {
 				siril_log_message(_("Line is outside image\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -11738,7 +11738,7 @@ int process_gps(int nb) {
 					return CMD_ARG_ERROR;
 				}
 			}
-			GDateTime *date = get_timestamp_for_pixel(gfit.keywords.gps_data, moment, 0, pix_y);
+			GDateTime *date = get_timestamp_for_pixel(gfit->keywords.gps_data, moment, 0, pix_y);
 			if (date) {
 				gchar *date_str = date_time_to_FITS_date(date);
 				siril_log_message(_("%4d: %s (exposure %s)\n"), pix_y, date_str, moment_str);
@@ -11755,7 +11755,7 @@ int process_gps(int nb) {
 	}
 	struct generic_seq_args args = { 0 };
 	args.user = GINT_TO_POINTER(crop_rows);
-	int retval = gps_extract_image_hook(&args, 0, 0, &gfit, NULL, MULTI_THREADED);
+	int retval = gps_extract_image_hook(&args, 0, 0, gfit, NULL, MULTI_THREADED);
 	if (!retval)
 		notify_gfit_modified();
 	else retval = CMD_INVALID_IMAGE;
