@@ -21,6 +21,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"

@@ -655,8 +655,8 @@ conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is 
 
 ## Git configuration
 git_data = configuration_data()
-git_data.set_quoted('SIRIL_GIT_VERSION_ABBREV', git_version)
-git_data.set_quoted('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
+git_data.set('SIRIL_GIT_VERSION_ABBREV', git_version)
+git_data.set('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ################################################################################
 # Externals dependencies

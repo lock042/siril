@@ -39,6 +39,7 @@
 #endif
 #include "yyjson.h"
 
+#include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
