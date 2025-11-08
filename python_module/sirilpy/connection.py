@@ -1092,7 +1092,7 @@ class SirilInterface:
         except CommandError:
             raise
         except Exception as e:
-            raise SirilError(_("Error in cmd(): {e}")) from e
+            raise SirilError(_(f"Error in cmd(): {e}")) from e
 
     def set_siril_selection(self,
                             x: Optional[int] = None,
@@ -2061,11 +2061,12 @@ class SirilInterface:
                 except Exception as e:
                     pass
 
-    def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray) -> bool:
+    def set_seq_frame_pixeldata(self, index: int, image_data: np.ndarray, prefix: str) -> bool:
         """
         Send sequence frame image data to Siril using shared memory. Note that this
         method only works with sequences of FITS images: it does **not** work with
-        FITSEQ, SER or AVI single-file sequences.
+        FITSEQ, SER or AVI single-file sequences. The image_lock() context manager
+        is not required in order to use this method.
 
         Args:
             index: integer specifying which frame to set the pixeldata for. This
@@ -2074,6 +2075,15 @@ class SirilInterface:
             image_data: numpy.ndarray containing the image data.
                 Must be 2D (single channel) or 3D (multi-channel) array
                 with dtype either np.float32 or np.uint16.
+            prefix: String prefix to use when saving the file to make a
+                new sequence. Note that saving sequence frames with a new prefix
+                does not by itself create a new sequence: once all the frames have
+                been saved with the new sequence prefix,
+                ``sirilpy.SirilInterface.create_new_seq()`` must be called to create
+                the actual sequence file. Note that while it is permitted to pass
+                prefix=None, this will overwrite the existing sequence and is not
+                typically what is wanted, therefore the parameter is not optional
+                and must be passed explicitly.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
@@ -2153,10 +2163,20 @@ class SirilInterface:
                 shm_info.shm_name
             )
 
+            # Prepare prefix bytes (256 bytes max, null-terminated)
+            if prefix is None:
+                prefix_bytes = b'\x00' * 256
+            else:
+                # Encode prefix and ensure it fits in 256 bytes (including null terminator)
+                prefix_encoded = prefix.encode('utf-8')
+                if len(prefix_encoded) > 255:
+                    raise ValueError(_("Prefix too long (max 255 bytes)"))
+                prefix_bytes = prefix_encoded + b'\x00' * (256 - len(prefix_encoded))
+
             # Create payload
-            # We don't range check index here as it is done more efficiently in the C code'
+            # We don't range check index here as it is done more efficiently in the C code
             index_bytes = struct.pack('!i', index)
-            payload = index_bytes + info
+            payload = index_bytes + info + prefix_bytes
 
             # Send command using the existing _execute_command method
             if not self._execute_command(_Command.SET_SEQ_FRAME_PIXELDATA, payload):
@@ -4191,7 +4211,7 @@ class SirilInterface:
             home_folder = self.get_siril_wd()
             all_files = os.listdir(home_folder)
             ext = self.get_siril_config('core','extension')
-            pattern = fr'^{seq_root}\d{{5}}{ext}$'
+            pattern = fr'^{re.escape(seq_root)}\d{{5}}{re.escape(ext)}$'
             regex = re.compile(pattern)
             exact_matches = [os.path.join(home_folder, f) for f in all_files if regex.match(f)]
             if len(exact_matches) == 0:
@@ -4199,7 +4219,8 @@ class SirilInterface:
                 return False
             if len(exact_matches) == 1:
                 self.log(_(f'Only one file matching {seq_root} found in the Home folder, cannot create sequence'), LogColor.RED)
-            message_bytes = seq_root.encode('utf-8')
+            seq_root_dummy_ext = seq_root + ".ext" # We have to add this to work around remove_ext_from_filename in create_one_regular_seq
+            message_bytes = seq_root_dummy_ext.encode('utf-8')
             return self._execute_command(_Command.CREATE_NEW_SEQ, message_bytes)
 
         except Exception as e:
@@ -5103,3 +5124,273 @@ class SirilInterface:
             return True
         except Exception as e:
             raise SirilError(f"Error in set_image_filename(): {e}") from e
+
+    def get_siril_log(self) -> str:
+        """
+        Retrieve the full Siril log as a text string.
+
+        Returns:
+            str: The text of the Siril log.
+
+        Raises:
+            SirilError: For errors during data retrieval,
+        """
+
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_SIRIL_LOG)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    raise SirilError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if status == _Status.NONE:
+                return None
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            try:
+                # Read entire buffer at once
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = buffer.decode('utf-8', errors='ignore')
+            except (BufferError, ValueError, TypeError) as e:
+                raise SirilError(_("Failed to create string from shared memory: {}").format(e)) from e
+
+            return result
+
+        except SirilError:
+            raise
+
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_siril_log(): {}").format(e)) from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def save_image_file(self, data, header=None, filename=None) -> bool:
+        """
+        Save image pixeldata and metadata to a FITS file. This uses Siril to
+        save the image and can therefore be used to avoid a script dependency on
+        astropy if it is only required for saving an image. This allows images to
+        be saved directly from python without having to use set_image_pixeldata()
+        and set_image_metadata_from_header_string() and saving the Siril image. It
+        support processing multiple images without affecting the image currently
+        loaded in Siril.
+
+        Args:
+            data: Either a numpy.ndarray containing the image data (must be 2D or 3D
+                array with dtype float32 or uint16), OR a FFit object containing
+                both data and header.
+            header: string containing the FITS header data. Required if data is a
+                    numpy array, ignored if data is a FFit object.
+            filename: string containing the path where the file should be saved.
+                    Required if data is a numpy array. If data is a FFit object
+                    and filename is None, will use fit.filename.
+
+        Returns:
+            bool: True if successful, False otherwise
+
+        Raises:
+            ValueError: if the input array or header is invalid,
+            TypeError: if invalid parameter types are provided,
+            SirilError: if there was an error in handling the command.
+
+        Examples:
+            # Using numpy array and header string
+            siril.save_image_file(data_array, header_string, "output.fit")
+
+            # Using FFit object
+            siril.save_image_file(fit, filename="output.fit")
+
+            # Using FFit object with its own filename
+            siril.save_image_file(fit)
+        """
+
+        shm_data = None
+        shm_header = None
+        shm_data_info = None
+        shm_header_info = None
+
+        try:
+            # Check if data is a FFit object
+            is_ffit = hasattr(data, 'data') and hasattr(data, 'header')
+
+            if is_ffit:
+                # Extract data and header from FFit object
+                image_data = data.data
+                header_str = data.header
+                # Use FFit's filename if none provided
+                if filename is None:
+                    if hasattr(data, 'filename') and data.filename:
+                        filename = data.filename
+                    else:
+                        raise ValueError(_("No filename provided and FFit object has no filename"))
+            else:
+                # data is a numpy array
+                image_data = data
+                header_str = header
+
+                if header is None:
+                    raise ValueError(_("Header must be provided when data is a numpy array"))
+                if filename is None:
+                    raise ValueError(_("Filename must be provided when data is a numpy array"))
+
+            # Validate input array
+            if not isinstance(image_data, np.ndarray):
+                raise ValueError(_("Image data must be a numpy array"))
+
+            if image_data.ndim not in (2, 3):
+                raise ValueError(_("Image must be 2D or 3D array"))
+
+            if image_data.dtype not in (np.float32, np.uint16):
+                raise ValueError(_("Image data must be float32 or uint16"))
+
+            if not isinstance(header_str, str):
+                raise TypeError(_("Header data must be a string"))
+
+            if not isinstance(filename, str):
+                raise TypeError(_("Filename must be a string"))
+
+            # Get image dimensions
+            if image_data.ndim == 2:
+                height, width = image_data.shape
+                channels = 1
+            else:
+                channels, height, width = image_data.shape
+
+            if channels > 3:
+                raise ValueError(_("Image cannot have more than 3 channels"))
+
+            if any(dim <= 0 for dim in (width, height)):
+                raise ValueError(_("Invalid image dimensions: {}x{}").format(width, height))
+
+            # Calculate image data size
+            element_size = 4 if image_data.dtype == np.float32 else 2
+            image_bytes = width * height * channels * element_size
+
+            # Prepare header data
+            header_bytes = header_str.encode('utf-8')
+            header_size = len(header_bytes) + 1
+
+            # Calculate total payload size
+            total_bytes = image_bytes + header_size
+
+            # Create shared memory for image data
+            try:
+                shm_data_info = self._request_shm(image_bytes)
+                shm_data = self._map_shared_memory(
+                    shm_data_info.shm_name.decode('utf-8'),
+                    shm_data_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory for image data: {}").format(e)) from e
+
+            # Create shared memory for header
+            try:
+                shm_header_info = self._request_shm(header_size)
+                shm_header = self._map_shared_memory(
+                    shm_header_info.shm_name.decode('utf-8'),
+                    shm_header_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory for header: {}").format(e)) from e
+
+            # Copy image data to shared memory
+            try:
+                buffer = memoryview(shm_data.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
+                np.copyto(shared_array, image_data)
+                del buffer
+                del shared_array
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to copy image data to shared memory: {}").format(e)) from e
+
+            # Copy header to shared memory
+            try:
+                buffer = memoryview(shm_header.buf).cast('B')
+                buffer[:len(header_bytes)] = header_bytes
+                del buffer
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to copy header to shared memory: {}").format(e)) from e
+
+            # Encode filename
+            filename_bytes = filename.encode('utf-8')
+            if len(filename_bytes) > 255:
+                raise ValueError(_("Filename too long (max 255 bytes)"))
+
+            # Pack the save image info structure
+            # Format: width, height, channels, data_type, image_size, image_shm_name,
+            #         header_size, header_shm_name, filename
+            info = struct.pack(
+                '!IIIIQ256sQ256s256s',
+                width,
+                height,
+                channels,
+                1 if image_data.dtype == np.float32 else 0,
+                image_bytes,
+                shm_data_info.shm_name,
+                header_size,
+                shm_header_info.shm_name,
+                filename_bytes + b'\0' * (256 - len(filename_bytes))
+            )
+
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SAVE_IMAGE_FILE, info):
+                raise SirilError(_("Failed to send save image file command"))
+
+            return True
+
+        except (SirilError, ValueError, TypeError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in save_image_file(): {e}") from e
+
+        finally:
+            # Cleanup shared memory for image data
+            if shm_data is not None:
+                try:
+                    shm_data.close()
+                    self._execute_command(_Command.RELEASE_SHM, shm_data_info)
+                except Exception:
+                    pass
+
+            # Cleanup shared memory for header
+            if shm_header is not None:
+                try:
+                    shm_header.close()
+                    self._execute_command(_Command.RELEASE_SHM, shm_header_info)
+                except Exception:
+                    pass

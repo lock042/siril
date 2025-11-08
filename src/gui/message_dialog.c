@@ -304,6 +304,31 @@ gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, FALSE, NULL);
 }
 
+struct confirm_dialog_data {
+    gchar *title;
+    gchar *msg;
+    gchar *button_accept;
+    gboolean result;
+};
+
+static gboolean confirm_dialog_idle(gpointer arg) {
+    struct confirm_dialog_data *data = (struct confirm_dialog_data *)arg;
+    data->result = siril_confirm_dialog(data->title, data->msg, data->button_accept);
+    return FALSE;
+}
+
+gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_accept) {
+    struct confirm_dialog_data data;
+    data.title = title;
+    data.msg = msg;
+    data.button_accept = button_accept;
+    data.result = FALSE;
+
+    execute_idle_and_wait_for_it(confirm_dialog_idle, &data);
+
+    return data.result;
+}
+
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, TRUE, user_data);
 }

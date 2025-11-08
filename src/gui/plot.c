@@ -87,7 +87,7 @@ static void formatX(double v, char *buf, size_t bufsz) {
 	if (use_photometry && julian0 && force_Julian) {
 		fmt = "%0.5f";
 	} else {
-		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
 	}
 	// size of buf is 128
 	// https://kristaps.bsd.lv/kplot/kplot_alloc.3.html
@@ -96,9 +96,9 @@ static void formatX(double v, char *buf, size_t bufsz) {
 static void formatY(double v, char *buf, size_t bufsz) {
 	char *fmt;
 	if (use_photometry) {
-		fmt = (gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
 	} else {
-		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
 	}
 	snprintf(buf, 128, fmt, v);
 }
@@ -390,23 +390,23 @@ static void plot_draw_selection(cairo_t *cr){
 			"%0.5f",
 			"%0.5f",
 			ylabel,
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
 		} else {
 			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
-			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 			ylabel,
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
 		}
 	} else {
 		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		ylabel,
-		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
-		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
+		(gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
 	}
 	g_sprintf(buffer, fmt, pdd.nbselected, xmin, xmax, ymin, ymax);
 	cairo_show_text(cr, buffer);
@@ -435,8 +435,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -456,8 +456,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -485,8 +485,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -506,8 +506,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -616,7 +616,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 				break;
 			case FWHM:
 				if (is_arcsec) {
-					fwhm_to_arcsec_if_needed(&gfit, psfs[i]);
+					fwhm_to_arcsec_if_needed(gfit, psfs[i]);
 					fwhm = psfs[i]->fwhmx_arcsec < 0 ? psfs[i]->fwhmx : psfs[i]->fwhmx_arcsec;
 				} else {
 					fwhm = psfs[i]->fwhmx;
@@ -1187,9 +1187,9 @@ void drawPlot() {
 		ref_image = 0;
 	else ref_image = seq->reference_image;
 
-	gboolean arcsec_is_ok = (gfit.keywords.focal_length > 0.0 && gfit.keywords.pixel_size_x > 0.f
-		&& gfit.keywords.pixel_size_y > 0.f && gfit.keywords.binning_x > 0
-		&& gfit.keywords.binning_y > 0);
+	gboolean arcsec_is_ok = (gfit->keywords.focal_length > 0.0 && gfit->keywords.pixel_size_x > 0.f
+		&& gfit->keywords.pixel_size_y > 0.f && gfit->keywords.binning_x > 0
+		&& gfit->keywords.binning_y > 0);
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (!arcsec_is_ok) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(arcsec), FALSE);

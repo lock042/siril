@@ -13,6 +13,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/OS_utils.h"
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
@@ -572,7 +573,7 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
-		char* series_label = g_strdup((const char*)buffer + offset);
+		gchar* series_label = g_strdup((const char*)buffer + offset);
 		offset += strlen(series_label) + 1;
 
 		// Unpack with_errors (as a single byte)
@@ -584,6 +585,13 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
 		num_points = GUINT32_FROM_BE(num_points);
+		if (num_points > get_available_memory() / 64) {
+			// Error if the unpacked data would use more than half the available memory
+			free_siril_plot_data(plot_data);
+			g_free(series_label);
+			return NULL;
+		}
+
 		offset += sizeof(uint32_t);
 
 		// Read plot type (network byte-order)
@@ -671,13 +679,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				// Prepare the response data: width (gfit->rx), height (gfit->ry), and channels (gfit->naxes[2])
 				uint8_t response_data[12]; // 3 x 4 bytes for width, height, and channels
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t width_BE = GUINT32_TO_BE(gfit.rx);
-				uint32_t height_BE = GUINT32_TO_BE(gfit.ry);
-				uint32_t channels_BE = GUINT32_TO_BE(gfit.naxes[2]);
+				uint32_t width_BE = GUINT32_TO_BE(gfit->rx);
+				uint32_t height_BE = GUINT32_TO_BE(gfit->ry);
+				uint32_t channels_BE = GUINT32_TO_BE(gfit->naxes[2]);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &width_BE, sizeof(uint32_t));      // First 4 bytes: width
@@ -695,7 +703,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 
 			if (result) {
 				if (com.selection.w == 0 && com.selection.h == 0) {
@@ -732,7 +740,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				// Prepare the response data: width (gfit->rx), height (gfit->ry), and channels (gfit->naxes[2])
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
@@ -760,8 +768,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.y),
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
-					if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
-								selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+					if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
+								selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
@@ -784,8 +792,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 2) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
-				rectangle region = {0, 0, gfit.rx, gfit.ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
+				rectangle region = {0, 0, gfit->rx, gfit->ry};
+				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
 				// Send shared memory info to Python
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
@@ -814,22 +822,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
-			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 				selection.w < 5 || selection.w > 300 ||
 				selection.h < 5 || selection.h > 300 ||
-				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
 					const char* error_msg = _("Invalid selection");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-			if (layer < 0 || layer >= gfit.naxes[2]) {
+			if (layer < 0 || layer >= gfit->naxes[2]) {
 					const char* error_msg = _("Invalid channel");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
-			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
+			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
 			if (!psf || error) {
 				free_psf(psf);
 				error_occurred = TRUE;
@@ -841,10 +849,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf->xpos = selection.x + psf->x0;
 			psf->ypos = selection.y + selection.h - psf->y0;
 			// Set RA and dec if there is a plate solution
-			if (gfit.keywords.wcslib) {
+			if (gfit->keywords.wcslib) {
 				double fx, fy;
-				display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
-				pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
+				display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit->ry);
+				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
 			const size_t psf_star_size = 36 * sizeof(double);
@@ -874,8 +882,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
-					selection.y < 0 || selection.y  + selection.h > gfit.ry - 1) {
+				if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
+					selection.y < 0 || selection.y  + selection.h > gfit->ry - 1) {
 					const char* error_msg = _("Invalid region: selection breaches image dimensions");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -905,23 +913,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
-			if (layer >= gfit.naxes[2]) {
+			if (layer >= gfit->naxes[2]) {
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
 			// Check selection is valid
-			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
 				selection.w * selection.h < 3 ||
-				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
 					const char* error_msg = _("Invalid selection");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
 
 			// Compute stats
-			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
+			imstats *stats = statistics(NULL, -1, gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
@@ -937,7 +945,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA_REGION: {
-			if (payload_length == 17) {
+			if (payload_length == 18) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
 				unsigned char* rectptr = (unsigned char*) payload + 2;
@@ -946,7 +954,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
@@ -1093,7 +1101,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Ensure null-terminated string for undo message
 				char* log_msg = g_strndup(payload, payload_length);
-				undo_save_state(&gfit, log_msg);
+				undo_save_state(gfit, log_msg);
 				g_free(log_msg);
 
 				// Send success response
@@ -1181,7 +1189,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
-				success = handle_set_pixeldata_request(conn, &gfit, payload, payload_length);
+				success = handle_set_pixeldata_request(conn, gfit, payload, payload_length);
 			}
 			break;
 		}
@@ -1198,12 +1206,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length != 4 + sizeof(incoming_image_info_t)) {
-				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u\n", payload_length);
+			// Updated to expect optional prefix (256 bytes)
+			size_t expected_len = 4 + sizeof(incoming_image_info_t);
+			size_t expected_len_with_prefix = expected_len + 256;
+
+			if (payload_length != expected_len && payload_length != expected_len_with_prefix) {
+				siril_debug_print("Invalid payload length for SET_PIXELDATA: %u (expected %zu or %zu)\n",
+								payload_length, expected_len, expected_len_with_prefix);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			int32_t index = GINT32_FROM_BE(*(int32_t*)payload);
 			siril_debug_print("seq_frame_set_pixeldata index: %d\n", index);
 			// Check index is in range
@@ -1212,7 +1226,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			const char* info = payload + 4;
+
+			// Extract prefix if present
+			const char* prefix = "";
+			if (payload_length == expected_len_with_prefix) {
+				const char* prefix_start = payload + 4 + sizeof(incoming_image_info_t);
+				// Check if prefix is not just null bytes (meaning None was passed)
+				if (prefix_start[0] != '\x00') {
+					prefix = prefix_start;
+				}
+			}
 
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, -1)) {
@@ -1222,14 +1247,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				free(fit);
 				break;
 			}
-
 			// Update the pixel data in the sequence frame fit
-			success = handle_set_pixeldata_request(conn, fit, info, payload_length - 4);
+			success = handle_set_pixeldata_request(conn, fit, info, sizeof(incoming_image_info_t));
 			int writer_retval;
-			// Write the sequence frame
+			// Write the sequence frame with the provided prefix (or empty string if none)
 			char *dest = fit_sequence_get_image_filename_prefixed(&com.seq,
-					"", index);
-			siril_debug_print("set_seq_frame_pixeldata dest filename: %s\n", dest);
+					prefix, index);
+			siril_debug_print("set_seq_frame_pixeldata dest filename: %s (prefix: '%s')\n", dest, prefix);
 			fit->bitpix = fit->orig_bitpix;
 			writer_retval = savefits(dest, fit);
 			free(dest);
@@ -1313,13 +1337,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
-			if (channel >= gfit.naxes[2]) {
+			if (channel >= gfit->naxes[2]) {
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
-			fits *fit = &gfit;
+			fits *fit = gfit;
 
 			// If there are no stats available we return NONE, the script can use
 			// cmd("stat") to generate them if required
@@ -1400,7 +1424,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
-			if (keywords_to_py(&gfit, ptr, total_size)) {
+			if (keywords_to_py(gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -1809,94 +1833,89 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PSFSTARS: {
-			int nb_stars = starcount(com.stars);
-			int channel = 1;
 			psf_star **stars = NULL;
-			gboolean stars_needs_freeing;
-			if (nb_stars < 1) {
-				image *input_image = NULL;
-				input_image = calloc(1, sizeof(image));
-				input_image->fit = &gfit;
-				input_image->from_seq = NULL;
-				input_image->index_in_seq = -1;
-				if (gfit.naxes[2] == 1)
-					channel = 0;
-				stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-						NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
-				free(input_image);
-				stars_needs_freeing = TRUE;
-				// Populate some data for each star if we are plate solved
-				for (int i = 0 ; i < nb_stars ; i++) {
-					psf_star *psf = stars[i];
-					psf->xpos = psf->x0;
-					psf->ypos = gfit.ry - psf->y0;
-					if (gfit.keywords.wcslib) {
-						double fx, fy;
-						display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
-						pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
-						fwhm_to_arcsec_if_needed(&gfit, psf);
-					}
+			int nb_stars = 0;
+			gboolean stars_needs_freeing = FALSE;
+
+			// Check if we need to find stars or use existing ones
+			if (starcount(com.stars) < 1) {
+				// Set up starfinder_data structure
+				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
+				if (!sf_data) {
+					const char* error_msg = _("Memory allocation failed");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 
+				sf_data->im.fit = gfit;
+				sf_data->im.from_seq = NULL;
+				sf_data->im.index_in_seq = -1;
+				sf_data->layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				sf_data->max_stars_fitted = MAX_STARS;
+				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
+				sf_data->save_eqcoords = has_wcs(gfit); // save coords if plate solved
+				sf_data->ref_wcs = gfit->keywords.wcslib;
+				sf_data->stars = &stars;
+				sf_data->nb_stars = &nb_stars;
+				sf_data->threading = MULTI_THREADED;
+				sf_data->update_GUI = FALSE;
+				sf_data->process_all_images = FALSE;
+				sf_data->already_in_thread = TRUE;
+				sf_data->keep_stars = FALSE;  // Changed to FALSE so worker doesn't try to manage lifecycle
+
+				// Call the worker function
+				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
+				free(sf_data);
+
+				if (retval != 0 || !stars) {
+					const char* error_msg = _("Star detection failed");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (stars)
+						free_fitted_stars(stars);
+					break;
+				}
+				stars_needs_freeing = TRUE;
 			} else {
 				stars = com.stars;
-				stars_needs_freeing = FALSE;
+				nb_stars = starcount(com.stars);
 			}
 
-			// Count the number of stars in com.stars
-			nb_stars = starcount(stars);
-			if (nb_stars < 1) {
+			// Validate we have stars
+			if (nb_stars < 1 || !stars) {
 				const char* error_msg = _("No stars in image");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				if (stars_needs_freeing)
+					free_fitted_stars(stars);
 				break;
 			}
 
+			// Allocate memory for all star data
 			const size_t psf_star_size = 36 * sizeof(double);
 			const size_t total_size = nb_stars * psf_star_size;
-
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
 				const char* error_msg = _("Memory allocation failed");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				if (stars_needs_freeing)
+					free_fitted_stars(stars);
 				break;
 			}
 
+			// Convert stars to binary format
 			gboolean error_occurred = FALSE;
-			for (int i = 0; i < nb_stars; i++) {
-				if(!stars) {
-					const char* error_msg = _("Stars array was cleared mid-process");
-					error_occurred = TRUE;
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
-				}
-				psf_star *psf = stars[i];
-				if (!psf) {
-					error_occurred = TRUE;
-					const char* error_msg = _("Unexpected null star entry");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					if (stars_needs_freeing) {
-						free_psf_starstarstar(stars);
-					}
-					break;
-				}
-
-				// Calculate the correct offset for this star's data
+			for (int i = 0; i < nb_stars && stars[i]; i++) {
 				unsigned char* ptr = allstars + (i * psf_star_size);
-
-				if (psfstar_to_py(psf, ptr, psf_star_size)) {
+				if (psfstar_to_py(stars[i], ptr, psf_star_size)) {
 					error_occurred = TRUE;
-					const char* error_msg = _("Memory allocation error");
+					const char* error_msg = _("Star conversion error");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					if (stars_needs_freeing) {
-						free_psf_starstarstar(stars);
-					}
 					break;
 				}
 			}
 
-			if (stars_needs_freeing) {
-				free_psf_starstarstar(stars);
-			}
+			// Clean up and send response
+			if (stars_needs_freeing)
+				free_fitted_stars(stars);
 
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
@@ -1907,7 +1926,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(allstars);
 			break;
 		}
-
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
 			sample_mutex_lock();
@@ -1984,7 +2002,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (fits_to_py(&gfit, ptr, total_size)) {
+			if (fits_to_py(gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -2000,14 +2018,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (gfit.icc_profile == NULL) {
+			if (gfit->icc_profile == NULL) {
 				const char* error_msg = _("Image has no ICC profile");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
 			guint32 profile_size;
-			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
+			unsigned char* profile_data = get_icc_profile_data(gfit->icc_profile, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2038,7 +2056,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = &gfit;
+			fits *fit = gfit;
 			if (fit->header == NULL) {
 				const char* error_msg = _("Image has no FITS header");
 				siril_debug_print("No FITS header\n");
@@ -2059,7 +2077,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = &gfit;
+			fits *fit = gfit;
 			if (fit->history == NULL) {
 				const char* error_msg = _("Image has no history entries");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2092,7 +2110,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = &gfit;
+			fits *fit = gfit;
 			if (fit->unknown_keys == NULL || fit->unknown_keys[0] == '\0') {
 				const char* error_msg = _("Image has no unknown keys");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2154,7 +2172,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_PIX2WCS: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
-				if (!has_wcs(&gfit)) {
+				if (!has_wcs(gfit)) {
 					// Handle no WCS error
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2170,8 +2188,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double ra, dec, ra_BE, dec_BE;
 					double fx, fy;
 					fx = x;
-					fy = gfit.ry - y;
-					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
+					fy = gfit->ry - y;
+					pix2wcs2(gfit->keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
 					TO_BE64_INTO(dec_BE, dec, double);
@@ -2194,7 +2212,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_WCS2PIX: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
-				if (!has_wcs(&gfit)) {
+				if (!has_wcs(gfit)) {
 					// Handle no WCS error
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2208,9 +2226,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					FROM_BE64_INTO(ra, ra_BE, double);
 					FROM_BE64_INTO(dec, dec_BE, double);
 					double x, y, fx, fy, x_BE, y_BE;
-					wcs2pix(&gfit, ra, dec, &fx, &fy);
+					wcs2pix(gfit, ra, dec, &fx, &fy);
 					x = fx;
-					y = gfit.ry - fy;
+					y = gfit->ry - fy;
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));
@@ -2406,6 +2424,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			} else {
 				incoming_image_info_t* info = (incoming_image_info_t*)payload;
 				info->size = GUINT64_FROM_BE(info->size);
@@ -2423,6 +2442,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
 					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+					break;
 				}
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -2446,6 +2466,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to find a user polygon with id %d\n", id);
 					const char* error_msg = _("No polygon found matching id");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				size_t polygon_size;
 				uint8_t *serialized = serialize_polygon(polygon, &polygon_size);
@@ -2453,6 +2474,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					siril_debug_print("Failed to serialize the user polygon with id %d\n", id);
 					const char* error_msg = _("Failed to serialize user polygon");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
 				}
 				shared_memory_info_t *info = handle_rawdata_request(conn, serialized, polygon_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2507,7 +2529,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			uint8_t retval = siril_confirm_dialog((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			uint8_t retval = siril_confirm_dialog_async((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
 			break;
 		}
@@ -2825,6 +2847,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			double roundness = 0.0;
 			double fwhm = 0.0;
 			if (imagetype != DARK && imagetype != FLAT && imagetype != BIAS) {
+				// Analyse stars. Here we don't use findstar_worker because we only care about the number
+				// of stars, mean roundness and mean FWHM
 				psf_star **stars = NULL;
 				image *input_image = calloc(1, sizeof(image));
 				input_image->fit = fit;
@@ -2843,7 +2867,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					roundness /= nb_stars;
 					fwhm /= (2 * nb_stars);
 				}
-				free_psf_starstarstar(stars);
+				free_fitted_stars(stars);
 			}
 
 			int64_t unix_timestamp = g_date_time_to_unix(fit->keywords.date_obs);
@@ -3095,7 +3119,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					guint32* values = (guint32*) payload;
 					guint32 lo = GUINT32_FROM_BE(values[0]);
 					guint32 hi = GUINT32_FROM_BE(values[1]);
-					if (lo >= hi || lo < 0 || hi < 0 || lo > 65535 || hi > 65535) {
+					if (lo >= hi || lo > 65535 || hi > 65535) {
 						const char* error_msg = _("Error: invalid slider values");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
@@ -3208,6 +3232,35 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				if (!success)
 					siril_debug_print("Error in send_response\n");
+			}
+			break;
+		}
+
+		case CMD_GET_SIRIL_LOG: {
+			if (com.headless) {
+				const char* error_msg = _("Log only available in GUI mode");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			gchar *log = get_log_as_string();
+			guint32 length = strlen(log) + 1;
+			shared_memory_info_t *info = handle_rawdata_request(conn, log, length);
+			// Send data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			// Clean up
+			free(info);
+			g_free(log);
+			break;
+		}
+
+		case CMD_SAVE_IMAGE_FILE: {
+			if (payload_length != sizeof(save_image_info_t)) {
+				siril_debug_print("Invalid payload length for SAVE_IMAGE_FILE: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				success = handle_save_image_file_request(conn, payload, payload_length);
 			}
 			break;
 		}

@@ -7,8 +7,11 @@ siril_inc_dir = include_directories('.')
 ################################################################################
 # Generate configuration files
 
-configure_file(output : 'git-version.h',
-               configuration : git_data)
+configure_file(
+  input : 'git-version.h.in',
+  output : 'git-version.h',
+  configuration : git_data
+)
 
 configure_file(output : 'config.h',
                configuration : conf_data)

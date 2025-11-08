@@ -461,6 +461,8 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 	data->filepath = NULL;
 	g_free(data->source);
 	data->source = NULL;
+	g_free(data->comment);
+	data->comment = NULL;
 	free(data->x);
 	data->x = NULL;
 	free(data->y);
@@ -486,6 +488,8 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 		data->channel[i].filepath = NULL;
 		g_free(data->channel[i].source);
 		data->channel[i].source = NULL;
+		g_free(data->channel[i].comment);
+		data->channel[i].comment = NULL;
 		free(data->channel[i].x);
 		data->channel[i].x = NULL;
 		free(data->channel[i].y);

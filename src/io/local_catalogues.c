@@ -888,17 +888,17 @@ gpointer write_trixels(gpointer p) {
 }
 
 gpointer list_trixels(gpointer p) {
-	if (!has_wcs(&gfit))
+	if (!has_wcs(gfit))
 		return GINT_TO_POINTER(1);
 	int nb_trixels;
 	int *trixels;
 	double ra[4], dec[4];
-	double rx = (double)gfit.rx;
-	double ry = (double)gfit.ry;
-	pix2wcs(&gfit, 0., 0., ra, dec);
-	pix2wcs(&gfit, rx, 0., ra + 1, dec + 1);
-	pix2wcs(&gfit, rx, ry, ra + 2, dec + 2);
-	pix2wcs(&gfit, 0., ry, ra + 3, dec + 3);
+	double rx = (double)gfit->rx;
+	double ry = (double)gfit->ry;
+	pix2wcs(gfit, 0., 0., ra, dec);
+	pix2wcs(gfit, rx, 0., ra + 1, dec + 1);
+	pix2wcs(gfit, rx, ry, ra + 2, dec + 2);
+	pix2wcs(gfit, 0., ry, ra + 3, dec + 3);
 	int status = get_htm_indices_around_rectangle(ra, dec, 3, &trixels, &nb_trixels);
 	if (status) {
 		siril_log_color_message(_("Failed\n"), "red");

@@ -73,9 +73,15 @@ IM_RECENT = os.path.join(PATH, "images", "recent.png")
 IM_RECENT_24 = os.path.join(PATH, "images", "recent_24.png")
 
 # ---  translation
+
 try:
-    LANG = locale.getdefaultlocale()[0]
-except ValueError:
+    lang_tuple = locale.getlocale()
+    LANG = lang_tuple[0] if lang_tuple and lang_tuple[0] else 'en'
+
+    # Normalize to lowercase and handle cases like 'en_US'
+    if not (LANG[:2].lower() in ('en', 'fr')):
+        LANG = 'en'
+except Exception:
     LANG = 'en'
 
 EN = {}

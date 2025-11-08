@@ -113,8 +113,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	int x0, y0, rx_0 = rx, ry_0 = ry, n;
+	int x0, y0, rx_0 = rx, ry_0 = ry;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
+	double total_Mpix = 0;
+	int n = 0;
 
 	// corners expressed in opencv conventions
 	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
@@ -125,6 +127,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
+				n++;
 				siril_debug_print("Image #%d:\n", i + 1);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
@@ -143,6 +146,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					retval = FALSE;
 				}
 			}
+			total_Mpix = (double)n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		case FRAMING_MAX:
 			xmin = DBL_MAX;
@@ -155,14 +159,20 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
+				double img_xmin = DBL_MAX, img_xmax = -DBL_MAX, img_ymin = DBL_MAX, img_ymax = -DBL_MAX; 
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
 					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
 					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
 					if (ymax < current_framing.pt[j].y) ymax = current_framing.pt[j].y;
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					if (img_xmin > current_framing.pt[j].x) img_xmin = current_framing.pt[j].x;
+					if (img_ymin > current_framing.pt[j].y) img_ymin = current_framing.pt[j].y;
+					if (img_xmax < current_framing.pt[j].x) img_xmax = current_framing.pt[j].x;
+					if (img_ymax < current_framing.pt[j].y) img_ymax = current_framing.pt[j].y;
+					// siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 				}
+				total_Mpix += (double)(img_xmax - img_xmin + 1) * (img_ymax - img_ymin + 1) * 1.e-6;
 			}
 			rx_0 = (int)xmax - (int)xmin + 1;
 			ry_0 = (int)ymax - (int)ymin + 1;
@@ -172,6 +182,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
+			total_Mpix *= regargs->output_scale * regargs->output_scale;
 			break;
 		case FRAMING_MIN:
 			xmin = -DBL_MAX;
@@ -181,6 +192,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
+				n++;
 				siril_debug_print("Image #%d:\n", i + 1);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
@@ -210,6 +222,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
+			total_Mpix = (double)n * rx_0 * ry_0 * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		case FRAMING_COG:
 			cogx = 0.;
@@ -261,6 +274,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					retval = FALSE;
 				}
 			}
+			total_Mpix = (double)n * rx * ry * regargs->output_scale * regargs->output_scale * 1.e-6;
 			break;
 		default:
 			return FALSE;
@@ -269,7 +283,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	regargs->framingd.roi_out.w = (regargs->output_scale != 1.f) ? (int)(roundf((float)rx_0 * regargs->output_scale)) : rx_0;
 	regargs->framingd.roi_out.h = (regargs->output_scale != 1.f) ? (int)(roundf((float)ry_0 * regargs->output_scale)) : ry_0;
 	regargs->framingd.Hshift = Hshift;
-
+	regargs->framingd.total_Mpix = total_Mpix;
 	return retval;
 }
 

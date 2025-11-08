@@ -95,6 +95,7 @@ typedef struct {
 	Homography Htransf;
 	Homography Hshift;
 	framing_roi roi_out;
+	double total_Mpix; //total Mpix of the registered sequence
 } framing_data;
 
 /* arguments passed to registration functions */

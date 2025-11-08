@@ -655,7 +655,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
-				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
+				livestacking_update_number_of_images(1, gfit->keywords.exposure, -1.0, NULL);
 				free(seq.seqname);
 				continue;
 			}
@@ -798,13 +798,13 @@ static gpointer live_stacker(gpointer arg) {
 
 		if (!com.headless) {
 			/* Update display */
-			clearfits(&gfit);
-			memcpy(&gfit, &stackparam.result, sizeof(fits));
+			clearfits(gfit);
+			memcpy(gfit, &stackparam.result, sizeof(fits));
 			if (first_stacking_result) {
 				/* number of channels may have changed */
 				com.seq.current = RESULT_IMAGE;
-				com.uniq->nb_layers = gfit.naxes[2];
-				com.uniq->fit = &gfit;
+				com.uniq->nb_layers = gfit->naxes[2];
+				com.uniq->fit = gfit;
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
@@ -825,7 +825,7 @@ static gpointer live_stacker(gpointer arg) {
 		const char *total_time = format_time_diff(tv_start, tv_end);
 		siril_log_color_message(_("Time to process the last image for live stacking: %s\n"),
 				"green", total_time);
-		livestacking_update_number_of_images(number_of_images_stacked, gfit.keywords.livetime, noise, total_time);
+		livestacking_update_number_of_images(number_of_images_stacked, gfit->keywords.livetime, noise, total_time);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");

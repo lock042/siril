@@ -179,15 +179,15 @@ int execute_command(int wordnb) {
 	}
 
 	if ((commands[i].prerequires & REQ_CMD_FOR_CFA) == REQ_CMD_FOR_CFA) {
-		if (isrgb(&gfit)) {
+		if (isrgb(gfit)) {
 			return CMD_FOR_CFA_IMAGE;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_FOR_MONO) != 0) {
-		if (isrgb(&gfit)) {
+		if (isrgb(gfit)) {
 			return CMD_NOT_FOR_RGB;
 		}
 	} else if ((commands[i].prerequires & REQ_CMD_FOR_RGB) != 0) {
-		if (!isrgb(&gfit)) {
+		if (!isrgb(gfit)) {
 			return CMD_NOT_FOR_MONO;
 		}
 	}
@@ -208,7 +208,7 @@ int execute_command(int wordnb) {
 		if (!com.python_script) {
 			notify_gfit_modified();
 		} else {
-			invalidate_stats_from_fit(&gfit);
+			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
 			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
 		}
@@ -630,6 +630,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 					break;
 				}
 				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
+				remove_child_from_children((GPid) -2); // remove processing thread from list
 			}
 		}
 
