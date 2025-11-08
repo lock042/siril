@@ -149,15 +149,15 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 		gaussianBlurC(src, dst, rx, ry, sigma, threads);
 		free(src);
 		free(dst);
-		float *olddata = gfit.fdata;
-		gfit.fdata = result;
-		gfit.fpdata[RLAYER] = gfit.fdata;
-		if (gfit.naxis == 3) {
-			gfit.fpdata[GLAYER] = gfit.fdata + n;
-			gfit.fpdata[BLAYER] = gfit.fdata + n * 2;
+		float *olddata = gfit->fdata;
+		gfit->fdata = result;
+		gfit->fpdata[RLAYER] = gfit->fdata;
+		if (gfit->naxis == 3) {
+			gfit->fpdata[GLAYER] = gfit->fdata + n;
+			gfit->fpdata[BLAYER] = gfit->fdata + n * 2;
 		} else {
-			gfit.fpdata[GLAYER] = gfit.fdata;
-			gfit.fpdata[BLAYER] = gfit.fdata;
+			gfit->fpdata[GLAYER] = gfit->fdata;
+			gfit->fpdata[BLAYER] = gfit->fdata;
 		}
 		free(olddata);
 		return 0;
@@ -441,7 +441,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 
 	if (reqlayer >= 0)
 		layer = reqlayer;
-	else if (isrgb(&gfit))
+	else if (isrgb(gfit))
 		layer = GLAYER;		//GLAYER is better to evaluate background
 
 	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, threading);

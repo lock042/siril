@@ -390,12 +390,12 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 				_("To determine the PSF, please make a selection around a star."));
 		return;
 	}
-	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	struct phot_config *ps = phot_set_adjusted_for_image(gfit);
 	psf_error error = PSF_NO_ERR;
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+	result = psf_get_minimisation(gfit, layer, &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (result)
-		popup_psf_result(result, &com.selection, &gfit);
+		popup_psf_result(result, &com.selection, gfit);
 	free_psf(result);
 }
 
@@ -458,8 +458,8 @@ void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpoint
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
-		if (has_wcs(&gfit)) {
-			com.found_object = find_objects_in_field(&gfit);
+		if (has_wcs(gfit)) {
+			com.found_object = find_objects_in_field(gfit);
 		}
 	} else {
 		clear_user_polygons();
@@ -557,7 +557,7 @@ void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	if (g_variant_get_boolean(state)) {
-		draw_sensor_tilt(&gfit);
+		draw_sensor_tilt(gfit);
 
 	} else {
 		clear_sensor_tilt();
@@ -576,7 +576,7 @@ void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	if (!has_wcs(&gfit) || !gfit.keywords.wcslib->lin.dispre) {
+	if (!has_wcs(gfit) || !gfit->keywords.wcslib->lin.dispre) {
 		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
 		return;
 	}
@@ -604,7 +604,7 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check( &gfit))
+	if (value_check( gfit))
 		siril_open_dialog("satu_dialog");
 }
 
@@ -628,19 +628,19 @@ void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer 
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check(&gfit)) {
+	if (value_check(gfit)) {
 		CHECK_FOR_OPENED_DIALOG;
 		negative_processing();
 	}
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check(&gfit))
+	if (value_check(gfit))
 		toggle_histogram_window_visibility(1);
 }
 
 void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check(&gfit))
+	if (value_check(gfit))
 		toggle_curves_window_visibility();
 }
 
@@ -657,7 +657,7 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check(&gfit))
+	if (value_check(gfit))
 		siril_open_dialog("asinh_dialog");
 }
 
@@ -678,7 +678,7 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check(&gfit))
+	if (value_check(gfit))
 		toggle_histogram_window_visibility(2);
 }
 
@@ -692,7 +692,7 @@ void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (com.selection.w == 0 || com.selection.h == 0) {
-		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
+		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
 	}
 	siril_open_dialog("rotation_dialog");
 	redraw(REDRAW_OVERLAY);
@@ -710,12 +710,12 @@ void rotation270_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void mirrorx_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
-	mirrorx_gui(&gfit);
+	mirrorx_gui(gfit);
 }
 
 void mirrory_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
-	mirrory_gui(&gfit);
+	mirrory_gui(gfit);
 }
 
 void wavelets_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -800,7 +800,7 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa()) return;
-	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
+	undo_save_state(gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(fix_saturated_stars, NULL);
 }
@@ -809,28 +809,28 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa())
 		return;
-	undo_save_state(&gfit, "Synthetic stars: full replacement");
+	undo_save_state(gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
 }
 
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (DFT)"));
+	undo_save_state(gfit, _("RGB alignment (DFT)"));
 	rgb_align(1);
 }
 
 void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (Global stars)"));
+	undo_save_state(gfit, _("RGB alignment (Global stars)"));
 	rgb_align(2);
 }
 
 void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (KOMBAT)"));
+	undo_save_state(gfit, _("RGB alignment (KOMBAT)"));
 	rgb_align(3);
 }
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (PSF)"));
+	undo_save_state(gfit, _("RGB alignment (PSF)"));
 	if (com.selection.w > 300 || com.selection.h > 300) {
 		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 		return;

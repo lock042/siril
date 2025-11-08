@@ -15,7 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ * along with Siril. If not, see <http://www.gnu.org/licenses/ >.
  */
 
 #include <criterion/criterion.h>
@@ -26,7 +26,25 @@
 
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit;	// currently loaded image (now a pointer)
+
+// Setup function to allocate global gfit as in the main program
+static void setup(void) {
+	gfit = calloc(1, sizeof(fits));
+	cr_assert(gfit != NULL, "Failed to allocate global gfit");
+}
+
+// Teardown function to free global gfit after tests
+static void teardown(void) {
+	if (gfit) {
+		clearfits(gfit);
+		free(gfit);
+		gfit = NULL;
+	}
+}
+
+// Define test suite with setup/teardown
+TestSuite(arithmetics, .init = setup, .fini = teardown);
 
 static void set_ushort_data(fits *fit, WORD *data, int length) {
 	memcpy(fit->data, data, length * sizeof(WORD));
@@ -209,4 +227,3 @@ void test_float() {
 Test(arithmetics, ushort_test) { test_ushort(); }
 Test(arithmetics, ushort_test_force) { test_ushort_force_float(); }
 Test(arithmetics, float_test) { test_float(); }
-

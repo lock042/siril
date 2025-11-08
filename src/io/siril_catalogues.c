@@ -1114,14 +1114,14 @@ int check_conesearch_args(conesearch_args *args) {
 }
 
 int execute_conesearch(conesearch_params *params) {
-	if (!has_wcs(&gfit)) {
+	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		free_conesearch_params(params);
 		return CMD_FOR_PLATE_SOLVED;
 	}
 
 	// Preparing the catalogue query
-	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, params->cat, params->limit_mag);
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(gfit, params->cat, params->limit_mag);
 	siril_cat->phot = params->photometric;
 	if (params->cat == CAT_IMCCE) {
 		if (params->obscode) {
@@ -1142,7 +1142,7 @@ int execute_conesearch(conesearch_params *params) {
 
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 	conesearch_args *args = init_conesearch_args();
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->siril_cat = siril_cat;
 	args->has_GUI = !com.script;
 	args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
@@ -1163,7 +1163,7 @@ int execute_conesearch(conesearch_params *params) {
 }
 
 int execute_show_command(show_params *params) {
-	if (!has_wcs(&gfit)) {
+	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
@@ -1177,7 +1177,7 @@ int execute_show_command(show_params *params) {
 	conesearch_args *args = init_conesearch_args();
 	args->siril_cat = siril_cat;
 	args->has_GUI = TRUE;
-	args->fit = &gfit;
+	args->fit = gfit;
 
 	if (params->file) {
 		int check = siril_catalog_load_from_file(siril_cat, params->file);

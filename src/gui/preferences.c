@@ -1038,7 +1038,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		refresh_icc_transforms();
 		if (single_image_is_loaded() || sequence_is_loaded()) {
-			color_manage(&gfit, gfit.color_managed);
+			color_manage(gfit, gfit->color_managed);
 			notify_gfit_modified();
 		}
 		siril_close_dialog("settings_window");

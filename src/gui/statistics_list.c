@@ -125,7 +125,7 @@ static void init_dialog() {
 	}
 
 	gtk_list_store_clear(list_store);
-	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0');
+	gtk_widget_set_sensitive(cfacheck, gfit->rx > 0 && gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0');
 }
 
 static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
@@ -208,9 +208,9 @@ void computeStat() {
 
 	init_dialog();
 
-	int nb_channels = (int)gfit.naxes[2];
+	int nb_channels = (int)gfit->naxes[2];
 	if (use_cfa) {
-		if (nb_channels == 1 && gfit.keywords.bayer_pattern[0] != '\0')
+		if (nb_channels == 1 && gfit->keywords.bayer_pattern[0] != '\0')
 			if ((com.selection.h || com.selection.w) && (com.selection.w < 2 || com.selection.h < 2))
 				use_cfa = FALSE;
 			else
@@ -224,12 +224,12 @@ void computeStat() {
 		int super_chan = channel;
 		if (use_cfa)
 			super_chan = -channel - 1;
-		stat[channel] = statistics(NULL, -1, &gfit, super_chan, &com.selection, STATS_MAIN, MULTI_THREADED);
+		stat[channel] = statistics(NULL, -1, gfit, super_chan, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat[channel]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 		}
 	}
-	add_chan_stats_to_list(stat, nb_channels, gfit.type, normalized);
+	add_chan_stats_to_list(stat, nb_channels, gfit->type, normalized);
 
 	for (channel = 0; channel < nb_channels; channel++) {
 		free_stats(stat[channel]);

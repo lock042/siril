@@ -57,7 +57,7 @@ static void rotate_gui(fits *fit) {
 				lookup_widget("checkbutton_rotation_crop"));
 	}
 	cropped = gtk_toggle_button_get_active(crop_rotation);
-	if ((!cropped) & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
+	if ((!cropped) & (com.selection.w < gfit->rx || com.selection.h < gfit->ry)) {
 		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
 		if (cropped)
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
@@ -83,8 +83,8 @@ static void rotate_gui(fits *fit) {
 }
 void siril_rotate90() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Rotation (90 deg)"));
-	verbose_rotate_fast(&gfit, 90); // fast rotation, no interpolation, no crop
+	undo_save_state(gfit, _("Rotation (90 deg)"));
+	verbose_rotate_fast(gfit, 90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
@@ -93,8 +93,8 @@ void siril_rotate90() {
 
 void siril_rotate270() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Rotation (-90 deg)"));
-	verbose_rotate_fast(&gfit, -90); // fast rotation, no interpolation, no crop
+	undo_save_state(gfit, _("Rotation (-90 deg)"));
+	verbose_rotate_fast(gfit, -90); // fast rotation, no interpolation, no crop
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
@@ -113,7 +113,7 @@ gboolean rotation_hide_on_delete(GtkWidget *widget) {
 }
 
 void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
-	rotate_gui(&gfit);
+	rotate_gui(gfit);
 }
 
 void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -125,7 +125,7 @@ void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (!gtk_toggle_button_get_active(button)) {
-		rectangle area = {0, 0, gfit.rx, gfit.ry};
+		rectangle area = {0, 0, gfit->rx, gfit->ry};
 		memcpy(&com.selection, &area, sizeof(rectangle));
 		gui_function(new_selection_zone, NULL);
 	}
@@ -142,19 +142,19 @@ void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer us
  */
 
 void on_menuitem_mirrorx_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	mirrorx_gui(&gfit);
+	mirrorx_gui(gfit);
 }
 
 void on_mirrorx_button_clicked(GtkToolButton *button, gpointer user_data) {
-	mirrorx_gui(&gfit);
+	mirrorx_gui(gfit);
 }
 
 void on_menuitem_mirrory_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	mirrory_gui(&gfit);
+	mirrory_gui(gfit);
 }
 
 void on_mirrory_button_clicked(GtkToolButton *button, gpointer user_data) {
-	mirrory_gui(&gfit);
+	mirrory_gui(gfit);
 }
 
 void mirrorx_gui(fits *fit) {
@@ -182,7 +182,7 @@ void mirrory_gui(fits *fit) {
 void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (confirm_delete_wcs_keywords(&gfit)) {
+	if (confirm_delete_wcs_keywords(gfit)) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -190,8 +190,8 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 		int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
 
 		set_cursor_waiting(TRUE);
-		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
-		fits_binning(&gfit, factor, mean);
+		undo_save_state(gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
+		fits_binning(gfit, factor, mean);
 
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
@@ -213,7 +213,7 @@ gboolean binxy_hide_on_delete(GtkWidget *widget) {
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (confirm_delete_wcs_keywords(&gfit)) {
+	if (confirm_delete_wcs_keywords(gfit)) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -224,10 +224,10 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
 
 		set_cursor_waiting(TRUE);
-		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
-		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
-		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
-		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
+		int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
+		int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
+		undo_save_state(gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
+		verbose_resize_gaussian(gfit, toX, toY, interpolation, clamp);
 
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
 		notify_gfit_modified();
@@ -281,8 +281,8 @@ static void restart_resample_signal_handlers() {
 void on_resample_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	initialize_resample_widgets_if_needed();
 	pause_resample_signal_handlers();
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), gfit.rx);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), gfit.ry);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), gfit->rx);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), gfit->ry);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), 100.0);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), 100.0);
 	restart_resample_signal_handlers();
@@ -292,12 +292,12 @@ void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer 
 	pause_resample_signal_handlers();
 	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit.rx * xvalue / 100.0));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
 
 	if (gtk_toggle_button_get_active(ratio)) {
 		double yvalue = xvalue;
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), yvalue);
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit.ry * yvalue / 100.0));
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
 	}
 	restart_resample_signal_handlers();
 }
@@ -306,12 +306,12 @@ void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer 
 	pause_resample_signal_handlers();
 	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double yvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y));
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit.ry * yvalue / 100.0));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), round_to_int(gfit->ry * yvalue / 100.0));
 
 	if (gtk_toggle_button_get_active(ratio)) {
 		double xvalue = yvalue;
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), xvalue);
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit.rx * xvalue / 100.0));
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), round_to_int(gfit->rx * xvalue / 100.0));
 	}
 	restart_resample_signal_handlers();
 }
@@ -320,11 +320,11 @@ void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpoint
 	pause_resample_signal_handlers();
 	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double xpix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px));
-	double ratio = xpix / gfit.rx;
+	double ratio = xpix / gfit->rx;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
 
 	if (gtk_toggle_button_get_active(ratio_button)) {
-		double ypix = round_to_int(gfit.ry * ratio);
+		double ypix = round_to_int(gfit->ry * ratio);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px), ypix);
 	}
@@ -335,11 +335,11 @@ void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpoint
 	pause_resample_signal_handlers();
 	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(button_sample_ratio);
 	double ypix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y_px));
-	double ratio = ypix / gfit.ry;
+	double ratio = ypix / gfit->ry;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_Y), ratio * 100.0);
 
 	if (gtk_toggle_button_get_active(ratio_button)) {
-		double xpix = round_to_int(gfit.rx * ratio);
+		double xpix = round_to_int(gfit->rx * ratio);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X), ratio * 100.0);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_resample_X_px), xpix);
 	}
@@ -363,7 +363,7 @@ void on_combo_interpolation_changed(GtkComboBox *combo_box, gpointer user_data) 
  * CROP
  */
 void siril_crop() {
-	undo_save_state(&gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+	undo_save_state(gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
 			com.selection.x, com.selection.y, com.selection.w,
 			com.selection.h);
 	if (is_preview_active()) {
@@ -375,12 +375,12 @@ void siril_crop() {
 		return;
 	}
 	clear_stars_list(TRUE);
-	crop(&gfit, &com.selection);
+	crop(gfit, &com.selection);
 
 	char log[90];
 	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"), com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	delete_selected_area();
 	reset_display_offset();

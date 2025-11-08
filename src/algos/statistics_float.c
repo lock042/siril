@@ -772,8 +772,8 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 		y1 = area->y + area->h;
 	} else {
 		x0 = y0 = 0;
-		x1 = gfit.rx;
-		y1 = gfit.ry;
+		x1 = gfit->rx;
+		y1 = gfit->ry;
 	}
 	size_t npixels = (x1 - x0) * (y1 - y0);
 	float *data = fit->fpdata[chan];
