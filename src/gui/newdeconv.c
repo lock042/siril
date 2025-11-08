@@ -553,7 +553,7 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 void deconv_roi_callback() {
 	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(GTK_WIDGET(bdeconv_roi_preview), gui.roi.active);
-	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	the_fit = gui.roi.active ? &gui.roi.fit : gfit;
 	copy_backup_to_gfit();
 	notify_gfit_modified();
 }
@@ -571,7 +571,7 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	bdeconv_dialog_init_statics();
-	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	the_fit = gui.roi.active ? &gui.roi.fit : gfit;
 	roi_supported(TRUE);
 	deconv_roi_callback();
 	add_roi_callback(deconv_roi_callback);
@@ -754,7 +754,7 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		copy_backup_to_gfit();
 		args.previewing = TRUE;
-		the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
+		the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
 }
@@ -781,7 +781,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
 		copy_backup_to_gfit();
-		the_fit = &gfit;
+		the_fit = gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
 }
@@ -792,7 +792,7 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gtk_file_chooser_unselect_all(bdeconv_filechooser);
 	if(!sequence_is_loaded())
-		the_fit = &gfit; // The blind estimate is still always done on the whole image.
+		the_fit = gfit; // The blind estimate is still always done on the whole image.
 		// TODO: consider if this should be done on the ROI if active...
 	if(!com.headless)
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions

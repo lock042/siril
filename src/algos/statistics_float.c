@@ -320,6 +320,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
 				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					free(data);
 					return NULL;
 				}
 				nx = newsz;
@@ -771,8 +772,8 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 		y1 = area->y + area->h;
 	} else {
 		x0 = y0 = 0;
-		x1 = gfit.rx;
-		y1 = gfit.ry;
+		x1 = gfit->rx;
+		y1 = gfit->ry;
 	}
 	size_t npixels = (x1 - x0) * (y1 - y0);
 	float *data = fit->fpdata[chan];

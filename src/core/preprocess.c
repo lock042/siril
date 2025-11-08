@@ -319,7 +319,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 			prepro->history = g_slist_prepend(prepro->history, g_strdup("Calibrated with a master dark"));
 		if (prepro->use_bias) {
 			if (prepro->bias_level < FLT_MAX) {
-				int bitpix = prepro->seq ? prepro->seq->bitpix : gfit.orig_bitpix;
+				int bitpix = prepro->seq ? prepro->seq->bitpix : gfit->orig_bitpix;
 				prepro->history = g_slist_prepend(prepro->history, g_strdup_printf("Calibrated with a synthetic bias of %d", roundf_to_int(prepro->bias_level * ((bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE))));
 			} else {
 				prepro->history = g_slist_prepend(prepro->history, g_strdup("Calibrated with a master bias"));
@@ -361,7 +361,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 					prepro->normalisation *= (prepro->seq->bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
 				} else { // single-image case
 					printf("normalizing for single image\n");
-					prepro->normalisation *= (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
+					prepro->normalisation *= (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE; // imoper deals with bitdepth through norm value
 				}
 			}
 
@@ -554,13 +554,15 @@ int calibrate_single_image(struct preprocessing_data *args) {
 			memcpy(com.uniq->fit, &fit, sizeof(fits));
 			com.uniq->nb_layers = fit.naxes[2];
 			com.uniq->filename = strdup(dest_filename);
-			// this way of opening it will not create gfit.header
+			// this way of opening it will not create gfit->header
 		}
 		else clearfits(&fit);
 
 		free(filename_noext);
 		g_free(dest_filename);
 		g_free(msg);
+	} else {
+		clearfits(&fit);
 	}
 
 	return ret;
@@ -686,7 +688,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			has_error = TRUE;
 		}
 	} else {
-		reffit = gfit;
+		reffit = *gfit;
 	}
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
@@ -700,19 +702,19 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			const char *error = NULL;
 			if (filename[0] == '=') { // offset is specified as a level not a file
 				set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
-				int offsetlevel = evaluateoffsetlevel(filename + 1, &gfit);
+				int offsetlevel = evaluateoffsetlevel(filename + 1, gfit);
 				if (!offsetlevel) {
 					error = _("NOT USING OFFSET: the offset value could not be parsed");
 					args->use_bias = FALSE;
 				} else {
 					siril_log_message(_("Synthetic offset: Level = %d\n"),offsetlevel);
-					int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+					int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 					if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
 						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
 						args->use_bias = FALSE;
 					} else {
 						args->bias_level = (float)offsetlevel;
-						args->bias_level *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+						args->bias_level *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
 						args->use_bias = TRUE;
 					}
 				}
@@ -726,15 +728,15 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					args->bias = calloc(1, sizeof(fits));
 					set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
 					if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
-						if (args->bias->naxes[2] != gfit.naxes[2]) {
+						if (args->bias->naxes[2] != gfit->naxes[2]) {
 							error = _("NOT USING OFFSET: number of channels is different");
-						} else if (args->bias->naxes[0] != gfit.naxes[0] ||
-								args->bias->naxes[1] != gfit.naxes[1]) {
+						} else if (args->bias->naxes[0] != gfit->naxes[0] ||
+								args->bias->naxes[1] != gfit->naxes[1]) {
 							error = _("NOT USING OFFSET: image dimensions are different");
 						} else {
 							args->use_bias = TRUE;
 							// if input is 8b, we assume 32b master needs to be rescaled
-							if ((args->bias->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+							if ((args->bias->type == DATA_FLOAT) && (gfit->orig_bitpix == BYTE_IMG)) {
 								soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 							}
 						}
@@ -772,15 +774,15 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
 				args->dark = calloc(1, sizeof(fits));
 				if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
-					if (args->dark->naxes[2] != gfit.naxes[2]) {
+					if (args->dark->naxes[2] != gfit->naxes[2]) {
 						error = _("NOT USING DARK: number of channels is different");
-					} else if (args->dark->naxes[0] != gfit.naxes[0] ||
-							args->dark->naxes[1] != gfit.naxes[1]) {
+					} else if (args->dark->naxes[0] != gfit->naxes[0] ||
+							args->dark->naxes[1] != gfit->naxes[1]) {
 						error = _("NOT USING DARK: image dimensions are different");
 					} else {
 						args->use_dark = TRUE;
 						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->dark->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+						if ((args->dark->type == DATA_FLOAT) && (gfit->orig_bitpix == BYTE_IMG)) {
 							soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
 						}
 					}
@@ -806,7 +808,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			args->use_dark_optim = optim != 0;
 			args->use_exposure = optim == 2;
 			const char *error = NULL;
-			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
+			if ((gfit->orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
 			}
 			if (error) {
@@ -882,10 +884,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
-					if (args->flat->naxes[2] != gfit.naxes[2]) {
+					if (args->flat->naxes[2] != gfit->naxes[2]) {
 						error = _("NOT USING FLAT: number of channels is different");
-					} else if (args->flat->naxes[0] != gfit.naxes[0] ||
-							args->flat->naxes[1] != gfit.naxes[1]) {
+					} else if (args->flat->naxes[0] != gfit->naxes[0] ||
+							args->flat->naxes[1] != gfit->naxes[1]) {
 						error = _("NOT USING FLAT: image dimensions are different");
 					} else {
 						args->use_flat = TRUE;
@@ -1010,7 +1012,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 		}
 		isseq = TRUE;
 	} else {
-		reffit = gfit;
+		reffit = *gfit;
 	}
 
 	set_cursor_waiting(TRUE);

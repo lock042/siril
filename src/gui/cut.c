@@ -43,12 +43,12 @@
 gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
-	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = (gfit.naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX);
+	gtk_widget_set_sensitive(colorbutton, (gfit->naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean cfa_disabled = (gfit->naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX);
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
-	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
+	gtk_toggle_button_set_active(as, gfit->keywords.wcsdata.pltsolvd);
 	return FALSE;
 }
 
@@ -92,7 +92,7 @@ static gboolean reset_cut_gui(gpointer user_data) {
 }
 
 void initialize_cut_struct(cut_struct *arg) {
-	arg->fit = &gfit;
+	arg->fit = gfit;
 	arg->seq = NULL;
 	arg->imgnumber = -1;
 	arg->cut_start.x = -1;
@@ -123,15 +123,18 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
-	arg->pref_as = gfit.keywords.wcsdata.pltsolvd;
+	arg->pref_as = gfit->keywords.wcsdata.pltsolvd;
 	arg->vport = -1;
 	gui_function(reset_cut_gui, NULL);
 }
 
 void free_cut_args(cut_struct *arg) {
-	if (arg->filename) {
-		g_free(arg->filename);
-	}
+	g_free(arg->filename);
+	arg->filename = NULL;
+	g_free(arg->title);
+	arg->title = NULL;
+	g_free(arg->user_title);
+	arg->user_title = NULL;
 	if (arg != &gui.cut)
 		free(arg);
 	return;
@@ -208,8 +211,8 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	}
 
 	// Check args are cromulent
-	int rx = (arg->seq) ? arg->seq->rx : gfit.rx;
-	int ry = (arg->seq) ? arg->seq->ry : gfit.ry;
+	int rx = (arg->seq) ? arg->seq->rx : gfit->rx;
+	int ry = (arg->seq) ? arg->seq->ry : gfit->ry;
 
 	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
 		siril_log_message(_("Error: wavenumber points are the same.\n"));
@@ -1011,7 +1014,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 					_("The Apply to sequence option is checked, but no sequence is loaded."));
 
 	} else {
-		gui.cut.fit = &gfit;
+		gui.cut.fit = gfit;
 		gui.cut.seq = NULL;
 		gui.cut.display_graph = TRUE;
 		// We have to pass a dynamically allocated copy of gui.cut
@@ -1111,9 +1114,9 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkToggleButton* plot_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
-	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+	gtk_widget_set_sensitive(colorbutton, (gfit->naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean cfa_disabled = ((gfit->naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	if (gtk_toggle_button_get_active(seqbutton))
 		gtk_toggle_button_set_active(pngbutton, TRUE);
@@ -1173,7 +1176,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_start.y = sy;
 	gui.cut.cut_end.x = fx;
 	gui.cut.cut_end.y = fy;
-	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+	measure_line(gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
 }
@@ -1235,7 +1238,7 @@ void on_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
 				gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
 			}
 			redraw(REDRAW_OVERLAY);
-			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+			measure_line(gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
@@ -1411,7 +1414,7 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->user = cut_args;
 
 	if (!start_in_new_thread(generic_sequence_worker, args)) {
-		free(args->user);
+		free_cut_args((cut_struct*) args->user);
 		free_generic_seq_args(args, TRUE);
 	}
 }

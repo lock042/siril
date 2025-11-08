@@ -338,6 +338,8 @@ shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rect
 			siril_log_message("Error in send_response\n");
 		return NULL;
 	}
+	if (region.h > 0 && region.w > 0)
+		region.y = fit->ry - region.y - region.h; // Flip vertically 
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
@@ -539,7 +541,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
-	if (!conn->thread_claimed) {
+	if (fit == gfit && !conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
@@ -705,7 +707,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
 	fit->naxes[2] = info->channels;
-	if (fit == &gfit) {
+	if (fit == gfit) {
 		if (!com.headless) {
 			if (g_main_context_is_owner(g_main_context_default())) {
 				// it is safe to call the function directly
@@ -729,6 +731,254 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// In all cases we have now finished with the shm and closed and unlinked it.
 	// On receipt of the response, python will also close and unlink the shm in its
 	// finally: block.
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_save_image_file_request(Connection *conn, const char* payload, size_t payload_length) {
+	if (payload_length != sizeof(save_image_info_t)) {
+		const char* error_msg = _("Invalid save image info size");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+		return FALSE;
+	}
+
+	save_image_info_t* info = (save_image_info_t*)payload;
+
+	// Convert from network byte order
+	info->width = GUINT32_FROM_BE(info->width);
+	info->height = GUINT32_FROM_BE(info->height);
+	info->channels = GUINT32_FROM_BE(info->channels);
+	info->data_type = GUINT32_FROM_BE(info->data_type);
+	info->image_size = GUINT64_FROM_BE(info->image_size);
+	info->header_size = GUINT64_FROM_BE(info->header_size);
+
+	// Validate image dimensions and format
+	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
+		info->channels > 3 || info->image_size == 0) {
+		gchar size_str[32];
+		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->image_size);
+		gchar *error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %s"),
+										info->width, info->height, info->channels, size_str);
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+		g_free(error_msg);
+		return FALSE;
+	}
+
+	// Validate size
+	size_t ncpixels = info->width * info->height * info->channels;
+	size_t expected_size = ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float));
+
+	if (info->image_size != expected_size) {
+		const char* error_msg = _("Error: image pixelbuffer does not match expected size");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+		return FALSE;
+	}
+
+	if (expected_size > get_available_memory() / 2) {
+		const char* error_msg = _("Error: image dimensions exceed available memory");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+		return FALSE;
+	}
+
+	// Open shared memory for image data
+	void* shm_data_ptr = NULL;
+	#ifdef _WIN32
+		win_shm_handle_t win_data_handle = {NULL, NULL};
+		HANDLE data_mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->image_shm_name);
+		if (data_mapping == NULL) {
+			const char* error_msg = "Failed to open shared memory mapping for image data";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		shm_data_ptr = MapViewOfFile(data_mapping, FILE_MAP_READ, 0, 0, info->image_size);
+		if (shm_data_ptr == NULL) {
+			CloseHandle(data_mapping);
+			const char* error_msg = "Failed to map shared memory view for image data";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		win_data_handle.mapping = data_mapping;
+		win_data_handle.ptr = shm_data_ptr;
+	#else
+		int data_fd = shm_open(info->image_shm_name, O_RDONLY, 0);
+		if (data_fd == -1) {
+			const char* error_msg = _("Failed to open shared memory for image data");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		shm_data_ptr = mmap(NULL, info->image_size, PROT_READ, MAP_SHARED, data_fd, 0);
+		if (shm_data_ptr == MAP_FAILED) {
+			close(data_fd);
+			const char* error_msg = _("Failed to map shared memory for image data");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+	#endif
+
+	// Open shared memory for header
+	void* shm_header_ptr = NULL;
+	#ifdef _WIN32
+		win_shm_handle_t win_header_handle = {NULL, NULL};
+		HANDLE header_mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->header_shm_name);
+		if (header_mapping == NULL) {
+			#ifdef _WIN32
+				UnmapViewOfFile(shm_data_ptr);
+				CloseHandle(win_data_handle.mapping);
+			#else
+				munmap(shm_data_ptr, info->image_size);
+				close(data_fd);
+			#endif
+			const char* error_msg = "Failed to open shared memory mapping for header";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		shm_header_ptr = MapViewOfFile(header_mapping, FILE_MAP_READ, 0, 0, info->header_size);
+		if (shm_header_ptr == NULL) {
+			CloseHandle(header_mapping);
+			#ifdef _WIN32
+				UnmapViewOfFile(shm_data_ptr);
+				CloseHandle(win_data_handle.mapping);
+			#else
+				munmap(shm_data_ptr, info->image_size);
+				close(data_fd);
+			#endif
+			const char* error_msg = "Failed to map shared memory view for header";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		win_header_handle.mapping = header_mapping;
+		win_header_handle.ptr = shm_header_ptr;
+	#else
+		int header_fd = shm_open(info->header_shm_name, O_RDONLY, 0);
+		if (header_fd == -1) {
+			munmap(shm_data_ptr, info->image_size);
+			close(data_fd);
+			const char* error_msg = _("Failed to open shared memory for header");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+		shm_header_ptr = mmap(NULL, info->header_size, PROT_READ, MAP_SHARED, header_fd, 0);
+		if (shm_header_ptr == MAP_FAILED) {
+			close(header_fd);
+			munmap(shm_data_ptr, info->image_size);
+			close(data_fd);
+			const char* error_msg = _("Failed to map shared memory for header");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+			return FALSE;
+		}
+	#endif
+
+	// Allocate stack-based fits structure
+	fits fit = { 0 };
+	gboolean alloc_err = FALSE;
+
+	// Allocate image buffer
+	if (info->data_type == 0) { // WORD data
+		fit.pdata[2] = fit.pdata[1] = fit.pdata[0] = fit.data = calloc(ncpixels, sizeof(WORD));
+		if (!fit.data) {
+			alloc_err = TRUE;
+		} else {
+			for (int i = 0; i < info->channels; i++) {
+				fit.pdata[i] = fit.data + i * info->width * info->height;
+			}
+		}
+	} else { // FLOAT data
+		fit.fpdata[2] = fit.fpdata[1] = fit.fpdata[0] = fit.fdata = calloc(ncpixels, sizeof(float));
+		if (!fit.fdata) {
+			alloc_err = TRUE;
+		} else {
+			for (int i = 0; i < info->channels; i++) {
+				fit.fpdata[i] = fit.fdata + i * info->width * info->height;
+			}
+		}
+	}
+
+	if (alloc_err) {
+		#ifdef _WIN32
+			UnmapViewOfFile(shm_header_ptr);
+			CloseHandle(win_header_handle.mapping);
+			UnmapViewOfFile(shm_data_ptr);
+			CloseHandle(win_data_handle.mapping);
+		#else
+			munmap(shm_header_ptr, info->header_size);
+			close(header_fd);
+			munmap(shm_data_ptr, info->image_size);
+			close(data_fd);
+		#endif
+		const char* error_msg = _("Failed to allocate image buffer");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response\n");
+		clearfits(&fit);
+		return FALSE;
+	}
+
+	// Copy data from shared memory to fit
+	if (info->data_type == 0) {  // WORD data
+		memcpy(fit.data, (char*)shm_data_ptr, info->image_size);
+	} else {  // float data
+		memcpy(fit.fdata, (char*)shm_data_ptr, info->image_size);
+	}
+
+	// Parse and apply header
+	char *header = (char*)shm_header_ptr;
+	if (fits_parse_header_str(&fit, header)) {
+		clearfits(&fit);
+		// Cleanup shared memory
+#ifdef _WIN32
+		UnmapViewOfFile(shm_header_ptr);
+		CloseHandle(win_header_handle.mapping);
+		UnmapViewOfFile(shm_data_ptr);
+		CloseHandle(win_data_handle.mapping);
+#else
+		munmap(shm_header_ptr, info->header_size);
+		close(header_fd);
+		munmap(shm_data_ptr, info->image_size);
+		close(data_fd);
+#endif
+		siril_debug_print("Error parsing FITS header in save_image_to_file()\n");
+		return FALSE;
+	}
+
+	// Set fit metadata
+	fit.type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	fit.rx = fit.naxes[0] = info->width;
+	fit.ry = fit.naxes[1] = info->height;
+	fit.naxis = (info->channels == 3) ? 3 : 2;
+	fit.naxes[2] = info->channels;
+	fit.bitpix = fit.type == DATA_FLOAT ? FLOAT_IMG : USHORT_IMG;
+
+
+	// Save the fit structure to disk using info->filename
+	savefits(info->filename, &fit);
+	siril_debug_print("Saving image to file: %s\n", info->filename);
+
+	// Cleanup shared memory
+#ifdef _WIN32
+	UnmapViewOfFile(shm_header_ptr);
+	CloseHandle(win_header_handle.mapping);
+	UnmapViewOfFile(shm_data_ptr);
+	CloseHandle(win_data_handle.mapping);
+#else
+	munmap(shm_header_ptr, info->header_size);
+	close(header_fd);
+	munmap(shm_data_ptr, info->image_size);
+	close(data_fd);
+#endif
+
+	// Cleanup fit structure
+	clearfits(&fit);
+
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -892,7 +1142,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 			memcpy(p, &samples[i].position, sizeof(point));
 			pts = g_slist_append(pts, p);
 		}
-		com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
+		com.grad_samples = add_background_samples(com.grad_samples, gfit, pts);
 	}
 	// Otherwise, create copies of each individual sample and add them directly
 	// to com.grad_samples
@@ -965,11 +1215,17 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 
 	// Unpack the FITS header string
 	char *header = (char*) shm_ptr;
-	fits_parse_header_str(&gfit, header);
-	update_fits_header(&gfit);
+	if (fits_parse_header_str(gfit, header)) {
+		const char* error_msg = _("Error: could not parse FITS header string");
+		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_debug_print("Error in send_response()\n");
+		goto cleanup;
+	}
+	update_fits_header(gfit);
 
 	gui_function(update_MenuItem, NULL);
 
+cleanup:
 	// Cleanup shared memory
 	#ifdef _WIN32
 	UnmapViewOfFile(shm_ptr);
@@ -1019,10 +1275,10 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 	}
 
 	// convert the bytes into a cmsPROFILE
-	if (gfit.icc_profile)
-		cmsCloseProfile(gfit.icc_profile);
-	gfit.icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
-	color_manage(&gfit, TRUE);
+	if (gfit->icc_profile)
+		cmsCloseProfile(gfit->icc_profile);
+	gfit->icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
+	color_manage(gfit, TRUE);
 
 	// Cleanup shared memory
 	#ifdef _WIN32
@@ -2239,8 +2495,9 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		gui_function(script_widgets_idle, NULL);
 
 		// Free the cleanup structure
-		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename))
+		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
 			siril_debug_print("g_unlink() failed in python_process_cleanup()\n");
+		}
 		g_free(cleanup->temp_filename);
 		g_free(cleanup);
 	}
@@ -2444,15 +2701,14 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			// Set the flag that a python script is running
 			com.python_script = TRUE;
 			siril_debug_print("***** com.python_script flag set\n");
-			// Prepend this process to the list of child processes com.children
-			child_info *child = g_malloc(sizeof(child_info));
-			child->childpid = child_pid;
-			child->program = EXT_PYTHON;
+			// Prepend this process to the list of child processes
 			gchar *script_basename = g_path_get_basename(script_name);
-			child->name = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			gchar *childname = g_strdup_printf("%s %s", PYTHON_EXE, from_file ? script_basename : "script");
+			if (!add_child(child_pid, EXT_PYTHON, childname)) {
+				siril_log_color_message(_("Warning: failed to add %s to child process list\n"), "salmon", childname);
+			}
 			g_free(script_basename);
-			child->datetime = g_date_time_new_now_local();
-			com.children = g_slist_prepend(com.children, child);
+			g_free(childname);
 		}
 	}
 
@@ -2478,7 +2734,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 	}
 
 	// Create cleanup info structure for either synchronous or async operation
-	python_cleanup_info *cleanup = g_malloc(sizeof(python_cleanup_info));
+	python_cleanup_info *cleanup = g_malloc0(sizeof(python_cleanup_info));
 	cleanup->temp_filename = is_temp_file ? g_strdup(script_name) : NULL;
 	cleanup->child_pid = child_pid;
 	cleanup->is_temp_file = is_temp_file;

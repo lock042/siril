@@ -25,7 +25,7 @@
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit;	// currently loaded image
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {

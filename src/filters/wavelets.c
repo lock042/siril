@@ -64,13 +64,13 @@ static int update_wavelets() {
 
 	set_cursor_waiting(TRUE);
 
-	for (int i = 0; i < gfit.naxes[2]; i++) {
+	for (int i = 0; i < gfit->naxes[2]; i++) {
 		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-		if (gfit.type == DATA_USHORT) {
-			wavelet_reconstruct_file(dir[i], wavelet_value, gfit.pdata[i]);
+		if (gfit->type == DATA_USHORT) {
+			wavelet_reconstruct_file(dir[i], wavelet_value, gfit->pdata[i]);
 		} else {
 			wavelet_reconstruct_file_float(dir[i], wavelet_value,
-					gfit.fpdata[i]);
+					gfit->fpdata[i]);
 		}
 		g_free(dir[i]);
 	}
@@ -236,7 +236,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	int Type_Transform, Nbr_Plan, maxplan, mins, i;
-	int nb_chan = gfit.naxes[2];
+	int nb_chan = gfit->naxes[2];
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" }, *dir[3];
 	const char *tmpdir;
@@ -248,7 +248,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	Type_Transform = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(lookup_widget("combobox_type_w"))) + 1;
 
-	mins = min(gfit.rx, gfit.ry);
+	mins = min(gfit->rx, gfit->ry);
 	maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
@@ -269,8 +269,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 
-	if (gfit.type == DATA_USHORT) {
-		size_t n = gfit.naxes[0] * gfit.naxes[1] * sizeof(float);
+	if (gfit->type == DATA_USHORT) {
+		size_t n = gfit->naxes[0] * gfit->naxes[1] * sizeof(float);
 		float *Imag = malloc(n);
 		if (Imag) {
 			for (i = 0; i < nb_chan; i++) {
@@ -278,8 +278,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 				strcpy(dir[i], tmpdir);
 				strcat(dir[i], G_DIR_SEPARATOR_S);
 				strcat(dir[i], File_Name_Transform[i]);
-				wavelet_transform_file(Imag, gfit.ry, gfit.rx, dir[i],
-						Type_Transform, Nbr_Plan, gfit.pdata[i]);
+				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir[i],
+						Type_Transform, Nbr_Plan, gfit->pdata[i]);
 				free(dir[i]);
 			}
 			free(Imag);
@@ -290,7 +290,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 			strcpy(dir[i], tmpdir);
 			strcat(dir[i], G_DIR_SEPARATOR_S);
 			strcat(dir[i], File_Name_Transform[i]);
-			wavelet_transform_file_float(gfit.fpdata[i], gfit.ry, gfit.rx, dir[i],
+			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir[i],
 					Type_Transform, Nbr_Plan);
 			free(dir[i]);
 		}
@@ -319,7 +319,7 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	Type = gtk_combo_box_get_active(Combo_Wavelets_Type) + 1;// 1: linear, 2: bspline
 
 	set_cursor_waiting(TRUE);
-	mins = min(gfit.rx, gfit.ry);
+	mins = min(gfit->rx, gfit->ry);
 	maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
@@ -334,7 +334,7 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
-	args->fit = &gfit;
+	args->fit = gfit;
 	if (!start_in_new_thread(extract_plans, args))
 		free(args);
 }

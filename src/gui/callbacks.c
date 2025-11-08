@@ -241,12 +241,12 @@ int populate_roi() {
 		return 1;
 	int retval = 0;
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
-	size_t npixels_gfit = gfit.rx * gfit.ry;
-	size_t nchans = gfit.naxes[2];
+	size_t npixels_gfit = gfit->rx * gfit->ry;
+	size_t nchans = gfit->naxes[2];
 	g_assert(nchans ==1 || nchans == 3);
 	gboolean rgb = (nchans == 3);
 	clearfits(&gui.roi.fit);
-	copyfits(&gfit, &gui.roi.fit, CP_FORMAT, -1);
+	copyfits(gfit, &gui.roi.fit, CP_FORMAT, -1);
 	gui.roi.fit.rx = gui.roi.fit.naxes[0] = gui.roi.selection.w;
 	gui.roi.fit.ry = gui.roi.fit.naxes[1] = gui.roi.selection.h;
 	gui.roi.fit.naxes[2] = nchans;
@@ -260,7 +260,7 @@ int populate_roi() {
 		gui.roi.fit.fpdata[2] = rgb? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *srcindex = gfit.fdata + (npixels_gfit * c) + ((gfit.ry - y - (gui.roi.selection.y + 1)) * gfit.rx) + gui.roi.selection.x;
+				float *srcindex = gfit->fdata + (npixels_gfit * c) + ((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) + gui.roi.selection.x;
 				float *destindex = gui.roi.fit.fdata + (npixels_roi * c) + (gui.roi.fit.rx * y);
 				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
 			}
@@ -274,7 +274,7 @@ int populate_roi() {
 		gui.roi.fit.pdata[2] = rgb? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *srcindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - y - (gui.roi.selection.y + 1)) * gfit.rx) + gui.roi.selection.x;
+				WORD *srcindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) + gui.roi.selection.x;
 				WORD *destindex = gui.roi.fit.data + (npixels_roi * c) + y * gui.roi.fit.rx;
 				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
 			}
@@ -417,13 +417,13 @@ void set_sliders_value_to_gfit() {
 		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
-	gfit.keywords.hi = gtk_adjustment_get_value(adj1);
-	gfit.keywords.lo = gtk_adjustment_get_value(adj2);
+	gfit->keywords.hi = gtk_adjustment_get_value(adj1);
+	gfit->keywords.lo = gtk_adjustment_get_value(adj2);
 }
 
 /* Sets maximum value for contrast scales. Minimum is always 0.
  * Should be done on first image load of a sequence and when single images are loaded.
- * Max value is taken from gfit.maxi, recomputed if not present.
+ * Max value is taken from gfit->maxi, recomputed if not present.
  */
 void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
@@ -435,7 +435,7 @@ void set_cutoff_sliders_max_values() {
 	/* set max value for range according to number of bits of original image
 	 */
 
-	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit.orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
+	max_val = (gfit->type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit->orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
 	siril_debug_print(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
 	gtk_adjustment_set_lower(adj1, 0.0);
 	gtk_adjustment_set_lower(adj2, 0.0);
@@ -492,7 +492,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
 	gboolean override_label = FALSE;
 
-	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type != DATA_FLOAT)
+	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type != DATA_FLOAT)
 		siril_log_message(_("Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"));
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap) {
 		allocate_hd_remap_indices();
@@ -506,9 +506,9 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
 
-	gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
+	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		redraw(REMAP_ALL);
@@ -520,7 +520,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	gui.use_hd_remap = gtk_check_menu_item_get_active(menuitem);
 	if (gui.rendering_mode == STF_DISPLAY) {
 		if (gui.use_hd_remap) {
-			if (gfit.type == DATA_FLOAT)
+			if (gfit->type == DATA_FLOAT)
 				allocate_hd_remap_indices();
 			siril_log_message(_("The AutoStretch display mode will use a %d bit LUT\n"), (int) log2(gui.hd_remap_max));
 		} else {
@@ -541,7 +541,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 
 		com.pref.hd_bitdepth = bitdepth;
 		gui.hd_remap_max = 1 << bitdepth;
-		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
@@ -680,19 +680,19 @@ gboolean update_MenuItem(gpointer user_data) {
 	gboolean any_image_is_loaded;		/* Something is loaded. Single image or Sequence */
 
 	is_a_single_image_loaded = single_image_is_loaded() && (!sequence_is_loaded() || (sequence_is_loaded() && (com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
-	is_a_singleRGB_image_loaded = isrgb(&gfit) && single_image_is_loaded();
+	is_a_singleRGB_image_loaded = isrgb(gfit) && single_image_is_loaded();
 	any_image_is_loaded = single_image_is_loaded() || sequence_is_loaded();
 
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
-	gboolean wcs_ok = any_image_is_loaded && has_wcs(&gfit);
+	gboolean wcs_ok = any_image_is_loaded && has_wcs(gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
 
 	/* any image with wcs information is needed */
 	siril_window_enable_wcs_proc_actions(app_win, wcs_ok);
-	siril_window_enable_wcs_disto_proc_actions(app_win, wcs_ok && gfit.keywords.wcslib->lin.dispre);
+	siril_window_enable_wcs_disto_proc_actions(app_win, wcs_ok && gfit->keywords.wcslib->lin.dispre);
 
 	/* untoggle if disabled */
 	if (!wcs_ok) {
@@ -726,32 +726,32 @@ gboolean update_MenuItem(gpointer user_data) {
 
 	/* fits header */
 	GAction *action_fits_header = g_action_map_lookup_action (G_ACTION_MAP(app_win), "fits-header");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_fits_header), any_image_is_loaded && gfit.header != NULL);
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_fits_header), any_image_is_loaded && gfit->header != NULL);
 	/* annotate dialog */
 	GAction *action_annotate_dialog = g_action_map_lookup_action (G_ACTION_MAP(app_win), "annotate-dialog");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate_dialog), any_image_is_loaded && has_wcs(&gfit));
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate_dialog), any_image_is_loaded && has_wcs(gfit));
 	/* Lightcurve process */
 	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
 	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && (sequence_is_loaded() || valid_rgbcomp_seq()));
 	/* selectoin and isrgb is needed */
-	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
+	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(gfit));
 
 	/* Image processing Menu */
 
 	/* single RGB image is needed */
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
 	/* single RGB image with wcs information is needed */
-	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
+	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(gfit));
 	/* single or sequence RGB is needed */
 	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
-	siril_window_enable_any_mono_proc_actions(app_win, any_image_is_loaded && !isrgb(&gfit));
+	siril_window_enable_any_mono_proc_actions(app_win, any_image_is_loaded && !isrgb(gfit));
 	/* only single image needed */
 	siril_window_enable_single_proc_actions(app_win, is_a_single_image_loaded);
 	/* no images needed */
@@ -761,7 +761,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	siril_window_enable_image_actions(app_win, any_image_is_loaded);
 
 	/* auto-stretch actions */
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
@@ -918,7 +918,7 @@ static const char *untranslated_vport_number_to_name(int vport) {
 }
 
 const gchar *layer_name_for_gfit(int layer) {
-	if (gfit.naxes[2] == 1) {
+	if (gfit->naxes[2] == 1) {
 		if (layer != 0) {
 			siril_debug_print("unloaded layer name requested %d\n", layer);
 			return "unset";
@@ -994,7 +994,7 @@ void update_display_fwhm() {
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
 			double roundness;
-			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
+			double fwhm_val = psf_get_fwhm(gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
 		} else
 			g_sprintf(fwhm_buffer, _("fwhm: N/A"));
@@ -1070,9 +1070,9 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot convert a sequence file"),
 				_("A sequence file cannot be converted to 32 bits. This operation can only be done on a single file."));
 	} else {
-		size_t ndata = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
+		size_t ndata = gfit->naxes[0] * gfit->naxes[1] * gfit->naxes[2];
 
-		if (gfit.type == DATA_FLOAT) {
+		if (gfit->type == DATA_FLOAT) {
 			gboolean convert = siril_confirm_dialog(_("Precision loss"),
 					_("Converting the image from 32 bits to 16 bits may lead to a loss of numerical accuracy. "
 							"Getting back to 32 bits will not recover this loss.\n"
@@ -1082,17 +1082,17 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 					fits *backup_gfit = get_preview_gfit_backup();
 					fit_replace_buffer(backup_gfit, float_buffer_to_ushort(backup_gfit->fdata, ndata), DATA_USHORT);
 				}
-				fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
+				fit_replace_buffer(gfit, float_buffer_to_ushort(gfit->fdata, ndata), DATA_USHORT);
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
 				redraw(REMAP_ALL);
 			}
-		} else if (gfit.type == DATA_USHORT) {
+		} else if (gfit->type == DATA_USHORT) {
 			if (is_preview_active()) {
 				fits *backup_gfit = get_preview_gfit_backup();
 				fit_replace_buffer(backup_gfit, ushort_buffer_to_float(backup_gfit->data, ndata), DATA_FLOAT);
 			}
-			fit_replace_buffer(&gfit, ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
+			fit_replace_buffer(gfit, ushort_buffer_to_float(gfit->data, ndata), DATA_FLOAT);
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
 			redraw(REMAP_ALL);
@@ -1107,10 +1107,10 @@ gboolean set_precision_switch(gpointer user_data) {
 		GtkCheckMenuItem *float_button = GTK_CHECK_MENU_ITEM(lookup_widget("32bits_item"));
 		GtkCheckMenuItem *ushort_button = GTK_CHECK_MENU_ITEM(lookup_widget("16bits_item"));
 
-		gtk_label_set_text(label, gfit.type == DATA_USHORT ? _("16 bits") : _("32 bits"));
+		gtk_label_set_text(label, gfit->type == DATA_USHORT ? _("16 bits") : _("32 bits"));
 		g_signal_handlers_block_by_func(float_button, on_precision_item_toggled, NULL);
-		gtk_check_menu_item_set_active(float_button, gfit.type == DATA_FLOAT);
-		gtk_check_menu_item_set_active(ushort_button, gfit.type == DATA_USHORT);
+		gtk_check_menu_item_set_active(float_button, gfit->type == DATA_FLOAT);
+		gtk_check_menu_item_set_active(ushort_button, gfit->type == DATA_USHORT);
 		g_signal_handlers_unblock_by_func(float_button,	on_precision_item_toggled, NULL);
 	}
 	return FALSE;
@@ -1299,7 +1299,7 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit.naxes[2] == 1) {
+	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_hide(page);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);
@@ -1329,7 +1329,7 @@ void activate_tab(int vport) {
 }
 
 gboolean init_right_tab(gpointer user_data) {
-	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
+	activate_tab(isrgb(gfit) ? RGB_VPORT : RED_VPORT);
 	return FALSE;
 }
 
@@ -1456,11 +1456,11 @@ void update_sampling_in_information() {
 	GtkLabel *sampling_label = GTK_LABEL(lookup_widget("info_sampling_label"));
 	// display sampling based on information displayed in the window
 	// otherwise, we could use get_wcs_image_resolution(fits *fit)
-	if (gfit.keywords.focal_length > 0.0 && gfit.keywords.pixel_size_x > 0.0) {
-		float pixel_size = gfit.keywords.pixel_size_x;
-		if (gfit.keywords.binning_x > 1 && com.pref.binning_update)
-			pixel_size *= gfit.keywords.binning_x;
-		double scale = get_resolution(gfit.keywords.focal_length, pixel_size);
+	if (gfit->keywords.focal_length > 0.0 && gfit->keywords.pixel_size_x > 0.0) {
+		float pixel_size = gfit->keywords.pixel_size_x;
+		if (gfit->keywords.binning_x > 1 && com.pref.binning_update)
+			pixel_size *= gfit->keywords.binning_x;
+		double scale = get_resolution(gfit->keywords.focal_length, pixel_size);
 		char buf[20];
 		sprintf(buf, "%.4f", scale);
 		gtk_label_set_text(sampling_label, buf);
@@ -1473,30 +1473,30 @@ void set_GUI_CAMERA() {
 	/* information will be taken from gfit or from the preferences and overwritten in
 	 * gfit by the callbacks */
 	char buf[20];
-	double fl = gfit.keywords.focal_length > 0.0 ? gfit.keywords.focal_length : com.pref.starfinder_conf.focal_length;
+	double fl = gfit->keywords.focal_length > 0.0 ? gfit->keywords.focal_length : com.pref.starfinder_conf.focal_length;
 	sprintf(buf, "%.3f", fl);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), buf);
 
-	double pixsz = gfit.keywords.pixel_size_x > 0.0 ? gfit.keywords.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
+	double pixsz = gfit->keywords.pixel_size_x > 0.0 ? gfit->keywords.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
 	sprintf(buf, "%.2f", pixsz);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), buf);
 
-	pixsz = gfit.keywords.pixel_size_y > 0.0 ? gfit.keywords.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
+	pixsz = gfit->keywords.pixel_size_y > 0.0 ? gfit->keywords.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
 	sprintf(buf, "%.2f", pixsz);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), buf);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
-	if (!gfit.keywords.binning_x || !gfit.keywords.binning_y) {
+	if (!gfit->keywords.binning_x || !gfit->keywords.binning_y) {
 		gtk_combo_box_set_active(binning, 0);
 	}
-	else if (gfit.keywords.binning_x == gfit.keywords.binning_y) {
+	else if (gfit->keywords.binning_x == gfit->keywords.binning_y) {
 		/* squared binning */
-		gtk_combo_box_set_active(binning, (gint) gfit.keywords.binning_x - 1);
+		gtk_combo_box_set_active(binning, (gint) gfit->keywords.binning_x - 1);
 	} else {
 		short coeff =
-			gfit.keywords.binning_x > gfit.keywords.binning_y ?
-			gfit.keywords.binning_x / gfit.keywords.binning_y :
-			gfit.keywords.binning_y / gfit.keywords.binning_x;
+			gfit->keywords.binning_x > gfit->keywords.binning_y ?
+			gfit->keywords.binning_x / gfit->keywords.binning_y :
+			gfit->keywords.binning_y / gfit->keywords.binning_x;
 		switch (coeff) {
 			case 2:
 				gtk_combo_box_set_active(binning, 4);
@@ -1506,7 +1506,7 @@ void set_GUI_CAMERA() {
 				break;
 			default:
 				siril_log_message(_("Binning %d x %d is not supported\n"),
-						gfit.keywords.binning_x, gfit.keywords.binning_y);
+						gfit->keywords.binning_x, gfit->keywords.binning_y);
 		}
 	}
 
@@ -1876,7 +1876,7 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (gfit.color_managed) {
+	if (gfit->color_managed) {
 		lock_display_transform();
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
@@ -1904,21 +1904,21 @@ void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.keywords.focal_length = g_ascii_strtod(focal_entry, NULL);
+	gfit->keywords.focal_length = g_ascii_strtod(focal_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.keywords.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
+	gfit->keywords.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.keywords.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
+	gfit->keywords.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
@@ -1931,18 +1931,18 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		case 1:
 		case 2:
 		case 3:
-			gfit.keywords.binning_x = gfit.keywords.binning_y = (unsigned int) index + 1;
+			gfit->keywords.binning_x = gfit->keywords.binning_y = (unsigned int) index + 1;
 			break;
 		case 4:
-			gfit.keywords.binning_x = 1;
-			gfit.keywords.binning_y = 2;
+			gfit->keywords.binning_x = 1;
+			gfit->keywords.binning_y = 2;
 			break;
 		case 5:
-			gfit.keywords.binning_x = 1;
-			gfit.keywords.binning_y = 3;
+			gfit->keywords.binning_x = 1;
+			gfit->keywords.binning_y = 3;
 			break;
 		case -1:
-			gfit.keywords.binning_x = gfit.keywords.binning_y = 1;
+			gfit->keywords.binning_x = gfit->keywords.binning_y = 1;
 			gtk_combo_box_set_active(box, 0);
 			break;
 		default:
@@ -1955,9 +1955,9 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *save_as_prefs_button = GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle"));
 	if (gtk_toggle_button_get_active(save_as_prefs_button)) {
-		com.pref.starfinder_conf.focal_length = gfit.keywords.focal_length;
-		com.pref.starfinder_conf.pixel_size_x = gfit.keywords.pixel_size_x;
-		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.keywords.focal_length, gfit.keywords.pixel_size_x);
+		com.pref.starfinder_conf.focal_length = gfit->keywords.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = gfit->keywords.pixel_size_x;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit->keywords.focal_length, gfit->keywords.pixel_size_x);
 	}
 	gtk_widget_hide(lookup_widget("file_information"));
 	refresh_star_list();
@@ -2459,6 +2459,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 
 	// Populate the list store
 	GtkTreeIter iter;
+	child_mutex_lock();
 	for (GSList *l = children; l != NULL; l = l->next) {
 		child_info *child = (child_info *)l->data;
 
@@ -2476,7 +2477,7 @@ GPid show_child_process_selection_dialog(GSList *children) {
 		// Free the formatted time string
 		g_free(time_str);
 	}
-
+	child_mutex_unlock();
 	// Add scrolled window to dialog
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);

@@ -280,12 +280,12 @@ int cached_object_lookup(sky_object_query_args *args) {
 }
 
 void search_object(GtkEntry *entry) {
-	if (!has_wcs(&gfit))
+	if (!has_wcs(gfit))
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	sky_object_query_args *args = init_sky_object_query();
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-	args->fit = &gfit;
+	args->fit = gfit;
 	if (!start_in_new_thread(catsearch_worker, args)) {
 		free_sky_object_query(args);
 	}

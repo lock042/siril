@@ -1,5 +1,5 @@
-siril 1.4.0-XXX
-XX/XX/XX
+siril 1.4.0-RC1
+11/08/25
 
 **Fixes:**
 * Fixed wrong interpretation of bayer pattern after a background extraction on CFA images (#1799)
@@ -8,12 +8,38 @@ XX/XX/XX
 * Fixed issue where curves tool preview could fail to disapply (#1801)
 * Fixed global registration failed to add reference image to the aligned sequence (#1798)
 * Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
+* Fixed crash in seqstarnet (#1814)
+* Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
+* Fixed writing RA/DEC to star lists from a single findstar command (#1794)
+* Fixed issue with RGB composition not always applying registration (!948)
+* Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
+* Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802, #1843)
+* Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
+* Fixed XTrans sensors debayer after changes introduced in beta4 by !903 (#1826)
+* Fixed some issues with rescale and rgbblend clipping protection in asinh stretch (!950)
+* Fixed some static analysis errors (!950)
+* Fixed min/max stacking for (0,0) pixel (#1810)
+* Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
+* Fixed using reference image position and updating WCS in Export Sequence (#1824)
+* Fixed issue with deconvolution using RGB PSFs (#1829)
+* Fixed issue where sirilpy.SirilInterface.confirm_messsagebox() could hang Siril (#1832)
+* Fixed issue with create_new_seq() where the seqname contained . (#1841)
+* Fixed issue where the locale fix previously added to sirilpy would fail if no English locale was available (siril-scripts:#67)
+* Fixed incorrect variable substitution regex handling in Pixelmath
+* Removed use of deprecated python method locale.getdefaultlocale() which will be removed in 3.15
 
 **Improvements**
 * Support arbitrary script categories in the GtkTreeView in script preferences
 * Make ONNXHelper slightly more robust (!940)
 * Enabled compiler optimizations by inlining many common data conversion functions (!942)
 * Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
+* Added prefix arg to SirilInterface.set_seq_frame_pixeldata() to make it easier to create new sequences
+* SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
+* Starlink pre- and post-autostretch is unlinked for better star removal from images with very uneven channels (!952)
+* Stacking with rejection: make sure pixels with non-null values but 0 weight are now discarded at rejection step (!953)
+* Add SirilInterface.save_image_to_file() method to save from python to FITS files without needing astropy (!955)
 
 siril 1.4.0-beta4
 09/28/25

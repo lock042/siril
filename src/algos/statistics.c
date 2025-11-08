@@ -238,6 +238,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 				data = extract_CFA_buffer_area_ushort(fit, -layer - 1, selection, &newsz);
 				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					free(data);
 					return NULL;
 				}
 				nx = newsz;
@@ -951,6 +952,7 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 		int nb_data_layers = stat_args->cfa ? 3 : stat_args->seq->nb_layers;
 		int size = nb_data_layers * args->nb_filtered_images;
 		free_stat_list(stat_args->list, size);
+		g_free(stat_args->csv_name);
 		free (stat_args);
 		free_generic_seq_args(args, TRUE);
 	}

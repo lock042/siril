@@ -70,7 +70,7 @@
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -342,6 +342,7 @@ int main(int argc, char *argv[]) {
 	GApplication *app;
 	const gchar *dir;
 	gint status;
+	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.

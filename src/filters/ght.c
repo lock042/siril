@@ -393,10 +393,11 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+				float invmaxval = 1.f / maxval;
 				if (maxval > 1.f) {
-					data.sf[0] /= maxval;
-					data.sf[1] /= maxval;
-					data.sf[2] /= maxval;
+					data.sf[0] *= invmaxval;
+					data.sf[1] *= invmaxval;
+					data.sf[2] *= invmaxval;
 				}
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
@@ -556,10 +557,11 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+				float invmaxval = 1.f / maxval;
 				if (maxval > 1.f) {
-					data.sf[0] /= maxval;
-					data.sf[1] /= maxval;
-					data.sf[2] /= maxval;
+					data.sf[0] *= invmaxval;
+					data.sf[1] *= invmaxval;
+					data.sf[2] *= invmaxval;
 				}
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];

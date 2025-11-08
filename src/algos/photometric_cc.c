@@ -929,9 +929,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	int nb_stars = 0;
-	gboolean image_is_gfit = args->fit == &gfit;
+	gboolean image_is_gfit = args->fit == gfit;
 
-	uint64_t sqr_radius = ((uint64_t) gfit.rx * (uint64_t) gfit.rx + (uint64_t) gfit.ry * (uint64_t) gfit.ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) gfit->rx * (uint64_t) gfit->rx + (uint64_t) gfit->ry * (uint64_t) gfit->ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
 		args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2); // factor 2 on brightest_stars to account for the fact not all stars will be within image

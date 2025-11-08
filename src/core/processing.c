@@ -22,6 +22,7 @@
 #include <windows.h>
 #else
 #include <sys/socket.h>
+#include <sys/wait.h>
 #endif
 
 #include <assert.h>
@@ -47,6 +48,16 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
+
+static GMutex child_mutex = { 0 };
+
+void child_mutex_lock() {
+	g_mutex_lock(&child_mutex);
+}
+
+void child_mutex_unlock() {
+	g_mutex_unlock(&child_mutex);
+}
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -801,16 +812,12 @@ gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
 
-	// Add a fake "child" to com.children. This doesn't represent an external
+	// Add a fake "child" to the list of child processes. This doesn't represent an external
 	// program but it allows selecting to stop the processing thread instead of
 	// an external program if one happens to be running
-	// Prepend this "child" to the list of child processes com.children
-	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = (GPid) -2; // Magic number
-	child->program = INT_PROC_THREAD;
-	child->name = g_strdup("Siril processing thread");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
+	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread")) {
+		siril_log_color_message(_("Warning: failed to add processing thread to child list\n"), "salmon");
+	}
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
@@ -828,13 +835,10 @@ gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
 
-	// Prepend this "child" to the list of child processes com.children
-	child_info *child = g_malloc(sizeof(child_info));
-	child->childpid = (GPid) -2; // Magic number
-	child->program = INT_PROC_THREAD;
-	child->name = g_strdup("Siril processing thread");
-	child->datetime = g_date_time_new_now_local();
-	com.children = g_slist_prepend(com.children, child);
+	// Prepend this "child" to the list of child processes
+	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread")) {
+		siril_log_color_message(_("Warning: failed to add processing thread to child list\n"), "salmon");
+	}
 
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
@@ -920,29 +924,13 @@ static gboolean check_stop_processing_request(gpointer user_data) {
 
 void stop_processing_thread() {
     // Check if we're in headless mode first
-    if (com.headless) {
-        // In headless mode, we can call the function directly
-        if (com.thread == NULL) {
-            siril_debug_print("The processing thread is not running.\n");
-            return;
-        }
-        remove_child_from_children((GPid) -2);
-        set_thread_run(FALSE);
-        if (!thread_being_waited)
-            waiting_for_thread();
-        return;
-    }
-
-    // Check if we're already in the main thread
-    if (g_main_context_is_owner(g_main_context_default())) {
+    if (com.headless || !g_main_context_is_owner(g_main_context_default())) {
+        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
+    } else {
         // We're in the main thread, but we might be inside execute_idle_and_wait_for_it
         // Set a flag and queue an idle to handle it asynchronously
         stop_processing_requested = TRUE;
         gdk_threads_add_idle(check_stop_processing_request, NULL);
-    } else {
-        // We're not in the main thread, so we need to queue it as an idle
-        // and wait for it to complete
-        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
     }
 }
 
@@ -1022,28 +1010,122 @@ static void free_child(child_info *child) {
 	g_free(child);
 }
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+#ifdef G_OS_WIN32
+    DWORD exit_code;
+    if (GetExitCodeProcess(pid, &exit_code)) {
+        if (exit_code == 0) {
+            siril_debug_print("Child process completed successfully\n");
+        } else {
+            siril_debug_print("Plate solver exited with code %lu\n", exit_code);
+        }
+    }
+    CloseHandle(pid);
+#else
+    // POSIX: manually reap the child
+    int wait_status;
+    pid_t result;
+
+    // Try to reap - if it fails with ECHILD, someone else already did
+    result = waitpid(pid, &wait_status, WNOHANG);
+
+    if (result == pid) {
+        // We successfully reaped it
+        if (WIFEXITED(wait_status)) {
+            int exit_status = WEXITSTATUS(wait_status);
+            if (exit_status == 0) {
+                siril_debug_print("Child process completed successfully\n");
+            } else {
+                siril_debug_print("Child process exited with status %d\n", exit_status);
+            }
+        } else if (WIFSIGNALED(wait_status)) {
+            siril_debug_print("Child process terminated by signal %d\n", WTERMSIG(wait_status));
+        }
+    } else if (result == 0) {
+        // Process hasn't exited yet (shouldn't happen)
+        siril_debug_print("Warning: child watch called but process still running\n");
+    } else if (result == -1 && errno == ECHILD) {
+        // Already reaped
+        siril_debug_print("Warning: child process already reaped\n");
+    } else {
+        siril_debug_print("Error waiting for child: %s\n", strerror(errno));
+    }
+    g_spawn_close_pid(pid);
+#endif
+    remove_child_from_children(pid);
+}
+
+gboolean add_child(GPid child_pid, int program, const gchar *name) {
+	// Add the callback to remove it on completion
+	if (program != EXT_PYTHON && program != INT_PROC_THREAD)
+		g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	child_info *child = g_malloc(sizeof(child_info));
+	if (!child) {
+		return FALSE;
+	}
+
+	child->name = g_strdup(name);
+	if (!child->name) {
+		g_free(child);
+		return FALSE;
+	}
+
+	child->datetime = g_date_time_new_now_local();
+	if (!child->datetime) {
+		g_free(child->name);
+		g_free(child);
+		return FALSE;
+	}
+	child->childpid = child_pid;
+	child->program = program;
+
+	child_mutex_lock();
+	com.children = g_slist_prepend(com.children, child);
+	child_mutex_unlock();
+
+	return TRUE;
+}
+
 // This must be called in the g_spawn on_exit callback to remove the defunct child from the list
 void remove_child_from_children(GPid pid) {
+	child_mutex_lock();
 	GSList *prev = NULL;
 	GSList *iter = com.children;
 
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
 
+		if (!child) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
+			if (prev)
+				prev->next = next;
+			else
+				com.children = next;  // Don't forget to update head!
+
+			g_slist_free_1(iter);
+			iter = next;
+			continue;
+		}
+
 		if (child->childpid == pid) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
 			// Remove the node from the list
 			if (prev == NULL) {
-				// If it's the first node
-				com.children = iter->next;
+				com.children = next;
 			} else {
-				// If it's a middle or last node
-				prev->next = iter->next;
+				prev->next = next;
 			}
 
 			// Free the node and the child
 			g_slist_free_1(iter);
 			free_child(child);
 			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			child_mutex_unlock();
 			return;
 		}
 
@@ -1051,6 +1133,7 @@ void remove_child_from_children(GPid pid) {
 		prev = iter;
 		iter = iter->next;
 	}
+	child_mutex_unlock();
 }
 
 // kills external calls
@@ -1058,12 +1141,18 @@ void remove_child_from_children(GPid pid) {
 void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
-	// Find the correct child in com.children
-	GSList *prev = NULL;
+	// Find the correct child in the list
+	// We can safely iterate over the list without worrying about simultaneously adding
+	// to it from another thread as it would only ever be prepended, so the rest of the
+	// list will still be fine. This means we can have the mutex control for child
+	// removal in remove_child_from_children, which makes things considerably simpler.
 	GSList *iter = com.children;
 	gboolean success = FALSE;
 	while (iter) {
 		child_info *child = (child_info*) iter->data;
+		if (!child)
+			return;
+
 		GSList *next = iter->next;
 
 		if (child->childpid == pid || onexit) {
@@ -1074,10 +1163,8 @@ void kill_child_process(GPid pid, gboolean onexit) {
 #ifdef _WIN32
 					TerminateProcess((void *) child->childpid, 1);
 #else
-					kill((pid_t) child->childpid, SIGINT);
+					kill((pid_t) child->childpid, SIGKILL);
 #endif
-					// Free the child struct
-					free_child(child);
 				} else if (child->program == EXT_ASNET) {
 					FILE* fp = g_fopen("stop", "w");
 					if (fp != NULL)
@@ -1088,28 +1175,15 @@ void kill_child_process(GPid pid, gboolean onexit) {
 							siril_debug_print("g_unlink() failed\n");
 						siril_debug_print("asnet has been stopped on exit\n");
 					}
-					free_child(child);
+					stop_processing_thread(); // we stop the sequence worker as well
 				}
-
-				// Remove the node from the list
-				if (prev == NULL) {
-					// If it's the first node
-					com.children = next;
-				} else {
-					// If it's a middle or last node
-					prev->next = next;
-				}
-				// Free the node
-				g_slist_free_1(iter);
+				// No need to manually remove the child as this is done by child_watch_cb
 			}
 
 			siril_log_color_message(_("Process aborted by user\n"), "red");
 			success = TRUE;
 			if (!onexit)
 				break;
-		} else {
-			// Only advance prev if we didn't remove the current node
-			prev = iter;
 		}
 		iter = next;
 	}
@@ -1121,6 +1195,7 @@ void kill_child_process(GPid pid, gboolean onexit) {
 static void check_if_child_is_python(gpointer data, gpointer user_data) {
 	// Cast the input pointers to their correct types
 	child_info *child = (child_info *)data;
+	if(!child) return;
 	gboolean *is_ok = (gboolean *)user_data;
 
 	// Convert name to lowercase for case-insensitive comparison
@@ -1138,7 +1213,9 @@ static void check_if_child_is_python(gpointer data, gpointer user_data) {
 void check_python_flag() {
 	siril_debug_print("checking python flag\n");
 	gboolean is_ok = TRUE;
+	child_mutex_lock();
 	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
+	child_mutex_unlock();
 	if (is_ok) {
 		com.python_script = FALSE;
 		siril_debug_print("com.python_script cleared\n");
@@ -1165,20 +1242,28 @@ void kill_all_python_scripts() {
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
+	child_mutex_lock();
 	guint children = g_slist_length(com.children);
 	if (children > 1) {
+		child_mutex_unlock();
 		GPid pid = show_child_process_selection_dialog(com.children);
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
-		kill_child_process(child->childpid, FALSE);
+		GPid pid = child->childpid;
+		child_mutex_unlock();
+		kill_child_process(pid, FALSE);
 	} else {
+		child_mutex_unlock();
 		com.stop_script = TRUE;
 		stop_processing_thread();
 		wait_for_script_thread();
 	}
-	if (!com.headless)
+
+	if (!com.headless) {
 		script_widgets_enable(TRUE);
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	}
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {
@@ -1243,6 +1328,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
 			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
 			g_free(seqfilename);
+			seqfilename = NULL;
 			if (!retval) goto after_fitseq_check;
 		}
 		g_free(seqfilename);

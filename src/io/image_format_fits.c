@@ -1308,7 +1308,7 @@ void clearfits_header(fits *fit) {
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
-	if (fit == &gfit && is_preview_active())
+	if (fit == gfit && is_preview_active())
 		clear_backup();
 	memset(fit, 0, sizeof(fits));
 }
@@ -1869,9 +1869,9 @@ int savefits(const char *name, fits *f) {
 	}
 
 	if (save_opened_fits(f)) {
-	    status = 0;
-	    fits_close_file(f->fptr, &status);
-	    f->fptr = NULL;
+		status = 0;
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
 		g_free(filename);
 		return 1;
 	}
@@ -3097,6 +3097,11 @@ int check_loaded_fits_params(fits *ref, ...) {
 
 // f is NULL-terminated and not empty
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
+	// input validation
+	if (!f || !f[0] || !f[1] || !result) {
+		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
+		return;
+	}
 	/* copy all from the first */
 	copy_fits_metadata(f[0], result);
 
@@ -3161,7 +3166,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 // NULL-terminated list of fits, given with decreasing importance
 // HISTORY is not managed, neither is some conflicting information
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) {
-	if (!f1) return;
+	if (!f1 || !result) return;
 	// converting variadic to array of args
 	va_list ap;
 	va_start(ap, f1);
@@ -3647,7 +3652,7 @@ int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
 // and dealing with all the types and headers
 int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
 	int status = 0;
-	fitsfile *fptr;
+	fitsfile *fptr = NULL;
 	int naxis = 2;
 	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
 	long naxes[2] = { 1L, 1L};
@@ -3659,7 +3664,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 
 	if (!name)
 		return 1;
-	fits_open_file(&fptr, name, READONLY, &status);
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return 1;
@@ -3671,12 +3676,12 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	}
 	if (naxes[0] < area->w) {
 		siril_debug_print("area too wide\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
 		siril_debug_print("area too high\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
@@ -3717,7 +3722,7 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 
 	if (!name)
 		return 1;
-	fits_open_file(&fptr, name, READONLY, &status);
+	siril_fits_open_diskfile_img(&fptr, name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return 1;
@@ -3729,12 +3734,12 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 	}
 	if (naxes[0] < area->w) {
 		siril_debug_print("area too wide\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (naxes[1] < area->h) {
 		siril_debug_print("area too high\n");
-		fits_close_file(fptr, NULL);
+		fits_close_file(fptr, &status);
 		return 1;
 	}
 	if (layer == 4) { // read the whole file

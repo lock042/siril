@@ -516,8 +516,8 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 		fits tmpfit = { 0 }, *fit;
 
 		if (load_ref_into_gfit) {
-			clearfits(&gfit);
-			fit = &gfit;
+			clearfits(gfit);
+			fit = gfit;
 		} else {
 			fit = &tmpfit;
 			memset(fit, 0, sizeof(fits));
@@ -678,7 +678,7 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
-		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
+		if (seq_read_frame(seq, image_to_load, gfit, FALSE, -1)) {
 			siril_log_color_message(_("could not load reference image from sequence\n"), "red");
 			free_sequence(seq, TRUE);
 			return TRUE;
@@ -713,23 +713,23 @@ gboolean set_seq(gpointer user_data){
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())
-		save_stats_from_fit(&gfit, seq, seq->current);
+		save_stats_from_fit(gfit, seq, seq->current);
 	on_clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
 	invalidate_gfit_histogram();
 	undo_flush();
 	close_single_image();
-	clearfits(&gfit);
+	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {
-		gfit.rx = seq->rx;
-		gfit.ry = seq->ry;
+		gfit->rx = seq->rx;
+		gfit->ry = seq->ry;
 	}
 	seq->current = index;
 
 	if (load_it && !com.script) {
 		set_cursor_waiting(TRUE);
-		if (seq_read_frame(seq, index, &gfit, FALSE, -1)) {
+		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
 			set_cursor_waiting(FALSE);
 			return 1;
 		}
@@ -1704,7 +1704,7 @@ void close_sequence(int loading_sequence_from_combo) {
 		fprintf(stdout, "MODE: closing sequence\n");
 		siril_log_message(_("Closing sequence %s\n"), com.seq.seqname);
 		if (!single_image_is_loaded())
-			save_stats_from_fit(&gfit, &com.seq, com.seq.current);
+			save_stats_from_fit(gfit, &com.seq, com.seq.current);
 		if (com.seq.needs_saving)
 			writeseqfile(&com.seq);
 
@@ -2387,8 +2387,8 @@ struct wcsprm *get_wcs_ref(sequence *seq) {
 		return NULL;
 	struct wcsprm *wcsref = NULL;
 	int refimage = sequence_find_refimage(seq);
-	if (check_seq_is_comseq(seq) && seq->current == refimage && has_wcs(&gfit)) { // we are in GUI
-		wcsref = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+	if (check_seq_is_comseq(seq) && seq->current == refimage && has_wcs(gfit)) { // we are in GUI
+		wcsref = wcs_deepcopy(gfit->keywords.wcslib, NULL);
 	} else { // we are in GUI with another image loaded or we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(seq, refimage, &ref)) {
@@ -2528,6 +2528,11 @@ gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachef
 		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
 		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
+	if (g_strcmp0(ext, "fit") == 0) {
+		gchar *tmp_filename = set_right_extension(cache_filename);
+		g_free(cache_filename);
+		cache_filename = tmp_filename;
+	}
 	gchar *cache_path = g_build_path(G_DIR_SEPARATOR_S, com.wd, cachefolder, cache_filename, NULL);
 	g_free(cache_filename);
 	g_free(base_root);

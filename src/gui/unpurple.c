@@ -117,7 +117,7 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	}
 
 	if (stars_needs_freeing)
-		free_psf_starstarstar(stars);
+		free_fitted_stars(stars);
 
 	return 0;
 }
@@ -130,7 +130,7 @@ static int unpurple_update_preview() {
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars"))))
 		withstarmask = FALSE;
 
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
 
 	// We need to create a star mask if one doesn't already exist
 	// and we need to recreate it if we change roi
@@ -174,7 +174,7 @@ static void unpurple_close(gboolean revert) {
 	if (revert) {
 		siril_preview_hide();
 	} else {
-		invalidate_stats_from_fit(&gfit);
+		invalidate_stats_from_fit(gfit);
 		undo_save_state(get_preview_gfit_backup(), _("Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"), thresh, mod_b);
 	}
 	roi_supported(FALSE);
@@ -188,7 +188,7 @@ static int unpurple_process_all() {
 	set_cursor_waiting(TRUE);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview"))))
 		copy_backup_to_gfit();
-	fits *fit = &gfit;
+	fits *fit = gfit;
 
 	gboolean withstarmask = TRUE;
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars"))))

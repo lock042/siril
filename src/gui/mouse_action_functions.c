@@ -77,7 +77,7 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	}
 
 	// selection submenu
-	double original_ratio = (double)gfit.rx / (double)gfit.ry;
+	double original_ratio = (double)gfit->rx / (double)gfit->ry;
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_free")), gui.ratio == 0.0);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_preserve")), gui.ratio == original_ratio);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_16_9")), gui.ratio == 16.0 / 9.0);
@@ -171,9 +171,9 @@ static gboolean select_reg_area_release(mouse_data *data) {
 		// never let selection be null if rotation_dlg is visible
 		// reinstate full image instead
 		if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg))
-			com.selection.w = gfit.rx;
+			com.selection.w = gfit->rx;
 		if (!gui.freezeY && com.selection.h == 0 && gtk_widget_is_visible(rotation_dlg))
-			com.selection.h = gfit.ry;
+			com.selection.h = gfit->ry;
 
 		if (gui.freezeX && gui.freezeY) { // Move selection
 			com.selection.x = (data->zoomed.x - gui.start.x) + gui.origin.x;
@@ -232,7 +232,7 @@ static gboolean cut_select_release(mouse_data *data) {
 	}
 	gui.cut.cut_end.x = tmp.x;
 	gui.cut.cut_end.y = tmp.y;
-	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+	measure_line(gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	*data->cutting = CUT_NOT_CUTTING;
 	redraw(REDRAW_OVERLAY);
 	// Deselect the Cut button once the cut is made
@@ -282,8 +282,8 @@ static gboolean measure_release (mouse_data *data) {
 	if (gui.measure_start.x != -1.) {
 		gui.measure_end.x = data->zoomed.x;
 		gui.measure_end.y = data->zoomed.y;
-		gboolean use_arcsec = (gfit.keywords.wcsdata.pltsolvd || gui.cut.pref_as);
-		measure_line(&gfit, gui.measure_start, gui.measure_end, use_arcsec);
+		gboolean use_arcsec = (gfit->keywords.wcsdata.pltsolvd || gui.cut.pref_as);
+		measure_line(gfit, gui.measure_start, gui.measure_end, use_arcsec);
 		gui.measure_start.x = -1.;
 		gui.measure_start.y = -1.;
 		gui.measure_end.x = -1.;
@@ -466,10 +466,10 @@ gboolean main_action_click(mouse_data *data) {
 				pt.x = (gdouble) data->zoomed.x;
 				pt.y = (gdouble) data->zoomed.y;
 
-				if (pt.x + radius < gfit.rx && pt.y + radius < gfit.ry
+				if (pt.x + radius < gfit->rx && pt.y + radius < gfit->ry
 						&& pt.x - radius > 0 && pt.y - radius > 0) {
 					sample_mutex_lock();
-					com.grad_samples = add_background_sample(com.grad_samples, &gfit, pt);
+					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt);
 					sample_mutex_unlock();
 
 					redraw(REDRAW_OVERLAY);
@@ -491,11 +491,11 @@ gboolean main_action_click(mouse_data *data) {
 				area.y = data->zoomed.y - s;
 				area.w = s * 2;
 				area.h = s * 2;
-				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
-						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
-					ps = phot_set_adjusted_for_image(&gfit);
+				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit->rx
+						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit->ry) {
+					ps = phot_set_adjusted_for_image(gfit);
 					psf_error error = PSF_NO_ERR;
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+					gui.qphot = psf_get_minimisation(gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 					free(ps);
 					if (gui.qphot) {
 						if (!gui.qphot->phot_is_valid || error != PSF_NO_ERR) {
@@ -504,12 +504,12 @@ gboolean main_action_click(mouse_data *data) {
 							break;
 						}
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
-						if (gfit.top_down)
+						if (gfit->top_down)
 							gui.qphot->ypos = gui.qphot->y0 + area.y;
 						else
 							gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
 						redraw(REDRAW_OVERLAY);
-						popup_psf_result(gui.qphot, &area, &gfit);
+						popup_psf_result(gui.qphot, &area, gfit);
 					}
 				}
 				break;
@@ -578,10 +578,10 @@ gboolean second_action_click(mouse_data *data) {
 			pt.x = (gdouble) data->zoomed.x;
 			pt.y = (gdouble) data->zoomed.y;
 
-			if (pt.x + radius <= gfit.rx && pt.y + radius <= gfit.ry
+			if (pt.x + radius <= gfit->rx && pt.y + radius <= gfit->ry
 					&& pt.x - radius >= 0 && pt.y - radius >= 0) {
 				sample_mutex_lock();
-				com.grad_samples = remove_background_sample(com.grad_samples, &gfit, pt);
+				com.grad_samples = remove_background_sample(com.grad_samples, gfit, pt);
 				sample_mutex_unlock();
 
 				redraw(REDRAW_OVERLAY);
@@ -591,8 +591,8 @@ gboolean second_action_click(mouse_data *data) {
 			if (sequence_is_loaded()) {
 				int s = com.pref.phot_set.outer * 1.2;
 				rectangle area = { data->zoomed.x - s, data->zoomed.y - s, s * 2, s * 2 };
-				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
-						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
+				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit->rx
+						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit->ry) {
 					memcpy(&com.selection, &area, sizeof(rectangle));
 					seq_qphot(&com.seq, select_vport(gui.cvport));
 					delete_selected_area();
@@ -618,8 +618,8 @@ gboolean photometry_box_set(mouse_data *data) {
 		double h = w;
 
 		if ((dX <= data->zoomed.x) && (dY <= data->zoomed.y)
-				&& (data->zoomed.x - dX + w < gfit.rx)
-				&& (data->zoomed.y - dY + h < gfit.ry)) {
+				&& (data->zoomed.x - dX + w < gfit->rx)
+				&& (data->zoomed.y - dY + h < gfit->ry)) {
 
 			com.selection.x = data->zoomed.x - dX;
 			com.selection.y = data->zoomed.y - dY;
@@ -642,7 +642,7 @@ mouse_function_metadata save_on_click_action = { save_on_click,
 
 	gboolean save_on_click(mouse_data *data) {
 	if (single_image_is_loaded() && com.uniq->fileexist) {
-		savefits(com.uniq->filename, &gfit);
+		savefits(com.uniq->filename, gfit);
 	} else {
 		start_in_new_thread(mouse_save_as, NULL);
 	}

@@ -131,8 +131,8 @@ static int satu_process_all() {
 	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
-	args->input = &gfit;
-	args->output = &gfit;
+	args->input = gfit;
+	args->output = gfit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
 	args->for_preview = TRUE;
@@ -153,7 +153,7 @@ static int satu_update_preview() {
 	set_cursor_waiting(TRUE);
 	if (satu_show_preview)
 		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
 
 	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);

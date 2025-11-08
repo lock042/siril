@@ -323,13 +323,13 @@ static gboolean end_pixel_math_operation(gpointer p) {
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
-		clearfits(&gfit);
+		clearfits(gfit);
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
 		invalidate_gfit_histogram();
 
-		memcpy(&gfit, args->fit, sizeof(fits));
-		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
+		memcpy(gfit, args->fit, sizeof(fits));
+		icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		gui_function(open_single_image_from_gfit, NULL);
@@ -480,7 +480,7 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 	if (!f[0] && single_image_is_loaded() )
 		// if no fit used (only constants),
 		// we copy the metadata from gfit
-		copy_fits_metadata(&gfit, fit);
+		copy_fits_metadata(gfit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
 	update_fits_header(fit);
@@ -489,11 +489,9 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 
 static gchar* parse_image_functions(gpointer p, int idx, int c) {
 	struct pixel_math_data *args = (struct pixel_math_data*) p;
-
 	gchar *expression;
 	gchar **image = args->varname;
 	int nb_images = args->nb_rows;
-
 	switch (idx) {
 	case 1:
 		expression = args->expression1;
@@ -510,113 +508,134 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 	if (!expression)
 		return expression;
 
+	gchar *result = g_strdup(expression);
 	GRegex *regex = g_regex_new("(\\w+)\\((\\w+)\\)", 0, 0, NULL);
-	GMatchInfo *match_info;
 
-	g_regex_match(regex, expression, 0, &match_info);
-	while (g_match_info_matches(match_info)) {
-		gchar *function = g_match_info_fetch(match_info, 1);
-		gchar *param = g_match_info_fetch(match_info, 2);
+	gboolean replaced = TRUE;
+	while (replaced) {
+		replaced = FALSE;
+		GMatchInfo *match_info;
+		g_regex_match(regex, result, 0, &match_info);
 
-		double median = 0.0, mean = 0.0, min = 0.0, max = 0.0, noise = 0.0, adev = 0.0, bwmv = 0.0, mad = 0.0, sdev = 0.0;
-		double w = 0.0, h = 0.0;
-		imstats *stats = NULL;
+		if (g_match_info_matches(match_info)) {
+			gchar *function = g_match_info_fetch(match_info, 1);
+			gchar *param = g_match_info_fetch(match_info, 2);
+			gchar *full_match = g_match_info_fetch(match_info, 0);
+			double median = 0.0, mean = 0.0, min = 0.0, max = 0.0, noise = 0.0, adev = 0.0, bwmv = 0.0, mad = 0.0, sdev = 0.0;
+			double w = 0.0, h = 0.0;
+			imstats *stats = NULL;
 
-		if (g_strcmp0(param, T_CURRENT) == 0) {
-			stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
-			if (!stats) return expression;
-
-			median = stats->median;
-			mean = stats->mean;
-			min = stats->min;
-			max = stats->max;
-			noise = stats->bgnoise;
-			adev = stats->avgDev;
-			bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
-			mad = stats->mad;
-			sdev = stats->sigma;
-
-			w = (double) gfit.rx;
-			h = (double) gfit.ry;
-
-			free_stats(stats);
-		} else {
-			for (int j = 0; j < nb_images; j++) {
-				if (g_strcmp0(param, image[j]) == 0) {
-					stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
-					if (!stats) return expression;
-
-					median = stats->median;
-					mean = stats->mean;
-					min = stats->min;
-					max = stats->max;
-					noise = stats->bgnoise;
-					adev = stats->avgDev;
-					bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
-					mad = stats->mad;
-					sdev = stats->sigma;
-
-					w = (double) var_fit[j].rx;
-					h = (double) var_fit[j].ry;
-
-					free_stats(stats);
+			if (g_strcmp0(param, T_CURRENT) == 0) {
+				stats = statistics(NULL, -1, gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
+				if (!stats) {
+					g_free(full_match);
+					g_free(function);
+					g_free(param);
+					g_match_info_free(match_info);
+					g_regex_unref(regex);
+					return result;
+				}
+				median = stats->median;
+				mean = stats->mean;
+				min = stats->min;
+				max = stats->max;
+				noise = stats->bgnoise;
+				adev = stats->avgDev;
+				bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+				mad = stats->mad;
+				sdev = stats->sigma;
+				w = (double) gfit->rx;
+				h = (double) gfit->ry;
+				free_stats(stats);
+			} else {
+				for (int j = 0; j < nb_images; j++) {
+					if (g_strcmp0(param, image[j]) == 0) {
+						stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
+						if (!stats) {
+							g_free(full_match);
+							g_free(function);
+							g_free(param);
+							g_match_info_free(match_info);
+							g_regex_unref(regex);
+							return result;
+						}
+						median = stats->median;
+						mean = stats->mean;
+						min = stats->min;
+						max = stats->max;
+						noise = stats->bgnoise;
+						adev = stats->avgDev;
+						bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+						mad = stats->mad;
+						sdev = stats->sigma;
+						w = (double) var_fit[j].rx;
+						h = (double) var_fit[j].ry;
+						free_stats(stats);
+						break;
+					}
 				}
 			}
+
+			gchar *replace = NULL;
+			if (!g_strcmp0(function, "mean")) {
+				replace = g_strdup_printf("%g", mean);
+			} else if (!g_strcmp0(function, "med") || !g_strcmp0(function, "median")) {
+				replace = g_strdup_printf("%g", median);
+			} else if (!g_strcmp0(function, "min")) {
+				replace = g_strdup_printf("%g", min);
+			} else if (!g_strcmp0(function, "max")) {
+				replace = g_strdup_printf("%g", max);
+			} else if (!g_strcmp0(function, "noise")) {
+				replace = g_strdup_printf("%g", noise);
+			} else if (!g_strcmp0(function, "adev")) {
+				replace = g_strdup_printf("%g", adev);
+			} else if (!g_strcmp0(function, "bwmv")) {
+				replace = g_strdup_printf("%g", bwmv);
+			} else if (!g_strcmp0(function, "mad") || !g_strcmp0(function, "mdev")) {
+				replace = g_strdup_printf("%g", mad);
+			} else if (!g_strcmp0(function, "sdev")) {
+				replace = g_strdup_printf("%g", sdev);
+			} else if (!g_strcmp0(function, "width") || !g_strcmp0(function, "w")) {
+				replace = g_strdup_printf("%g", w);
+			} else if (!g_strcmp0(function, "height") || !g_strcmp0(function, "h")) {
+				replace = g_strdup_printf("%g", h);
+			}
+
+			if (replace) {
+				gchar *temp = result;
+				// Replace the specific matched string with the calculated value
+				gchar **split = g_strsplit(result, full_match, 2);
+				if (split[0] && split[1]) {
+					result = g_strconcat(split[0], replace, split[1], NULL);
+				} else {
+					result = g_strdup(result);
+				}
+				g_strfreev(split);
+				g_free(temp);
+				g_free(replace);
+				replaced = TRUE;
+				siril_debug_print("Expression%d: %s\n", c, result);
+			}
+
+			g_free(full_match);
+			g_free(function);
+			g_free(param);
 		}
 
-		gchar *replace = NULL;
-		if (!g_strcmp0(function, "mean")) {
-			replace = g_strdup_printf("%g", mean);
-		} else if (!g_strcmp0(function, "med") || !g_strcmp0(function, "median")) {
-			replace = g_strdup_printf("%g", median);
-		} else if (!g_strcmp0(function, "min")) {
-			replace = g_strdup_printf("%g", min);
-		} else if (!g_strcmp0(function, "max")) {
-			replace = g_strdup_printf("%g", max);
-		} else if (!g_strcmp0(function, "noise")) {
-			replace = g_strdup_printf("%g", noise);
-		} else if (!g_strcmp0(function, "adev")) {
-			replace = g_strdup_printf("%g", adev);
-		} else if (!g_strcmp0(function, "bwmv")) {
-			replace = g_strdup_printf("%g", bwmv);
-		} else if (!g_strcmp0(function, "mad") || !g_strcmp0(function, "mdev")) {
-			replace = g_strdup_printf("%g", mad);
-		} else if (!g_strcmp0(function, "sdev")) {
-			replace = g_strdup_printf("%g", sdev);
-		} else if (!g_strcmp0(function, "width") || !g_strcmp0(function, "w")) {
-			replace = g_strdup_printf("%g", w);
-		} else if (!g_strcmp0(function, "height") || !g_strcmp0(function, "h")) {
-			replace = g_strdup_printf("%g", h);
-		}
-
-		if (replace) {
-#if GLIB_CHECK_VERSION(2, 74, 0)
-			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
-#else
-			// Use an alternative flag or no flag if G_REGEX_MATCH_DEFAULT is not available
-			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, 0, NULL);
-#endif
-			g_free(replace);
-			siril_debug_print("Expression%d: %s\n", c, expression);
-		}
-
-		g_free(function);
-		g_free(param);
-		g_match_info_next(match_info, NULL);
+		g_match_info_free(match_info);
 	}
 
-	g_match_info_free(match_info);
 	g_regex_unref(regex);
 
 	for (int j = 0; j < nb_images; j++) {
-		const gchar *test = g_strrstr(expression, image[j]);
+		const gchar *test = g_strrstr(result, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
-			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
+			siril_debug_print("found image name %s in the expression %s\n", image[j], result);
 		}
 	}
 
-	return expression;
+	return result;
 }
 
 gpointer apply_pixel_math_operation(gpointer p) {
@@ -703,9 +722,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			}
 		}
 		if (args->has_gfit && nb_rows == 0) {
-			width = gfit.naxes[0];
-			height = gfit.naxes[1];
-			nchan = gfit.naxes[2];
+			width = gfit->naxes[0];
+			height = gfit->naxes[1];
+			nchan = gfit->naxes[2];
 		} else {
 			width = var_fit[0].naxes[0];
 			height = var_fit[0].naxes[1];
@@ -723,10 +742,10 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					if (gfit.type == DATA_USHORT) {
-						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
+					if (gfit->type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit->data[px] / USHRT_MAX_DOUBLE;
 					} else {
-						x[nb_rows] = (double) gfit.fdata[px];
+						x[nb_rows] = (double) gfit->fdata[px];
 					}
 				}
 
@@ -765,10 +784,10 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					if (gfit.type == DATA_USHORT) {
-						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
+					if (gfit->type == DATA_USHORT) {
+						x[nb_rows] = gfit->data[px] / USHRT_MAX_DOUBLE;
 					} else {
-						x[nb_rows] = gfit.fdata[px];
+						x[nb_rows] = gfit->fdata[px];
 					}
 				}
 
@@ -845,8 +864,8 @@ failure: // failure before the eval loop
 	if (com.headless) {
 		// no display or threading needed
 		if (!failed) {
-			clearfits(&gfit);
-			memcpy(&gfit, args->fit, sizeof(fits));
+			clearfits(gfit);
+			memcpy(gfit, args->fit, sizeof(fits));
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
@@ -1075,7 +1094,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 			}
 		}
 		// Check channels are compatible
-		if (channel == - 1) {
+		if (channel == -1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
 			channel = var_fit[nb_rows].naxes[2];
@@ -1121,7 +1140,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
 
-	if (replace_t_with_gfit(args) && gfit.naxes[2] > 1) {
+	if (replace_t_with_gfit(args) && gfit->naxes[2] > 1) {
 		queue_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
 		retval = 1;
 		goto free_expressions;
@@ -1129,9 +1148,9 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	fits *fit = NULL;
 	if (args->has_gfit) { // in the case where no images are loaded, at least gfit must be laded
-		width = gfit.rx;
-		height = gfit.ry;
-		channel = args->single_rgb ? gfit.naxes[2] : 3;
+		width = gfit->rx;
+		height = gfit->ry;
+		channel = args->single_rgb ? gfit->naxes[2] : 3;
 		if (nb_rows > 0) {
 			if (width != var_fit[0].naxes[0] ||
 				height != var_fit[0].naxes[1]) {
