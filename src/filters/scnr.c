@@ -68,7 +68,7 @@ gpointer scnr(gpointer p) {
 	double invnorm = 1.0 / norm;
 	// If we aren't being run from a command or ROI previewing, set undo state
 	if (!com.script && !args->previewing)
-		undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
+		undo_save_state(gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
 				scnr_type_to_string(args->type), args->amount, args->preserve ? "true" : "false");
 
 	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
@@ -232,7 +232,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	// The fit to be operated on depends on if we are previewing with a ROI
 	// active or carrying out the final operation on gfit
-	args->fit = (args->previewing && gui.roi.active) ? &gui.roi.fit : &gfit;
+	args->fit = (args->previewing && gui.roi.active) ? &gui.roi.fit : gfit;
 	args->type = type;
 	args->amount = amount;
 	args->preserve = preserve;

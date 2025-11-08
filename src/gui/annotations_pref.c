@@ -113,7 +113,7 @@ void on_cellrendeur2_catalog_use_toggled(GtkCellRendererToggle *cell_renderer,
     indices = gtk_tree_path_get_indices(tree_path);
     if (indices) {
         com.pref.gui.catalog[indices[0]] = !value;
-		if (has_wcs(&gfit) && gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button")))) {
+		if (has_wcs(gfit) && gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button")))) {
 			refresh_annotation_visibility();
 			refresh_found_objects();
 			redraw(REDRAW_OVERLAY);

@@ -340,8 +340,8 @@ void initialize_default_settings() {
 }
 
 void update_gain_from_gfit() {
-	if (gfit.keywords.cvf > 0.0)
-		com.pref.phot_set.gain = gfit.keywords.cvf;
+	if (gfit->keywords.cvf > 0.0)
+		com.pref.phot_set.gain = gfit->keywords.cvf;
 }
 
 struct settings_access all_settings[] = {

@@ -59,7 +59,7 @@ static gboolean closing = FALSE;
 
 static gboolean do_channel[3];
 
-static fits *fit = &gfit;
+static fits *fit = NULL;
 
 // static float graph_height = 0.f;	// the max value of all bins
 static long clipped[] = {0, 0};
@@ -207,7 +207,7 @@ static void curves_startup() {
 	update_do_channel();
 	copy_gfit_to_backup();
 	// also get the display histogram
-	compute_histo_for_gfit();
+	compute_histo_for_fit(fit);
 	set_curves_toggles_names();
 	for (int i = 0; i < fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
@@ -224,10 +224,10 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (gfit.icc_profile)
-			cmsCloseProfile(gfit.icc_profile);
-		gfit.icc_profile = copyICCProfile(original_icc);
-		color_manage(&gfit, gfit.icc_profile != NULL);
+		if (gfit->icc_profile)
+			cmsCloseProfile(gfit->icc_profile);
+		gfit->icc_profile = copyICCProfile(original_icc);
+		color_manage(gfit, gfit->icc_profile != NULL);
 	}
 
 	clear_backup();
@@ -459,7 +459,7 @@ static void reset_cursors_and_values(gboolean full_reset) {
 }
 
 static int curves_update_preview() {
-	fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fit = gui.roi.active ? &gui.roi.fit : gfit;
 	if (!closing)
 		curves_recompute();
 	return 0;
@@ -482,7 +482,7 @@ static void set_histogram(gsl_histogram *histo, int layer) {
 void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
-		compute_histo_for_gfit();
+		compute_histo_for_fit(fit);
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 }
@@ -492,7 +492,7 @@ void update_gfit_curves_histogram_if_needed() {
 void curves_histogram_change_between_roi_and_image() {
 	// This should be called if the ROI is set, changed or cleared to ensure the
 	// curves dialog continues to process the right data.
-	fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fit = gui.roi.active ? &gui.roi.fit : gfit;
 
 	gui.roi.operation_supports_roi = TRUE;
 	curves_update_image();
@@ -527,11 +527,12 @@ void on_curves_display_toggle(GtkToggleButton *togglebutton, gpointer user_data)
 }
 
 void on_curves_window_show(GtkWidget *object, gpointer user_data) {
+	fit = gfit;
 	closing = FALSE;
 	curves_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
-	compute_histo_for_gfit();
+	compute_histo_for_fit(fit);
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -583,7 +584,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		apply_curve_to_sequence(args);
 	} else {
 		// the apply button resets everything after recomputing with the current values
-		fit = &gfit;
+		fit = gfit;
 		// janky undo preparation to account for ICC usage
 		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
 		fits undo_fit = {0};
@@ -694,9 +695,9 @@ void toggle_curves_window_visibility() {
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
-				original_icc = copyICCProfile(gfit.icc_profile);
+				original_icc = copyICCProfile(gfit->icc_profile);
 			}
-			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
 		} else {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);

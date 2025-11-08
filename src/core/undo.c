@@ -269,14 +269,14 @@ static int undo_get_data(fits *fit, historic *hist) {
 	fits_change_depth(fit, hist->nchans);
 
 	if (hist->type == DATA_USHORT) {
-		if (gfit.type != DATA_USHORT) {
+		if (gfit->type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 			gui_function(set_precision_switch, NULL);
 		}
 		return undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
-		if (gfit.type != DATA_FLOAT) {
+		if (gfit->type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 			gui_function(set_precision_switch, NULL);
@@ -330,22 +330,22 @@ int undo_display_data(int dir) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active && gfit.rx == com.history[com.hist_display - 1].rx
-					&& gfit.ry == com.history[com.hist_display - 1].ry
-					&& gfit.naxes[2] == com.history[com.hist_display - 1].nchans);
+			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display - 1].rx
+					&& gfit->ry == com.history[com.hist_display - 1].ry
+					&& gfit->naxes[2] == com.history[com.hist_display - 1].nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
 			siril_preview_hide();
 			on_clear_roi();
 			if (com.hist_current == com.hist_display) {
-				undo_save_state(&gfit, NULL);
+				undo_save_state(gfit, NULL);
 				com.hist_display--;
 			}
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
-			undo_get_data(&gfit, &com.history[com.hist_display]);
+			undo_get_data(gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
-			invalidate_stats_from_fit(&gfit);
+			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
 			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
@@ -367,7 +367,7 @@ int undo_display_data(int dir) {
 				memcpy(&com.selection, &roi_rect, sizeof(rectangle));
 				on_set_roi();
 			}
-			update_fits_header(&gfit);
+			update_fits_header(gfit);
 		}
 		break;
 	case REDO:
@@ -375,18 +375,18 @@ int undo_display_data(int dir) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active && gfit.rx == com.history[com.hist_display + 1].rx
-					&& gfit.ry == com.history[com.hist_display + 1].ry
-					&& gfit.naxes[2] == com.history[com.hist_display + 1].nchans);
+			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display + 1].rx
+					&& gfit->ry == com.history[com.hist_display + 1].ry
+					&& gfit->naxes[2] == com.history[com.hist_display + 1].nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
 			on_clear_roi();
 			siril_preview_hide();
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
-			undo_get_data(&gfit, &com.history[com.hist_display]);
+			undo_get_data(gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
-			invalidate_stats_from_fit(&gfit);
+			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
 			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
@@ -403,7 +403,7 @@ int undo_display_data(int dir) {
 				memcpy(&gui.roi.selection, &roi_rect, sizeof(rectangle));
 				on_set_roi();
 			}
-			update_fits_header(&gfit);
+			update_fits_header(gfit);
 		}
 		break;
 	default:

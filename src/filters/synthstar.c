@@ -316,7 +316,7 @@ int starcount(psf_star **stars) {
 gpointer fix_saturated_stars(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
-	reprofile_saturated_stars(&gfit);
+	reprofile_saturated_stars(gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
@@ -324,7 +324,7 @@ gpointer fix_saturated_stars(gpointer data) {
 gpointer do_synthstar(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
-	generate_synthstars(&gfit);
+	generate_synthstars(gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
@@ -636,7 +636,7 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == &gfit && !stopcalled)
+	if (fit == gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
@@ -822,7 +822,7 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == &gfit && !stopcalled)
+	if (fit == gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");

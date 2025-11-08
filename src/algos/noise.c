@@ -114,7 +114,7 @@ void evaluate_noise_in_image() {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct noise_data *args = calloc(1, sizeof(struct noise_data));
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->use_idle = TRUE;
 	args->display_results = TRUE;
 	args->display_start_end = TRUE;

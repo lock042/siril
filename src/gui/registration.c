@@ -448,7 +448,7 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
 		psf_error error = PSF_NO_ERR;
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+		result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h) && error != PSF_NO_ERR) { // we check result is inside the selection box
 			siril_log_color_message(_("Comet PSF center is out of the box, will use selection center instead\n"), "salmon");
 			free_psf(result);
@@ -472,12 +472,12 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 			pos_of_image1 = pos;
 		else
 			pos_of_image2 = pos;
-		if (!gfit.keywords.date_obs) {
+		if (!gfit->keywords.date_obs) {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("There is no timestamp stored in the file"),
 					_("Siril cannot perform the registration without date information in the file."));
 		} else {
-			GDateTime *time = g_date_time_ref(gfit.keywords.date_obs);
+			GDateTime *time = g_date_time_ref(gfit->keywords.date_obs);
 			if (!time) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("Unable to convert DATE-OBS to a valid date"),
@@ -761,7 +761,7 @@ static gboolean check_disto(disto_source index) {
 	gchar *label = NULL;
 	gchar *tooltip = NULL;
 	const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
-	gboolean status =  validate_disto_params(&gfit, text, index, &tooltip, &label);
+	gboolean status =  validate_disto_params(gfit, text, index, &tooltip, &label);
 	if (!status) {
 		gtk_label_set_text(labelregisterinfo, label);
 		gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), tooltip);
@@ -845,8 +845,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* drizzle is selected */
 	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 	/* must enforce drizzle/interp */
-	must_have_drizzle = has_output && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
-	must_have_interp  = has_output && gfit.naxes[2] == 3;
+	must_have_drizzle = has_output && gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0';
+	must_have_interp  = has_output && gfit->naxes[2] == 3;
 
 
 	/* initialize default */
@@ -916,15 +916,15 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// TODO: we can't force drizzle as we do for debayer because here, we rely on the header having a bayer_pattern keyword
 	// This would need either to add a force bayer button in the registration tab (ugly)
 	// or direct the user to correcting the bayer pattern in the images headers (prefered)
-	if (fit_is_cfa(&gfit) && gfit.keywords.bayer_pattern[0] != '\0') {
-		pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
+	if (fit_is_cfa(gfit) && gfit->keywords.bayer_pattern[0] != '\0') {
+		pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
 	}
 
 	// checking bayer status is ok
 	check_bayer_ok = !has_output || //if no output, we don't need to check
-					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
-					 (gfit.naxes[2] == 1 && has_drizzle && pattern >= BAYER_FILTER_MIN) || // bayer-drizzle sequence
-					 gfit.naxes[2] == 3 || // debayered sequence
+					 (gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] == '\0') || // mono sequence
+					 (gfit->naxes[2] == 1 && has_drizzle && pattern >= BAYER_FILTER_MIN) || // bayer-drizzle sequence
+					 gfit->naxes[2] == 3 || // debayered sequence
 					 com.seq.type == SEQ_SER;// SER can be debayered on-the-fly
 
 	// checking if it requires same size sequence
@@ -950,7 +950,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
-		} else if (fit_is_cfa(&gfit) && (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN)) {
+		} else if (fit_is_cfa(gfit) && (pattern > BAYER_FILTER_MAX || pattern < BAYER_FILTER_MIN)) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 		} else if (!check_bayer_ok) {
@@ -969,7 +969,7 @@ static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
-	driz->is_bayer = fit_is_cfa(&gfit);
+	driz->is_bayer = fit_is_cfa(gfit);
 	int status;
 	gchar *error = NULL;
 	gchar *expression = NULL;
