@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -57,6 +57,7 @@ parsed_code locale_str[] = {
 	{"tl_PH", "Tagalog"},
 	{"uk", "Українська"},
 	{"zh_CN", "汉语"},
+	{"zh_TW", "正體中文"},
 	{NULL, NULL}
 };
 
@@ -178,14 +179,16 @@ void language_init(const gchar *language) {
 	if ((!language) || (language[0] == '\0'))
 		return;
 
+	g_mutex_lock(&com.env_mutex);
 	/* This is default language */
 	if (!g_ascii_strcasecmp(language, "en")) {
-		if (g_setenv("LANGUAGE", "C", TRUE))
+		if (!g_setenv("LANGUAGE", "C", TRUE))
 			siril_debug_print("Error setting LANGUAGE to C\n");
 	} else {
-		if (g_setenv("LANGUAGE", language, TRUE))
+		if (!g_setenv("LANGUAGE", language, TRUE))
 			siril_debug_print("Error setting LANGUAGE\n");
 	}
+	g_mutex_unlock(&com.env_mutex);
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
 }

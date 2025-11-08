@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,9 @@
 #define SRC_GUI_SIRIL_PLOT_H_
 
 #include "core/siril.h"
-
+#include "io/siril_plot.h"
 gboolean create_new_siril_plot_window(gpointer p);
+gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
+gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height);
 
 #endif /* SRC_GUI_PLOT_H_ */

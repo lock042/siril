@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -47,7 +47,6 @@
 #include "gui/siril_plot.h"
 #include "gui/progress_and_log.h"
 #include "gui/photometric_cc.h"
-#include "registration/matching/misc.h" // for catalogue parsing helpers
 #include "photometric_cc.h"
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
@@ -143,9 +142,9 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit) {
 	/* make a selection around the star, coordinates are in display reference frame */
-	double fx = star.x, fy = star.y;
+	double fx = star->x, fy = star->y;
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
@@ -200,15 +199,94 @@ int filtermaskArrays(double *x, double *y, gboolean *mask, int n) {
 	return newSize;
 }
 
+// Typical wavelength ranges for broadband filters (in nm)
+#define RED_MIN 580.0
+#define RED_MAX 700.0
+#define BLUE_MIN 400.0
+#define BLUE_MAX 525.0  // Extended a bit from a more typical 500.0 to include OIII/Hbeta region
+
+// Tolerance for considering two wavelengths "the same"
+#define WAVELENGTH_TOLERANCE 1.0  // nm
+
+typedef enum {
+	FILTER_RED,
+	FILTER_BLUE,
+	FILTER_GREEN,  // Between blue and red
+	FILTER_OTHER   // Outside typical visible range
+} FilterType;
+
+FilterType classify_wavelength(double wavelength) {
+	if (wavelength >= RED_MIN && wavelength <= RED_MAX) {
+		return FILTER_RED;
+	} else if (wavelength >= BLUE_MIN && wavelength <= BLUE_MAX) {
+		return FILTER_BLUE;
+	} else if (wavelength > BLUE_MAX && wavelength < RED_MIN) {
+		return FILTER_GREEN;
+	} else {
+		return FILTER_OTHER;
+	}
+}
+
+gboolean wavelengths_match(double w1, double w2) {
+	return fabs(w1 - w2) <= WAVELENGTH_TOLERANCE;
+}
+
+gboolean should_plot(int layer, struct photometric_cc_data *args) {
+	FilterType target_filter_type;
+
+	// Determine which filter type we're checking for based on layer
+	if (layer == RLAYER) {
+		target_filter_type = FILTER_RED;
+	} else if (layer == BLAYER) {
+		target_filter_type = FILTER_BLUE;
+	} else {
+		// Invalid layer, return TRUE (allow plotting)
+		return TRUE;
+	}
+
+	// Count how many filters match the target type and check for duplicates
+	int matching_filters = 0;
+	double matching_wavelengths[3];
+
+	// First pass: identify all filters that match the target type
+	for (int i = 0; i < 3; i++) {
+		FilterType current_type = classify_wavelength(args->nb_center[i]);
+		if (current_type == target_filter_type) {
+			matching_wavelengths[matching_filters] = args->nb_center[i];
+			matching_filters++;
+		}
+	}
+
+	// If we have less than 2 matching filters, no duplicates possible
+	if (matching_filters < 2) {
+		return TRUE;
+	}
+
+	// Second pass: check for duplicates among the matching filters
+	for (int i = 0; i < matching_filters; i++) {
+		for (int j = i + 1; j < matching_filters; j++) {
+			if (wavelengths_match(matching_wavelengths[i], matching_wavelengths[j])) {
+				// Found duplicate filters in the target layer
+				return FALSE;
+			}
+		}
+	}
+
+	// No duplicates found
+	return TRUE;
+}
+
 static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float* kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
-	pcc_star *stars = args->stars;
+	cat_item *stars = args->ref_stars->cat_items;
 	double *irg = malloc(sizeof(double) * nb_stars);
 	double *ibg = malloc(sizeof(double) * nb_stars);
 	double *crg = malloc(sizeof(double) * nb_stars);
 	double *cbg = malloc(sizeof(double) * nb_stars);
 	double wrg = 0.f, wbg = 0.f;
+	gboolean plotrg = args->nb_mode ? should_plot(RLAYER, args) : TRUE;
+	gboolean plotbg = args->nb_mode ? should_plot(BLAYER, args) : TRUE;
 	gboolean *maskrg = NULL, *maskbg = NULL;
 	xpsampled response[3] = { init_xpsampled(), init_xpsampled(), init_xpsampled() };
 
@@ -245,26 +323,32 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		if (!get_thread_run())
 			continue;
 		rectangle area = { 0 };
-
-		// Calculate image flux ratios
 		double flux[3] = { 0.0, 0.0, 0.0 };
+
+		// Update the progress bar
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
+		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
+		if (make_selection_around_a_star(&stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
 		}
 
+		// Do photometry on each channel of the ith star; we compute the flux
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
-			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
+			// Photometry
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR) {
 				no_phot = TRUE;
-			else flux[chan] = pow(10., -0.4 * photometry->mag);
+			} else {
+				// Flux calculation
+				flux[chan] = pow(10., -0.4 * photometry->mag);
+			}
 			if (photometry)
 				free_psf(photometry);
 		}
@@ -273,21 +357,41 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
 			continue;
 		}
+
+		// Compute the image red/green rations from the ratios of r/b flux and b/g flux
 		irg[i] = flux[RLAYER]/flux[GLAYER];
 		ibg[i] = flux[BLAYER]/flux[GLAYER];
 
-		// Calculate catalogue flux ratios
+		// Get the Gaia DR3 xp_sampled spectrum from the downloaded datalink product
 		double ref_flux[3];
 		xpsampled star_spectrum = init_xpsampled();
-		get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+//		switch (args->catalog) {
+//			case CAT_GAIADR3_DIRECT:;
+//			// Get the xp_sampled data from the datalink path
+//				get_xpsampled(&star_spectrum, args->datalink_path, stars[i].index);
+//				break;
+//			case CAT_LOCAL_GAIA_XPSAMP:
+//			default:;
+//				memcpy(&star_spectrum.y, stars[i].flux, XPSAMPLED_LEN * sizeof(double));
+		//				break;
+//		}
+		memcpy(&star_spectrum.y, stars[i].xp_sampled, XPSAMPLED_LEN * sizeof(double));
 
+		// Convert flux to relative photon count normalized at 550nm
+		flux_to_relcount(&star_spectrum);
+
+		// Compute the expected response (product of catalogue flux and instrument response)
 		xpsampled flux_expected = init_xpsampled();
 		for (int chan = 0 ; chan < 3 ; chan++) {
 			multiply_xpsampled(&flux_expected, &response[chan], &star_spectrum);
 			ref_flux[chan] = integrate_xpsampled(&flux_expected, minwl[chan], maxwl[chan]);
 		}
+
+		// Compute the catalogue r/g and b/g ratios
 		crg[i] = ref_flux[RLAYER]/ref_flux[GLAYER];
 		cbg[i] = ref_flux[BLAYER]/ref_flux[GLAYER];
+
+		// Remove any results with NaNs
 		if (xisnanf(irg[i]) || xisnanf(ibg[i]) || xisnanf(crg[i]) || xisnanf(cbg[i])) {
 			siril_debug_print("flux ratio NAN for star %d\n", i);
 			irg[i] = DBL_MAX;
@@ -356,7 +460,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		return 1;
 	}
 	maskrg = calloc(ngood, sizeof(gboolean));
-	if (robust_linear_fit(crg, irg, ngood, &arg, &brg, &deviation[0], maskrg)) {
+	if (repeated_median_fit(crg, irg, ngood, &arg, &brg, &deviation[0], maskrg)) {
 		free(irg);
 		free(ibg);
 		free(crg);
@@ -367,7 +471,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		return 1;
 	}
 	maskbg = calloc(ngood, sizeof(gboolean));
-	if (robust_linear_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1], maskbg)) {
+	if (repeated_median_fit(cbg, ibg, ngood, &abg, &bbg, &deviation[1], maskbg)) {
 		free(irg);
 		free(ibg);
 		free(crg);
@@ -391,56 +495,59 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 	if (args->do_plot) {
 		double stat_min, stat_max;
-		int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
-		gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
-		double best_fit_rgx[2] = {stat_min, stat_max};
-		double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
-		siril_plot_data *spl_datarg = NULL;
 		spcc_object *object = (spcc_object*) selected_white->data;
+		if (plotrg) {
+			int ngoodrg = filtermaskArrays(crg, irg, maskrg, ngood);
+			gsl_stats_minmax(&stat_min, &stat_max, crg, 1, ngoodrg);
+			double best_fit_rgx[2] = {stat_min, stat_max};
+			double best_fit_rgy[2] = {arg + brg * best_fit_rgx[0], arg + brg * best_fit_rgx[1]};
 
-		gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
-		spl_datarg = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_datarg);
-		siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
-		siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
-		siril_plot_set_title(spl_datarg, title1);
-		siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
-		siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
-		siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_datarg, "%.1lf");
-		g_free(title1);
+			siril_plot_data *spl_datarg = init_siril_plot_data();
+			if (spl_datarg) {
+				siril_plot_set_xlabel(spl_datarg, _("Catalog R/G (flux)"));
+				siril_plot_set_savename(spl_datarg, "SPCC_RG_fit");
+				gchar *title1 = generate_title("R/G", arg, brg, deviation[0], object->name, ngoodrg, ngood - ngoodrg, kw);
+				siril_plot_set_title(spl_datarg, title1);
+				g_free(title1);
+				siril_plot_set_ylabel(spl_datarg, _("Image R/G (flux)"));
+				siril_plot_add_xydata(spl_datarg, _("R/G"), ngoodrg, crg, irg, NULL, NULL);
+				siril_plot_add_xydata(spl_datarg, _("Best fit"), 2, best_fit_rgx, best_fit_rgy, NULL, NULL);
+				siril_plot_set_nth_plot_type(spl_datarg, 1, KPLOT_POINTS);
+				siril_plot_set_nth_plot_type(spl_datarg, 2, KPLOT_LINES);
+				siril_plot_set_yfmt(spl_datarg, "%.1lf");
+				spl_datarg->cfgdata.point.radius = 1;
+				spl_datarg->cfgdata.point.sz = 2;
+				spl_datarg->cfgdata.line.sz = 2;
+				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+			}
+		}
 
-		int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
-		gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
-		gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
-		double best_fit_bgx[2] = {stat_min, stat_max};
-		double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
-		siril_plot_data *spl_databg = NULL;
-		spl_databg = malloc(sizeof(siril_plot_data));
-		init_siril_plot_data(spl_databg);
-		siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
-		siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
-		siril_plot_set_title(spl_databg, title2);
-		siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
-		gchar *spl_legendbg = _("B/G");
-		siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
-		siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
-		siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
-		siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
-		siril_plot_set_yfmt(spl_databg, "%.1lf");
-		g_free(title2);
+		if (plotbg) {
+			int ngoodbg = filtermaskArrays(cbg, ibg, maskbg, ngood);
+			gsl_stats_minmax(&stat_min, &stat_max, cbg, 1, ngoodbg);
+			double best_fit_bgx[2] = {stat_min, stat_max};
+			double best_fit_bgy[2] = {abg + bbg * best_fit_bgx[0], abg + bbg * best_fit_bgx[1]};
+			siril_plot_data *spl_databg = init_siril_plot_data();
+			if (spl_databg) {
+				siril_plot_set_xlabel(spl_databg, _("Catalog B/G (flux)"));
+				siril_plot_set_savename(spl_databg, "SPCC_BG_fit");
+				gchar *title2 = generate_title("B/G", abg, bbg, deviation[1], object->name, ngoodbg, ngood - ngoodbg, kw);
+				siril_plot_set_title(spl_databg, title2);
+				g_free(title2);
+				siril_plot_set_ylabel(spl_databg, _("Image B/G (flux)"));
+				gchar *spl_legendbg = _("B/G");
+				siril_plot_add_xydata(spl_databg, spl_legendbg, ngoodbg, cbg, ibg, NULL, NULL);
+				siril_plot_add_xydata(spl_databg, _("Best fit"), 2, best_fit_bgx, best_fit_bgy, NULL, NULL);
+				siril_plot_set_nth_plot_type(spl_databg, 1, KPLOT_POINTS);
+				siril_plot_set_nth_plot_type(spl_databg, 2, KPLOT_LINES);
+				siril_plot_set_yfmt(spl_databg, "%.1lf");
+				spl_databg->cfgdata.point.radius = 1;
+				spl_databg->cfgdata.point.sz = 2;
+				spl_databg->cfgdata.line.sz = 2;
+				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+			}
+		}
 
-		spl_datarg->cfgdata.point.radius = 1;
-		spl_datarg->cfgdata.point.sz = 2;
-		spl_databg->cfgdata.point.radius = 1;
-		spl_databg->cfgdata.point.sz = 2;
-		spl_datarg->cfgdata.line.sz = 2;
-		spl_databg->cfgdata.line.sz = 2;
-
-		siril_add_idle(create_new_siril_plot_window, spl_datarg);
-		siril_add_idle(create_new_siril_plot_window, spl_databg);
 		siril_add_idle(end_generic, NULL);
 	}
 	free(irg);
@@ -469,7 +576,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float *kw) {
 	int nb_stars = args->nb_stars;
 	fits *fit = args->fit;
-	pcc_star *stars = args->stars;
+	cat_item *stars = args->ref_stars->cat_items;
 	float *data[3];
 	data[RLAYER] = malloc(sizeof(float) * nb_stars);
 	data[GLAYER] = malloc(sizeof(float) * nb_stars);
@@ -542,7 +649,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -551,7 +658,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, FALSE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
 			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
@@ -564,10 +671,12 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			continue;
 		}
 		// get r g b coefficient
-		// If the Gaia Teff field is populated (CAT_GAIADR3 and
+		// If the Gaia Teff field is populated (CAT_GAIADR3, CAT_LOCAL_GAIA_ASTRO and
 		// CAT_GAIADR3_DIRECT), use that as it should be more accurate.
 		// Otherwise, we convert from Johnson B-V
-		if (stars[i].teff == 0.f) {
+		// Note, with CAT_LOCAL_GAIA_ASTRO we have already excluded stars without Teff
+		// in get_raw_stars_from_local_gaia_astro_catalogue()
+		if (stars[i].teff < 0.5f) {
 			bv = min(max(stars[i].BV, -0.4f), 2.f);
 			cmsFloat64Number TempK = BV_to_T(bv);
 			stars[i].teff = (float) TempK;
@@ -819,11 +928,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	pcc_star *stars = NULL;
 	int nb_stars = 0;
-	gboolean image_is_gfit = args->fit == &gfit;
+	gboolean image_is_gfit = args->fit == gfit;
 
-	uint64_t sqr_radius = ((uint64_t) gfit.rx * (uint64_t) gfit.rx + (uint64_t) gfit.ry * (uint64_t) gfit.ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) gfit->rx * (uint64_t) gfit->rx + (uint64_t) gfit->ry * (uint64_t) gfit->ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
 		args->magnitude_arg : compute_mag_limit_from_position_and_fov(ra, dec, radius * 2.0, BRIGHTEST_STARS * 2); // factor 2 on brightest_stars to account for the fact not all stars will be within image
@@ -831,8 +939,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 		mag += args->magnitude_arg;
 
 	int retval = 0;
-	if (args->catalog == CAT_LOCAL) {
-		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
+	if (args->catalog == CAT_LOCAL_KSTARS || args->catalog == CAT_LOCAL_GAIA_ASTRO || args->catalog == CAT_LOCAL_GAIA_XPSAMP) {
+		siril_log_message(_("Getting stars from local catalogue %s for %s, with a radius of %.2f degrees and limit magnitude %.2f\n"), catalog_to_str(args->catalog), args->spcc ? _("SPCC") : _("PCC"), radius * 2.0,  mag);
 	} else {
 		switch (args->catalog) {
 			case CAT_GAIADR3:
@@ -860,31 +968,42 @@ gpointer photometric_cc_standalone(gpointer p) {
 	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
 
 	/* Fetching the catalog*/
-	if (args->spcc) {
+	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
 		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
+		if (args->datalink_path == NULL) {
+			retval = 1;
+		} else {
+			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
+				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
+				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
+			}
+		}
 	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
+	// At this point siril_cat contains an array of cat_items (with with xp_sampled populated if doing SPCC)
+	nb_stars = siril_cat->nbitems;
+
 	/* project using WCS */
 	siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, FALSE);
-	stars = convert_siril_cat_to_pcc_stars(siril_cat, &nb_stars);
 	retval |= nb_stars == 0;
 
-	siril_catalog_free(siril_cat);
 	gboolean spcc = args->spcc; // Needed for the success message after args has been freed in photometric_cc()
 	if (!retval) {
 		if (!com.script) {
 			const gchar *algo = args->spcc ? _("SPCC") : _("PCC");
 			undo_save_state(args->fit, _("Photometric CC (algorithm: %s)"), algo);
 		}
-		args->stars = stars;
+		args->ref_stars = siril_cat;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here
 	} else {
+		free(args);
 		siril_log_color_message(_("Catalog error, no stars identified!\n"), "red");
 	}
-	free(stars);
 	args = NULL;
+	siril_catalog_free(siril_cat);
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
@@ -897,43 +1016,4 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
-}
-
-// TODO: remove pcc_star?
-// This interface enables for now to use new catalogues and pcc_star where required
-pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstars) {
-	*nbstars = 0;
-
-	if (!siril_cat || !siril_cat->nbincluded)
-		return NULL;
-	if (siril_cat->projected == CAT_PROJ_NONE) {
-		siril_debug_print("Catalog has not been projected\n");
-	}
-	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
-		return NULL;
-	pcc_star *results = malloc(siril_cat->nbitems * sizeof(pcc_star));
-
-	int n = 0;
-	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (n > siril_cat->nbincluded) {
-			siril_debug_print("problem when converting siril_cat to pcc_stars, more than allocated\n");
-			break;
-		}
-		if (siril_cat->cat_items[i].included) {
-			results[n].x = siril_cat->cat_items[i].x;
-			results[n].y = siril_cat->cat_items[i].y;
-			results[n].mag = siril_cat->cat_items[i].mag;
-			results[n].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag; // check for valid values was done at catalog readout
-			results[n].teff = siril_cat->cat_items[i].teff; // Gaia Teff / K, computed from the sampled spectrum (better than from B-V)
-			results[n].index = i; // For matching the right HDU in the Datalink query, in case of excluded stars
-			n++;
-		}
-	}
-	if (n != siril_cat->nbincluded) {
-		siril_debug_print("problem when converting siril_cat to pcc_stars, number differs from catalogue info");
-		free(results);
-		return NULL;
-	}
-	*nbstars = n;
-	return results;
 }

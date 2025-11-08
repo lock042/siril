@@ -139,6 +139,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="default-width">1</property>
     <property name="default-height">1</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
@@ -482,7 +483,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                       <object class="GtkToolButton" id="histoToolAutoStretch">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Apply autostretch algorithm to image</property>
+                        <property name="tooltip-text" translatable="yes">Preview autostretch algorithm on the image. Due to peculiarities of colour management, once this is clicked the sliders and value entry widgets will become insensitive until either Reset or Apply is clicked. Further tweaks can be made by clicking Apply and then making a second stretch,</property>
                         <property name="use-underline">True</property>
                         <property name="icon-widget">mtf</property>
                         <signal name="clicked" handler="on_histoToolAutoStretch_clicked" swapped="no"/>
@@ -590,7 +591,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="hexpand">True</property>
                             <property name="has-frame">False</property>
                             <property name="width-chars">10</property>
-                            <property name="text" translatable="yes">0.0000000</property>
+                            <property name="text">0.0000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoShadEntry_activate" swapped="no"/>
                             <signal name="focus-out-event" handler="on_histoShadEntry_focus_out_event" swapped="no"/>
@@ -740,24 +741,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkCheckButton" id="HistoCheckPreview">
-                        <property name="label" translatable="yes">Preview</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
-                        <property name="halign">start</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -775,11 +758,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-markup" translatable="yes">Select blend mode.
-Clip: clips values to the range 0.0 - 1.0
+Clip: clips values to the range 0.0 - 1.0. &lt;b&gt;Default&lt;/b&gt;
 Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel
-RGB blend: applies a blending function for smooth reconstructed highlight colors. &lt;b&gt;Default&lt;/b&gt;
-Globa rescale: Same as Rescale, but rescales to the global maximum component value</property>
-                        <property name="active">2</property>
+RGB blend: applies a blending function for smooth reconstructed highlight colors.
+Global rescale: Same as Rescale, but rescales to the global maximum component value
+
+Clip is fastest: set one of the other modes when you're happy with your stretch if you notice colour artefacts around bright stars.</property>
+                        <property name="active">0</property>
                         <items>
                           <item translatable="yes">Clip</item>
                           <item translatable="yes">Rescale</item>
@@ -799,6 +784,24 @@ Globa rescale: Same as Rescale, but rescales to the global maximum component val
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">5</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="HistoCheckPreview">
+                    <property name="label" translatable="yes">Preview</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
+                    <property name="halign">start</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
               </object>

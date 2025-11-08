@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,9 +26,9 @@
 #include "core/siril_language.h"
 #include "core/settings.h"
 #include "core/siril_log.h"
-#include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "io/annotation_catalogues.h"
+#include "io/siril_pythonmodule.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
 #include "gui/icc_profile.h"
@@ -39,16 +39,15 @@
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
+#include "gui/python_gui.h"
 #include "gui/registration.h"
 #include "gui/siril_intro.h"
-#include "gui/fix_xtrans_af.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "stacking/stacking.h"
 #include "io/siril_git.h"
 
 #include "preferences.h"
-#include "filters/graxpert.h"
 #include "filters/starnet.h"
 
 #ifndef W_OK
@@ -59,7 +58,6 @@ static gchar *sw_dir = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
 static gboolean update_custom_gamut = FALSE;
-static gboolean graxpert_changed = FALSE;
 void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
@@ -83,7 +81,7 @@ static void reset_swapdir() {
 
 static void update_debayer_preferences() {
 	com.pref.debayer.use_bayer_header = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")));
-	com.pref.debayer.top_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")));
+	com.pref.debayer.orientation = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_roworder")));
 	com.pref.debayer.xbayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")));
 	com.pref.debayer.ybayeroff = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")));
 	com.pref.debayer.bayer_pattern = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboBayer_pattern")));
@@ -115,6 +113,16 @@ static void update_astrometry_preferences() {
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[3]);
 		com.pref.catalogue_paths[3] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[4]);
+		com.pref.catalogue_paths[4] = newpath;
+	}
+	newpath = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6")));
+	if (newpath && newpath[0] != '\0') {
+		g_free(com.pref.catalogue_paths[5]);
+		com.pref.catalogue_paths[5] = newpath;
 	}
 
 	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
@@ -226,8 +234,9 @@ static void update_scripts_preferences() {
 	if (com.pref.gui.script_path)
 		g_slist_free_full(g_steal_pointer(&com.pref.gui.script_path), g_free);
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
-	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
+	com.pref.gui.warn_scripts_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
+	com.pref.drizz_weight_match_bitpix = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_match_drizzweight_bitpix")));
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
 	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
@@ -235,7 +244,7 @@ static void update_scripts_preferences() {
 	com.pref.spcc.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
 #else
 	com.pref.use_scripts_repository = FALSE;
-	com.pref.use_spcc_repository = FALSE;
+	com.pref.spcc.use_spcc_repository = FALSE;
 #endif
 }
 
@@ -250,11 +259,28 @@ static void update_user_interface_preferences() {
 	com.pref.gui.icon_symbolic = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_iconstyle")));
 	com.pref.gui.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
 	com.pref.gui.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
-	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
+	int selected_index = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")));
+
+	switch (selected_index) {
+	    case 0:
+	        com.pref.gui.thumbnail_size = 128; // First option (index 0)
+	        break;
+	    case 1:
+	        com.pref.gui.thumbnail_size = 256; // Second option (index 1)
+	        break;
+	    case 2:
+	        com.pref.gui.thumbnail_size = 512; // Third option (index 2)
+	        break;
+	    default:
+	        com.pref.gui.thumbnail_size = 128; // Default value in case of an unexpected index
+	        break;
+	}
+
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
 	com.pref.gui.mmb_action = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")));
+	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
 	update_roi_config();
 	/* Configure colors */
 	GdkRGBA color;
@@ -370,7 +396,7 @@ static void update_performances_preferences() {
 	com.pref.fftw_conf.multithreaded = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")));
 	com.pref.fftw_conf.fft_cutoff = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")));
 	int max_slice_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")));
-	com.pref.max_slice_size = max_slice_size == 0 ? -1 : 1 << (max_slice_size + 7);
+	com.pref.max_slice_size = max_slice_size == 0 ? 32769 : 1 << (max_slice_size + 8);
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
 }
@@ -386,6 +412,10 @@ static void update_misc_preferences() {
 	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
 	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
 	com.pref.graxpert_path = gtk_file_chooser_get_filename(graxpert_exe);
+#ifdef OS_OSX
+	if (g_str_has_suffix(com.pref.graxpert_path, ".app"))
+		str_append(&com.pref.graxpert_path, "/Contents/MacOS/GraXpert");
+#endif
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -395,17 +425,6 @@ static void update_misc_preferences() {
 
 	com.pref.check_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")));
 	com.pref.gui.enable_roi_warning = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscHideInfoROI"))) ? FALSE : TRUE;
-}
-
-void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_data) {
-	gboolean active = !gtk_toggle_button_get_active(button);
-	GtkWidget *combo = lookup_widget("comboBayer_pattern");
-	GtkWidget *spin1 = lookup_widget("xbayeroff_spin");
-	GtkWidget *spin2 = lookup_widget("ybayeroff_spin");
-
-	gtk_widget_set_sensitive(combo, active);
-	gtk_widget_set_sensitive(spin1, active);
-	gtk_widget_set_sensitive(spin2, active);
 }
 
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -427,6 +446,17 @@ void initialize_path_directory(const gchar *path) {
 
 void initialize_graxpert_executable(gchar *path) {
 	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
+#ifdef OS_OSX
+	const gchar *suffix = "/Contents/MacOS/GraXpert";
+	if (path && g_str_has_suffix(path, suffix)) {
+		gsize len = strlen(path) - strlen(suffix);
+		gchar *new_path = g_strndup(path, len);
+		gtk_file_chooser_set_filename(graxpert_exe, new_path);
+		g_free(new_path);
+		return;
+	}
+#endif
+
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (graxpert_exe, path);
 	}
@@ -601,12 +631,7 @@ void on_play_introduction_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_reload_script_button_clicked(GtkButton *button, gpointer user_data) {
-	gchar *error;
-	int retval = refresh_scripts(FALSE, &error);
-
-	if (retval) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot refresh script list"), error);
-	}
+	g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
 }
 
 void on_check_button_pref_bias_bis_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -642,7 +667,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboBayer_inter")), pref->debayer.bayer_inter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xbayeroff_spin")), pref->debayer.xbayeroff);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("ybayeroff_spin")), pref->debayer.ybayeroff);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_debayer_compatibility")), pref->debayer.top_down);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_roworder")),  pref->debayer.orientation);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("xtranspass_spin")), pref->debayer.xtrans_passes);
 
 	/* tab FITS Options */
@@ -679,6 +704,14 @@ void update_preferences_from_model() {
 	if (pref->catalogue_paths[3] && (g_file_test(pref->catalogue_paths[3], G_FILE_TEST_EXISTS))) {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
+	}
+	if (pref->catalogue_paths[4] && (g_file_test(pref->catalogue_paths[4], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[4]);
+	}
+	if (pref->catalogue_paths[5] && (g_file_test(pref->catalogue_paths[5], G_FILE_TEST_EXISTS))) {
+		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6"));
+		gtk_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")), pref->astrometry.percent_scale_range);
@@ -761,11 +794,12 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_iconstyle")), pref->gui.icon_symbolic);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")), pref->gui.remember_windows);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 512 ? 2 : (pref->gui.thumbnail_size == 256 ? 1 : 0));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")), pref->gui.mmb_action);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")), pref->gui.mouse_speed_limit);
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);
@@ -834,7 +868,7 @@ void update_preferences_from_model() {
 
 	/* tab Scripts */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_scripts_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
@@ -859,7 +893,8 @@ void update_preferences_from_model() {
 			max_slice_size++;
 		}
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size <= 0 ? 0 : max_slice_size - 7);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size > 32768 || pref->max_slice_size <= 0 ? 0 : max_slice_size - 8);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_match_drizzweight_bitpix")), pref->drizz_weight_match_bitpix);
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
@@ -915,6 +950,9 @@ static void dump_ui_to_global_var() {
 	update_misc_preferences();
 }
 
+void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data);
+void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data);
+
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
 	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")), "filter_namedstars", "Catalogue");
@@ -932,13 +970,16 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 
 	set_icc_filechooser_directories();
+	g_signal_handlers_block_by_func(G_OBJECT(lookup_widget("spcc_repo_enable")), on_spcc_repo_enable_toggled, NULL);
+	g_signal_handlers_block_by_func(G_OBJECT(lookup_widget("pref_use_gitscripts")), on_pref_use_gitscripts_toggled, NULL);
 	update_preferences_from_model();
-	graxpert_changed = FALSE;
+	g_signal_handlers_unblock_by_func(G_OBJECT(lookup_widget("spcc_repo_enable")), on_spcc_repo_enable_toggled, NULL);
+	g_signal_handlers_unblock_by_func(G_OBJECT(lookup_widget("pref_use_gitscripts")), on_pref_use_gitscripts_toggled, NULL);
 	scripts_updated = FALSE;
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
 #else
-	fill_script_repo_list(FALSE);
+	fill_script_repo_tree(FALSE);
 #endif
 }
 
@@ -979,7 +1020,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			on_disable_gitscripts();
 		else
 #endif
-			refresh_script_menu(scripts_updated);	// To update the UI with scripts from the repo
+			g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER((int) scripts_updated)));
+			// To update the UI with scripts from the repo
 			// Note this line is part of the if/else with the #ifdef and always runs
 			// otherwise. This is intentional.
 		scripts_updated = FALSE;
@@ -987,12 +1029,8 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();
-		save_main_window_state();
+		save_main_window_state(NULL);
 		writeinitfile();
-		if (com.pref.graxpert_path && graxpert_changed) {
-			g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
-		}
-		graxpert_changed = FALSE;
 		validate_custom_profiles(); // Validate and load custom ICC profiles
 		if (update_custom_gamut) {
 			update_profiles_after_gamut_change();
@@ -1000,16 +1038,19 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		refresh_icc_transforms();
 		if (single_image_is_loaded() || sequence_is_loaded()) {
-			color_manage(&gfit, gfit.color_managed);
+			color_manage(gfit, gfit->color_managed);
 			notify_gfit_modified();
 		}
 		siril_close_dialog("settings_window");
 		update_reg_interface(TRUE); // To update UI with new preferences
 	}
+	// Update the GtkSourceView theme, if the widget has been created, in case
+	// the Siril theme has been changed
+	if (code_view_exists())
+		set_code_view_theme();
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
-	graxpert_changed = FALSE;
 	update_custom_gamut = FALSE;
 	siril_close_dialog("settings_window");
 }
@@ -1027,10 +1068,6 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
 	update_custom_gamut = FALSE;
-}
-
-void on_filechooser_graxpert_file_set(GtkFileChooser *chooser, gpointer user_data) {
-	graxpert_changed = TRUE;
 }
 
 void on_external_preferred_profile_set(GtkFileChooser *chooser, gpointer user_data) {
@@ -1058,6 +1095,17 @@ gchar *get_swap_dir() {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
 	return sw_dir;
+}
+
+void on_button_python_reset_venv_clicked(gpointer user_data) {
+	if (siril_confirm_dialog(_("WARNING!"), _("This will kill all running python processes "
+			"and delete and reinstall the python venv directory. This is not normally "
+			"necessary for upgrades or similar as Siril will try to manage the venv "
+			"automatically. However the option is provided as a last resort bug mitigation "
+			"to reset the venv to a known good state. All modules installed by scripts "
+			"will be deleted and will require reinstallation."), _("Proceed"))) {
+		rebuild_venv();
+	}
 }
 
 /* these one are not on the preference dialog */

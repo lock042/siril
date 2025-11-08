@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,10 +34,8 @@
 #include "gui/dialog_preview.h"
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
-#include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
@@ -180,7 +178,7 @@ static void set_description_in_TIFF() {
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
-		gchar *astro_tiff = AstroTiff_build_header(&gfit);
+		gchar *astro_tiff = AstroTiff_build_header(gfit);
 
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
@@ -189,9 +187,9 @@ static void set_description_in_TIFF() {
 		g_free(astro_tiff);
 	} else {
 		/* History already written in header */
-		if (gfit.history) {
+		if (gfit->history) {
 			GSList *list;
-			for (list = gfit.history; list; list = list->next) {
+			for (list = gfit->history; list; list = list->next) {
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 				gtk_text_buffer_insert(tbuf, &itEnd, (gchar *)list->data, -1);
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
@@ -328,7 +326,7 @@ static void filter_changed(gpointer user_data) {
 		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
 		break;
 	case TYPEPNM:
-		if (gfit.naxes[2] == 1) {
+		if (gfit->naxes[2] == 1) {
 			new_filename = g_strdup_printf("%s.pgm", file_no_ext);
 		} else {
 			new_filename = g_strdup_printf("%s.ppm", file_no_ext);
@@ -367,6 +365,35 @@ static void filter_changed(gpointer user_data) {
 	g_free(filename);
 }
 
+gchar* extract_extension_from_filter(const gchar *filter_name) {
+	// Regex pattern to match first extension inside parentheses
+	GRegex *regex;
+	GError *error = NULL;
+	gchar *extension = NULL;
+
+	// Compile regex to match first extension after *. inside parentheses
+	regex = g_regex_new("\\*\\.([a-zA-Z0-9]+)", G_REGEX_MULTILINE, 0, &error);
+
+	if (error != NULL) {
+		g_warning("Regex compilation error: %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+
+	// Try to match the regex
+	GMatchInfo *match_info;
+	if (g_regex_match(regex, filter_name, 0, &match_info)) {
+		// Get the first captured group (extension)
+		extension = g_match_info_fetch(match_info, 1);
+	}
+
+	// Free resources
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+
+	return extension;
+}
+
 static int save_dialog() {
 	init_dialog();
 
@@ -383,23 +410,51 @@ static int save_dialog() {
 	g_signal_connect(chooser, "notify::filter", G_CALLBACK(filter_changed), (gpointer) chooser);
 	g_free(fname);
 
-	gint res = siril_dialog_run(saveDialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
+	while (TRUE) {
+		gint res = siril_dialog_run(saveDialog);
+
+		if (res != GTK_RESPONSE_ACCEPT) {
+			close_dialog();
+			siril_preview_free(preview);
+			return res;
+		}
+
 		gchar *filename = siril_file_chooser_get_filename(chooser);
-		type_of_image = get_type_from_filename(filename);
+		image_type file_type = get_type_from_filename(filename);
+
+		GtkFileFilter *current_filter = gtk_file_chooser_get_filter(chooser);
+		const gchar *filter_name = gtk_file_filter_get_name(current_filter);
+		gchar *filter_extension = extract_extension_from_filter(filter_name);
+
+		image_type filter_format = get_type_for_extension(filter_extension);
+
+		image_type selected_type = (filter_format != TYPEUNDEF) ? filter_format : file_type;
+
+		if (file_type != TYPEUNDEF && filter_format != TYPEUNDEF && file_type != filter_format) {
+			gboolean confirm = siril_confirm_dialog(_("Extension Mismatch"),
+							_("The given file extension does not match the chosen file type. Do you want to save the image using this name anyway?"),
+							_("Save Anyway"));
+
+			if (!confirm) {
+				g_free(filename);
+				g_free(filter_extension);
+				continue;
+			}
+
+			selected_type = file_type;
+		}
+
+		type_of_image = selected_type;
 
 		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));
 		gtk_entry_set_text(savetext, filename);
 
 		prepare_savepopup();
-
 		g_free(filename);
+		g_free(filter_extension);
+
 		return res;
 	}
-	close_dialog();
-	siril_preview_free(preview);
-
-	return res;
 }
 
 // idle function executed at the end of the Save Data processing
@@ -413,10 +468,10 @@ static gboolean end_save(gpointer p) {
 	gtk_entry_set_text(args->entry, "");
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 	set_cursor_waiting(FALSE);
 	close_dialog();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 
 	g_free(args->copyright);
 	g_free(args->description);
@@ -434,7 +489,7 @@ static gboolean test_for_viewer_mode() {
 	return confirm;
 }
 
-static gboolean initialize_data(gpointer p) {
+static void initialize_data(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 
 	GtkToggleButton *fits_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
@@ -458,7 +513,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
-	get_tif_data_from_ui(&gfit, &args->description, &args->copyright);
+	get_tif_data_from_ui(gfit, &args->description, &args->copyright);
 	args->tiff_compression = get_tiff_compression();
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
@@ -475,14 +530,11 @@ static gboolean initialize_data(gpointer p) {
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
 	args->checksum = gtk_toggle_button_get_active(checksum);
-
-	return test_for_viewer_mode();
 }
-
-static gchar *tmp_filename = NULL;
 
 static long calculate_jpeg_size(struct savedial_data *args) {
 	char const *tmp_dir = g_get_tmp_dir();
+	gchar *tmp_filename;
 	gchar *tmp_filename_template = (com.uniq->filename != NULL) ? g_path_get_basename(com.uniq->filename) : g_strdup(_("preview"));
 /* Due to a Windows behavior and Mingw temp file name,
  * we escapes the special characters by inserting a '\' before them */
@@ -505,7 +557,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 		}
 	}
 	// Save JPEG to temporary file
-	if (savejpg(tmp_filename, &gfit, args->quality, FALSE)) {
+	if (savejpg(tmp_filename, gfit, args->quality, FALSE)) {
 		siril_debug_print("Failed to save JPEG to temporary file");
 		g_free(tmp_filename);
 		return -1;
@@ -518,7 +570,10 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 	} else {
 		g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
 	}
-	g_free(tmp_filename);
+	if (g_unlink(tmp_filename)) {
+		siril_debug_print("g_unlink() failed\n");
+		g_free(tmp_filename);
+	}
 	return (long) file_size;
 }
 
@@ -551,101 +606,72 @@ static gpointer mini_save_dialog(gpointer p) {
 	if (args->filename[0] != '\0') {
 		switch (type_of_image) {
 		case TYPEBMP:
-			args->retval = savebmp(args->filename, &gfit);
+			args->retval = savebmp(args->filename, gfit);
 			break;
 #ifdef HAVE_LIBJPEG
 		case TYPEJPG:;
-			gboolean success = FALSE;
-			if (tmp_filename && g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
-				GError *error = NULL;
-				// Check filename has correct extension
-				char *filename = strdup(args->filename);
-				if (!g_str_has_suffix(filename, ".jpg") && (!g_str_has_suffix(filename, ".jpeg"))) {
-					filename = str_append(&filename, ".jpg");
-				}
-				if (g_file_test(filename, G_FILE_TEST_EXISTS) && g_unlink(filename)) {
-					siril_debug_print("Failed to remove existing file");
-				}
-				// Attempt to move the file
-				GFile *move_from = g_file_new_for_path(tmp_filename);
-				GFile *move_to = g_file_new_for_path(filename);
-				success = g_file_move(move_from,
-											move_to,
-											G_FILE_COPY_NONE,
-											NULL,
-											NULL,
-											NULL,
-											&error);
-				g_object_unref(move_from);
-				g_object_unref(move_to);
-				if (success) {
-					siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
-						filename, args->quality, gfit.naxes[2], gfit.rx, gfit.ry);
-				} else {
-					siril_debug_print("Error moving file: %s\n", error->message);
-				}
-				free(filename);
-				// Reset the static tmp filename to NULL
-				g_free(tmp_filename);
-				tmp_filename = NULL;
-			}
-			if (!success) { // if there was no tmp file or if moving it didn't work, save normally
-				args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
-			}
+			args->retval = savejpg(args->filename, gfit, args->quality, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBJXL
 		case TYPEJXL:
-			args->retval = savejxl(args->filename, &gfit, args->jxl_effort, args->jxl_quality, args->jxl_force_8bit);
+			args->retval = savejxl(args->filename, gfit, args->jxl_effort, args->jxl_quality, args->jxl_force_8bit);
 			break;
 #endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, TRUE, TRUE);
+			args->retval = savetif(args->filename, gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, TRUE, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBPNG
 		case TYPEPNG:
-			bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
-			args->retval = savepng(args->filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
+			bytes_per_sample = gfit->orig_bitpix != BYTE_IMG ? 2 : 1;
+			args->retval = savepng(args->filename, gfit, bytes_per_sample, gfit->naxes[2] == 3);
 			break;
 #endif
 		default:
 			type_of_image = TYPEFITS;
 			/* no break */
 		case TYPEFITS:
-			gfit.bitpix = args->bitpix;
+			gfit->bitpix = args->bitpix;
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */
 			if (args->update_hilo) {
-				gfit.keywords.hi = gui.hi;
-				gfit.keywords.lo = gui.lo;
-				if (gfit.orig_bitpix == BYTE_IMG
-						&& (gfit.keywords.hi > UCHAR_MAX || gfit.keywords.lo > UCHAR_MAX)) {
-					gfit.keywords.hi = UCHAR_MAX;
-					gfit.keywords.lo = 0;
-				} else if (gfit.orig_bitpix == SHORT_IMG
-						&& (gfit.keywords.hi > SHRT_MAX || gfit.keywords.lo > SHRT_MAX)) {
-					gfit.keywords.hi = UCHAR_MAX;
-					gfit.keywords.lo = 0;
+				gfit->keywords.hi = gui.hi;
+				gfit->keywords.lo = gui.lo;
+				if (gfit->orig_bitpix == BYTE_IMG
+						&& (gfit->keywords.hi > UCHAR_MAX || gfit->keywords.lo > UCHAR_MAX)) {
+					gfit->keywords.hi = UCHAR_MAX;
+					gfit->keywords.lo = 0;
+				} else if (gfit->orig_bitpix == SHORT_IMG
+						&& (gfit->keywords.hi > SHRT_MAX || gfit->keywords.lo > SHRT_MAX)) {
+					gfit->keywords.hi = UCHAR_MAX;
+					gfit->keywords.lo = 0;
 				}
-				if (gfit.orig_bitpix == BYTE_IMG && gfit.bitpix != BYTE_IMG) {
-					gfit.keywords.hi = USHRT_MAX;
-					gfit.keywords.lo = 0;
+				if (gfit->orig_bitpix == BYTE_IMG && gfit->bitpix != BYTE_IMG) {
+					gfit->keywords.hi = USHRT_MAX;
+					gfit->keywords.lo = 0;
 				}
 			} else {
-				gfit.keywords.hi = 0;
-				gfit.keywords.lo = 0;
+				gfit->keywords.hi = 0;
+				gfit->keywords.lo = 0;
 			}
-			gfit.checksum = args->checksum;
-			args->retval = savefits(args->filename, &gfit);
+			gfit->checksum = args->checksum;
+			args->retval = savefits(args->filename, gfit);
 			if (!args->retval && single_image_is_loaded()) {
 				com.uniq->filename = strdup(args->filename);
+				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
+				if (!g_str_has_suffix(args->filename, com.pref.ext)) {
+					gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
+					free(com.uniq->filename);  // Free the previously allocated memory
+					com.uniq->filename = strdup(tempfilename);
+					g_free(tempfilename);  // Use g_free for GLib allocated memory
+				}
 				com.uniq->fileexist = TRUE;
 			}
 			break;
 		case TYPEPNM:
-			args->retval = saveNetPBM(args->filename, &gfit);
+			args->retval = saveNetPBM(args->filename, gfit);
 			break;
 		}
 	}
@@ -673,32 +699,27 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 	gtk_widget_set_sensitive(button, (*name != '\0'));
 }
 
-void on_savepopup_hide(GtkWidget *widget, gpointer user_data) {
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
-}
-
 void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
 	}
-	if (gtk_toggle_button_get_active(button)) {
-		if (initialize_data(args) && !get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+	initialize_data(args);
+
+	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
+		if (!get_thread_run()) {
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 			return;
 		}
 	}
 	// Clear preview size
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
-	// Remove temporary file and free and reset tmp_filename to NULL
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
+
 	g_free(args->description);
 	g_free(args->copyright);
 	free (args);
@@ -711,14 +732,13 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			PRINT_ALLOC_ERR;
 			return;
 		}
-		if (!initialize_data(args)) {
-			g_free(args->description);
-			g_free(args->copyright);
-			free (args);
-			return;
-		}
+		initialize_data(args);
 		if (!get_thread_run()) {
-			start_in_new_thread(calculate_jpeg_size_thread, args);
+			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
+				g_free(args->copyright);
+				g_free(args->description);
+				free(args);
+			}
 		} else {
 			g_free(args->description);
 			g_free(args->copyright);
@@ -732,8 +752,13 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args);
+	initialize_data(args);
+	if (test_for_viewer_mode()) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -746,8 +771,13 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args);
+	initialize_data(args);
+	if (test_for_viewer_mode()) {
+		if (!start_in_new_thread(mini_save_dialog, args)) {
+			g_free(args->copyright);
+			g_free(args->description);
+			free(args);
+		}
 	} else {
 		g_free(args->copyright);
 		g_free(args->description);
@@ -770,8 +800,13 @@ void on_header_save_as_button_clicked() {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
-				if (initialize_data(args)) {
-					start_in_new_thread(mini_save_dialog, args);
+				initialize_data(args);
+				if (test_for_viewer_mode()) {
+					if (!start_in_new_thread(mini_save_dialog, args)) {
+						g_free(args->description);
+						g_free(args->copyright);
+						free(args);
+					}
 				} else {
 					g_free(args->copyright);
 					g_free(args->description);
@@ -842,8 +877,8 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 
 	g_free(timestamp);
 	/* create cr from the surface */
-	int width = max(gfit.rx, gtk_widget_get_allocated_width(widget));
-	int height = max(gfit.ry, gtk_widget_get_allocated_height(widget));
+	int width = max(gfit->rx, gtk_widget_get_allocated_width(widget));
+	int height = max(gfit->ry, gtk_widget_get_allocated_height(widget));
 	cairo_surface_t *surface = cairo_surface_create_similar(gui.view[gui.cvport].full_surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
 	cairo_t *cr = cairo_create(surface);
 
@@ -865,8 +900,9 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 		if (clipboard) {
 			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 			gtk_clipboard_set_image(cb, pixbuf);
+#if !defined _WIN32
 			gtk_clipboard_store(cb);
-
+#endif
 			GtkWidget *w = lookup_widget("header_snapshot_button");
 			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
 			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
@@ -900,7 +936,7 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 
 void on_header_save_button_clicked() {
 	if (single_image_is_loaded() && com.uniq->fileexist) {
-		savefits(com.uniq->filename, &gfit);
+		savefits(com.uniq->filename, gfit);
 	}
 }
 
@@ -911,8 +947,8 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 	if (type_of_image & TYPETIFF) {
 		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton16bits"));
 		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
-		gtk_toggle_button_set_active(b32, gfit.type == DATA_FLOAT);
-		gtk_toggle_button_set_active(b16, gfit.type == DATA_USHORT);
+		gtk_toggle_button_set_active(b32, gfit->type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16, gfit->type == DATA_USHORT);
 		width = 400;
 		height = 100;
 	} else {
@@ -925,8 +961,8 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 	if (type_of_image & (TYPEFITS | TYPEUNDEF)) {
 		GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
 		GtkToggleButton *b32bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit32f"));
-		gtk_toggle_button_set_active(b32bits, gfit.type == DATA_FLOAT);
-		gtk_toggle_button_set_active(b16bitu, gfit.type == DATA_USHORT);
+		gtk_toggle_button_set_active(b32bits, gfit->type == DATA_FLOAT);
+		gtk_toggle_button_set_active(b16bitu, gfit->type == DATA_USHORT);
 	}
 
 	gtk_scrolled_window_set_min_content_height(scrolled_window, height);

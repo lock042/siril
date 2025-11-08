@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -219,7 +219,8 @@ int fix_xtrans_ac(fits *fit) {
 	// This matches logic in demosaicing.c.
 	read_bottom_up = (com.pref.debayer.use_bayer_header
 			&& !g_strcmp0(fit->keywords.row_order, "BOTTOM-UP"))
-			|| (!com.pref.debayer.top_down);
+			// || (!com.pref.debayer.top_down);
+			;
 	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
 

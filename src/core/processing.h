@@ -145,16 +145,17 @@ struct generic_seq_args {
 
 /* The following structs are for multi-output sequences */
 struct multi_output_data {
-	sequence *seq;
+	sequence *seq; // don't free, this is a reference and should be freed in the generic_seq_args
 	int n;
-	char *seqEntry;
+	char *seqEntry; // don't free, this is a reference and should be freed in the operation-specific args
 	int new_seq_index; // if a new sequence is to be loaded on completion,
 					   // which one? Defaults to 0 if the struct is made with calloc()
-	gchar **prefixes;
-	struct ser_struct **new_ser;
-	fitseq **new_fitseq;
+	gchar **prefixes; // this is freed in free_multi_args()
+	struct ser_struct **new_ser; // this is freed in
+	fitseq **new_fitseq; // this is freed in
 	GList *processed_images;
 	gpointer user_data; // generic pointer to store operation-specific data
+						// this must be freed by the function-specific caller
 };
 
 struct _multi_split {
@@ -171,24 +172,34 @@ int seq_prepare_hook(struct generic_seq_args *args);
 int seq_prepare_writer(struct generic_seq_args *args);
 int seq_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
+void free_multi_args(struct multi_output_data *multi_args);
+void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq);
 int multi_prepare(struct generic_seq_args *args);
 int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
 int multi_finalize(struct generic_seq_args *args);
 
-void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
+gboolean start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
 gboolean get_thread_run();
 
-void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
+gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
 gboolean reserve_thread();
 void unreserve_thread();
+
+// Functions to allow a python script to block other tasks from claiming the thread
+int claim_thread_for_python();
+void python_releases_thread();
+void check_python_flag();
+
+void kill_all_python_scripts(); // Used to prepare for resetting the venv
 
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
+guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data);
 
 struct generic_seq_args *create_default_seqargs(sequence *seq);
 
@@ -206,7 +217,7 @@ struct generic_seq_metadata_args {
 	/** function called for each image with image index in sequence */
 	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
 
-	/** instead of outputing to the log, output to a file */
+	/** instead of outputting to the log, output to a file */
 	GOutputStream *output_stream;
 	/** filtering the images from the sequence, maybe we don't want them all */
 	seq_image_filter filtering_criterion;
@@ -214,7 +225,11 @@ struct generic_seq_metadata_args {
 
 gpointer generic_sequence_metadata_worker(gpointer args);
 
-void kill_child_process(gboolean on_exit);
+void kill_child_process(GPid pid, gboolean on_exit);
+void remove_child_from_children(GPid pid);
+gboolean add_child(GPid child_pid, int program, const gchar *name);
+void child_mutex_lock();
+void child_mutex_unlock();
 
 #ifdef __cplusplus
 }

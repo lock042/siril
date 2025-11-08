@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,7 +33,6 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/fits_keywords.h"
@@ -213,7 +212,7 @@ int readbmp(const char *name, fits *fit) {
 	FILE *file;
 	long int count;
 	unsigned char *buf;
-	unsigned long data_offset = 0;
+	long data_offset = 0;
 	unsigned long width = 0, height = 0;
 	unsigned short nbplane = 0;
 
@@ -342,10 +341,10 @@ int savebmp(const char *name, fits *fit) {
 		}
 		gboolean threaded = !get_thread_run();
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number data_format_size = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * data_format_size;
+		cmsUInt32Number data_format_size = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit->rx * data_format_size;
 		cmsUInt32Number bytesperplane = npixels * data_format_size;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit->rx, gfit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -699,10 +698,10 @@ static int saveppm(const char *name, fits *fit) {
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number datasize = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit->rx, gfit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf[0] = (WORD *) dest;
 		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
@@ -772,10 +771,10 @@ static int savepgm(const char *name, fits *fit) {
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
-		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number datasize = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit->rx * datasize;
 		cmsUInt32Number bytesperplane = npixels * datasize;
-		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit->rx, gfit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(save_transform);
 		gbuf = (WORD *) dest;
 		gbuff = (float *) dest;

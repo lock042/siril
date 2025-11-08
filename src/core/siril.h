@@ -100,7 +100,6 @@ typedef unsigned short WORD;	// default type for internal image data
 #define ZOOM_DEFAULT	ZOOM_FIT
 
 /* Some statistic constants */
-#define SIGMA_PER_FWHM 2.35482
 #define AVGDEV_NORM 1.2533
 #define MAD_NORM 1.4826
 #define BWMV_NORM 0.9901
@@ -273,11 +272,13 @@ typedef enum {
 
 
 typedef enum {
-	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
+	SEQ_REGULAR = 0,
+	SEQ_SER = 1,
+	SEQ_FITSEQ = 2,
 #ifdef HAVE_FFMS2
-	SEQ_AVI,
+	SEQ_AVI = 3,
 #endif
-	SEQ_INTERNAL
+	SEQ_INTERNAL = 4
 } sequence_type;
 
 typedef enum {
@@ -297,7 +298,9 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
-	EXT_GRAXPERT
+	EXT_GRAXPERT,
+	EXT_PYTHON,
+	INT_PROC_THREAD
 } external_program;
 
 typedef enum {
@@ -312,8 +315,11 @@ typedef enum {
 	DISTO_FILE,  // Distortion from given file
 	DISTO_MASTER, // Distortion from master files
 	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to 
+	DISTO_FILE_COMET // special for cometary alignment, to be detected by apply reg. Enables to
 } disto_source;
+
+// defined in src/io/pythonmodule.h
+typedef struct _Connection Connection;
 
 /* image data, exists once for each image */
 typedef struct {
@@ -332,6 +338,17 @@ typedef struct {
 	       location, scale, min, max, normValue, bgnoise;
 	gint _nb_refs;	// reference counting for data management
 } imstats;
+
+/* this structure is used to characterize the statistics of the overalps in a sequence of images */
+typedef struct {
+	int i, j;
+	size_t Nij;
+	rectangle areai, areaj;
+	float medij, medji;
+	float madij, madji;
+	float locij, locji;
+	float scaij, scaji;
+} overlap_stats_t;
 
 typedef struct {
 	double h00, h01, h02;
@@ -371,16 +388,19 @@ struct sequ {
 	unsigned int rx;	// first image width (or ref if set)
 	unsigned int ry;	// first image height (or ref if set)
 	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
+	gboolean is_drizzle; 	// sequence is a drizzle sequence, weights files are stored in ./drizzletmp
 	int bitpix;		// image pixel format, from fits
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
 	imstats ***stats;	// statistics of the images for each layer, may be null too
+	overlap_stats_t **ostats;	// statistics of the overlaps for each layer, may be null too
 	/* in the case of a CFA sequence, depending on the opening mode, we cannot store
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
 	disto_params *distoparam;	// the distortion parameters used for the registration if any, one per layer
+	char* cached_ext;	// FIT sequences only: cache the ext to speed up filename search
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum
@@ -462,6 +482,7 @@ typedef struct {
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+	double mjd_obs;					// date-obs in Julian
 	double expstart, expend;		// Julian dates
 	char filter[FLEN_VALUE];		// FILTER key
 	char image_type[FLEN_VALUE];		// IMAGETYP key
@@ -536,6 +557,9 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean debayer_checked; // whether bayer pattern has already been checked and adjusted or not. This is set true for SER upon opening, not for other formats
+	unsigned int orig_ry; // original ry of the image (only set when reading partial)
+	int x_offset, y_offset; // x and y offset of partial read wrt to original image
 	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
@@ -550,7 +574,7 @@ typedef enum {
 	SPCC_GREEN = 1 << GLAYER,
 	SPCC_BLUE = 1 << BLAYER,
 	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
-	SPCC_INVIS = 0
+	SPCC_INVIS = 1 << 7
 } spcc_channel;
 
 /* Filter spectral responses are defined by unevenly spaced frequency samples
@@ -600,6 +624,15 @@ typedef enum {
 	CUT_COLOR
 } cut_mode;
 
+typedef struct {
+	guint major_version;
+	guint minor_version;
+	guint micro_version;
+	guint patched_version;
+	gboolean beta_version;
+	gboolean rc_version;
+} version_number;
+
 typedef struct cut_struct {
 	point cut_start;			// point marking start of cut line
 	point cut_end;			// point dragged while selecting the cut line
@@ -629,6 +662,14 @@ typedef struct cut_struct {
 	gboolean pref_as;
 	int vport;
 } cut_struct;
+
+// Used in a GSList so we can choose what to stop if multiple children are running
+typedef struct _child_info {
+	GPid childpid; // Platform-agnostic way to store the child PID
+	external_program program; // type of program, eg EXT_STARNET, EXT_ASNET etc
+	gchar *name; // argv[0], i.e. the executable name
+	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
+} child_info;
 
 struct historic_struct {
 	char *filename;
@@ -744,10 +785,12 @@ struct guiinf {
 	point measure_start;	// quick alt-drag measurement
 	point measure_end;
 
+	GSList *user_polygons;	// user defined polygons for the overlay
+
 	void (*draw_extra)(draw_data_t *dd);
 
 	/* List of all scripts from the repository */
-	GList* repo_scripts; // the list of selected scripts is in com.pref
+	GSList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
 	gboolean spcc_repo_available;
@@ -795,6 +838,10 @@ struct guiinf {
 	roi_t roi; // Region of interest struct
 	GSList *mouse_actions;
 	GSList *scroll_actions;
+	gboolean drawing_polygon; // whether drawing a polygon or not
+	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
+	GdkRGBA poly_ink; // Color and alpha for drawing polygons
+	gboolean poly_fill; // Whether to fill drawn polygons
 };
 
 struct common_icc {
@@ -831,12 +878,20 @@ struct cominf {
 
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
+	gboolean python_script;	// python script being executed
+	gboolean python_command;	// python is running a Siril command
+	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
+	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
+	GThread *python_thread;	// the thread for the python interpreter
+	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
 	gboolean run_thread;		// the main thread loop condition
+	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
+	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
@@ -863,23 +918,18 @@ struct cominf {
 
 	sensor_tilt *tilt;		// computed tilt information
 
-	external_program child_is_running;	// external_program id to check if there is a child process running
-
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
-#ifdef _WIN32
-	void* childhandle;		// For Windows, handle of a child process
-#else
-	pid_t childpid;			// For other OSes, PID of a child process
-#endif
+	version_number python_version; // Holds the python version number
+	GSList *children;		// List of children; children->data is of type child_info
 };
 
 #ifndef MAIN
 extern guiinfo gui;
 extern cominfo com;		// the main data struct
-extern fits gfit;		// currently loaded image
+extern fits *gfit;		// currently loaded image
 #endif
 
 #endif /*SIRIL */

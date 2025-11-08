@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,18 +18,15 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition 
+#include "io/FITS_symlink.h" // needs to be included before siril.h to avoid type redefinition
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/siril_wcs.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
 #include "registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
@@ -159,7 +156,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		// instead, we change to DISTO_FILE_COMET and use the refimage as distortion master (if it has distortion)
 			if (ref.keywords.wcslib && ref.keywords.wcslib->lin.dispre != NULL) {
 				char buffer[256];
-				fit_sequence_get_image_filename(args->seq, args->seq->reference_image, buffer, TRUE);
+				fit_sequence_get_image_filename_checkext(args->seq, args->seq->reference_image, buffer);
 				cadata->distoparam[regargs->layer].filename = g_strdup(buffer);
 			}
 			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) // and if astrometry is flipped
@@ -201,7 +198,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	cum_shifts(regargs->regparam, in_index, -reg.x, -reg.y); // we left-compose with the additional shift
 
 	regargs->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	
+
 	if (in_index == regargs->reference_image)
 		new_ref_index = in_index; // keeping track of the new ref index in output sequence
 
@@ -272,7 +269,7 @@ int register_comet(struct registration_args *regargs) {
 	if (args->seq->type == SEQ_REGULAR) {
 		args->save_hook = comet_save_hook; // saves a symlink to original images
 		args->has_output = TRUE;
-		args->new_seq_prefix = g_strdup(regargs->prefix);
+		args->new_seq_prefix = strdup(regargs->prefix);
 	}
 	args->description = _("Moving object registration");
 	args->already_in_a_thread = TRUE;
@@ -280,7 +277,7 @@ int register_comet(struct registration_args *regargs) {
 
 	struct comet_align_data *cadata = calloc(1, sizeof(struct comet_align_data));
 	if (!cadata) {
-		free(args);
+		free_generic_seq_args(args, FALSE);
 		return -1;
 	}
 	cadata->regargs = regargs;

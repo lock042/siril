@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
 #include <math.h>
 #include "algos/extraction.h"
 #include "algos/fitting.h"
-#include "algos/statistics_float.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -41,18 +40,19 @@
 #include "io/sequence.h"
 #include "gui/image_display.h"
 
-void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
+gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
-	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+	gtk_widget_set_sensitive(colorbutton, (gfit->naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean cfa_disabled = (gfit->naxes[2] > 1 || pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX);
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
-	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
+	gtk_toggle_button_set_active(as, gfit->keywords.wcsdata.pltsolvd);
+	return FALSE;
 }
 
-static void reset_cut_gui() {
+static gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
@@ -86,12 +86,13 @@ static void reset_cut_gui() {
 	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
-	gtk_entry_set_text(title, "Intensity Profile");
-	reset_cut_gui_filedependent();
+	gtk_entry_set_text(title, _("Intensity Profile"));
+	reset_cut_gui_filedependent(NULL);
+	return FALSE;
 }
 
 void initialize_cut_struct(cut_struct *arg) {
-	arg->fit = &gfit;
+	arg->fit = gfit;
 	arg->seq = NULL;
 	arg->imgnumber = -1;
 	arg->cut_start.x = -1;
@@ -122,16 +123,18 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
-	arg->pref_as = gfit.keywords.wcsdata.pltsolvd;
+	arg->pref_as = gfit->keywords.wcsdata.pltsolvd;
 	arg->vport = -1;
-	if (!com.script)
-		reset_cut_gui();
+	gui_function(reset_cut_gui, NULL);
 }
 
 void free_cut_args(cut_struct *arg) {
-	if (arg->filename) {
-		g_free(arg->filename);
-	}
+	g_free(arg->filename);
+	arg->filename = NULL;
+	g_free(arg->title);
+	arg->title = NULL;
+	g_free(arg->user_title);
+	arg->user_title = NULL;
 	if (arg != &gui.cut)
 		free(arg);
 	return;
@@ -208,8 +211,8 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	}
 
 	// Check args are cromulent
-	int rx = (arg->seq) ? arg->seq->rx : gfit.rx;
-	int ry = (arg->seq) ? arg->seq->ry : gfit.ry;
+	int rx = (arg->seq) ? arg->seq->rx : gfit->rx;
+	int ry = (arg->seq) ? arg->seq->ry : gfit->ry;
 
 	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
 		siril_log_message(_("Error: wavenumber points are the same.\n"));
@@ -408,6 +411,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 		} else if (arg->seq) {
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			*filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
 		} else if (sequence_is_loaded()) { // when sequence is loaded in the GUI and we only apply cut to the currently loaded image
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
@@ -432,14 +436,18 @@ gpointer cut_profile(gpointer p) {
 	gchar *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
+	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
@@ -535,8 +543,6 @@ gpointer cut_profile(gpointer p) {
 		}
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
@@ -578,7 +584,7 @@ END:
 		free_siril_plot_data(spl_data);
 	} else if (!in_sequence) {
 		if (arg->display_graph)
-			siril_add_idle(create_new_siril_plot_window, spl_data);
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
@@ -592,18 +598,24 @@ gpointer tri_cut(gpointer p) {
 	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	siril_plot_data *spl_data = NULL;
+	double *x = NULL, *r[3] = { 0 };
 	gchar *spllabels[3] = { NULL };
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
-	double *x = NULL, *r[3] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -742,8 +754,6 @@ gpointer tri_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
@@ -779,7 +789,7 @@ END:
 	gboolean in_sequence = (arg->seq != NULL);
 	if (!in_sequence) {
 		if (arg->display_graph)
-			siril_add_idle(create_new_siril_plot_window, spl_data);
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
@@ -794,21 +804,37 @@ gpointer cfa_cut(gpointer p) {
 	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
-	siril_plot_data *spl_data = NULL;
-
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
 	build_profile_filenames(arg, &filename, &imagefilename);
+	sensor_pattern pattern = get_validated_cfa_pattern(arg->fit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+			siril_log_color_message(_("Error: failed to read CFA pattern or invalid found.\n"), "red");
+			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
+			goto END;	
+	}
+	const gchar* pattern_str = filter_pattern[pattern];
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	} else {
 		if ((ret = split_cfa_float(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
 			retval = 1;
+			free_siril_plot_data(spl_data);
+			spl_data = NULL;
 			goto END;
 		}
 	}
@@ -822,6 +848,8 @@ gpointer cfa_cut(gpointer p) {
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.) {
 		retval = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
 		goto END;
 	}
 	int nbr_points = (int) length;
@@ -830,8 +858,7 @@ gpointer cfa_cut(gpointer p) {
 	double conversionfactor = get_conversion_factor(arg->fit);
 	if (arg->pref_as) {
 		if (conversionfactor != -DBL_MAX) {
-			point_spacing *= conversionfactor; // TODO: check - should this be *= 2.0 to account for the spacing between
-												// pixels in the same CFA channel?
+			point_spacing *= conversionfactor;
 		}
 	}
 	double point_spacing_x = (double) delta.x / nbr_points;
@@ -863,15 +890,38 @@ gpointer cfa_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	siril_plot_add_xydata(spl_data, "CFA0", nbr_points, x, r[0], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA1", nbr_points, x, r[1], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA2", nbr_points, x, r[2], NULL, NULL);
-	siril_plot_add_xydata(spl_data, "CFA3", nbr_points, x, r[3], NULL, NULL);
+	gboolean first_green = TRUE;
+	for (int i = 0; i < 4; i++) {
+		double color[3] = { 0.0, 0.0, 0.0 };
+		const char *label;
+		switch (pattern_str[i]) {
+			case 'R':
+				label = "Red";
+				color[0] = 1.0;
+				break;
+			case 'G':
+			//RGB(0.078, 0.392, 0.078)
+			//RGB(0.196, 1.0, 0.196)
+				label = first_green ? "Green1" : "Green2";
+				color[0] = first_green ? 0.078 : 0.196;
+				color[1] = first_green ? 0.392 : 1.000;
+				color[2] = first_green ? 0.078 : 0.196;
+				first_green = FALSE;
+				break;
+			case 'B':
+				label = "Blue";
+				color[2] = 1.0;
+				break;
+			default:
+				label = "Error";
+				break;
+		}
+		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
+		siril_plot_set_nth_color(spl_data, i + 1, color);
+	}
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
@@ -898,7 +948,7 @@ END:
 	gboolean in_sequence = (arg->seq != NULL);
 	if (!in_sequence) {
 		if (arg->display_graph)
-			siril_add_idle(create_new_siril_plot_window, spl_data);
+			siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
 	}
 	if (arg != &gui.cut)
@@ -964,7 +1014,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 					_("The Apply to sequence option is checked, but no sequence is loaded."));
 
 	} else {
-		gui.cut.fit = &gfit;
+		gui.cut.fit = gfit;
 		gui.cut.seq = NULL;
 		gui.cut.display_graph = TRUE;
 		// We have to pass a dynamically allocated copy of gui.cut
@@ -974,13 +1024,16 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(p, &gui.cut, sizeof(cut_struct));
 		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
-			start_in_new_thread(tri_cut, p);
+			if (!start_in_new_thread(tri_cut, p))
+				free(p);
 		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, p);
+			if (!start_in_new_thread(cfa_cut, p))
+				free(p);
 		} else {
 			siril_debug_print("Single profile\n");
-			start_in_new_thread(cut_profile, p);
+			if (!start_in_new_thread(cut_profile, p))
+				free(p);
 		}
 	}
 }
@@ -1061,9 +1114,9 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkToggleButton* plot_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
-	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+	gtk_widget_set_sensitive(colorbutton, (gfit->naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean cfa_disabled = ((gfit->naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	if (gtk_toggle_button_get_active(seqbutton))
 		gtk_toggle_button_set_active(pngbutton, TRUE);
@@ -1123,7 +1176,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_start.y = sy;
 	gui.cut.cut_end.x = fx;
 	gui.cut.cut_end.y = fy;
-	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+	measure_line(gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
 }
@@ -1157,64 +1210,45 @@ void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	siril_close_dialog("cut_spectroscopy_dialog");
 }
 
-void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
+void on_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
 	psf_star *result = NULL;
 	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
+	gboolean is_start = !g_strcmp0("start_select_from_star", caller);
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		psf_error error = PSF_NO_ERR;
+		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		set_cursor_waiting(FALSE);
-		if (result) {
-			gui.cut.cut_start.x = result->x0 + com.selection.x;
-			gui.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
-			GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
-			GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
-			gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
-			gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+		if (result && error == PSF_NO_ERR) {
+			if (is_start) {
+				gui.cut.cut_start.x = result->x0 + com.selection.x;
+				gui.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
+				GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+				GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+				gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
+				gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+			} else {
+				gui.cut.cut_end.x = result->x0 + com.selection.x;
+				gui.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
+				GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+				GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+				gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
+				gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
+			}
 			redraw(REDRAW_OVERLAY);
-			free_psf(result);
-			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+			measure_line(gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
-						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
+						_("Siril cannot set the star coordinate as no star has been detected in the selection"));
 		}
+		free_psf(result);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("No selection"),
-					_("Siril cannot set the start coordinate as no selection is made"));
-	}
-}
-
-void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
-	psf_star *result = NULL;
-	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
-
-	if (com.selection.h && com.selection.w) {
-		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		set_cursor_waiting(FALSE);
-		if (result) {
-			gui.cut.cut_end.x = result->x0 + com.selection.x;
-			gui.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
-			GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
-			GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
-			gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
-			gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
-			redraw(REDRAW_OVERLAY);
-			free_psf(result);
-			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
-		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("No star detected"),
-						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
-		}
-
-	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR,
-					_("No selection"),
-					_("Siril cannot set the start coordinate as no selection is made"));
+					_("Siril cannot set the star coordinate as no selection is made"));
 	}
 }
 
@@ -1379,5 +1413,8 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 	args->stop_on_error = FALSE;
 	args->user = cut_args;
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free_cut_args((cut_struct*) args->user);
+		free_generic_seq_args(args, TRUE);
+	}
 }

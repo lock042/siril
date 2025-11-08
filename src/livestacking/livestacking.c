@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -40,11 +40,9 @@
 #include "algos/star_finder.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
-#include "registration/matching/match.h"
 #include "opencv/opencv.h"
 /* ******************* */
 #include "stacking/stacking.h"
-#include "stacking/sum.h"
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
@@ -213,7 +211,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			if (!wait_for_file_to_be_written(filename)) {
 				fits dest = { 0 };
 				gchar *new = replace_ext(filename, com.pref.ext);
-				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
+				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit);
 				savefits(new, &dest);
 				clearfits(&dest);
 			}
@@ -489,6 +487,17 @@ static int start_global_registration(sequence *seq) {
 	regargs.interpolation = REGISTRATION_INTERPOLATION;
 	regargs.type = reg_type;
 	regargs.max_stars_candidates = 200;
+	cvGetEye(&regargs.framingd.Htransf);
+	cvGetEye(&regargs.framingd.Hshift);
+	regargs.framingd.roi_out = (framing_roi){ 0, 0, seq->rx, seq->ry};
+
+	// preparing detection params
+	regargs.sfargs = calloc(1, sizeof(struct starfinder_data));
+	regargs.sfargs->im.from_seq = regargs.seq;
+	regargs.sfargs->layer = regargs.layer;
+	regargs.sfargs->keep_stars = TRUE;
+	regargs.sfargs->save_to_file = FALSE;
+	regargs.sfargs->max_stars_fitted = regargs.max_stars_candidates;
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	if (regargs.filters.filter_included) {
@@ -503,7 +512,7 @@ static int start_global_registration(sequence *seq) {
 	args->has_output = reg_rotates;
 	args->output_type = get_data_type(seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = regargs.prefix;
+	args->new_seq_prefix = strdup(regargs.prefix);
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
@@ -522,7 +531,7 @@ static int start_global_registration(sequence *seq) {
 	regparam_bkp = seq->regparam[regargs.layer];
 	seq->regparam[regargs.layer] = NULL;
 	free_sequence(seq, FALSE);
-
+	free(regargs.sfargs);
 	return retval || !sadata->success[1];
 }
 
@@ -584,14 +593,16 @@ static gpointer live_stacker(gpointer arg) {
 			/* we want to load the image while avoiding GTK+ calls
 			 * from this thread, setting com.script is a hack to
 			 * avoid this, but this doesn't display the loaded
-			 * image, so we still need the extra idle in
-			 * complete_image_loading
+			 * image, so we still need the extra idle called by
+			 * execute_idle_and_wait_for_it() (this immediately
+			 * returns if headless)
 			 */
 			gboolean script_bkp = com.script;
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			complete_image_loading();
+			if (!com.headless)
+				execute_idle_and_wait_for_it(end_image_loading, NULL);
 		}
 
 		siril_debug_print("Adding file to input sequence\n");
@@ -644,7 +655,8 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
-				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
+				livestacking_update_number_of_images(1, gfit->keywords.exposure, -1.0, NULL);
+				free(seq.seqname);
 				continue;
 			}
 			first_loop = FALSE;
@@ -747,7 +759,7 @@ static gpointer live_stacker(gpointer arg) {
 		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
 			(use_32bits && (prepro || use_demosaicing == BOOL_TRUE));
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
-		stackparam.apply_nbstack_weights = TRUE;
+		stackparam.weighting_type = NBSTACK_WEIGHT;
 
 		reserve_thread(); // hack: generic function fails otherwise
 		main_stack(&stackparam);
@@ -786,17 +798,17 @@ static gpointer live_stacker(gpointer arg) {
 
 		if (!com.headless) {
 			/* Update display */
-			clearfits(&gfit);
-			memcpy(&gfit, &stackparam.result, sizeof(fits));
+			clearfits(gfit);
+			memcpy(gfit, &stackparam.result, sizeof(fits));
 			if (first_stacking_result) {
 				/* number of channels may have changed */
 				com.seq.current = RESULT_IMAGE;
-				com.uniq->nb_layers = gfit.naxes[2];
-				com.uniq->fit = &gfit;
+				com.uniq->nb_layers = gfit->naxes[2];
+				com.uniq->fit = gfit;
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
-				queue_redraw(REMAP_ALL);
+				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}
 		g_free(result_filename);
@@ -813,7 +825,7 @@ static gpointer live_stacker(gpointer arg) {
 		const char *total_time = format_time_diff(tv_start, tv_end);
 		siril_log_color_message(_("Time to process the last image for live stacking: %s\n"),
 				"green", total_time);
-		livestacking_update_number_of_images(number_of_images_stacked, gfit.keywords.livetime, noise, total_time);
+		livestacking_update_number_of_images(number_of_images_stacked, gfit->keywords.livetime, noise, total_time);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");

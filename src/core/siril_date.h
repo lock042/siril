@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@ gchar *build_timestamp_filename();
 GDateTime *ser_timestamp_to_date_time(guint64 timestamp);
 guint64 date_time_to_ser_timestamp(GDateTime *dt);
 double date_time_to_Julian(GDateTime *dt);
+GDateTime* Julian_to_date_time(gdouble jd);
 GDateTime *FITS_date_to_date_time(gchar *date);
 gchar *date_time_to_FITS_date(GDateTime *date);
 gchar *date_time_to_date(GDateTime *datetime);

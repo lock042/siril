@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -45,13 +45,10 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
 #include "demosaicing.h"
 #include "gui/progress_and_log.h"
-
-#define ACTIVATE_NULLCHECK_FLOAT 1
 
 // uncomment to debug statistics
 #undef siril_debug_print
@@ -137,8 +134,7 @@ static double siril_stats_float_bwmv(const float* data, const size_t n,
 			up += SQR(i_med * SQR (1 - yi2));
 			down += (1 - yi2) * (1 - 5 * yi2);
 		}
-
-		bwmv = n * (up / (down * down));
+		bwmv = down ? n * (up / (down * down)) : 0.0;
 	}
 
 	return bwmv;
@@ -255,7 +251,7 @@ static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size
 	}
 
 	for (i = 0; i < inputlen; i++) {
-		if (data[i] != 0.f) {
+		if (data[i] != 0.f && !isnan(data[i])) {
 			if (j >= outputlen) {
 				fprintf(stderr, "\n- stats MISMATCH in sizes (in: %zu, out: %zu), THIS IS A BUG: seqfile is wrong *********\n\n", inputlen, outputlen);
 				break;
@@ -282,8 +278,10 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float xi = data[i];
-			min = min(min, xi);
-			max = max(max, xi);
+			if (!isnan(xi)) {
+				min = min(min, xi);
+				max = max(max, xi);
+			}
 		}
 
 		*min_out = min;
@@ -295,7 +293,7 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
 imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
-	int nx, ny;
+	int nx = 0, ny = 0;
 	float *data = NULL;
 	int stat_is_local = 0, free_data = 0;
 	imstats* stat = stats;
@@ -320,8 +318,9 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			if (layer < 0) {
 				size_t newsz;
 				data = extract_CFA_buffer_area_float(fit, -layer - 1, selection, &newsz);
-				if (!data) {
+				if (!data || newsz == 0) {
 					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					free(data);
 					return NULL;
 				}
 				nx = newsz;
@@ -401,7 +400,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
-		siril_fits_img_stats_float(data, nx, ny, ACTIVATE_NULLCHECK_FLOAT, 0.0f, &stat->ngoodpix,
+		siril_fits_img_stats_float(data, nx, ny, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
 				NULL, NULL, NULL, threads, &status);
 		if (status) {
@@ -421,9 +420,9 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	}
 
 
-	/* we exclude 0 if some computations remain to be done or copy data if
+	/* we exclude 0 and nans if some computations remain to be done or copy data if
 	 * median has to be computed */
-	if (ACTIVATE_NULLCHECK_FLOAT && fit && compute_median && stat->total != stat->ngoodpix) {
+	if (fit && compute_median && stat->total != stat->ngoodpix) {
 		data = reassign_to_non_null_data_float(data, stat->total, stat->ngoodpix, free_data);
 		if (!data) {
 			if (stat_is_local) free(stat);
@@ -773,8 +772,8 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 		y1 = area->y + area->h;
 	} else {
 		x0 = y0 = 0;
-		x1 = gfit.rx;
-		y1 = gfit.ry;
+		x1 = gfit->rx;
+		y1 = gfit->ry;
 	}
 	size_t npixels = (x1 - x0) * (y1 - y0);
 	float *data = fit->fpdata[chan];
@@ -795,7 +794,8 @@ double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float 
 		return 0.0; // No elements in the range, return 0 as median
 	}
 	// Sort the filtered data
-	double retval = quickmedian_float(filtered_data, count);
+	// use histogram_median_float here instead of quickmedian for speed (see #1458)
+	double retval = histogram_median_float(filtered_data, count, MULTI_THREADED);
 
 	// Free the allocated memory for filtered_data
 	free(filtered_data);

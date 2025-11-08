@@ -32,7 +32,6 @@ all: build-librtprocess
 clean: clean-librtprocess
 endif
 
-
 if !HAVE_HTMESH
 # not adding it in subdirs because we don't want to run most targets in it, and specifying
 # the htmesh target allows us to build only the static lib we link against
@@ -48,4 +47,21 @@ clean-htmesh:
 
 all: build-htmesh
 clean: clean-htmesh
+endif
+
+if !HAVE_HEALPIX_CXX
+# not adding it in subdirs because we don't want to run most targets in it, and specifying
+# the healpix target allows us to build only the static lib we link against
+build-healpix:
+	mkdir -p $(abs_builddir)/healpix_cxx/build && \
+	cd $(abs_builddir)/healpix_cxx/build && \
+	ls $(abs_srcdir)/healpix_cxx/ && \
+	$(CMAKE) $(CMAKE_GENERATOR) -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_FLAGS="-Wno-psabi -I$(abs_srcdir)/healpix_cxx" $(abs_srcdir)/healpix_cxx/ && \
+	$(MAKE)
+
+clean-healpix:
+	rm -f $(abs_builddir)/healpix_cxx/build/CMakeCache.txt
+
+all: build-healpix
+clean: clean-healpix
 endif

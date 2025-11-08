@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -434,21 +434,25 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->seqEntry;
+	args->new_seq_prefix = strdup(cosme_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(cosme_args->seqEntry);
+		free(cosme_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 // idle function executed at the end of the Cosmetic Correction processing
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	return FALSE;
@@ -580,16 +584,15 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
 	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
-	g_object_unref(c_args->file);
+//	g_object_unref(c_args->file);
 	return retval;
 }
 
 static int cosme_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
-
-	g_object_unref(c_args->file);
-
+	free(c_args->prefix);
+	g_clear_object(&c_args->file);
 	free(args->user);
 	return retval;
 }
@@ -611,7 +614,12 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 
 	cosme_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		g_clear_object(&cosme_args->file);
+		free(cosme_args->prefix);
+		free(cosme_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 /* this is an autodetect algorithm. Cold and hot pixels
@@ -743,6 +751,11 @@ void on_button_cosmetic_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("cosmetic_dialog");
 }
 
+gboolean cosmetic_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("cosmetic_dialog");
+	return TRUE;
+}
+
 void on_checkSigCosme_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	static GtkWidget *cosmeticApply = NULL;
 	static GtkToggleButton *checkCosmeSigCold = NULL;
@@ -772,7 +785,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
 	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
-	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 
 	if (gtk_toggle_button_get_active(
 				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))
@@ -789,21 +802,26 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("cc_");
+		}
 		args->seq = &com.seq;
 		args->threading = SINGLE_THREADED;
 		gtk_toggle_button_set_active(seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->threading = MULTI_THREADED;
-		undo_save_state(&gfit, _("Cosmetic Correction"));
-		start_in_new_thread(autoDetectThreaded, args);
+		undo_save_state(gfit, _("Cosmetic Correction"));
+		if (!start_in_new_thread(autoDetectThreaded, args)) {
+			free(args->seqEntry);
+			free(args);
+		}
 	}
 }
 

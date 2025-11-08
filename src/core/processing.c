@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,6 +20,9 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/socket.h>
+#include <sys/wait.h>
 #endif
 
 #include <assert.h>
@@ -31,11 +34,13 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
+#include "core/command_line_processor.h"
 #include "core/OS_utils.h"
-#include "filters/graxpert.h" // for set_graxpert_aborted()
-#include "gui/utils.h"
+#include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
+#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -43,6 +48,16 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
+
+static GMutex child_mutex = { 0 };
+
+void child_mutex_lock() {
+	g_mutex_lock(&child_mutex);
+}
+
+void child_mutex_unlock() {
+	g_mutex_unlock(&child_mutex);
+}
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -79,6 +94,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	float nb_framesf = (float)nb_frames + 0.3f;	// leave margin for rounding errors and post processing
 	args->retval = 0;
 
+#ifdef HAVE_FFMS2
+	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
+	if (args->seq->type == SEQ_AVI && !com.headless) {
+		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
+	}
+#endif
 #ifdef _OPENMP
 	// max_parallel_images can be computed by another function too, hence the check
 	if (args->max_parallel_images < 1) {
@@ -270,6 +291,14 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
+		// If not reading image, we still load its metadata to fill imgparam
+		if (!read_image && seq_read_frame_metadata(args->seq, input_idx, fit)) {
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
+
 		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
@@ -332,7 +361,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 	/* the finalize hook contains the sequence writer synchronization, it
-	 * should be called before outputing the logs */
+	 * should be called before outputting the logs */
 	if (have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		abort = 1;
@@ -370,22 +399,45 @@ the_end:
 		args->retval = 1;
 	}
 	int retval = args->retval;	// so we can free args if needed in the idle
+#ifdef HAVE_FFMS2
+	if (args->seq->type == SEQ_AVI && !com.headless)
+		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+#endif
 
 	if (!args->already_in_a_thread) {
 		gboolean run_idle;
 		if (args->idle_function)
-			run_idle = siril_add_idle(args->idle_function, args) > 0;
+			run_idle = siril_add_idle(args->idle_function, args) > 0; // not python safe because of the call to
+					// update_sequences_list, which may be running after the next python command has started
+					// and clobbers things
 		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
 
 		if (!run_idle) {
 			// some generic cleanup for scripts
-			// should we check for seq = com.seq?
-			free(args->new_seq_prefix);
-			free_sequence(args->seq, TRUE);
-			free(args);
+			// here we make sure the new .seq is created if needed
+			if (args->has_output && args->load_new_sequence &&
+				args->new_seq_prefix && !args->retval) {
+				const gchar *basename = g_path_get_basename(args->seq->seqname);
+				const char *root = remove_ext_from_filename(basename);
+				const gchar *seqname = g_strdup_printf("%s%s%s", args->new_seq_prefix, root, ".seq");
+				gboolean seqfilecreated = create_one_seq(seqname, args->seq->type);
+				if (!seqfilecreated) { // just a fallback
+					check_seq();
+				}
+			}
+			free_generic_seq_args(args, TRUE);
+			// we then make sure we stop the thread and reset cursor to FALSE
+			end_generic(NULL);
 		}
 	}
 	return GINT_TO_POINTER(retval);
+}
+
+void free_generic_seq_args(struct generic_seq_args *args, gboolean free_seq) {
+	free(args->new_seq_prefix);
+	if (free_seq && !check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args);
 }
 
 // default idle function (in GTK main thread) to run at the end of the generic sequence processing
@@ -403,12 +455,9 @@ gboolean end_generic_sequence(gpointer p) {
 	}
 	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
 	// string in function-specific structs) *must* always be allocated using
-	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
-	// than char* seqEntry = "prefix_";
-	free(args->new_seq_prefix);
-	if (!check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
-	free(p);
+	// a stdlib freeable function, i.e. char* seqEntry = strdup("prefix_");
+	// rather than char* seqEntry = "prefix_";
+	free_generic_seq_args(args, TRUE);
 	return end_generic(NULL);
 }
 
@@ -464,8 +513,11 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 	if (!(args->seq->type == SEQ_INTERNAL))
 		g_assert(args->new_seq_prefix); // don't call this hook otherwise
 	//removing existing files
-	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
-	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+	if (args->seq->type != SEQ_INTERNAL) {
+		remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_star_files(args->seq, args->new_seq_prefix);
+		remove_prefixed_drizzle_files(args->seq, args->new_seq_prefix);
+	}
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -473,7 +525,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, ptr + 1);
 		else dest = g_strdup_printf("%s%s.ser", args->new_seq_prefix, args->seq->seqname);
 
-		args->new_ser = malloc(sizeof(struct ser_struct));
+		args->new_ser = calloc(1, sizeof(struct ser_struct));
 		if (ser_create_file(dest, args->new_ser, TRUE, args->seq->ser_file)) {
 			free(args->new_ser);
 			args->new_ser = NULL;
@@ -488,7 +540,7 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
 		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
 
-		args->new_fitseq = malloc(sizeof(fitseq));
+		args->new_fitseq = calloc(1, sizeof(fitseq));
 		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
 			free(args->new_fitseq);
 			args->new_fitseq = NULL;
@@ -610,15 +662,17 @@ int multi_prepare(struct generic_seq_args *args) {
 	multi_args->new_fitseq = calloc(n, sizeof(char*));
 	// we call the generic prepare n times with different prefixes
 	for (int i = 0 ; i < n ; i++) {
-		args->new_seq_prefix = multi_args->prefixes[i];
+		args->new_seq_prefix = strdup(multi_args->prefixes[i]);
 		if (seq_prepare_hook(args))
 			return 1;
 		// but we copy the result between each call
 		multi_args->new_ser[i] = args->new_ser;
 		multi_args->new_fitseq[i] = args->new_fitseq;
+		free(args->new_seq_prefix);
+		args->new_seq_prefix = NULL;
 	}
 
-	args->new_seq_prefix = multi_args->prefixes[multi_args->new_seq_index];
+	args->new_seq_prefix = strdup(multi_args->prefixes[multi_args->new_seq_index]);
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
@@ -706,6 +760,13 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	free(multi_data);
 	return retval;
 }
+void free_multi_args(struct multi_output_data *multi_args) {
+	for (int i = 0 ; i < multi_args->n ; i++) {
+		g_free(multi_args->prefixes[i]);
+	}
+	free(multi_args->prefixes);
+	free(multi_args);
+}
 
 int multi_finalize(struct generic_seq_args *args) {
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
@@ -737,37 +798,51 @@ static gboolean thread_being_waited = FALSE;
 
 // This function is reentrant. The pointer will be freed in the idle function,
 // so it must be a proper pointer to an allocated memory chunk.
-void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
 
-	if (com.run_thread || com.thread) {
+	if (com.run_thread || com.python_claims_thread || com.thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		// We can't free p here as it may have unknown members. We must
+		// indicate failure and allow the caller to clean up
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
 
+	// Add a fake "child" to the list of child processes. This doesn't represent an external
+	// program but it allows selecting to stop the processing thread instead of
+	// an external program if one happens to be running
+	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread")) {
+		siril_log_color_message(_("Warning: failed to add processing thread to child list\n"), "salmon");
+	}
+
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE; // indicate success
 }
 
-void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
+gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 	g_mutex_lock(&com.mutex);
-	if (com.thread) {
+	if (com.thread || com.python_claims_thread) {
 		fprintf(stderr, "The processing thread is busy, stop it first.\n");
 		g_mutex_unlock(&com.mutex);
-		free(p);
-		return;
+		return FALSE;
 	}
 
 	com.run_thread = TRUE;
 	com.thread = g_thread_new("processing", f, p);
 
+	// Prepend this "child" to the list of child processes
+	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread")) {
+		siril_log_color_message(_("Warning: failed to add processing thread to child list\n"), "salmon");
+	}
+
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
+	return TRUE;
 }
 
 gpointer waiting_for_thread() {
@@ -779,18 +854,84 @@ gpointer waiting_for_thread() {
 	com.thread = NULL;
 	thread_being_waited = FALSE;
 	set_thread_run(FALSE);	// do it anyway in case of wait without stop
-	return retval;
+
+	return GINT_TO_POINTER(GPOINTER_TO_INT(retval) & ~CMD_NOTIFY_GFIT_MODIFIED);
+}
+
+int claim_thread_for_python() {
+	g_mutex_lock(&com.mutex);
+	if (com.thread) {
+		fprintf(stderr, "The processing thread is busy (com.thread is not NULL). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.run_thread) {
+		fprintf(stderr, "The processing thread is busy (com.run_thread is TRUE). "
+					"It must stop before Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (com.python_claims_thread) {
+		fprintf(stderr, "The processing thread is already claimed by Python. It must be "
+					"released before Python can claim the processing thread again.\n");
+		g_mutex_unlock(&com.mutex);
+		return 1;
+	}
+	if (is_an_image_processing_dialog_opened()) {
+		fprintf(stderr, "A Siril image processing dialog is open. It must be closed before "
+					"Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 2;
+	}
+	com.python_claims_thread = TRUE;
+	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
+	return 0;
+}
+
+void python_releases_thread() {
+	g_mutex_lock(&com.mutex);
+	com.python_claims_thread = FALSE;
+	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(FALSE);
+	return;
+}
+
+
+static gboolean stop_processing_requested = FALSE;
+
+static gboolean stop_processing_thread_idle(gpointer user_data) {
+    if (com.thread == NULL) {
+        siril_debug_print("The processing thread is not running.\n");
+        return FALSE;
+    }
+    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
+    set_thread_run(FALSE);
+    if (!thread_being_waited)
+        waiting_for_thread();
+    set_cursor_waiting(FALSE);
+    return FALSE;
+}
+
+static gboolean check_stop_processing_request(gpointer user_data) {
+    if (stop_processing_requested) {
+        stop_processing_requested = FALSE;
+        stop_processing_thread_idle(NULL);
+    }
+    return FALSE; // Remove this idle callback
 }
 
 void stop_processing_thread() {
-	if (com.thread == NULL) {
-		siril_debug_print("The processing thread is not running.\n");
-		return;
-	}
-
-	set_thread_run(FALSE);
-	if (!thread_being_waited)
-		waiting_for_thread();
+    // Check if we're in headless mode first
+    if (com.headless || !g_main_context_is_owner(g_main_context_default())) {
+        execute_idle_and_wait_for_it(stop_processing_thread_idle, NULL);
+    } else {
+        // We're in the main thread, but we might be inside execute_idle_and_wait_for_it
+        // Set a flag and queue an idle to handle it asynchronously
+        stop_processing_requested = TRUE;
+        gdk_threads_add_idle(check_stop_processing_request, NULL);
+    }
 }
 
 static void set_thread_run(gboolean b) {
@@ -837,6 +978,14 @@ gboolean end_generic(gpointer arg) {
  * return 0 if idle was not added
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
+	if (!com.script && !com.python_command && !com.headless)
+		return gdk_threads_add_idle(idle_function, data);
+	return 0;
+}
+
+/* Must only ever be used for GTK updates. Do not call any functions that mess about
+ * with files using this idle, it can break python scripts */
+guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
 	return 0;
@@ -855,49 +1004,266 @@ void wait_for_script_thread() {
 	}
 }
 
+static void free_child(child_info *child) {
+	g_free(child->name);
+	g_date_time_unref(child->datetime);
+	g_free(child);
+}
+
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+#ifdef G_OS_WIN32
+    DWORD exit_code;
+    if (GetExitCodeProcess(pid, &exit_code)) {
+        if (exit_code == 0) {
+            siril_debug_print("Child process completed successfully\n");
+        } else {
+            siril_debug_print("Plate solver exited with code %lu\n", exit_code);
+        }
+    }
+    CloseHandle(pid);
+#else
+    // POSIX: manually reap the child
+    int wait_status;
+    pid_t result;
+
+    // Try to reap - if it fails with ECHILD, someone else already did
+    result = waitpid(pid, &wait_status, WNOHANG);
+
+    if (result == pid) {
+        // We successfully reaped it
+        if (WIFEXITED(wait_status)) {
+            int exit_status = WEXITSTATUS(wait_status);
+            if (exit_status == 0) {
+                siril_debug_print("Child process completed successfully\n");
+            } else {
+                siril_debug_print("Child process exited with status %d\n", exit_status);
+            }
+        } else if (WIFSIGNALED(wait_status)) {
+            siril_debug_print("Child process terminated by signal %d\n", WTERMSIG(wait_status));
+        }
+    } else if (result == 0) {
+        // Process hasn't exited yet (shouldn't happen)
+        siril_debug_print("Warning: child watch called but process still running\n");
+    } else if (result == -1 && errno == ECHILD) {
+        // Already reaped
+        siril_debug_print("Warning: child process already reaped\n");
+    } else {
+        siril_debug_print("Error waiting for child: %s\n", strerror(errno));
+    }
+    g_spawn_close_pid(pid);
+#endif
+    remove_child_from_children(pid);
+}
+
+gboolean add_child(GPid child_pid, int program, const gchar *name) {
+	// Add the callback to remove it on completion
+	if (program != EXT_PYTHON && program != INT_PROC_THREAD)
+		g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	child_info *child = g_malloc(sizeof(child_info));
+	if (!child) {
+		return FALSE;
+	}
+
+	child->name = g_strdup(name);
+	if (!child->name) {
+		g_free(child);
+		return FALSE;
+	}
+
+	child->datetime = g_date_time_new_now_local();
+	if (!child->datetime) {
+		g_free(child->name);
+		g_free(child);
+		return FALSE;
+	}
+	child->childpid = child_pid;
+	child->program = program;
+
+	child_mutex_lock();
+	com.children = g_slist_prepend(com.children, child);
+	child_mutex_unlock();
+
+	return TRUE;
+}
+
+// This must be called in the g_spawn on_exit callback to remove the defunct child from the list
+void remove_child_from_children(GPid pid) {
+	child_mutex_lock();
+	GSList *prev = NULL;
+	GSList *iter = com.children;
+
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+
+		if (!child) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
+			if (prev)
+				prev->next = next;
+			else
+				com.children = next;  // Don't forget to update head!
+
+			g_slist_free_1(iter);
+			iter = next;
+			continue;
+		}
+
+		if (child->childpid == pid) {
+			// Save next pointer before freeing
+			GSList *next = iter->next;
+
+			// Remove the node from the list
+			if (prev == NULL) {
+				com.children = next;
+			} else {
+				prev->next = next;
+			}
+
+			// Free the node and the child
+			g_slist_free_1(iter);
+			free_child(child);
+			siril_debug_print("Removed GPid %d from com.children\n", pid);
+			child_mutex_unlock();
+			return;
+		}
+
+		// Move to next node
+		prev = iter;
+		iter = iter->next;
+	}
+	child_mutex_unlock();
+}
+
 // kills external calls
 // if onexit is TRUE, also do some cleaning
-void kill_child_process(gboolean onexit) {
+void kill_child_process(GPid pid, gboolean onexit) {
 	if (onexit)
 		printf("Making sure no child is left behind...\n");
-	// abort starnet by killing the process
-	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
+	// Find the correct child in the list
+	// We can safely iterate over the list without worrying about simultaneously adding
+	// to it from another thread as it would only ever be prepended, so the rest of the
+	// list will still be fine. This means we can have the mutex control for child
+	// removal in remove_child_from_children, which makes things considerably simpler.
+	GSList *iter = com.children;
+	gboolean success = FALSE;
+	while (iter) {
+		child_info *child = (child_info*) iter->data;
+		if (!child)
+			return;
+
+		GSList *next = iter->next;
+
+		if (child->childpid == pid || onexit) {
+			if (child->program == INT_PROC_THREAD) {
+				stop_processing_thread();
+			} else {
+				if (child->program == EXT_STARNET || child->program == EXT_PYTHON) {
 #ifdef _WIN32
-		TerminateProcess(com.childhandle, 1);
-		com.childhandle = NULL;
+					TerminateProcess((void *) child->childpid, 1);
 #else
-		kill(com.childpid, SIGINT);
-		com.childpid = 0;
+					kill((pid_t) child->childpid, SIGKILL);
 #endif
-		com.child_is_running = EXT_NONE;
-		if (onexit)
-			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");
-	}
-	// abort asnet by writing a file named stop in wd
-	if (com.child_is_running == EXT_ASNET) {
-		FILE* fp = fopen("stop", "w");
-		if (fp != NULL)
-			fclose(fp);
-		if (onexit) {
-			g_usleep(1000);
-			if (g_unlink("stop"))
-				siril_debug_print("g_unlink() failed\n");
-			printf("asnet has been stopped on exit\n");
+				} else if (child->program == EXT_ASNET) {
+					FILE* fp = g_fopen("stop", "w");
+					if (fp != NULL)
+						fclose(fp);
+					if (onexit) {
+						g_usleep(1000);
+						if (g_unlink("stop"))
+							siril_debug_print("g_unlink() failed\n");
+						siril_debug_print("asnet has been stopped on exit\n");
+					}
+					stop_processing_thread(); // we stop the sequence worker as well
+				}
+				// No need to manually remove the child as this is done by child_watch_cb
+			}
+
+			siril_log_color_message(_("Process aborted by user\n"), "red");
+			success = TRUE;
+			if (!onexit)
+				break;
 		}
+		iter = next;
+	}
+	// If we get here without success, no matching PID was found
+	if (!success && pid != (GPid) -1)
+		siril_log_message(_("Failed to find GPid %d, it may already have exited...\n"), pid);
+}
+
+static void check_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+	if(!child) return;
+	gboolean *is_ok = (gboolean *)user_data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		// If "python" is found in the name, set is_ok to FALSE
+		*is_ok = FALSE;
+	}
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void check_python_flag() {
+	siril_debug_print("checking python flag\n");
+	gboolean is_ok = TRUE;
+	child_mutex_lock();
+	g_slist_foreach(com.children, check_if_child_is_python, &is_ok);
+	child_mutex_unlock();
+	if (is_ok) {
+		com.python_script = FALSE;
+		siril_debug_print("com.python_script cleared\n");
 	}
 }
 
+static void kill_if_child_is_python(gpointer data, gpointer user_data) {
+	// Cast the input pointers to their correct types
+	child_info *child = (child_info *)data;
+
+	// Convert name to lowercase for case-insensitive comparison
+	gchar *lowercase_name = g_ascii_strdown(child->name, -1);
+
+	// Check if the lowercased name contains "python"
+	if (g_strstr_len(lowercase_name, -1, "python") != NULL) {
+		kill_child_process(child->childpid, FALSE);
+	}
+	// Free the lowercase string
+	g_free(lowercase_name);
+}
+
+void kill_all_python_scripts() {
+	g_slist_foreach(com.children, kill_if_child_is_python, NULL);
+}
+
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
-	if (com.thread != NULL)
-		siril_log_color_message(_("Process aborted by user\n"), "red");
-	if (com.child_is_running == EXT_GRAXPERT)
-		set_graxpert_aborted(TRUE);
-	kill_child_process(FALSE);
-	com.stop_script = TRUE;
-	stop_processing_thread();
-	wait_for_script_thread();
-	if (!com.headless)
+	child_mutex_lock();
+	guint children = g_slist_length(com.children);
+	if (children > 1) {
+		child_mutex_unlock();
+		GPid pid = show_child_process_selection_dialog(com.children);
+		kill_child_process(pid, FALSE);
+	} else if (children == 1) {
+		child_info *child = (child_info*) com.children->data;
+		GPid pid = child->childpid;
+		child_mutex_unlock();
+		kill_child_process(pid, FALSE);
+	} else {
+		child_mutex_unlock();
+		com.stop_script = TRUE;
+		stop_processing_thread();
+		wait_for_script_thread();
+	}
+
+	if (!com.headless) {
 		script_widgets_enable(TRUE);
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	}
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {
@@ -949,27 +1315,88 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 	}
+	if (args->seq->type == SEQ_FITSEQ && (!args->seq->fitseq_file || !args->seq->fitseq_file->fptr)) {
+		// List of extensions to check (both upper and lower case)
+		const char *extensions[] = {".fit", ".fits", ".fts", ".FIT", ".FITS", ".FTS"};
+		int num_extensions = 6;
+		const gchar *com_ext = get_com_ext(args->seq->fz);
 
+		retval = 1; // Default to fail status
+
+		// First, try com_ext (the expected extension)
+		gchar *seqfilename = g_strdup_printf("%s%s", args->seq->seqname, com_ext);
+		if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+			retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+			g_free(seqfilename);
+			seqfilename = NULL;
+			if (!retval) goto after_fitseq_check;
+		}
+		g_free(seqfilename);
+
+		// If com_ext didn't match, try other extensions
+		for (int i = 0; i < num_extensions; i++) {
+			// Skip if this extension matches com_ext (already checked)
+			if (args->seq->fz) {
+				// For compressed files, check if extension + .fz matches com_ext
+				char temp_ext[20];
+				snprintf(temp_ext, 19, "%s.fz", extensions[i]);
+				if (strcmp(temp_ext, com_ext) == 0) continue;
+			} else {
+				// For uncompressed files, check if extension matches com_ext
+				if (strcmp(extensions[i], com_ext) == 0) continue;
+			}
+
+			if (args->seq->fz) {
+				seqfilename = g_strdup_printf("%s%s.fz", args->seq->seqname, extensions[i]);
+			} else {
+				seqfilename = g_strdup_printf("%s%s", args->seq->seqname, extensions[i]);
+			}
+
+			if (g_file_test(seqfilename, G_FILE_TEST_EXISTS)) {
+				retval = fitseq_open(seqfilename, args->seq->fitseq_file, 0);
+				g_free(seqfilename);
+				if (!retval) break;
+			} else {
+				g_free(seqfilename);
+			}
+		}
+
+after_fitseq_check:
+		if (retval) goto cleanup;
+	}
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
 
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, input_idx)) {
+		if (args->seq->type == SEQ_REGULAR && seq_open_image(args->seq, input_idx)) {
 			retval = 1;
 			goto cleanup;
+		} else if (args->seq->type == SEQ_FITSEQ) {
+			// Need to move to the correct HDU
+			fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[input_idx], NULL, &retval);
+			if (retval) {
+				siril_log_color_message(_("Error finding the HDU for frame %d\n"), "red", input_idx);
+				goto cleanup;
+			}
 		}
 		if (args->seq->type == SEQ_REGULAR)
 			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
 		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);
-		seq_close_image(args->seq, input_idx);
+		if (args->seq->type == SEQ_REGULAR)
+			seq_close_image(args->seq, input_idx);
 		clearfits(&fit);
 	}
 cleanup:
+	if (args->seq->type == SEQ_FITSEQ) {
+		int status;
+		fits_movabs_hdu(args->seq->fitseq_file->fptr, args->seq->fitseq_file->hdu_index[0], NULL, &status);
+	}
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	free_sequence(args->seq, TRUE);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	g_slist_free_full(args->keys, g_free);
 	g_free(args->header);
 	if (args->output_stream)

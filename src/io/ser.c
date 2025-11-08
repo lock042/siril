@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,10 +34,9 @@
 #include "core/siril_date.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
+#include "filters/mtf.h"
 #include "gui/progress_and_log.h"
 #include "algos/demosaicing.h"
-#include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "ser.h"
 
@@ -189,6 +188,61 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 	return frame_count_calculated;
 }
 
+static sensor_pattern convert_color_id_to_bayer_pattern(ser_color pattern) {
+	switch (pattern) {
+	case SER_BAYER_RGGB:
+		return BAYER_FILTER_RGGB;
+	case SER_BAYER_BGGR:
+		return BAYER_FILTER_BGGR;
+	case SER_BAYER_GBRG:
+		return BAYER_FILTER_GBRG;
+	case SER_BAYER_GRBG:
+		return BAYER_FILTER_GRBG;
+	default:
+		return BAYER_FILTER_NONE;
+	}
+}
+
+static ser_color convert_bayer_pattern_to_color_id(sensor_pattern pattern) {
+	switch (pattern) {
+	case BAYER_FILTER_RGGB:
+		return SER_BAYER_RGGB;
+	case BAYER_FILTER_BGGR:
+		return SER_BAYER_BGGR;
+	case BAYER_FILTER_GBRG:
+		return SER_BAYER_GBRG;	
+	case BAYER_FILTER_GRBG:	
+		return SER_BAYER_GRBG;
+	default:
+		return SER_BAYER_RGGB; // default to RGGB
+	}
+}
+
+static ser_color adjust_SER_pattern(ser_color type_ser) {
+	ser_color pattern = type_ser;
+	if (com.pref.debayer.use_bayer_header) {
+		// we always assume orientation is always top-bottom
+		switch (type_ser) { 
+			case SER_BAYER_RGGB:
+			case SER_BAYER_BGGR:
+			case SER_BAYER_GBRG:
+			case SER_BAYER_GRBG:
+				return pattern;
+			case SER_MONO:
+				siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				break;
+			default:
+				siril_log_color_message(_("Unknown SER type to debayer (%d), should not happen\n"), "red", type_ser);
+				return BAYER_FILTER_NONE;
+		}
+	}
+	sensor_pattern bayer_pattern = com.pref.debayer.bayer_pattern;
+	const char *pattern_str = filter_pattern[bayer_pattern];
+	siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern_str);
+	pattern = convert_bayer_pattern_to_color_id(bayer_pattern);
+	return pattern;
+}
+
 static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
 	int ret;
@@ -220,6 +274,45 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	ser_file->image_height = le32_to_cpu(ser_file->image_height);
 	ser_file->bit_pixel_depth = le32_to_cpu(ser_file->bit_pixel_depth);
 	ser_file->frame_count = le32_to_cpu(ser_file->frame_count);
+
+	ser_color type_ser = ser_file->color_id;
+	ser_file->debayer_type_ser = type_ser;
+	switch (type_ser) {
+		case SER_RGB:
+		case SER_BGR:
+			// if (com.pref.debayer.open_debayer) {
+			// 	siril_log_color_message(_("Cannot debayer already debayered SER\n"), "salmon");
+			// }
+			break;
+		case SER_BAYER_RGGB:
+		case SER_BAYER_GRBG:
+		case SER_BAYER_GBRG:
+		case SER_BAYER_BGGR:
+			// we read the Bayer pattern using the preferences settings
+			// correct in the header if necessary
+			// Then if we won't debayer now, we reset the debayer_type_ser
+			ser_file->debayer_type_ser = adjust_SER_pattern(type_ser);
+			ser_file->color_id = ser_file->debayer_type_ser;  //we update with prefs values if necessary
+			if (!com.pref.debayer.open_debayer)	{
+				ser_file->debayer_type_ser = SER_MONO;
+			}
+			break;
+		case SER_MONO:
+			if (com.pref.debayer.open_debayer) { // we are forcing this to CFA, this will read the preferences
+				ser_file->debayer_type_ser = adjust_SER_pattern(type_ser);
+				ser_file->color_id = ser_file->debayer_type_ser;  //we update with prefs values if necessary
+				siril_log_color_message(_("Forcing debayer mono SER\n"), "salmon");
+			}
+			break;
+		case SER_BAYER_CYYM:
+		case SER_BAYER_YCMY:
+		case SER_BAYER_YMCY:
+		case SER_BAYER_MYYC:
+		default:
+			siril_log_color_message(_("Cannot handle this SER type (%d)\n"), "red", type_ser);
+			return SER_GENERIC_ERROR;
+	}
+	siril_debug_print("debayer SER file type: %s\n", convert_color_id_to_char(ser_file->debayer_type_ser));
 
 	memcpy(&ser_file->date, header + 162, 8);
 	memcpy(&ser_file->date_utc, header + 170, 8);
@@ -392,19 +485,12 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	return SER_OK;
 }
 
-static int get_SER_Bayer_Pattern(ser_color pattern) {
-	switch (pattern) {
-	case SER_BAYER_RGGB:
-		return BAYER_FILTER_RGGB;
-	case SER_BAYER_BGGR:
-		return BAYER_FILTER_BGGR;
-	case SER_BAYER_GBRG:
-		return BAYER_FILTER_GBRG;
-	case SER_BAYER_GRBG:
-		return BAYER_FILTER_GRBG;
-	default:
-		return BAYER_FILTER_NONE;
-	}
+static gchar *flip_bayer_pattern(const gchar *old_pattern, unsigned int ry) {
+	sensor_pattern old_sensor_pattern = get_cfa_pattern_index_from_string(old_pattern);
+	if (old_sensor_pattern == BAYER_FILTER_NONE)
+		return g_strdup(old_pattern); // unknown pattern, do nothing
+	adjust_Bayer_pattern_orientation(&old_sensor_pattern, ry, TRUE);
+	return g_strdup(filter_pattern[old_sensor_pattern]);
 }
 
 /* once a buffer (data) has been acquired from the file, with frame_size pixels
@@ -704,18 +790,18 @@ void ser_init_struct(struct ser_struct *ser_file) {
 
 int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	ser_color type_ser = ser_file->color_id;
-	if (!com.pref.debayer.open_debayer && type_ser != SER_RGB && type_ser != SER_BGR) {
-		type_ser = SER_MONO;
+	if (com.pref.debayer.open_debayer && type_ser != SER_BGR) {
+		type_ser = SER_RGB;
 	}
 	switch (type_ser) {
 	case SER_MONO:
-		fit->naxis = 2;
-		fit->naxes[2] = 1;
-		break;
 	case SER_BAYER_RGGB:
 	case SER_BAYER_BGGR:
 	case SER_BAYER_GBRG:
 	case SER_BAYER_GRBG:
+		fit->naxis = 2;
+		fit->naxes[2] = 1;
+		break;
 	case SER_BGR:
 	case SER_RGB:
 		fit->naxis = 3;
@@ -729,20 +815,16 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	fit->orig_bitpix = fit->bitpix;
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
+	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
+		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
+		gchar *new_pattern = flip_bayer_pattern(ser_pattern, fit->ry);
+		sprintf(fit->keywords.bayer_pattern, "%s", new_pattern);
+		g_free(new_pattern);
+		fit->debayer_checked = TRUE;
+		fit->top_down = TRUE;
+		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
+	}
 	return SER_OK;
-}
-
-static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
-	if (!strcmp(old_pattern, "RGGB"))
-		return "GBRG";
-	else if (!strcmp(old_pattern, "GBRG"))
-		return "RGGB";
-	else if (!strcmp(old_pattern, "BGGR"))
-		return "GRBG";
-	else if (!strcmp(old_pattern, "GRBG"))
-		return "BGGR";
-	else
-		return NULL;
 }
 
 /* reads a frame on an already opened SER sequence.
@@ -794,38 +876,9 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fit->orig_bitpix = fit->bitpix;
 	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
-	/* If opening images debayered is not activated, read the image as CFA monochrome */
-	const gchar *pattern = NULL;
-
-	ser_color type_ser = ser_file->color_id;
-	if (!open_debayer && type_ser != SER_RGB && type_ser != SER_BGR) {
-		type_ser = SER_MONO;
-
-		if (com.pref.debayer.use_bayer_header) {
-			if (ser_file->color_id == SER_BAYER_RGGB)
-				pattern = "RGGB";
-			else if (ser_file->color_id == SER_BAYER_BGGR)
-				pattern = "BGGR";
-			else if (ser_file->color_id == SER_BAYER_GBRG)
-				pattern = "GBRG";
-			else if (ser_file->color_id == SER_BAYER_GRBG)
-				pattern = "GRBG";
-		} else {
-			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
-			if (!user_warned) {
-				if (ser_file->color_id == SER_MONO)
-					siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
-				else siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern);
-				user_warned = TRUE;
-			}
-		}
-	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
-		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
-		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
-	}
-
-	switch (type_ser) {
-	case SER_MONO:
+	ser_color debayer_type_ser = ser_file->debayer_type_ser; // this was set in accordance with prefs when reading the header
+	switch (debayer_type_ser) {
+	case SER_MONO: // real mono or CFA kept CFA
 		fit->naxis = 2;
 		fit->naxes[0] = fit->rx = ser_file->image_width;
 		fit->naxes[1] = fit->ry = ser_file->image_height;
@@ -841,32 +894,8 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		fit->naxes[0] = fit->rx = ser_file->image_width;
 		fit->naxes[1] = fit->ry = ser_file->image_height;
 		fit->naxes[2] = 3;
-		/* Get Bayer informations from header if available */
-		sensor_pattern sensortmp;
-		sensortmp = com.pref.debayer.bayer_pattern;
-		if (com.pref.debayer.use_bayer_header) {
-			sensor_pattern bayer;
-			bayer = get_SER_Bayer_Pattern(type_ser);
-			if (bayer != com.pref.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE  && !user_warned) {
-					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
-				}
-				else {
-					if (!user_warned) {
-						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
-								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-								"salmon", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
-					}
-					com.pref.debayer.bayer_pattern = bayer;
-				}
-				user_warned = TRUE;
-			}
-		}
-		/* for performance consideration (and many others) we force the interpolation algorithm
-		 * to be BAYER_BILINEAR
-		 */
-		debayer(fit, BAYER_RCD, com.pref.debayer.bayer_pattern);
-		com.pref.debayer.bayer_pattern = sensortmp;
+		sensor_pattern bayer_pattern = convert_color_id_to_bayer_pattern(debayer_type_ser);
+		debayer(fit, BAYER_RCD, bayer_pattern);
 		break;
 	case SER_BGR:
 		swap = 2;
@@ -927,16 +956,21 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	color_manage(fit, FALSE);
 	fit->icc_profile = NULL;
 
-	if (pattern) {
-		pattern = flip_bayer_pattern(pattern);
+	if (!open_debayer && ser_file->color_id >= SER_BAYER_RGGB &&
+			ser_file->color_id <= SER_BAYER_BGGR) { // we don't write the pattern if the image has been debayered
+		sensor_pattern pattern = convert_color_id_to_bayer_pattern(ser_file->color_id);
+		const char *pattern_str = filter_pattern[pattern];
+		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
+		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		g_free(new_pattern_str);
 		// No need to inform the user as the FITS header details for a sequence frame are not accessible
-		strncpy(fit->keywords.bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		fit->debayer_checked = TRUE;
 	}
 
-	// FITS are stored with TOP-DOWN roworder
+	// FITS are BOTTOM-UP, so we flip the image
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = TRUE;
-	snprintf(fit->keywords.row_order, FLEN_VALUE, "BOTTOM-UP");
+	snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
 	return SER_OK;
 }
 
@@ -1059,16 +1093,12 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	ser_color type_ser;
 	WORD *rawbuf, *demosaiced_buf;
 	rectangle debayer_area, image_area;
-	sensor_pattern sensortmp;
 
 	if (!ser_file || ser_file->file == NULL || frame_no < 0
 			|| frame_no >= ser_file->frame_count)
 		return SER_GENERIC_ERROR;
 
-	type_ser = ser_file->color_id;
-	if (!com.pref.debayer.open_debayer &&
-			type_ser != SER_RGB && type_ser != SER_BGR)
-		type_ser = SER_MONO;
+	type_ser = ser_file->debayer_type_ser; // this was set in accordance with prefs when reading the header
 
 	switch (type_ser) {
 	case SER_MONO:
@@ -1086,26 +1116,6 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		 * requested area, giving 3 channels in form of RGBRGBRGB buffers, and finally
 		 * we extract one of the three channels and crop it to the requested area. */
 
-		/* Get Bayer informations from header if available */
-		sensortmp = com.pref.debayer.bayer_pattern;
-		if (com.pref.debayer.use_bayer_header) {
-			sensor_pattern bayer;
-			bayer = get_SER_Bayer_Pattern(type_ser);
-			if (bayer != com.pref.debayer.bayer_pattern) {
-				if (bayer == BAYER_FILTER_NONE && !user_warned) {
-					siril_log_color_message(_("No Bayer pattern found in the header file.\n"), "red");
-				}
-				else {
-					if (!user_warned) {
-						siril_log_color_message(_("Bayer pattern found in header (%s) is different"
-								" from Bayer pattern in settings (%s). Overriding settings.\n"),
-								"salmon", filter_pattern[bayer], filter_pattern[com.pref.debayer.bayer_pattern]);
-					}
-					com.pref.debayer.bayer_pattern = bayer;
-				}
-				user_warned = TRUE;
-			}
-		}
 		if (layer < 0 || layer >= 3) {
 			siril_log_message(_("For a demosaiced image, layer has to be R, G or B (0 to 2).\n"));
 			return SER_GENERIC_ERROR;
@@ -1130,8 +1140,9 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		/* for performance consideration (and many others) we force the interpolation algorithm
 		 * to be BAYER_BILINEAR
 		 */
-		demosaiced_buf = debayer_buffer(rawbuf, &debayer_area.w,
-				&debayer_area.h, BAYER_BILINEAR, com.pref.debayer.bayer_pattern, ser_file->bit_pixel_depth);
+		sensor_pattern sensortmp = convert_color_id_to_bayer_pattern(type_ser);
+		demosaiced_buf = debayer_buffer_new_ushort(rawbuf, &debayer_area.w,
+				&debayer_area.h, BAYER_BILINEAR, sensortmp, NULL, ser_file->bit_pixel_depth);
 		free(rawbuf);
 		if (!demosaiced_buf)
 			return SER_GENERIC_ERROR;
@@ -1140,7 +1151,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		 * debayer_area is the demosaiced buf area.
 		 * xoffset and yoffset are the x,y offsets of area in the debayer area.
 		 */
-        const int nbpixels = debayer_area.w * debayer_area.h;
+		const int nbpixels = debayer_area.w * debayer_area.h;
 		for (y = 0; y < area->h; y++) {
 			for (x = 0; x < area->w; x++) {
 				buffer[y*area->w + x] = demosaiced_buf[layer * nbpixels + (yoffset+y)*debayer_area.w + xoffset+x];
@@ -1148,7 +1159,6 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		}
 
 		free(demosaiced_buf);
-		com.pref.debayer.bayer_pattern = sensortmp;
 		break;
 
 	case SER_BGR:
@@ -1182,6 +1192,19 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 			fit->keywords.date_obs = timestamp;
 		}
 	}
+	ser_color type_ser = ser_file->color_id;
+	if (type_ser >= SER_BAYER_RGGB && type_ser <= SER_BAYER_BGGR) {
+		const gchar *ser_pattern = convert_color_id_to_char(type_ser);
+		// in this case, contrarily to the ser_read_frame() function,
+		// we don't flip the pattern because we don't flip the image area either
+		sprintf(fit->keywords.bayer_pattern, "%s", ser_pattern); 
+		fit->debayer_checked = FALSE; // we will let the generic function handle this as we need to account for offsets
+		fit->top_down = TRUE;
+		fit->orig_ry = ser_file->image_height;
+		fit->x_offset = area->x;
+		fit->y_offset = area->y;
+		snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
+	}
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
 }
 
@@ -1202,9 +1225,12 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (!fit)
 		return SER_GENERIC_ERROR;
 
-	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
-	if (fit->top_down) {
-		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+	// return bottom-up fits to top-down ser row_order
+	if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN") && fit_is_cfa(fit)) {
+		const char *pattern_str = fit->keywords.bayer_pattern;
+		gchar *new_pattern_str = flip_bayer_pattern(pattern_str, fit->ry);
+		strncpy(fit->keywords.bayer_pattern, new_pattern_str, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+		g_free(new_pattern_str);
 	}
 	fits_flip_top_to_bottom(fit);
 
@@ -1356,31 +1382,6 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	w = ser.image_width;
 	h = ser.image_height;
 	sz = w * h;
-	ima_data = malloc(sz * sizeof(float));
-	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
-
-	/* here no need to debayer, for performance purposes
-	 * we just display monochrome display */
-	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
-
-	for (i = 0; i < sz; i++) {
-		ima_data[i + 0] = (float)fit.pdata[RLAYER][i];
-	}
-	clearfits(&fit);
-
-	i = (int) ceil((float) w / MAX_SIZE);
-	j = (int) ceil((float) h / MAX_SIZE);
-	pixScale = (i > j) ? i : j;	// picture scale factor
-	if (pixScale == 0) {
-		free(ima_data);
-		free(pixbuf_data);
-		return NULL;
-	}
-	Ws = w / pixScale; 			// picture width in pixScale blocks
-	Hs = h / pixScale; 			// -//- height pixScale
-
-	n_frames = ser.frame_count;
-	bit = ser.bit_pixel_depth;
 
 	switch (ser.color_id) {
 	case SER_MONO:
@@ -1390,79 +1391,278 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 		n_channels = 3;
 	}
 
-	description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s\n%s", w,
-			h, ngettext("pixel", "pixels", h), n_channels,
-			ngettext("channel", "channels", n_channels), bit, n_frames,
-			ngettext("frame", "frames", n_frames), _("(Monochrome Preview)"));
+	ima_data = malloc(sz * n_channels * sizeof(float));
+	pixbuf_data = malloc(3 * MAX_SIZE * MAX_SIZE * sizeof(guchar));
+
+	ser_read_frame(&ser, 0, &fit, FALSE, FALSE);
+
+	if (n_channels == 1) {
+		for (i = 0; i < sz; i++) {
+			ima_data[i] = (float)fit.pdata[RLAYER][i];
+		}
+	} else {
+		for (i = 0; i < sz; i++) {
+			ima_data[i * 3 + 0] = (float)fit.pdata[RLAYER][i];
+			ima_data[i * 3 + 1] = (float)fit.pdata[GLAYER][i];
+			ima_data[i * 3 + 2] = (float)fit.pdata[BLAYER][i];
+		}
+	}
+	clearfits(&fit);
+
+	i = (int) ceil((float) w / MAX_SIZE);
+	j = (int) ceil((float) h / MAX_SIZE);
+	pixScale = (i > j) ? i : j;    // picture scale factor
+	if (pixScale == 0) {
+		free(ima_data);
+		free(pixbuf_data);
+		free(pix);
+		return NULL;
+	}
+	Ws = w / pixScale;             // picture width in pixScale blocks
+	Hs = h / pixScale;             // -//- height pixScale
+
+	n_frames = ser.frame_count;
+	bit = ser.bit_pixel_depth;
+
+	if (n_channels == 1) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), bit, n_frames,
+				ngettext("frame", "frames", n_frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), bit, n_frames,
+				ngettext("frame", "frames", n_frames));
+	}
+
+	float *pix_r = malloc(MAX_SIZE * sizeof(float));
+	float *pix_g = malloc(MAX_SIZE * sizeof(float));
+	float *pix_b = malloc(MAX_SIZE * sizeof(float));
 
 	M = 0; // line number
 	for (i = 0; i < Hs; i++) { // cycle through a blocks by lines
-		//pptr = &pixbuf_data[i * Ws * 3];
-		for (j = 0; j < MAX_SIZE; j++)
-			pix[j] = 0;
+		for (j = 0; j < MAX_SIZE; j++) {
+			if (n_channels == 1) {
+				pix[j] = 0;
+			} else {
+				pix_r[j] = 0;
+				pix_g[j] = 0;
+				pix_b[j] = 0;
+			}
+		}
 		float m = 0.f; // amount of strings read in block
 		for (l = 0; l < pixScale; l++, m++) { // cycle through a block lines
-			ptr = &ima_data[M * w];
+			if (n_channels == 1) {
+				ptr = &ima_data[M * w];
+			} else {
+				ptr = &ima_data[M * w * 3];
+			}
 			N = 0; // number of column
 			for (j = 0; j < Ws; j++) { // cycle through a blocks by columns
-				n = 0.;	// amount of columns read in block
-				byte = 0.; // average intensity in block
-				for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
-					if (N++ < w) // row didn't end
-						byte += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
-					else
-						break;
+				n = 0.;    // amount of columns read in block
+				if (n_channels == 1) {
+					byte = 0.; // average intensity in block
+					for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
+						if (N++ < w) // row didn't end
+							byte += *ptr++; // sum[(pix-min)/wd]/n = [sum(pix)/n-min]/wd
+						else
+							break;
+					}
+					if (n == 0)
+						n = 1.f;
+					pix[j] += byte / n;
+				} else {
+					float byte_r = 0., byte_g = 0., byte_b = 0.;
+					for (k = 0; k < pixScale; k++, n++) { // cycle through block pixels
+						if (N++ < w) { // row didn't end
+							byte_r += *ptr++;
+							byte_g += *ptr++;
+							byte_b += *ptr++;
+						} else {
+							break;
+						}
+					}
+					if (n == 0)
+						n = 1.f;
+					pix_r[j] += byte_r / n;
+					pix_g[j] += byte_g / n;
+					pix_b[j] += byte_b / n;
 				}
-				pix[j] += byte / n; //(byte / n - min)/wd;
 			}
 			if (++M >= h)
 				break;
 		}
 		// fill unused picture pixels
-		ptr = &ima_data[i * Ws];
-		for (l = 0; l < Ws; l++)
-			*ptr++ = pix[l] / m;
+		if (n_channels == 1) {
+			ptr = &ima_data[i * Ws];
+			for (l = 0; l < Ws; l++)
+				*ptr++ = pix[l] / m;
+		} else {
+			for (l = 0; l < Ws; l++) {
+				ima_data[(i * Ws + l) * 3 + 0] = pix_r[l] / m;
+				ima_data[(i * Ws + l) * 3 + 1] = pix_g[l] / m;
+				ima_data[(i * Ws + l) * 3 + 2] = pix_b[l] / m;
+			}
+		}
 	}
-	ptr = ima_data;
-	sz = Ws * Hs;
-	max = min = *ptr;
-	avr = 0;
-	for (i = 0; i < sz; i++, ptr++) {
-		float tmp = *ptr;
-		if (tmp > max)
-			max = tmp;
-		else if (tmp < min)
-			min = tmp;
-		avr += tmp;
+
+	// If we have a 16-bit SER (lucky imaging), apply autostretch to the preview
+	// 8-bit SERs do not require autostretch
+	if (bit > 8) {
+		int prev_size = Ws * Hs;
+		/* Convert interleaved (h,w,c) -> channel-major (c, h, w) for processing */
+		float *ima_ch = NULL;
+		if (n_channels > 1) {
+			ima_ch = malloc(prev_size * n_channels * sizeof(float));
+			if (!ima_ch) {
+				// allocation failed: skip autostretch but continue gracefully
+				ima_ch = NULL;
+			} else {
+				for (i = 0; i < prev_size; i++) {
+					ima_ch[0 * prev_size + i] = ima_data[i * 3 + 0];
+					ima_ch[1 * prev_size + i] = ima_data[i * 3 + 1];
+					ima_ch[2 * prev_size + i] = ima_data[i * 3 + 2];
+				}
+			}
+		} else {
+			/* mono: we can use ima_data directly as channel-major (single channel) */
+			ima_ch = ima_data;
+		}
+
+		if (ima_ch != NULL) {
+			float maxmax = 65535.f;
+			float minmin = 0.f;
+			float scale = 1.f / (maxmax - minmin);
+
+			/* Normalize values to [0..1] on channel-major buffer */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+			for (int idx = 0 ; idx < prev_size * n_channels; idx++) {
+				ima_ch[idx] = (ima_ch[idx] - minmin) * scale;
+			}
+
+			/* Create a temporary fits with channel-major float data for MTF */
+			fits *tmp = NULL;
+			new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, ima_ch);
+			struct mtf_params mtfp[3] = {
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
+				{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
+			};
+			find_unlinked_midtones_balance_default(tmp, mtfp);
+			apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+
+			/* After MTF, the modified data is still present in ima_ch (tmp used it); we must
+			* convert back to interleaved if we had created a separate ima_ch. */
+			if (n_channels > 1) {
+				for (i = 0; i < prev_size; i++) {
+					ima_data[i * 3 + 0] = ima_ch[0 * prev_size + i];
+					ima_data[i * 3 + 1] = ima_ch[1 * prev_size + i];
+					ima_data[i * 3 + 2] = ima_ch[2 * prev_size + i];
+				}
+			} else {
+				/* mono: ima_ch == ima_data already updated */
+			}
+
+			/* Prevent clearfits from freeing the ima_ch memory (we own/free it) */
+			tmp->fdata = NULL;
+			tmp->fpdata[0] = NULL;
+			tmp->fpdata[1] = NULL;
+			tmp->fpdata[2] = NULL;
+			clearfits(tmp);
+			free(tmp);
+
+			if (n_channels > 1) {
+				free(ima_ch);
+			}
+		}
 	}
-	avr /= (float) sz;
-	wd = max - min;
-	avr = (avr - min) / wd;	// normal average by preview
-	if (avr > 1.)
-		wd /= avr;
-	ptr = ima_data;
-	for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		guchar *pptr = &pixbuf_data[Ws * i * 3];
-		for (j = 0; j < Ws; j++) {
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
-			ptr++;
+
+	if (n_channels == 1) {
+		ptr = ima_data;
+		sz = Ws * Hs;
+		max = min = *ptr;
+		avr = 0;
+		for (i = 0; i < sz; i++, ptr++) {
+			float tmp = *ptr;
+			if (tmp > max)
+				max = tmp;
+			else if (tmp < min)
+				min = tmp;
+			avr += tmp;
+		}
+		avr /= (float) sz;
+		wd = max - min;
+		/* guard against zero width */
+		if (wd == 0.f) wd = 1.f;
+		avr = (avr - min) / wd;    // normal average by preview
+		if (avr > 1.)
+			wd /= avr;
+		ptr = ima_data;
+		for (i = Hs - 1; i > -1; i--) {    // fill pixbuf mirroring image by vertical
+			guchar *pptr = &pixbuf_data[Ws * i * 3];
+			for (j = 0; j < Ws; j++) {
+				guchar val = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+				*pptr++ = val;
+				*pptr++ = val;
+				*pptr++ = val;
+				ptr++;
+			}
+		}
+	} else {
+		// Normalize each channel separately (ima_data is interleaved again)
+		float max_r = ima_data[0], min_r = ima_data[0];
+		float max_g = ima_data[1], min_g = ima_data[1];
+		float max_b = ima_data[2], min_b = ima_data[2];
+
+		sz = Ws * Hs;
+		for (i = 0; i < sz; i++) {
+			float r = ima_data[i * 3 + 0];
+			float g = ima_data[i * 3 + 1];
+			float b = ima_data[i * 3 + 2];
+
+			if (r > max_r) max_r = r; else if (r < min_r) min_r = r;
+			if (g > max_g) max_g = g; else if (g < min_g) min_g = g;
+			if (b > max_b) max_b = b; else if (b < min_b) min_b = b;
+		}
+
+		float wd_r = max_r - min_r;
+		float wd_g = max_g - min_g;
+		float wd_b = max_b - min_b;
+		if (wd_r == 0.f) wd_r = 1.f;
+		if (wd_g == 0.f) wd_g = 1.f;
+		if (wd_b == 0.f) wd_b = 1.f;
+
+		for (i = Hs - 1; i > -1; i--) {    // fill pixbuf mirroring image by vertical
+			guchar *pptr = &pixbuf_data[Ws * i * 3];
+			for (j = 0; j < Ws; j++) {
+				int idx = ((Hs - 1 - i) * Ws + j) * 3;
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 0] - min_r) / wd_r);
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 1] - min_g) / wd_g);
+				*pptr++ = (guchar) roundf_to_BYTE(255.f * (ima_data[idx + 2] - min_b) / wd_b);
+			}
 		}
 	}
 
 	ser_close_file(&ser);
-	pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,		// guchar* data
-			GDK_COLORSPACE_RGB,	// only this supported
-			FALSE,				// no alpha
-			8,				// number of bits
-			Ws, Hs,				// size
-			Ws * 3,				// line length in bytes
+	pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,        // guchar* data
+			GDK_COLORSPACE_RGB,    // only this supported
+			FALSE,                // no alpha
+			8,                // number of bits
+			Ws, Hs,                // size
+			Ws * 3,                // line length in bytes
 			(GdkPixbufDestroyNotify) free_preview_data, // function (*GdkPixbufDestroyNotify) (guchar *pixels, gpointer data);
 			NULL
 			);
 	free(ima_data);
 	free(pix);
+
+	free(pix_r);
+	free(pix_g);
+	free(pix_b);
+
 	*descr = description;
 	return pixbuf;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -360,13 +360,9 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 #endif
 	for (size_t i = 0 ; i < layersize ; i++) {
 		float f[3];
-		if (clip_mode == RGBBLEND) {
-			for (size_t chan = 0; chan < 3 ; chan++)
-				f[chan] = fmaxf(0.f, fminf(1.f, fpbuf[chan][i]));
-		} else {
-			for (size_t chan = 0; chan < 3 ; chan++)
-				f[chan] = fmaxf(0.f, fpbuf[chan][i]);
-		}
+		// Clip input to [0,1]
+		for (int chan = 0; chan < 3 ; chan++)
+			f[chan] = fmaxf(0.f, fminf(1.f, fpbuf[chan][i]));
 		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
 		float sfbar = GHTp(fbar, params, &compute_params);
 		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
@@ -384,22 +380,25 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 		switch (clip_mode) {
 			case CLIP:
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
+					// Clip output to [0,1]
+					outp[chan][i] = (do_channel[chan]) ? fmaxf(0.f, fminf(1.f, data.sf[chan])) : f[chan];
+				}
+				break;
+			case RGBBLEND:
+				// Apply RGBblend values
+				rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
+				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
 				}
 				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+				float invmaxval = 1.f / maxval;
 				if (maxval > 1.f) {
-					data.sf[0] /= maxval;
-					data.sf[1] /= maxval;
-					data.sf[2] /= maxval;
+					data.sf[0] *= invmaxval;
+					data.sf[1] *= invmaxval;
+					data.sf[2] *= invmaxval;
 				}
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
-				}
-				break;
-			case RGBBLEND:
-				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
 				}
@@ -549,22 +548,24 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
 				}
 				break;
+			case RGBBLEND:
+				rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
+				for (size_t chan = 0 ; chan < 3 ; chan++) {
+					f[chan] = (do_channel[chan]) ? data.sf[chan] : f[chan];
+					outp[chan][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[chan]);
+				}
+				break;
 			case RESCALE:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
+				float invmaxval = 1.f / maxval;
 				if (maxval > 1.f) {
-					data.sf[0] /= maxval;
-					data.sf[1] /= maxval;
-					data.sf[2] /= maxval;
+					data.sf[0] *= invmaxval;
+					data.sf[1] *= invmaxval;
+					data.sf[2] *= invmaxval;
 				}
 				for (size_t chan = 0 ; chan < 3 ; chan++) {
 					outp[chan][i] = (do_channel[chan]) ? roundf_to_WORD(USHRT_MAX_SINGLE * data.sf[chan]) : Wpbuf[chan][i];
 				}
-				break;
-			case RGBBLEND:
-				rgbblend(&data, &f[0], &f[1], &f[2], m_CB);
-				outp[0][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[0]);
-				outp[1][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[1]);
-				outp[2][i] = roundf_to_WORD(USHRT_MAX_SINGLE * f[2]);
 				break;
 			case RESCALEGLOBAL:
 				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));

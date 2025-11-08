@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 gboolean is_space_disk_available(const gchar *disk);
-gboolean update_displayed_memory();
+gboolean update_displayed_memory(gpointer data);
 int test_available_space(gint64 req_size);
 
 guint64 get_available_memory();
@@ -48,6 +48,8 @@ GInputStream *siril_input_stream_from_stdin();
 gchar *get_special_folder(int csidl);
 int ReconnectIO(int OpenNewConsole);
 char* siril_real_path(const char *source);
+gchar *get_siril_bundle_path();
+gchar *find_executable_in_path(const char *exe_name, const char *path);
 #endif
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,13 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
-#include "core/command.h"
 #include "io/sequence.h"
-#include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -33,7 +30,7 @@ static void set_selection_ratio(double ratio) {
 	gui.ratio = ratio;
 	enforce_ratio_and_clamp();
 	update_display_selection();
-	new_selection_zone();
+	gui_function(new_selection_zone, NULL);
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -45,7 +42,7 @@ void on_menuitem_selection_free_toggled(GtkCheckMenuItem *menuitem, gpointer use
 
 void on_menuitem_selection_preserve_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	if (gtk_check_menu_item_get_active(menuitem)) {
-		set_selection_ratio((double)gfit.rx / (double)gfit.ry);
+		set_selection_ratio((double)gfit->rx / (double)gfit->ry);
 	}
 }
 
@@ -94,15 +91,15 @@ void on_menuitem_selection_9_16_toggled(GtkCheckMenuItem *menuitem, gpointer use
 void on_menuitem_selection_all_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	com.selection.x = 0;
 	com.selection.y = 0;
-	com.selection.w = gfit.rx;
-	com.selection.h = gfit.ry;
+	com.selection.w = gfit->rx;
+	com.selection.h = gfit->ry;
 	// "Select All" need to reset any enforced ratio that would not match the ratio of the image
 	// 1. it's nice to NOT enforce a ratio when the user just want to select the whole image
 	// 2. it's nice to keep the enforced ratio if it does match the image
-	if (gui.ratio != ((double)gfit.rx / (double)gfit.ry)) {
+	if (gui.ratio != ((double)gfit->rx / (double)gfit->ry)) {
 		set_selection_ratio(0.0);
 	} else {
-		set_selection_ratio((double)gfit.rx / (double)gfit.ry); // triggers the new_selection() callbacks etc.
+		set_selection_ratio((double)gfit->rx / (double)gfit->ry); // triggers the new_selection() callbacks etc.
 	}
 }
 

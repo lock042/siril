@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,9 +22,7 @@
 #include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/arithm.h"
 #include "core/siril_log.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "algos/colors.h"
@@ -32,23 +30,11 @@
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
 #include "algos/extraction.h"
-#include "algos/geometry.h"
 #include "algos/siril_random.h"
-#include "algos/statistics.h"
-#include "algos/sorting.h"
-#include "algos/star_finder.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
-#include "filters/mtf.h"
 #include "filters/synthstar.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 int generate_synthstars(fits *fit);
@@ -89,7 +75,8 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 	return;
 }
 
-void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta, const float ratio, const float angle) {
+void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff,
+				const float yoff, const float beta, const float ratio, const float angle) {
 	float anglerad = angle * M_PI / 180.f;
 	const float alpha = 0.6667f * fwhm;
 	const float alphax = alpha;
@@ -314,23 +301,6 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 	return;
 }
 
-// Do not use this function on com.stars!
-// To clear com.stars, clear_stars_list() (from gui/PSF_list.c)
-// must be used.
-int free_psf_starstarstar(psf_star **stars) {
-	if (!stars) {
-		return 0;
-	} else {
-
-		int i = 0;
-		while (i < MAX_STARS && stars[i])
-			free_psf(stars[i++]);
-		free(stars);
-		stars = NULL;
-	}
-	return 0;
-}
-
 int starcount(psf_star **stars) {
 	int i = 0;
 	if (!(stars)) {
@@ -343,14 +313,18 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars() {
-	reprofile_saturated_stars(&gfit);
+gpointer fix_saturated_stars(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
+	reprofile_saturated_stars(gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
 
-gpointer do_synthstar() {
-	generate_synthstars(&gfit);
+gpointer do_synthstar(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
+	generate_synthstars(gfit);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }
@@ -365,31 +339,61 @@ int generate_synthstars(fits *fit) {
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
-	int nb_stars = starcount(com.stars);
-	int channel = 1;
+	int nb_stars = 0;
 	psf_star **stars = NULL;
-	if (nb_stars < 1) {
-		image *input_image = NULL;
-		input_image = calloc(1, sizeof(image));
-		input_image->fit = fit;
-		input_image->from_seq = NULL;
-		input_image->index_in_seq = -1;
-		if (fit->naxes[2] == 1)
-			channel = 0;
-		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
-		free(input_image);
+
+	if (starcount(com.stars) < 1) {
+		// Set up starfinder_data structure
+		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
+		if (!sf_data) {
+			siril_log_color_message(_("Memory allocation failed\n"), "red");
+			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			return -1;
+		}
+
+		sf_data->im.fit = fit;
+		sf_data->im.from_seq = NULL;
+		sf_data->im.index_in_seq = -1;
+		sf_data->layer = (fit->naxes[2] == 1) ? 0 : 1;
+		sf_data->max_stars_fitted = MAX_STARS;
+		sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
+		sf_data->save_eqcoords = FALSE;
+		sf_data->ref_wcs = NULL;
+		sf_data->stars = &stars;
+		sf_data->nb_stars = &nb_stars;
+		sf_data->threading = MULTI_THREADED;
+		sf_data->update_GUI = FALSE;
+		sf_data->process_all_images = FALSE;
+		sf_data->already_in_thread = TRUE;
+		sf_data->keep_stars = FALSE;
+
+		// Call the worker function
+		int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
+		free(sf_data);
+
+		if (retval != 0 || !stars) {
+			siril_log_color_message(_("Star detection failed\n"), "red");
+			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			if (stars)
+				free_fitted_stars(stars);
+			return -1;
+		}
 		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
-		stars_needs_freeing = FALSE;
+		nb_stars = starcount(com.stars);
 	}
-	if (starcount(stars) < 1) {
+
+	if (nb_stars < 1 || !stars) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
+		if (stars_needs_freeing)
+			free_fitted_stars(stars);
+		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 		return -1;
 	} else {
 		siril_log_message(_("Synthesizing %d stars...\n"), nb_stars);
 	}
+
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
 		norm = get_normalized_value(fit);
@@ -400,7 +404,7 @@ int generate_synthstars(fits *fit) {
 
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
-	int count = dimx * dimy;
+	int npixels = dimx * dimy;
 	gboolean buf_needs_freeing = FALSE;
 	// Regardless of 16/32bit store the data in a buffer, converting if needed
 	float *buf[3];
@@ -410,11 +414,11 @@ int generate_synthstars(fits *fit) {
 			buf[GLAYER] = fit->fpdata[GLAYER];
 			buf[BLAYER] = fit->fpdata[BLAYER];
 		} else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf[GLAYER] = (float*) calloc(count, sizeof(float));
-			buf[BLAYER] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(npixels, sizeof(float));
+			buf[GLAYER] = (float*) calloc(npixels, sizeof(float));
+			buf[BLAYER] = (float*) calloc(npixels, sizeof(float));
 			buf_needs_freeing = TRUE;
-			for (size_t i = 0; i < count; i++) {
+			for (size_t i = 0; i < npixels; i++) {
 				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
 				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
 				buf[BLAYER][i] = (float) fit->pdata[BLAYER][i] * invnorm;
@@ -424,9 +428,9 @@ int generate_synthstars(fits *fit) {
 		if (is_32bit)
 			buf[RLAYER] = fit->fdata;
 		else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(npixels, sizeof(float));
 			buf_needs_freeing = TRUE;
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
 	}
@@ -434,23 +438,23 @@ int generate_synthstars(fits *fit) {
 	// Normalize the buffer to avoid issues with colorspace conversion
 	float bufmax = 1.f;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < npixels; i++)
 			if (buf[chan][i] > bufmax)
 				bufmax = buf[chan][i];
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < npixels; i++)
 			buf[chan][i] /= bufmax;
 
 	float *H = NULL, *S = NULL, *Hsynth = NULL, *Ssynth = NULL, *Lsynth, junk;
-	Lsynth = (float*) calloc(count, sizeof(float));
+	Lsynth = (float*) calloc(npixels, sizeof(float));
 
 	// For RGB images, convert pixel colour data from fit into H and S arrays. L is irrelevant as we will synthesize L.
 	if (is_RGB) {
-		H = (float*) calloc(count, sizeof(float));
-		S = (float*) calloc(count, sizeof(float));
-		Hsynth = (float*) calloc(count, sizeof(float));
-		Ssynth = (float*) calloc(count, sizeof(float));
-		for (size_t i = 0; i < count; i++) {
+		H = (float*) calloc(npixels, sizeof(float));
+		S = (float*) calloc(npixels, sizeof(float));
+		Hsynth = (float*) calloc(npixels, sizeof(float));
+		Ssynth = (float*) calloc(npixels, sizeof(float));
+		for (size_t i = 0; i < npixels; i++) {
 			rgb_to_hsl_float_sat(buf[RLAYER][i], buf[GLAYER][i],
 					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
@@ -469,10 +473,7 @@ int generate_synthstars(fits *fit) {
 			moffat_count++;
 			avg_moffat_beta += stars[n]->beta;
 		}
-		if (moffat_count > 0)
-			avg_moffat_beta /= moffat_count;
-		else
-			avg_moffat_beta = -1;
+		avg_moffat_beta /= moffat_count;
 		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 	}
 	for (int n = 0; n < nb_stars; n++) {
@@ -489,13 +490,20 @@ int generate_synthstars(fits *fit) {
 			assert(lum >= 0.0f);
 			float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 			float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-			int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			int size = (int) 5 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			if (!gaussian)
+				size *= 10 / stars[n]->beta; // Increase the PSF size markedly for low beta stars
 			if (!(size % 2))
 				size++;
+			if (size > 1024) // protect against excessive memory allocations due to bad parameters;
+							 // 100px should be more than enough for the fwhm of even a very saturated star
+				continue;
 			float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
+			if (!psfL) // May happen if size is excessively large because of a bad fwhm value
+				continue;
 			float beta = 8.f;
 			if (!gaussian) {
 				if (stars[n]->beta > 0.0) {
@@ -521,84 +529,62 @@ int generate_synthstars(fits *fit) {
 	// user has made a specific selection of stars, we want to leave that
 	// selection intact.
 	if (stars_needs_freeing)
-		free_psf_starstarstar(stars);
+		free_fitted_stars(stars);
+
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
 	if (!stopcalled) {
 		if (is_RGB) {
 			float *R, *G, *B;
-			R = (float*) calloc(count, sizeof(float));
-			G = (float*) calloc(count, sizeof(float));
-			B = (float*) calloc(count, sizeof(float));
+			R = (float*) calloc(npixels, sizeof(float));
+			G = (float*) calloc(npixels, sizeof(float));
+			B = (float*) calloc(npixels, sizeof(float));
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
 {
-			omp_set_num_threads(com.max_thread);
 #endif
 			float bufmaxx = 1.f;
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				if (Lsynth[i] > bufmaxx)
 					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-			for (size_t i = 0; i < count; i++)
+			for (size_t i = 0; i < npixels; i++)
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
-							&G[n], &B[n]);
-					// Trap NaNs and infinities
-					if (isnan(R[n]))
-						R[n] = 0.f;
-					if (isinf(R[n]))
-						R[n] = 0.f;
-					if (R[n] < 0.f)
-						R[n] = 0.f;
-					if (isnan(G[n]))
-						G[n] = 0.f;
-					if (isinf(G[n]))
-						G[n] = 0.f;
-					if (G[n] < 0.f)
-						G[n] = 0.f;
-					if (isnan(B[n]))
-						B[n] = 0.f;
-					if (isinf(B[n]))
-						B[n] = 0.f;
-					if (B[n] < 0.f)
-						B[n] = 0.f;
-				}
-//#ifdef _OPENMP
-//#pragma omp barrier
-//#endif
-				if (is_32bit) {
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-					for (size_t n = 0; n < count; n++) {
-						fit->fpdata[RLAYER][n] = R[n];
-						fit->fpdata[GLAYER][n] = G[n];
-						fit->fpdata[BLAYER][n] = B[n];
-					}
-				} else {
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-					for (size_t n = 0; n < count; n++) {
-						fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
-						fit->pdata[GLAYER][n] = roundf_to_WORD(G[n] * norm);
-						fit->pdata[BLAYER][n] = roundf_to_WORD(B[n] * norm);
-					}
-				}
-#ifdef _OPENMP
+			for (size_t n = 0; n < npixels; n++) {
+				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
+						&G[n], &B[n]);
+				// Trap NaNs and infinities
+				R[n] = (isnan(R[n]) || isinf(R[n]) || R[n] < 0.f) ? 0.f : R[n];
+				G[n] = (isnan(G[n]) || isinf(G[n]) || G[n] < 0.f) ? 0.f : G[n];
+				B[n] = (isnan(B[n]) || isinf(B[n]) || B[n] < 0.f) ? 0.f : B[n];
 			}
+			if (is_32bit) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
 #endif
-
+				for (size_t n = 0; n < npixels; n++) {
+					fit->fpdata[RLAYER][n] = R[n];
+					fit->fpdata[GLAYER][n] = G[n];
+					fit->fpdata[BLAYER][n] = B[n];
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
+				for (size_t n = 0; n < npixels; n++) {
+					fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
+					fit->pdata[GLAYER][n] = roundf_to_WORD(G[n] * norm);
+					fit->pdata[BLAYER][n] = roundf_to_WORD(B[n] * norm);
+				}
+			}
+#ifdef _OPENMP
+}
+#endif
 			// Free memory
 			free(R);
 			free(G);
@@ -613,7 +599,7 @@ int generate_synthstars(fits *fit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-					for (size_t n = 0; n < count; n++) {
+					for (size_t n = 0; n < npixels; n++) {
 						fit->fdata[n] = (float) Lsynth[n];
 					}
 					if (com.pref.force_16bit) {
@@ -624,7 +610,7 @@ int generate_synthstars(fits *fit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-					for (size_t n = 0; n < count; n++) {
+					for (size_t n = 0; n < npixels; n++) {
 						fit->data[n] = roundf_to_WORD(Lsynth[n] * norm);
 					}
 				}
@@ -650,7 +636,7 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == &gfit && !stopcalled)
+	if (fit == gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
@@ -680,7 +666,7 @@ int reprofile_saturated_stars(fits *fit) {
 	int count = dimx * dimy;
 	float *buf[3];
 
-	buf[RLAYER] = malloc(count *sizeof(float));
+	buf[RLAYER] = malloc(count * sizeof(float));
 	if (is_RGB) {
 		buf[GLAYER] = malloc(count * sizeof(float));
 		buf[BLAYER] = malloc(count * sizeof(float));
@@ -705,19 +691,47 @@ int reprofile_saturated_stars(fits *fit) {
 		}
 	}
 
-	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
-	image *input_image = NULL;
+	// Set up starfinder_data structure once, we will reuse it for each channel
+	struct starfinder_data sf_data = { 0 };
+	sf_data.im.fit = fit;
+	sf_data.im.from_seq = NULL;
+	sf_data.im.index_in_seq = -1;
+	sf_data.max_stars_fitted = MAX_STARS;
+	sf_data.selection = (rectangle){0, 0, 0, 0}; // no selection
+	sf_data.save_eqcoords = FALSE;
+	sf_data.ref_wcs = NULL;
+	sf_data.threading = MULTI_THREADED;
+	sf_data.update_GUI = FALSE;
+	sf_data.process_all_images = FALSE;
+	sf_data.already_in_thread = TRUE;
+	sf_data.keep_stars = FALSE;
+
+	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters.
+	// To fix saturated star profiles we have to do this for each color channel as we can't rely on
+	// the hue and saturation within the saturated area, whereas the profiles will be accurate.
 	gboolean stopcalled = FALSE;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++) {
 		if (stopcalled)
 			break;
-		input_image = calloc(1, sizeof(image));
-		input_image->fit = fit;
-		input_image->from_seq = NULL;
-		input_image->index_in_seq = -1;
-		int nb_stars;
-		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		free(input_image);
+
+		psf_star **stars = NULL;
+		int nb_stars = 0;
+
+		// Update only the channel-specific fields
+		sf_data.layer = chan;
+		sf_data.stars = &stars;
+		sf_data.nb_stars = &nb_stars;
+
+		// Call the worker function
+		int retval = GPOINTER_TO_INT(findstar_worker(&sf_data));
+
+		if (retval != 0 || !stars) {
+			siril_log_color_message(_("Star detection failed for channel %u\n"), "red", chan);
+			if (stars)
+				free_fitted_stars(stars);
+			continue; // Skip this channel but continue with others
+		}
+
 		int sat_stars = 0;
 		siril_log_message(_("Star synthesis: desaturating stars in channel %u...\n"), chan);
 		double total = fit->naxes[2] * nb_stars;
@@ -725,7 +739,7 @@ int reprofile_saturated_stars(fits *fit) {
 			// Check if stop has been pressed
 			if (!get_thread_run())
 				stopcalled = TRUE;
-			set_progress_bar_data(NULL,	(double) (n * fit->naxes[2]) / total);
+			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
 			if (stars[n]->has_saturated && !stopcalled) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
@@ -743,10 +757,14 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
+				if (size > 1024)
+					size = 1024; // Protection against bad star params
 				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
 				float angle = (float) stars[n]->angle;
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
+				if (!psfL)
+					continue;
 				makegaussian(psfL, size, stars[n]->fwhmx, (lum - bg), xoff, yoff, ratio, angle);
 
 				// Replace the part of the profile above the sat threshold
@@ -757,18 +775,19 @@ int reprofile_saturated_stars(fits *fit) {
 				sat_stars++;
 			}
 		}
-		free_psf_starstarstar(stars);
+		free_fitted_stars(stars);
 		siril_log_message(_("Star synthesis: %d stars desaturated\n"), sat_stars);
 	}
 
-	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
+	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values
+	// of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
 	if (!stopcalled) {
 		float bufmax = 1.f;
 		for (size_t chan = 0; chan < fit->naxes[2]; chan++)
 			for (size_t i = 0; i < count; i++)
 				if (buf[chan][i] > bufmax)
 					bufmax = buf[chan][i];
-		if (bufmax > 1.f){
+		if (bufmax > 1.f) {
 			float invbufmax = 1.f / bufmax;
 			siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
 			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
@@ -798,12 +817,12 @@ int reprofile_saturated_stars(fits *fit) {
 		}
 	}
 	if (is_RGB) {
-		for (size_t i = 0; i <3; i++)
+		for (size_t i = 0; i < 3; i++)
 			free(buf[i]);
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == &gfit && !stopcalled)
+	if (fit == gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");

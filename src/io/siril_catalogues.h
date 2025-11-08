@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,8 +25,12 @@
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
-#define MAX_CAT_COLUMNS 21
+#define MAX_CAT_COLUMNS 23
 #define CAT_AN_INDEX_OFFSET 60
+
+// Define Epoch 2000.0 (used by Vizier) and Epoch 2016.0 (used by Gaia DR3 directly)
+#define J2000 2451545.0
+#define J2016 2457388.5
 
 // all catalogues that can be used
 // < 60: online
@@ -41,6 +45,9 @@
 // if 90 <= value <= 100: special use cases
 typedef enum {
 	CAT_UNDEF = -1,
+
+// ** REMOTE CATALOGUES **
+
 // TAP Queries from vizier
 	CAT_TYCHO2, //00
 	CAT_NOMAD, //01
@@ -60,6 +67,9 @@ typedef enum {
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
+
+// ** LOCAL CATALOGUES **
+
 // Local annotations - shift by -CAT_AN_INDEX_OFFSET to use in annotation_catalogues
 	CAT_AN_MESSIER = 60,
 	CAT_AN_NGC = 61,
@@ -67,15 +77,19 @@ typedef enum {
 	CAT_AN_LDN = 63,
 	CAT_AN_SH2 = 64,
 	CAT_AN_STARS = 65,
-	CAT_AN_USER_DSO = 66,
-	CAT_AN_USER_SSO = 67,
-	CAT_AN_USER_TEMP = 68,
+	CAT_AN_CONST = 66,
+	CAT_AN_CONST_NAME = 67,
+	CAT_AN_USER_DSO = 68,
+	CAT_AN_USER_SSO = 69,
+	CAT_AN_USER_TEMP = 70,
 // Special
 	CAT_SHOW = 96, // for the show command
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
-	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_LOCAL_TRIX = 100 // for trixel query
+	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
+	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
+	CAT_LOCAL_TRIX = 102, // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -100,7 +114,9 @@ typedef enum {
 	CAT_FIELD_SITELON,
 	CAT_FIELD_SITEELEV,
 	CAT_FIELD_VRA,
-	CAT_FIELD_VDEC
+	CAT_FIELD_VDEC,
+	CAT_FIELD_RA1,
+	CAT_FIELD_DEC1
 } cat_fields;
 
 typedef enum {
@@ -112,6 +128,7 @@ typedef enum {
 typedef struct {
 	// filled from catalogue
 	double ra, dec;	// celestial coordinates
+	double ra1, dec1;	// celestial coordinates of the second point
 	double pmra, pmdec;	// proper motions
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float bmag;	// B magnitude
@@ -124,10 +141,14 @@ typedef struct {
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
 	float teff; // GAIA Teff term
-	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
+	uint64_t gaiasourceid; // Gaia source ID, for constructing Datalink queries
+	double *xp_sampled; // Gaia xp_sampled data used for SPCC
 
 	// computed
 	float x, y;	// image coordinates
+	float x1, y1;	// second star image coordinates (for constellations)
+	uint64_t index; // index in the Gaia results table when using CAT_GAIADR3_DIRECT for SPCC
+	float BV; // B ,agnitude - V magnitude, used in PCC
 	gboolean included; // flag to remove items from the list without deleting them (to be used by platesolve/pcc)
 } cat_item;
 
@@ -197,6 +218,10 @@ typedef struct {
 	gboolean display_tag;
 } show_params;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
 const char *catalog_to_str(siril_cat_index cat);
@@ -204,6 +229,7 @@ const gchar **get_cat_colums_names();
 
 void siril_catalog_free_item(cat_item *item);
 void siril_catalog_free_items(siril_catalogue *siril_cat);
+siril_catalogue *siril_catalog_new(siril_cat_index Catalog);
 void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
@@ -212,6 +238,9 @@ void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean m
 gboolean is_star_catalogue(siril_cat_index Catalog);
 gboolean display_names_for_catalogue(siril_cat_index Catalog);
 float siril_catalog_get_default_limit_mag(siril_cat_index cat);
+double siril_catalog_epoch(siril_cat_index cat);
+double siril_catalog_ra_multiplier(siril_cat_index cat);
+double siril_catalog_dec_multiplier(siril_cat_index cat);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
@@ -235,5 +264,9 @@ conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
 int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

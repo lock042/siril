@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,15 +20,15 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include <glib.h>
 
-#include "algos/demosaicing.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "utils.h"
 #include "core/siril_log.h"
+#include "utils.h"
 #include "message_dialog.h"
 
 struct _label_data {
@@ -37,6 +37,16 @@ struct _label_data {
 	const char *class_to_add;
 	const char *class_to_remove;
 };
+
+static GMutex gui_mutex = { 0 };
+
+void gui_mutex_lock() {
+	g_mutex_lock(&gui_mutex);
+}
+
+void gui_mutex_unlock() {
+	g_mutex_unlock(&gui_mutex);
+}
 
 static gboolean set_label_text_idle(gpointer p) {
 	struct _label_data *args = (struct _label_data *) p;
@@ -86,12 +96,17 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
 }
 
-
-void control_window_switch_to_tab(main_tabs tab) {
-	if (com.script)
-		return;
+static gboolean switch_tab(gpointer user_data) {
+	main_tabs tab = (main_tabs) GPOINTER_TO_INT(user_data);
 	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
 	gtk_notebook_set_current_page(notebook, tab);
+	return FALSE;
+}
+
+void control_window_switch_to_tab(main_tabs tab) {
+	if (com.script || com.headless)
+		return;
+	gui_function(switch_tab, GINT_TO_POINTER(tab));
 }
 
 /**
@@ -252,32 +267,46 @@ struct idle_data {
 
 static gboolean wrapping_idle(gpointer arg) {
 	struct idle_data *data = (struct idle_data *)arg;
+	fprintf(stderr, "Entering wrapping_idle for function %p\n", data->idle);
 	data->idle(data->user);
-
 	siril_debug_print("idle %p signaling end\n", data->idle);
 	g_mutex_lock(&data->mutex);
 	data->idle_finished = TRUE;
 	g_cond_signal(&data->cond);
 	g_mutex_unlock(&data->mutex);
-
 	return FALSE;
 }
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
-	struct idle_data data = { .idle_finished = FALSE, .idle = idle, .user = arg };
-	g_mutex_init(&data.mutex);
-	g_cond_init(&data.cond);
+	if (com.headless) {
+		siril_debug_print("execute_idle_and_wait_for_it called headless, this should not happen!\n");
+		return;
+	}
+
+	if (g_main_context_is_owner(g_main_context_default())) {
+		idle(arg);
+		return;
+	}
+
+	struct idle_data *data = g_malloc(sizeof(struct idle_data));
+	data->idle_finished = FALSE;
+	data->idle = idle;
+	data->user = arg;
+	g_mutex_init(&data->mutex);
+	g_cond_init(&data->cond);
+
 	siril_debug_print("queueing idle %p\n", idle);
-	gdk_threads_add_idle(wrapping_idle, &data);
-
+	gdk_threads_add_idle(wrapping_idle, data);
 	siril_debug_print("waiting for idle %p\n", idle);
-	g_mutex_lock (&data.mutex);
-	while (!data.idle_finished)
-		g_cond_wait(&data.cond, &data.mutex);
-	g_mutex_unlock (&data.mutex);
 
-	g_mutex_clear(&data.mutex);
-	g_cond_clear(&data.cond);
+	g_mutex_lock(&data->mutex);
+	while (!data->idle_finished)
+		g_cond_wait(&data->cond, &data->mutex);
+	g_mutex_unlock(&data->mutex);
+
+	g_mutex_clear(&data->mutex);
+	g_cond_clear(&data->cond);
+	g_free(data);
 	siril_debug_print("idle %p wait is over\n", idle);
 }
 
@@ -287,7 +316,7 @@ int select_vport(int vport) {
 
 gboolean check_ok_if_cfa() {
 	gboolean retval;
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
+	if (gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
 		int confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
 				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
 		retval = confirm ? TRUE : FALSE;
@@ -342,225 +371,21 @@ void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gc
 		gtk_file_chooser_add_filter(chooser, filter);
 }
 
-/** Calculate the bayer pattern color from the row and column **/
-
-static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
-}
-
-const char* get_cfa_from_pattern(sensor_pattern pattern) {
-	const char* cfa;
-	switch (pattern) {
-		case BAYER_FILTER_BGGR:
-			cfa = "2110";
-			break;
-		case BAYER_FILTER_GRBG:
-			cfa = "1021";
-			break;
-		case BAYER_FILTER_RGGB:
-			cfa = "0112";
-			break;
-		case BAYER_FILTER_GBRG:
-			cfa = "1201";
-			break;
-		case XTRANS_FILTER_1:
-//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-			cfa = "110112112110201021112110110112021201";
-			break;
-		case XTRANS_FILTER_2:
-//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-			cfa = "021201110112112110201021112110110112";
-			break;
-		case XTRANS_FILTER_3:
-//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-			cfa = "101121212010101121121101010212121101";
-			break;
-		case XTRANS_FILTER_4:
-//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-			cfa = "121101010212121101101121212010101121";
-			break;
-		default:
-			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
-			return NULL;
-	}
-	return cfa;
-}
-
-#define RECIPSQRT2 0.70710677f;
-
-// These interpolation routines will work for X-Trans as well as Bayer patterns
-
-static void interpolate_nongreen_float(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
-	uint32_t width = fit->rx;
-	uint32_t height = fit->ry;
-	for (int row = 0; row < height - 1; row++) {
-		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
-				continue;
-			uint32_t index = col + row * width;
-			float interp = 0.f;
-			float weight = 0.f;
-			for (int dy = -1; dy <= 1; dy++) {
-				for (int dx = -1; dx <= 1; dx++) {
-					if (dx != 0 || dy != 0) {
-						// Check if the neighboring pixel is within the image bounds and green
-						int nx = col + dx;
-						int ny = row + dy;
-						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
-							// Calculate distance from the current pixel
-							float distance = dx + dy;
-							// Calculate weight for the neighboring pixel
-							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
-							// Accumulate weighted green values and total weight
-							interp += weight_contrib * fit->fdata[nx + ny * width];
-							weight += weight_contrib;
-						}
-					}
-				}
-			}
-			fit->fdata[index] = interp / weight;
-		}
-	}
-	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
-}
-
-static void interpolate_nongreen_ushort(fits *fit) {
-	sensor_pattern pattern = get_bayer_pattern(fit);
-	const char *cfa = get_cfa_from_pattern(pattern);
-	if (!cfa)
-		return;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
-	uint32_t width = fit->rx;
-	uint32_t height = fit->ry;
-	for (int row = 0; row < height - 1; row++) {
-		for (int col = 0; col < width - 1; col++) {
-			if (FC(row, col, cfadim, cfa) == 1)
-				continue;
-			uint32_t index = col + row * width;
-			float interp = 0.f;
-			float weight = 0.f;
-			for (int dy = -1; dy <= 1; dy++) {
-				for (int dx = -1; dx <= 1; dx++) {
-					if (dx != 0 || dy != 0) {
-						// Check if the neighboring pixel is within the image bounds and green
-						int nx = col + dx;
-						int ny = row + dy;
-						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
-							// Calculate distance from the current pixel
-							float distance = dx + dy;
-							// Calculate weight for the neighboring pixel
-							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
-							// Accumulate weighted green values and total weight
-							interp += weight_contrib * (float) fit->data[nx + ny * width];
-							weight += weight_contrib;
-						}
-					}
-				}
-			}
-			fit->data[index] = roundf_to_WORD(interp / weight);
-		}
-	}
-	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
-}
-
-#undef RECIPSQRT2
-
-void interpolate_nongreen(fits *fit) {
-	if (fit->type == DATA_FLOAT) {
-		interpolate_nongreen_float(fit);
-	} else {
-		interpolate_nongreen_ushort(fit);
-	}
-	siril_debug_print("Interpolating non-green pixels\n");
-}
-
-static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
-	GtkWidget *dialog;
-	GtkWidget *content_area;
-	GtkWidget *hbox;
-	GtkWidget *image;
-	GtkWidget *label;
-
-	dialog = gtk_dialog_new_with_buttons(
-		title,
-		parent,
-		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-		NULL, NULL  // We'll add buttons manually
-	);
-
-	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-
-	// Create a horizontal box to hold the icon and message
-	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
-
-	// Add warning icon
-	image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
-	gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
-
-	// Create label with the message
-	label = gtk_label_new(message);
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
-	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-
-	// Add the hbox to the content area
-	gtk_box_pack_start(GTK_BOX(content_area), hbox, TRUE, TRUE, 0);
-
-	// Create and add buttons vertically
-	const char* button_labels[] = {
-		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)")
-	};
-	const char* button_tooltips[] = {
-		_("Cancel without making any changes"),
-		_("Clip pixel values to the range 0.0 - 1.0"),
-		_("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
-		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range")
-	};
-	OverrangeResponse responses[] = {
-		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL
-	};
-
-	for (int i = 0; i < G_N_ELEMENTS(responses); i++) {
-		GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
-		// Get the label widget from the button
-		GtkWidget *label = gtk_bin_get_child(GTK_BIN(button));
-
-		// Check if the child is a label
-		if (GTK_IS_LABEL(label)) {
-			// Set the alignment to center
-			gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
-			gtk_label_set_xalign(GTK_LABEL(label), 0.5);
-			gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
-		}
-		gtk_widget_set_tooltip_text(button, button_tooltips[i]);
-	}
-
-	// Set dialog to be not resizable
-	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
-
-	gtk_widget_show_all(dialog);
-
-	return dialog;
-}
-
 // Function to apply limits based on the chosen method
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
 	switch (method) {
 		case RESPONSE_CLIP:;
+			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
 			clip(fit);
 			break;
 		case RESPONSE_RESCALE_CLIPNEG:;
+			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
 			clipneg(fit);
 			if (maxval > 1.0)
 				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
 			break;
 		case RESPONSE_RESCALE_ALL:;
+			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
 			double range = maxval - minval;
 			if (minval < 0.0)
 				soper(fit, minval, OPER_SUB, TRUE);
@@ -575,7 +400,7 @@ OverrangeResponse apply_limits(fits *fit, double minval, double maxval, Overrang
 			method = RESPONSE_CANCEL;
 	}
 
-	if (fit == &gfit)
+	if (fit == gfit)
 		notify_gfit_modified();
 
 	return method;
@@ -589,20 +414,30 @@ gboolean value_check(fits *fit) {
 	int retval = quick_minmax(fit, &minval, &maxval);
 	if (retval)
 		return TRUE;
-
-	if (maxval > 1.0 || minval < 0.0) {
-		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
-		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
-		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		g_free(msg);
-
-		if (result == RESPONSE_CANCEL)
-			return FALSE;
-
-		result = apply_limits(fit, minval, maxval, result);
-		if (result == RESPONSE_CANCEL)
-			return FALSE;
+	OverrangeResponse result;
+	if (maxval > 10) {
+		// All FITS files are scaled to [0,1] on opening, so if we have extreme values at this stage then these are highly likely hot pixels and we should clip
+		result = RESPONSE_CLIP;
+	// Now we know we need a scaling response
+	} else if (minval < -0.1) {
+		// As above, images are opened in [0,1] so significant negative values are outliers and should be cropped, so
+		result = RESPONSE_RESCALE_CLIPNEG;
+	} else {
+		// Small negative values may be legitimate as the result of noise, and in this case we should rescale all
+		result = RESPONSE_RESCALE_ALL;
 	}
-	return TRUE;
+	result = apply_limits(fit, minval, maxval, result);
+	return result == RESPONSE_CANCEL ? FALSE : TRUE;
+}
+
+GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba) {
+    GdkRGBA rgba;
+
+    // Extract each 8-bit component (assuming RGBA order)
+    rgba.red   = ((packed_rgba >> 24) & 0xFF) / 255.0;
+    rgba.green = ((packed_rgba >> 16) & 0xFF) / 255.0;
+    rgba.blue  = ((packed_rgba >> 8)  & 0xFF) / 255.0;
+    rgba.alpha = (packed_rgba & 0xFF) / 255.0;
+
+    return rgba;
 }

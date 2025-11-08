@@ -7,8 +7,11 @@ siril_inc_dir = include_directories('.')
 ################################################################################
 # Generate configuration files
 
-configure_file(output : 'git-version.h',
-               configuration : git_data)
+configure_file(
+  input : 'git-version.h.in',
+  output : 'git-version.h',
+  configuration : git_data
+)
 
 configure_file(output : 'config.h',
                configuration : conf_data)
@@ -93,6 +96,7 @@ src_files = [
   'core/siril_language.c',
   'core/siril_log.c',
   'core/siril_networking.c',
+  'core/siril_spawn.c',
   'core/siril_update.c',
   'core/siril_world_cs.c',
   'core/undo.c',
@@ -111,7 +115,6 @@ src_files = [
   'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',
-  'filters/graxpert.c',
   'filters/linear_match.c',
   'filters/median.c',
   'filters/mtf.c',
@@ -169,6 +172,7 @@ src_files = [
   'io/fits_keywords.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
+  'io/healpix/healpix.cpp',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
@@ -185,6 +189,8 @@ src_files = [
   'io/siril_catalogues.c',
   'io/siril_git.c',
   'io/siril_plot.c',
+  'io/siril_pythoncommands.c',
+  'io/siril_pythonmodule.c',
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',
@@ -216,7 +222,7 @@ src_files = [
   'gui/documentation.c',
   'gui/epf.c',
   'gui/fix_xtrans_af.c',
-  'gui/graxpert.c',
+  'gui/git_gui.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',
   'gui/icc_profile.c',
@@ -237,6 +243,7 @@ src_files = [
   'gui/preferences.c',
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
+  'gui/python_gui.c',
   'gui/registration.c',
   'gui/registration_preview.c',
   'gui/remixer.c',
@@ -250,10 +257,12 @@ src_files = [
   'gui/siril_plot.c',
   'gui/siril-window.c',
   'gui/split_cfa.c',
+  'gui/stacking.c',
   'gui/star_finder.c',
   'gui/starnetgui.c',
   'gui/statistics_list.c',
   'gui/unpurple.c',
+  'gui/user_polygons.c',
   'gui/utils.c',
 
   'pixelMath/pixel_math_runner.c',
@@ -272,6 +281,7 @@ src_files = [
   'registration/applyreg.c',
   'registration/shift_methods.c',
 
+  'stacking/blending.c',
   'stacking/median_and_mean.c',
   'stacking/normalization.c',
   'stacking/rejection_float.c',

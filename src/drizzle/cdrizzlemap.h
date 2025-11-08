@@ -93,8 +93,8 @@ struct edge {
     struct vertex v1; /**< first vertex */
     struct vertex v2; /**< second vertex */
     float m; /**< edge's slope */
-    float b; /**< edge's interceipt */
-    float c; /**< modified interceipt */
+    float b; /**< edge's intercept */
+    float c; /**< modified intercept */
     int p;  /**< edge's position: -1 for left-side edge and +1 for right-side edge */
 };
 
@@ -132,6 +132,11 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
 // int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p, float scale);
 
 int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx, int target_ry, float scale, disto_data *disto, int threads);
+
+int interpolate_four_points(struct driz_param_t *par,
+			    int ixcen, int iycen, float h,
+			    float *x1, float *x2, float *x3, float *x4,
+			    float *y1, float *y2, float *y3, float *y4);
 
 int
 map_point(struct driz_param_t *par, float xin, float yin,

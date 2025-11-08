@@ -111,6 +111,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_stack_blending">
+    <property name="upper">2000</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">100</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment-finalstretch">
     <property name="upper">4</property>
     <property name="step-increment">0.05</property>
@@ -264,6 +269,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/astrometry_dark.svg</property>
   </object>
+  <object class="GtkImage" id="autostretch_linked_icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/chain-linked.svg</property>
+  </object>
   <object class="GtkAdjustment" id="clamp_adjustment">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -375,11 +385,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="resource">/org/siril/ui/pixmaps/wcs-grid_dark.svg</property>
-  </object>
-  <object class="GtkImage" id="image4">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/chain.svg</property>
   </object>
   <object class="GtkImage" id="imageHelp">
     <property name="visible">True</property>
@@ -511,20 +516,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="main_menu_scripts">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.scripts</property>
-            <property name="text" translatable="yes">Get Scripts</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -1388,21 +1379,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="proc_graxpert">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the GraXpert external tool interface</property>
-            <property name="action-name">win.graxpert-processing</property>
-            <property name="text" translatable="yes">GraXpert Interface...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">14</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkModelButton" id="proc_extraction">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1523,7 +1499,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the curves transform dialog</property>
             <property name="action-name">win.curves-processing</property>
-            <property name="text">Curves Transformation...</property>
+            <property name="text" translatable="yes">Curves Transformation...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2076,7 +2052,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="position">18</property>
           </packing>
         </child>
-	<child>
+        <child>
           <object class="GtkModelButton" id="proc_unpurple">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2301,10 +2277,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     </child>
   </object>
   <object class="GtkRecentFilter" id="recentfilter">
-    <mime-types>
-      <mime-type>image/fits</mime-type>
-      <mime-type>video/ser</mime-type>
-    </mime-types>
     <patterns>
       <pattern>*.fit</pattern>
       <pattern>*.fts</pattern>
@@ -2685,7 +2657,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="tooltip-text" translatable="yes">Build a light curve in the ETD text format</property>
             <property name="text" translatable="yes">Light Curve (ETD format)</property>
             <signal name="clicked" handler="on_varCurvePhotometry_clicked" swapped="no"/>
           </object>
@@ -2700,7 +2672,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Save current plot to png file</property>
+            <property name="tooltip-text" translatable="yes">Build an output file in the AAVSO format</property>
             <property name="text" translatable="yes">AAVSO file format</property>
             <signal name="clicked" handler="on_exportAAVSO_button_clicked" swapped="no"/>
           </object>
@@ -2846,7 +2818,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
     <property name="default-height">768</property>
     <property name="icon">pixmaps/siril.svg</property>
     <property name="show-menubar">False</property>
-    <signal name="delete-event" handler="siril_quit" swapped="no"/>
+    <signal name="delete-event" handler="on_siril_window_delete" swapped="no"/>
     <child>
       <object class="GtkBox" id="box9">
         <property name="visible">True</property>
@@ -2903,6 +2875,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3067,6 +3040,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3235,6 +3209,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                             <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -3406,6 +3381,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                 <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                                 <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                                 <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                                <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
                                 <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                                 <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
                                 <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
@@ -4059,7 +4035,6 @@ Colour image target also applies to the debayer result for conversion.</property
                                     <property name="margin-bottom">2</property>
                                     <property name="label" translatable="yes">Conversion</property>
                                     <property name="justify">center</property>
-                                    <property name="wrap">True</property>
                                   </object>
                                   <packing>
                                     <property name="tab-fill">False</property>
@@ -5344,6 +5319,7 @@ The next action for DSLR images would be to debayer the preprocessed images, go 
                                                         <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
+                                                        <signal name="toggled" handler="update_prepro_interface" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -6312,7 +6288,7 @@ By default, the pattern is only searched on 25% of the total image size around t
 
 Higher values give more tolerance in alignment and smaller numbers lead to faster computations.</property>
                                                             <property name="valign">center</property>
-                                                            <property name="text" translatable="yes">25.00</property>
+                                                            <property name="text">25.00</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adj_kombat_percent</property>
                                                             <property name="digits">2</property>
@@ -7172,8 +7148,7 @@ The master flat must be set in the Calibration tab.</property>
                                                             <object class="GtkComboBoxText" id="combo_driz_kernel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
-Note that the Gaussian and Lanczos models do not conserve flux and should not be used f you wish to use the output for accurate photometry.</property>
+                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details of when to use each model.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">Square</item>
@@ -7194,9 +7169,9 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
-                                                            <property name="text" translatable="yes">1.00</property>
+                                                            <property name="text">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
-                                                            <property name="digits">2</property>
+                                                            <property name="digits">5</property>
                                                             <property name="value">1</property>
                                                             </object>
                                                             <packing>
@@ -8014,7 +7989,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="stack_expander_method">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -8561,6 +8536,110 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       </packing>
                                                     </child>
                                                     <child>
+                                                      <object class="GtkFrame" id="stack_blend_frame">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label-xalign">0</property>
+                                                        <property name="shadow-type">none</property>
+                                                        <child>
+                                                          <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="top-padding">5</property>
+                                                            <property name="bottom-padding">5</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <!-- n-columns=3 n-rows=2 -->
+                                                            <object class="GtkGrid">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="row-spacing">10</property>
+                                                            <property name="column-spacing">10</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Borders feathering [pix]:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_stack_feather_dist">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Select here the number of pixels that will be faded out on the borders of each image.</property>
+                                                            <property name="hexpand">False</property>
+                                                            <property name="width-chars">6</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            <property name="adjustment">adj_stack_blending</property>
+                                                            <property name="snap-to-ticks">True</property>
+                                                            <property name="numeric">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkScale">
+                                                            <property name="width-request">100</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="hexpand">True</property>
+                                                            <property name="adjustment">adj_stack_blending</property>
+                                                            <property name="digits">0</property>
+                                                            <property name="draw-value">False</property>
+                                                            <property name="value-pos">right</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_norm_overlap">
+                                                            <property name="label" translatable="yes">Normalization on overlaps</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril computes the normalisation coefficients from each image. Ticking this box computes them on overlapping regions instead.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            <property name="width">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                        </child>
+                                                        <child type="label">
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Stack stitching:</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">3</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
                                                       <object class="GtkFrame">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -9007,7 +9086,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">3</property>
+                                                        <property name="position">4</property>
                                                       </packing>
                                                     </child>
                                                   </object>
@@ -9030,7 +9109,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="stack_expander_output">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -9042,7 +9121,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <!-- n-columns=2 n-rows=2 -->
+                                                      <!-- n-columns=3 n-rows=2 -->
                                                       <object class="GtkGrid">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -9053,7 +9132,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="label" translatable="yes">Output Normalisation</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or clipped in [0, 65535] otherwise. This will work best if you also check Force 32b output, as it will avoid clipping.
 
 WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="halign">start</property>
@@ -9085,10 +9164,10 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Maximize framing</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_check_maximize_framing_toggled" swapped="no"/>
                                                           </object>
                                                           <packing>
                                                             <property name="left-attach">1</property>
@@ -9100,8 +9179,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Interpolation upscaling x2</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                           </object>
@@ -9109,6 +9187,24 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">1</property>
                                                           </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_force32b">
+                                                            <property name="label" translatable="yes">Force 32b output</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image bitdepth will be forced to 32b even if the input images are in 16b.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">1</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <placeholder/>
                                                         </child>
                                                       </object>
                                                       <packing>
@@ -9933,14 +10029,14 @@ WARNING: This option should not be checked for master stacking.</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToggleButton">
+                          <object class="GtkToggleButton" id="linked_autostretch_button">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Chain/unchain channels in autostretch viewer mode.
-</property>
+                            <property name="tooltip-text" translatable="yes">Link/unlink channels in autostretch viewer mode.
+Current state: linked.</property>
                             <property name="action-name">win.chain-chan</property>
-                            <property name="image">image4</property>
+                            <property name="image">autostretch_linked_icon</property>
                             <property name="relief">none</property>
                             <property name="active">True</property>
                           </object>
@@ -10006,10 +10102,11 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkToggleToolButton" id="annotate_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Show object names if WCS information is available</property>
+                    <property name="tooltip-text" translatable="yes">Left-click to show object names if WCS information is available. Right-click to display a list of astro catalogs to choose from.</property>
                     <property name="action-name">win.annotate-object</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">astrometry</property>
+                    <signal name="button-press-event" handler="on_annotate_press_event" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -10499,6 +10596,7 @@ WARNING: This option should not be checked for master stacking.</property>
         </child>
         <child>
           <object class="GtkMenuButton" id="header_scripts_button">
+            <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Menu of the script files. This menu appears only when the script paths defined in the preferences are set to the existing script folders.</property>
@@ -10792,6 +10890,51 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <property name="pack-type">end</property>
             <property name="position">11</property>
           </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover_catalogs">
+    <property name="can-focus">False</property>
+    <property name="relative-to">annotate_button</property>
+    <child>
+      <object class="GtkTreeView" id="pref_astro_tree_view">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="has-tooltip">True</property>
+        <property name="vexpand">True</property>
+        <property name="headers-clickable">False</property>
+        <property name="reorderable">True</property>
+        <property name="search-column">0</property>
+        <property name="enable-grid-lines">both</property>
+        <child internal-child="selection">
+          <object class="GtkTreeSelection"/>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn">
+            <child>
+              <object class="GtkCellRendererToggle" id="cellrendeur2_catalog_use">
+                <signal name="toggled" handler="on_cellrendeur2_catalog_use_toggled" swapped="no"/>
+              </object>
+              <attributes>
+                <attribute name="active">0</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn282">
+            <property name="title" translatable="yes">Catalogue</property>
+            <property name="clickable">True</property>
+            <property name="sort-indicator">True</property>
+            <property name="sort-column-id">0</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderer2_catalog"/>
+              <attributes>
+                <attribute name="text">1</attribute>
+              </attributes>
+            </child>
+          </object>
         </child>
       </object>
     </child>

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,15 +20,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "algos/fitting.h"
 #include "algos/statistics.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 
 static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(&gfit);
+	invalidate_stats_from_fit(gfit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->pdata[channel][i] = round_to_WORD(fit->pdata[channel][i] * a[channel] + b[channel] * USHRT_MAX_DOUBLE);
@@ -39,7 +37,7 @@ static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double
 static void apply_linear_to_fits_float(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(&gfit);
+	invalidate_stats_from_fit(gfit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->fpdata[channel][i] = fit->fpdata[channel][i] * a[channel] + b[channel];

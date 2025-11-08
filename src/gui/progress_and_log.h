@@ -21,6 +21,8 @@ void set_progress_bar_data(const char *text, double percent);
 void set_cursor_waiting(gboolean waiting);
 void set_cursor(const gchar* cursor_name);
 
+gchar *get_log_as_string();
+
 #ifdef __cplusplus
 }
 #endif

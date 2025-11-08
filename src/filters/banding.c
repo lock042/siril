@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -125,22 +125,27 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	args->description = _("Banding Reduction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = banding_args->seqEntry;
+	args->new_seq_prefix = strdup(banding_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = banding_args;
 
 	banding_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(banding_args->seqEntry);
+		free(banding_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
+
 
 // idle function executed at the end of the BandingEngine processing
 gboolean end_BandingEngine(gpointer p) {
 	struct banding_data *args = (struct banding_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	free(args);
@@ -374,6 +379,11 @@ void on_button_ok_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("canon_fixbanding_dialog");
 }
 
+gboolean banding_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("canon_fixbanding_dialog");
+	return TRUE;
+}
+
 void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
@@ -390,7 +400,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
@@ -407,12 +417,12 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 			toggle_protect_highlights_banding);
 
 	if (!protect_highlights)
-		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
+		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
 	else
-		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
+		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
 				amount, invsigma);
 
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->protect_highlights = protect_highlights;
 	args->amount = amount;
 	args->sigma = invsigma;
@@ -421,13 +431,18 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("unband_");
+		}
 		gtk_toggle_button_set_active(seq, FALSE);
 		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
-		start_in_new_thread(BandingEngineThreaded, args);
+		if (!start_in_new_thread(BandingEngineThreaded, args)) {
+			free(args->seqEntry);
+			free(args);
+		}
 	}
 }
 

@@ -6,7 +6,7 @@
 
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
-void launch_clipboard_survey();
+gboolean launch_clipboard_survey(gpointer user_data);
 
 // Region of Interest processing
 typedef void (*ROICallback)();
@@ -17,6 +17,7 @@ void add_roi_callback(ROICallback func);
 void remove_roi_callback(ROICallback func);
 void update_roi_config();
 
+gboolean is_gui_ready();
 void lock_roi_mutex();
 void unlock_roi_mutex();
 void roi_supported(gboolean state);
@@ -25,17 +26,21 @@ void siril_set_theme(int active);
 void load_prefered_theme(gint theme);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
+gboolean set_cutoff_sliders_values_idle(gpointer p);
 void set_sliders_value_to_gfit();
 void set_accel_map(const gchar * const *accelmap);
 void initialize_display_mode();
 void set_display_mode();
+gboolean set_display_mode_idle(gpointer user_data);
 void set_unlink_channels(gboolean unlinked);
 void adjust_exclude(int n, gboolean changed);
 void adjust_sellabel();
-void set_GUI_CWD();
+gpointer update_seq_gui_idle_thread_func(gpointer data);
+gboolean set_GUI_CWD(gpointer user_data);
 void set_icon_entry(GtkEntry *entry, gchar *string);
-void update_MenuItem();
+gboolean update_MenuItem(gpointer user_data);
 void sliders_mode_set_state(sliders_mode);
+gboolean sliders_mode_set_state_idle(gpointer p);
 display_mode get_display_mode_from_menu();
 int copy_rendering_settings();
 
@@ -46,7 +51,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 void update_display_selection();
 void update_display_fwhm();
 void display_filename();
-void set_precision_switch();
+gboolean set_precision_switch(gpointer user_data);
 void set_layers_for_assign();
 int set_layers_for_registration();
 void show_dialog(const char *text, const char *title, const char *icon);
@@ -57,23 +62,32 @@ void initialize_FITS_name_entries();
 
 void adjust_vport_size_to_image();
 void set_output_filename_to_sequence_name();
-void close_tab();
+gboolean close_tab(gpointer user_data);
 void activate_tab(int vport);
-void init_right_tab();
+gboolean init_right_tab(gpointer user_data);
 
 void update_prepro_interface(gboolean allow_debayer);
 
 void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection, gpointer user_data);
 void update_statusbar_convert();
 
-void update_spinCPU(int max);
+gboolean update_spinCPU(gpointer user_data);
 
-void save_main_window_state();
-void load_main_window_state();
-void siril_quit();
+gpointer update_scripts(gpointer user_data);
+gpointer update_spcc(gpointer user_data);
+gpointer initialize_scripts(gpointer user_data);
+gpointer initialize_spcc(gpointer user_data);
+
+gboolean save_main_window_state(gpointer user_data);
+gboolean load_main_window_state(gpointer user_data);
+GPid show_child_process_selection_dialog(GSList *children);
+gboolean set_seq_browser_active(gpointer user_data);
+gboolean siril_quit(void);
 
 /* for image_display */
 void set_viewer_mode_widgets_sensitive(gboolean sensitive);
+
+int seq_qphot(sequence *seq, int layer);
 
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *

@@ -143,7 +143,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
-    <property name="lower">10</property>
+    <property name="lower">1</property>
     <property name="upper">50</property>
     <property name="value">20</property>
     <property name="step-increment">1</property>
@@ -195,10 +195,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <column type="gchararray"/>
       <!-- column-name bgcolor -->
       <column type="gchararray"/>
+      <!-- column-name type -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkAdjustment" id="xbayeroff_adj">
-    <property name="upper">1</property>
+    <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
   </object>
@@ -209,7 +211,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">1</property>
   </object>
   <object class="GtkAdjustment" id="ybayeroff_adj">
-    <property name="upper">1</property>
+    <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
   </object>
@@ -359,7 +361,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
 If unchecked, the Bayer pattern given below will be used instead. Warning: to allow SER files converted from films to be demosaiced, monochrome SER will be forced as CFA with the configured pattern.</property>
                                 <property name="halign">start</property>
                                 <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_checkbutton_use_header_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -368,26 +369,10 @@ If unchecked, the Bayer pattern given below will be used instead. Warning: to al
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton" id="checkbutton_debayer_compatibility">
-                                <property name="label" translatable="yes">Debayer FITS files in top-down if no explicit keywords found</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-markup" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. If data are stored in top-down orientation (as they usual do), you need to check this box in order to debayer the file in the right orientation.</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                                <property name="width">2</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel" id="label_warning_debayer">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Due to algorithm constraints more complex demosaicing algorithms cannot be used in the rejection stacking. Our tests also showed that there is no gain in quaity when many images are used, while processing time increases 20-fold.</property>
+                                <property name="tooltip-text" translatable="yes">Due to algorithm constraints more complex demosaicing algorithms cannot be used in the rejection stacking. Our tests also showed that there is no gain in quality when many images are used, while processing time increases 20-fold.</property>
                                 <property name="valign">center</property>
                                 <property name="label" translatable="yes">Warning: For SER on-the-fly demosaicing, the RCD algorithm is always used.</property>
                                 <property name="wrap">True</property>
@@ -566,6 +551,39 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">7</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Row-order preference:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="combo_roworder">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Siril read FITS data in the bottom-up orientation but a lot of capture software do not meet this specification. Most of them now write a ROWORDER key in the images metadata to indicate how data was stored.
+Pick in this list your preferred option. The first two will first try to read ROWORDER from the header then use a fallback solution. The last two options force either Top-Down or Bottom-Up.
+This setting is ignored with SER files which are always assumed Top-Down as per their standard.</property>
+                                <property name="active">0</property>
+                                <property name="active-id">0</property>
+                                <items>
+                                  <item translatable="yes">Header then Top-Down</item>
+                                  <item translatable="yes">Header then Bottom-Up</item>
+                                  <item translatable="yes">Force Top-Down</item>
+                                  <item translatable="yes">Force Bottom-Up</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
                               </packing>
                             </child>
                           </object>
@@ -1391,14 +1409,13 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=4 n-rows=2 -->
+                                  <!-- n-columns=4 n-rows=3 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="margin-start">12</property>
                                     <property name="row-spacing">6</property>
                                     <property name="column-spacing">6</property>
-                                    <property name="column-homogeneous">True</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
@@ -1510,6 +1527,55 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="top-attach">1</property>
                                       </packing>
                                     </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Gaia astrometric extract:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Gaia photometric extract:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path6">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the folder where the Gaia photometric catalogue is stored. Because of its size this catalogue is divided into chunks, so you need only select the folder.</property>
+                                        <property name="action">select-folder</property>
+                                        <property name="title" translatable="yes">gaia_photometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path5">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the Siril astrometric extract of the Gaia DR3 catalogue, used for plate solving</property>
+                                        <property name="title" translatable="yes">gaia_astrometric.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                                 <child type="label">
@@ -1518,7 +1584,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">True</property>
                                     <property name="margin-top">10</property>
                                     <property name="margin-bottom">10</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;Local Star Catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Local Star Catalogues&lt;/b&gt; (&lt;a href="https://siril.readthedocs.io/en/stable/astrometry/platesolving.html#using-local-catalogues"&gt;more info&lt;/a&gt;)</property>
                                     <property name="use-markup">True</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
@@ -1549,7 +1615,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
+                                        <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding metadata.</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -3256,7 +3322,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="user_page">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
@@ -3520,6 +3586,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                             <items>
                                               <item translatable="yes">Small (128x128)</item>
                                               <item translatable="yes">Normal (256x256)</item>
+                                              <item translatable="yes">Large (512x512)</item>
                                             </items>
                                           </object>
                                           <packing>
@@ -4014,7 +4081,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="cm_page">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="hscrollbar-policy">never</property>
@@ -4855,231 +4922,72 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox" id="scripts_page">
+                  <object class="GtkScrolledWindow" id="scripts_page">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">10</property>
+                    <property name="can-focus">True</property>
+                    <property name="shadow-type">in</property>
                     <child>
-                      <object class="GtkLabel" id="label4">
+                      <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Scripts</property>
-                        <property name="xalign">0</property>
-                        <style>
-                          <class name="title"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame11">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkScrolledWindow" id="GtkScrolledScript">
-                            <property name="width-request">300</property>
-                            <property name="height-request">100</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="margin-start">12</property>
-                            <property name="shadow-type">in</property>
-                            <child>
-                              <object class="GtkTextView" id="GtkTxtScriptPath">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">The paths written in this text box will be checked in order to load scripts that have been put inside. Write a path per line with as many lines you want. However you have to keep in mind that more paths are checked the longer is the startup.</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="monospace">True</property>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label85">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Scripts Storage Directories&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
-                            <property name="single-line-mode">True</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="reload_script_button">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Rescans the scripts folders and updates scripts menu.</property>
-                        <signal name="clicked" handler="on_reload_script_button_clicked" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="icon-name">view-refresh</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame15">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="orientation">vertical</property>
-                            <property name="spacing">6</property>
-                            <child>
-                              <object class="GtkCheckButton" id="miscAskScript">
-                                <property name="label" translatable="yes">Show warning before script execution</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="halign">start</property>
-                                <property name="active">True</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="script_check_version">
-                                <property name="label" translatable="yes">"Requires" command is mandatory in scripts</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-markup" translatable="yes">If this option is checked, scripts cannot be executed without the "requires" command. That ensures the compatibility between scripts and Siril.
-
-&lt;span foreground="red"&gt;&lt;b&gt;WARNING: uncheck this option only if you know what you are doing!&lt;/b&gt;&lt;/span&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="active">True</property>
-                                <property name="draw-indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label33">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Warning Dialogs</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame_gitscripts">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>
-                            <property name="spacing">6</property>
+                            <property name="spacing">10</property>
                             <child>
-                              <object class="GtkCheckButton" id="pref_use_gitscripts">
-                                <property name="label" translatable="yes">Enable use of the siril-scripts online repository</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-markup" translatable="yes">Siril will fetch and update scripts from the official siril-scripts repository. These will be available offline and specific scripts can be selected for adding to the Scripts menu.
-
-&lt;b&gt;Note:&lt;/b&gt;
-Activating the repository will take place immediately, so that you can select scripts once the list populates. Deactivating the repository will only take place when the Apply button is clicked, in the usual way.</property>
-                                <property name="margin-start">12</property>
-                                <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_pref_use_gitscripts_toggled" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="padding">6</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkBox">
+                              <object class="GtkLabel" id="label4">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="homogeneous">True</property>
+                                <property name="label" translatable="yes">Scripts</property>
+                                <property name="xalign">0</property>
+                                <style>
+                                  <class name="title"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame" id="frame11">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="hexpand">True</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkCheckButton" id="pref_script_automatic_updates">
-                                    <property name="label" translatable="yes">Automatic updates</property>
+                                  <object class="GtkScrolledWindow" id="GtkScrolledScript">
+                                    <property name="width-request">300</property>
+                                    <property name="height-request">100</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.</property>
                                     <property name="margin-start">12</property>
-                                    <property name="draw-indicator">True</property>
+                                    <property name="shadow-type">in</property>
+                                    <child>
+                                      <object class="GtkTextView" id="GtkTxtScriptPath">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">The paths written in this text box will be checked in order to load scripts that have been put inside. Write a path per line with as many lines you want. However you have to keep in mind that more paths are checked the longer is the startup.</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                        <property name="monospace">True</property>
+                                      </object>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
                                 </child>
-                                <child>
-                                  <object class="GtkButton" id="manual_script_sync_button">
-                                    <property name="label" translatable="yes">Manual update</property>
-                                    <property name="name">update_scripts_now</property>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label85">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Update the scripts repository now. If there are any pending changes, the commit messages will be shown and you will be asked to confirm applying the changes.</property>
-                                    <signal name="clicked" handler="on_manual_script_sync_button_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Scripts Storage Directories&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
+                                    <property name="single-line-mode">True</property>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
                                 </child>
                               </object>
                               <packing>
@@ -5089,100 +4997,393 @@ Activating the repository will take place immediately, so that you can select sc
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkScrolledWindow">
+                              <object class="GtkButton" id="reload_script_button">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="shadow-type">in</property>
-                                <property name="min-content-height">200</property>
-                                <property name="max-content-height">350</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Rescans the scripts folders and updates scripts menu.</property>
+                                <signal name="clicked" handler="on_reload_script_button_clicked" swapped="no"/>
                                 <child>
-                                  <object class="GtkTreeView" id="treeview2">
+                                  <object class="GtkImage">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to view the script description and code.</property>
-                                    <property name="hscroll-policy">natural</property>
-                                    <property name="vscroll-policy">natural</property>
-                                    <property name="model">liststore_script_repo</property>
-                                    <property name="headers-clickable">False</property>
-                                    <property name="search-column">1</property>
-                                    <property name="show-expanders">False</property>
-                                    <property name="enable-grid-lines">horizontal</property>
-                                    <signal name="row-activated" handler="on_treeview2_row_activated" swapped="no"/>
-                                    <child internal-child="selection">
-                                      <object class="GtkTreeSelection"/>
-                                    </child>
-                                    <child>
-                                      <object class="GtkTreeViewColumn" id="treeviewcolumn33">
-                                        <property name="resizable">True</property>
-                                        <property name="title" translatable="yes">Category</property>
-                                        <property name="expand">True</property>
-                                        <property name="clickable">True</property>
-                                        <property name="sort-column-id">0</property>
-                                        <child>
-                                          <object class="GtkCellRendererText" id="cellrenderertext13"/>
-                                          <attributes>
-                                            <attribute name="background">4</attribute>
-                                            <attribute name="text">0</attribute>
-                                          </attributes>
-                                        </child>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkTreeViewColumn" id="treeviewcolumn32">
-                                        <property name="resizable">True</property>
-                                        <property name="title" translatable="yes">Script</property>
-                                        <property name="expand">True</property>
-                                        <property name="clickable">True</property>
-                                        <property name="sort-column-id">1</property>
-                                        <child>
-                                          <object class="GtkCellRendererText" id="cellrenderertext12"/>
-                                          <attributes>
-                                            <attribute name="background">4</attribute>
-                                            <attribute name="text">1</attribute>
-                                          </attributes>
-                                        </child>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
-                                        <property name="resizable">True</property>
-                                        <property name="title" translatable="yes">Sel</property>
-                                        <child>
-                                          <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
-                                            <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
-                                          </object>
-                                          <attributes>
-                                            <attribute name="cell-background">4</attribute>
-                                            <attribute name="active">2</attribute>
-                                          </attributes>
-                                        </child>
-                                      </object>
-                                    </child>
+                                    <property name="can-focus">False</property>
+                                    <property name="icon-name">view-refresh</property>
                                   </object>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Siril Scripts Repository&lt;/b&gt;</property>
-                            <property name="use-markup">True</property>
+                            <child>
+                              <object class="GtkFrame" id="frame15">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkCheckButton" id="miscAskScript">
+                                        <property name="label" translatable="yes">Show warning before script execution</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="script_check_version">
+                                        <property name="label" translatable="yes">"Requires" command is mandatory in scripts</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-markup" translatable="yes">If this option is checked, scripts cannot be executed without the "requires" command. That ensures the compatibility between scripts and Siril.
+
+&lt;span foreground="red"&gt;&lt;b&gt;WARNING: uncheck this option only if you know what you are doing!&lt;/b&gt;&lt;/span&gt;</property>
+                                        <property name="halign">start</property>
+                                        <property name="active">True</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label33">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">Warning Dialogs</property>
+                                    <property name="single-line-mode">True</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame" id="frame_gitscripts">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkCheckButton" id="pref_use_gitscripts">
+                                        <property name="label" translatable="yes">Enable use of the siril-scripts online repository</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-markup" translatable="yes">Siril will fetch and update scripts from the official siril-scripts repository. These will be available offline and specific scripts can be selected for adding to the Scripts menu.
+
+&lt;b&gt;Note:&lt;/b&gt;
+Activating the repository will take place immediately, so that you can select scripts once the list populates. Deactivating the repository will only take place when the Apply button is clicked, in the usual way.</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="draw-indicator">True</property>
+                                        <signal name="toggled" handler="on_pref_use_gitscripts_toggled" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="padding">6</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_script_automatic_updates">
+                                            <property name="label" translatable="yes">Automatic updates</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.</property>
+                                            <property name="margin-start">12</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="manual_script_sync_button">
+                                            <property name="label" translatable="yes">Manual update</property>
+                                            <property name="name">update_scripts_now</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Update the scripts repository now. If there are any pending changes, the commit messages will be shown and you will be asked to confirm applying the changes.</property>
+                                            <signal name="clicked" handler="on_manual_script_sync_button_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                          <object class="GtkSearchEntry" id="find_script_entry">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="has-focus">True</property>
+                                            <property name="is-focus">True</property>
+                                            <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                                            <property name="tooltip-text" translatable="yes">Type here to filter the list of scripts. The search matches any part of the script name. Filtering is case-insensitive and updates instantly as you type.</property>
+                                            <property name="width-chars">30</property>
+                                            <property name="primary-icon-name">edit-find-symbolic</property>
+                                            <property name="primary-icon-activatable">False</property>
+                                            <property name="primary-icon-sensitive">False</property>
+                                            <signal name="changed" handler="on_find_script_entry_changed" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkScrolledWindow">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="shadow-type">in</property>
+                                            <property name="min-content-height">200</property>
+                                            <property name="max-content-height">350</property>
+                                            <child>
+                                              <object class="GtkTreeView" id="treeview_scripts">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
+To open an older revision (e.g. to get an older version after a bad script update) right click on a row.</property>
+                                                <property name="hscroll-policy">natural</property>
+                                                <property name="vscroll-policy">natural</property>
+                                                <property name="model">liststore_script_repo</property>
+                                                <property name="headers-clickable">False</property>
+                                                <property name="search-column">1</property>
+                                                <property name="show-expanders">False</property>
+                                                <property name="enable-grid-lines">horizontal</property>
+                                                <signal name="button-press-event" handler="on_treeview_scripts_button_press" swapped="no"/>
+                                                <signal name="row-activated" handler="on_treeview_scripts_row_activated" swapped="no"/>
+                                                <child internal-child="selection">
+                                                  <object class="GtkTreeSelection"/>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="treeviewcolumn33">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Category</property>
+                                                    <property name="expand">True</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">0</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertext13"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">0</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="treeviewcolumn32">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Script</property>
+                                                    <property name="expand">True</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">1</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertext12"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">1</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Type</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">5</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererText" id="cellrenderertype"/>
+                                                      <attributes>
+                                                        <attribute name="background">4</attribute>
+                                                        <attribute name="text">5</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="script_repo_treeview_sel">
+                                                    <property name="resizable">True</property>
+                                                    <property name="title" translatable="yes">Sel</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">2</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererToggle" id="cellrenderertoggle16">
+                                                        <signal name="toggled" handler="on_script_list_active_toggled" swapped="no"/>
+                                                      </object>
+                                                      <attributes>
+                                                        <attribute name="cell-background">4</attribute>
+                                                        <attribute name="active">2</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Siril Scripts Repository&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkAlignment">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkButton" id="button_python_reset_venv">
+                                            <property name="label" translatable="yes">Reset python venv</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;WARNING!!&lt;/b&gt; &lt;i&gt;This will kill all running python scripts and reset the virtual environment "venv" directory to an as-new state. Any modules that have been installed by scripts will require re-installation.&lt;/i&gt;
+
+This is normally not necessary but is provided as a last resort to restore the venv to a pristine state as an aid to troubleshooting.</property>
+                                            <property name="double-buffered">False</property>
+                                            <signal name="clicked" handler="on_button_python_reset_venv_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="label" translatable="yes"> </property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-bottom">6</property>
+                                    <property name="label" translatable="yes">Python Interface</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">5</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">4</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -5560,14 +5761,13 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                                 <property name="active">0</property>
                                 <items>
                                   <item translatable="yes">Unlimited</item>
-                                  <item translatable="yes">256</item>
-                                  <item translatable="yes">512</item>
-                                  <item translatable="yes">1024</item>
-                                  <item translatable="yes">2048</item>
-                                  <item translatable="yes">4096</item>
-                                  <item translatable="yes">8192</item>
-                                  <item translatable="yes">16384</item>
-                                  <item translatable="yes">32768</item>
+                                  <item>512</item>
+                                  <item>1024</item>
+                                  <item>2048</item>
+                                  <item>4096</item>
+                                  <item>8192</item>
+                                  <item>16384</item>
+                                  <item>32768</item>
                                 </items>
                               </object>
                               <packing>
@@ -5595,6 +5795,50 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <!-- n-columns=1 n-rows=2 -->
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Drizzle</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="pref_match_drizzweight_bitpix">
+                            <property name="label" translatable="yes">High resolution Drizzle weight files</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">By default, Drizzle uses 8-bit weight files. This is good enough for many purposes and is relatively economical with storage requirements.
+Checking this box provides enhanced precision: drizzle weights will be saved with the same bit depth as the drizzled sequence, meaning that the weights files will take up as much space as an extra copy of the drizzled sequence.
+Weight files are saved in the drizztmp subfolder of the working directory and can be deleted when stacking is finished: if a sequence is re-drizzled, any existing drizzle weights will be overwritten.</property>
+                            <property name="draw-indicator">True</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
@@ -5936,7 +6180,6 @@ Torch-based StarNet versions only.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="title" translatable="yes"/>
-                                <signal name="file-set" handler="on_filechooser_graxpert_file_set" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>

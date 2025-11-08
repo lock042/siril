@@ -89,3 +89,21 @@ option('criterion',
  value : false,
  description: 'build with criterion support'
 )
+
+option('arch_native',
+ type : 'boolean',
+ value : false,
+ description : 'Enable -march=native optimization'
+)
+
+option('flatpak-id',
+ type : 'string',
+ value : '',
+ description : 'set by flatpak-builder if building a flatpak'
+)
+
+option('simd_logs',
+ type : 'boolean',
+ value : false,
+ description : 'Enable loop vectorization analysis during build (clang only)'
+)

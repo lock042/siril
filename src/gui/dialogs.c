@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "gui/message_dialog.h"
 #include "gui/curves.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
@@ -40,6 +41,7 @@
 #include "compstars.h"
 
 static gboolean dialog_is_opened = FALSE;
+static gboolean processing_dialog_is_opened = FALSE;
 
 static const SirilDialogEntry entries[] =
 {
@@ -70,11 +72,9 @@ static const SirilDialogEntry entries[] =
 	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
-	{"graxpert_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL },
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -87,7 +87,6 @@ static const SirilDialogEntry entries[] =
 	{"s_pcc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
@@ -139,6 +138,14 @@ void siril_open_dialog(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	GtkWindow *win = GTK_WINDOW(get_widget_by_id(id));
 
+	// We cannot open the dialog if a python script claims the thread, to prevent conflict over
+	// updating gfit
+	if (entry.type == IMAGE_PROCESSING_DIALOG && com.python_claims_thread) {
+		queue_error_message_dialog(_("Error"), _("Error: cannot open an image processing dialog while a Python script claims the processing thread. "
+									"Wait for the Python script to finish processing first."));
+		return;
+	}
+
 	if (entry.type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
 			GtkWidget *w = get_widget_by_index(i);
@@ -165,11 +172,20 @@ void siril_open_dialog(gchar *id) {
 	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
+	if (entry.type == IMAGE_PROCESSING_DIALOG) {
+		siril_debug_print("### Opening imgproc dialog: %s\n", entry.identifier);
+		processing_dialog_is_opened = TRUE;
+	}
 }
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_hide(get_widget_by_id(id));
 	dialog_is_opened = FALSE;
+	SirilDialogEntry entry = get_entry_by_id(id);
+	if (entry.type == IMAGE_PROCESSING_DIALOG) {
+		siril_debug_print("### Closing imgproc dialog: %s\n", entry.identifier);
+		processing_dialog_is_opened = FALSE;
+	}
 }
 
 void siril_close_preview_dialogs() {
@@ -182,6 +198,10 @@ void siril_close_preview_dialogs() {
 	}
 }
 
+// WARNING: do not use siril_widget_hide_on_delete() for IMAGE_PROCESSING_DIALOGs. These
+// must call siril_close_dialog(builder_id) and therefore must have a custom handler
+// as the GtkBuilder ID does not have a reverse lookup function.
+
 gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
     dialog_is_opened = FALSE;
     gtk_widget_hide(widget);
@@ -190,6 +210,16 @@ gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
 
 gboolean is_a_dialog_opened() {
 	return dialog_is_opened;
+}
+
+gboolean is_an_image_processing_dialog_opened() {
+	return processing_dialog_is_opened;
+}
+
+void mark_imgproc_dialog_closed() {
+	siril_debug_print("### Closing imgproc dialog via custom hide_on_delete callback\n");
+	dialog_is_opened = FALSE;
+	processing_dialog_is_opened = FALSE;
 }
 
 /************ file chooser ************/

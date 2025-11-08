@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -19,14 +19,12 @@
  */
 
 #include <string.h>
-#include <opencv2/core/version.hpp>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "core/processing.h"
 #include "core/undo.h"
-#include "algos/colors.h"
 #include "opencv/opencv.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -34,7 +32,6 @@
 #include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
-#include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
 
 #include "clahe.h"
@@ -54,7 +51,7 @@ static void clahe_close(gboolean revert) {
 	if (revert) {
 		siril_preview_hide();
 	} else {
-		invalidate_stats_from_fit(&gfit);
+		invalidate_stats_from_fit(gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("CLAHE (size=%d, clip=%.2f)"), clahe_tile_size, clahe_limit_value);
 	}
@@ -65,15 +62,16 @@ static void clahe_close(gboolean revert) {
 static int clahe_update_preview() {
 	copy_backup_to_gfit();
 
-	struct CLAHE_data *args = malloc(sizeof(struct CLAHE_data));
+	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
 
 	set_cursor_waiting(TRUE);
 
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->clip = clahe_limit_value;
 	args->tileSize = clahe_tile_size;
 
-	start_in_new_thread(clahe, args);
+	if (!start_in_new_thread(clahe, args))
+		free(args);
 	return 0;
 }
 
@@ -84,9 +82,9 @@ static gboolean end_clahe(gpointer p) {
 
 	free(args);
 
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 
@@ -106,9 +104,10 @@ void apply_clahe_cancel() {
 
 /** callbacks **/
 
-void on_clahe_cancel_clicked(GtkMenuItem *menuitem, gpointer user_data) {
+gboolean on_clahe_cancel_clicked(GtkMenuItem *menuitem, gpointer user_data) {
 	clahe_close(TRUE);
 	siril_close_dialog("CLAHE_dialog");
+	return FALSE;
 }
 
 void on_CLAHE_dialog_close(GtkDialog *dialog, gpointer user_data) {

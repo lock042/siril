@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -70,7 +70,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		int i;
 
 		nb_raw = get_nb_raw_supported();
-		raw = calloc(sizeof(char), nb_raw * 12 + 1);// we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
+		raw = calloc(sizeof(char), nb_raw * 12 + 1); // we assume the extension size of 3 char "*.xxx;*.XXX;" = 12
 		for (i = 0; i < nb_raw; i++) {
 			char *ext;
 			gchar *upcase;
@@ -196,6 +196,25 @@ static void siril_add_debayer_toggle_button(GtkFileChooser *dialog) {
 	g_signal_connect(GTK_TOGGLE_BUTTON(toggle_debayer), "toggled", G_CALLBACK(on_debayer_toggled), (gpointer) main_debayer_button);
 }
 
+static gchar* get_calibration_file_directory(GtkWidget *entry) {
+    if (!GTK_IS_ENTRY(GTK_ENTRY(entry))) {
+        return NULL;
+    }
+
+    // Get the filename from the file chooser button (returns absolute path)
+    const gchar *filename = gtk_entry_get_text(GTK_ENTRY(entry));
+
+    if (!filename || filename[0] == '\0') {
+        // No file selected
+        return g_strdup(com.wd);
+    }
+
+    // Since gtk_file_chooser_get_filename() always returns absolute paths,
+    // we always extract the directory portion
+    gchar *dirname = g_path_get_dirname(filename);
+    return dirname;
+}
+
 static void opendial(int whichdial) {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
@@ -207,20 +226,37 @@ static void opendial(int whichdial) {
 	if (!com.wd)
 		return;
 
+	GtkWidget *entry = NULL;
 	switch (whichdial) {
 	case OD_NULL:
 		fprintf(stderr, "whichdial undefined, should not happen\n");
 		return;
 	case OD_FLAT:
+		if (whichdial == OD_FLAT)
+			entry = lookup_widget("flatname_entry");
 	case OD_DARK:
+		if (whichdial == OD_DARK)
+			entry = lookup_widget("darkname_entry");
 	case OD_OFFSET:
+		if (whichdial == OD_OFFSET)
+			entry = lookup_widget("offsetname_entry");
 	case OD_FLATLIB:
+		if (whichdial == OD_FLATLIB)
+			entry = lookup_widget("flatlib_entry");
 	case OD_DARKLIB:
+		if (whichdial == OD_DARKLIB)
+			entry = lookup_widget("darklib_entry");
 	case OD_OFFSETLIB:
+		if (whichdial == OD_OFFSETLIB)
+			entry = lookup_widget("biaslib_entry");
 	case OD_DISTOLIB:
+		if (whichdial == OD_DISTOLIB)
+			entry = lookup_widget("distolib_entry");
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gchar *lastdir = get_calibration_file_directory(entry);
+		gtk_file_chooser_set_current_folder(dialog, lastdir);
+		g_free(lastdir);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		if (whichdial == OD_FLATLIB) {
 			if (com.pref.prepro.flat_lib != NULL) {
@@ -373,7 +409,7 @@ static void opendial(int whichdial) {
 					g_free(com.pref.wd);
 				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			} else {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}
@@ -382,7 +418,7 @@ static void opendial(int whichdial) {
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
 			retval = open_single_image(filename);
-			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
+			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
 			set_cursor_waiting(FALSE);
 			if (retval == OPEN_IMAGE_CANCEL) goto wait;
 			break;
@@ -466,11 +502,12 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 		g_warning("Could not convert uri \"%s\" to a local path: %s", uri,
 				error->message);
 		g_clear_error(&error);
+		g_free(uri);
 		return;
 	}
 
 	open_single_image(path);
-	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
+	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
 
 	g_free(uri);
 	g_free(path);

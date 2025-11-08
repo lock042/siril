@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,11 +25,9 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
 #include "io/siril_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
@@ -92,9 +90,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	 * In the comments we put some metadata, like parameters that were used to select
 	 * the stars of the list. We can parse them to keep them within the light curve.
 	 */
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_COMPSTARS;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_COMPSTARS);
 	if (siril_catalog_load_from_file(siril_cat, file_path)) {
 		siril_catalog_free(siril_cat);
 		return 1;
@@ -181,7 +177,7 @@ static gboolean end_compstars(gpointer p) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
 				refresh_found_objects();
-				redraw(REDRAW_OVERLAY);
+				redraw(REDRAW_OVERLAY); // TODO: think we can remove this, it appears to be duplicated below
 			}
 		}
 	} else {
@@ -208,6 +204,7 @@ void write_nina_file(struct compstars_arg *args) {
 				catalog_to_str(args->cat));
 	}
 	replace_spaces_from_str(args->nina_file, '_');
+	replace_char_from_str(args->nina_file, '*', '-');
 
 	siril_log_message(_("Creating csv output file %s\n"), args->nina_file);
 
@@ -342,9 +339,8 @@ int sort_compstars(struct compstars_arg *args) {
 		qsort(sorter, nb_phot_stars, sizeof(compstar_dist), compare_items_by_dist);
 		siril_log_message(_("Stars sorted by increasing distance (in arcmin) wrt. image center\n"));
 		// preparing the output catalog
-		args->comp_stars = calloc(1, sizeof(siril_catalogue));
-		args->comp_stars->cat_index = CAT_COMPSTARS;
-		args->comp_stars->columns = siril_catalog_columns(CAT_COMPSTARS) | (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
+		args->comp_stars = siril_catalog_new(CAT_COMPSTARS);
+		args->comp_stars->columns |= (1 << CAT_FIELD_MAG); // we add mag to write it in the output file (it is not a mandatory field at readout)
 		// allocating final sorted list to the required size
 		cat_item *result = calloc(nb_phot_stars + 1, sizeof(cat_item));
 		// write the target star
@@ -499,7 +495,10 @@ gpointer compstars_worker(gpointer p) {
 end:
 	args->retval = retval;
 	args->has_GUI = TRUE;
-	if (!siril_add_idle(end_compstars, args)) {
+	if (!com.headless && com.python_command) {
+		execute_idle_and_wait_for_it(end_compstars, args);
+	}
+	else if (!siril_add_idle(end_compstars, args)) {
 		args->has_GUI = FALSE;
 		end_compstars(args);	// we still need to free all
 	}

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include <config.h>
 #endif
 #if defined(HAVE_LIBCURL)
-#include <json-glib/json-glib.h>
+#include "yyjson.h"
 
 #include <string.h>
 
@@ -37,26 +37,16 @@
 #include "core/siril_update.h"
 
 
-#define DOMAIN "https://siril.org/"
-#define SIRIL_VERSIONS DOMAIN"siril_versions.json"
-#define SIRIL_DOWNLOAD DOMAIN"download/"
+#define SIRIL_DOMAIN "https://siril.org/"
+#define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
+#define SIRIL_DOWNLOAD SIRIL_DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
-// taken from gimp
-static gboolean siril_update_get_highest(JsonParser *parser,
+static gboolean siril_update_get_highest(yyjson_doc *doc,
 		gchar **highest_version, gint64 *release_timestamp,
 		gint *build_revision, gchar **build_comment) {
-	JsonPath *path;
-	JsonNode *result;
-	JsonArray *versions;
-	const gchar *platform;
-	const gchar *path_str;
-	const gchar *release_date = NULL;
-	GError *error = NULL;
-	gint i;
-
 	g_return_val_if_fail(highest_version != NULL, FALSE);
 	g_return_val_if_fail(release_timestamp != NULL, FALSE);
 	g_return_val_if_fail(build_revision != NULL, FALSE);
@@ -67,122 +57,142 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	*build_revision = 0;
 	*build_comment = NULL;
 
-	path_str = "$['RELEASE'][*]";
+	// Get root object and verify it's an object
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	if (!root || !yyjson_is_obj(root)) {
+		g_warning("Root is not an object");
+		return FALSE;
+	}
 
-	/* For Windows and macOS, let's look if installers are available.
-	 * For other platforms, let's just look for source release.
-	 */
-	if (g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "windows") == 0
-			|| g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "macos") == 0)
+	// Get RELEASE array and verify it's an array
+	yyjson_val *releases = yyjson_obj_get(root, "RELEASE");
+	if (!releases || !yyjson_is_arr(releases)) {
+		g_warning("RELEASE is not an array");
+		return FALSE;
+	}
+
+	// Determine platform
+	const char *platform;
+	if (g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "windows") == 0 || g_strcmp0(SIRIL_BUILD_PLATFORM_FAMILY, "macos") == 0) {
 		platform = SIRIL_BUILD_PLATFORM_FAMILY;
-	else
+	} else {
 		platform = "source";
-
-	path = json_path_new();
-	/* Ideally we could just use Json path filters like this to
-	 * retrieve only released binaries for a given platform:
-	 * g_strdup_printf ("$['STABLE'][?(@.%s)]['version']", platform);
-	 * json_array_get_string_element (result, 0);
-	 * And that would be it! We'd have our last release for given
-	 * platform.
-	 * Unfortunately json-glib does not support filter syntax, so we
-	 * end up looping through releases.
-	 */
-	if (!json_path_compile(path, path_str, &error)) {
-		g_warning("%s: path compilation failed: %s\n", G_STRFUNC,
-				error->message);
-		g_clear_error(&error);
-		g_object_unref(path);
-
-		return FALSE;
-	}
-	result = json_path_match(path, json_parser_get_root(parser));
-	if (!JSON_NODE_HOLDS_ARRAY(result)) {
-		g_printerr("%s: match for \"%s\" is not a JSON array.\n",
-		G_STRFUNC, path_str);
-		g_object_unref(path);
-
-		return FALSE;
 	}
 
-	versions = json_node_get_array(result);
-	for (i = 0; i < (gint) json_array_get_length(versions); i++) {
-		JsonObject *version;
+	// Iterate through releases array (versions are ordered newest first)
+	yyjson_val *version_obj;
+	size_t idx, max;
+	yyjson_arr_foreach(releases, idx, max, version_obj) {
+		if (!yyjson_is_obj(version_obj)) {
+			g_warning("Version entry is not an object");
+			continue;
+		}
 
-		/* Note that we don't actually look for the highest version,
-		 * but for the highest version for which a build for your
-		 * platform (and optional build-id) is available.
-		 *
-		 * So we loop through the version list then the build array
-		 * and break at first compatible release, since JSON arrays
-		 * are ordered.
-		 */
-		version = json_array_get_object_element(versions, i);
-		if (json_object_has_member(version, platform)) {
-			JsonArray *builds;
-			gint j;
+		// Get the platform-specific builds array
+		yyjson_val *platform_builds = yyjson_obj_get(version_obj, platform);
+		if (!platform_builds) {
+			g_debug("No builds found for platform %s", platform);
+			continue;
+		}
+		if (!yyjson_is_arr(platform_builds)) {
+			g_warning("Platform builds is not an array");
+			continue;
+		}
 
-			builds = json_object_get_array_member(version, platform);
+		// Get version string early - we'll need it for any valid build
+		yyjson_val *version = yyjson_obj_get(version_obj, "version");
+		if (!version || !yyjson_is_str(version)) {
+			g_warning("Version is missing or not a string");
+			continue;
+		}
 
-			for (j = 0; j < (gint) json_array_get_length(builds); j++) {
-				const gchar *build_id = NULL;
-				JsonObject *build;
+		// Iterate through builds for this platform
+		yyjson_val *build;
+		size_t build_idx, build_max;
+		yyjson_arr_foreach(platform_builds, build_idx, build_max, build) {
+			if (!yyjson_is_obj(build)) {
+				g_warning("Build entry is not an object");
+				continue;
+			}
 
-				build = json_array_get_object_element(builds, j);
-				if (json_object_has_member(build, "build-id"))
-					build_id = json_object_get_string_member (build, "build-id");
-				if (g_strcmp0(build_id, "org.siril.Siril") == 0
-						|| g_strcmp0(platform, "source") == 0) {
-					/* Release date is the build date if any set,
-					 * otherwise the main version release date.
-					 */
-					if (json_object_has_member(build, "date"))
-						release_date = json_object_get_string_member(build, "date");
-					else
-						release_date = json_object_get_string_member(version, "date");
-
-					/* These are optional data. */
-					if (json_object_has_member(build, "revision"))
-						*build_revision = json_object_get_int_member(build, "revision");
-					if (json_object_has_member(build, "comment"))
-						*build_comment = g_strdup(json_object_get_string_member(build, "comment"));
-					break;
+			// Check build ID
+			yyjson_val *build_id = yyjson_obj_get(build, "build-id");
+			if (!build_id || !yyjson_is_str(build_id)) {
+				if (strcmp(platform, "source") != 0) {
+					g_debug("Build ID missing or not a string");
+					continue;
 				}
 			}
 
-			if (release_date) {
-				*highest_version = g_strdup(json_object_get_string_member(version, "version"));
-				break;
+			const char *build_id_str = build_id ? yyjson_get_str(build_id) : NULL;
+			gboolean valid_build = FALSE;
+
+			// For source platform, we don't need a build ID
+			if (strcmp(platform, "source") == 0) {
+				valid_build = TRUE;
+			}
+			// For other platforms, we need specific build IDs
+			else if (build_id_str && (
+				strcmp(build_id_str, "org.siril.Siril") == 0 ||
+				strcmp(build_id_str, "org.free_astro.siril") == 0)) {
+				valid_build = TRUE;
+			}
+
+			if (!valid_build) {
+				continue;
+			}
+
+			// Get release date (from build or version)
+			const char *release_date = NULL;
+			yyjson_val *date = yyjson_obj_get(build, "date");
+			if (date && yyjson_is_str(date)) {
+				release_date = yyjson_get_str(date);
+			} else {
+				date = yyjson_obj_get(version_obj, "date");
+				if (date && yyjson_is_str(date)) {
+					release_date = yyjson_get_str(date);
+				}
+			}
+
+			if (!release_date) {
+				g_warning("No valid release date found");
+				continue;
+			}
+
+			// We found a valid build - get the additional data
+			*highest_version = g_strdup(yyjson_get_str(version));
+
+			// Get optional build data
+			yyjson_val *revision = yyjson_obj_get(build, "revision");
+			if (revision && yyjson_is_int(revision)) {
+				*build_revision = (gint) yyjson_get_int(revision);
+			}
+
+			yyjson_val *comment = yyjson_obj_get(build, "comment");
+			if (comment && yyjson_is_str(comment)) {
+				*build_comment = g_strdup(yyjson_get_str(comment));
+			}
+
+			// Parse release date
+			gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
+			GDateTime *datetime = g_date_time_new_from_iso8601(str, NULL);
+			g_free(str);
+
+			if (datetime) {
+				*release_timestamp = g_date_time_to_unix(datetime);
+				g_date_time_unref(datetime);
+				return TRUE;
+			} else {
+				g_warning("Failed to parse release date: %s", release_date);
+				g_clear_pointer(highest_version, g_free);
+				g_clear_pointer(build_comment, g_free);
+				*build_revision = 0;
+				return FALSE;
 			}
 		}
 	}
 
-	if (*highest_version && *release_date) {
-		GDateTime *datetime;
-		gchar *str;
-
-		str = g_strdup_printf("%s 00:00:00Z", release_date);
-		datetime = g_date_time_new_from_iso8601(str, NULL);
-		g_free(str);
-
-		if (datetime) {
-			*release_timestamp = g_date_time_to_unix(datetime);
-			g_date_time_unref(datetime);
-		} else {
-			/* JSON file data bug. */
-			g_printerr("%s: release date for version %s not properly formatted: %s\n",
-					G_STRFUNC, *highest_version, release_date);
-
-			g_clear_pointer(highest_version, g_free);
-			g_clear_pointer(build_comment, g_free);
-			*build_revision = 0;
-		}
-	}
-
-	json_node_unref(result);
-	g_object_unref(path);
-
-	return (*highest_version != NULL);
+	return FALSE;
 }
 
 static void remove_alpha(gchar *str, gboolean *is_rc, gboolean *is_beta) {
@@ -395,29 +405,24 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 }
 
 static gchar *check_update_version(fetch_url_async_data *args) {
-	JsonParser *parser;
 	gchar *last_version = NULL;
 	gchar *build_comment = NULL;
 	gint64 release_timestamp = 0;
 	gint build_revision = 0;
-	GError *error = NULL;
 	gchar *msg = NULL;
 	gchar *data = NULL;
 	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 
-	parser = json_parser_new();
-	if (!json_parser_load_from_data(parser, args->content, -1, &error)) {
+	// Parse JSON
+	yyjson_read_err err = { 0 };
+	yyjson_doc *doc = yyjson_read(args->content, strlen(args->content), 0);
+	if (!doc) {
 		g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC,
-				args->url, error->message);
-		g_clear_object(&parser);
-		g_clear_error(&error);
-
+				   args->url, err.msg);
 		return NULL;
 	}
 
-	siril_update_get_highest(parser, &last_version, &release_timestamp,	&build_revision, &build_comment);
-
-	if (last_version) {
+	if (siril_update_get_highest(doc, &last_version, &release_timestamp, &build_revision, &build_comment)) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
 		msg = check_version(last_version, &(args->verbose), &data);
@@ -435,7 +440,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 
 	g_clear_pointer(&last_version, g_free);
 	g_clear_pointer(&build_comment, g_free);
-	g_object_unref(parser);
+	yyjson_doc_free(doc);
 
 	return msg;
 }
@@ -460,122 +465,122 @@ typedef struct _notification {
 	int status;
 } notification;
 
-static int parseJsonNotificationsString(const gchar *jsonString, GSList **validNotifications) {
-	// Load JSON from string and check for errors
-	GError *error = NULL;
-	JsonParser *parser = json_parser_new();
-	if (!(json_parser_load_from_data(parser, jsonString, -1, &error))) {
-		siril_log_color_message(_("Error parsing JSON from URL: %s\n"), "red", error->message);
-		g_object_unref(parser);
+static int parseJsonNotificationsString(const char *jsonString, GSList **validNotifications) {
+	// Parse JSON from string using yyjson
+	yyjson_doc *doc = yyjson_read(jsonString, strlen(jsonString), YYJSON_READ_NOFLAG);
+	if (!doc) {
+		siril_log_color_message(_("Error parsing JSON from URL: Failed to parse JSON\n"), "red");
 		return 1;
 	}
 
-	// Get root node
-	JsonNode *node = json_parser_get_root(parser);
-	if (!node) {
-		siril_log_color_message(_("Error parsing JSON from URL: unable to get root node\n"), "red");
-		g_object_unref(parser);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	if (!yyjson_is_obj(root) && !yyjson_is_arr(root)) {
+		siril_log_color_message(_("Error parsing JSON from URL: JSON root is not an object or array\n"), "red");
+		yyjson_doc_free(doc);
 		return 1;
 	}
 
-	// Get current time
+	// Get the current time
 	GDateTime *currentTime = g_date_time_new_now_local();
 
-	// The message array / object and number of messages (length is overwritten if an array is found)
-	JsonArray *messages = NULL;
-	JsonObject *single_message = NULL;
-	guint length = 1;
+	size_t length = 0;
+	yyjson_val *messages = NULL;
 
-	// Get array of messages
-	if (JSON_NODE_HOLDS_ARRAY(node)) {
-		messages = json_node_get_array(node);
-		length = json_array_get_length(messages);
+	// Handle messages as an array or single object
+	if (yyjson_is_arr(root)) {
+		messages = root;
+		length = yyjson_arr_size(messages);
+	} else if (yyjson_is_obj(root)) {
+		length = 1;  // Single object as message
 	} else {
-		if (JSON_NODE_HOLDS_OBJECT(node)) {
-			single_message = json_node_get_object(node);
-		} else {
-			siril_log_color_message(_("Error parsing JSON from URL: unable to find a valid JSON object\n"), "red");
-			g_object_unref(parser);
-			return 1;
-		}
-	}
-	if (!messages && !single_message) {
-		siril_log_color_message(_("Error parsing JSON from URL: unable to find any valid JSON objects\n"), "red");
-		g_object_unref(parser);
+		siril_log_color_message(_("Error parsing JSON from URL: Invalid root JSON structure\n"), "red");
+		yyjson_doc_free(doc);
+		g_date_time_unref(currentTime);
 		return 1;
 	}
 
 	// Iterate over messages
-	for (guint i = 0; i < length; i++) {
-		if (messages) {
-			single_message = json_array_get_object_element(messages, i);  // Get the current message from the array
+	for (size_t i = 0; i < length; i++) {
+		yyjson_val *message = (!yyjson_is_arr(root)) ? root : yyjson_arr_get(messages, i);
+		if (!yyjson_is_obj(message)) {
+			siril_log_color_message(_("Error parsing JSON from URL: Message is not a valid object\n"), "red");
+			continue;
 		}
 
-		// Check the necessary JSON objects are there
-		if (!(json_object_has_member(single_message, "valid-from") &&
-			json_object_has_member(single_message, "valid-to") &&
-			json_object_has_member(single_message, "message") &&
-			json_object_has_member(single_message, "priority"))) {
-			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
-			g_object_unref(parser);
-			return 1;
+		// Check for required fields
+		const char *validFromStr = yyjson_get_str(yyjson_obj_get(message, "valid-from"));
+		const char *validToStr = yyjson_get_str(yyjson_obj_get(message, "valid-to"));
+		const char *messageStr = yyjson_get_str(yyjson_obj_get(message, "message"));
+		yyjson_val *priority_val = yyjson_obj_get(message, "priority");
+
+		if (!validFromStr || !validToStr || !messageStr || !priority_val || !yyjson_is_int(priority_val)) {
+			siril_log_color_message(_("Error parsing JSON from URL: Required fields missing or invalid\n"), "red");
+			continue;
 		}
 
 		// Parse valid-from and valid-to fields
-		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-from"), NULL);
-		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-to"), NULL);
+		GDateTime *validFrom = g_date_time_new_from_iso8601(validFromStr, NULL);
+		GDateTime *validTo = g_date_time_new_from_iso8601(validToStr, NULL);
+		if (!validFrom || !validTo) {
+			siril_log_color_message(_("Error parsing JSON from URL: Invalid ISO8601 date format\n"), "red");
+			if (validFrom) g_date_time_unref(validFrom);
+			if (validTo) g_date_time_unref(validTo);
+			continue;
+		}
 
-		// Check for optional version-from and version-to fields and parse them if present
-		version_number empty_version = { 0 };
+		// Check for optional version-from and version-to fields
+		version_number empty_version = {0};
 		version_number current_version = get_current_version_number();
-		version_number valid_from_version = { 0 };
-		version_number valid_to_version = { 0 };
-		if (json_object_has_member(single_message, "version-from")) {
-			const gchar *version_from_str = json_object_get_string_member(single_message, "version-from");
-			valid_from_version = get_version_number_from_string(version_from_str);
-		}
-		if (json_object_has_member(single_message, "version-to")) {
-			const gchar *version_to_str = json_object_get_string_member(single_message, "version-to");
-			valid_to_version = get_version_number_from_string(version_to_str);
+		version_number valid_from_version = {0};
+		version_number valid_to_version = {0};
+
+		const char *versionFromStr = yyjson_get_str(yyjson_obj_get(message, "version-from"));
+		if (versionFromStr) {
+			valid_from_version = get_version_number_from_string(versionFromStr);
 		}
 
-		// Parse status
-		int status = json_object_get_int_member(single_message, "priority");
+		const char *versionToStr = yyjson_get_str(yyjson_obj_get(message, "version-to"));
+		if (versionToStr) {
+			valid_to_version = get_version_number_from_string(versionToStr);
+		}
 
+		// Parse priority
+		int status = (int)yyjson_get_int(priority_val);
 		gboolean valid = TRUE;
 
-		// Check if current time is within validity period
-		if (!(g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0))
+		// Check if current time is within the validity period
+		if (!(g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0)) {
 			valid = FALSE;
+		}
 
 		// Check if current version matches version constraints
-		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number))) {
-			if (compare_version(current_version, valid_from_version) >= 0)
+		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number)) &&
+			compare_version(current_version, valid_from_version) < 0) {
+			valid = FALSE;
+			}
+			if (memcmp(&valid_to_version, &empty_version, sizeof(version_number)) &&
+				compare_version(current_version, valid_to_version) > 0) {
 				valid = FALSE;
-		}
-		if (memcmp(&valid_to_version, &empty_version, sizeof(version_number))) {
-			if (compare_version(current_version, valid_to_version) < 0)
-				valid = FALSE;
-		}
+				}
 
-		if (valid) {
-			// Store the message and status in a notification struct
-			notification *notif = g_new(notification, 1);
-			notif->messageString = g_string_new(json_object_get_string_member(single_message, "message"));
-			notif->status = status;
+				if (valid) {
+					// Create and populate notification
+					notification *notif = g_new(notification, 1);
+					notif->messageString = g_string_new(messageStr);
+					notif->status = status;
 
-			// Append the notification to the list
-			*validNotifications = g_slist_append(*validNotifications, notif);
-		}
+					// Append notification to the list
+					*validNotifications = g_slist_append(*validNotifications, notif);
+				}
 
-		// Free allocated memory
-		g_date_time_unref(validFrom);
-		g_date_time_unref(validTo);
+				// Free allocated memory
+				g_date_time_unref(validFrom);
+				g_date_time_unref(validTo);
 	}
 
-	// Free allocated memory
+	// Clean up
 	g_date_time_unref(currentTime);
-	g_object_unref(parser);
+	yyjson_doc_free(doc);
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,27 +21,20 @@
 #include <math.h>
 
 #include <string.h>
-#include <math.h>
 #include <float.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/siril_app_dirs.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
-#include "gui/remixer.h"
 #include "gui/siril_preview.h"
-#include "gui/registration_preview.h"
-#include "core/undo.h"
-
 #include "filters/starnet.h"
+
 static gboolean sgui_customstride;
 static gboolean sgui_starmask;
 static gboolean sgui_upscale;
@@ -107,7 +100,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 				gtk_label_set_text(label_starnetinfo, bothtext);
 			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
-				if (gfit.naxes[2] == 3)
+				if (gfit->naxes[2] == 3)
 					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			}
 			g_free(temp);
@@ -125,7 +118,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 				gtk_label_set_text(label_starnetinfo, bothtext);
 			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
-				if (gfit.naxes[2] == 1)
+				if (gfit->naxes[2] == 1)
 					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			}
 			g_free(temp);
@@ -185,7 +178,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
 	starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->starnet_fit = &gfit;
+	starnet_args->starnet_fit = gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
 	starnet_args->upscale = sgui_upscale;
@@ -197,11 +190,13 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->follow_on = sgui_follow_on;
 	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
 		if (single_image_is_loaded()) {
-			start_in_new_thread(do_starnet, starnet_args);
+			if (!start_in_new_thread(do_starnet, starnet_args)) {
+				free_starnet_args(starnet_args);
+			}
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	} else {
@@ -218,11 +213,12 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			if (sgui_starmask) {
 				multi_args->prefixes[1] = g_strdup("starmask_");
 			}
+			multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 			apply_starnet_to_sequence(multi_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
-			free(starnet_args);
+			free_starnet_args(starnet_args);
 		}
 		set_cursor_waiting(FALSE);
 	}

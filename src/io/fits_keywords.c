@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -92,6 +92,14 @@ static void bzero_handler_read(fits *fit, const char *comment, KeywordInfo *info
 static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;
+	}
+}
+
+static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info) {
+	/* Handle some bad BAYER PATTERN from Maxim DL */
+	if (strstr(fit->keywords.bayer_pattern, "INVALID")) {
+		siril_debug_print("Ignoring INVALID Bayer pattern\n");
+		fit->keywords.bayer_pattern[0] = '\0';
 	}
 }
 
@@ -344,7 +352,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), bayer_pattern_read, NULL),
 			KEYWORD_PRIMARY( "camera", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "focuser", "FOCNAME", KTYPE_STR, "Focusing equipment name", &(fit->keywords.focname), NULL, NULL),
@@ -499,7 +507,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
 			KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
-			KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
+			KEYWORD_PRIMARY( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), NULL, NULL),
 			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE }
 	};
 
@@ -539,7 +547,7 @@ int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit, NULL);
 	KeywordInfo *keys_start = keys;
 	super_bool sbool;
-	gboolean bool;
+	gboolean boolean;
 	int status;
 	gchar *str;
 	gushort us;
@@ -621,10 +629,11 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_BOOL:
 			status = 0;
+			if (g_strcmp0("PLTSOLVD", keys->key) == 0) break;
 			sbool = *((super_bool*) keys->data);
 			if (sbool != BOOL_NOT_SET) {
-				bool = (sbool == BOOL_FALSE) ? FALSE : TRUE;
-				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(bool), keys->comment, &status);
+				boolean = (sbool == BOOL_FALSE) ? FALSE : TRUE;
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(boolean), keys->comment, &status);
 			}
 			break;
 		default:
@@ -647,7 +656,7 @@ int remove_all_fits_keywords(fits *fit) {
 	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
 		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
 		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
-		if (!keyword_is_protected(keyname)) {
+		if (!keyword_is_protected(keyname, fit)) {
 			fits_delete_record(fit->fptr, i, &status);
 			siril_debug_print("%s removed\n", keyname);
 		}
@@ -784,8 +793,8 @@ int save_wcs_keywords(fits *fit) {
 			}
 		}
 	}
-	if (fit->keywords.wcsdata.pltsolvd) {
-		fits_update_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->keywords.wcsdata.pltsolvd), fit->keywords.wcsdata.pltsolvd_comment, &status);
+	if (fit->keywords.wcsdata.pltsolvd == TRUE) {
+		fits_update_key(fit->fptr, TLOGICAL, "PLTSOLVD", &fit->keywords.wcsdata.pltsolvd,  fit->keywords.wcsdata.pltsolvd_comment, &status);
 	}
 
 	return 0;
@@ -856,6 +865,15 @@ void read_fits_date_obs_header(fits *fit) {
 	}
 
 	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
+
+	/** Seen in some files, MJD-OBS is use */
+	if (fit->keywords.date_obs == NULL) {
+		double mjd_obs = 0.0;
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "MJD-OBS", &mjd_obs, NULL, &status);
+		if (status == 0)
+			fit->keywords.date_obs = Julian_to_date_time(mjd_obs);
+	}
 }
 
 static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
@@ -966,7 +984,7 @@ int read_fits_keywords(fits *fit) {
 		status = 0;
 
 		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
-		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card)) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card, fit)) {
 			continue;
 		}
 
@@ -976,18 +994,27 @@ int read_fits_keywords(fits *fit) {
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
-			/* We remove the obsolete WCS keyword (CROTA) and the unmanaged keywords: TRi_j. */
 			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
-			if (strncmp(card, "HISTORY", 7) == 0) continue;
-			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
-			if (strncmp(card, "DATASUM", 7) == 0) continue;
+
+			if (strncmp(card, "HISTORY", 7) == 0
+					|| strncmp(card, "CHECKSUM", 8) == 0
+					|| strncmp(card, "DATASUM", 7) == 0) {
+				continue;
+			}
+
 			GMatchInfo *match_info = NULL;
 			if (g_regex_match(regex, card, 0, &match_info)) {
 				g_match_info_free(match_info);
+				g_regex_unref(regex);
 				continue;
 			}
-			g_match_info_free(match_info);
-			// Handle unknown keys
+
+			if (match_info) {
+				g_match_info_free(match_info);
+			}
+
+			g_regex_unref(regex);
+
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
 			continue;
@@ -1257,7 +1284,7 @@ gboolean end_keywords_sequence(gpointer p) {
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		refresh_keywords_dialog();
+		gui_function(refresh_keywords_dialog, NULL);
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -1284,7 +1311,9 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 		return;
 	}
 	seqargs->user = args;
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_generic_seq_args(seqargs, TRUE);
+	}
 }
 
 
@@ -1307,4 +1336,48 @@ int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 		return 0;
 	}
 	return 1;
+}
+
+void clear_Bayer_information(fits *fit) {
+	memset(fit->keywords.bayer_pattern, 0, FLEN_VALUE);
+}
+
+gboolean keyword_is_protected(char *card, fits *fit) {
+	char keyname[FLEN_KEYWORD];
+	int length = 0;
+	int status = 0;
+
+	fits_get_keyname(card, keyname, &length, &status);
+
+	if (g_strcmp0(keyname, "DATE") == 0) {
+		return TRUE;
+	}
+
+	if (fits_get_keyclass(card) == TYP_STRUC_KEY ||
+		fits_get_keyclass(card) == TYP_CMPRS_KEY ||
+		fits_get_keyclass(card) == TYP_SCAL_KEY ||
+		fits_get_keyclass(card) == TYP_WCS_KEY) {
+		return TRUE;
+		}
+
+	if (fit) {
+		GHashTable *keys_hash;
+		KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+		KeywordInfo *keyword_info = g_hash_table_lookup(keys_hash, keyname);
+		gboolean is_wcslib = FALSE;
+
+		if (keyword_info && g_strcmp0(keyword_info->group, "wcslib") == 0) {
+			is_wcslib = TRUE;
+		}
+
+		g_hash_table_destroy(keys_hash);
+		free(keys);
+
+		if (is_wcslib) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }

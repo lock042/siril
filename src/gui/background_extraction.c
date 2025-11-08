@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,14 +20,12 @@
 
 #include "core/siril.h"
 #include "core/undo.h"
-#include "core/siril_log.h"
 #include "algos/background_extraction.h"
-#include "algos/statistics.h"
+#include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
-#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -79,7 +77,7 @@ static void background_startup() {
 
 static void copy_gfit_to_bkg_backup() {
 	if (!background_computed) return;
-	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
@@ -88,9 +86,9 @@ static void copy_gfit_to_bkg_backup() {
 static int copy_bkg_backup_to_gfit() {
 	if (!background_computed) return 0;
 	int retval = 0;
-	if (!gfit.data && !gfit.fdata)
+	if (!gfit->data && !gfit->fdata)
 		retval = 1;
-	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
+	else if (copyfits(&background_backup, gfit, CP_COPYA, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
@@ -129,8 +127,10 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
@@ -143,18 +143,13 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
 
-	if (!check_ok_if_cfa()) {
-		set_cursor_waiting(FALSE);
-		return;
-	}
-
 	background_correction correction = get_correction_type();
 	poly_order degree = get_poly_order();
 	gboolean use_dither = is_dither_checked();
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = calloc(1, sizeof(struct background_data));
 	args->threads = com.max_thread;
 	args->from_ui = TRUE;
 	args->correction = correction;
@@ -162,16 +157,23 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->degree = (poly_order) degree;
 	args->smoothing = smoothing;
 	args->dither = use_dither;
-	args->fit = &gfit;
+	args->fit = gfit;
 
-	start_in_new_thread(remove_gradient_from_image, args);
+	// Check if the image has a Bayer CFA pattern
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean is_cfa = gfit->naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
+	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+						remove_gradient_from_image, args)) {
+		free(args->seqEntry);
+		free(args);
+	}
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
 			lookup_widget("checkBkgSeq"));
 	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
-		struct background_data *args = malloc(sizeof(struct background_data));
+		struct background_data *args = calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
 		args->tolerance = get_tolerance_value();
 		args->correction = get_correction_type();
@@ -207,8 +209,10 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 
 		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
-		if (args->seqEntry && args->seqEntry[0] == '\0')
+		if (args->seqEntry && args->seqEntry[0] == '\0') {
+			free(args->seqEntry);
 			args->seqEntry = strdup("bkg_");
+		}
 		args->seq = &com.seq;
 		/* now we uncheck the button */
 		gtk_toggle_button_set_active(seq_button, FALSE);
@@ -233,12 +237,19 @@ void apply_background_cancel() {
 }
 
 void on_background_close_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("background_extraction_dialog");
+	apply_background_cancel();
+}
+
+gboolean bge_hide_on_delete(GtkWidget *widget) {
+	apply_background_cancel();
+	return TRUE;
 }
 
 void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data) {
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	redraw(REDRAW_OVERLAY);
 
@@ -307,4 +318,13 @@ gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *ev
 	}
 	gtk_widget_set_state_flags(widget, new_state, TRUE);
 	return TRUE;
+}
+
+void on_checkBkgSeq_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *ok = lookup_widget("background_ok_button");
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(ok, TRUE);
+	} else {
+		gtk_widget_set_sensitive(ok, (com.grad_samples != NULL) && background_computed);
+	}
 }

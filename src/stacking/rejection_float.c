@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -113,19 +113,31 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 
 	memcpy(o_stack, stack, N * sizeof(float)); /* making a copy of unsorted stack to apply weights*/
 
-	/* remove null pixels */
-	for (int frame = 0; frame < N; frame++) {
-		if (stack[frame] != 0.f) {
-			if (frame != kept) {
-				stack[kept] = stack[frame];
-			} 
-			kept++;
+	/* remove null pixels (or null drizzle weights or both)*/
+	if (args->drizzle) {
+		float *d_stack = (float*) data->dstack;
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] != 0.f && d_stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
+		}
+	} else {
+		for (int frame = 0; frame < N; frame++) {
+			if (stack[frame] != 0.f) {
+				if (frame != kept) {
+					stack[kept] = stack[frame];
+				} 
+				kept++;
+			}
 		}
 	}
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */
-	if (kept <= 2) { 
+	if (kept <= 1) { 
 		return kept;
 	}
 	removed = N - kept;
@@ -300,7 +312,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			return kept;
 		}
 		max_outliers -= removed;
-		struct outliers *out = malloc(max_outliers * sizeof(struct outliers));
+		struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
 
 		memcpy(w_stack, stack, N * sizeof(float));
 		memset(rejected, 0, N * sizeof(int));

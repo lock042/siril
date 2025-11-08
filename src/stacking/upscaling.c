@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,14 +31,13 @@
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_interactions.h"
-#include "gui/utils.h" // for delete_selected_area()
 #include "opencv/opencv.h"
 
 #include "stacking.h"
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 
-void remove_tmp_drizzle_files(struct stacking_args *args) {
+void remove_tmp_upscaled_files(struct stacking_args *args) {
 	int i;
 	if (!args->upscale_at_stacking)
 		return;
@@ -68,6 +67,8 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 		for (i = 0; i < args->seq->number; i++) {
 			char filename[500];
 			// FIXME: no preallocation of file name
+			// don't use the fit_sequence_get_image_filename_checkext function here as these
+			// temp files are created with the preferred extension anyway.
 			fit_sequence_get_image_filename(args->seq, args->image_indices[i], filename, TRUE);
 			siril_debug_print("Removing %s\n", filename);
 			if (g_unlink(filename))
@@ -124,7 +125,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		return 0;
 
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
-	struct upscale_args *upargs = malloc(sizeof(struct upscale_args));
+	struct upscale_args *upargs = calloc(1, sizeof(struct upscale_args));
 
 	upargs->factor = 2.;
 
@@ -138,7 +139,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->upscale_ratio = upargs->factor;
-	args->new_seq_prefix = TMP_UPSCALED_PREFIX;
+	args->new_seq_prefix = strdup(TMP_UPSCALED_PREFIX);
 	args->user = upargs;
 	args->already_in_a_thread = TRUE;
 
@@ -147,12 +148,13 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	if (nb_threads == 0) {
 		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
 		stackargs->upscale_at_stacking = FALSE;
-		free(args);
+		free(upargs);
+		free_generic_seq_args(args, TRUE);
 		return 0;
 	}
 	args->max_parallel_images = nb_threads;
 
-	remove_tmp_drizzle_files(stackargs);
+	remove_tmp_upscaled_files(stackargs);
 
 	generic_sequence_worker(args);
 

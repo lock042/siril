@@ -98,7 +98,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
+    <signal name="delete-event" handler="astrometry_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
@@ -162,7 +162,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="margin-bottom">5</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=5 n-rows=14 -->
+                  <!-- n-columns=5 n-rows=15 -->
                   <object class="GtkGrid" id="GtkGridIPS">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -182,8 +182,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_RA_h</property>
                         <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                         <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -204,8 +204,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_RA_m</property>
                         <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                         <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
@@ -226,8 +226,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_Dec_deg</property>
                         <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                         <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -248,8 +248,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_Dec_m</property>
                         <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                         <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
@@ -642,6 +642,10 @@ When selecting an order with distortions, additional terms are added to the solu
                       <object class="GtkLabel" id="label_IPS_order">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the order of the solution:
+Linear assumes no distortion is present in the image
+Quadratic, Cubic, Quartic and Quintic will include second-, third-, fourth- or fifth-order polynomial distortions.
+When selecting an order with distortions, additional terms are added to the solution, using SIP convention</property>
                         <property name="halign">end</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Solution order: </property>
@@ -690,7 +694,7 @@ When selecting an order with distortions, additional terms are added to the solu
                       <object class="GtkLabel" id="label_IPS_radius">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">The resolution of the image that is automatically determined from the focal and pixel size value. Unit is arc second per pixel.</property>
+                        <property name="tooltip-text" translatable="yes">Radius used by the solver to search around the target.</property>
                         <property name="halign">end</property>
                         <property name="valign">center</property>
                         <property name="label" translatable="yes">Search radius:</property>
@@ -771,7 +775,6 @@ When selecting an order with distortions, additional terms are added to the solu
 This option is enabled only if the solution order is larger than 1.
 When platesolving a sequence, the distortion file is saved from the reference image.</property>
                         <property name="halign">start</property>
-                        <property name="active">False</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
@@ -783,8 +786,8 @@ When platesolving a sequence, the distortion file is saved from the reference im
                       <object class="GtkEntry" id="distomaster_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="hexpand">True</property>
                         <property name="tooltip-text" translatable="yes">Path to the distortion file to be created (ending with a *.wcs extension)</property>
+                        <property name="hexpand">True</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                       </object>
                       <packing>
@@ -959,8 +962,8 @@ When platesolving a sequence, the distortion file is saved from the reference im
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Choose the online catalogue against one want to compare the image.
 * TYCHO-2 catalogue contains positions, proper motions, and two-color photometric data for 2,539,913 of the brightest stars in the Milky Way.
-* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars.
-* Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21.
+* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-Blue 6, and USNO-B catalogs for astrometry and optical photometry, supplemented by 2MASS near-infrared. The almost 100 GB dataset contains astrometric and photometric data for about 1.1 billion stars. An offline extract is available that provides sufficient coverage to plate solve most star fields.
+* Gaia Data Release 3 was released on 13 June 2022. The five-parameter astrometric solution, positions on the sky (α, δ), parallaxes, and proper motions, are given for around 1.46 billion sources, with a limiting magnitude of G = 21. An offline extract is available that provides sufficient coverage to plate solve all except the deepest star fields. Gaia DR3 represents the current state of the art in astrometric and photometric catalogues.
 * PPMXL is a catalog of positions, proper motions, 2MASS- and optical photometry of 900 million stars and galaxies.
 * The Bright Star Catalogue is a star catalogue that lists all stars of stellar magnitude 6.5 or brighter, which is roughly every star visible to the naked eye from Earth. The catalog contains 9,110 objects.
 * APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky photometric survey. This survey is conducted in eight filters: Johnson B and V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude to about 17th magnitude for over 37 million stars.</property>
@@ -986,7 +989,7 @@ When platesolving a sequence, the distortion file is saved from the reference im
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">The catalogue is automatically determined using the approximation of the Field Of View and magnitude.</property>
+                        <property name="tooltip-text" translatable="yes">The catalogue is automatically determined using the approximation of the Field Of View and magnitude. Local catalogues are preferred over remote ones, and Gaia DR3 is preferred over Tycho + NOMAD.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
@@ -1108,11 +1111,11 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                               <object class="GtkCheckButton" id="checkbutton_IPS_useforreg">
                                 <property name="label" translatable="yes">Use as registration information</property>
                                 <property name="visible">True</property>
-                                <property name="active">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Tick this box to use astrometric data to compute sequence registration.</property>
                                 <property name="margin-start">10</property>
+                                <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                               <packing>
@@ -1140,7 +1143,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="checkbutton_IPS_nocache">
-                                <property name="label" translatable="yes">Fetch stars for each image</property>
+                                <property name="label" translatable="yes">Fetch catalog for each image</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>

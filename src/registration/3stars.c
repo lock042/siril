@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,7 +34,6 @@
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "gui/image_interactions.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 
@@ -182,7 +181,7 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		fprintf(stderr, "invalid registration layer\n");
 		return;
 	}
-	add_star(&gfit, layer, &index);
+	add_star(gfit, layer, &index);
 	if (index == -1) {
 		update_label(_("No star found, make another selection"));
 	} else {
@@ -248,19 +247,9 @@ static void _3stars_free_results() {
 }
 
 static int _3stars_seqpsf(struct registration_args *regargs) {
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
-	fits fit = { 0 };
-	if (seq_read_frame(regargs->seq, regargs->seq->reference_image, &fit, FALSE, -1)) {
-		siril_log_color_message(_("Could not load metadata"), "red");
-		free(args);
-		free(spsfargs);
-		return -1;
-	} else {
-		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
-	}
-	clearfits(&fit);
 	spsfargs->allow_use_as_regdata = BOOL_FALSE;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
@@ -352,7 +341,7 @@ int register_3stars(struct registration_args *regargs) {
 	for (int i = 0; i < selected_stars; i++) {
 		// delete_selected_area();
 		memcpy(&com.selection, &_3boxes[awaiting_star - 1], sizeof(rectangle));
-		// new_selection_zone();
+		// gui_function(new_selection_zone, NULL);
 		awaiting_star = i + 1;
 		siril_log_color_message(_("Processing star #%d\n"), "salmon", awaiting_star);
 		if (_3stars_seqpsf(regargs)) return 1;

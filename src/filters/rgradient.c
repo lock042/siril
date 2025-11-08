@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ static gboolean end_rgradient_filter(gpointer p) {
 	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 	stop_processing_thread();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	free(args);
@@ -219,6 +219,11 @@ void on_rgradient_cancel_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("rgradient_dialog");
 }
 
+gboolean rgradient_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("rgradient_dialog");
+	return TRUE;
+}
+
 void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if(!check_ok_if_cfa())
 		return;
@@ -229,17 +234,17 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!single_image_is_loaded()) return;
 
-	if (gfit.orig_bitpix == BYTE_IMG) {
+	if (gfit->orig_bitpix == BYTE_IMG) {
 		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
 		return;
 	}
 
-	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
+	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
 	args->xc = get_xc();
 	args->yc = get_yc();
 	args->dR = get_dR();
 	args->da = get_da();
-	args->fit = &gfit;
+	args->fit = gfit;
 
 	if ((args->xc >= args->fit->rx) || (args->yc >= args->fit->ry)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong center coordinates"),
@@ -248,28 +253,30 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 
-	undo_save_state(&gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
+	undo_save_state(gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 
-	start_in_new_thread(rgradient_filter, args);
+	if (!start_in_new_thread(rgradient_filter, args))
+		free(args);
 	}
 }
 
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
 	if (com.selection.h && com.selection.w) {
-		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, NULL, TRUE, PSF_GAUSSIAN, NULL);
-		if (result) {
+		psf_error error = PSF_NO_ERR;
+		psf_star *result = psf_get_minimisation(gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, PSF_GAUSSIAN, &error);
+		if (result && error == PSF_NO_ERR) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);
 			gchar *y0 = g_strdup_printf("%.3lf", com.selection.y + com.selection.h - result->y0);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_yc")), y0);
 			g_free(x0);
 			g_free(y0);
-			free_psf(result);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Center coordinate selection error"),
 				_("No valid PSF found within selection."));
 		}
+		free_psf(result);
 	}
 }
 

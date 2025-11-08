@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -568,5 +568,47 @@ gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doub
 				nb_images_to_stack);
 	}
 	//fprintf(stdout, "FILTERING DESCRIPTION: %s", str->str);
+	return g_string_free(str, FALSE);
+}
+
+gchar *describe_filter_for_history(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {
+	GString *str = g_string_sized_new(100);
+
+	if (filtering_criterion == seq_filter_all) {
+		g_string_printf(str, "filter all");
+	} else if (filtering_criterion == seq_filter_included) {
+		g_string_printf(str, "filter selected");
+	} else if (filtering_criterion == seq_filter_fwhm) {
+		g_string_printf(str, "filter FWHM < %.3f", filtering_parameter);
+	} else if (filtering_criterion == seq_filter_weighted_fwhm) {
+		g_string_printf(str, "Filter WFWHM < %.3f", filtering_parameter);
+	} else if (filtering_criterion == seq_filter_roundness) {
+		g_string_printf(str, "filter roundness > %.3f", filtering_parameter);
+	} else if (filtering_criterion == seq_filter_quality) {
+		g_string_printf(str, "filter quality > %.3f", filtering_parameter);
+	} else if (filtering_criterion == seq_filter_background) {
+		g_string_printf(str, "filter background > %.3f", filtering_parameter);
+	} else if (filtering_criterion == seq_filter_nbstars) {
+		g_string_printf(str, "filter nb_stars > %d", (int)filtering_parameter);
+	} else if (filtering_criterion == seq_filter_output_doesnt_already_exists) {
+		g_string_printf(str, "filter output does not exist");
+	} else if (filtering_criterion == seq_filter_multiple) {
+		int f = 0;
+		gboolean first = TRUE;
+		while (f < MAX_FILTERS && _filters[f].filter) {
+			struct filtering_tuple *filter = _filters + f;
+			char *descr = describe_filter_for_history(seq, filter->filter, filter->param);
+			if (descr && strlen(descr) > 1) {
+				if (first) {
+					first = FALSE;
+					g_string_append(str, descr);
+				} else {
+					g_string_append_printf(str, ", %s", descr);
+				}
+			}
+			g_free(descr);
+			f++;
+		}
+	}
 	return g_string_free(str, FALSE);
 }

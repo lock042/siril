@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -121,12 +121,13 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		if (!nbdata) {
 			is_float = fit.type == DATA_FLOAT;
 			nbdata = output_size[0] * output_size[1];
+			size_t nbpixels = nbdata * fit.naxes[2];
 			if (is_float) {
 				if (ismax)
-					ffinal_pixel[0] = calloc(nbdata * fit.naxes[2], sizeof(float));
+					ffinal_pixel[0] = calloc(nbpixels, sizeof(float));
 				else {
-					ffinal_pixel[0] = malloc(nbdata * fit.naxes[2] * sizeof(float));
-					for (long k = 0; k < nbdata * fit.naxes[2]; k++)
+					ffinal_pixel[0] = malloc(nbpixels * sizeof(float));
+					for (long k = 0; k < nbpixels; k++)
 						ffinal_pixel[0][k] = 1.0;
 				}
 				if (!ffinal_pixel[0]) {
@@ -140,10 +141,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				}
 			} else {
 				if (ismax)
-					final_pixel[0] = calloc(nbdata * output_size[1], sizeof(WORD));
+					final_pixel[0] = calloc(nbpixels, sizeof(WORD));
 				else {
-					final_pixel[0] = malloc(nbdata * output_size[1] * sizeof(WORD));
-					for (long k = 0; k < nbdata * fit.naxes[2]; k++)
+					final_pixel[0] = malloc(nbpixels * sizeof(WORD));
+					for (long k = 0; k < nbpixels; k++)
 						final_pixel[0][k] = USHRT_MAX;
 				}
 				if (!final_pixel[0]) {
@@ -194,6 +195,14 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		}
 
 		/* stack current image */
+		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
+			siril_debug_print("Error: image #%d has a wrong shiftx value\n", j + 1);
+			shiftx += 1;
+		}
+		if (shifty == INT_MIN) { // mainly to avoid static checker warning
+			siril_debug_print("Error: image #%d has a wrong shifty value\n", j + 1);
+			shifty += 1;
+		}
 		size_t i = 0;	// index in final_pixel[0]
 		for (int y = 0; y < output_size[1]; ++y) {
 			int ny = y - shifty;
@@ -203,7 +212,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					size_t ii = ny * fit.rx + nx;		// index in final_pixel[0] too
 					//printf("shiftx=%d shifty=%d i=%d ii=%d\n",shiftx,shifty,i,ii);
-					if (ii > 0 && ii < nbdata) {
+					if (ii < nbdata) {
 						for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 							if (is_float) {
 								float current_pixel = fit.fpdata[layer][ii];

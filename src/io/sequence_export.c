@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,8 +32,10 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/Astro-TIFF.h"
+#include "opencv/opencv.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -42,6 +44,7 @@
 #include "io/mp4_output.h"
 #endif
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
 
 /* same order as in the combo box 'combo_export_preset' */
 typedef enum {
@@ -116,6 +119,9 @@ static gpointer export_sequence(gpointer ptr) {
 	int nb_frames = 0;
 	GDateTime *strTime;
 	gboolean aborted = FALSE;
+	cmsHPROFILE ref_icc = NULL;
+	gboolean preserve_wcs = TRUE;
+	double dxref = 0., dyref = 0.;
 #ifdef HAVE_FFMPEG
 	struct mp4_struct *mp4_file = NULL;
 #endif
@@ -123,7 +129,8 @@ static gpointer export_sequence(gpointer ptr) {
 	norm_coeff coeff = { 0 };
 
 	int reglayer = get_registration_layer(args->seq);
-	siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
+	if (reglayer >= 0)
+		siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
 	if (args->crop) {
 		in_width  = args->crop_area.w;
 		in_height = args->crop_area.h;
@@ -137,6 +144,7 @@ static gpointer export_sequence(gpointer ptr) {
 		out_height = args->dest_height;
 		if (out_width == in_width && out_height == in_height)
 			args->resample = FALSE;
+		preserve_wcs = !args->resample;
 	} else {
 		out_width = in_width;
 		out_height = in_height;
@@ -150,12 +158,20 @@ static gpointer export_sequence(gpointer ptr) {
 
 	/* possible output formats: FITS images, FITS cube, TIFF, SER, AVI, MP4, WEBM */
 	// create the sequence file for single-file sequence formats
+	fits ref = { 0 };
+	int refindex = 0;
 	switch (args->output) {
 		case EXPORT_FITS:
 			output_bitpix = args->seq->bitpix;
+			refindex = sequence_find_refimage(args->seq);
+			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
+				ref_icc = copyICCProfile(ref.icc_profile);
+				siril_log_message(_("Reference frame has an ICC profile. Will assign / convert other frames to to match.\n"));
+			}
+			clearfits(&ref);
 			break;
 		case EXPORT_FITSEQ:
-			fitseq_file = malloc(sizeof(fitseq));
+			fitseq_file = calloc(1, sizeof(fitseq));
 			snprintf(dest, 256, "%s%s", args->basename, com.pref.ext);
 			if (fitseq_create_file(dest, fitseq_file, -1)) {
 				free(fitseq_file);
@@ -170,10 +186,11 @@ static gpointer export_sequence(gpointer ptr) {
 			// limit to 16 bits for TIFF
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
+			preserve_wcs = FALSE;
 			break;
 
 		case EXPORT_SER:
-			ser_file = malloc(sizeof(struct ser_struct));
+			ser_file = calloc(1, sizeof(struct ser_struct));
 			snprintf(dest, 256, "%s.ser", args->basename);
 			if (ser_create_file(dest, ser_file, TRUE, args->seq->ser_file)) {
 				free(ser_file);
@@ -184,11 +201,21 @@ static gpointer export_sequence(gpointer ptr) {
 			output_bitpix = args->seq->bitpix;
 			if (output_bitpix == FLOAT_IMG)
 				output_bitpix = USHORT_IMG;
+			preserve_wcs = FALSE;
 			break;
 
 		case EXPORT_AVI:
 			snprintf(dest, 256, "%s.avi", args->basename);
 			int32_t avi_format;
+
+			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
+			// as that's really the only suitable option here
+			refindex = sequence_find_refimage(args->seq);
+			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
+				ref_icc = copyICCProfile(ref.icc_profile);
+				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
+			}
+			clearfits(&ref);
 
 			if (args->seq->nb_layers == 1)
 				avi_format = AVI_WRITER_INPUT_FORMAT_MONOCHROME;
@@ -202,6 +229,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 
 			output_bitpix = BYTE_IMG;
+			preserve_wcs = FALSE;
 			break;
 
 		case EXPORT_MP4:
@@ -212,6 +240,15 @@ static gpointer export_sequence(gpointer ptr) {
 			retval = -1;
 			goto free_and_reset_progress_bar;
 #else
+			// Check if the sequence has an ICC profile. If so, we should convert to sRGB
+			// as that's really the only suitable option here
+			refindex = sequence_find_refimage(args->seq);
+			if (!seq_read_frame(args->seq, refindex, &ref, FALSE, -1) && ref.icc_profile) {
+				ref_icc = copyICCProfile(ref.icc_profile);
+				siril_log_message(_("Reference frame has an ICC profile. Exporting as sRGB.\n"));
+			}
+			clearfits(&ref);
+
 			/* resampling is managed by libswscale */
 			snprintf(dest, 256, "%s.%s", args->basename,
 					args->output == EXPORT_WEBM_VP9 ? "webm" : "mp4");
@@ -252,6 +289,7 @@ static gpointer export_sequence(gpointer ptr) {
 				goto free_and_reset_progress_bar;
 			}
 			output_bitpix = BYTE_IMG;
+			preserve_wcs = FALSE;
 			break;
 #endif
 	}
@@ -265,6 +303,16 @@ static gpointer export_sequence(gpointer ptr) {
 			args->filtering_parameter);
 	siril_log_message(filter_descr);
 	g_free(filter_descr);
+
+	if (reglayer != -1 && args->seq->regparam[reglayer]) {
+		if (!test_regdata_is_valid_and_shift(args->seq, reglayer)) {
+			siril_log_color_message(_("Export has detected registration data with more than simple shifts, this is not supported\n"), "red");
+			goto free_and_reset_progress_bar;
+		}
+		translation_from_H(args->seq->regparam[reglayer][refindex].H, &dxref, &dyref);
+	} else {
+		reglayer = -1;
+	}
 
 	if (args->normalize) {
 		struct stacking_args stackargs = { 0 };
@@ -304,10 +352,7 @@ static gpointer export_sequence(gpointer ptr) {
 	long naxes[3];
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
-
-//	gboolean first_profile_read = FALSE;
-//	cmsHPROFILE master_profile = NULL;
-
+	gboolean icc_msg_given = FALSE;
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
@@ -341,30 +386,6 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 
-/*		if (fit.icc_profile) {
-			if (!first_profile_read) {
-				master_profile = copyICCProfile(fit.icc_profile);
-				first_profile_read = TRUE;
-			} else {
-				cmsHPROFILE profile = copyICCProfile(fit.icc_profile);
-				if (!profiles_identical(master_profile, profile)) {
-					if (profile && master_profile) {
-						siril_log_color_message(_("An image of the sequence doesn't have the same ICC profile. Converting...\n"), "salmon");
-						convert_fit_colorspace(&fit, profile, master_profile);
-					} else {
-						siril_log_color_message(_("Mismatch of ICC profiles within the sequence. Can't decide what to do. Aborting..."), "red");
-						if (master_profile)
-							cmsCloseProfile(master_profile);
-						if (profile)
-							cmsCloseProfile(profile);
-						seqwriter_release_memory();
-						retval = -3;
-						goto free_and_reset_progress_bar;
-					}
-				}
-			}
-		}
-*/
 		/* destfit is allocated to the full size. Data will be copied from fit,
 		 * image buffers are duplicated. It will be cropped after the copy if
 		 * needed */
@@ -427,12 +448,18 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 		}
 
+		// Copy the ICC profile from fit if available
 		if (destfit->icc_profile) {
 			cmsCloseProfile(destfit->icc_profile);
+			destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		} else {
+		// Otherwise see if the reference frame has an ICC profile, and if so copy that
+			if (ref_icc) {
+				destfit->icc_profile = copyICCProfile(ref_icc);
+			}
 		}
-		// Copy the ICC profile from fit if available
-		destfit->icc_profile = copyICCProfile(fit.icc_profile);
-		color_manage(destfit, fit.color_managed);
+		color_manage(destfit, destfit->icc_profile != NULL);
+
 
 		// we copy the header
 		copy_fits_metadata(&fit, destfit);
@@ -442,8 +469,19 @@ static gpointer export_sequence(gpointer ptr) {
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
 			double dx, dy;
 			translation_from_H(args->seq->regparam[reglayer][i].H, &dx, &dy);
-			shiftx = round_to_int(dx);
-			shifty = round_to_int(dy);
+			shiftx = round_to_int(dx - dxref);
+			shifty = round_to_int(dy - dyref);
+			if (has_wcs(destfit)) {
+				if (preserve_wcs) {
+					Homography H = { 0 };
+					cvGetEye(&H);
+					H.h02 = (double)shiftx;
+					H.h12 = -(double)shifty;
+					cvApplyFlips(&H, in_height, out_height);
+					reframe_wcs(destfit->keywords.wcslib, &H);
+			} else
+				free_wcs(destfit);
+			}
 		} else {
 			shiftx = 0;
 			shifty = 0;
@@ -501,6 +539,14 @@ static gpointer export_sequence(gpointer ptr) {
 
 		switch (args->output) {
 			case EXPORT_FITS:
+				if (ref_icc) {
+					siril_colorspace_transform(destfit, ref_icc);
+				} else {
+					if (destfit->icc_profile && !icc_msg_given) {
+						siril_log_message(_("Info: this frame has an ICC profile but the reference frame does not. Profile will be preserved...\n"));
+						icc_msg_given = TRUE;
+					}
+				}
 				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
 				retval = savefits(dest, destfit);
 				break;
@@ -523,6 +569,9 @@ static gpointer export_sequence(gpointer ptr) {
 				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);
 				break;
 			case EXPORT_AVI:
+				if (ref_icc) {
+					siril_colorspace_transform(destfit, srgb_trc());
+				}
 				data = fits_to_uint8(destfit);
 				retval = avi_file_write_frame(0, data);
 				break;
@@ -531,6 +580,9 @@ static gpointer export_sequence(gpointer ptr) {
 			case EXPORT_MP4_H265:
 			case EXPORT_WEBM_VP9:
 				// an equivalent to fits_to_uint8 is called in there (fill_rgb_image)...
+				if (ref_icc) {
+					siril_colorspace_transform(destfit, srgb_trc());
+				}
 				retval = mp4_add_frame(mp4_file, destfit);
 				break;
 #endif
@@ -547,6 +599,8 @@ static gpointer export_sequence(gpointer ptr) {
 	}
 
 free_and_reset_progress_bar:
+	cmsCloseProfile(ref_icc);
+	ref_icc = NULL;
 	if (destfit && !have_seqwriter)
 		clearfits(destfit);
 	if (args->normalize) {
@@ -646,7 +700,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 			return;
 	}
 
-	struct exportseq_args *args = malloc(sizeof(struct exportseq_args));
+	struct exportseq_args *args = calloc(1, sizeof(struct exportseq_args));
 	args->seq = &com.seq;
 	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
 	args->basename = g_str_to_ascii(bname, NULL);
@@ -700,7 +754,10 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(export_sequence, args);
+	if (!start_in_new_thread(export_sequence, args)) {
+		g_free(args->basename);
+		free(args);
+	}
 }
 
 void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
@@ -735,7 +792,7 @@ void on_entryExportSeq_changed(GtkEditable *editable, gpointer user_data){
 	gchar *name = (gchar *)gtk_entry_get_text(GTK_ENTRY(editable));
 	if (*name != 0) {
 		if (check_if_seq_exist(name, !g_str_has_suffix(name, ".ser"))) {
-			set_icon_entry(GTK_ENTRY(editable), "gtk-dialog-warning");
+			set_icon_entry(GTK_ENTRY(editable), "dialog-warning");
 		} else {
 			set_icon_entry(GTK_ENTRY(editable), NULL);
 		}

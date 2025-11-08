@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,8 +21,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
-#include "core/command.h" // for process_clear()
-#include "core/OS_utils.h"
 #include "core/pipe.h"
 #include "gui/progress_and_log.h"
 
@@ -78,6 +76,19 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 	return msg;
 }
 
+// Use these functions for literal color messages, i.e. from external sources
+// like python. In this case we do not want the message to be interpreted as a
+// printf-style format string!
+char* siril_log_literal_color_message(const char* message, const char* color) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_color_message("%s", color, message);
+}
+
+char* siril_log_literal_message(const char* message) {
+    // Use the existing function but with %s format to treat message as literal
+    return siril_log_message("%s", message);
+}
+
 const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 	static char str[32];
 	double start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
@@ -98,9 +109,13 @@ const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
 			sprintf(str, _("%d min %02d s"), min, sec);
 		} else if (diff < 1.0) {
 			double ms = diff * 1.0E3;
-			sprintf(str, _("%.2lf ms"), ms);
+			char ms_str[32];
+			g_snprintf(ms_str, sizeof(ms_str), "%.2lf", ms);
+			sprintf(str, _("%s ms"), ms_str);
 		} else {
-			sprintf(str, _("%.2lf s"), diff);
+			char diff_str[32];
+			g_snprintf(diff_str, sizeof(diff_str), "%.2lf", diff);
+			sprintf(str, _("%s s"), diff_str);
 		}
 	}
 	return str;

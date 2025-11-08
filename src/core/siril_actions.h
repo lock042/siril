@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,7 +38,6 @@ void quit_action_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 void about_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void preferences_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) ;
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -141,6 +140,7 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
+gboolean chain_channels_idle_callback(gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

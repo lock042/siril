@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,9 +29,7 @@
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 
@@ -40,7 +38,7 @@
 #define STR_INDIR(x) #x
 #define STR(x) STR_INDIR(x)
 #define GLIB_CONFIG_FILE "config." STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) ".ini"
-static char *configfiles[] = { GLIB_CONFIG_FILE, "config.ini" };
+static char *configfiles[] = { GLIB_CONFIG_FILE, "config.1.3.ini", "config.ini" };
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	GError *error = NULL;
@@ -219,11 +217,10 @@ int checkinitfile() {
 			/* neither files found, create the directory and load defaults */
 			initialize_default_settings();
 
-			if (g_mkdir_with_parents(pathname, 0755) == 0) {
+			if (siril_mkdir_with_parents(pathname, 0755) == 0) {
 				g_fprintf(stdout, "Created config dir %s\n", pathname);
 				com.initfile = config_file;
 			} else {
-				siril_log_message(_("Failed to create config dir %s\n"), pathname);
 				g_free(config_file);
 				config_file = NULL;
 				//config_dir_failed = TRUE;

@@ -15,10 +15,10 @@
 #include "WeightMap.hpp"
 #include "Utils.hpp"
 #include "DftPatch.hpp"
-extern "C" {
+
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
-}
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -201,6 +201,8 @@ void ModifyPatch(const Image &patch, const Image &k, DftPatch *modified,
                  float *average = nullptr) {
   // compute the total weight of the mask
   float weight = accumulate(k.begin(), k.end(), 0.f);
+  if (!weight)
+    return;
 
   for (int chan = 0; chan < patch.channels(); ++chan) {
     float avg = 0.f;

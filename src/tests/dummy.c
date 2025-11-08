@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit;	// currently loaded image
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {
@@ -93,7 +93,7 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_DiskSpace\n");
 }
 
-void set_GUI_CWD() {
+void gui_function(set_GUI_CWD, NULL) {
         fprintf(stderr, "ERROR: calling undefined function set_GUI_CWD\n");
 }
 

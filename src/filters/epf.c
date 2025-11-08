@@ -22,13 +22,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "gui/utils.h"
 #include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "core/arithm.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 #include "gui/callbacks.h"
+#include "gui/siril_preview.h"
 
 #include "filters/epf.h"
 
@@ -46,7 +46,16 @@ gpointer epfhandler (gpointer args) {
 	int retval = edge_preserving_filter(p);
 	unlock_roi_mutex();
 	if (!com.script)
-		siril_add_idle(end_epf, NULL);
+		execute_idle_and_wait_for_it(end_epf, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
+gpointer epf_filter (gpointer args) {
+	struct epfargs *p = (struct epfargs*) args;
+	set_cursor_waiting(TRUE);
+	int retval = edge_preserving_filter(p);
+	if (!com.script)
+		execute_idle_and_wait_for_it(end_epf, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -191,17 +200,16 @@ int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
+	if (fit == gfit && args->applying && !com.script) {
+		populate_roi();
+		copy_gfit_to_backup();
+	}
+
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
-	char log[90];
-	if (filter_type == EP_BILATERAL) {
-		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
-	} else {
-		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
-	}
-	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	if (args->guide_needs_freeing)
 		free(args->guidefit);
 	free(args);

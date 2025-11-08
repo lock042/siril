@@ -1,5 +1,188 @@
-siril 1.4.0
-xx/xx/xx
+siril 1.4.0-RC1
+11/08/25
+
+**Fixes:**
+* Fixed wrong interpretation of bayer pattern after a background extraction on CFA images (#1799)
+* Fixed unnecessary range clipping/scaling prior to RGB channel extraction (#1797)
+* Fixed issue with sequence filename construction if com.pref.ext didn't match the seq (#1796)
+* Fixed issue where curves tool preview could fail to disapply (#1801)
+* Fixed global registration failed to add reference image to the aligned sequence (#1798)
+* Fixed PLTSOLVD keyword that was not correctly propagated (#1807)
+* Fixed crash in seqstarnet (#1814)
+* Fixed seqpsf bug preventing astrometric registration in some circumstances (#1815)
+* Fixed writing RA/DEC to star lists from a single findstar command (#1794)
+* Fixed issue with RGB composition not always applying registration (!948)
+* Fixed processing thread / child process accounting in the "Stop" dialog (#1705)
+* Fixed crash in clearstar command wiht Dynamic PSF window open when called from python (#1821)
+* Fixed drizzle registration when compression is on (#1800)
+* Fixed computing storage space after seqpplyreg to better account for max framing (#1802, #1843)
+* Fixed OIII extraction by changing the normalisation strategy between B and G pixels (#1805)
+* Fixed XTrans sensors debayer after changes introduced in beta4 by !903 (#1826)
+* Fixed some issues with rescale and rgbblend clipping protection in asinh stretch (!950)
+* Fixed some static analysis errors (!950)
+* Fixed min/max stacking for (0,0) pixel (#1810)
+* Fixed crash when using noise weights in stacking if overlap normalization was selected (#1816)
+* Fixed using reference image position and updating WCS in Export Sequence (#1824)
+* Fixed issue with deconvolution using RGB PSFs (#1829)
+* Fixed issue where sirilpy.SirilInterface.confirm_messsagebox() could hang Siril (#1832)
+* Fixed issue with create_new_seq() where the seqname contained . (#1841)
+* Fixed issue where the locale fix previously added to sirilpy would fail if no English locale was available (siril-scripts:#67)
+* Fixed incorrect variable substitution regex handling in Pixelmath
+* Removed use of deprecated python method locale.getdefaultlocale() which will be removed in 3.15
+
+**Improvements**
+* Support arbitrary script categories in the GtkTreeView in script preferences
+* Make ONNXHelper slightly more robust (!940)
+* Enabled compiler optimizations by inlining many common data conversion functions (!942)
+* Use descreening instead of subtraction to generate starnet starmask, for better integration with recomposition tool (!941)
+* Added prefix arg to SirilInterface.set_seq_frame_pixeldata() to make it easier to create new sequences
+* SirilInterface.get_siril_selection() now works if an image or sequence is loaded, not only an image
+* Starlink pre- and post-autostretch is unlinked for better star removal from images with very uneven channels (!952)
+* Stacking with rejection: make sure pixels with non-null values but 0 weight are now discarded at rejection step (!953)
+* Add SirilInterface.save_image_to_file() method to save from python to FITS files without needing astropy (!955)
+
+siril 1.4.0-beta4
+09/28/25
+
+**Fixes:**
+* Fixed incomplete implementation of shared memory bugfix from beta3 (#1719)
+* Fixed type hinting in get_seq_frame_header to work with python 3.11 and earlier (scripts #13)
+* Fixed a deadlock in the `reloadscripts` command
+* Fixed crash with openCV >= 4.12 (#1722, #1723)
+* Fixed issue where cold and hot pixels estimation were neve updated (#1724)
+* Fixed issue with the way python retrieves the current filename (this could omit the extension in some situations)
+* Fixed problems extracting metadata from FITSEQ sequences (#1718, #1720, !915)
+* Fixed an issue where an incorrect colourspace transform could be applied when saving a32-bit TIFF (#1730)
+* Fixed handling of automatic scripts git repository update flag
+* Fixed crash in commands seqpsf and seqtilt when executed from the command line (#1736)
+* Fixed crash/memory allocation for stack min or max with 16b images (#1746)
+* Fixed magnitude calculation in Dynamic PSF, this affects mostly faint stars for images in 32b (#1739)
+* Fixed wrong cache file name (parent directory twice in the returned path) resulting in impossibility to cache files (#1734)
+* Fixed handling bayer/Xtrans patterns in more robust way accross the codebase (!903)
+* Fixed astrometric alignment for mosaics with some slight skew in the solution (#1747)
+* Fixed issues identified by static analysis (!926)
+* Fixed issue with findstar command when running from a python script (#1782)
+* Fixed issue with auto-applying ICC profiles in stretch tools if nothing is done (reverts correctly) (#1768)
+* Fixed issue in SPCC where it would complain about missing OSC BB filter when in NB mode
+* Fixed drizzle calculations by exporting weight files during registration and using them for stacking (!882)
+* Fixed a crash in the seqcosme command
+* Fixed an issue where sequences would not load correctly if the file extensions did not match the preferred FITS extension (#1793)
+
+**Improvements:**
+* Compiled .pyc scripts are now only shown in the scripts menu if their magic number matches the available interpreter
+* Centre the background extraction grid vertically instead of starting at the image edge and having a gap (#1741)
+* Right-click scripts directly from the script menu to open them in the editor
+* Optimize image preview, allow colour previews and improve preview stretching to use autostretch, add new large preview size at 512px
+* Added SirilInterface.get_image_from_file() method
+* Added new sirilpy methods for getting and setting GUI properties (sliders, STF, pan offsets, zoomlevel)
+* Improved sirilpy get_seq_frame() and get_image_from_file() so they now populate FFit.header and .icc_profile
+* Added Search box in the Script treeview
+* Made reading astrometric solution more robust to CDELT/PC matrices not following the expected formalism (#1770)
+* Added SirilInterface.analyse_image_from_file(), .undo(), .redo() and .clear_undo_history()
+* Approved use of PyQt6 for creating python script GUIs (now confident it is problem free on all target OSes)
+* Added some plate solution-related keywords to FKeywords sirilpy class. (#1779)
+* Replaced the confusing clip/rescale popup with a heuristic that generally does the right thing. (!931)
+* Moved the "Get Scripts" menu entry to the Scripts menu, where it logically belongs. (!865)
+
+siril 1.4.0-beta3
+07/11/25
+
+**Fixes:**
+* Fixed crash when opening 8-bit XISF file (#1638)
+* Fixed `match stars in selection` option for global registration (#1644)
+* Fixed an issue where image processing dialogs could fail to unblock python scripts when closed.
+* Fixed an issue where the python pix2radec and radec2pix commands failed with coords outside the image (!887)
+* Fixed an issue that meant the pyscript command was not waiting for the python interpreter to exit (#1660)
+* Fixed an issue with some commands e.g. denoise that meant they would always indicate failure in a script (#1661)
+* Fixed Crash in pixelmath command with 16-bit images (#1672)
+* Fixed incorrect handling of sirilpy.connection.SirilInterface.log() strings (#1662)
+* Fixed incorrect channel handling in get_selection_stats() when no shape is provided (#1673)
+* FIxed incorrect thread handling after spawning a python script (thread pointer not set to NULL) (#1654)
+* Fixed idle handling to eliminate a hang where a thread was stuck waiting for itself to exit  during stacking (#1665)
+* Fixed potential thread safety issues setting environment variables
+* Fixed issues with updating the script repository - no longer cloned with depth=1
+* Fixed handling of star cluster names containing * characters
+* Fixed an issue with git repositories where they could be unable to update after changes to the remote (!900)
+* Fixed an inconsistency between GList / GSList that caused crashes relating to the scripts menu for some users (!899)
+* Fixed an issue with linear ICC profile generation where colorants were not correctly adapted to D50 (#1683)
+* Fixed computing output required space for Apply Registration (through GUI) if some images were not selected (#1690)
+* Fixed incorrect SPCC filter plots in "Plot All" in narrowband mode (#1691)
+* Fixed an issue where starnet was not updating a data structure that sirilpy get_image_fits_header() relied on
+* Fixed an issue where shared memory was not being released correctly after use until a python script exited (#1700)
+* Updated flatpak dependencies to fix build issues with recent toolchain (#1709)
+* Fixed an issue where removing overlay polygons did not immediately update the overlay
+* Fixed an issue where drawing a freehand polygon left the mouse in an unusable state
+
+**Improvements**
+* Removed legacy GraXpert interface to be replaced by the new GraXpert-AI.py script (#1620, #1611, #1573)
+* Allow saving plots to files using sirilpy.connection.SirilInterface.xy_plot() (#1670)
+* Filechoosers in the calibration tab and calibration preferences remember the last directory (#1664)
+* Updated overlay_add_polygon() to use shared memory, to handle polygons with large numbers of sides
+* Improved compatibility of sirilpy.tkfilebrowser with tkinter.filedialog (allows replacing the awful Linux tk filedialog)
+* Improved the GPU module helper methods in sirilpy
+* Fixed a crash with RGB compositing (#1562)
+* Improved behaviour of histogram stretch after autostretch if the image ICC profile differs from the display profile.
+* Changed the default GHT colour mode from human weighed luminance to independent (!899)
+* Added / improved GPU helper modules to assist with installation and testing of key GPU-related modules. (!895)
+* Allow "Crop Sequence" with the internal sequence used in RGB composition, to aid with LRGB workflows. (!902)
+* Add python method to draw Polygons in the Siril overlay.
+* Uses the double click to open script in the editor.
+* Make SIP and WCS as protected keywords (#1696)
+* Added -followstar to the seqpsf command: previously this could only be set from the GUI. (!905)
+* Added ability to open previous revisions of scripts in the repository (!911)
+
+siril 1.4.0-beta2
+05/21/25
+
+**Fixes:**
+* Fixed option -weight= for stack command and add filtering criteria in HISTORY key of stacked image (#1545)
+* Fixed crash and slowness when refreshing the scripts list (#1548, #1574)
+* Python scripts are now sorted alphabetically (#1559)
+* Fixed crash in Noise Reduction with Independent Channels option selected (#1567)
+* Fixed UI hang when manually refreshing scripts or SPCC (#1566)
+* Fixed incorrect behaviour when using set_image_pixeldata to chage the number of channels (#1570)
+* Fixed incorrect siril command return values (#1569)
+* Fixed crash in astrometric registration when the reference image could not be platesolved (#1557)
+* Fixed preventing max framing export in seqapplyreg with FITSEQ or SER (#1561)
+* Fixed obscode that was not exported in the AAVSO csv (#1577)
+* Removed graxpert_deconv from the command line (#1575)
+* Fixed SPCC failing to open files on Windows when the filepath contains non-ASCII characters (e.g., accented characters) (#1584)
+* Fixed parameter parsing in PixelMath (#1594)
+* Fixed bad font kerning on macOS (#1508)
+* Fixed crash on Windows language change (#1560)
+* Fixed incorrect option handling in denoise (#1599)
+* Fixed poor star detection when input sequence was in 16b and preferences set in 32b (#1614)
+* Fixed incorrect image size with latest cameras added to LibRaw, Siril now uses 202502 snapshot (#1565)
+* Fixed metadata filling problem in PixelMath using $T (#1605)
+* Fixed crash in Image Plate Solver (#1609)
+* Fixed python API SirilInterface::set_seq_frame_incl (#1617)
+* Fixed FWHM units when printing alignement results (#1616)
+* Fixed incorrect behaviour when opening the git repositories if a git lock file was in place
+* Fixed failure in stacking if both feathering and image filtering were selected (#1629)
+
+**Improvements:**
+* Scripts can be opened in the editor directly from the Script Preferences treeview (#1556, !860)
+* Added a fork of tkfilebrowser to support improved script UI file selection on Linux (!864)
+* Implemented a better linear regression algorithm for SPCC (!853)
+* Python scripts are now sorted alphabetically (#1559)
+* Made crop and ROI selection CFA-aware (#1579)
+* Added an optional rate limit for smooth scroll zoom speed (#1576)
+* Added SirilInterface.create_new_seq() and SirilInterface.is_cli() in sirilpy (!867)
+* GraXpert "Use GPU" now defaults to False but is persistent (saved in config)
+* Added utility.ONNXHelper class in python module to make it easier to ensure the correct onnxruntime module is installed. (!874)
+* Added ability to calibrate images for debayering only, without Dark, Flat, or Bias files (#1619)
+* Simplified the scripts and SPCC repository checking and made it more robust and thread-safe (!872)
+* Improved visibility of whether the autostretch preview is linked or unlinked (!878)
+* Changed the default GHT and asinh settings to update faster.
+* Added returning a dict from SirilInterface.get_image_fits_header() and SirilInterface.get_seq_frame_header in sirilpy (!877)
+* Improved Quit behaviour if there are unsaved script changes.
+* Improved feedback when the python context manager image_lock() reports an error.
+* Improved method of calling scripts from the editor to eliminate a script length restriction.
+* Added a GraXpert python script to replace the legacy C GraXpert interface (siril-scripts:!42)
+* Deprecated the legacy C interface which proved unreliable (#1620, #1611, #1573)
+
+siril 1.4.0-beta1
+04/26/25
 
 **New features:**
 * Added support for unknown keywords with path parsing (#1333)
@@ -18,6 +201,7 @@ xx/xx/xx
 * Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
 * Added image undistortion using WCS SIP data during registration (#1154::8,!643 and #1285)
 * Refactored wcs usage, by removing redundant info stored in the fit structure (!591 and #1154::1)
+* Added support for offline Gaia catalogue extracts with HEALpixel-based indexing (!795, !797)
 * Added master distortion files (!686)
 * Added ssl certificates in the appimage (#1259)
 * Added dark scaling to match exposure time (#1269)
@@ -42,6 +226,10 @@ xx/xx/xx
 * Added Curves Transformation tool (!677)
 * Read and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Added a new cosmetic filter to remove purple fringing on bright stars (!726)
+* Added blending masks and normalization on overlaps for rejection stacking, to stitch mosaics (!764)
+* Added python scripting (!765)
+* Added local annotations catalogues for IAU constellations lines and names (!800)
+* Added a popup menu for the "annotation" button, displaying the list of catalogs (!804)
 
 **Improvements:**
 * Allowed object search with their common name, from the annotations catalogues (!381)
@@ -60,6 +248,12 @@ xx/xx/xx
 * Refactored registration processes and GUI (#1285)
 * Improved use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Refactored networking code, add offline mode and add Gaia archive status indication (!687)
+* Improved the usability of merging CFA sequences (!759)
+* Allowed the token $T to be used in PixelMath (!768)
+* Make PixelMath follows bit depth preferences (#1100)
+* Allow background removal from CFA images / sequences, for better integration into drizzle workflow (!777)
+* Added an option to save the stack result in 32b irrespective of the Preferences (#1165)
+* Ported JSON parsing and generation code to use yyjson instead of glib-json for a 10x speedup (!796)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
@@ -84,6 +278,15 @@ xx/xx/xx
 * Checked for and resolve pixel values outside [0 1] before certain operations (!697)
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
+* Fixed local astrometry.net solver non-functional on flatpak (#1392)
+* Fixed crash in 2-pass registration when sequence had less than 5 images (#1473)
+* Prevented crash when using the sequence browser during an AVI sequence operation (#143)
+* Prevented crash when opening a HEIF image with a jpeg extension (#1478)
+* Fixed crash at startup on macOS when no ~/Pictures folder is found (#1486)
+* Fixed loss of metadata when Siril uses preview (#1491)
+* Fixed handling NaNs in float statistics (#1487)
+* Fixed h264 and h265 export (!828)
+* Fixed memory error when created new FITS image (#1524)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
@@ -95,14 +298,25 @@ xx/xx/xx
 * Merge star list files on sequence merge (#942)
 * Fix crash in catsearch when object is unknown (#1383)
 * Merge star list files on sequence merge (#942)
+* Removed Windows cross-build CI and improved performance of native CI (!767)
+* Move executables from 'Contents/Resources/bin' to 'Contents/MacOS' (!812)
+
+siril 1.2.6
+01/22/25
+* Fixed sign error in messier catalog (#1453)
+* Fixed Save As feature (#1452)
+* Fixed handling widechar with an updated version of cfitsio (#1456)
+* Changed configuration directory on macOS to org.siril.Siril (!798)
 
 siril 1.2.5
-xx/xx/xx
+11/22/24
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
-* Fixed free space disk computation on macOS, probably for good (#1368 and #1375)
+* Fixed free space disk computation on macOS, probably for good (#1368 and #1375 and #1422)
 * Fixed crash if the CWD changes after a first successfull Automated light Curve process (#1378 !746)
 * Fixed bug in TIFF files that have TIFFTAG_MINSAMPLEVALUE and TIFFTAG_MAXSAMPLEVALUE set to 0 by removing these tags (#1381)
 * Added HISTORY after seqcrop and GUI crop (#1142)
+* Better handling of Siril opening when double-clicking on an image, under macOS (#1308, #1428 and #1140)
+* Fixed potential crash in synthstar (issue reported via facebook)
 
 siril 1.2.4
 09/11/24

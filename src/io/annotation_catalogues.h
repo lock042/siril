@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -46,6 +46,8 @@ gchar *get_catalogue_object_code_pretty(CatalogObjects *object);
 siril_cat_index get_catalogue_object_cat(const CatalogObjects *object);
 gdouble get_catalogue_object_x(const CatalogObjects *object);
 gdouble get_catalogue_object_y(const CatalogObjects *object);
+gdouble get_catalogue_object_x1(const CatalogObjects *object);
+gdouble get_catalogue_object_y1(const CatalogObjects *object);
 gdouble get_catalogue_object_radius(const CatalogObjects *object);
 
 void refresh_found_objects();

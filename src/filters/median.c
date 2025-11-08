@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -82,7 +82,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
+	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
 
 	args->previewing = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
 
@@ -111,11 +111,12 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			break;
 	}
 
-	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : &gfit;
+	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : gfit;
 	args->amount = amount;
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
-	start_in_new_thread(median_filter, args);
+	if (!start_in_new_thread(median_filter, args))
+		free(args);
 
 }
 
@@ -265,9 +266,9 @@ static gboolean end_median_filter(gpointer p) {
 		populate_roi();
 	}
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -796,7 +797,7 @@ gpointer median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
 	if (!com.script && !args->previewing)
-		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
+		undo_save_state(gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
 	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
@@ -804,7 +805,7 @@ gpointer median_filter(gpointer p) {
 	if (args->fit->type == DATA_FLOAT)
 		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	if (com.script && (args->fit == &gfit))
+	if (args->fit == gfit)
 		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }

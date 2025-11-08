@@ -56,7 +56,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="extract_wavelet_layers_dialog.ui">gui/uifiles/extract_wavelet_layers_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="file_information_dialog.ui">gui/uifiles/file_information_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="filefilters.ui">gui/uifiles/filefilters.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="graxpert.ui">gui/uifiles/graxpert.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="histogram_dialog.ui">gui/uifiles/histogram_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="keywords_dialog.ui">gui/uifiles/keywords_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="icc_dialog.ui">gui/uifiles/icc_dialog.ui</file>
@@ -67,6 +66,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui/uifiles/merge_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui/uifiles/mouse_actions.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="pixelmath.ui">gui/uifiles/pixelmath.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="python_scratchpad.ui">gui/uifiles/python_scratchpad.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui/uifiles/resample_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rgradient_dialog.ui">gui/uifiles/rgradient_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rotation_dialog.ui">gui/uifiles/rotation_dialog.ui</file>
@@ -74,7 +74,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="satu_dialog.ui">gui/uifiles/satu_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="savepopup.ui">gui/uifiles/savepopup.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="SCNR_dialog.ui">gui/uifiles/SCNR_dialog.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="script_contents_dialog.ui">gui/uifiles/script_contents_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="seqlist_dialog.ui">gui/uifiles/seqlist_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui/uifiles/settings_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui/uifiles/siril.ui</file>
@@ -92,6 +91,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/b.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/chain.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/chain-linked.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/check_menu.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/CIE1931.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/cm.svg</file>

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 /* useful if no libcurl */
 #include <stdlib.h>
 
-#include <json-glib/json-glib.h>
+#include "yyjson.h"
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -34,15 +34,9 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "algos/PSF.h"
-#include "algos/search_objects.h"
-#include "algos/siril_wcs.h"
-#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
-#include "algos/comparison_stars.h"
 #include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "registration/matching/misc.h"
 
 // These statics define the formatting for some fields used when writing catalog names
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
@@ -258,7 +252,7 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			fmtstr = g_strdup_printf("&-ra=%s&-dec=%s&-rd=%s", rafmt, decfmt, radiusfmt);
 			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, 2. * siril_cat->radius / 60.); // request uses diameter not radius (despite what's written in the doc)
 			g_free(fmtstr);
-			g_string_append_printf(url,"&-loc=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
+			g_string_append_printf(url,"&-observer=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
 			return g_string_free(url, FALSE);
 		default:
 			break;
@@ -285,9 +279,7 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	// we fill a siril_catalogue struct to use the generic catalogue writer
 	// may be a bit slower than direct write to the output_stream but will ease maintenance
 	// anyway, those catalogs are usually small so little impact on performance is to be expected
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_IMCCE;
-	siril_cat->columns = siril_catalog_columns(CAT_IMCCE);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_IMCCE);
 	gchar **token = g_strsplit(buffer, "\n", -1);
 	int nb_lines = g_strv_length(token);
 	int nstars = nb_lines - 3;
@@ -348,96 +340,84 @@ static gboolean parse_IMCCE_buffer(gchar *buffer, GOutputStream *output_stream) 
 	return ret;
 }
 
-// AAVSO chart - json input read with json-glib parsed to csv
 static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_stream) {
-	GError *error = NULL;
-	JsonParser *parser = json_parser_new();
-	if (!json_parser_load_from_data(parser, buffer, -1, &error)) {
-		siril_log_color_message(_("Could not parse AAVSO chart buffer: %s\n"), "red", error->message);
-		g_clear_object(&parser);
-		g_clear_error(&error);
+	// Parse JSON data
+	yyjson_read_err err = { 0 };
+	yyjson_doc *doc = yyjson_read(buffer, strlen(buffer), YYJSON_READ_NOFLAG);
+	if (!doc) {
+		siril_log_color_message(_("Could not parse AAVSO chart buffer: %s\n"), "red", err.msg);
 		return FALSE;
 	}
+
 	// we fill a siril_catalogue struct to use the generic catalogue writer
 	// may be a bit slower than direct write to the output_stream but will ease maintenance
 	// anyway, those catalogs are usually small so little impact on performance is to be expected
-	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_AAVSO_CHART;
-	siril_cat->columns = siril_catalog_columns(CAT_AAVSO_CHART);
+	siril_catalogue *siril_cat = siril_catalog_new(CAT_AAVSO_CHART);
 
-	// parsing the AAVSO chart id in the comments section
-	JsonReader *reader = json_reader_new(json_parser_get_root(parser));
-	json_reader_read_member(reader, "chartid");
-	const gchar *id = json_reader_get_string_value(reader);
-	json_reader_end_member(reader);
+	// Get root object and parse chart ID
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *chartid = yyjson_obj_get(root, "chartid");
+	const char *id = yyjson_get_str(chartid);
 	siril_cat->header = g_strdup_printf("#ChartID:%s", id);
 
-	json_reader_read_member(reader, "photometry");
-	int nstars = json_reader_count_elements(reader);
+	// Get photometry array
+	yyjson_val *photometry = yyjson_obj_get(root, "photometry");
+	size_t nstars = yyjson_arr_size(photometry);
 	int n = 0;
 	cat_item *cat_items = NULL;
-	for (int i = 0; i < nstars; i++) {
-		if (i == 0) {
-			cat_items = calloc(nstars, sizeof(cat_item));
-		}
-		json_reader_read_element(reader, i);
-		const gchar *name = NULL;
+	if (nstars > 0) {
+		cat_items = calloc(nstars, sizeof(cat_item));
+	}
+
+	// Iterate through stars
+	yyjson_val *star;
+	size_t idx, max;
+	yyjson_arr_foreach(photometry, idx, max, star) {
+		const char *name = NULL;
 		double ra = NAN, dec = NAN;
 		double mag = 0., e_mag = 0., bmag = 0., e_bmag = 0.;
-		gchar **members = json_reader_list_members(reader);
-		int nbmembers = g_strv_length(members);
-		for (int m = 0; m < nbmembers; m++) {
-			if (!g_strcmp0(members[m], "auid")) { // auid
-				json_reader_read_member(reader, "auid");
-				name = json_reader_get_string_value(reader);
-				siril_debug_print("%2d: %s\n", i + 1, name);
-				json_reader_end_member(reader);
-			} else if (!g_strcmp0(members[m], "ra")) { //ra
-				json_reader_read_member(reader, "ra");
-				const gchar *rastr = json_reader_get_string_value(reader);
-				ra = parse_hms(rastr);	// in hours
-				json_reader_end_member(reader);
-			} else if (!g_strcmp0(members[m], "dec")) { //dec
-				json_reader_read_member(reader, "dec");
-				const gchar *decstr = json_reader_get_string_value(reader);
-				dec = parse_dms(decstr);
-				json_reader_end_member(reader);
-			} else if (!g_strcmp0(members[m], "bands")) { //bands
-				// reading the data or V and B bands, bands being an array
-				json_reader_read_member(reader, "bands");
-				int nbands = json_reader_count_elements(reader);
-				const gchar *band = NULL;
-				for (int j = 0; j < nbands; j++) {
-					json_reader_read_element(reader, j);
-					json_reader_read_member(reader, "band");
-					band = json_reader_get_string_value(reader);
-					json_reader_end_member(reader);
-					if (band && !strcmp(band, "V")) {
-						json_reader_read_member(reader, "mag");
-						mag = json_reader_get_double_value(reader);
-						json_reader_end_member(reader);
-						json_reader_read_member(reader, "error");
-						JsonNode *errnode = json_reader_get_value(reader);
-						if (!json_node_is_null(errnode)) {
-							e_mag = json_reader_get_double_value(reader);
-						}
-						json_reader_end_member(reader);
-					} else if (band && !strcmp(band, "B")) {
-						json_reader_read_member(reader, "mag");
-						bmag = json_reader_get_double_value(reader);
-						json_reader_end_member(reader);
-						json_reader_read_member(reader, "error");
-						JsonNode *errnode = json_reader_get_value(reader);
-						if (!json_node_is_null(errnode)) {
-							e_bmag = json_reader_get_double_value(reader);
-						}
-						json_reader_end_member(reader);
+
+		// Get basic star information
+		yyjson_val *auid = yyjson_obj_get(star, "auid");
+		if (auid) name = yyjson_get_str(auid);
+		yyjson_val *ra_val = yyjson_obj_get(star, "ra");
+		if (ra_val) ra = parse_hms(yyjson_get_str(ra_val));  // in hours
+		yyjson_val *dec_val = yyjson_obj_get(star, "dec");
+		if (dec_val) dec = parse_dms(yyjson_get_str(dec_val));
+
+		// Process bands array
+		yyjson_val *bands = yyjson_obj_get(star, "bands");
+		if (bands) {
+			yyjson_val *band_obj;
+			size_t bidx, bmax;  // Separate iteration variables for bands
+			yyjson_arr_foreach(bands, bidx, bmax, band_obj) {
+				yyjson_val *band_val = yyjson_obj_get(band_obj, "band");
+				const char *band = yyjson_get_str(band_val);
+
+				if (band && !strcmp(band, "V")) {
+					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
+					if (mag_val) {
+						mag = (double) yyjson_get_num(mag_val);
 					}
-					json_reader_end_element(reader);
+					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
+					if (err_val && !yyjson_is_null(err_val)) {
+						e_mag = (double) yyjson_get_num(err_val);
+					}
 				}
-				json_reader_end_member(reader);
+				else if (band && !strcmp(band, "B")) {
+					yyjson_val *mag_val = yyjson_obj_get(band_obj, "mag");
+					if (mag_val) {
+						bmag = (double) yyjson_get_num(mag_val);
+					}
+					yyjson_val *err_val = yyjson_obj_get(band_obj, "error");
+					if (err_val && !yyjson_is_null(err_val)) {
+						e_bmag = (double) yyjson_get_num(err_val);
+					}
+				}
 			}
 		}
+
+		// Add star to catalog if we have valid coordinates
 		if (!isnan(ra) && !isnan(dec)) {
 			cat_items[n].ra = ra;
 			cat_items[n].dec = dec;
@@ -448,11 +428,12 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 			cat_items[n].name = g_strdup(name);
 			n++;
 		}
-		g_strfreev(members);
-		json_reader_end_element(reader);
 	}
-	g_object_unref(reader);
-	g_object_unref(parser);
+
+	// Free JSON document
+	yyjson_doc_free(doc);
+
+	// Resize array if needed
 	if (nstars && n < nstars) {
 		if (!n) {
 			free(cat_items);
@@ -467,6 +448,8 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 			cat_items = new_array;
 		}
 	}
+
+	// Set catalog items and write
 	siril_cat->cat_items = cat_items;
 	siril_cat->nbitems = n;
 	gboolean ret = siril_catalog_write_to_output_stream(siril_cat, output_stream);
@@ -541,8 +524,7 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
 	gchar *filepath = g_build_filename(root, filename, NULL);
 
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir_with_parents(root, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+		if (siril_mkdir_with_parents(root, 0755) < 0) {
 			g_free(filepath);
 			g_free(root);
 			return NULL; // we won't be able to write to the file
@@ -583,6 +565,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE, catalog_is_in_cache = FALSE;
+	int fetch_url_error = 0;
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
@@ -614,11 +597,10 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+	siril_debug_print("URL: %s\n", url);
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	int fetch_url_error;
 	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
-	g_free(url);
 
 	/* save (and parse if required)*/
 	if (buffer && !error) {
@@ -651,9 +633,21 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		remove_file = TRUE;
 		goto download_error;
 	}
+
+	g_free(url);
 	return filepath;
 
 download_error:
+	if (fetch_url_error) {
+		siril_log_color_message(_("Error: unable to retrieve the remote catalogue from the server at %s. "
+			"This is not a Siril bug. It means the catalogue server is unavailable. This is usually a "
+			"short-lived problem however this server is not affiliated with Siril and the Siril team do "
+			"not control it. We highly recommend using a local server such as the optimized Siril extract "
+			"from Gaia DR3, installable using the Catalog_Installer.py script. This is faster and does not "
+			"rely on third party servers.\n"), "red", url);
+	}
+	g_free(url);
+
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
@@ -916,7 +910,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		// Set the data structure and format. Siril will always consume the data as FITS,
 		// as we already use libcfitsio and it's easier than adding support for VOTables
-		g_string_append(datalink_url, "&DATA_STRUCTURE=COMBINED&FORMAT=FITS");
+		g_string_append(datalink_url, "&DATA_STRUCTURE=RAW&FORMAT=FITS");
 
 		// Append the source IDs (using the job number)
 		g_string_append(datalink_url, "&ID=job:");

@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
-#include "gui/image_interactions.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 
@@ -229,7 +228,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
-	args->im.fit = &gfit;
+	args->im.fit = gfit;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;
 		args->im.index_in_seq = com.seq.current;
@@ -240,10 +239,16 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->layer = select_vport(gui.cvport);
 	args->max_stars_fitted = 0;
 	args->starfile = NULL;
+	args->save_eqcoords = TRUE;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		args->selection = com.selection;
+	}
 
-	start_in_new_thread(findstar_worker, args);
+	if (!start_in_new_thread(findstar_worker, args)) {
+		free(args);
+	}
 }
 
 /* Function to add star one by one, from the selection rectangle, the
@@ -267,8 +272,8 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, TRUE, profile, NULL);
-	if (!result)
+	psf_star *result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
+	if (!result) // we don't check for errors as we assume the user has selected a star
 		return NULL;
 	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer
 	/* We do not check if it's matching with the "reject_star()" criteria.
@@ -346,8 +351,8 @@ int remove_star(int index) {
 gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
-	refresh_star_list();
 	set_cursor_waiting(FALSE);
+	g_free(args->starfile);
 	free(args);
 	return FALSE;
 }

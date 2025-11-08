@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/command.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/PSF.h"
@@ -247,7 +246,7 @@ static int tilt_finalize_hook(struct generic_seq_args *args) {
 	float ref = (t_args->m1 + t_args->m2 + t_args->m3 + t_args->m4) / 4.f;
 
 	if (t_args->draw_polygon) {
-		draw_polygon((float) gfit.rx, (float) gfit.ry, t_args->m1, t_args->m2, t_args->m3, t_args->m4, t_args->mr1);
+		draw_polygon((float) gfit->rx, (float) gfit->ry, t_args->m1, t_args->m2, t_args->m3, t_args->m4, t_args->mr1);
 	}
 
 	siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
@@ -283,7 +282,10 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 
 	tilt_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(tilt_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }
 
 
@@ -304,7 +306,7 @@ static char *edge_w[] = {
 };
 
 static void set_edge_square(gchar **panel) {
-	int cvport = gfit.naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
+	int cvport = gfit->naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
 	struct image_view *view = &gui.view[cvport];
 
@@ -312,8 +314,8 @@ static void set_edge_square(gchar **panel) {
 	if (edge_surface)
 		cairo_surface_destroy(edge_surface);
 
-	image_width = gfit.rx;
-	image_height = gfit.ry;
+	image_width = gfit->rx;
+	image_height = gfit->ry;
 	/* New surface as we modify it */
 	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
 

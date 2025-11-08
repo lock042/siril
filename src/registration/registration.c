@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
@@ -125,7 +124,10 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
+	if (args->driz && args->driz->is_bayer)
+		seq.regparam[GLAYER] = args->regparam;
+	else
+		seq.regparam[args->layer] = args->regparam;
 	seq.beg = seq.imgparam[0].filenum;
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
@@ -135,6 +137,7 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 		seq.rx = args->seq->rx;
 		seq.ry = args->seq->ry;
 	}
+	seq.is_drizzle = args->driz != NULL;
 	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	if (refindex == -1)
@@ -152,13 +155,13 @@ void create_output_sequence_for_registration(struct registration_args *args, int
  * they must be at least 2 */
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square) {
 	//fprintf(stdout, "function entry: %d,%d,\t%dx%d\n", area->x, area->y, area->w, area->h);
-	if (area->x >= 0 && area->x + area->w <= gfit.rx && area->y >= 0
-			&& area->y + area->h <= gfit.ry)
+	if (area->x >= 0 && area->x + area->w <= gfit->rx && area->y >= 0
+			&& area->y + area->h <= gfit->ry)
 		return;
 
 	if (area->x < 0) {
 		area->x++;
-		if (area->x + area->w > gfit.rx) {
+		if (area->x + area->w > gfit->rx) {
 			/* reduce area */
 			area->w -= hsteps;
 			if (preserve_square) {
@@ -166,7 +169,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 				area->y++;
 			}
 		}
-	} else if (area->x + area->w > gfit.rx) {
+	} else if (area->x + area->w > gfit->rx) {
 		area->x--;
 		if (area->x < 0) {
 			/* reduce area */
@@ -181,7 +184,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 
 	if (area->y < 0) {
 		area->y++;
-		if (area->y + area->h > gfit.ry) {
+		if (area->y + area->h > gfit->ry) {
 			/* reduce area */
 			area->h -= hsteps;
 			if (preserve_square) {
@@ -189,7 +192,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 				area->x++;
 			}
 		}
-	} else if (area->y + area->h > gfit.ry) {
+	} else if (area->y + area->h > gfit->ry) {
 		area->y--;
 		if (area->y < 0) {
 			/* reduce area */
@@ -257,6 +260,10 @@ gpointer register_thread_func(gpointer p) {
 		free_disto_args(args->disto);
 	}
 	if (args->driz) {
+		if (args->driz->flat) {
+			clearfits(args->driz->flat);
+			free(args->driz->flat);
+		}
 		free(args->driz);
 	}
 	if (args->reference_date)
@@ -264,7 +271,9 @@ gpointer register_thread_func(gpointer p) {
 	if (args->wcsref)
 		wcsfree(args->wcsref);
 	if (!siril_add_idle(end_register_idle, args)) {
-		free_sequence(args->seq, TRUE);
+		stop_processing_thread();
+		if (args->seq->type != SEQ_INTERNAL && !check_seq_is_comseq(args->seq)) // RGB align needs the sequence preserved
+			free_sequence(args->seq, TRUE);
 		free(args);
 	}
 	return GINT_TO_POINTER(retval);
@@ -355,10 +364,59 @@ int shift_fit_from_reg(fits *fit, Homography H) {
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t) {
-	struct registration_method *reg = malloc(sizeof(struct registration_method));
+	struct registration_method *reg = calloc(1, sizeof(struct registration_method));
 	reg->name = strdup(name);
 	reg->method_ptr = f;
 	reg->sel = s;
 	reg->type = t;
 	return reg;
+}
+
+gint64 compute_registration_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct star_align_data *sadata = args->user;
+	if (!sadata || !sadata->regargs)
+		return -1;
+	struct registration_args *regargs = sadata->regargs;
+	int w_out = 0, h_out = 0;
+	float scale = 1.0;
+	gint64 im_size = 0; // total size of all images after registration
+	if (regargs->func == &register_star_alignment) {// global registration
+		w_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		h_out = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		scale = regargs->output_scale;
+		im_size = (gint64)w_out * h_out * scale * scale * nb_frames;
+	} else if (regargs->func == &register_apply_reg) { // applyreg
+		im_size = (gint64)(regargs->framingd.total_Mpix * 1.e6); // already includes scale and nb_frames
+	} else {
+		siril_debug_print("Unsupported registration function for size computation\n");
+		return -1;
+	}
+
+	// nblayers
+	int output_nb_layers = regargs->seq->nb_layers;
+	if (regargs->driz && regargs->driz->is_bayer)
+		output_nb_layers = 3;
+	im_size *= output_nb_layers;
+
+	gint64 output_depth = 0;
+	gint64 header_size = 0;
+	gint64 size = 0;
+	if (regargs->seq->type == SEQ_SER) {
+		output_depth = (regargs->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? sizeof(BYTE) : sizeof(WORD);
+		header_size += SER_HEADER_LEN;
+	} else {
+		output_depth = (com.pref.force_16bit) ? sizeof(WORD) : sizeof(float);
+		header_size = nb_frames * (gint64)FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size for nb_frames images
+	}
+	size = im_size * output_depth + header_size;
+	if (regargs->driz) {
+		if (com.pref.drizz_weight_match_bitpix) {
+			size += im_size * output_depth + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		} else {
+			size += im_size * sizeof(BYTE) + nb_frames *  FITS_DOUBLE_BLOC_SIZE;
+		}
+	}
+	// temp for debug
+	// siril_log_message("Required storage space: %" G_GINT64_FORMAT " MB\n", (gint64)(size / BYTES_IN_A_MB));
+	return size;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,8 @@
 
 #include "io/kstars/binfile.h"
 #include "io/kstars/htmesh_wrapper.h"
+#include "core/siril.h"
+#include "core/arithm.h" // for half_to_float()
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/proto.h"
@@ -35,10 +37,9 @@
 #include "core/processing.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/astrometry_solver.h"
 #include "registration/matching/degtorad.h"
-#include "registration/matching/misc.h"
 #include "local_catalogues.h"
+#include "io/healpix/healpix_cat.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -62,7 +63,12 @@
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
-const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
+#define GAIA_ASTRO_DAT "~/.local/share/siril/gaia_astrometric.dat"
+#define GAIA_PHOTO_DAT "~/.local/share/siril/gaia_photometric.dat"
+
+// All these are searched in the legacy local catalogue search, so we don't add GAIA_ASTRO_DAT to this
+// array as it is handled separately
+const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT, GAIA_ASTRO_DAT, GAIA_PHOTO_DAT };
 
 #define DEBUG_LOCALCAT 0 // set to 1 to print out trixel star search verbose
 #define NTRIXELS 2
@@ -93,17 +99,6 @@ struct expansion_field {
 	uint8_t HTM_level;
 	uint16_t max_stars;
 };
-
-// the 16-byte struct
-// this is the struct we effectively use, units are the correct ones
-typedef struct {
-	int32_t RA;	// hours times 1000000
-	int32_t Dec;	// degrees times 100000
-	int16_t dRA;	// in mas per year
-	int16_t dDec;
-	int16_t B;	// mag times 1000
-	int16_t V;
-} deepStarData;
 
 // alternative 16-byte struct for plate solving, replaces proper motion by distance
 typedef struct {
@@ -154,13 +149,13 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 	cat_debug_print("reading data from catalogue %s\n", path);
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local NOMAD catalogue\n"));
+		siril_log_message(_("Could not open local catalogue %s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local NOMAD catalogue\n"));
+		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -187,13 +182,13 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 	}
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
-		siril_log_message(_("Could not open local NOMAD catalogue\n"));
+		siril_log_message(_("Could not open local catalogue%s\n"), path);
 		return 1;
 	}
 
 	struct catalogue_file *cat = catalogue_read_header(f);
 	if (!cat) {
-		siril_log_message(_("Failed to read the local NOMAD catalogue\n"));
+		siril_log_message(_("Failed to read the local catalogue %s\n"), path);
 		fclose(f);
 		return 1;
 	}
@@ -261,6 +256,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	for (int i = 0; i < cat->nfields; ++i) {
 		if (!fread(&(cat->de[i]), sizeof(dataElement), 1, f)) {
 			siril_debug_print("error reading field descriptor %d\n", i);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -272,6 +268,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -290,6 +287,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	// of headroom)
 	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
 		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -299,6 +297,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	cat->indices = malloc(cat->ntrixels * sizeof(struct catalogue_index));
 	if (!cat->indices) {
 		PRINT_ALLOC_ERR;
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -306,6 +305,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
 		siril_debug_print("unexpected read failure in index table\n");
 		free(cat->indices);
+		free(cat->de);
 		free(cat);
 		return NULL;
 	}
@@ -320,6 +320,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -327,6 +328,7 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
 			// memory safety as this value is used for memory allocation
 			free(cat->indices);
+			free(cat->de);
 			free(cat);
 			return NULL;
 		}
@@ -548,7 +550,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 */
 static int get_raw_stars_from_local_catalogues(double target_ra, double target_dec, double radius,
 		float max_mag, gboolean photometric, deepStarData **stars, uint32_t *nb_stars) {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int nb_catalogues = 4;
 	deepStarData **catalogue_stars = malloc(nb_catalogues * sizeof(deepStarData *));
 	uint32_t *catalogue_nb_stars = malloc(nb_catalogues * sizeof(uint32_t));
 	uint32_t total_nb_stars = 0;
@@ -669,7 +671,6 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 	return retval;
 }
 
-
 void initialize_local_catalogues_paths() {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
 	int maxpath = get_pathmax();
@@ -685,11 +686,29 @@ void initialize_local_catalogues_paths() {
 }
 
 gboolean local_catalogues_available() {
-	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	return local_kstars_available() || local_gaia_available();
+}
+
+siril_cat_index get_local_catalogue_index() {
+	if (local_gaia_available())
+		return CAT_LOCAL_GAIA_ASTRO;
+	if (local_kstars_available())
+		return CAT_LOCAL_KSTARS;
+	return CAT_UNDEF;
+}
+
+gboolean local_kstars_available() {
+	int nb_catalogues = 4;
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (!is_readable_file(com.pref.catalogue_paths[catalogue]))
 			return FALSE;
 	}
+	return TRUE;
+}
+
+gboolean local_gaia_available() {
+	if (!is_readable_file(com.pref.catalogue_paths[4]))
+		return FALSE;
 	return TRUE;
 }
 
@@ -702,13 +721,50 @@ gboolean local_catalogues_available() {
 int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return 0;
-	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX) {
+	if (siril_cat->cat_index != CAT_LOCAL_KSTARS &&
+			siril_cat->cat_index != CAT_LOCAL_GAIA_ASTRO &&
+			siril_cat->cat_index != CAT_LOCAL_GAIA_XPSAMP &&
+			siril_cat->cat_index != CAT_LOCAL_TRIX) {
 		siril_debug_print("Local cat query - Should not happen\n");
 		return 0;
 	}
 	deepStarData *stars = NULL;
 	uint32_t nb_stars;
-	if (siril_cat->cat_index == CAT_LOCAL && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
+
+	double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+	double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
+
+	if (siril_cat->cat_index == CAT_LOCAL_GAIA_XPSAMP) {
+		SourceEntryXPsamp *stars = NULL;
+		if (get_raw_stars_from_local_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			float powexp = pow(10.f, stars[i].fexpo);
+			for (int j = 0 ; j < XPSAMPLED_LEN ; j++) {
+				float d = half_to_float(stars[i].flux[j]);
+				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
+			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
+	if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO && get_raw_stars_from_local_gaia_astro_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
+		return 0;
+
+	if (siril_cat->cat_index == CAT_LOCAL_KSTARS && get_raw_stars_from_local_catalogues(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag,
 				siril_cat->phot, &stars, &nb_stars))
 		return 0;
 	if (siril_cat->cat_index == CAT_LOCAL_TRIX && get_raw_stars_from_local_catalogues_byID(siril_cat->trixel, siril_cat->limitmag, siril_cat->phot, &stars, &nb_stars))
@@ -739,16 +795,20 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 	siril_cat->nbitems = (int)nb_stars;
 	siril_cat->nbincluded = (int)nb_stars;
 	siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+	// Gaia catalogs present RA in deg, others present it in hours
+	double CAT_RA_TO_DEG = siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO ? ra_mult : ra_mult * 15.0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
-		siril_cat->cat_items[i].ra = (double)stars[i].RA * .000015;
-		siril_cat->cat_items[i].dec = (double)stars[i].Dec * .00001;
+		siril_cat->cat_items[i].ra = (double)stars[i].RA * CAT_RA_TO_DEG;
+		siril_cat->cat_items[i].dec = (double)stars[i].Dec * dec_mult;
 		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
 		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
 		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
-		siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
+		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO)
+			siril_cat->cat_items[i].teff = (float)(uint16_t)stars[i].B;
+		else
+			siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
 		siril_cat->cat_items[i].included = TRUE;
 	}
-	siril_debug_print("%d stars fetched from local catalogue\n", siril_cat->nbitems);
 	free(stars);
 	if (!siril_cat->nbitems)
 		return -1;
@@ -762,9 +822,7 @@ gpointer write_trixels(gpointer p) {
 	double rav[NTRIXELS][3];
 	double decv[NTRIXELS][3];
 	for (int i = 0; i < NTRIXELS; i++) {
-		siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
-		siril_cat->cat_index = CAT_LOCAL_TRIX;
-		siril_cat->columns = siril_catalog_columns(CAT_LOCAL_TRIX);
+		siril_catalogue *siril_cat = siril_catalog_new(CAT_LOCAL_TRIX);
 		siril_cat->trixel = i;
 		siril_cat->limitmag = 25;
 		if (!siril_catalog_conesearch(siril_cat)) {
@@ -830,17 +888,17 @@ gpointer write_trixels(gpointer p) {
 }
 
 gpointer list_trixels(gpointer p) {
-	if (!has_wcs(&gfit))
+	if (!has_wcs(gfit))
 		return GINT_TO_POINTER(1);
 	int nb_trixels;
 	int *trixels;
 	double ra[4], dec[4];
-	double rx = (double)gfit.rx;
-	double ry = (double)gfit.ry;
-	pix2wcs(&gfit, 0., 0., ra, dec);
-	pix2wcs(&gfit, rx, 0., ra + 1, dec + 1);
-	pix2wcs(&gfit, rx, ry, ra + 2, dec + 2);
-	pix2wcs(&gfit, 0., ry, ra + 3, dec + 3);
+	double rx = (double)gfit->rx;
+	double ry = (double)gfit->ry;
+	pix2wcs(gfit, 0., 0., ra, dec);
+	pix2wcs(gfit, rx, 0., ra + 1, dec + 1);
+	pix2wcs(gfit, rx, ry, ra + 2, dec + 2);
+	pix2wcs(gfit, 0., ry, ra + 3, dec + 3);
 	int status = get_htm_indices_around_rectangle(ra, dec, 3, &trixels, &nb_trixels);
 	if (status) {
 		siril_log_color_message(_("Failed\n"), "red");

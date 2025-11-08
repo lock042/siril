@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,8 +28,6 @@
 #include <fcntl.h>
 #include <gio/gwin32inputstream.h>
 #else
-#include <sys/types.h> // for waitpid(2)
-#include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
 
@@ -37,31 +35,22 @@
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/arithm.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_spawn.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
-#include "algos/geometry.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "filters/mtf.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 #include "gui/remixer.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 #include <unistd.h>
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,19 +62,22 @@
 static fits *current_fit = NULL;
 static gboolean verbose = TRUE;
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("starnet is being closed\n");
-	g_spawn_close_pid(pid);
-}
-
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
+	int index = 0;
+	while (argv[index]) {
+		fprintf(stdout, "%s ", argv[index++]);
+	}
+	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
-	g_spawn_async_with_pipes(NULL, argv, NULL,
+	if (!get_thread_run()) {
+		return 1;
+	}
+	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
@@ -95,13 +87,17 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = EXT_STARNET;
-#ifdef _WIN32
-	com.childhandle = child_pid;		// For Windows, handle of a child process
-#else
-	com.childpid = child_pid;			// For other OSes, PID of a child process
-#endif
+
+	// At this point, remove the processing thread from the list of children and replace it
+	// with the starnet process. This avoids tracking two children for the same task.
+	if (get_thread_run())
+		remove_child_from_children((GPid) -2);
+
+	// Add the Starnet child to the list of child processes
+	if (!add_child(child_pid, EXT_STARNET, "Starnet")) {
+		siril_log_color_message(_("Error adding Starnet to child process list\n"), "red");
+		return 1;
+	}
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -209,7 +205,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	gchar *versionarg = g_strdup("--version");
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
-	g_spawn_async_with_pipes(NULL, test_argv, NULL,
+	siril_spawn_host_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, NULL, NULL, &child_stdout,
@@ -472,6 +468,10 @@ gpointer do_starnet(gpointer p) {
 	 * be the same color space as the imput but will have no ICC profile embedded
 	 * so we have to replace the original */
 	cmsHPROFILE original_profile = copyICCProfile(current_fit->icc_profile);
+	gboolean original_colormanaged = current_fit->color_managed;
+
+	// Disable color management so that savetif doesn't mess about with the image
+	current_fit->color_managed = FALSE;
 
 	// ok, let's start
 	if (verbose)
@@ -557,11 +557,13 @@ gpointer do_starnet(gpointer p) {
 	// default shadow clipping and target background. This does marginally clip the
 	// shadows but generally by less than 0.001% of pixels. The result of starnet using
 	// this stretch is much better than either asinh or GHT stretches.
-	struct mtf_params params;
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	retval = find_linked_midtones_balance_default(&workingfit, &params);
+	struct mtf_params params[3];
+	for (int i = 0 ; i < 3 ; i++) {
+		params[i].do_red = TRUE;
+		params[i].do_green = TRUE;
+		params[i].do_blue = TRUE;
+	}
+	retval = find_unlinked_midtones_balance_default(&workingfit, params);
 	if (retval && args->linear) {
 		siril_log_color_message(_("Error: unable to find the MTF stretch factors...\n"), "red");
 		goto CLEANUP;
@@ -569,8 +571,18 @@ gpointer do_starnet(gpointer p) {
 	if (args->linear) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
-		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
+		apply_unlinked_mtf_to_fits(&workingfit, &workingfit, params);
+		siril_log_message(_("StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"));
+		if  (workingfit.naxes[2] == 1)
+			siril_debug_print("Applying MTF with values %f, %f, %f\n", params[0].shadows, params[0].midtones, params[0].highlights);
+		else
+			siril_debug_print("Applying MTF with values:\n"
+					"  Red:   %f, %f, %f\n"
+					"  Green: %f, %f, %f\n"
+					"  Blue:  %f, %f, %f\n",
+					params[0].shadows, params[0].midtones, params[0].highlights,
+					params[1].shadows, params[1].midtones, params[1].highlights,
+					params[2].shadows, params[2].midtones, params[2].highlights);
 	}
 
 	// Upscale if needed
@@ -647,6 +659,7 @@ gpointer do_starnet(gpointer p) {
 	if (workingfit.icc_profile) {
 		cmsCloseProfile(workingfit.icc_profile);
 		workingfit.icc_profile = copyICCProfile(original_profile);
+		workingfit.color_managed = original_colormanaged;
 	}
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
@@ -660,6 +673,8 @@ gpointer do_starnet(gpointer p) {
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
 	copy_fits_metadata(current_fit, &fit);
+	workingfit.header = malloc(strlen(current_fit->header)+1);
+	memcpy(workingfit.header, current_fit->header, strlen(current_fit->header)+1);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
@@ -676,8 +691,8 @@ gpointer do_starnet(gpointer p) {
 		}
 	}
 
+	const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 	if (!force_16bit) {
-		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
 
@@ -696,8 +711,8 @@ gpointer do_starnet(gpointer p) {
 	// stretch to the starless version and re-save the final result
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"));
-		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
+			siril_log_message(_("StarNet: linear mode. Applying inverse autostretch to starless image.\n"));
+		apply_unlinked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Chdir back to the Siril working directory, we don't need to be in the starnet
@@ -720,7 +735,9 @@ gpointer do_starnet(gpointer p) {
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
-		retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		//retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
+		// De-screen starless from original
+		retval = descreen(&fit, &workingfit, !force_16bit, com.max_thread);
 		if (retval) {
 			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
 			goto CLEANUP;
@@ -728,12 +745,13 @@ gpointer do_starnet(gpointer p) {
 		update_filter_information(&fit, "StarMask", TRUE);
 
 		// Replace ICC profile here too
-		if (fit.icc_profile) {
-			cmsCloseProfile(fit.icc_profile);
+		if (original_profile) {
+			if (fit.icc_profile)
+				cmsCloseProfile(fit.icc_profile);
 			fit.icc_profile = copyICCProfile(original_profile);
-		}
-		if (original_profile)
+			fit.color_managed = original_colormanaged;
 			cmsCloseProfile(original_profile);
+		}
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {
@@ -764,6 +782,8 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	copy_fits_metadata(&workingfit, current_fit);
+	current_fit->header = malloc(strlen(workingfit.header)+1);
+	memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
@@ -805,8 +825,6 @@ gpointer do_starnet(gpointer p) {
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
-	if (com.child_is_running == EXT_STARNET)
-		com.child_is_running = EXT_NONE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);
@@ -886,7 +904,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
 	if (!retval) {
 		// Store results in a struct _multi_split
-		struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+		struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
 		multi_data->images = calloc(nb_out, sizeof(fits*));
@@ -914,7 +932,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 }
 
 void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
-	struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
+    struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
 	seqargs->description = _("StarNet");
 	seqargs->seq = multi_args->seq;
 	seqargs->filtering_criterion = seq_filter_included;
@@ -925,14 +943,19 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->prepare_hook = multi_prepare;
 	seqargs->image_hook = starnet_image_hook;
 	seqargs->has_output = TRUE;
+	seqargs->stop_on_error = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqargs->save_hook = multi_save;
-	seqargs->new_seq_prefix = multi_args->seqEntry;
+	seqargs->new_seq_prefix = strdup(multi_args->seqEntry);
 	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
 	set_progress_bar_data(_("StarNet: Processing..."), 0.);
-	start_in_new_thread(generic_sequence_worker, seqargs);
+	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
+		free_starnet_args((starnet_data*)multi_args->user_data);
+		free_multi_args(multi_args);
+		free_generic_seq_args(seqargs, TRUE);
+	}
 }
 
 #endif

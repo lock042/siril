@@ -1,7 +1,7 @@
  /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef SRC_FILTERS_CA_H_
 #define SRC_FILTERS_CA_H_
 
@@ -33,8 +33,9 @@ struct unpurpleargs {
 	gboolean for_final;
 };
 
-gpointer unpurplehandler(gpointer args);
+gpointer unpurple_handler(gpointer args);
 gpointer unpurple_filter(gpointer p);
+gpointer unpurple(gpointer p);
 void apply_unpurple_cancel();
 
 #endif /* SRC_GUI_ASINH_H_ */

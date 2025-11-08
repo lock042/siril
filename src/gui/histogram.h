@@ -31,13 +31,13 @@ typedef enum {
 gsl_histogram* computeHisto(fits*, int);
 gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);
 void histo_change_between_roi_and_image();
-void compute_histo_for_gfit();
+void compute_histo_for_fit(fits *thefit);
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
 void apply_histo_cancel();
 void toggle_histogram_window_visibility(int _invocation);
 
-void on_button_histo_close_clicked(GtkButton *button, gpointer user_data); // callback needed
+gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data); // callback needed
 
 void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);

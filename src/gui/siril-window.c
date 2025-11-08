@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,7 +26,6 @@ static GActionEntry win_entries[] = {
 	{ "undo", undo_action_activate },
 	{ "redo", redo_action_activate },
 	{ "documentation", doc_action_activate },
-	{ "scripts", scripts_action_activate },
 	{ "updates", updates_action_activate },
 	{ "full-screen", full_screen_activated},
 	{ "hide-show-toolbar", toolbar_activate },
@@ -113,8 +112,7 @@ static GActionEntry any_processing_entries[] = {
 	{ "cosmetic-processing", cosmetic_activate },
 	{ "background-extr-processing", background_extr_activate },
 	{ "icc-tool", icc_activate },
-	{ "clear_roi", clear_roi },
-	{ "graxpert-processing", graxpert_activate }
+	{ "clear_roi", clear_roi }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -184,6 +182,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"dyn-psf",
 		"seq-list",
 		"regframe",
+		"cut",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
@@ -258,7 +257,6 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"background-extr-processing",
 		"icc-tool",
 		"clear_roi",
-		"graxpert-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);

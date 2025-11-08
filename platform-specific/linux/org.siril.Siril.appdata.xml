@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2012-2021 Free-astro team -->
+<!-- Copyright 2012-2025 Free-astro team -->
 <component type="desktop">
   <id>org.siril.Siril</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <developer_name>Free-astro Team</developer_name>
+  <developer id="org.siril">
+    <name>Free-astro Team</name>
+  </developer>
   <launchable type="desktop-id">org.siril.Siril.desktop</launchable>
   <name>Siril</name>
   <name xml:lang="fr-FR">Siril</name>
@@ -97,6 +99,254 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.0-rc1" date="2025-11-08">
+      <url type="details">https://siril.org/download/1.4.0-rc1</url>
+      <description>
+        <p>
+          First release candidate of the 1.4.0 series, focusing on stability and bug fixes ahead of the
+          final stable release. This version resolves critical crashes, improves stacking reliability,
+          and enhances Python integration for script developers.
+        </p>
+        <ul>
+          <li>
+            Fixed multiple critical crashes (seqstarnet, clearstar with Dynamic PSF, noise weights with overlap normalization)
+          </li>
+          <li>
+            Fixed XTrans sensor debayering issues introduced in beta4 and Bayer pattern interpretation after background extraction
+          </li>
+          <li>
+            Fixed Drizzle registration with compression enabled and global registration reference image handling
+          </li>
+          <li>
+            Improved stacking rejection algorithm to properly discard pixels with zero weight
+          </li>
+          <li>
+            Enhanced StarNet workflow using descreening for better star mask integration with recomposition tool
+          </li>
+          <li>
+            Fixed OIII extraction normalization strategy between B and G pixels for better color balance
+          </li>
+          <li>
+            Improved Python API with new SirilInterface methods (save_image_to_file, prefix arg for set_seq_frame_pixeldata)
+          </li>
+          <li>
+            Fixed various RGB composition, curves preview, and deconvolution issues
+          </li>
+          <li>
+            Enabled compiler optimizations through function inlining for improved performance
+          </li>
+          <li>
+            Added support for arbitrary script categories in preferences tree view
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0-beta4" date="2025-09-28">
+      <url type="details">https://siril.org/download/1.4.0-beta4</url>
+      <description>
+        <p>
+          Fourth and likely final beta release of the 1.4.0 series, featuring critical fixes to the Drizzle
+          algorithm and robust Bayer pattern handling. This version includes all planned major features
+          for the stable 1.4.0 release.
+        </p>
+        <ul>
+          <li>
+            Fixed major Drizzle algorithm issues by exporting weight files during registration and using them for stacking
+          </li>
+          <li>
+            Discovered and corrected an error in the original HST Drizzle code, contributing to space image processing improvements
+          </li>
+          <li>
+            Implemented robust Bayer/X-Trans pattern handling across the entire codebase
+          </li>
+          <li>
+            Fixed multiple stability issues including crashes with OpenCV 4.12+, seqpsf/seqtilt commands, and memory allocation
+          </li>
+          <li>
+            Enhanced image preview with color support, autostretch improvements, and new 512px preview size
+          </li>
+          <li>
+            Added official PyQt6 support for Python script GUIs with comprehensive new API methods
+          </li>
+          <li>
+            Improved astrometric alignment for mosaics and enhanced metadata extraction from FITSEQ sequences
+          </li>
+          <li>
+            Added search functionality in script treeview and right-click script editing from menu
+          </li>
+          <li>
+            Fixed sequence loading issues and improved handling of automatic script repository updates
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0-beta3" date="2025-07-11">
+      <url type="details">https://siril.org/download/1.4.0-beta3</url>
+      <description>
+        <p>
+          Third beta release of the 1.4.0 series, delivering comprehensive stability improvements and
+          enhanced Python integration. This version addresses critical crashes, improves script handling,
+          and introduces significant workflow enhancements for both GUI and command-line users.
+        </p>
+        <ul>
+          <li>
+            Fixed multiple critical crashes (8-bit XISF files, pixelmath with 16-bit images, RGB compositing)
+          </li>
+          <li>
+            Resolved Python integration issues including script execution, thread handling, and shared memory management
+          </li>
+          <li>
+            Fixed SPCC filter plotting issues in narrowband mode and improved linear regression
+          </li>
+          <li>
+            Improved script repository handling with better update mechanisms and version control
+          </li>
+          <li>
+            Enhanced calibration workflow with improved file chooser memory and sequence cropping support
+          </li>
+          <li>
+            Added advanced Python features including polygon overlay drawing and improved GPU helper modules
+          </li>
+          <li>
+            Modernized GraXpert integration with new AI-powered script replacing legacy interface
+          </li>
+          <li>
+            Improved ICC profile handling and histogram stretch behavior for better color accuracy
+          </li>
+          <li>
+            Enhanced command-line functionality with -followstar support for seqpsf command
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0-beta2" date="2025-05-21">
+      <url type="details">https://siril.org/download/1.4.0-beta2</url>
+      <description>
+        <p>
+          Second beta release of the 1.4.0 series, building upon the foundations established in beta1.
+          This version focuses on stability improvements, bug fixes, and user experience enhancements
+          while continuing to refine the major features introduced in the previous beta.
+        </p>
+        <ul>
+          <li>
+            Fixed crashes in multiple areas (Noise Reduction, astrometric registration, script refreshing)
+          </li>
+          <li>
+            Fixed option -weight= for stack command and added filtering criteria in HISTORY
+          </li>
+          <li>
+            Fixed UI hangs when manually refreshing scripts or SPCC
+          </li>
+          <li>
+            Fixed SPCC issues with non-ASCII characters in filepaths on Windows
+          </li>
+          <li>
+            Fixed parameter parsing in PixelMath and metadata handling
+          </li>
+          <li>
+            Made crop and ROI selection CFA-aware
+          </li>
+          <li>
+            Added an optional rate limit for smooth scroll zoom speed
+          </li>
+          <li>
+            Scripts can now be opened in the editor directly from Script Preferences
+          </li>
+          <li>
+            Implemented better linear regression algorithm for SPCC
+          </li>
+          <li>
+            Enhanced Python support with new interface methods and utilities
+          </li>
+          <li>
+            Added ability to calibrate images for debayering only
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.0-beta1" date="2025-04-26">
+      <url type="details">https://siril.org/download/1.4.0-beta1</url>
+      <description>
+        <p>
+          First beta release of the 1.4.0 series. This version marks a huge leap compared
+          with 1.2 across many areas of the software. GUI has been improved in several places
+          for better user experience, and many new features have been implemented.
+          The most outstanding changes are:
+        </p>
+        <ul>
+          <li>
+            Added solving with distortions using SIP convention and image undistortion for registration
+          </li>
+          <li>
+            Added mosaic stacking with blending masks and normalization on overlaps
+          </li>
+          <li>
+            Replaced simplified Drizzle with proper Hubble Space Telescope Drizzle algorithms
+          </li>
+          <li>
+            Added full Python scripting capabilities with integrated script editor
+          </li>
+          <li>
+            Added fully color managed workflow using ICC profiles
+          </li>
+          <li>
+            Added SpectroPhotometric Color Calibration tool using Gaia DR3 catalog
+          </li>
+          <li>
+            Added new Curves Transformation tool and edge preserving filters
+          </li>
+          <li>
+            Added FITS header management and keyword updates
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.6" type="stable" date="2025-01-22">
+      <url type="details">https://siril.org/download/1.2.6</url>
+      <description>
+        <p>
+          Siril 1.2.6 is a bug fix release, containing only bug fixes.
+          The most important are:
+        </p>
+        <ul>
+          <li>
+          Fixed sign error in messier catalog
+          </li>
+          <li>
+          Fixed Save As feature
+          </li>
+          <li>
+          Fixed handling wide chars with updated cfitsio (Windows only)
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.5" type="stable" date="2024-11-22">
+      <url type="details">https://siril.org/download/1.2.5</url>
+      <description>
+        <p>
+          Siril 1.2.5 is a bug fix release, containing only bug fixes.
+          The most important are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash if the CWD changes after a first successfull Automated light Curve process
+          </li>
+          <li>
+          Fixed bug in TIFF files that have TIFFTAG_MINSAMPLEVALUE and TIFFTAG_MAXSAMPLEVALUE set to 0 by removing these tags
+          </li>
+          <li>
+          Added HISTORY after seqcrop and GUI crop
+          </li>
+          <li>
+          Fixed potential crash in synthstar
+          </li>
+          <li>
+          Fixed several macOS UI bugs and again the free space disk computation
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.4" type="stable" date="2024-09-11">
       <url type="details">https://siril.org/download/1.2.4</url>
       <description>
@@ -351,7 +601,7 @@
         </p>
         <ul>
           <li>
-          High bit depth color processing (32-bit per color channel is 
+          High bit depth color processing (32-bit per color channel is
           now the default).
           </li>
           <li>

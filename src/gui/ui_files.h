@@ -16,12 +16,19 @@
  *
  **************************************************************/
 
+// This list contains most of the UI files. However any files with
+// shortcuts that use the primary modifier will be written by Glade
+// as GDK_CONTROL_MASK. These require rewriting on MacOS and are
+// thus handled separately, and should be added to
+// ui_files_with_primary_accelerator below.
+
 const char* ui_files[] = {
 // Dependencies first
 	"/org/siril/ui/filefilters.ui",
 	"/org/siril/ui/siril-shortcuts.ui",
 // Dialogs (sorted)
 	"/org/siril/ui/aavso_dialog.ui",
+	"/org/siril/ui/aberration_inspector.ui",
 	"/org/siril/ui/annotate_dialog.ui",
 	"/org/siril/ui/asinh_dialog.ui",
 	"/org/siril/ui/astrometry_dialog.ui",
@@ -40,6 +47,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/cut_coords_dialog.ui",
 	"/org/siril/ui/cut_dialog.ui",
 	"/org/siril/ui/cut_spectroscopy_dialog.ui",
+	"/org/siril/ui/data_dialog.ui",
 	"/org/siril/ui/denoise_dialog.ui",
 	"/org/siril/ui/dialog_FFT.ui",
 	"/org/siril/ui/dialog_star_remix.ui",
@@ -47,7 +55,6 @@ const char* ui_files[] = {
 	"/org/siril/ui/extract_channel_dialog.ui",
 	"/org/siril/ui/extract_wavelet_layers_dialog.ui",
 	"/org/siril/ui/file_information_dialog.ui",
-	"/org/siril/ui/graxpert.ui",
 	"/org/siril/ui/histogram_dialog.ui",
 	"/org/siril/ui/keywords_dialog.ui",
 	"/org/siril/ui/icc_dialog.ui",
@@ -65,9 +72,9 @@ const char* ui_files[] = {
 	"/org/siril/ui/satu_dialog.ui",
 	"/org/siril/ui/savepopup.ui",
 	"/org/siril/ui/SCNR_dialog.ui",
-	"/org/siril/ui/script_contents_dialog.ui",
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
+	"/org/siril/ui/siril.ui",
 	"/org/siril/ui/spcc_details.ui",
 	"/org/siril/ui/split_cfa_dialog.ui",
 	"/org/siril/ui/starnet_dialog.ui",
@@ -75,12 +82,16 @@ const char* ui_files[] = {
 	"/org/siril/ui/StatWindow.ui",
 	"/org/siril/ui/unpurple_dialog.ui",
 	"/org/siril/ui/wavelets_dialog.ui",
-// Main application window
-	"/org/siril/ui/siril.ui",
-// Dialogs that depend on the main application window
-	"/org/siril/ui/aberration_inspector.ui",
-	"/org/siril/ui/data_dialog.ui",
-// Must be terminated by a NULL string
+	// Must be terminated by a NULL string
+	""
+};
+
+// UI files in this array will be processed differently and on MacOS
+// GTK_CONTROL_MASK will be replaced with GDK_META_MASK prior to
+// adding to the builder, in order to obtain the expected Cmd- shortcuts
+const char* ui_files_with_primary_accelerator[] = {
+	"/org/siril/ui/python_scratchpad.ui",
+	// Must be terminated by a NULL string
 	""
 };
 

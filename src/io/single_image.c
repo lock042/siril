@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -18,9 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 #include <string.h>
 
 #include "core/siril.h"
@@ -41,10 +38,11 @@
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
-#include "gui/preferences.h"
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
 #include "gui/registration.h"
+#include "gui/user_polygons.h"
+#include "gui/siril_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -52,13 +50,10 @@
 #include "gui/PSF_list.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
 #include "core/undo.h"
 #include "core/processing.h"
-#include "compositing/compositing.h"
-#include "registration/registration.h"
 
-/* Closes and frees resources attached to the single image opened in gfit.
+/* Closes and frees resources attached to the single image opened in gfit->
  * If a sequence is loaded and one of its images is displayed, nothing is done.
  */
 void close_single_image() {
@@ -76,11 +71,11 @@ void close_single_image() {
 	free_image_data();
 }
 
-static gboolean free_image_data_idle(gpointer p) {
-	siril_debug_print("free_image_data_gui_idle() called\n");
-	disable_iso12646_conditions(TRUE, TRUE, FALSE);
+static gboolean free_image_data_gui(gpointer p) {
+	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
-	delete_selected_area();
+	clear_user_polygons(); // clear list of user polygons
+	delete_selected_area(); // this triggers a redraw
 	reset_plot(); // clear existing plot if any
 	siril_close_preview_dialogs();
 	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
@@ -88,9 +83,9 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_zoom_label();
 	update_display_fwhm();
 	adjust_sellabel();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	reset_3stars();
-	close_tab();	// close Green and Blue tabs
+	gui_function(close_tab, NULL);	// close Green and Blue tabs
 	free_cut_args(&gui.cut);
 	initialize_cut_struct(&gui.cut);
 
@@ -104,11 +99,15 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
 	clear_stars_list(TRUE);
+	clear_backup();
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
+	sample_mutex_lock();
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
+	sample_mutex_unlock();
 	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
+	reset_menu_toggle_button();
 	reset_zoom_default();
 	free(gui.qphot);
 	gui.qphot = NULL;
@@ -118,18 +117,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
-
-	return FALSE;
-}
-
-static void free_image_data_gui() {
-	/* this function frees resources used in the GUI, some of these resources
-	 * need to be handled in the GTK+ main thread, so we use an idle function
-	 * to deal with them */
-	if (com.script)
-		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	else free_image_data_idle(NULL);
-	siril_debug_print("free_image_data_gui() called\n");
+	siril_debug_print("free_image_data_idle() complete\n");
 
 	/* free display image data */
 	for (int vport = 0; vport < MAXVPORT; vport++) {
@@ -154,6 +142,8 @@ static void free_image_data_gui() {
 	}
 	clear_previews();
 	free_reference_image();
+	siril_debug_print("free_image_data_gui() complete\n");
+	return FALSE;
 }
 
 /* frees resources when changing sequence or closing a single image */
@@ -161,11 +151,11 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
-	cmsCloseProfile(gfit.icc_profile);
-	gfit.icc_profile = NULL;
+	cmsCloseProfile(gfit->icc_profile);
+	gfit->icc_profile = NULL;
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
-		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
+		save_stats_from_fit(gfit, &com.seq, com.seq.current);
 
 	invalidate_gfit_histogram();
 
@@ -176,11 +166,21 @@ void free_image_data() {
 		free(com.uniq);
 		com.uniq = NULL;
 	}
+	/* this function frees resources used in the GUI, some of these resources
+	 * need to be handled in the GTK+ main thread, so we use an idle function
+	 * to deal with them */
 
-	if (!com.headless)
-		free_image_data_gui();
-
-	clearfits(&gfit);
+	if (!com.headless) {
+		if (com.script || com.python_command) {
+			execute_idle_and_wait_for_it(free_image_data_gui, NULL);
+		} else if (!g_main_context_is_owner(g_main_context_default())) {
+			siril_add_idle(free_image_data_gui, NULL);
+		} else {
+			free_image_data_gui(NULL);
+		}
+	}
+	clearfits(gfit);
+	siril_debug_print("free_image_data() complete\n");
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -224,7 +224,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			return 1;
 		}
 	} else {
-		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
+		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
 		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
@@ -245,9 +245,10 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	return retval;
 }
 
-static gboolean end_open_single_image(gpointer arg) {
+gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	open_single_image_from_gfit();
+	if (!com.headless)
+		open_single_image_from_gfit(NULL);
 	return FALSE;
 }
 
@@ -260,15 +261,15 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	}
 	com.uniq->filename = filename;
 	com.uniq->fileexist = exists;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	com.uniq->nb_layers = gfit->naxes[2];
+	com.uniq->fit = gfit;
 	return 0;
 }
 
 /* This function is used to load a single image, meaning outside a sequence,
  * whether a sequence is loaded or not, whether an image was already loaded or
  * not. The opened file is available in the usual global variable for current
- * image, gfit.
+ * image, gfit->
  */
 int open_single_image(const char* filename) {
 	int retval = 0;
@@ -288,10 +289,10 @@ int open_single_image(const char* filename) {
 		close_single_image();	// close the previous image and free resources
 
 		/* open the new file */
-		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	}
 	if (retval) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
+		queue_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
 		free(realname);
@@ -304,29 +305,19 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		if (!com.headless) {
-			/* we don't need to use siril_add_idle here, because this idle
-			 * function needs to be called for load to work properly and
-			 * display the GUI for the loaded image. The image being loaded in
-			 * gfit, not displaying it may cause some inconsistencies,
-			 * possibly reported as a crash (see #770)
-			 */
-			if (com.script)
-				execute_idle_and_wait_for_it(end_open_single_image, NULL);
-			else end_open_single_image(NULL);
-		}
+		if (!com.headless)
+			execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}
-	if (!com.script)
-		reset_cut_gui_filedependent();
+	gui_function(reset_cut_gui_filedependent, NULL);
 	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
-void open_single_image_from_gfit() {
-	siril_debug_print("open_single_image_from_gfit()\n");
+gboolean open_single_image_from_gfit(gpointer user_data) {
+	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -345,16 +336,38 @@ void open_single_image_from_gfit() {
 	adjust_sellabel();
 
 	display_filename();	// display filename in gray window
-	set_precision_switch(); // set precision on screen
+	set_precision_switch(NULL); // set precision on screen
 
 	/* update menus */
-	update_MenuItem();
+	update_MenuItem(NULL);
 
-	close_tab();
-	init_right_tab();
+	close_tab(NULL);
+	init_right_tab(NULL);
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
+	return FALSE;
+}
+
+gboolean update_single_image_from_gfit(gpointer user_data) {
+	/* a variation on open_single_image_from_gfit that only
+	 does the things necessary when key aspects may have
+	 changed (eg changed number of channels, bitpix etc.)*/
+
+	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
+
+	sliders_mode_set_state(gui.sliders);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+
+	set_precision_switch(NULL); // set precision on screen
+
+	close_tab(NULL);
+	init_right_tab(NULL);
+
+	update_gfit_histogram_if_needed();
+	redraw(REMAP_ALL);
+	return FALSE;
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
@@ -389,21 +402,21 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
 }
 
 /* gfit has been loaded, now we copy the hi and lo values into the com.uniq or com.seq layers.
- * gfit.hi and gfit.lo may only be available in some FITS files; if they are not available, the
+ * gfit->hi and gfit->lo may only be available in some FITS files; if they are not available, the
  * min and max value for the layer is used.
  * If gfit changed, its hi and lo values need to be updated, and they are taken from min and
  * max.
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
-	if (gfit.keywords.hi == 0 || force_minmax == MINMAX) {
+	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
 		gui.sliders = MINMAX;
-		image_find_minmax(&gfit);
-		fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi);
+		image_find_minmax(gfit);
+		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi);
 	} else {
 		gui.sliders = MIPSLOHI;
-		gui.hi = gfit.keywords.hi;
-		gui.lo = gfit.keywords.lo;
+		gui.hi = gfit->keywords.hi;
+		gui.lo = gfit->keywords.lo;
 	}
 }
 
@@ -413,20 +426,10 @@ int single_image_is_loaded() {
 
 /**************** updating the single image *******************/
 
-/* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
-/* deprecated, use notify_gfit_modified() instead */
-void adjust_cutoff_from_updated_gfit() {
-	invalidate_stats_from_fit(&gfit);
-	invalidate_gfit_histogram();
-	if (!com.script) {
-		update_gfit_histogram_if_needed();
-		init_layers_hi_and_lo_values(gui.sliders);
-		set_cutoff_sliders_values();
-	}
-}
-
 /* generic idle function for end of operation on gfit */
-static gboolean end_gfit_operation() {
+gboolean end_gfit_operation(gpointer data) {
+	// Remove unused argument warnings
+	(void) data;
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
@@ -436,7 +439,7 @@ static gboolean end_gfit_operation() {
 	update_gfit_histogram_if_needed();
 
 	/* update bit depth selector */
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	/* update display of gfit name (useful if it changes) */
 	adjust_sellabel();
@@ -446,8 +449,12 @@ static gboolean end_gfit_operation() {
 	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
-	redraw(REMAP_ALL);	// queues a redraw if !com.script
-	redraw_previews();	// queues redraws if !com.script
+	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
+		redraw(REMAP_ALL);
+	else
+		queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
+
+	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
@@ -457,8 +464,8 @@ static gboolean end_gfit_operation() {
  * end of a processing operation, not for previews */
 void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
-	invalidate_stats_from_fit(&gfit);
+	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
 
-	siril_add_idle(end_gfit_operation, NULL);
+	gui_function(end_gfit_operation, NULL);
 }

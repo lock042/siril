@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,10 +25,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_linalg.h>
-#include <gsl/gsl_cblas.h>
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlinear.h>
 
 #include "core/siril.h"
@@ -36,9 +33,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/photometry.h"
-#include "algos/sorting.h"
 #include "algos/siril_wcs.h"
-#include "algos/star_finder.h"
 #include "filters/median.h"
 
 #include "PSF.h"
@@ -341,13 +336,17 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
  * failed and for star detection when magnitude is not needed.
  */
 static double psf_get_mag(gsl_matrix* z, double B) {
-	double intensity = 1.0;
+	double intensity = 0.0;
 	size_t NbRows = z->size1;
 	size_t NbCols = z->size2;
 
 	for (size_t i = 0; i < NbRows; i++) {
 		for (size_t j = 0; j < NbCols; j++)
 			intensity += gsl_matrix_get(z, i, j) - B;
+	}
+	if (intensity <= 0.0) {
+		siril_debug_print("psf_get_mag: intensity is <= 0, returning default value\n");
+		return -DEFAULT_DOUBLE_VALUE; // no star, returning an unmistakable value
 	}
 	return -2.5 * log10(intensity);
 }
@@ -802,9 +801,11 @@ free_and_exit:
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, NULL);
-	if (result == NULL) {
+	psf_error error = PSF_NO_ERR;
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, com.pref.starfinder_conf.profile, &error);
+	if (result == NULL || error) {
 		*roundness = 0.0;
+		free_psf(result);
 		return 0.0;
 	}
 	double retval;
@@ -821,7 +822,7 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  * verbose is used in photometry only, to inform that inner is too small for example
  */
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		gboolean for_photometry, gboolean init_from_center, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	int stridefrom, i, j;
 	psf_star *result;
@@ -872,7 +873,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		return NULL;
 	}
 
-	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, FALSE, for_photometry, phot_set, verbose, profile, error);
+	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, init_from_center, for_photometry, phot_set, verbose, profile, error);
 
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
@@ -938,9 +939,9 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 }
 
 static gchar *build_wcs_url(gchar *ra, gchar *dec) {
-	if (!has_wcs(&gfit)) return NULL;
+	if (!has_wcs(gfit)) return NULL;
 
-	double resolution = get_wcs_image_resolution(&gfit);
+	double resolution = get_wcs_image_resolution(gfit);
 
 	gchar *tol = g_strdup_printf("%lf", resolution * 3600 * 15);
 
@@ -983,13 +984,13 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	double xpos = result->x0 + area->x;
 	double ypos = area->y + area->h - result->y0;
 
-	if (has_wcs(&gfit)) {
+	if (has_wcs(gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_siril(xpos, ypos, &fx, &fy, gfit.ry);
+		display_to_siril(xpos, ypos, &fx, &fy, gfit->ry);
 
 		double ra, dec;
-		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		pix2wcs(gfit, fx, fy, &ra, &dec);
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			gchar *strra, *strdec;
@@ -1004,8 +1005,8 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 			}
 
 			if (com.pref.gui.show_deciasec) {
-				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
-				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.3lfs");
+				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.3lf\"");
 			} else {
 				strra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
 				strdec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
@@ -1028,12 +1029,12 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
 	const gchar *chan = isrgb(fit) ? channel_number_to_name(result->layer) : _("monochrome");
 	if (result->beta > 0.0) {
-		g_snprintf(buffer2, 50, ", beta=%0.1f, %s channel", result->beta, chan);
+		g_snprintf(buffer2, 50, _(", beta=%0.1f, %s channel"), result->beta, chan);
 	}
 	else {
-		g_snprintf(buffer2, 50, ", %s channel", chan);
+		g_snprintf(buffer2, 50, _(", %s channel"), chan);
 	}
-	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
+	msg = g_strdup_printf(_("PSF %s Result (%s%s):\n\n"
 				"Centroid Coordinates:\n\t\t%s\n\n"
 				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
@@ -1042,7 +1043,8 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			result->phot_is_valid ? _("photometry") : _("fit"),
+			result->profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"), buffer2,
 			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
@@ -1133,6 +1135,7 @@ psf_star *duplicate_psf(psf_star *psf) {
 }
 
 void free_psf(psf_star *psf) {
+	if (!psf) return;
 	if (psf->phot) free(psf->phot);
 	if (psf->star_name) g_free(psf->star_name);
 	free(psf);

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -213,6 +213,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 		display_path_parse_error(*status, tmpdirname);
 		g_free(tmpexp);
 		g_free(tmpdirname);
+		g_free(tmpbasename);
 		return NULL;
 	}
 	GString *newdir = g_string_new(tmpdirname);
@@ -230,6 +231,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 		g_free(dirname);
 		g_free(basename);
 		g_free(tmpdirname);
+		g_free(tmpbasename);
 		return out;
 	}
 
@@ -300,6 +302,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	g_free(basename);
 	g_free(currfile);
 	g_free(tmpdirname);
+	g_free(tmpbasename);
 	g_list_free_full(fds, (GDestroyNotify)file_date_free);
 	return out;
 }
@@ -662,8 +665,7 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	parsedname = path_parse(fit, expression, mode, status);
 	if (parsedname && createdir) {
 		dirname = g_path_get_dirname(parsedname);
-		if (g_mkdir_with_parents(dirname, 0755) < 0) {
-			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		if (siril_mkdir_with_parents(dirname, 0755) < 0) {
 			g_free(parsedname);
 			parsedname = NULL;
 		}

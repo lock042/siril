@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@
 #include "algos/extraction.h"
 #include "io/sequence.h"
 #include "gui/dialogs.h"
-#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
@@ -70,7 +69,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 					args->n = 2;
 					args->prefixes = calloc(3, sizeof(const char*));
 					args->prefixes[0] = g_strdup("Ha_");
-					args->prefixes[1] = g_strdup("Oiii_");
+					args->prefixes[1] = g_strdup("OIII_");
 					apply_extractHaOIII_to_sequence(args);
 					break;
 			}
@@ -83,17 +82,22 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			switch (method) {
 				case 1:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
+					if (args->seqEntry && args->seqEntry[0] == '\0') {
+						free(args->seqEntry);
 						args->seqEntry = strdup("Ha_");
+					}
 					apply_extractHa_to_sequence(args);
 					break;
 				case 3:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
+					if (args->seqEntry && args->seqEntry[0] == '\0') {
+						free(args->seqEntry);
 						args->seqEntry = strdup("Green_");
+					}
 					apply_extractGreen_to_sequence(args);
 					break;
 				default:
 					siril_debug_print("unhandled case!\n");
+					free(args->seqEntry);
 					free(args);
 			}
 		}

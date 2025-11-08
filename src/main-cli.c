@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@
 #endif
 
 #include <gsl/gsl_errno.h>
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -56,28 +55,22 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
-#include "core/command.h"
 #include "core/pipe.h"
-#include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
 #include "algos/siril_random.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
-#include "io/single_image.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
+#include "io/siril_pythonmodule.h"
 #include "gui/progress_and_log.h"
-#include "registration/registration.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -123,7 +116,7 @@ static GOptionEntry main_option[] = {
 	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
-	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
+	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -137,15 +130,9 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.child_is_running = EXT_NONE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
-#ifdef _WIN32
-	com.childhandle = NULL;
-#else
-	com.childpid = 0;
-#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
@@ -214,6 +201,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 
 #if defined(HAVE_LIBCURL)
@@ -263,61 +251,88 @@ static void siril_macos_setenv(const char *progname) {
 	gchar resolved_path[PATH_MAX];
 
 	if (realpath(progname, resolved_path)) {
-		gchar *path;
 		gchar tmp[PATH_MAX];
-		gchar *app_dir;
-		gchar lib_dir[PATH_MAX];
-		size_t path_len;
-		struct stat sb;
-		app_dir = g_path_get_dirname(resolved_path);
+		gchar *exe_dir;           /* executable directory */
+		gchar res_dir[PATH_MAX];  /* resources directory  */
+		gchar fra_dir[PATH_MAX];  /* frameworks directory */
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
-		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
-			g_print("Siril is started as MacOS application\n");
-		else
+		exe_dir = g_path_get_dirname(resolved_path);
+
+		/* check if running inside an application bundle and
+		 * set set res_dir and fra_dir accordingly
+		 */
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
+ 	  struct stat sb;
+		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
+			g_print("Siril is started as macOS application\n");
+			g_snprintf(tmp, sizeof(tmp), "%s/../Frameworks", exe_dir);
+			realpath(tmp, fra_dir);
+		}
+		else {
+			g_free(exe_dir);
 			return;
+		}
 
-		/* we define the relocated resources path */
-		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
+		g_mutex_lock(&com.env_mutex);
+		/* store canonical path to resources directory in environment variable. */
+		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
-		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(tmp) + 2;
-		path = g_try_malloc(path_len);
+		/* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
+		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
+			g_snprintf(path, PATH_MAX, "%s:%s", exe_dir, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", tmp);
-		/* the relocated path is storred in this env. variable in order to be reused if needed */
-		g_free(app_dir);
+			g_snprintf(path, PATH_MAX, "%s", exe_dir);
 		g_setenv("PATH", path, TRUE);
 		g_free(path);
-		g_snprintf(tmp, sizeof(tmp), "%s/share", lib_dir);
-		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", lib_dir);
-		g_setenv("GSETTINGS_SCHEMA_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gtk-3.0/3.0.0", lib_dir);
-		g_setenv("GTK_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
-		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
-		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
-		if (g_getenv("HOME") != NULL) {
-			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.free-astro.Siril", g_getenv("HOME"));
-			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.free-astro.Siril",
-					g_getenv("HOME"));
-			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+		g_free(exe_dir);
 
+		/* set XDG base directory specification variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/share", res_dir);
+		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
+		if (g_getenv("HOME") != NULL) {
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.siril.Siril", g_getenv("HOME"));
+			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.siril.Siril", g_getenv("HOME"));
+			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
+			g_setenv("XDG_DATA_HOME", tmp, TRUE);
 		}
+
+		/* set GTK related environment variables */
+		g_snprintf(tmp, sizeof(tmp), "%s", fra_dir);
+		g_setenv("GTK_EXE_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s", res_dir);
+		g_setenv("GTK_DATA_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/loaders.cache", res_dir);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/immodules.cache", res_dir);
+		g_setenv("GTK_IM_MODULE_FILE", tmp, TRUE);
+
+		/* GObject introspection */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/girepository-1.0", res_dir);
+		g_setenv("GI_TYPELIB_PATH", tmp, TRUE);
+
+		/* set fontconfig related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", res_dir);
+		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+
+		/* set SSL related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages/certifi/cacert.pem", res_dir);
+		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
+		g_setenv("SSL_CERT_FILE", tmp, TRUE);
+
+		/* set PYTHONPAH to our bundled packages */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
+		g_setenv("PYTHONPATH", tmp, TRUE);
+		g_mutex_unlock(&com.env_mutex);
+
+		/* astropy does not create its director itself */
+		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
+		siril_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
 	}
 }
 #endif
@@ -327,6 +342,7 @@ int main(int argc, char *argv[]) {
 	GApplication *app;
 	const gchar *dir;
 	gint status;
+	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
@@ -359,7 +375,11 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = g_application_new("org.siril.Siril", G_APPLICATION_NON_UNIQUE);
+#if GLIB_CHECK_VERSION(2,74,0)
+	app = g_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#else
+	app = g_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#endif
 
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	//g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
@@ -382,5 +402,6 @@ int main(int argc, char *argv[]) {
 
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
+	cleanup_common_profiles(); // close lcms2 data structures
 	return status;
 }

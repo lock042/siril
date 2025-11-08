@@ -1,7 +1,7 @@
 {
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "master",
+    "runtime-version": "48",
     "sdk": "org.gnome.Sdk",
     "command": "siril",
     "rename-icon": "org.siril.Siril",
@@ -11,17 +11,173 @@
         "--socket=fallback-x11",
         "--socket=wayland",
         "--filesystem=host",
-        /* Needed for gvfs to work */
+        "--talk-name=org.freedesktop.Flatpak",
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
-        "--share=network"
+        "--unset-env=LD_PRELOAD",
+        "--env=LD_LIBRARY_PATH=/app/lib",
+        "--env=PYTHONPATH=/app/lib/python3.13/site-packages"
     ],
     "modules": [
         {
+        "name": "tcl",
+        "subdir": "unix",
+        "cleanup": [
+            "/bin"
+        ],
+        "post-install": [
+            "chmod u+w ${FLATPAK_DEST}/lib/libtcl*.so"
+        ],
+        "sources": [
+            {
+            "type": "archive",
+            "url": "https://prdownloads.sourceforge.net/tcl/tcl8.6.16-src.tar.gz",
+            "sha256": "91cb8fa61771c63c262efb553059b7c7ad6757afa5857af6265e4b0bdc2a14a5"
+            }
+        ]
+        },
+        {
+        "name": "tk",
+        "subdir": "unix",
+        "post-install": [
+            "chmod u+w ${FLATPAK_DEST}/lib/libtk*.so"
+        ],
+        "cleanup": [
+            "/bin"
+        ],
+        "sources": [
+            {
+            "type": "archive",
+            "url": "https://prdownloads.sourceforge.net/tcl/tk8.6.16-src.tar.gz",
+            "sha256": "be9f94d3575d4b3099d84bc3c10de8994df2d7aa405208173c709cc404a7e5fe"
+            }
+        ]
+        },
+        {
+        "name": "python3.13",
+        "config-opts": [
+            "--enable-shared",
+            "--prefix=/app",
+            "--with-ensurepip=install"
+
+        ],
+        "post-install": [
+        "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python",
+        "echo '/app/lib' > ${FLATPAK_DEST}/lib/python3.13/site-packages/flatpak-python.pth"
+        ],
+        "sources": [
+            {
+            "type": "archive",
+            "url": "https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tar.xz",
+            "sha256": "93e583f243454e6e9e4588ca2c2662206ad961659863277afcdb96801647d640"
+            }
+        ]
+        },
+        {
+        "name": "python-setuptools",
+        "buildsystem": "simple",
+        "build-commands": [
+            "/app/bin/python3 setup.py build",
+            "/app/bin/python3 setup.py install --prefix=/app"
+        ],
+        "sources": [
+            {
+            "type": "archive",
+            "url": "https://pypi.org/packages/source/s/setuptools/setuptools-69.0.3.tar.gz",
+            "sha256": "be1af57fc409f93647f2e8e4573a142ed38724b8cdd389706a867bb4efcf1e78"
+            }
+        ]
+        },
+        {
+            "name": "inih",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Ddefault_library=shared",
+                "-Ddistro_install=true",
+                "-Dwith_INIReader=true"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/benhoyt/inih/archive/refs/tags/r58.tar.gz",
+                    "sha256": "e79216260d5dffe809bda840be48ab0eec7737b2bb9f02d2275c1b46344ea7b7"
+                }
+            ]
+        },
+        {
+            "name": "exiv2",
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DEXIV2_BUILD_SAMPLES=OFF",
+                "-DEXIV2_BUILD_UNIT_TESTS=OFF"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/Exiv2/exiv2/archive/refs/tags/v0.28.5.tar.gz",
+                    "sha256": "e1671f744e379a87ba0c984617406fdf8c0ad0c594e5122f525b2fb7c28d394d"
+                }
+            ]
+        },
+        {
+            "name": "opencv",
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "cleanup": [
+                "/bin",
+                "/include"
+            ],
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_EXAMPLES=OFF",
+                "-DOPENCV_GENERATE_PKGCONFIG=ON",
+                "-DBUILD_DOCS=OFF",
+                "-DBUILD_opencv_apps=OFF",
+                "-DBUILD_opencv_python2=OFF",
+                "-DBUILD_opencv_python3=OFF",
+                "-DBUILD_PERF_TESTS=OFF",
+                "-DBUILD_SHARED_LIBS=ON",
+                "-DBUILD_TESTS=OFF",
+                "-DBUILD_opencv_highgui=OFF",
+                "-DBUILD_opencv_ml=OFF",
+                "-DBUILD_opencv_dnn=OFF",
+                "-DBUILD_opencv_imgcodecs=OFF",
+                "-DBUILD_opencv_videoio=OFF",
+                "-DBUILD_opencv_video=OFF",
+                "-DBUILD_opencv_objdetect=OFF",
+                "-DBUILD_opencv_photo=OFF",
+                "-DBUILD_opencv_stitching=ON",
+                "-DBUILD_opencv_gapi=OFF",
+                "-DENABLE_PRECOMPILED_HEADERS=OFF",
+                "-DFORCE_VTK=OFF",
+                "-DWITH_FFMPEG=OFF",
+                "-DWITH_GDAL=OFF",
+                "-DWITH_IPP=OFF",
+                "-DWITH_OPENEXR=OFF",
+                "-DWITH_OPENGL=OFF",
+                "-DWITH_QT=OFF",
+                "-DWITH_TBB=OFF",
+                "-DWITH_XINE=OFF",
+                "-DBUILD_JPEG=ON",
+                "-DBUILD_TIFF=ON",
+                "-DBUILD_PNG=ON"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/opencv/opencv/archive/refs/tags/4.12.0.zip",
+                    "sha256": "fa3faf7581f1fa943c9e670cf57dd6ba1c5b4178f363a188a2c8bff1eb28b7e4"
+                }
+            ]
+        },
+        {
             "name": "cfitsio",
             "config-opts": [
-                "--enable-reentrant"
+                "--enable-reentrant",
+                "CFLAGS=-std=c99"
             ],
             "make-args": ["shared"],
             "cleanup": [
@@ -37,6 +193,57 @@
                     "disable-http-decompression": true,
                     "sha256": "eba53d1b3f6e345632bb09a7b752ec7ced3d63ec5153a848380f3880c5d61889"
                 }
+            ]
+        },
+        {
+            "name": "libxml2",
+            "buildsystem": "autotools",
+            "config-opts": [
+                "--disable-static",
+                "--disable-python",
+                "--disable-introspection",
+                "--with-history",
+                "--with-icu"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/libxml2/2.11/libxml2-2.11.5.tar.xz",
+                    "sha256": "3727b078c360ec69fa869de14bd6f75d7ee8d36987b071e6928d4720a28df3a6"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "/lib/pkgconfig",
+                "/lib/cmake",
+                "/bin/xmlcatalog",
+                "/bin/xmllint",
+                "/share/aclocal",
+                "/share/doc",
+                "/share/gtk-doc",
+                "/share/man"
+            ]
+        },
+        {
+            "name": "gtksourceview4",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Dgir=false",
+                "-Dvapi=false"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://deb.debian.org/debian/pool/main/g/gtksourceview4/gtksourceview4_4.8.4.orig.tar.xz",
+                    "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
+                }
+            ],
+            "cleanup": [
+                "/include",
+                "*.la",
+                "*.a",
+                "/lib/pkgconfig",
+                "/share/gtk-doc"
             ]
         },
         {
@@ -111,8 +318,8 @@
                     "sources": [
                         {
                             "type": "archive",
-                            "url": "https://github.com/google/highway/archive/refs/tags/1.0.2.tar.gz",
-                            "sha256": "e8ef71236ac0d97f12d553ec1ffc5b6375d57b5f0b860c7447dd69b6ed1072db"
+                            "url": "https://github.com/google/highway/archive/refs/tags/1.0.7.tar.gz",
+                            "sha256": "5434488108186c170a5e2fca5e3c9b6ef59a1caa4d520b008a9b8be6b8abe6c5"
                         }
                     ]
                 }
@@ -120,8 +327,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.7.0.tar.gz",
-                    "sha256": "3114bba1fabb36f6f4adc2632717209aa6f84077bc4e93b420e0d63fa0455c5e"
+                    "url": "https://github.com/libjxl/libjxl/archive/refs/tags/v0.10.2.tar.gz",
+                    "sha256": "95e807f63143856dc4d161c071cca01115d2c6405b3d3209854ac6989dc6bb91"
                 }
             ]
         },
@@ -215,39 +422,22 @@
             ]
         },
         {
-            "name": "exiv2",
-            "buildsystem": "cmake-ninja",
-            "config-opts": ["-DCMAKE_BUILD_TYPE=Release"],
-            "cleanup": [
-                "/bin",
-                "/include",
-                "/lib/cmake",
-                "/lib/pkgconfig",
-                "*.a",
-                "/share/man"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://github.com/Exiv2/exiv2/releases/download/v0.27.5/exiv2-0.27.5-Source.tar.gz",
-                    "sha256": "35a58618ab236a901ca4928b0ad8b31007ebdc0386d904409d825024e45ea6e2"
-                }
-            ]
-        },
-        {
             "name": "libraw",
-            "config-opts": [ "--disable-examples",
-                             "--disable-jasper",
-                             "--disable-static",
-                             "--enable-jpeg",
-                             "--enable-lcms",
-                             "--enable-openmp" ],
+            "buildsystem": "autotools",
+            "config-opts": [
+                "--disable-examples",
+                "--disable-jasper",
+                "--disable-static",
+                "--enable-jpeg",
+                "--enable-lcms",
+                "--enable-openmp"
+            ],
             "cleanup": [ "/share/doc" ],
             "sources": [
                 {
-                    "type": "archive",
-                    "url": "https://www.libraw.org/data/LibRaw-0.21.1.tar.gz",
-                    "sha256": "630a6bcf5e65d1b1b40cdb8608bdb922316759bfb981c65091fec8682d1543cd"
+                    "type": "git",
+                    "url": "https://github.com/LibRaw/LibRaw.git",
+                    "commit": "8afe44cd0e96611ba3cb73779b83ad05e945634c"
                 },
                 {
                     "type": "shell",
@@ -347,65 +537,13 @@
                 }
             ]
         },
-        {
-            "name": "opencv",
-            "buildsystem": "cmake-ninja",
-            "builddir": true,
-            "cleanup": [
-                "/bin",
-                "/include",
-                "/lib/pkgconfig"
-            ],
-            "config-opts": [
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DBUILD_EXAMPLES=OFF",
-                "-DOPENCV_GENERATE_PKGCONFIG=ON",
-                "-DBUILD_DOCS=OFF",
-                "-DBUILD_opencv_apps=OFF",
-                "-DBUILD_opencv_python2=OFF",
-                "-DBUILD_opencv_python3=OFF",
-                "-DBUILD_PERF_TESTS=OFF",
-                "-DBUILD_SHARED_LIBS=ON",
-                "-DBUILD_TESTS=OFF",
-                "-DBUILD_opencv_highgui=OFF",
-                "-DBUILD_opencv_ml=OFF",
-                "-DBUILD_opencv_dnn=OFF",
-                "-DBUILD_opencv_imgcodecs=OFF",
-                "-DBUILD_opencv_videoio=OFF",
-                "-DBUILD_opencv_video=OFF",
-                "-DBUILD_opencv_objdetect=OFF",
-                "-DBUILD_opencv_photo=OFF",
-                "-DBUILD_opencv_stitching=ON",
-                "-DBUILD_opencv_gapi=OFF",
-                "-DENABLE_PRECOMPILED_HEADERS=OFF",
-                "-DFORCE_VTK=OFF",
-                "-DWITH_FFMPEG=OFF",
-                "-DWITH_GDAL=OFF",
-                "-DWITH_IPP=OFF",
-                "-DWITH_OPENEXR=OFF",
-                "-DWITH_OPENGL=OFF",
-                "-DWITH_QT=OFF",
-                "-DWITH_TBB=OFF",
-                "-DWITH_XINE=OFF",
-                "-DBUILD_JPEG=ON",
-                "-DBUILD_TIFF=ON",
-                "-DBUILD_PNG=ON"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://github.com/opencv/opencv/archive/4.8.0.zip",
-                    "sha256": "9dc6a9a95edc133e165e9f6db9412dd899e28d4e5e4979f17cb5966f4b7f3fb1"
-                }
-            ]
-        },
-
         "shared-modules/intltool/intltool-0.51.json",
         {
             "name": "siril",
             "buildsystem": "meson",
             "config-opts": [
-                "--buildtype=release"
+                "--buildtype=release",
+                "-Dflatpak-id=${FLATPAK_ID}"
             ],
             "post-install": [
                 "sed -i s/text-x-seq/${FLATPAK_ID}.text-x-seq/ ${FLATPAK_DEST}/share/mime/packages/siril.xml",

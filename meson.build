@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.4',
+  version : '1.5.0',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -150,8 +150,25 @@ siril_link_arg = []
 siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
+
+# clang compiler flags to aid with identifying missed vectorization - uncomment to use
+enable_simd_logs = get_option('simd_logs')
+if enable_simd_logs and meson.get_compiler('c').get_id() == 'clang'
+  siril_c_flag += ['-Rpass=loop-vectorize', '-Rpass-missed=loop-vectorize', '-Rpass-analysis=loop-vectorize']
+  siril_cpp_flag += ['-Rpass=loop-vectorize', '-Rpass-missed=loop-vectorize', '-Rpass-analysis=loop-vectorize']
+endif
+
+# Add arch=native support if enabled
+enable_arch_native = get_option('arch_native')
+if enable_arch_native
+  message('Enabling -march=native optimization')
+  siril_c_flag += ['-march=native', '-O3', '-mtune=native']
+  siril_cpp_flag += ['-march=native', '-O3', '-mtune=native']
+endif
+
 if platform_linux
   siril_link_arg += ['-rdynamic']
+  siril_link_arg += '-lrt' # for shm_open()
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -231,10 +248,10 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
+# lcms2 dependency for color management
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
 # wcslib mandatory - uses subproject fallback to build if not found
 wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
-json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -306,6 +323,24 @@ endif
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
+endif
+gtksourceview_dep = dependency('gtksourceview-4')
+
+healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
+yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
+if not yyjson_dep.found()
+  opt_var = cmake.subproject_options()
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/yyjson'})
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
+  sub_proj = cmake.subproject('yyjson', options: opt_var)
+
+  yyjson_dep = sub_proj.dependency('yyjson')
+  yyjson_inc = sub_proj.include_directories('yyjson')
+else
+  siril_cpp_flag += '-DHAVE_YYJSON'
 endif
 
 ## Optional dependencies
@@ -401,6 +436,16 @@ endif
 libgit2_dep = no_dep
 if enable_libgit2
   libgit2_dep = dependency('libgit2', required : true)
+  if libgit2_dep.version().version_compare('>=1.8.1') and libgit2_dep.version().version_compare('<1.9.1')
+    libgit2_warning='''
+
+        libgit2 with a version between 1.8.0 and 1.9.0 is known to have serious issues.
+        https://github.com/libgit2/libgit2/issues/7090
+        Please update to 1.9.1 or later.
+    '''
+    warning(libgit2_warning)
+    warnings += libgit2_warning
+  endif
 endif
 
 ffms2_dep = no_dep
@@ -461,14 +506,16 @@ conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the loc
 
 # Man page platform specific
 
+config_filename = 'config.@0@.@1@.ini'.format(siril_version_major, siril_version_minor)
+
 if platform_windows
-  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\esiril\econfig.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\\esiril\\e' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
 elif platform_osx
-  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
 else
-  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/config.ini')
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/' + config_filename)
   conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
 endif
 
@@ -485,6 +532,10 @@ elif platform_bsd
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'bsd')
 else
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'other')
+endif
+
+if get_option('flatpak-id') != ''
+  conf_data.set_quoted('FLATPAK_ID', get_option('flatpak-id'))
 endif
 
 # Check for available headers
@@ -604,8 +655,8 @@ conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is 
 
 ## Git configuration
 git_data = configuration_data()
-git_data.set_quoted('SIRIL_GIT_VERSION_ABBREV', git_version)
-git_data.set_quoted('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
+git_data.set('SIRIL_GIT_VERSION_ABBREV', git_version)
+git_data.set('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ################################################################################
 # Externals dependencies
@@ -625,11 +676,11 @@ externals_dep = declare_dependency(
     opencv4_dep,
     rtprocess_dep,
     htmesh_dep,
+    healpix_dep,
     exiv_dep,
     wcslib_dep,
     fftw3f_dep,
     cfitsio_dep,
-    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,
@@ -641,7 +692,9 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
-    ffmpeg
+    ffmpeg,
+    gtksourceview_dep,
+    yyjson_dep
   ]
 )
 
@@ -654,6 +707,7 @@ subdir('src')
 subdir('pixmaps')
 subdir('data')
 subdir('po')
+subdir('python_module')
 subdir('scripts')
 subdir('3rdparty_licenses')
 
@@ -701,6 +755,7 @@ summary(
 summary(
   {
     'openmp'    : get_option('openmp'),
+    'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'
 )
 

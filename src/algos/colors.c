@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,12 +29,10 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/undo.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -1315,7 +1313,6 @@ static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ccm_finalize_hook(struct generic_seq_args *args) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int retval = seq_finalize_hook(args);
-
 	free(c_args);
 	return retval;
 }
@@ -1332,11 +1329,15 @@ void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
 	args->description = _("Color Conversion Matrices");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = ccm_args->seqEntry;
+	args->new_seq_prefix = strdup(ccm_args->seqEntry);
 	args->load_new_sequence = TRUE;
 	args->user = ccm_args;
 
 	ccm_args->fit = NULL;	// not used here
 
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(ccm_args->seqEntry);
+		free(ccm_args);
+		free_generic_seq_args(args, TRUE);
+	}
 }

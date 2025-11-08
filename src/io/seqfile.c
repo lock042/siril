@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <assert.h>
 
 #include "core/siril.h"
@@ -38,9 +37,9 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
+#include "stacking/stacking.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -52,9 +51,15 @@
  * version 3 introduced new weighted fwhm criteria, 0.99.0
  * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
  * version 5:
- * 	- removed upscale at stacking (U card)
+ * 	- removed upscale at stacking (U card) 1.3.4
+ *  - added D* cards containing distortion and astrometry information 1.3.4  - see enum disto_source
+ *  - added overlap statistics in the O* cards:
+ *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
+ * 		=> with N the layer number and i,j the ith and jth images of the sequence
+ * version 6
+ * - added drrizle card for drizzled registration. Indicates there should be a drizzletmp folder and drizzle weights files
  */
-#define CURRENT_SEQFILE_VERSION 5	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 6	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -112,15 +117,20 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d %d";
+				else
+					scanformat = "%511s %d %d %d %d %d %d %d %d %d";
 
-				if(sscanf(line+2, scanformat,
+				int nbtokens = sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
-						allocated != 0){
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz, &seq->is_drizzle);
+				if((nbtokens < 6 && version < 6) || (nbtokens < 10 && version >= 6) || allocated != 0) {
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				if (version < 0) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n", line);
 					goto error;
 				}
 				if (seq->number == 0) {
@@ -437,13 +447,24 @@ sequence * readseqfile(const char *name){
 					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = malloc(sizeof(struct fits_sequence));
+					seq->fitseq_file = calloc(1, sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
-					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, get_com_ext(seq->fz));
-					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
-					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file, READONLY)) {
-						g_free(seq->fitseq_file->filename);
+					int i = 0;
+					static const char *fitseq_ext[] = { ".fit", ".fits", ".fts", ".fit.fz", ".fits.fz", ".fts.fz", NULL };
+					// We only look for lowercase extensions as FITSEQ will only have been created by Siril, and should
+					// have used a lowercase extensions set in com.pref.ext
+					while (fitseq_ext[i]) {
+						GString *fileString = g_string_new(filename);
+						g_string_append(fileString, fitseq_ext[i++]);
+						gchar *test_filename = g_string_free(fileString, FALSE);
+						if (g_file_test(test_filename, G_FILE_TEST_EXISTS) && !fitseq_open(test_filename, seq->fitseq_file, READONLY)) {
+							seq->fitseq_file->filename = test_filename;
+							break;
+						} else {
+							g_free(test_filename);
+						}
+					}
+					if (!seq->fitseq_file->filename) {
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;
 						goto error;
@@ -576,6 +597,44 @@ sequence * readseqfile(const char *name){
 					goto error;
 				}
 				break;
+			case 'O':
+				current_layer = line[1] - '0';
+				if (!seq->ostats) {
+					seq->ostats = alloc_ostats(seq->nb_layers, seq->number);
+					if (!seq->ostats) {
+						PRINT_ALLOC_ERR;
+						goto error;
+					}
+				}
+				overlap_stats_t ostat = { 0 };
+				nb_tokens = sscanf(line + 3,
+					"%d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g",
+					&(ostat.i),
+					&(ostat.j),
+					&(ostat.areai.x),
+					&(ostat.areai.y),
+					&(ostat.areaj.x),
+					&(ostat.areaj.y),
+					&(ostat.areai.w),
+					&(ostat.areai.h),
+					&(ostat.Nij),
+					&(ostat.medij),
+					&(ostat.medji),
+					&(ostat.madij),
+					&(ostat.madji),
+					&(ostat.locij),
+					&(ostat.locji),
+					&(ostat.scaij),
+					&(ostat.scaji));
+				if (nb_tokens != 17) {
+					fprintf(stderr, "readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				ostat.areaj.w = ostat.areai.w;
+				ostat.areaj.h = ostat.areai.h;
+				int ijth = get_ijth_pair_index(seq->number, ostat.i, ostat.j);
+				seq->ostats[current_layer][ijth] = ostat;
+				break;
 		}
 	}
 	if (!allocated) {
@@ -634,10 +693,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag drizzle\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz, seq->is_drizzle);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {
@@ -654,7 +713,7 @@ int writeseqfile(sequence *seq){
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);
 
-	for(i=0; i < seq->number; ++i){
+	for(i = 0; i < seq->number; ++i){
 		if (seq->is_variable) {
 			fprintf(seqfile,"I %d %d %d,%d\n",
 					seq->imgparam[i].filenum,
@@ -717,7 +776,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats && seq->stats[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -742,7 +801,7 @@ int writeseqfile(sequence *seq){
 	}
 	for (layer = 0; layer < 3; layer++) {
 		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '0' + layer : '*',
 						seq->regparam_bkp[layer][i].fwhm,
@@ -764,7 +823,7 @@ int writeseqfile(sequence *seq){
 			}
 		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			for (i = 0; i < seq->number; ++i) {
 				if (!seq->stats_bkp[layer][i]) continue;
 
 				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
@@ -783,6 +842,34 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
+			}
+		}
+	}
+	if (seq->ostats) {
+		for (layer = 0; layer < seq->nb_layers; layer++) {
+			int Npairs = seq->number * (seq->number - 1) / 2;
+			for (i = 0; i < Npairs; i++) {
+				if (seq->ostats[layer][i].i == -1)
+					continue;
+				fprintf(seqfile, "O%d %d %d %d %d %d %d %d %d %zu %g %g %g %g %g %g %g %g\n",
+					layer,
+					seq->ostats[layer][i].i,
+					seq->ostats[layer][i].j,
+					seq->ostats[layer][i].areai.x,
+					seq->ostats[layer][i].areai.y,
+					seq->ostats[layer][i].areaj.x,
+					seq->ostats[layer][i].areaj.y,
+					seq->ostats[layer][i].areai.w,
+					seq->ostats[layer][i].areai.h,
+					seq->ostats[layer][i].Nij,
+					seq->ostats[layer][i].medij,
+					seq->ostats[layer][i].medji,
+					seq->ostats[layer][i].madij,
+					seq->ostats[layer][i].madji,
+					seq->ostats[layer][i].locij,
+					seq->ostats[layer][i].locji,
+					seq->ostats[layer][i].scaij,
+					seq->ostats[layer][i].scaji);
 			}
 		}
 	}

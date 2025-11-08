@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #include "core/siril_log.h"
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
-#include <json-glib/json-glib.h>
+#include "yyjson.h"
 
 // Uncomment the following line for verbose confirmation of loading each JSON object
 // #define DEBUG_JSON
@@ -40,59 +40,61 @@ spcc_object* spcc_object_copy(spcc_object *data);
 gboolean spcc_metadata_loaded = FALSE;
 
 static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index, gboolean from_osc_sensor) {
-
 	if (!jsonFilePath)
 		return FALSE;
-
-	GError *error = NULL;
-	JsonParser *parser;
-	JsonObject *object;
-	JsonNode *node;
-	JsonArray *array;
 
 	// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 	memset(data, 0, sizeof(spcc_object));
 
-	// Create a JSON parser
-	parser = json_parser_new();
-
-	// Load JSON file
-	if (!json_parser_load_from_file(parser, jsonFilePath, &error)) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
-		g_error_free(error);
-		g_object_unref(parser);
-		return 0;
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(jsonFilePath, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", jsonFilePath);
+		return FALSE;
 	}
 
-	// Parse JSON data
-	node = json_parser_get_root(parser);
-	// Ensure the root is an array
-	if (!JSON_NODE_HOLDS_ARRAY(node)) {
+	// Read the file using yyjson_read_fp()
+	yyjson_read_err err;
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
+	if (!doc) {
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", jsonFilePath, err.msg, err.pos);
+		return FALSE;
+	}
+
+	// Get root array
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	if (!yyjson_is_arr(root)) {
 		siril_log_color_message(_("Error: The JSON file should contain an array of objects.\n"), "red");
-		g_object_unref(parser);
+		yyjson_doc_free(doc);
 		return 0;
 	}
 
-	// Get the array of objects
-	array = json_node_get_array(node);
-	int num_objects = json_array_get_length(array);
-	if (index > num_objects) {
+	// Get the object at specified index
+	size_t num_objects = yyjson_arr_size(root);
+	if (index >= num_objects) {
 		siril_debug_print("Error: index out of range.\n");
-		g_object_unref(parser);
+		yyjson_doc_free(doc);
 		return 0;
 	}
-	object = json_array_get_object_element(array, index);
+	yyjson_val *object = yyjson_arr_get(root, index);
 
-	// Get values from JSON and store in the struct
-	const gchar *typestring = json_object_get_string_member(object, "type");
+	// Get type and validate
+	const char *typestring = yyjson_get_str(yyjson_obj_get(object, "type"));
+	if (!typestring) goto validation_error;
+
 	if (!strcmp(typestring, "MONO_SENSOR")) {
 		data->type = MONO_SENSORS;
 	} else if (!strcmp(typestring, "OSC_SENSOR")) {
 		if (!from_osc_sensor) {
-			g_object_unref(parser);
+			yyjson_doc_free(doc);
 			return 2; // OSC sensors are handled by a different routine
 		} else {
-			data->type = OSC_SENSORS; // We have been called from the OSC handler
+			data->type = OSC_SENSORS;
 		}
 	} else if (!strcmp(typestring, "MONO_FILTER")) {
 		data->type = MONO_FILTERS;
@@ -105,26 +107,65 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	} else {
 		goto validation_error;
 	}
-	data->model = g_strdup(json_object_get_string_member(object, "model"));
-	if (!data->model) {
+
+	// Get required string fields
+	const char *model = yyjson_get_str(yyjson_obj_get(object, "model"));
+	const char *name = yyjson_get_str(yyjson_obj_get(object, "name"));
+	const char *manufacturer = yyjson_get_str(yyjson_obj_get(object, "manufacturer"));
+	const char *source = yyjson_get_str(yyjson_obj_get(object, "dataSource"));
+
+	if (!model || !name || !manufacturer || !source) {
 		goto validation_error;
 	}
-	data->name = g_strdup(json_object_get_string_member(object, "name"));
-	if (!data->name) {
+	if (!g_utf8_validate(model, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'model'\n", jsonFilePath);
 		goto validation_error;
 	}
-	if (json_object_has_member(object, "comment")) {
-		data->comment = g_strdup(json_object_get_string_member(object, "comment"));
-	}
-	if (json_object_has_member(object, "is_dslr")) {
-		data->is_dslr = json_object_get_boolean_member(object, "is_dslr");
-	}
-	data->quality = json_object_get_int_member(object, "dataQualityMarker");
-	if (!data->quality) {
+	if (!g_utf8_validate(name, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'name'\n", jsonFilePath);
 		goto validation_error;
 	}
-	if (json_object_has_member(object, "channel")) {
-		const gchar *channel_string = json_object_get_string_member(object, "channel");
+	if (!g_utf8_validate(manufacturer, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'manufacturer'\n", jsonFilePath);
+		goto validation_error;
+	}
+	if (!g_utf8_validate(source, -1, NULL)) {
+		siril_debug_print("Invalid UTF-8 in SPCC file %s for field 'source'\n", jsonFilePath);
+		goto validation_error;
+	}
+	data->model = g_strdup(model);
+	data->name = g_strdup(name);
+	data->manufacturer = g_strdup(manufacturer);
+	data->source = g_strdup(source);
+
+	// Get optional string fields
+	yyjson_val *comment = yyjson_obj_get(object, "comment");
+	if (comment) {
+		data->comment = g_strdup(yyjson_get_str(comment));
+	}
+
+	// Get optional boolean fields
+	yyjson_val *is_dslr = yyjson_obj_get(object, "is_dslr");
+	if (is_dslr) {
+		data->is_dslr = yyjson_get_bool(is_dslr);
+	}
+
+	// Get required integer fields
+	yyjson_val *quality = yyjson_obj_get(object, "dataQualityMarker");
+	yyjson_val *version = yyjson_obj_get(object, "version");
+	if (!quality || !version) {
+		goto validation_error;
+	}
+	data->quality = yyjson_get_int(quality);
+	data->version = yyjson_get_int(version);
+	if (!data->quality || !data->version) {
+		goto validation_error;
+	}
+
+	// Handle channel field if present
+	yyjson_val *channel_val = yyjson_obj_get(object, "channel");
+	if (channel_val) {
+		const char *channel_string = yyjson_get_str(channel_val);
 		if (!strcmp(channel_string, "RED")) {
 			data->channel = SPCC_RED;
 		} else if (!strcmp(channel_string, "GREEN")) {
@@ -132,52 +173,47 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 		} else if (!strcmp(channel_string, "BLUE")) {
 			data->channel = SPCC_BLUE;
 		} else if (!strcmp(channel_string, "RED GREEN") || !strcmp(channel_string, "GREEN RED")) {
-			data->channel = SPCC_RED | SPCC_BLUE;
+			data->channel = SPCC_RED | SPCC_GREEN;
 		} else if (!strcmp(channel_string, "GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN")) {
 			data->channel = SPCC_GREEN | SPCC_BLUE;
-		} else if (!strcmp(channel_string, "RED BLUE") || !strcmp(channel_string, "BLUE RED")) { // This is unlikely ever to be used
-		// but is included for completeness
+		} else if (!strcmp(channel_string, "RED BLUE") || !strcmp(channel_string, "BLUE RED")) {
 			data->channel = SPCC_RED | SPCC_BLUE;
-		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN RED")) {
+		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE") ||
+			!strcmp(channel_string, "BLUE GREEN RED")) {
 			data->channel = SPCC_CLEAR;
-		} else {
-			data->channel = SPCC_INVIS; // Other filters e.g. UV or IR filters
-			// should not be shown in SPCC combos
-		}
+			} else {
+				data->channel = SPCC_INVIS;
+			}
 	}
-	data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
-	if (!data->manufacturer) {
-		goto validation_error;
-	}
-	data->source = g_strdup(json_object_get_string_member(object, "dataSource"));
-	if (!data->source) {
-		goto validation_error;
-	}
-	data->version = json_object_get_int_member(object, "version");
-	if (!data->version) {
-		goto validation_error;
-	}
+
+	// Store filepath and index
 	data->filepath = g_strdup(jsonFilePath);
 	data->index = index;
 
-	// Get array lengths for validation
-	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
-	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "value");
-	JsonObject *valuesObject = json_object_get_object_member(object, "values");
-	JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
-	data->n = json_array_get_length(wavelengthArray);
-	int valuesLength = json_array_get_length(valuesArray);
-	if (data->n != valuesLength) {
-		siril_log_color_message(_("Error loading SPCC JSON file: arrays have not the same size (%d != %d)\n"), "red", data->n, valuesLength);
+	// Validate arrays
+	yyjson_val *wavelengthObject = yyjson_obj_get(object, "wavelength");
+	yyjson_val *wavelengthArray = yyjson_obj_get(wavelengthObject, "value");
+	yyjson_val *valuesObject = yyjson_obj_get(object, "values");
+	yyjson_val *valuesArray = yyjson_obj_get(valuesObject, "value");
+
+	if (!yyjson_is_arr(wavelengthArray) || !yyjson_is_arr(valuesArray)) {
 		goto validation_error;
 	}
 
-    // Cleanup
-	g_object_unref(parser);
+	data->n = yyjson_arr_size(wavelengthArray);
+	size_t valuesLength = yyjson_arr_size(valuesArray);
+
+	if (data->n != valuesLength) {
+		siril_log_color_message(_("Error loading SPCC JSON file: arrays have not the same size (%zu != %zu)\n"),
+								"red", data->n, valuesLength);
+		goto validation_error;
+	}
+
+	yyjson_doc_free(doc);
 	return 1;
 
-validation_error:
-	g_object_unref(parser);
+	validation_error:
+	yyjson_doc_free(doc);
 	g_free(data->model);
 	data->model = NULL;
 	g_free(data->name);
@@ -237,87 +273,105 @@ static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor 
 
 static gboolean processJsonFile(const char *file_path) {
 	int retval = 0;
-	GError *error = NULL;
-	JsonParser *parser;
-	JsonNode *node;
-	JsonArray *array;
 
 	if (!file_path)
 		return FALSE;
 
-	// Create a JSON parser
-	parser = json_parser_new();
-
-	// Load JSON file
-	if (!json_parser_load_from_file(parser, file_path, &error)) {
-        siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
-        g_error_free(error);
-        g_object_unref(parser);
+	// Read and parse JSON file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(file_path, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", file_path);
 		return FALSE;
 	}
 
-	// Parse JSON data
-	node = json_parser_get_root(parser);
-	// Ensure the root is an array
-	if (!JSON_NODE_HOLDS_ARRAY(node)) {
+	// Read the file using yyjson_read_fp()
+	yyjson_read_err err;
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
+	if (!doc) {
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", file_path, err.msg, err.pos);
+		return FALSE;
+	}
+
+	// Get root array
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	if (!yyjson_is_arr(root)) {
 		siril_debug_print("Error: The JSON file should contain an array of objects.\n");
-		g_object_unref(parser);
+		yyjson_doc_free(doc);
 		return FALSE;
 	}
 
-	// Get the array of objects
-	array = json_node_get_array(node);
-	int num_objects = json_array_get_length(array);
+	// Get number of objects
+	size_t num_objects = yyjson_arr_size(root);
 
-	g_object_unref(parser);
-
-	for (int index = 0 ; index < num_objects ; index++) {
+	// Process each object in the array
+	for (size_t index = 0; index < num_objects; index++) {
 		spcc_object *data = g_new0(spcc_object, 1);
 		// Ensure data is zero-filled to prevent any issues with freeing members at validation fail time
 		memset(data, 0, sizeof(spcc_object));
 
-		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
+		retval = load_spcc_object_from_file(file_path, data, (int)index, FALSE);
+
 		if (retval == 1) {
-#ifdef DEBUG_JSON
+			#ifdef DEBUG_JSON
 			siril_debug_print("Read JSON object: %s\n", data->name);
-#endif
+			#endif
 			// Place the data into the correct list based on its type
 			switch (data->type) {
 				case MONO_SENSORS:
 					com.spcc_data.mono_sensors = g_list_append(com.spcc_data.mono_sensors, data);
 					break;
+
 				case OSC_SENSORS:
 					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
+
 				case MONO_FILTERS:;
-					gboolean added = FALSE;
-					for (int chan = RLAYER ; chan <= BLAYER ; chan++) {
-						if ((int) data->channel & (1 << chan)) {
-							if (!added) {
-								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], data);
-								added = TRUE;
-							} else {
-								// If a spcc object has already been added to one channel and needs adding
-								// to another we MUST make a copy, otherwise we get corruption when reloading
-								// the objects
-								spcc_object *copy = spcc_object_copy(data);
+				gboolean added = FALSE;
+				for (int chan = RLAYER; chan <= BLAYER; chan++) {
+					if ((int)data->channel & (1 << chan)) {
+						if (!added) {
+							com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], data);
+							added = TRUE;
+						} else {
+							// If a spcc object has already been added to one channel and needs adding
+							// to another we MUST make a copy, otherwise we get corruption when reloading
+							// the objects
+							spcc_object *copy = spcc_object_copy(data);
+							if (copy) {
 								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], copy);
+							} else {
+								siril_debug_print("Error copying SPCC object for channel duplication\n");
 							}
 						}
 					}
-					break;
+				}
+				if (!added) {
+					spcc_object_free(data, TRUE); // Free if not added anywhere
+				}
+				break;
+
 				case OSC_FILTERS:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
 					break;
+
 				case OSC_LPFS:
 					com.spcc_data.osc_lpf = g_list_append(com.spcc_data.osc_lpf, data);
 					break;
+
 				case WB_REFS:
 					com.spcc_data.wb_ref = g_list_append(com.spcc_data.wb_ref, data);
 					break;
+
 				default:
 					siril_debug_print("Unknown type: %d", data->type);
 					spcc_object_free(data, TRUE);
+					yyjson_doc_free(doc);
 					return FALSE;
 			}
 		} else {
@@ -326,19 +380,23 @@ static gboolean processJsonFile(const char *file_path) {
 				osc_sensor *osc = g_new0(osc_sensor, 1);
 				retval = load_osc_sensor_from_file(file_path, osc);
 				if (retval) {
-#ifdef JSON_DEBUG
+					#ifdef JSON_DEBUG
 					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
-#endif
+					#endif
 					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
+					yyjson_doc_free(doc);
 					return TRUE;
 				} else {
 					siril_log_color_message(_("Error reading JSON object in file %s\n"), "red", file_path);
 					osc_sensor_free(osc, TRUE);
+					yyjson_doc_free(doc);
 					return FALSE;
 				}
 			}
 		}
 	}
+
+	yyjson_doc_free(doc);
 	return TRUE;
 }
 
@@ -346,18 +404,46 @@ static gboolean processJsonFile(const char *file_path) {
 
 spcc_object* spcc_object_copy(spcc_object *data) {
 	spcc_object *copy = malloc(sizeof(spcc_object));
-	if (!copy) return NULL;
-	memcpy(copy, data, sizeof(spcc_object));
+	if (!copy) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+
+	memcpy(copy, data, sizeof(spcc_object));  // Copies primitive values and pointers
+
+	// Set string pointers to NULL before duplicating
+	copy->model = copy->name = copy->filepath = copy->comment = copy->manufacturer = copy->source = NULL;
+	// Duplicate strings individually
 	copy->model = g_strdup(data->model);
 	copy->name = g_strdup(data->name);
 	copy->filepath = g_strdup(data->filepath);
 	copy->comment = g_strdup(data->comment);
 	copy->manufacturer = g_strdup(data->manufacturer);
 	copy->source = g_strdup(data->source);
+	if ((!copy->model && data->model != NULL) ||
+		(!copy->name && data->name != NULL) ||
+		(!copy->filepath && data->filepath != NULL) ||
+		(!copy->comment && data->comment != NULL) ||
+		(!copy->manufacturer && data->manufacturer != NULL) ||
+		(!copy->source && data->source != NULL)) {
+		siril_debug_print("Error copying strings in spcc_object %s\n", data->filepath);
+		// Free anything that was already allocated
+		g_free(copy->model);
+		g_free(copy->name);
+		g_free(copy->filepath);
+		g_free(copy->comment);
+		g_free(copy->manufacturer);
+		g_free(copy->source);
+		free(copy);
+		return NULL;
+	}
+
+	// Reset fields that shouldn't be copied
 	copy->arrays_loaded = FALSE;
 	copy->x = NULL;
 	copy->y = NULL;
 	copy->n = 0;
+
 	return copy;
 }
 
@@ -367,12 +453,16 @@ void spcc_object_free(spcc_object *data, gboolean free_struct) {
 		return;
 	g_free(data->name);
 	data->name = NULL;
+	g_free(data->model);
+	data->model = NULL;
 	g_free(data->manufacturer);
 	data->manufacturer = NULL;
 	g_free(data->filepath);
 	data->filepath = NULL;
 	g_free(data->source);
 	data->source = NULL;
+	g_free(data->comment);
+	data->comment = NULL;
 	free(data->x);
 	data->x = NULL;
 	free(data->y);
@@ -398,6 +488,8 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 		data->channel[i].filepath = NULL;
 		g_free(data->channel[i].source);
 		data->channel[i].source = NULL;
+		g_free(data->channel[i].comment);
+		data->channel[i].comment = NULL;
 		free(data->channel[i].x);
 		data->channel[i].x = NULL;
 		free(data->channel[i].y);
@@ -450,121 +542,190 @@ int remove_duplicate_x(point *points, int n, const gchar *filename) {
 	return write_index + 1;
 }
 
-// Call to populate the arrays of a specific spcc_object
 gboolean load_spcc_object_arrays(spcc_object *data) {
-	if (!data || !data->filepath) // Avoid dereferencing null pointers, if the spcc_object isn't prepopulated we can't load the arrays
+	if (!data || !data->filepath)
 		return FALSE;
-
 	if (data->arrays_loaded)
 		return TRUE;
 
-	GError *error = NULL;
-	JsonParser *parser;
-	JsonObject *object;
-	JsonNode *node;
-	JsonArray *array;
-	int index = data->index;
+	// Clear existing arrays
+	free(data->x);
+	free(data->y);
+	data->x = data->y = NULL;
 
-	// Ensure arrays are not already populated, to avoid memory leaks
-	if (data->x) {
-		free(data->x);
-		data->x = NULL;
-	}
-	if (data->y) {
-		free(data->y);
-		data->y = NULL;
-	}
-
-	// Create a JSON parser
-	parser = json_parser_new();
-
-	// Load JSON file
-	if (!json_parser_load_from_file(parser, data->filepath, &error)) {
-		siril_log_color_message(_("Error loading SPCC JSON file: %s\n"), "red", error->message);
-		g_error_free(error);
-		g_object_unref(parser);
+	// Read JSON file
+	// Open the file using g_fopen()
+	FILE *fp = g_fopen(data->filepath, "rb");
+	if (!fp) {
+		// Handle file opening error
+		siril_log_color_message(_("Failed to open file: %s\n"), "red", data->filepath);
 		return FALSE;
 	}
 
-	// Parse JSON data
-	node = json_parser_get_root(parser);
-	// Ensure the root is an array
-	if (!JSON_NODE_HOLDS_ARRAY(node)) {
-		siril_log_color_message(_("Error: The JSON file should contain an array of objects.\n"), "red");
-		g_object_unref(parser);
+	// Read the file using yyjson_read_fp()
+	yyjson_read_err err;
+	yyjson_doc *doc = yyjson_read_fp(fp, 0, NULL, &err);
+
+	// Close the file
+	fclose(fp);
+	if (!doc) {
+		siril_log_color_message(_("Error loading SPCC JSON file %s: %s (at position %zu)\n"),
+				"red", data->filepath, err.msg, err.pos);
 		return FALSE;
 	}
 
-	// Get the array of objects
-	array = json_node_get_array(node);
-	int num_objects = json_array_get_length(array);
-	if (index > num_objects) {
-		siril_debug_print("Error: index out of range.\n");
-		g_object_unref(parser);
-		return FALSE;
+	// Get root and handle both array and single object cases
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *object = NULL;
+
+	if (yyjson_is_arr(root)) {
+		size_t num_objects = yyjson_arr_size(root);
+		if (data->index >= num_objects) {
+			if (num_objects == 0) {
+				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (no objects).\n"),
+										"red", data->index);
+			} else {
+				siril_log_color_message(_("Error: index % " G_GSIZE_FORMAT " out of range (max: % " G_GSIZE_FORMAT ").\n"),
+										"red", data->index, num_objects - 1);
+			}
+			goto error_cleanup;
+		}
+		object = yyjson_arr_get(root, data->index);
+	} else if (yyjson_is_obj(root)) {
+		if (data->index != 0) {
+			siril_log_color_message(_("Error: index must be 0 for single object JSON.\n"), "red");
+			goto error_cleanup;
+		}
+		object = root;
+	} else {
+		siril_log_color_message(_("Error: JSON root must be an array or object.\n"), "red");
+		goto error_cleanup;
 	}
 
-	object = json_array_get_object_element(array, index);
+	// Get wavelength and values objects
+	yyjson_val *wavelengthObject = yyjson_obj_get(object, "wavelength");
+	yyjson_val *valuesObject = yyjson_obj_get(object, "values");
+	if (!yyjson_is_obj(wavelengthObject) || !yyjson_is_obj(valuesObject)) {
+		siril_log_color_message(_("Error: Missing or invalid wavelength/values objects.\n"), "red");
+		goto error_cleanup;
+	}
 
-    // Get 'wavelength' and 'values' arrays
-	double scalefactor = 1.0;
-	JsonObject *wavelengthObject = json_object_get_object_member(object, "wavelength");
-	JsonArray *wavelengthArray = json_object_get_array_member(wavelengthObject, "value");
-	JsonObject *valuesObject = json_object_get_object_member(object, "values");
-	JsonArray *valuesArray = json_object_get_array_member(valuesObject, "value");
-	gchar *wavelengthUnit = g_strdup(json_object_get_string_member(wavelengthObject, "units"));
-	double valuerange = json_object_get_double_member(valuesObject, "range");
-	if (!strcmp(wavelengthUnit, "nm"))
-		scalefactor = 1.0;
-	else if (!strcmp(wavelengthUnit, "micrometer"))
-		scalefactor = 1000.0;
-	else if (!strcmp(wavelengthUnit, "angstrom"))
-		scalefactor = 0.1;
-	else if (!strcmp(wavelengthUnit, "m"))
-		scalefactor = 1.0e9;
+	// Get wavelength units and determine scale factor
+	yyjson_val *units = yyjson_obj_get(wavelengthObject, "units");
+	if (!yyjson_is_str(units)) {
+		siril_log_color_message(_("Error: Missing or invalid wavelength units.\n"), "red");
+		goto error_cleanup;
+	}
+
+	double scalefactor;
+	const char *wavelengthUnit = yyjson_get_str(units);
+	if (strcmp(wavelengthUnit, "nm") == 0)        scalefactor = 1.0;
+	else if (strcmp(wavelengthUnit, "micrometer") == 0) scalefactor = 1000.0;
+	else if (strcmp(wavelengthUnit, "angstrom") == 0)   scalefactor = 0.1;
+	else if (strcmp(wavelengthUnit, "m") == 0)          scalefactor = 1.0e9;
 	else {
-		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"), "salmon", data->filepath);
-		g_object_unref(parser);
-		g_free(wavelengthUnit);
-		return FALSE;
+		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"),
+								"salmon", data->filepath);
+		goto error_cleanup;
 	}
-	point *pairs = (point*) malloc(data->n * sizeof(point));
-	for (int i = 0; i < data->n; i++) {
-		pairs[i].x = json_array_get_double_element(wavelengthArray, i) * scalefactor;
-		pairs[i].y = json_array_get_double_element(valuesArray, i) / valuerange;
+
+	// Get value range for normalization
+	yyjson_val *valuerange_val = yyjson_obj_get(valuesObject, "range");
+	if (!valuerange_val || !yyjson_is_num(valuerange_val)) {
+		siril_log_color_message(_("Error: Missing or invalid value range.\n"), "red");
+		goto error_cleanup;
 	}
+	double valuerange = yyjson_get_num(valuerange_val);  // handles both int and real
+
+	// Get arrays and validate
+	yyjson_val *wavelengthArray = yyjson_obj_get(wavelengthObject, "value");
+	yyjson_val *valuesArray = yyjson_obj_get(valuesObject, "value");
+	if (!yyjson_is_arr(wavelengthArray) || !yyjson_is_arr(valuesArray)) {
+		siril_log_color_message(_("Error: Missing or invalid value arrays.\n"), "red");
+		goto error_cleanup;
+	}
+
+	size_t wavelengthCount = yyjson_arr_size(wavelengthArray);
+	if (wavelengthCount != yyjson_arr_size(valuesArray) ||
+		wavelengthCount < 5 || wavelengthCount > 2000) {
+		siril_log_color_message(_("Error: Invalid array sizes (wavelength: %zu, values: %zu).\n"),
+								"red", wavelengthCount, yyjson_arr_size(valuesArray));
+		goto error_cleanup;
+		}
+
+		// Set number of points to process
+		data->n = (data->n == 0 || data->n > wavelengthCount) ? wavelengthCount : data->n;
+
+	// Allocate temporary storage
+	point *pairs = malloc(data->n * sizeof(point));
+	if (!pairs) {
+		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		goto error_cleanup;
+	}
+
+	// Read data points using array iteration
+	size_t idx = 0;
+	yyjson_val *w_val, *v_val;
+	size_t w_idx, max;
+
+	yyjson_arr_foreach(wavelengthArray, w_idx, max, w_val) {
+		if (idx >= data->n) break;
+
+		v_val = yyjson_arr_get(valuesArray, w_idx);
+		if (!v_val || !yyjson_is_num(w_val) || !yyjson_is_num(v_val)) {
+			siril_log_color_message(_("Error: Invalid number at index %zu.\n"), "red", idx);
+			free(pairs);
+			goto error_cleanup;
+		}
+
+		pairs[idx].x = yyjson_get_num(w_val) * scalefactor;
+		pairs[idx].y = yyjson_get_num(v_val) / valuerange;
+		idx++;
+	}
+
+	// Process and store the data
 	qsort(pairs, data->n, sizeof(point), compare_pair_x);
 	data->n = remove_duplicate_x(pairs, data->n, data->filepath);
-	data->x = (double*) malloc(data->n * sizeof(double));
-	data->y = (double*) malloc(data->n * sizeof(double));
-	for (int i = 0; i < data->n; i++) {
+
+	// Allocate final arrays
+	data->x = malloc(data->n * sizeof(double));
+	data->y = malloc(data->n * sizeof(double));
+	if (!data->x || !data->y) {
+		siril_log_color_message(_("Error: Memory allocation failed.\n"), "red");
+		free(pairs);
+		free(data->x);
+		free(data->y);
+		data->x = data->y = NULL;
+		goto error_cleanup;
+	}
+
+	// Copy sorted data
+	for (size_t i = 0; i < data->n; i++) {
 		data->x[i] = pairs[i].x;
 		data->y[i] = pairs[i].y;
 	}
+
+	// Handle WB_REFS type scaling
 	if (data->type == WB_REFS) {
-		int norm_ref = 0;
-		while (data->x[norm_ref] < 550) {
-			if (norm_ref == data->n - 1) {
-				norm_ref = 0;
-				break;
-			}
+		size_t norm_ref = 0;
+		while (norm_ref < data->n - 1 && data->x[norm_ref] < 550) {
 			norm_ref++;
 		}
-		for (int i = 0; i < data->n; i++) {
-			data->y[i] *= data->x[i];
-		}
+
 		double norm = data->y[norm_ref];
-		for (int i = 0; i < data->n; i++) {
-			data->y[i] /= norm;
+		for (size_t i = 0; i < data->n; i++) {
+			data->y[i] = (data->y[i] * data->x[i]) / norm;
 		}
 	}
-	free(pairs);
-	data->arrays_loaded = TRUE;
 
-	// Cleanup
-	g_object_unref(parser);
-	g_free(wavelengthUnit);
+	free(pairs);
+	yyjson_doc_free(doc);
+	data->arrays_loaded = TRUE;
 	return TRUE;
+
+	error_cleanup:
+	yyjson_doc_free(doc);
+	return FALSE;
 }
 
 // Call once to populate com.spcc_data with metadata for all known spcc_objects
@@ -608,12 +769,24 @@ static void processDirectory(const gchar *directory_path) {
 gint compare_spcc_object_names(gconstpointer a, gconstpointer b) {
 	const spcc_object *object1 = a;
 	const spcc_object *object2 = b;
+	if (!object1 && !object2)
+		return 0;
+	if (!object1)
+		return -1;
+	if (!object2)
+		return 1;
 	return g_strcmp0(object1->name, object2->name);
 }
 
 gint compare_osc_object_models(gconstpointer a, gconstpointer b) {
 	const osc_sensor *object1 = a;
 	const osc_sensor *object2 = b;
+	if (!object1 && !object2)
+		return 0;
+	if (!object1)
+		return -1;
+	if (!object2)
+		return 1;
 	return g_strcmp0(object1->channel[0].model, object2->channel[0].model);
 }
 
@@ -625,6 +798,32 @@ static void spcc_object_destroy(void *user_data) {
 static void osc_sensor_destroy(void *user_data) {
 	osc_sensor *object = (osc_sensor*) user_data;
 	osc_sensor_free(object, TRUE);
+}
+
+static void debug_null_list_entries(GList **list) {
+	for (GList *iter = *list; iter != NULL; iter = iter->next) {
+		if (iter->data == NULL) {
+			const gchar *prev_name = NULL;
+			const gchar *next_name = NULL;
+
+			if (iter->prev && iter->prev->data) {
+				spcc_object *prev_obj = (spcc_object *)iter->prev->data;
+				prev_name = prev_obj->name;
+			}
+
+			if (iter->next && iter->next->data) {
+				spcc_object *next_obj = (spcc_object *)iter->next->data;
+				next_name = next_obj->name;
+			}
+
+			g_print("Found NULL entry in list\n");
+			g_print("Previous entry name: %s\n", prev_name ? prev_name : "(null)");
+			g_print("Next entry name: %s\n", next_name ? next_name : "(null)");
+			// Remove the entry with NULL data
+			*list = g_list_delete_link(*list, iter);
+			g_print("NULL entry removed\n");
+		}
+	}
 }
 
 void load_all_spcc_metadata() {
@@ -647,6 +846,11 @@ void load_all_spcc_metadata() {
 	const gchar *path = siril_get_spcc_repo_path();
 	processDirectory(path);
 	siril_debug_print("SPCC JSON metadata loaded\n");
+
+	debug_null_list_entries(&com.spcc_data.wb_ref);
+	debug_null_list_entries(&com.spcc_data.osc_lpf);
+	debug_null_list_entries(&com.spcc_data.osc_filters);
+	debug_null_list_entries(&com.spcc_data.mono_sensors);
 
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);

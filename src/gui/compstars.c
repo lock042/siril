@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "algos/siril_wcs.h"
 #include "algos/comparison_stars.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
@@ -230,7 +229,7 @@ static void manual_photometry_data (sequence *seq) {
 
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
-			siril_log_color_message(_("Problem with convertion\n"), "red"); // PB in the conversion pix->wcs
+			siril_log_color_message(_("Problem with conversion\n"), "red"); // PB in the conversion pix->wcs
 			g_free(entered_target_name);
 			g_free(target_name);
 			return;
@@ -242,14 +241,11 @@ static void manual_photometry_data (sequence *seq) {
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
-	comp_sta->cat_index = CAT_COMPSTARS;
+	siril_catalogue *comp_sta = siril_catalog_new(CAT_COMPSTARS);
 
 	// Header for the console display
 	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
 	siril_log_message("Star type        RA      DEC\n");
-	// Preparing the output catalog
-	comp_sta->columns = siril_catalog_columns(CAT_COMPSTARS);
 	// Allocating final sorted list to the required size
 	cat_item *result = calloc(nb_ref_stars, sizeof(cat_item));
 	// Write the target star
@@ -326,7 +322,7 @@ static void auto_photometry_data () {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->target_name = g_strdup(target_name);
 	g_free(target_name);
 	args->narrow_fov = narrow;
@@ -336,7 +332,11 @@ static void auto_photometry_data () {
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 
-	start_in_new_thread(compstars_worker, args);
+	if(!start_in_new_thread(compstars_worker, args)) {
+		g_free(args->target_name);
+		g_free(args->nina_file);
+		free(args);
+	}
 }
 
 // the public getter

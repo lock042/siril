@@ -159,7 +159,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <child>
               <object class="GtkButton" id="cut_spectroscopic_button">
                 <property name="label" translatable="yes">Spectrometric data</property>
-                <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Enter data relating to profiling along a spectrum</property>

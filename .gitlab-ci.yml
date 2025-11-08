@@ -49,7 +49,6 @@ variables:
   INSTALL_PREFIX: "${CI_PROJECT_DIR}/${INSTALL_DIR}"
   CROSSROAD_OUT: "crossroad-out"
   APT_CACHE: "$CI_PROJECT_DIR/apt-cache"
-  W64_OUT: "/c/msys64/mingw64"
 
 ################################################################################
 # Prepare Dockers images
@@ -78,43 +77,6 @@ build-image-oldstable:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-debian-oldstable --cache=true --cache-ttl=120h
 
-# Image for Windows64 build
-build-image-win64:
-  stage: prepare
-  cache: {}
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-win64-latest --cache=true --cache-ttl=120h
-
-# Try building/packaging with msys2 in one step
-# (otherwise win VM gets wiped)
-win64-native:
-  rules:
-    *run_ondemand_schedule_tag
-  stage: prepare
-  cache: {}
-  variables:
-    CHERE_INVOKING: "yes"
-    MSYSTEM: "MINGW64"
-  tags:
-    - saas-windows-medium-amd64
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 1 week
-    paths:
-    - ${INSTALL_DIR}
-  script:
-    - choco install msys2 --params "/InstallDir:C:\msys64" -y
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
-    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
-  allow_failure: true
-
 ################################################################################
 # GNU/Linux 64-bit CIs
 
@@ -140,7 +102,7 @@ deps-debian:
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
   script:
     - cd _Criterion
-    - patch --binary -p1 < ../build/windows/criterion.patch
+    - patch --binary -p1 < ../build/criterion.patch
     - meson setup _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
@@ -193,66 +155,6 @@ siril-deb-meson:
 
 
 ################################################################################
-# WINDOWS 64-bit CI
-
-deps-win64:
-  stage: dependencies
-  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-win64-latest
-  variables:
-    XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
-    XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
-# fix from Jehan see https://gitlab.gnome.org/GNOME/gimp/-/commit/6378f3af8dcae896d9bc93b45bc8e651fb55805a
-    DEB_PYTHON_INSTALL_LAYOUT: "deb"
-  cache:
-    paths:
-      - .cache/crossroad/
-      - apt-cache
-  before_script:
-    - git clone --depth=${GIT_DEPTH} https://gitlab.freedesktop.org/crossroad/crossroad.git
-    - cd crossroad
-    - ./setup.py install --prefix=`pwd`/../.local
-    - cd ..
-    - pip3 install --break-system-packages zstandard
-  script:
-    - export PATH="`pwd`/.local/bin:$PATH"
-    - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 2 hours
-    paths:
-      - .local/
-      - _deps/
-  needs: ["build-image-win64"]
-
-siril-win64:
-  stage: siril
-  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-win64-latest
-  dependencies:
-    - deps-win64
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
-    XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
-  cache:
-    paths:
-      - .cache/crossroad/
-      - apt-cache
-  script:
-    - export PATH="`pwd`/.local/bin:$PATH"
-    - mkdir _build && cd _build
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
-  needs: ["deps-win64"]
-  artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    when: always
-    expire_in: 2 hours
-    paths:
-      - ${BUILD_DIR}
-      - ${CROSSROAD_OUT}
-      - ${INSTALL_DIR}
-
-################################################################################
 # Packaging
 
 ################################################################################
@@ -266,22 +168,27 @@ macos:
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
-    - if: $ARCHITECTURE == "arm64"
-      variables:
-        SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $ARCHITECTURE == "x86_64"
-      variables:
-        SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
+      when: manual
+      allow_failure: true
+    - when: on_success
   tags:
     - macos
     - ${ARCHITECTURE}
+  cache:
+    - key: ccache-$CI_JOB_NAME_SLUG
+      paths:
+        - ccache
   variables:
-    CCACHE_DIR: /Users/Shared/work/ccache
+    CCACHE_DIR: $CI_PROJECT_DIR/ccache
+    CCACHE_MAXSIZE: "500Mi"
+    ORKA_RUNNER: sonoma-2
+    PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
+    SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: ae4e3bb8a65f00450f6dece39292ea079e828388
+    SM_REPO_REF: 3193478c1c5696160d1f482c24598c555e3cca57
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
-    WRK_DIR: $CI_PROJECT_DIR
   script:
     # Clone the repo containing all the build scripts.
     - |
@@ -296,16 +203,15 @@ macos:
       echo $CI_PROJECT_DIR > sm/ci_project_dir.txt
       SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
       VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
-      PACKAGE_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
+      PACKAGE_URL=${PACKAGE_REGISTRY_URL}/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
       if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
-        export FORCE_BUILD_FROM_SOURCE=true
         sm/build_toolset.sh
+        rm $VER_DIR/var/cache/pkg/.skip
         sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
         sm/jhb/usr/bin/archive remove_nonessentials
         sm/jhb/usr/bin/archive create_dmg
         curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
         rm -rf ${VER_DIR:?}
-        unset FORCE_BUILD_FROM_SOURCE
       fi
     - sm/jhb/usr/bin/archive install_dmg
     - sm/build_siril.sh
@@ -318,63 +224,60 @@ macos:
     paths:
       - Siril*.dmg
 
-win64:
+# Fetch msys2/mingw64 image from siril-windows
+# Build siril and package it
+win64-native:
   stage: packaging
-  image: $CI_REGISTRY_IMAGE/$IMAGE_TAG:build-win64-latest
-  dependencies:
-    - siril-win64
-  script:
-    # Package ssl certificates
-    - mkdir -p ${INSTALL_PREFIX}/etc/ssl
-    - cp -fr ${CROSSROAD_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
-    - cp build/windows/crossbuild-gitlab-ci/ssl-certs/* ${INSTALL_PREFIX}/etc/ssl/certs
-
-    # Package shared ressources
-    - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
-    - cp -fr ${CROSSROAD_OUT}/share/icons/ ${INSTALL_PREFIX}/share
-    - cp -fr ${CROSSROAD_OUT}/share/locale/ ${INSTALL_PREFIX}/share
-
-    # Package executable
-    - cp -fr ${CROSSROAD_OUT}/bin/gdbus.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/glib-compile-schemas.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/gdk-pixbuf-query-loaders.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/gdk-pixbuf-pixdata.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/gdk-pixbuf-thumbnailer.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/gspawn-win64-helper.exe ${INSTALL_PREFIX}/bin/
-    - cp -fr ${CROSSROAD_OUT}/bin/gspawn-win64-helper-console.exe ${INSTALL_PREFIX}/bin/
-    - cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
-
-    # Package lib
-    - cp -fr ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
-    # Package dll with a Python script using objdump
-    - python3 build/windows/dll_link.py ${INSTALL_PREFIX}/bin/siril.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${INSTALL_PREFIX}/bin/gdbus.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gdk-pixbuf-query-loaders.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gdk-pixbuf-pixdata.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gdk-pixbuf-thumbnailer.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gspawn-win64-helper.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gspawn-win64-helper-console.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/glib-compile-schemas.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-
-  needs: ["siril-win64"]
+  cache:
+    key: "cache-windows-small1"
+    paths:
+      - ccache
+      - DLLcache # cache for the DLL txt files recording all files to be copied to the package
+    when: always
+  variables:
+    CCACHE_DIR: $CI_PROJECT_DIR/ccache
+    CCACHE_MAXSIZE: "50M"
+    CHERE_INVOKING: "yes"
+    MSYSTEM: "MINGW64"
+    # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
+    SDW_VERSION: 47
+    SDW_NAME: siril$SDW_VERSION
+    SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
+    # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
+    SPW_VERSION: 23
+    SPW_NAME: siril-python$SPW_VERSION
+    SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
+    W64_OUT: "/c/$SDW_NAME/mingw64" #used in siril-package.sh
+    PY_OUT: "/c/siril-python" #used in siril-package.sh
+  tags:
+    - saas-windows-medium-amd64
+  needs: []
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
     expire_in: 1 week
     paths:
-      - ${INSTALL_DIR}
+    - ${INSTALL_DIR}
+  before_script:
+    - wget.exe --quiet --no-check-certificate $SPW_RELEASE_URL
+    - 7z x -oC:/ "$Env:SPW_NAME.7z"
+    - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
+    - 7z x -oC:/ "$Env:SDW_NAME.7z"
+  script:
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
 
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-48'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"
     FLATPAK_MODULE: "siril"
     APP_ID: "org.siril.Siril"
-    RUNTIME_REPO: "https://nightly.gnome.org/gnome-nightly.flatpakrepo"
+    RUNTIME_REPO: "https://flathub.org/repo/flathub.flatpakrepo"
     BUNDLE: "org.siril.Siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
@@ -408,7 +311,8 @@ appimage:
     paths:
       - apt-cache
   before_script:
-    - apt-get install -y wget
+    - apt-get update
+    - apt-get install -y wget squashfs-tools
   script:
     - bash -ex build/appimage/generate.sh
   artifacts:
@@ -464,7 +368,7 @@ win64-native-installer:
   needs: ["win64-native"]
   allow_failure: true
 
-################################################################################ 
+################################################################################
 build-paper:
   rules:
     *run_ondemand_schedule_tag

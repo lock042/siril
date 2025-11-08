@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -48,8 +48,6 @@
 #include "io/seqwriter.h"
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
-#include "gui/utils.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "conversion.h"
 
@@ -139,15 +137,6 @@ void list_format_available() {
 #endif
 }
 
-static void initialize_ser_debayer_settings() {
-	com.pref.debayer.open_debayer = FALSE;
-	com.pref.debayer.use_bayer_header = TRUE;
-	com.pref.debayer.top_down = TRUE;
-	com.pref.debayer.bayer_pattern = BAYER_FILTER_RGGB;
-	com.pref.debayer.bayer_inter = BAYER_RCD;
-	com.pref.debayer.xbayeroff = 0;
-	com.pref.debayer.ybayeroff = 0;
-}
 
 /**************************Public functions***********************************************************/
 
@@ -179,7 +168,6 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".pnm";
 	supported_extensions[count_ext++] = ".pic";
 
-	initialize_ser_debayer_settings();	// below in the file
 
 #ifdef HAVE_LIBRAW
 	int i, nb_raw;
@@ -291,6 +279,7 @@ static int check_for_raw_extensions(const char *extension) {
 /* returns the image_type for the extension without the dot, only if it is supported by
  * the current instance of Siril. */
 image_type get_type_for_extension(const char *extension) {
+	if (!extension) return TYPEUNDEF;
 	if ((supported_filetypes & TYPEBMP) && !g_ascii_strcasecmp(extension, "bmp")) {
 		return TYPEBMP;
 	} else if ((supported_filetypes & TYPEJPG) &&
@@ -338,7 +327,7 @@ image_type get_type_for_extension(const char *extension) {
 
 /* open the file with path source from any image type and load it into the given FITS object */
 int any_to_fits(image_type imagetype, const char *source, fits *dest,
-		gboolean interactive, gboolean force_float, gboolean debayer) {
+		gboolean interactive, gboolean force_float) {
 	int retval = 0;
 
 	switch (imagetype) {
@@ -396,7 +385,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 					src  = rsrc;
 				}
 #endif
-				retval = (open_raw_files(src , dest, debayer) < 0);
+				retval = (open_raw_files(src , dest) < 0);
 #ifdef _WIN32
 				if (rsrc != NULL) {
 					g_free(rsrc);
@@ -443,7 +432,12 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->multiple_output = FALSE;
 	args->make_link = FALSE;
 	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(convert_thread_worker, args);
+	if (!start_in_new_thread(convert_thread_worker, args)) {
+		g_strfreev(args->list);
+		g_free(args->destroot);
+		free(args);
+		return 1;
+	}
 	return 0;
 }
 #endif
@@ -580,7 +574,9 @@ static void init_report(struct _convert_data *args);
 static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg);
 static void write_conversion_report(struct _convert_data *args);
 
-static gboolean end_convert_idle(gpointer p) {
+// if _convert_data->update_GUI is TRUE,it also updates the sequences list
+// i.e. the only GTK function in this file
+static gboolean end_convert(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
 
@@ -590,7 +586,7 @@ static gboolean end_convert_idle(gpointer p) {
 		if (!string_is_a_path(args->destroot)) {
 			if (args->output_type != SEQ_REGULAR) {
 				int extidx = get_extension_index(args->destroot);
-				if (extidx > 0) {
+				if (extidx > 0 && extidx < INT_MAX - 5) {
 					converted_seqname = malloc(extidx + 5);
 					strncpy(converted_seqname, args->destroot, extidx);
 					strcpy(converted_seqname+extidx, ".seq");
@@ -600,12 +596,17 @@ static gboolean end_convert_idle(gpointer p) {
 			} else {
 				converted_seqname = strdup(args->destroot);
 			}
-			check_seq();
 		}
 		if (converted_seqname) {
-			update_sequences_list(converted_seqname);
-			free(converted_seqname);
+			gboolean seqfilecreated = create_one_seq(args->destroot, args->output_type); // this forces creating the .seq file (#1519)
+			if (!seqfilecreated) { // just a fallback
+				check_seq();
+			}
+			if (args->update_GUI) {
+				update_sequences_list(converted_seqname);
+			}
 		}
+		free(converted_seqname);
 	}
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
@@ -728,9 +729,7 @@ gpointer convert_thread_worker(gpointer p) {
 	g_cond_clear(&args->pool_cond);
 
 	/* clean-up and reporting */
-	for (int i = 0; i < args->total; i++)
-		g_free(args->list[i]);
-	free(args->list);
+	g_strfreev(args->list);
 	args->nb_converted_files = convert.converted_files;
 	if (args->output_type == SEQ_REGULAR) {
 		if (convert.fatal_error)
@@ -762,7 +761,12 @@ gpointer convert_thread_worker(gpointer p) {
 	// sometimes we do create the file and sometimes the error is caught and we get convert.fatal_error to 1...
 	free(convert.output_fitseq);
 	free(convert.output_ser);
-	siril_add_idle(end_convert_idle, args);
+	args->update_GUI = TRUE;
+	if (!siril_add_idle(end_convert, args)) {
+		args->update_GUI = FALSE;
+		end_convert(args);
+	}
+
 	return NULL;
 }
 
@@ -929,17 +933,17 @@ static void open_next_input_seq(convert_status *conv) {
 }
 
 /* open the file with path source from any image type and load it into a new FITS object */
-static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean debayer, gboolean allow_32bits) {
+static fits *any_to_new_fits(image_type imagetype, const char *source, gboolean force_debayer, gboolean allow_32bits) {
 	int retval = 0;
 	fits *tmpfit = calloc(1, sizeof(fits));
-	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE, debayer);
+	retval = any_to_fits(imagetype, source, tmpfit, FALSE, FALSE);
 
 	if (!retval) {
 		if (!allow_32bits && tmpfit->type == DATA_FLOAT) {
 			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", source);
 			retval = 1;
 		}
-		else retval = debayer_if_needed(imagetype, tmpfit, debayer);
+		else retval = debayer_if_needed(imagetype, tmpfit, force_debayer);
 	}
 
 	if (retval) {
@@ -1143,7 +1147,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	if (!args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (!conv->output_ser) {
-				conv->output_ser = malloc(sizeof(struct ser_struct));
+				conv->output_ser = calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
@@ -1164,7 +1168,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
-				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
 				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
@@ -1214,7 +1218,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++);
-				conv->output_ser = malloc(sizeof(struct ser_struct));
+				conv->output_ser = calloc(1, sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
@@ -1229,7 +1233,7 @@ static seqwrite_status open_next_output_seq(const struct _convert_data *args, co
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (conv->next_file != conv->args->total) {
 				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
-				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
+				conv->output_fitseq = calloc(1, sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
 					g_free(dest_filename);
@@ -1287,7 +1291,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_ser = malloc(sizeof(struct ser_struct));
+		convert->current_ser = malloc(sizeof(struct ser_struct)); // no need for calloc as init follows
 		ser_init_struct(convert->current_ser);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (ser_open_file(src_filename, convert->current_ser)) {
@@ -1308,7 +1312,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			g_free(name);
 			return OPEN_ERROR;
 		}
-		convert->current_fitseq = malloc(sizeof(fitseq));
+		convert->current_fitseq = malloc(sizeof(fitseq)); // no need for calloc as init follows
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
 		if (fitseq_open(name, convert->current_fitseq, READONLY)) {
@@ -1361,9 +1365,6 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	seqwrite_status retval = WRITE_FAILED;
 	if (writer->ser) {
-		if (!strcmp(fit->keywords.row_order,"TOP-DOWN")) {  // need to flip the fit before writing to ser to preserve the bayer matrix
-			fits_flip_top_to_bottom(fit);
-		}
 		if (ser_write_frame_from_fit(writer->ser, fit, writer->index)) {
 			siril_log_color_message(_("Error while converting to SER (no space left?)\n"), "red");
 		}

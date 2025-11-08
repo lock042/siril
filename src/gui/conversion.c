@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -172,6 +172,7 @@ static void initialize_convert() {
 				"However, your OS limits the number of files that will be processed in the same time."
 				"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
 		if (!confirm) return;
+		output_type = SEQ_FITSEQ;
 	}
 
 	GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("multiple_seq"));
@@ -209,9 +210,9 @@ static void initialize_convert() {
 	 * list with g_list_reverse() when all elements have been added. */
 	list = g_list_reverse(list);
 	/* convert the list to an array for parallel processing */
-	char **files_to_convert = glist_to_array(list, &count);
+	gchar **files_to_convert = glist_to_array(list, &count);
 
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		g_strfreev(files_to_convert);
@@ -236,7 +237,10 @@ static void initialize_convert() {
 	args->output_type = output_type;
 	args->multiple_output = multiple;
 	gettimeofday(&(args->t_start), NULL);
-	start_in_new_thread(convert_thread_worker, args);
+	if (!start_in_new_thread(convert_thread_worker, args)) {
+		g_strfreev(args->list);
+		g_free(args->destroot);
+	}
 	return;
 }
 
@@ -566,7 +570,7 @@ void process_destroot(sequence_type output_type) {
 	}
 
 	if (seq_exists && !warning_is_displayed) {
-		set_icon_entry(convroot_entry, "gtk-dialog-warning");
+		set_icon_entry(convroot_entry, "dialog-warning");
 		warning_is_displayed = TRUE;
 	}
 	else if (!seq_exists && warning_is_displayed) {

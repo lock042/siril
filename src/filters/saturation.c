@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,7 +33,6 @@
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
-#include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
@@ -129,17 +128,18 @@ static int satu_process_all() {
 	else if (gui.roi.active)
 		restore_roi();
 
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
-	args->input = &gfit;
-	args->output = &gfit;
+	args->input = gfit;
+	args->output = gfit;
 	args->coeff = satu_amount;
 	args->background_factor = background_factor;
 	args->for_preview = TRUE;
 	args->for_final = TRUE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }
@@ -153,9 +153,9 @@ static int satu_update_preview() {
 	set_cursor_waiting(TRUE);
 	if (satu_show_preview)
 		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
 
-	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
+	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
 	satu_set_hues_from_types(args, satu_hue_type);
 
 	args->input = fit;
@@ -165,14 +165,16 @@ static int satu_update_preview() {
 	args->for_preview = TRUE;
 	args->for_final = FALSE;
 
-	start_in_new_thread(enhance_saturation, args);
+	if (!start_in_new_thread(enhance_saturation, args))
+		free(args);
 
 	return 0;
 }
 
-void on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 	satu_close(TRUE);
 	siril_close_dialog("satu_dialog");
+	return FALSE;
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -370,15 +372,16 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 		set_cursor_waiting(FALSE);
 	}
 }
 
 void apply_satu_cancel() {
 	satu_close(TRUE);
+	siril_close_dialog("satu_dialog");
 }
 
 /*** adjusters **/

@@ -5,10 +5,6 @@
 #  include <config.h>
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include "registration/registration.h"
 #include "registration/distorsion.h"
@@ -17,6 +13,10 @@ extern "C" {
 #include "gui/progress_and_log.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 WORD *fits_to_bgrbgr_ushort(fits *image);
 float *fits_to_bgrbgr_float(fits *image);
@@ -32,6 +32,9 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto);
+
+void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout);
+void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, float *maskout);
 
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
@@ -63,9 +66,10 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 
 // TODO: create and move to cvMosaic.h
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
-void cvRelRot(Homography *Ref, Homography *R);
-void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
-int cvWarp_fromKR(fits *image, framing_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, framing_roi *roi_out);
+void cvRelRot(Homography *Ref, Homography *R, Homography *Rout);
+void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H);
+int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_ref, Homography *Hom);
+
 #ifdef __cplusplus
 }
 #endif

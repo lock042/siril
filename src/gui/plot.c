@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,10 +33,8 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "core/siril_world_cs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
-#include "gui/image_display.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -44,14 +42,11 @@
 #include "gui/siril_plot.h"
 #include "registration/registration.h"
 #include "algos/PSF.h"
-#include "algos/siril_wcs.h"
 #include "io/aavso_extended.h"
-#include "io/ser.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
-#include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
@@ -92,7 +87,7 @@ static void formatX(double v, char *buf, size_t bufsz) {
 	if (use_photometry && julian0 && force_Julian) {
 		fmt = "%0.5f";
 	} else {
-		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
 	}
 	// size of buf is 128
 	// https://kristaps.bsd.lv/kplot/kplot_alloc.3.html
@@ -101,9 +96,9 @@ static void formatX(double v, char *buf, size_t bufsz) {
 static void formatY(double v, char *buf, size_t bufsz) {
 	char *fmt;
 	if (use_photometry) {
-		fmt = (gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
 	} else {
-		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
+		fmt = (gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
 	}
 	snprintf(buf, 128, fmt, v);
 }
@@ -395,23 +390,23 @@ static void plot_draw_selection(cairo_t *cr){
 			"%0.5f",
 			"%0.5f",
 			ylabel,
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
 		} else {
 			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
-			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 			ylabel,
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
-			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit->type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
 		}
 	} else {
 		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		ylabel,
-		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
-		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
+		(gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
+		(gfit->type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
 	}
 	g_sprintf(buffer, fmt, pdd.nbselected, xmin, xmax, ymin, ymax);
 	cairo_show_text(cr, buffer);
@@ -440,8 +435,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -461,8 +456,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -490,8 +485,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -511,8 +506,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -621,7 +616,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 				break;
 			case FWHM:
 				if (is_arcsec) {
-					fwhm_to_arcsec_if_needed(&gfit, psfs[i]);
+					fwhm_to_arcsec_if_needed(gfit, psfs[i]);
 					fwhm = psfs[i]->fwhmx_arcsec < 0 ? psfs[i]->fwhmx : psfs[i]->fwhmx_arcsec;
 				} else {
 					fwhm = psfs[i]->fwhmx;
@@ -844,8 +839,10 @@ void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	siril_plot_data *spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data)
+		return;
+
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_ylabel(spl_data, ylabel);
 
@@ -1190,9 +1187,9 @@ void drawPlot() {
 		ref_image = 0;
 	else ref_image = seq->reference_image;
 
-	gboolean arcsec_is_ok = (gfit.keywords.focal_length > 0.0 && gfit.keywords.pixel_size_x > 0.f
-		&& gfit.keywords.pixel_size_y > 0.f && gfit.keywords.binning_x > 0
-		&& gfit.keywords.binning_y > 0);
+	gboolean arcsec_is_ok = (gfit->keywords.focal_length > 0.0 && gfit->keywords.pixel_size_x > 0.f
+		&& gfit->keywords.pixel_size_y > 0.f && gfit->keywords.binning_x > 0
+		&& gfit->keywords.binning_y > 0);
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (!arcsec_is_ok) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(arcsec), FALSE);
@@ -1307,7 +1304,7 @@ void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* temporary code */
 	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
 
-	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry")));
+	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("observationcode_entry")));
 	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
 	aavso_ptr->starid = gtk_entry_get_text(GTK_ENTRY(lookup_widget("starid_entry")));
 	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));

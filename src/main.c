@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,8 +23,11 @@
 #  include <config.h>
 #endif
 
+// #define DEBUG_MAIN
+
 #include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
+#include <gtksourceview/gtksource.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -49,6 +52,10 @@
 #include <omp.h>
 #endif
 
+#ifdef HAVE_LIBGIT2
+#include <git2.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -58,31 +65,28 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
-#include "core/command.h"
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_networking.h"
+#include "io/siril_pythonmodule.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
-#include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/progress_and_log.h"
 #include "gui/siril_css.h"
-#include "registration/registration.h"
+
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -128,7 +132,7 @@ static GOptionEntry main_option[] = {
 	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
-	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
+	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -145,6 +149,46 @@ static GActionEntry app_entries[] = {
 	{ "about", about_action_activate }
 };
 
+gboolean builder_add_from_resource_with_replace(GtkBuilder *builder, const gchar* resource_path, GError** error) {
+	// Load the resource data
+	GBytes* resource_data = g_resources_lookup_data(resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, error);
+	if (!resource_data) {
+		return FALSE;
+	}
+
+	// Get the data as a string
+	gsize data_size;
+	const gchar* data = g_bytes_get_data(resource_data, &data_size);
+#ifdef __APPLE__
+	// Create a GString from the data
+	GString *str = g_string_new_len(data, data_size);
+
+	// Perform the replacement - no limit on number of replacements
+	g_string_replace(str, "GDK_CONTROL_MASK", "GDK_META_MASK", 0);
+
+	// Get the modified result
+	const gchar *result = str->str;
+#else
+	const gchar* result = data;
+#endif
+
+	// Create and load the builder
+	gboolean success = gtk_builder_add_from_string(builder, result, -1, error);
+
+	// Clean up
+#ifdef __APPLE__
+	g_string_free(str, TRUE);  // TRUE to free the string data as well
+#endif
+	g_bytes_unref(resource_data);
+
+	if (!success) {
+		g_object_unref(builder);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 void load_ui_files() {
 	GError *err = NULL;
 	gboolean retval;
@@ -156,14 +200,14 @@ void load_ui_files() {
 					"cannot render GUI.\n Exiting.\n"), ui_files[0]);
 		exit(EXIT_FAILURE);
 	}
+#ifdef DEBUG_MAIN
 	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+#endif
 
 	uint32_t i = 1;
 	while (*ui_files[i]) {
 
-		/* try to load each successive UI file, from the sources defined above */
-		// TODO: the following gtk_builder_add_from_file call is the source
-		// of libfontconfig memory leaks.
+		/* try to load each successive UI file from ui_files */
 		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
@@ -171,7 +215,27 @@ void load_ui_files() {
 			g_clear_error(&err);
 			exit(EXIT_FAILURE);
 		}
+#ifdef DEBUG_MAIN
 		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+#endif
+		i++;
+	}
+	/* Now we load any UI files that use the primary accelerator.
+	   These get processed specially so that on MacOS GDK_CONTROL_MASK is replaced
+	   with GDK_META_MASK so that shortcuts work with Cmd as expected on that OS. */
+	i = 0;
+	while (*ui_files_with_primary_accelerator[i]) {
+		retval = builder_add_from_resource_with_replace(gui.builder, ui_files_with_primary_accelerator[i], &err);
+		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
+		if (!retval) {
+			g_error(_("%s was not found or contains errors, "
+			"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
+			g_clear_error(&err);
+			exit(EXIT_FAILURE);
+		}
+		#ifdef DEBUG_MAIN
+		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		#endif
 		i++;
 	}
 }
@@ -191,16 +255,10 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.child_is_running = EXT_NONE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
-#ifdef _WIN32
-	com.childhandle = NULL;
-#else
-	com.childpid = 0;
-#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
@@ -234,6 +292,9 @@ static void global_initialization() {
 	omp_set_max_active_levels(2);
 #endif
 
+#ifdef HAVE_LIBGIT2
+	git_libgit2_init();
+#endif
 }
 
 static void siril_app_startup(GApplication *application) {
@@ -245,12 +306,19 @@ static void siril_app_startup(GApplication *application) {
 	 */
 	setlocale(LC_NUMERIC, "C");
 
+#ifdef _WIN32
+	GtkSettings *settings = gtk_settings_get_default();
+	g_object_set(settings, "gtk-im-module", "ime", NULL);
+#endif
+
 	g_set_application_name(PACKAGE_NAME);
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
+	// Initialize GtkSource
+	gtk_source_init();
 }
 
 static void siril_app_activate(GApplication *application) {
@@ -265,7 +333,6 @@ static void siril_app_activate(GApplication *application) {
 #endif
 	siril_initialize_rng();
 	global_initialization();
-
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -311,24 +378,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
-
-#ifdef HAVE_LIBGIT2
-	if (is_online()) {
-		if (com.pref.use_scripts_repository)
-			auto_update_gitscripts(com.pref.auto_script_update);
-		else
-			siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-		if (com.pref.spcc.use_spcc_repository)
-			auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
-		else
-			siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
-	} else {
-		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
-	}
-#else
-	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
-#endif
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -375,7 +426,7 @@ static void siril_app_activate(GApplication *application) {
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
-		load_main_window_state();
+		gui_function(load_main_window_state, NULL);
 #if defined(HAVE_LIBCURL)
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
@@ -400,10 +451,10 @@ static void siril_app_activate(GApplication *application) {
 	g_free(supported_files);
 }
 
-static void siril_app_open(GApplication *application, GFile **files, gint n_files,
-		const gchar *hint) {
-
+static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
+#if !defined(OS_OSX)
 	g_application_activate(application);
+#endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
@@ -417,20 +468,21 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 					set_seq(path);
 					if (!com.script) {
 						populate_seqcombo(path);
-						set_GUI_CWD();
+						gui_function(set_GUI_CWD, NULL);
 					}
 				}
 				g_free(sequence_dir);
 			}
 		} else {
 			image_type type = get_type_from_filename(path);
-			if (!main_option_directory && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
+			if (!main_option_directory && type != TYPEAVI && type != TYPESER
+					&& type != TYPEUNDEF) {
 				gchar *image_dir = g_path_get_dirname(path);
 				siril_change_dir(image_dir, NULL);
 				g_free(image_dir);
 			}
 			if (!com.script)
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			open_single_image(path);
 		}
 		g_free(path);
@@ -446,61 +498,88 @@ static void siril_macos_setenv(const char *progname) {
 	gchar resolved_path[PATH_MAX];
 
 	if (realpath(progname, resolved_path)) {
-		gchar *path;
 		gchar tmp[PATH_MAX];
-		gchar *app_dir;
-		gchar lib_dir[PATH_MAX];
-		size_t path_len;
-		struct stat sb;
-		app_dir = g_path_get_dirname(resolved_path);
+		gchar *exe_dir;           /* executable directory */
+		gchar res_dir[PATH_MAX];  /* resources directory  */
+		gchar fra_dir[PATH_MAX];  /* frameworks directory */
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
-		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
-			g_print("Siril is started as MacOS application\n");
-		else
+		exe_dir = g_path_get_dirname(resolved_path);
+
+		/* check if running inside an application bundle and
+		 * set set res_dir and fra_dir accordingly
+		 */
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", exe_dir);
+ 	  struct stat sb;
+		if (realpath(tmp, res_dir) && !stat(res_dir, &sb) && S_ISDIR(sb.st_mode)) {
+			g_print("Siril is started as macOS application\n");
+			g_snprintf(tmp, sizeof(tmp), "%s/../Frameworks", exe_dir);
+			realpath(tmp, fra_dir);
+		}
+		else {
+			g_free(exe_dir);
 			return;
+		}
 
-		/* we define the relocated resources path */
-		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
+		g_mutex_lock(&com.env_mutex);
+		/* store canonical path to resources directory in environment variable. */
+		g_setenv("SIRIL_RELOCATED_RES_DIR", res_dir, TRUE);
 
-		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
-		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(tmp) + 2;
-		path = g_try_malloc(path_len);
+		/* prepend PATH with our exe_dir (Foo.app/Contents/MacOS) */
+		gchar *path = g_try_malloc(PATH_MAX);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
+			g_snprintf(path, PATH_MAX, "%s:%s", exe_dir, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", tmp);
-		/* the relocated path is storred in this env. variable in order to be reused if needed */
-		g_free(app_dir);
+			g_snprintf(path, PATH_MAX, "%s", exe_dir);
 		g_setenv("PATH", path, TRUE);
 		g_free(path);
-		g_snprintf(tmp, sizeof(tmp), "%s/share", lib_dir);
-		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/share/schemas", lib_dir);
-		g_setenv("GSETTINGS_SCHEMA_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gtk-3.0/3.0.0", lib_dir);
-		g_setenv("GTK_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/lib/gdk-pixbuf-2.0/2.10.0/loaders", lib_dir);
-		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
-		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
-		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
-		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
-		if (g_getenv("HOME") != NULL) {
-			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.free-astro.Siril", g_getenv("HOME"));
-			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.free-astro.Siril",
-					g_getenv("HOME"));
-			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+		g_free(exe_dir);
 
+		/* set XDG base directory specification variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/share", res_dir);
+		g_setenv("XDG_DATA_DIRS", tmp, TRUE);
+		if (g_getenv("HOME") != NULL) {
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.siril.Siril", g_getenv("HOME"));
+			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.siril.Siril", g_getenv("HOME"));
+			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
+			g_setenv("XDG_DATA_HOME", tmp, TRUE);
 		}
+
+		/* set GTK related environment variables */
+		g_snprintf(tmp, sizeof(tmp), "%s", fra_dir);
+		g_setenv("GTK_EXE_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s", res_dir);
+		g_setenv("GTK_DATA_PREFIX", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/loaders.cache", res_dir);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/immodules.cache", res_dir);
+		g_setenv("GTK_IM_MODULE_FILE", tmp, TRUE);
+
+		/* GObject introspection */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/girepository-1.0", res_dir);
+		g_setenv("GI_TYPELIB_PATH", tmp, TRUE);
+
+		/* set fontconfig related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", res_dir);
+		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+
+		/* set SSL related variables */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages/certifi/cacert.pem", res_dir);
+		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
+		g_setenv("SSL_CERT_FILE", tmp, TRUE);
+
+		/* set PYTHONPAH to our bundled packages */
+		g_snprintf(tmp, sizeof(tmp), "%s/lib/python3.12/site-packages", res_dir);
+		g_setenv("PYTHONPATH", tmp, TRUE);
+		g_mutex_unlock(&com.env_mutex);
+
+		/* astropy does not create its director itself */
+		g_snprintf(tmp, sizeof(tmp), "%s/astropy", g_getenv("XDG_CONFIG_HOME"));
+		siril_mkdir_with_parents(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH); // perm 755
 	}
 }
 #endif
@@ -510,6 +589,7 @@ int main(int argc, char *argv[]) {
 	GtkApplication *app;
 	const gchar *dir;
 	gint status;
+	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
@@ -548,7 +628,11 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#if GLIB_CHECK_VERSION(2,74,0)
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#else
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#endif
 
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
@@ -578,6 +662,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+#ifdef HAVE_LIBGIT2
+	git_libgit2_shutdown();
+#endif
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

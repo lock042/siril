@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "algos/fitting.h"
-#include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/message_dialog.h"
@@ -58,6 +57,11 @@ void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("linearmatch_dialog");
 }
 
+gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("linearmatch_dialog");
+	return TRUE;
+}
+
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
@@ -70,19 +74,19 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 		double a[3] = { 0.0 }, b[3] = { 0.0 };
 		double low = get_low_rejection();
 		double high = get_high_rejection();
-		if (readfits(filename, &ref, NULL, gfit.type == DATA_FLOAT)) {
+		if (readfits(filename, &ref, NULL, gfit->type == DATA_FLOAT)) {
 			g_free(filename);
 			return;
 		}
 		g_free(filename);
 		set_cursor_waiting(TRUE);
-		undo_save_state(&gfit, _("Linear Match"));
-		if (!find_linear_coeff(&gfit, &ref, low, high, a, b, &error)) {
-			apply_linear_to_fits(&gfit, a, b);
+		undo_save_state(gfit, _("Linear Match"));
+		if (!find_linear_coeff(gfit, &ref, low, high, a, b, &error)) {
+			apply_linear_to_fits(gfit, a, b);
 
-			adjust_cutoff_from_updated_gfit();
+			notify_gfit_modified();
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot compute linear coefficients."),
 					error);

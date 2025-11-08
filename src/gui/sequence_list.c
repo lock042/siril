@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,22 +23,20 @@
 #endif
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
 #include "gui/plot.h"
 #include "gui/registration.h"	// for update_reg_interface
+#include "gui/stacking.h"	// for update_stack_interface
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/PSF.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"	// for update_stack_interface
 #include <dirent.h>
 
 #include "sequence_list.h"
@@ -197,16 +195,16 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
 					}
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
 					}
@@ -238,7 +236,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case FWHM:
 					if (is_arcsec) {
-						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
+						fwhm_to_arcsec_if_needed(gfit, psfs[index]);
 						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
 					} else {
 						fwhm = psfs[index]->fwhmx;
@@ -468,7 +466,7 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 	struct _seq_list *args;
 	if (seq == NULL || layer >= seq->nb_layers) return;
 
-	args = malloc(sizeof(struct _seq_list));
+	args = calloc(1, sizeof(struct _seq_list));
 	args->seq = seq;
 	args->layer = layer;
 	args->tview = GTK_TREE_VIEW(lookup_widget("treeview1"));
@@ -957,7 +955,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 #ifdef _WIN32
 	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
-	struct dirent **list;
+	struct dirent **list = NULL;
 	int i, n;
 
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -254,7 +254,7 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 
 // Computes the distortion map and stores it in the disto structure
 int init_disto_map(int rx, int ry, disto_data *disto) {
-	if (disto == NULL) //nothing to do
+	if (disto == NULL ||(disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D && disto->dtype != DISTO_S2D)) //nothing to do
 		return 0;
 
 	if (!disto->xmap) {
@@ -331,19 +331,19 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 	}
 	if (disto->dtype == DISTO_D2S) {
 		map_undistortion_D2S(disto, rx_out, ry_out, xmap, ymap);
-	} else {
+	} else if (disto->dtype == DISTO_MAP_D2S){
 		map_undistortion_interp(disto, rx_in, ry_in, rx_out, ry_out, xmap, ymap);
 	}
 }
 
 // get the master disto name if set
 // otherwise, returns seqname.wcs
-gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
+static gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	gchar *wcsname = NULL;
 	gboolean found = FALSE;
-	if (com.pref.prepro.disto_lib) { //we have a distortion master
+	if (com.pref.prepro.disto_lib && com.pref.prepro.use_disto_lib) { //we have a distortion master and we should use it
 		int status = 0; 
-		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, mode, &status);
+		wcsname = path_parse(gfit, com.pref.prepro.disto_lib, mode, &status);
 		if (status) {
 			siril_log_color_message(_("Could not parse the distortion master, aborting\n"), "red");
 			g_free(wcsname);
@@ -368,9 +368,9 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	disto_data *disto = NULL;
 	switch (distoparam->index) {
 		case DISTO_IMAGE:
-			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+			wcs = wcs_deepcopy(gfit->keywords.wcslib, NULL);
 			gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
-			if (!wcsname || save_wcs_fits(&gfit, wcsname)) {
+			if (!wcsname || save_wcs_fits(gfit, wcsname)) {
 				siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
 				wcsfree(wcs);
 				return NULL;
@@ -399,11 +399,23 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				g_free(distoparam->filename);
 				gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
 				distoparam->filename = wcsname;
+				if (!wcsname || save_wcs_fits(&fit, wcsname)) {
+					siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
+					wcsfree(wcs);
+					return NULL;
+				}
 			}
 			clearfits(&fit);
 			break;
 		case DISTO_MASTER:
-			distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
+			if (!distoparam->filename) {
+				if (!com.pref.prepro.disto_lib) {
+					siril_log_color_message(_("Sequence file points to master distorsion file but its specification is empty in the preferences\n"), "red");
+					return NULL;
+				} else {
+					distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
+				}
+			} // otherwise, it was already set, we reuse the pattern saved in the seqfile
 			break;
 		case DISTO_FILES:
 			break;
@@ -419,13 +431,14 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			if (!seq->imgparam[i].incl)
 				continue;
 			if (seq_read_frame_metadata(seq, i, &fit)) {
-				siril_log_color_message(_("Could not load image# %d, deselecting\n"), "red", i + 1);
+				siril_log_color_message(_("Could not load image# %d, aborting\n"), "red", i + 1);
 				seq->imgparam[i].incl = FALSE;
 				clearfits(&fit);
 				free_disto_args(disto);
+				return NULL;
 			}
 			int statusread = 0;
-			gchar *wcsname = path_parse(&fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			gchar *wcsname = path_parse(&fit, distoparam->filename, PATHPARSE_MODE_READ, &statusread);
 			clearfits(&fit);
 			if (statusread) {
 				siril_log_color_message(_("Could not parse master file name for distortion, aborting\n"), "red");
@@ -459,7 +472,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			wcs = NULL;
 		}
 		if (!found) {
-			free(disto);
+			free_disto_args(disto);
 			distoparam->index = DISTO_UNDEF;
 			return NULL;
 		}
@@ -505,7 +518,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		// it's ok, we'll just set regargs->undistort to DISTO_UNDEF
 		// so as not to use maps and use optimized image transform instead
 		if (!found) {
-			free(disto);
+			free_disto_args(disto);
 			distoparam->index = DISTO_UNDEF;
 			disto = NULL;
 		}
@@ -608,4 +621,20 @@ void free_disto_args(disto_data *disto) {
 		free(disto->xmap);
 		free(disto->ymap);
 	}
+	free(disto);
+}
+
+void copy_disto(disto_data *disto_in, disto_data *disto_out) {
+	if (!disto_in || !disto_out)
+		return;
+	disto_out->dtype = disto_in->dtype;
+	memcpy(disto_out->A,  disto_in->A,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->B,  disto_in->B,  sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->AP, disto_in->AP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	memcpy(disto_out->BP, disto_in->BP, sizeof(double) * MAX_DISTO_SIZE * MAX_DISTO_SIZE);
+	disto_out->order = disto_in->order;
+	disto_out->xref = disto_in->xref;
+	disto_out->yref = disto_in->yref;
+	disto_out->xmap = NULL;
+	disto_out->ymap = NULL;
 }

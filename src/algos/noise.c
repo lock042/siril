@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -113,13 +113,15 @@ void evaluate_noise_in_image() {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-	args->fit = &gfit;
+	struct noise_data *args = calloc(1, sizeof(struct noise_data));
+	args->fit = gfit;
 	args->use_idle = TRUE;
 	args->display_results = TRUE;
 	args->display_start_end = TRUE;
 	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	start_in_new_thread(noise_worker, args);
+	if (!start_in_new_thread(noise_worker, args)) {
+		free(args);
+	}
 }
 
 // called in general from another function like stacking,
@@ -129,7 +131,7 @@ void bgnoise_async(fits *fit, gboolean display_values) {
 		siril_debug_print("bgnoise request ignored, still running\n");
 		return;
 	}
-	struct noise_data *args = malloc(sizeof(struct noise_data));
+	struct noise_data *args = calloc(1, sizeof(struct noise_data));
 	args->fit = fit;
 	args->use_idle = FALSE;
 	args->display_start_end = FALSE;

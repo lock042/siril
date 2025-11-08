@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,9 +21,6 @@
 #include "io/siril_plot.h"
 
 #include <cairo.h>
-#ifdef CAIRO_HAS_SVG_SURFACE
-#include <cairo/cairo-svg.h>
-#endif
 #include <math.h>
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -48,7 +45,7 @@ static gboolean spl_data_has_any_plot(siril_plot_data *spl_data) {
 	return (g_list_length(spl_data->plot) + g_list_length(spl_data->plots) > 0);
 }
 
-static gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
+gchar* build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp){
 	gchar *temp = NULL, *timestamp = NULL;
 	GString *filename = NULL;
 	
@@ -152,7 +149,7 @@ static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfile
 	return savefilename;
 }
 
-static gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
+gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int height) {
 	if (!spl_data)
 		return TRUE;
 
@@ -166,7 +163,9 @@ static gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int widt
 	if (pixbuf) {
 		GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 		gtk_clipboard_set_image(cb, pixbuf);
+#if !defined _WIN32
 		gtk_clipboard_store(cb);
+#endif
 		siril_log_message(_("Snapshot was saved into the clipboard.\n"));
 		g_object_unref(pixbuf);
 	} else {

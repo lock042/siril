@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -46,7 +46,7 @@
 
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
+fits *gfit;	// currently loaded image
 #endif
 
 int check_that_blocks_cover_the_image(const long naxes[3], struct _image_block *blocks, int nb_blocks) {

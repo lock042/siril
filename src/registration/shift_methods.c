@@ -2,7 +2,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,8 +25,8 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/utils.h" // TODO: used functions should not be in the gui section
 #include "algos/quality.h"
+#include "algos/demosaicing.h"
 #include "io/ser.h"
 #include "opencv/opencv.h"
 #include "opencv/kombat/kombat.h"
@@ -39,7 +39,7 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 	/* this case occurs when all images but one are excluded */
 	if (diff == 0) {
 		q_min = 0;
-		diff = q_max;
+		diff = (q_max == 0.) ? 1.: q_max;
 	}
 
 	for (frame = 0; frame < args->seq->number; ++frame) {
@@ -69,7 +69,6 @@ int register_shift_dft(struct registration_args *args) {
 	int ref_image;
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
-	char pattern[37] = { 0 };
 
 	/* the selection needs to be squared for the DFT */
 	assert(args->selection.w == args->selection.h);
@@ -115,35 +114,12 @@ int register_shift_dft(struct registration_args *args) {
 		return ret;
 	}
 	if (args->seq->nb_layers == 1) {
-		if (args->seq->type == SEQ_SER && args->seq->ser_file) {
-			switch (args->seq->ser_file->color_id) {
-				case SER_MONO:
-					strcpy(pattern, "");
-					break;
-				case SER_BAYER_RGGB:
-					strcpy(pattern, "RGGB");
-					break;
-				case SER_BAYER_GRBG:
-					strcpy(pattern, "GRGB");
-					break;
-				case SER_BAYER_GBRG:
-					strcpy(pattern, "GBRG");
-					break;
-				case SER_BAYER_BGGR:
-					strcpy(pattern, "BGGR");
-					break;
-				default:
-					siril_log_message(_("Error: SER file has wrong type. Cannot proceed.\n"));
-					return -2;
-			}
-		} else {
-			strcpy(pattern, fit_ref.keywords.bayer_pattern);
-		}
-		strcpy(fit_ref.keywords.bayer_pattern, pattern);
-		fit_ref.keywords.bayer_xoffset = args->selection.x;
-		fit_ref.keywords.bayer_yoffset = args->selection.y;
 		interpolate_nongreen(&fit_ref);
 	}
+#if BAYER_DEBUG
+	const gchar *green_filename = get_sequence_cache_filename(args->seq, ref_image, "fit", "green_");
+	savefits(green_filename, &fit_ref);
+#endif
 	gettimeofday(&t_start, NULL);
 
 	ref = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -236,10 +212,13 @@ int register_shift_dft(struct registration_args *args) {
 		if (!seq_read_frame_metadata(args->seq, frame, &fit) && !seq_read_frame_part(args->seq, args->layer, frame, &fit,
 						&args->selection, FALSE, thread_id)) {
 			int x;
-			strcpy(fit.keywords.bayer_pattern, pattern);
-			fit.keywords.bayer_xoffset = args->selection.x;
-			fit.keywords.bayer_yoffset = args->selection.y;
-			interpolate_nongreen(&fit);
+			if (args->seq->nb_layers == 1)
+				interpolate_nongreen(&fit);
+#if BAYER_DEBUG
+			const gchar *green_filename = get_sequence_cache_filename(args->seq, frame, "fit", "green_");
+			savefits(green_filename, &fit);
+#endif
+
 			fftwf_complex *img = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 			fftwf_complex *out2 = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 
@@ -374,25 +353,25 @@ int register_kombat(struct registration_args *args) {
 	double qual;
 	int frame;
 	int ref_idx;
-	int ret, ret2;
+	int ret_ref, ret_templ;
 	int abort = 0;
 	rectangle full = { 0 };
 
 	reg_kombat ref_align;
 
 	if (args->seq->regparam[args->layer]) {
-	    	siril_log_message(
-		    		_("Recomputing already existing registration for this layer\n"));
-		    current_regdata = args->seq->regparam[args->layer];
-		    /* we reset all values as we may register different images */
-		    memset(current_regdata, 0, args->seq->number * sizeof(regdata));
+		siril_log_message(
+				_("Recomputing already existing registration for this layer\n"));
+		current_regdata = args->seq->regparam[args->layer];
+		/* we reset all values as we may register different images */
+		memset(current_regdata, 0, args->seq->number * sizeof(regdata));
 	} else {
-		    current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
-		    if (current_regdata == NULL) {
-    			PRINT_ALLOC_ERR;
-	    		return 1;
-    		}
-	    	args->seq->regparam[args->layer] = current_regdata;
+		current_regdata = (regdata*) calloc(args->seq->number, sizeof(regdata));
+		if (current_regdata == NULL) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		args->seq->regparam[args->layer] = current_regdata;
 	}
 
 
@@ -403,64 +382,21 @@ int register_kombat(struct registration_args *args) {
 
 	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
-	char pattern[37] = { 0 };
-	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
-		switch (args->seq->ser_file->color_id) {
-			case SER_BAYER_RGGB:
-				strcpy(pattern, "RGGB");
-				break;
-			case SER_BAYER_GRBG:
-				strcpy(pattern, "GRGB");
-				break;
-			case SER_BAYER_GBRG:
-				strcpy(pattern, "GBRG");
-				break;
-			case SER_BAYER_BGGR:
-				strcpy(pattern, "BGGR");
-				break;
-			default:
-				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
-		}
-	} else {
-		ret = seq_read_frame_metadata(args->seq, ref_idx, &fit_ref);
-		if (ret) {
-			siril_log_color_message(_("Error reading frame metadata\n"), "red");
-			free(current_regdata);
-			clearfits(&fit_ref);
-			clearfits(&fit_templ);
-			return 1;
-		}
-		strcpy(pattern, fit_ref.keywords.bayer_pattern);
-	}
 	int q_index = ref_idx;
+	full.w = args->seq->rx;
+	full.h = args->seq->ry;
 
 	set_progress_bar_data(
 			_("Register using KOMBAT: loading and processing reference frame"),
 			PROGRESS_NONE);
 
 	/* we want pattern (the selection) to be located on each image */
-	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
+	ret_templ = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
-	strcpy(fit_templ.keywords.bayer_pattern, pattern);
-	fit_templ.keywords.bayer_xoffset = args->selection.x;
-	fit_templ.keywords.bayer_yoffset = args->selection.y;
-	/* we load reference image just to get dimensions of images,
-	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
-	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
-	full.x = full.y = 0;
-	full.w = fit_ref.rx;
-	full.h = fit_ref.ry;
-	/* if we are calling this with an internal sequence we must avoid
-	 * freeing fit_ref pixel data as seq_read_frame only copies the data
-	 * pointers across from the internal_fits**; it is not a true copy
-	 * that can be freed independently. */
-	if (args->seq->type == SEQ_INTERNAL) {
-		fit_ref.data = NULL;
-		fit_ref.fdata = NULL;
-		clearfits(&fit_ref);
-	}
+	ret_ref = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref,
+			&full, FALSE, -1);
 
-	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
+	if (ret_templ || ret_ref) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
@@ -469,7 +405,14 @@ int register_kombat(struct registration_args *args) {
 		clearfits(&fit_templ);
 		return 1;
 	}
-	interpolate_nongreen(&fit_templ);
+	if (args->seq->nb_layers == 1) {
+		interpolate_nongreen(&fit_templ);
+		interpolate_nongreen(&fit_ref);
+#if BAYER_DEBUG
+		const gchar *green_filename = get_sequence_cache_filename(args->seq, ref_idx, "fit", "green_");
+		savefits(green_filename, &fit_ref);
+#endif
+	}
 
 	gettimeofday(&t_start, NULL);
 	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
@@ -520,10 +463,9 @@ int register_kombat(struct registration_args *args) {
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
 			} else {
-				strcpy(cur_fit.keywords.bayer_pattern, pattern);
-				cur_fit.keywords.bayer_xoffset = args->selection.x;
-				cur_fit.keywords.bayer_yoffset = args->selection.y;
-				interpolate_nongreen(&cur_fit);
+				if (args->seq->nb_layers == 1) {
+					interpolate_nongreen(&cur_fit);
+				}
 				qual = QualityEstimate(&cur_fit, args->layer);
 				current_regdata[frame].quality = qual;
 				if (frame == ref_idx) {
@@ -543,6 +485,10 @@ int register_kombat(struct registration_args *args) {
 				set_shifts(args->seq, frame, args->layer,
 						ref_align.dx - cur_align.dx,
 						(ref_align.dy - cur_align.dy), cur_fit.top_down);
+#if BAYER_DEBUG
+				const gchar *green_filename = get_sequence_cache_filename(args->seq, frame, "fit", "green_");
+				savefits(green_filename, &cur_fit);
+#endif
 			}
 
 			g_atomic_int_inc(&cur_nb);
@@ -599,7 +545,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, TRUE))
+	if (seqpsf(args->seq, args->layer, TRUE, FALSE, !args->filters.filter_included, framing, FALSE, TRUE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already

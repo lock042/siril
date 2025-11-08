@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,9 +28,7 @@
 #include "core/processing.h"
 #include "core/arithm.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
@@ -151,15 +149,15 @@ int gaussian_blur_RT2(fits *fit, double sigma, int threads) {
 		gaussianBlurC(src, dst, rx, ry, sigma, threads);
 		free(src);
 		free(dst);
-		float *olddata = gfit.fdata;
-		gfit.fdata = result;
-		gfit.fpdata[RLAYER] = gfit.fdata;
-		if (gfit.naxis == 3) {
-			gfit.fpdata[GLAYER] = gfit.fdata + n;
-			gfit.fpdata[BLAYER] = gfit.fdata + n * 2;
+		float *olddata = gfit->fdata;
+		gfit->fdata = result;
+		gfit->fpdata[RLAYER] = gfit->fdata;
+		if (gfit->naxis == 3) {
+			gfit->fpdata[GLAYER] = gfit->fdata + n;
+			gfit->fpdata[BLAYER] = gfit->fdata + n * 2;
 		} else {
-			gfit.fpdata[GLAYER] = gfit.fdata;
-			gfit.fpdata[BLAYER] = gfit.fdata;
+			gfit->fpdata[GLAYER] = gfit->fdata;
+			gfit->fpdata[BLAYER] = gfit->fdata;
 		}
 		free(olddata);
 		return 0;
@@ -309,7 +307,7 @@ int visu(fits *fit, int low, int high) {
 	gui.hi = high;
 	set_cutoff_sliders_values();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return 0;
 }
 
@@ -443,7 +441,7 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 
 	if (reqlayer >= 0)
 		layer = reqlayer;
-	else if (isrgb(&gfit))
+	else if (isrgb(gfit))
 		layer = GLAYER;		//GLAYER is better to evaluate background
 
 	imstats* stat = statistics(NULL, -1, fit, layer, selection, STATS_BASIC, threading);

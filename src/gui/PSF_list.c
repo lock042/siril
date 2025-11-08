@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -39,8 +39,6 @@
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
-#include "algos/ccd-inspector.h"
-#include "algos/astrometry_solver.h"
 
 static GtkListStore *liststore_stars = NULL;
 
@@ -402,14 +400,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	gboolean is_as;
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
-	double bin_X = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+	double bin_X = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
 	}
 	if (is_as) {
-		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x / gfit.keywords.focal_length) * bin_X;
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit->keywords.pixel_size_x / gfit->keywords.focal_length) * bin_X;
 	}
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
@@ -639,13 +637,13 @@ static void save_stars_dialog() {
 
 int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
-	if (has_wcs(&gfit)) {
+	if (has_wcs(gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit.ry);
+		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit->ry);
 
 		double ra, dec;
-		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		pix2wcs(gfit, fx, fy, &ra, &dec);
 		// *alpha = ra would work too instead of all this?
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
@@ -665,7 +663,6 @@ int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta)
 static void add_star_to_list(psf_star *star, int i) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
-	double ra, dec;
 
 	get_stars_list_store();
 	if (!selection)
@@ -678,12 +675,6 @@ static void add_star_to_list(psf_star *star, int i) {
 	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
 	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
 
-	if (get_ra_and_dec_from_star_pos(star, &ra, &dec)) {
-		// set a flag to set to N/A
-		ra = 9.99E9;
-		dec = 9.99E9;
-	}
-
 	gtk_list_store_append (liststore_stars, &iter);
 	gtk_list_store_set (liststore_stars, &iter,
 			COLUMN_CHANNEL, star->layer,
@@ -691,8 +682,8 @@ static void add_star_to_list(psf_star *star, int i) {
 			COLUMN_A, star->A,
 			COLUMN_X0, star->xpos,
 			COLUMN_Y0, star->ypos,
-			COLUMN_RA, ra,
-			COLUMN_DEC, dec,
+			COLUMN_RA, star->ra,
+			COLUMN_DEC, star->dec,
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,
@@ -725,7 +716,7 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 void refresh_star_list(){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
-	fill_stars_list(&gfit, com.stars);
+	fill_stars_list(gfit, com.stars);
 }
 
 /* this can be called from any thread as long as refresh_GUI is false, it's
@@ -764,6 +755,11 @@ void clear_stars_list(gboolean refresh_GUI) {
 		display_status();
 }
 
+gboolean clear_stars_list_as_idle(gpointer user_data) {
+	gboolean refresh = (gboolean) GPOINTER_TO_INT(user_data);
+	clear_stars_list(refresh);
+	return FALSE;
+}
 
 struct star_update_s {
 	psf_star **stars;
@@ -775,7 +771,7 @@ static gboolean update_stars_idle(gpointer p) {
 	clear_stars_list(TRUE);
 	com.stars = args->stars;
 	if (args->update_GUI && !com.headless)
-		fill_stars_list(&gfit, com.stars);
+		fill_stars_list(gfit, com.stars);
 	redraw(REDRAW_OVERLAY);
 	free(args);
 	return FALSE;
@@ -785,11 +781,16 @@ static gboolean update_stars_idle(gpointer p) {
  * assuming stars to not be shared with a sequence (star_is_seqdata false)
  * the PSF window's list will be cleared, only refilled if update_PSF_list is true
  */
-void update_star_list(psf_star **new_stars, gboolean update_PSF_list) {
-	struct star_update_s *args = malloc(sizeof(struct star_update_s));
+void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean wait_for_update) {
+	struct star_update_s *args = calloc(1, sizeof(struct star_update_s));
 	args->stars = new_stars;
 	args->update_GUI = update_PSF_list;
-	siril_add_idle(update_stars_idle, args);
+	if (!com.headless) {
+		if (wait_for_update)
+			execute_idle_and_wait_for_it(update_stars_idle, args);
+		else
+			siril_add_idle(update_stars_idle, args);
+	}
 }
 
 static int get_comstar_count() {
@@ -810,7 +811,7 @@ void pick_a_star() {
 			return;
 		}
 		int new_index;
-		psf_star *new_star = add_star(&gfit, layer, &new_index);
+		psf_star *new_star = add_star(gfit, layer, &new_index);
 		if (new_star) {
 			add_star_to_list(new_star, get_comstar_count() - 1);
 			display_status();
@@ -895,7 +896,7 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	if (layer == -1)
 		layer = 1;
 	int index;
-	add_star(&gfit, layer, &index);
+	add_star(gfit, layer, &index);
 	if (index > -1)
 		add_star_to_list(com.stars[index], index);
 	display_status();

@@ -7,9 +7,8 @@
 #include "algos/search_objects.h"
 #include "registration/matching/degtorad.h"
 
-#define BRIGHTEST_STARS 500
+#define BRIGHTEST_STARS 2000
 #define AT_MATCH_CATALOG_NBRIGHT 60
-
 
 typedef enum {
 	LIMIT_MAG_AUTO,
@@ -152,6 +151,7 @@ gchar *platesolve_msg(struct astrometry_data *args);
 gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
+gboolean end_platesolve_sequence(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
 

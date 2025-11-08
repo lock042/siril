@@ -31,7 +31,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Clear all current annotations.</property>
+                <property name="tooltip-text" translatable="yes">Clear all current temporary annotations (in red by default)</property>
                 <signal name="clicked" handler="on_annotate_clear_clicked" swapped="no"/>
               </object>
               <packing>
@@ -131,20 +131,20 @@ You can also choose an alternate online catalog:
                         <property name="active">0</property>
                         <items>
                           <item translatable="yes">automatic</item>
-                          <item translatable="yes">tycho2</item>
-                          <item translatable="yes">nomad</item>
-                          <item translatable="yes">gaia</item>
-                          <item translatable="yes">ppmxl</item>
-                          <item translatable="yes">bsc</item>
-                          <item translatable="yes">apass</item>
-                          <item translatable="yes">gcvs</item>
-                          <item translatable="yes">vsx</item>
-                          <item translatable="yes">varisum</item>
-                          <item translatable="yes">simbad</item>
-                          <item translatable="yes">exo</item>
-                          <item translatable="yes">pgc</item>
-                          <item translatable="yes">aavso_chart</item>
-                          <item translatable="yes">solsys</item>
+                          <item translatable="yes">tycho2 (TYCHO2)</item>
+                          <item translatable="yes">nomad (NOMAD)</item>
+                          <item translatable="yes">gaia (GAIA DR3)</item>
+                          <item translatable="yes">ppmxl (PPMXL)</item>
+                          <item translatable="yes">bsc (Bright Stars)</item>
+                          <item translatable="yes">apass (APASS DR9)</item>
+                          <item translatable="yes">gcvs (General Catalogue of Variable Stars)</item>
+                          <item translatable="yes">vsx (Variable Stars Index)</item>
+                          <item translatable="yes">varisum (GAIA DR3 Variability)</item>
+                          <item translatable="yes">simbad (SIMBAD)</item>
+                          <item translatable="yes">exo (NASA Exoplanet Archive)</item>
+                          <item translatable="yes">pgc (Principal Galaxies Catalogue)</item>
+                          <item translatable="yes">aavso_chart (AAVSO Standard Stars)</item>
+                          <item translatable="yes">solsys (IMCCE Solar System Objects)</item>
                         </items>
                         <signal name="changed" handler="on_conesearch_combo_changed" swapped="no"/>
                       </object>

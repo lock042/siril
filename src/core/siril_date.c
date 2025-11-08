@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -97,6 +97,49 @@ gdouble date_time_to_Julian(GDateTime *dt) {
 	} else {
 		return jd1 + 2 - (year / 100) + (year / 400);
 	}
+}
+
+/**
+ * Converts a Julian date to GDateTime format
+ * (inverse of date_time_to_Julian function)
+ * @param jd the Julian date (Modified Julian Date referenced to J2000.0)
+ * @return a GDateTime pointer (needs to be freed with g_date_time_unref when no longer needed)
+ */
+GDateTime* Julian_to_date_time(gdouble jd) {
+	if (jd <= 0)
+		return NULL;
+
+	// Using MJD (Modified Julian Date) reference
+	// MJD 0 corresponds to November 17, 1858
+
+	// Create base date: November 17, 1858 (MJD 0)
+	GDateTime *epoch = g_date_time_new_utc(1858, 11, 17, 0, 0, 0);
+	if (!epoch)
+		return NULL;
+
+	// Convert Julian date to seconds since epoch
+	gdouble seconds_since_epoch = jd * 86400.0; // Convert days to seconds
+
+	// Split into seconds and microseconds
+	gint64 full_seconds = (gint64) seconds_since_epoch;
+	gdouble fractional_seconds = seconds_since_epoch - full_seconds;
+	guint microseconds = (guint) (fractional_seconds * 1000000.0);
+
+	// Add full seconds
+	GDateTime *date_with_seconds = g_date_time_add_seconds(epoch, full_seconds);
+	g_date_time_unref(epoch);
+	if (!date_with_seconds)
+		return NULL;
+
+	// Add microseconds if needed
+	if (microseconds > 0) {
+		GDateTime *final_date = g_date_time_add_seconds(date_with_seconds,
+				microseconds / 1000000.0);
+		g_date_time_unref(date_with_seconds);
+		return final_date;
+	}
+
+	return date_with_seconds;
 }
 
 /**

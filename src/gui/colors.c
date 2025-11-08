@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
-#include "algos/colors.h"
 #include "algos/statistics.h"
 
 #include "gui/progress_and_log.h"
@@ -98,19 +97,19 @@ void initialize_calibration_interface() {
 		selection_white_adjustment[3] = GTK_ADJUSTMENT(
 				gtk_builder_get_object(gui.builder, "adjustment_white_h"));
 	}
-	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit.rx);
-	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit.ry);
-	gtk_adjustment_set_upper(selection_black_adjustment[2], gfit.rx);
-	gtk_adjustment_set_upper(selection_black_adjustment[3], gfit.ry);
+	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_black_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[3], gfit->ry);
 	gtk_adjustment_set_value(selection_black_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[3], 0);
 
-	gtk_adjustment_set_upper(selection_white_adjustment[0], gfit.rx);
-	gtk_adjustment_set_upper(selection_white_adjustment[1], gfit.ry);
-	gtk_adjustment_set_upper(selection_white_adjustment[2], gfit.rx);
-	gtk_adjustment_set_upper(selection_white_adjustment[3], gfit.ry);
+	gtk_adjustment_set_upper(selection_white_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_white_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[3], gfit->ry);
 	gtk_adjustment_set_value(selection_white_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_white_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_white_adjustment[2], 0);
@@ -145,16 +144,16 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	undo_save_state(&gfit, _("Background neutralization"));
+	undo_save_state(gfit, _("Background neutralization"));
 
 	set_cursor_waiting(TRUE);
-	background_neutralize(&gfit, black_selection);
+	background_neutralize(gfit, black_selection);
 	populate_roi();
 	delete_selected_area();
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -272,8 +271,8 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	}
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Color Calibration"));
-	white_balance(&gfit, is_manual, white_selection, black_selection);
+	undo_save_state(gfit, _("Color Calibration"));
+	white_balance(gfit, is_manual, white_selection, black_selection);
 
 	gettimeofday(&t_end, NULL);
 
@@ -283,13 +282,18 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	delete_selected_area();
 
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
 }
 
 void on_calibration_close_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("color_calibration");
+}
+
+gboolean calibration_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("color_calibration");
+	return TRUE;
 }
 
 void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
@@ -310,13 +314,13 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 
 void negative_processing() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Negative Transformation"));
-	pos_to_neg(&gfit);
-	invalidate_stats_from_fit(&gfit);
+	undo_save_state(gfit, _("Negative Transformation"));
+	pos_to_neg(gfit);
+	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 /**********************************************************************/
@@ -360,7 +364,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		return;
 	}
 
-	struct extract_channels_data *args = malloc(sizeof(struct extract_channels_data));
+	struct extract_channels_data *args = calloc(1, sizeof(struct extract_channels_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
@@ -376,42 +380,70 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	args->type = gtk_combo_box_get_active(combo_extract_channel);
 	args->str_type = gtk_combo_box_get_active_id(combo_extract_channel);
 
+	if (args->type != EXTRACT_RGB) {
+		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
+		if (!value_check(gfit)) {
+			siril_log_color_message(_("Error in value_check(). This should not happen...\n"), "red");
+			return;
+		}
+	}
+
 	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
 
-	if (gtk_entry_get_text(channel_extract_entry[0]))
-		args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
-	if (gtk_entry_get_text(channel_extract_entry[1]))
-		args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
-	if (gtk_entry_get_text(channel_extract_entry[2]))
-		args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
+	for (int i = 0; i < 3; i++) {
+	    const gchar *text = gtk_entry_get_text(channel_extract_entry[i]);
+	    if (text && *text) {
+	        args->channel[i] = g_strdup_printf("%s%s", text, com.pref.ext);
+	    }
+	}
 
-	if ((args->channel[0][0] != '\0') && (args->channel[1][0] != '\0')
-			&& (args->channel[2][0] != '\0')) {
-		args->fit = calloc(1, sizeof(fits));
-		set_cursor_waiting(TRUE);
-		if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-			siril_log_message(_("Could not copy the input image, aborting.\n"));
+	args->fit = calloc(1, sizeof(fits));
+	set_cursor_waiting(TRUE);
+	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+		siril_log_message(_("Could not copy the input image, aborting.\n"));
+		clearfits(args->fit);
+		free(args->fit);
+		free(args->channel[0]);
+		free(args->channel[1]);
+		free(args->channel[2]);
+		free(args);
+	} else {
+		copy_fits_metadata(gfit, args->fit);
+		if (!start_in_new_thread(extract_channels, args)) {
+			clearfits(args->fit);
 			free(args->fit);
 			free(args->channel[0]);
 			free(args->channel[1]);
 			free(args->channel[2]);
 			free(args);
-		} else {
-			copy_fits_metadata(&gfit, args->fit);
-			start_in_new_thread(extract_channels, args);
 		}
 	}
-	else {
-		free(args->channel[0]);
-		free(args->channel[1]);
-		free(args->channel[2]);
-		free(args);
-	}
+}
+
+void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
+    GtkWidget *button = GTK_WIDGET(user_data);
+    GtkEntry *channel_extract_entry[3] = {
+        GTK_ENTRY(lookup_widget("Ch1_extract_channel_entry")),
+        GTK_ENTRY(lookup_widget("Ch2_extract_channel_entry")),
+        GTK_ENTRY(lookup_widget("Ch3_extract_channel_entry"))
+    };
+
+    gboolean has_text = FALSE;
+
+    for (int i = 0; i < 3; i++) {
+        const gchar *text = gtk_entry_get_text(channel_extract_entry[i]);
+        if (text && *text) {
+            has_text = TRUE;
+            break;
+        }
+    }
+
+    gtk_widget_set_sensitive(button, has_text);
 }
 
 
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
-	struct ccm_data *args = malloc(sizeof(struct ccm_data));
+	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
 
 	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
 	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
@@ -437,11 +469,11 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
 			free(args);
 			return;
-		} else if (gfit.icc_profile && gfit.color_managed) {
+		} else if (gfit->icc_profile && gfit->color_managed) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
 						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
 						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
-			color_manage(&gfit, FALSE);
+			color_manage(gfit, FALSE);
 			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
 		}
 
@@ -451,19 +483,19 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
 					args->power);
 
-		undo_save_state(&gfit, buf);
+		undo_save_state(gfit, buf);
 		g_free(buf);
 
-		ccm_calc(&gfit, args->matrix, args->power);
-		invalidate_stats_from_fit(&gfit);
+		ccm_calc(gfit, args->matrix, args->power);
+		invalidate_stats_from_fit(gfit);
 		notify_gfit_modified();
 		free(args);
 	}
 }
 
 void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit.icc_profile) {
-		color_manage(&gfit, TRUE);
+	if (gfit->icc_profile) {
+		color_manage(gfit, TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
 	}
 }
@@ -553,4 +585,9 @@ void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
 	siril_close_dialog("ccm_dialog");
+}
+
+gboolean ccm_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("ccm_dialog");
+	return TRUE;
 }

@@ -69,7 +69,6 @@ typedef enum {
 	BAYER_IGV,
 	BAYER_LMMSE,
 	BAYER_RCD,
-	BAYER_SUPER_PIXEL,
 	XTRANS
 } interpolation_method;
 
@@ -97,6 +96,13 @@ typedef enum {
 	CMF_1931_2DEG = 0,
 	CMF_1964_10DEG = 1
 } cmf_pref;
+
+typedef enum {
+	ROW_ORDER_HEADER_TOPDOWN,
+	ROW_ORDER_HEADER_BOTTOMUP,
+	ROW_ORDER_FORCE_TOPDOWN,
+	ROW_ORDER_FORCE_BOTTOMUP
+} row_order_t;
 
 /***********************************************************************************************/
 
@@ -157,7 +163,7 @@ struct debayer_config {
 	gboolean use_bayer_header;		// use the pattern given in the file header
 	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean top_down;			// debayer top-down orientation
+	row_order_t orientation;			// orientation preference
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
 	int xtrans_passes;			// number of passes for X-Trans debayer
 };
@@ -178,6 +184,23 @@ struct comp_config {
 	int fits_method;		// 0=Rice, 1=GZIP1, 2=GZIP2, 3=Hcompress
 	double fits_quantization;	// quantization factor for floating point compression
 	double fits_hcompress_scale;	// scale factor for Hcompress compression
+};
+
+struct editor_config {
+	gboolean highlight_syntax;
+	gboolean highlight_bracketmatch;
+	gboolean rmargin;
+	int rmargin_pos;
+	gboolean show_linenums;
+	gboolean show_linemarks;
+	gboolean highlight_currentline;
+	gboolean autoindent;
+	gboolean indentontab;
+	gboolean smartbs;
+	gboolean smarthomeend;
+	gboolean showspaces;
+	gboolean shownewlines;
+	gboolean minimap;
 };
 
 typedef enum {
@@ -213,13 +236,14 @@ struct gui_config {
 	gboolean icon_symbolic;	// icon style
 
 	GSList *script_path;	// script path directories
-	gboolean warn_script_run; // show the notice when starting a script
+	gboolean warn_scripts_run; // show the notice when starting a script
+							// updated with new warning wording to force redisplay
 
 	gboolean show_thumbnails; // show thumbnails in open dialog box
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
+	gboolean catalog[11];	// 8 system catalogs and 2 user catalogs for annotations and 1
 				// short-lived catalogue for "who's in the field" annotations
 				// see also cat in annotation_catalogues.c
 
@@ -239,7 +263,9 @@ struct gui_config {
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
 	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
+	double mouse_speed_limit; // Defines a mximum step size for GDK_SCROLL_SMOOTH actions
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
+	struct editor_config editor_cfg; // Configuration for the script editor
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -385,7 +411,7 @@ struct pref_struct {
 	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header
-	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
+	gchar *catalogue_paths[6]; // local star catalogues for plate solving and PCC
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gboolean use_checksum;  // Verify checksum in FITS header
@@ -409,9 +435,10 @@ struct pref_struct {
 	fftw_params fftw_conf;
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
-	GList *selected_scripts;
+	GSList *selected_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
+	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
 };
 
 typedef struct pref_struct preferences;
@@ -452,6 +479,7 @@ struct settings_access {
 struct settings_access *get_all_settings();
 struct settings_access *get_key_settings(const char *group, const char *key);
 
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details);
 int print_settings_key(const char *group, const char *key, gboolean with_details);
 int print_all_settings(gboolean with_details);
 

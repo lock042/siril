@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,26 +24,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <locale.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_statistics.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#include <wcslib.h>
 #include <wcsfix.h>
 
 #define _SQRT_EXP1 1.6487212707
@@ -71,11 +69,19 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 		*bg = 0.0;
 		return 0;
 	}
-	threshold = (float)(stat->median + ksigma * stat->bgnoise);
-	*norm = stat->normValue;
-	*bg = stat->median;
-	*bgnoise = stat->bgnoise;
-	*max = stat->max;
+	double normvalue = 1.;
+	if (image->from_seq && image->from_seq->bitpix != image->fit->bitpix) { // stats are not correctly normalized, we need to correct that
+		double normavalueseq =  (image->from_seq->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->from_seq->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		double normavaluefit =  (image->fit->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : 
+								(image->fit->bitpix == USHORT_IMG) ? USHRT_MAX_DOUBLE : 1.;
+		normvalue	= (normavaluefit / normavalueseq);
+	}
+	threshold = (float)(stat->median * normvalue + ksigma * stat->bgnoise * normvalue);
+	*norm = stat->normValue * normvalue;
+	*bg = stat->median * normvalue;;
+	*bgnoise = stat->bgnoise * normvalue;;
+	*max = stat->max * normvalue;
 	free_stats(stat);
 
 	return threshold;
@@ -112,7 +118,7 @@ static sf_errors reject_star(psf_star *result, const star_finder_params *sf, sta
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
-		//  do not apply for saturated stars to keep them for alignement purposes
+		//  do not apply for saturated stars to keep them for alignment purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
@@ -163,7 +169,7 @@ static gboolean candidate_is_duplicate(int xx, int yy, int boxradius, starc *can
  * profiles (PSF).
  */
 
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double bg, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 
 psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->fit->rx;
@@ -541,7 +547,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, profile, threads);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, bg, dynrange, &results, limit_nbstars, maxstars, profile, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars_by_mag(results, nbstars);
@@ -561,14 +567,13 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double bg, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
 	float **image_float = NULL;
 	gint nbstars = 0;
 	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
-	double bg = background(image, layer, NULL, SINGLE_THREADED);
 	int psf_failure = 0;
 	double minA = 0.0, maxA = 0.0;
 	if (sf->min_A > 0.0 || sf->max_A > 0.0) {
@@ -707,7 +712,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	return nbstars;
 }
 
-int compare_stars_by_mag(const void* star1, const void* star2) {
+static int compare_stars_by_mag(const void* star1, const void* star2) {
 	const psf_star *s1 = *(psf_star**) star1;
 	const psf_star *s2 = *(psf_star**) star2;
 	if (s1->mag < s2->mag)
@@ -929,6 +934,15 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
+	gchar *dirname = g_path_get_dirname(filename);
+	GDir *dir = g_dir_open(dirname, 0, NULL);
+	if (!dir && siril_mkdir_with_parents(dirname, 0755) < 0) {
+		g_free(dirname);
+		return 1;
+	}
+	if (dir)
+		g_dir_close(dir);
+	g_free(dirname);
 
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
@@ -973,10 +987,10 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 		while (stars[i]) {
 			if (stars[i]->profile == PSF_GAUSSIAN) {
 				beta = -1;
-				starprof = gausstr;
+				starprof = N_(gausstr);
 			} else {
 				beta = stars[i]->beta;
-				starprof = moffstr;
+				starprof = N_(moffstr);
 			}
 			len = snprintf(buffer, 320,
 					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%d\t%s\t%f\t%f%s",
@@ -1150,7 +1164,7 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = index;
 	curr_findstar_args->im.fit = NULL;
@@ -1160,18 +1174,22 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	}
 	curr_findstar_args->threading = SINGLE_THREADED;
 
-	// build the star list file name in all cases to try reading it
-	char root[256];
-	if (!fit_sequence_get_image_filename(args->seq, index, root, FALSE)) {
+	gchar *star_filename = get_sequence_cache_filename(args->seq, index, "cache", "lst", NULL);
+	if (!star_filename) {
 		free(curr_findstar_args);
-		return TRUE; // we will let the processing function detect readout failure if required
+		return TRUE;
 	}
-	gchar *star_filename = g_strdup_printf("%s.lst", root);
 
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
 
-	gboolean status = check_star_list(star_filename, curr_findstar_args);
+	cache_status status = check_cachefile_date(args->seq, index, star_filename);
+	if (status <= CACHE_NOT_FOUND) { // cached file is older and was deleted or does not exist, we need to read the image
+		free(curr_findstar_args);
+		g_free(star_filename);
+		return TRUE; 
+	}
+	status = (int)check_star_list(star_filename, curr_findstar_args);
 	free(curr_findstar_args);
 	g_free(star_filename);
 	return !status; // check_star_list returns TRUE on success
@@ -1184,7 +1202,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 // - wrapped by findstar_image_hook
 // - called by registration
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	struct starfinder_data *curr_findstar_args = calloc(1, sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
@@ -1192,26 +1210,33 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 	if (findstar_args->stars && findstar_args->nb_stars) { // used by 2pass reg which needs to store all star lists
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
+		curr_findstar_args->onepass = FALSE;
 	} else if (findstar_args->keep_stars) { // used by global reg which needs to store the current star list
 		curr_findstar_args->stars = calloc(1, sizeof(psf_star **));
 		curr_findstar_args->nb_stars = calloc(1, sizeof(int));
+		curr_findstar_args->onepass = TRUE;
 	}
 	curr_findstar_args->threading = threads;
-	gboolean can_use_cache = !(com.selection.w != 0 && com.selection.h != 0); //TODO: not ideal, would be better to be passed as args to starfinder_data (to be used in findstar_worker)
+	rectangle selection = findstar_args->selection;
+	gboolean can_use_cache = !(selection.w != 0 && selection.h != 0);
 
-	char root[256];
 	int retval = 0;
 	gchar *star_filename = NULL;
 
 	if (can_use_cache) {// otherwise, we don't try to read the lst nor save it
 		// build the star list file name in all cases to try reading it
-		if (!fit_sequence_get_image_filename(seq, i, root, FALSE)) {
+		star_filename = get_sequence_cache_filename(seq, i, "cache", "lst", NULL);
+		if (!star_filename) {
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
-			return NULL;
+			curr_findstar_args = NULL;
+			return curr_findstar_args;
 		}
-		star_filename = g_strdup_printf("%s.lst", root);
 
-		if (seq->type == SEQ_INTERNAL || !check_starfile_date(seq, i, star_filename) ||
+		if (seq->type == SEQ_INTERNAL || !(check_cachefile_date(seq, i, star_filename) == CACHE_NEWER) ||
 				!check_star_list(star_filename, curr_findstar_args))
 				can_use_cache = FALSE;
 		if (findstar_args->save_to_file)
@@ -1227,10 +1252,18 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			copyfits(fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			interpolate_nongreen(green_fit);
 			curr_findstar_args->im.fit = green_fit;
+			// uncomment these lines to save the green fit for each image
+			// const gchar *green_filename = get_sequence_cache_filename(seq, i, "cache", "fit", "green_");
+			// savefits(green_filename, green_fit);
 		}
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 		clearfits(green_fit);
+		free(green_fit);
 		if (retval) {
+			if (curr_findstar_args->onepass == TRUE) {
+				free(curr_findstar_args->nb_stars);
+				free(curr_findstar_args->stars);
+			}
 			free(curr_findstar_args);
 			curr_findstar_args = NULL;
 		}
@@ -1241,7 +1274,7 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 static int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	const struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 	struct starfinder_data *curr_findstar_args = findstar_image_worker(findstar_args, o, i, fit, _, threads);
-	int retval = !curr_findstar_args;
+	gboolean retval = !curr_findstar_args;
 	free(curr_findstar_args);
 	return retval;
 }
@@ -1260,6 +1293,7 @@ gboolean end_findstar_sequence(gpointer p) {
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+
 	free(findstar_args);
 	free(p);
 	return end_generic(NULL);
@@ -1326,7 +1360,10 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		free(args);
 		return retval;
 	}
-	start_in_new_thread(generic_sequence_worker, args);
+	if (!start_in_new_thread(generic_sequence_worker, args)) {
+		free(args->user);
+		free_generic_seq_args(args, TRUE);
+	}
 	return 0;
 }
 
@@ -1337,23 +1374,26 @@ gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
-	rectangle *selection = NULL;
-	if (com.selection.w != 0 && com.selection.h != 0) //TODO: not ideal, would be better to be passed as args to starfinder_data
-		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	fits *green_fit = NULL;
-	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
+	fits *orig = NULL;
+	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
+	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
+		orig = args->im.fit;
 		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(green_fit);
 		args->im.fit = green_fit;
 		siril_log_color_message(_("Undebayered CFA image. Detection is done on green pixels only, using interpolation\n"), "salmon");
 	}
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
-	if (green_fit)
+			&args->selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
+	if (green_fit) {
+		args->im.fit = orig;
 		clearfits(green_fit);
+		free(green_fit);
+	}
 
 	double fwhm = 0.0;
 	if (stars) {
@@ -1363,7 +1403,7 @@ gpointer findstar_worker(gpointer p) {
 			sum += stars[i]->fwhmx;
 			fwhm_to_arcsec_if_needed(args->im.fit, stars[i]);
 
-			if (args->starfile && args->save_eqcoords) {
+			if (args->starfile || args->save_eqcoords) {
 				sequence *seq = args->im.from_seq;
 				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {
@@ -1371,16 +1411,12 @@ gpointer findstar_worker(gpointer p) {
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
 					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
-					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
+					pix2wcs2(args->im.fit->keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
-				}
-				else if (!seq->regparam[args->layer] ||
-						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
-					// image was not registered, ignore
-				}
-				else {
+				} else if (seq && seq->regparam[args->layer] &&
+					guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) > NULL_TRANSFORMATION) {
 					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H, 1.);
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
@@ -1390,6 +1426,9 @@ gpointer findstar_worker(gpointer p) {
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
+				} else { // fallback to a default invalid value
+					stars[i]->ra = 9.99E9;
+					stars[i]->dec = 9.99E9;
 				}
 			}
 			i++;
@@ -1402,11 +1441,11 @@ gpointer findstar_worker(gpointer p) {
 	}
 
 	if (args->update_GUI)
-		update_star_list(stars, TRUE);
+		update_star_list(stars, TRUE, com.python_script);
 
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
-			selection ? _("selection") : _("image"), args->layer, fwhm);
+			has_selection ? _("selection") : _("image"), args->layer, fwhm);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
 				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {
@@ -1428,7 +1467,7 @@ gpointer findstar_worker(gpointer p) {
 		free_fitted_stars(stars);
 END:
 	if (args->update_GUI)
-		siril_add_idle(end_findstar, args);
+		execute_idle_and_wait_for_it(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
 	gchar *msg = g_strdup_printf("findstar for image %d", args->im.index_in_seq);
 	show_time_msg(t_start, t_end, msg);

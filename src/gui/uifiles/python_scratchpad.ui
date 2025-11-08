@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0 -->
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <requires lib="gtksourceview" version="4.0"/>
+  <!-- interface-local-resource-path ../.. -->
+  <!-- interface-css-provider-path siril.css -->
+  <!-- interface-license-type gplv3 -->
+  <!-- interface-name Siril -->
+  <!-- interface-description Tool for astronomy image processing -->
+  <!-- interface-copyright The free-astro development team, 2025 -->
+  <object class="GtkOverlay" id="find_overlay">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkRevealer" id="find_revealer">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="transition-type">none</property>
+        <property name="reveal-child">True</property>
+        <child>
+          <object class="GtkSearchBar">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="search-mode-enabled">True</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkSearchEntry" id="find_entry">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="width-chars">30</property>
+                    <property name="primary-icon-name">edit-find-symbolic</property>
+                    <property name="primary-icon-activatable">False</property>
+                    <property name="primary-icon-sensitive">False</property>
+                    <signal name="activate" handler="on_find_entry_activate" swapped="no"/>
+                    <signal name="focus-out-event" handler="on_find_entry_focus_out_event" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="find_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label">0/0</property>
+                    <property name="width-chars">10</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="go_up_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="receives-default">False</property>
+                    <property name="relief">none</property>
+                    <child>
+                      <object class="GtkImage" id="up_image">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Previous Result</property>
+                        <property name="icon-name">go-up-symbolic</property>
+                        <property name="icon_size">1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="go_down_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="receives-default">False</property>
+                    <property name="relief">none</property>
+                    <child>
+                      <object class="GtkImage" id="down_image">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Next Result</property>
+                        <property name="icon-name">go-down-symbolic</property>
+                        <property name="icon_size">1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="index">-1</property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkRecentFilter" id="recentfilter_scratchpad">
+    <patterns>
+      <pattern>*.ssf</pattern>
+      <pattern>*.py</pattern>
+    </patterns>
+  </object>
+  <object class="GtkWindow" id="python_window">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">unsaved</property>
+    <property name="default-width">800</property>
+    <property name="default-height">600</property>
+    <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkBox" id="python_pad_box">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkMenuBar">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_File</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Clear the current script</property>
+                            <property name="action-name">editor.new</property>
+                            <property name="label" translatable="yes">_New</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Open a script from a file</property>
+                            <property name="action-name">editor.open</property>
+                            <property name="label" translatable="yes">_Open</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="o" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">_Recent Files</property>
+                            <property name="use-underline">True</property>
+                            <child type="submenu">
+                              <object class="GtkRecentChooserMenu" id="scratchpad_recent_menu">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="filter">recentfilter_scratchpad</property>
+                                <property name="limit">10</property>
+                                <property name="show-tips">True</property>
+                                <property name="sort-type">mru</property>
+                                <property name="show-numbers">True</property>
+                                <signal name="item-activated" handler="on_scratchpad_recent_menu_activated" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Save the current script</property>
+                            <property name="action-name">editor.save</property>
+                            <property name="label" translatable="yes">_Save</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="s" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Save the current script (choose filename)</property>
+                            <property name="action-name">editor.save_as</property>
+                            <property name="label" translatable="yes">_Save As</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="s" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="action-name">editor.close</property>
+                            <property name="label" translatable="yes">Close</property>
+                            <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_Edit</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Undo</property>
+                            <property name="action-name">editor.undo</property>
+                            <property name="label" translatable="yes">Undo</property>
+                            <accelerator key="z" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Redo</property>
+                            <property name="action-name">editor.redo</property>
+                            <property name="label" translatable="yes">Redo</property>
+                            <accelerator key="y" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Cut</property>
+                            <property name="action-name">editor.cut</property>
+                            <property name="label" translatable="yes">Cut</property>
+                            <accelerator key="x" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Copy</property>
+                            <property name="action-name">editor.copy</property>
+                            <property name="label" translatable="yes">Copy</property>
+                            <accelerator key="c" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Paste</property>
+                            <property name="action-name">editor.paste</property>
+                            <property name="label" translatable="yes">Paste</property>
+                            <accelerator key="v" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSeparatorMenuItem" id="separator">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Find</property>
+                            <property name="action-name">editor.find</property>
+                            <property name="label" translatable="yes">Find</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="f" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_Script</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Run the script</property>
+                            <property name="action-name">editor.execute</property>
+                            <property name="label" translatable="yes">Run</property>
+                            <property name="use-underline">True</property>
+                            <accelerator key="F5" signal="activate"/>
+                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkRadioMenuItem" id="radio_py">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set scripting language to Python. Ensure you have the correct scripting language set before executing a script from the editor.</property>
+                            <property name="label" translatable="yes">Python scripts</property>
+                            <property name="active">True</property>
+                            <property name="draw-as-radio">True</property>
+                            <signal name="toggled" handler="on_language_set" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkRadioMenuItem" id="radio_ssf">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set scripting language to Siril Script File. Ensure you have the correct scripting language set before executing a script from the editor.</property>
+                            <property name="label" translatable="yes">Siril Script Files</property>
+                            <property name="draw-as-radio">True</property>
+                            <property name="group">radio_py</property>
+                            <signal name="group-changed" handler="on_language_set" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_useargs">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When active, any arguments entered in the args entry will be passed to the script when it is run.
+This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli() will return True)</property>
+                            <property name="label" translatable="yes">Enable test arguments</property>
+                            <signal name="toggled" handler="on_editor_useargs_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_toggledebug">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When active, the python interpreter will display a modal dialog showing the python process as soon as the SirilInterface is initialized, to allow for connecting a python debugger to the process before continuing.</property>
+                            <property name="label" translatable="yes">Enable python debug mode</property>
+                            <signal name="toggled" handler="on_pythondebug_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_Preferences</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_syntax">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable syntax highlighting</property>
+                            <property name="label" translatable="yes">Highlight syntax</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_syntax_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_rmargin">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable right margin indicator</property>
+                            <property name="label" translatable="yes">Enable right margin indicator</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_rmargin_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the position of the right margin indicator in the editor. This visual guide helps maintain consistent line lengths and improve code readability.</property>
+                            <property name="action-name">editor.set_rmarginpos</property>
+                            <property name="label" translatable="yes">Set right margin position</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_bracketmatch">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When enabled, positioning the cursor on a bracket will show the matching bracket</property>
+                            <property name="label" translatable="yes">Enable bracket matching</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_bracketmatch_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_linenums">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable line numbers in the left margin</property>
+                            <property name="label" translatable="yes">Show line numbers</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_linenums_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_linemarks">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show line markers in the left margin</property>
+                            <property name="label" translatable="yes">Show line markers</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_linemarks_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_highlightcurrentline">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Highlight the current line in the editor</property>
+                            <property name="label" translatable="yes">Highlight current line</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_highlightcurrentline_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_autoindent">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable auto-indentation</property>
+                            <property name="label" translatable="yes">Enable auto-indentation</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_autoindent_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_indentontab">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When a block of lines is selected, tab increases the indent level</property>
+                            <property name="label" translatable="yes">Indent on tab</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_indentontab_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_smartbs">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable smart backspace</property>
+                            <property name="label" translatable="yes">Enable smart backspace</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_smartbs_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_smarthomeend">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When Smart Home / End is enabled the Home and End keys will go to the first and last non-whitespace character on the line respectively</property>
+                            <property name="label" translatable="yes">Smart Home / End</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_smarthomeend_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_showspaces">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show space and tab characters in the editor view</property>
+                            <property name="label" translatable="yes">Show spaces and tabs</property>
+                            <signal name="toggled" handler="on_editor_showspaces_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_shownewlines">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show newline characters in the editor view</property>
+                            <property name="label" translatable="yes">Show newlines</property>
+                            <signal name="toggled" handler="on_editor_shownewlines_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_minimap">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show minimap in the editor view</property>
+                            <property name="label" translatable="yes">Show minimap</property>
+                            <signal name="toggled" handler="on_editor_minimap_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_Help</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Open Python API reference documentation</property>
+                            <property name="action-name">editor.python_doc</property>
+                            <property name="label" translatable="yes">Python API reference</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Open Siril command reference documentation</property>
+                            <property name="action-name">editor.command_doc</property>
+                            <property name="label" translatable="yes">Siril Command Reference</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="script_language_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Script type</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkBox" id="codeviewbox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkScrolledWindow" id="python_scrolled_window">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="shadow-type">in</property>
+                        <property name="min-content-width">400</property>
+                        <property name="min-content-height">600</property>
+                        <property name="propagate-natural-width">True</property>
+                        <property name="propagate-natural-height">True</property>
+                        <child>
+                          <object class="GtkSourceView" id="code_view">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="left-margin">2</property>
+                            <property name="right-margin">2</property>
+                            <property name="monospace">True</property>
+                            <property name="show-line-numbers">True</property>
+                            <property name="show-line-marks">True</property>
+                            <property name="tab-width">4</property>
+                            <property name="indent-width">4</property>
+                            <property name="auto-indent">True</property>
+                            <property name="insert-spaces-instead-of-tabs">True</property>
+                            <property name="show-right-margin">True</property>
+                            <property name="smart-home-end">always</property>
+                            <property name="highlight-current-line">True</property>
+                            <property name="smart-backspace">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox" id="editor_args_box">
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-start">6</property>
+                        <property name="label" translatable="yes">Arguments:</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="editor_args_entry">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-markup" translatable="yes">This entry can be used to set arguments to run the script with, in order to allow testing of how it will behave when called with the &lt;b&gt;pyscript&lt;/b&gt; command with arguments. Note that arguments  cannot be provided when a script is run from the Scripts menu, so scripts should not be solely reliant on arguments for input.</property>
+                        <property name="hexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="editor_args_clear">
+                        <property name="label">gtk-clear</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="halign">end</property>
+                        <property name="use-stock">True</property>
+                        <property name="always-show-image">True</property>
+                        <signal name="clicked" handler="on_editor_args_clear_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

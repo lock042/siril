@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -104,7 +104,7 @@ static gboolean siril_confirm_data_dialog_internal(gpointer p, gchar *button_acc
 gboolean siril_confirm_data_dialog(GtkMessageType type, char *title, char *text, gchar *button_accept, gchar *data) {
 	if (com.headless || com.script)
 		return FALSE;	// should never happen
-	struct siril_dialog_data *args = malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -180,7 +180,7 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	 * so it's not safe to use dialogs in the calling thread, we just ignore it for now. */
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = g_try_malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -199,13 +199,7 @@ void siril_message_dialog(GtkMessageType type, char *title, char *text) {
 	show_modal_dialog(args);
 }
 
-struct message_data {
-	GtkMessageType type;
-	char *title;
-	char *text;
-};
-
-static gboolean siril_message_dialog_idle(gpointer p) {
+gboolean siril_message_dialog_idle(gpointer p) {
 	struct message_data *data = (struct message_data *) p;
 	siril_message_dialog(data->type, data->title, data->text);
 	free(data->title);
@@ -214,10 +208,10 @@ static gboolean siril_message_dialog_idle(gpointer p) {
 	return FALSE;
 }
 
-static void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
+void queue_message_dialog(GtkMessageType type, const char *title, const char *text) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct message_data *data = malloc(sizeof(struct message_data));
+	struct message_data *data = calloc(1, sizeof(struct message_data));
 	data->type = type;
 	data->title = strdup(title);
 	data->text = strdup(text);
@@ -236,7 +230,7 @@ void queue_warning_message_dialog(const char *title, const char *text) {
 void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data) {
 	if (com.headless || com.script)
 		return;	// show_dialog usually follows a siril_log_message() call
-	struct siril_dialog_data *args = malloc(sizeof(struct siril_dialog_data));
+	struct siril_dialog_data *args = calloc(1, sizeof(struct siril_dialog_data));
 
 	args->parent = siril_get_active_window();
 	if (!GTK_IS_WINDOW(args->parent)) {
@@ -308,6 +302,31 @@ static gboolean siril_confirm_dialog_internal(gchar *title, gchar *msg, gchar *b
 
 gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept) {
 	return siril_confirm_dialog_internal(title, msg, button_accept, FALSE, NULL);
+}
+
+struct confirm_dialog_data {
+    gchar *title;
+    gchar *msg;
+    gchar *button_accept;
+    gboolean result;
+};
+
+static gboolean confirm_dialog_idle(gpointer arg) {
+    struct confirm_dialog_data *data = (struct confirm_dialog_data *)arg;
+    data->result = siril_confirm_dialog(data->title, data->msg, data->button_accept);
+    return FALSE;
+}
+
+gboolean siril_confirm_dialog_async(gchar *title, gchar *msg, gchar *button_accept) {
+    struct confirm_dialog_data data;
+    data.title = title;
+    data.msg = msg;
+    data.button_accept = button_accept;
+    data.result = FALSE;
+
+    execute_idle_and_wait_for_it(confirm_dialog_idle, &data);
+
+    return data.result;
 }
 
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data) {

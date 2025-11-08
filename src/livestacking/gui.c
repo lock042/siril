@@ -163,7 +163,7 @@ void update_debayer_button_status(gboolean new_state) {
 }
 
 gboolean livestacking_first_result_idle(gpointer p) {
-	set_precision_switch(); // set precision on screen
+	gui_function(set_precision_switch, NULL); // set precision on screen
 	redraw(REMAP_ALL);
 	return FALSE;
 }
@@ -180,14 +180,9 @@ void enable_debayer(gboolean arg) {
 	else gdk_threads_add_idle(enable_debayer_idle, GINT_TO_POINTER(arg));
 }
 
-static gboolean end_image_loading(gpointer arg) {
+gboolean end_image_loading(gpointer arg) {
 	redraw(REMAP_ALL);
 	return FALSE;
-}
-
-void complete_image_loading() {
-	if (!com.headless)
-		execute_idle_and_wait_for_it(end_image_loading, NULL);
 }
 
 void init_preprocessing_from_GUI() {

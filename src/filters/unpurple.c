@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,8 +24,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "algos/statistics.h"
-#include "core/arithm.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
@@ -33,21 +31,29 @@
 #include "algos/colors.h"
 #include "filters/unpurple.h"
 
-//static gboolean end_unpurple(gpointer p) {
-//	stop_processing_thread();
-//	notify_gfit_modified();
-//	return FALSE;
-//}
+static gboolean end_unpurple(gpointer p) {
+	stop_processing_thread();
+	notify_gfit_modified();
+	return FALSE;
+}
 
-//gpointer unpurplehandler(gpointer args) {
-//	lock_roi_mutex();
-//	struct unpurpleargs *p = (struct unpurpleargs *)args;
-//	int retval = unpurple_filter(p);
-//	unlock_roi_mutex();
-//	if (!com.script)
-//		siril_add_idle(end_unpurple, NULL);
-//	return GINT_TO_POINTER(retval);
-//}
+gpointer unpurple_handler(gpointer args) {
+	lock_roi_mutex();
+	struct unpurpleargs *p = (struct unpurpleargs *)args;
+	gpointer retval = unpurple(p);
+	unlock_roi_mutex();
+	if (!com.script)
+		siril_add_idle(end_unpurple, NULL);
+	return retval;
+}
+
+gpointer unpurple_filter(gpointer args) {
+	struct unpurpleargs *p = (struct unpurpleargs *)args;
+	gpointer retval = unpurple(p);
+	if (!com.script)
+		siril_add_idle(end_unpurple, NULL);
+	return retval;
+}
 
 // TODO: Perhaps we still need a better purple detector?
 static gboolean is_purple(float red, float green, float blue) {
@@ -58,7 +64,7 @@ static gboolean is_purple(float red, float green, float blue) {
 }
 
 //TODO improve this filter!
-gpointer unpurple_filter(gpointer p) {
+gpointer unpurple(gpointer p) {
 	struct unpurpleargs *args = (struct unpurpleargs*) p;
 
 	fits *fit = args->fit;
@@ -68,7 +74,7 @@ gpointer unpurple_filter(gpointer p) {
 	gboolean withstarmask = args->withstarmask;
 	gboolean verbose = args->verbose;
 
-	struct timeval t_start, t_end;
+	struct timeval t_start = { 0 }, t_end = { 0 };
 
 	if (mod_b < 1) {
 		for (size_t j = 0; j < fit->ry; j++) {
@@ -82,7 +88,7 @@ gpointer unpurple_filter(gpointer p) {
 				if (fit->type == DATA_USHORT) {
 					red = fit->pdata[RLAYER][i + offset] * INV_USHRT_MAX_SINGLE;
 					green = fit->pdata[GLAYER][i + offset] * INV_USHRT_MAX_SINGLE;
-					blue = fit->pdata[BLAYER][i + offset] * INV_USHRT_MAX_SINGLE;				
+					blue = fit->pdata[BLAYER][i + offset] * INV_USHRT_MAX_SINGLE;
 				} else {
 					red = fit->fpdata[RLAYER][i + offset];
 					green = fit->fpdata[GLAYER][i + offset];
@@ -91,7 +97,7 @@ gpointer unpurple_filter(gpointer p) {
 				float luminance = 0.299f * red + 0.587f * green + 0.114f * blue;
 
 				// Is this purple?
-				if (is_purple(red, green, blue)) { 
+				if (is_purple(red, green, blue)) {
 
 					// Only affect pixels that fall in the starmask or are greater than our background luminance threshold
 					if ((withstarmask && starmask->pdata[RLAYER][i + offset] > 0) || (!withstarmask && luminance > thresh))  {
@@ -112,7 +118,7 @@ gpointer unpurple_filter(gpointer p) {
 								fit->fpdata[BLAYER][i + offset] = blue;
 							}
 						}
-					} 
+					}
 				}
 			}
 		}
@@ -125,10 +131,9 @@ gpointer unpurple_filter(gpointer p) {
 
 	char log[90];
 	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod_b, thresh, withstarmask);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, strdup(log));
 	if (args->for_final)
 		populate_roi();
-	notify_gfit_modified();
 	free(args);
 	return GINT_TO_POINTER(0);
 }

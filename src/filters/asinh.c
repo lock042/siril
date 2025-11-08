@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
-#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -41,10 +40,14 @@ static gboolean asinh_rgb_space = FALSE;
 static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static clip_mode_t clip_mode = RGBBLEND;
 
+// Original ICC profile, in case we don't apply a stretch and need to revert
+static cmsHPROFILE original_icc = NULL;
+static gboolean single_image_stretch_applied = FALSE;
+
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
 	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	notify_gfit_modified();
 	return 0;
@@ -65,22 +68,34 @@ static void asinh_startup() {
 	copy_gfit_to_backup();
 }
 
-static void asinh_close(gboolean revert) {
+static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	set_cursor_waiting(TRUE);
+	// janky undo preparation to account for ICC usage
+	// this is purely a shallow copy, it MUST NOT be cleared with clearfits
+	fits undo_fit = {0};
+	memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+	undo_fit.icc_profile = original_icc;
+	undo_fit.color_managed = original_icc != NULL;
+
 	if (revert) {
 		if (asinh_stretch_value != 0.0f || asinh_black_value != 0.0f) {
-			siril_preview_hide();
-		} else {
-			clear_backup();
+			copy_backup_to_gfit();
+			notify_gfit_modified();
 		}
 	} else {
-		invalidate_stats_from_fit(&gfit);
-		undo_save_state(get_preview_gfit_backup(),
+		invalidate_stats_from_fit(gfit);
+		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				asinh_stretch_value, asinh_black_value);
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
+	if (revert_icc_profile && !single_image_stretch_applied) {
+		if (gfit->icc_profile)
+			cmsCloseProfile(gfit->icc_profile);
+		gfit->icc_profile = copyICCProfile(original_icc);
+		color_manage(gfit, gfit->icc_profile != NULL);
+	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
 }
@@ -88,9 +103,10 @@ static void asinh_close(gboolean revert) {
 static int asinh_process_all() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
-	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	asinhlut(gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	populate_roi();
 	notify_gfit_modified();
+	single_image_stretch_applied = TRUE;
 	return 0;
 }
 
@@ -138,14 +154,19 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 							maxval = data.sf[chan];
 					}
 					if (maxval > 1.f) {
+						float invmaxval = 1.f / maxval;
 						for (int chan = 0 ; chan < 3 ; chan++) {
-							data.sf[chan] /= maxval;
+							data.sf[chan] *= invmaxval; // multiply is much quicker than divide so we do it outside this loop
+							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
+						}
+					} else {
+						for (int chan = 0 ; chan < 3 ; chan++) {
 							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
 						}
 					}
 					break;
 				case RGBBLEND:;
-					float out[3];
+					float out[3] = {val[0], val[1], val[2]};
 					rgbblend(&data, &out[RLAYER], &out[GLAYER], &out[BLAYER], m_CB);
 					for (int chan = 0 ; chan < 3 ; chan++) {
 						buf[chan][i] = roundf_to_WORD(norm * out[chan]);
@@ -309,13 +330,23 @@ int command_asinh(fits *fit, float beta, float offset, gboolean human_luminance,
 }
 
 static void apply_asinh_changes() {
-	gboolean status = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
-	asinh_close(!status);
+	gboolean changed = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
+	asinh_close(!changed, !changed);
 }
 
 void apply_asinh_cancel() {
-	asinh_close(TRUE);
+	asinh_close(TRUE, TRUE);
 	siril_close_dialog("asinh_dialog");
+
+}
+
+void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
+	apply_asinh_cancel();
+}
+
+gboolean asinh_hide_on_delete(GtkWidget *widget) {
+	apply_asinh_cancel();
+	return TRUE;
 }
 
 /*** callbacks **/
@@ -325,12 +356,31 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 	GtkWidget *clipmode = lookup_widget("asinh_clip_settings");
-	gtk_widget_set_visible(clipmode, (gfit.naxes[2] == 3));
+	gtk_widget_set_visible(clipmode, (gfit->naxes[2] == 3));
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
-	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
+	if (original_icc)
+		cmsCloseProfile(original_icc);
+	original_icc = copyICCProfile(gfit->icc_profile);
+	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+	single_image_stretch_applied = FALSE;
+	// When opening the dialog with a single image loaded, we cache the original ICC
+	// profile (may be NULL) in case the user closes the dialog without applying a
+	// stretch, in which case we will revert.
+	if (single_image_is_loaded()) {
+		if (original_icc) {
+			cmsCloseProfile(original_icc);
+			original_icc = copyICCProfile(gfit->icc_profile);
+		}
+		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+	} else {
+		if (original_icc) {
+			cmsCloseProfile(original_icc);
+			original_icc = NULL;
+		}
+	}
 
 	asinh_startup();
 	asinh_stretch_value = 0.0f;
@@ -347,13 +397,10 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	/* default parameters do not transform image, no need to update preview */
 }
 
-void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_asinh_cancel();
-}
-
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))) || gui.roi.active) {
 		asinh_process_all();
 	}
@@ -362,8 +409,9 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("asinh_dialog");
 }
 
-void on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
+gboolean on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
 	apply_asinh_changes();
+	return FALSE;
 }
 
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
 #include <string.h>
 
@@ -31,12 +30,8 @@
 #include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
-#include "algos/astrometry_solver.h"
 #include "algos/statistics_float.h"
-#include "algos/siril_wcs.h"
-#include "algos/search_objects.h"
 #include "algos/comparison_stars.h"
-#include "gui/PSF_list.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
@@ -368,11 +363,15 @@ clean_and_exit:
  */
 int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int i, j;
-	siril_plot_data *spl_data = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data)
+		return -1;
+
 	sequence *seq = lcargs->seq;
 
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 
@@ -392,6 +391,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
 		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 
@@ -406,6 +406,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	if (nb_ref_stars == 0) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 	if (nb_ref_stars == 1)
@@ -421,6 +422,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (!date || !vmag || !err || !snr_opt) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag); free(err); free(snr_opt);
+		free_siril_plot_data(spl_data);
 		return -1;
 	}
 	double min_date = DBL_MAX;
@@ -521,8 +523,6 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, titledat);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	spl_data->revertY = TRUE;
@@ -543,7 +543,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
-		spl_data = NULL; // just in case we try to use it later on
+		spl_data = NULL;
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
@@ -551,7 +551,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
-			spl_data = NULL; // just in case we try to use it later on
+			spl_data = NULL;
 			g_free(image_name);
 		}
 	}
@@ -600,7 +600,7 @@ gpointer light_curve_worker(gpointer arg) {
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
-		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
+		if (seqpsf(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
 				retval = 1;
@@ -619,7 +619,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
 	if (!retval && args->display_graph && args->spl_data) {
-		siril_add_idle(create_new_siril_plot_window, args->spl_data);
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, args->spl_data);
 	}
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);

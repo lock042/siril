@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,10 +34,8 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
-#include "io/single_image.h"
 #include "algos/Def_Wavelet.h"
 #include "wavelets.h"
-#include "core/OS_utils.h"
 
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
@@ -66,13 +64,13 @@ static int update_wavelets() {
 
 	set_cursor_waiting(TRUE);
 
-	for (int i = 0; i < gfit.naxes[2]; i++) {
+	for (int i = 0; i < gfit->naxes[2]; i++) {
 		dir[i] = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
-		if (gfit.type == DATA_USHORT) {
-			wavelet_reconstruct_file(dir[i], wavelet_value, gfit.pdata[i]);
+		if (gfit->type == DATA_USHORT) {
+			wavelet_reconstruct_file(dir[i], wavelet_value, gfit->pdata[i]);
 		} else {
 			wavelet_reconstruct_file_float(dir[i], wavelet_value,
-					gfit.fpdata[i]);
+					gfit->fpdata[i]);
 		}
 		g_free(dir[i]);
 	}
@@ -211,6 +209,7 @@ void apply_wavelets_cancel() {
 		reset_scale_w();
 		update_wavelets();
 	}
+	siril_close_dialog("wavelets_dialog");
 }
 
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
@@ -226,19 +225,18 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("wavelets_dialog");
 }
 
-void on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
+gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	apply_wavelets_cancel();
-	siril_close_dialog("wavelets_dialog");
+	return FALSE;
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	if (wavelet_show_preview) {
 		copy_backup_to_gfit();
-		undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
 	}
 
 	int Type_Transform, Nbr_Plan, maxplan, mins, i;
-	int nb_chan = gfit.naxes[2];
+	int nb_chan = gfit->naxes[2];
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" }, *dir[3];
 	const char *tmpdir;
@@ -250,7 +248,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	Type_Transform = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(lookup_widget("combobox_type_w"))) + 1;
 
-	mins = min(gfit.rx, gfit.ry);
+	mins = min(gfit->rx, gfit->ry);
 	maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
@@ -271,8 +269,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 
-	if (gfit.type == DATA_USHORT) {
-		size_t n = gfit.naxes[0] * gfit.naxes[1] * sizeof(float);
+	if (gfit->type == DATA_USHORT) {
+		size_t n = gfit->naxes[0] * gfit->naxes[1] * sizeof(float);
 		float *Imag = malloc(n);
 		if (Imag) {
 			for (i = 0; i < nb_chan; i++) {
@@ -280,8 +278,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 				strcpy(dir[i], tmpdir);
 				strcat(dir[i], G_DIR_SEPARATOR_S);
 				strcat(dir[i], File_Name_Transform[i]);
-				wavelet_transform_file(Imag, gfit.ry, gfit.rx, dir[i],
-						Type_Transform, Nbr_Plan, gfit.pdata[i]);
+				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir[i],
+						Type_Transform, Nbr_Plan, gfit->pdata[i]);
 				free(dir[i]);
 			}
 			free(Imag);
@@ -292,7 +290,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 			strcpy(dir[i], tmpdir);
 			strcat(dir[i], G_DIR_SEPARATOR_S);
 			strcat(dir[i], File_Name_Transform[i]);
-			wavelet_transform_file_float(gfit.fpdata[i], gfit.ry, gfit.rx, dir[i],
+			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir[i],
 					Type_Transform, Nbr_Plan);
 			free(dir[i]);
 		}
@@ -321,7 +319,7 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	Type = gtk_combo_box_get_active(Combo_Wavelets_Type) + 1;// 1: linear, 2: bspline
 
 	set_cursor_waiting(TRUE);
-	mins = min(gfit.rx, gfit.ry);
+	mins = min(gfit->rx, gfit->ry);
 	maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
@@ -332,12 +330,13 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct wavelets_filter_data *args = malloc(sizeof(struct wavelets_filter_data));
+	struct wavelets_filter_data *args = calloc(1, sizeof(struct wavelets_filter_data));
 
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
-	args->fit = &gfit;
-	start_in_new_thread(extract_plans, args);
+	args->fit = gfit;
+	if (!start_in_new_thread(extract_plans, args))
+		free(args);
 }
 
 void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,13 +25,11 @@
 #include "core/processing.h"
 #include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
-#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
-#include "gui/image_display.h"
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
@@ -282,13 +280,15 @@ int cached_object_lookup(sky_object_query_args *args) {
 }
 
 void search_object(GtkEntry *entry) {
-	if (!has_wcs(&gfit))
+	if (!has_wcs(gfit))
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	sky_object_query_args *args = init_sky_object_query();
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-	args->fit = &gfit;
-	start_in_new_thread(catsearch_worker, args);
+	args->fit = gfit;
+	if (!start_in_new_thread(catsearch_worker, args)) {
+		free_sky_object_query(args);
+	}
 }
 
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {

@@ -13,11 +13,13 @@ void register_selection_update_callback(selection_update_callback f);
 void unregister_selection_update_callback(const selection_update_callback f);
 
 void set_mouse_event_mask();
-void new_selection_zone();
+gboolean new_selection_zone(gpointer user_data);
 void delete_selected_area();
 void reset_display_offset();
+void reset_menu_toggle_button();
 void reset_zoom_default();
 void update_zoom_label();
+gboolean update_zoom_label_idle(gpointer user_data);
 void enforce_ratio_and_clamp();
 gboolean display_quick_photo();
 GdkModifierType get_primary();
@@ -65,16 +67,17 @@ typedef enum _scroll_function_ref {
 } scroll_function_ref;
 
 typedef enum {
-	MOUSE_ACTION_NONE,
-	MOUSE_ACTION_SELECT_REG_AREA,
-	MOUSE_ACTION_SELECT_PREVIEW1,
-	MOUSE_ACTION_SELECT_PREVIEW2,
-	MOUSE_ACTION_DRAW_SAMPLES,
-	MOUSE_ACTION_PHOTOMETRY,
-	MOUSE_ACTION_GET_COMP_CENTER_COORDINATE,
-	MOUSE_ACTION_CUT_SELECT,
-	MOUSE_ACTION_CUT_WN1,
-	MOUSE_ACTION_CUT_WN2,
+	MOUSE_ACTION_NONE, // 0
+	MOUSE_ACTION_SELECT_REG_AREA, // 1
+	MOUSE_ACTION_SELECT_PREVIEW1, // 2
+	MOUSE_ACTION_SELECT_PREVIEW2, // 3
+	MOUSE_ACTION_DRAW_SAMPLES, // 4
+	MOUSE_ACTION_PHOTOMETRY, // 5
+	MOUSE_ACTION_GET_COMP_CENTER_COORDINATE, // 6
+	MOUSE_ACTION_CUT_SELECT, // 7
+	MOUSE_ACTION_CUT_WN1, // 8
+	MOUSE_ACTION_CUT_WN2, // 9
+	MOUSE_ACTION_DRAW_POLY, // 10
 } mouse_status_enum;
 
 typedef enum {
@@ -162,7 +165,9 @@ typedef struct _release_action {
 } release_action;
 
 void init_mouse();
+mouse_status_enum get_mouse_status();
 void initialize_mouse_actions();
+void init_draw_poly();
 void initialize_scroll_actions();
 void load_or_initialize_mouse_actions();
 void load_or_initialize_scroll_actions();

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
-#include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
@@ -240,6 +239,27 @@ static void save_log_file(gchar *filename) {
 	g_free(str);
 }
 
+static gboolean get_log_as_string_idle(gpointer user_data) {
+	GtkTextBuffer *log;
+	GtkTextView *tv;
+	GtkTextIter start, end;
+	const gchar *str;
+	gchar **strptr = (gchar **) user_data;
+
+	tv = GTK_TEXT_VIEW(lookup_widget("output"));
+	log = gtk_text_view_get_buffer(tv);
+	gtk_text_buffer_get_bounds(log, &start, &end);
+	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
+	*strptr = g_strdup(str);
+	return FALSE;
+}
+
+gchar *get_log_as_string() {
+	gchar *log = NULL;
+	execute_idle_and_wait_for_it(get_log_as_string_idle, &log);
+	return log;
+}
+
 static void set_filter(GtkFileChooser *dialog) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("Log files (*.log)"));
@@ -352,9 +372,7 @@ void set_cursor_waiting(gboolean waiting) {
 	arg->change = waiting;
 	arg->cursor_name = "progress";
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }
 
 void set_cursor(const gchar* cursor_name) {
@@ -363,7 +381,5 @@ void set_cursor(const gchar* cursor_name) {
 	arg->change = TRUE;
 	arg->cursor_name = cursor_name;
 
-	if (com.script)
-		gdk_threads_add_idle(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
+	gui_function(idle_set_cursor, arg);
 }
