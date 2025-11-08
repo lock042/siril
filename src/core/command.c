@@ -11665,11 +11665,11 @@ int process_eqcrop(int nb) {
                 clearfits(&fit);
                 arg_idx++;
         } else {
-                if (!has_wcs(&gfit)) {
+                if (!has_wcs(gfit)) {
                         siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
                         return CMD_FOR_PLATE_SOLVED;
                 }
-                image_size = max(gfit.rx, gfit.ry);
+                image_size = max(gfit->rx, gfit->ry);
         }
 
         SirilWorldCS *coords1 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
@@ -11744,7 +11744,7 @@ int process_eqcrop(int nb) {
                 siril_world_cs_unref(coords1);
                 siril_world_cs_unref(coords2);
 
-                int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, &gfit, NULL, NULL);
+                int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, gfit, NULL, NULL);
                 if (retval)
                         return retval;
 
