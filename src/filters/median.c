@@ -111,7 +111,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			break;
 	}
 
-	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : gfit;
+	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : &gfit;
 	args->amount = amount;
 	args->iterations = iterations;
 	set_cursor_waiting(TRUE);
@@ -797,7 +797,7 @@ gpointer median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
 	if (!com.script && !args->previewing)
-		undo_save_state(gfit, _("Median Filter (filter=%dx%d px)"),
+		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
 	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
@@ -805,7 +805,7 @@ gpointer median_filter(gpointer p) {
 	if (args->fit->type == DATA_FLOAT)
 		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	if (args->fit == gfit)
+	if (args->fit == &gfit)
 		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }

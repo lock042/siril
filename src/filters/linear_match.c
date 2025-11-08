@@ -26,7 +26,7 @@
 static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->pdata[channel][i] = round_to_WORD(fit->pdata[channel][i] * a[channel] + b[channel] * USHRT_MAX_DOUBLE);
@@ -37,7 +37,7 @@ static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double
 static void apply_linear_to_fits_float(fits *fit, const double *a, const double *b) {
 	size_t size = fit->rx * fit->ry;
 
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		for (size_t i = 0; i < size; i++) {
 			fit->fpdata[channel][i] = fit->fpdata[channel][i] * a[channel] + b[channel];

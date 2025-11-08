@@ -237,7 +237,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		return;
 	}
 	g_free(dirname);
-	if (!has_wcs(gfit)) {	// Is the current image properly plate solved
+	if (!has_wcs(&gfit)) {	// Is the current image properly plate solved
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
 		return;
 	}
@@ -274,7 +274,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	gboolean use_c1 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp1));
 	gboolean use_c2 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp2));
 
-	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, gfit)) {
+	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, &gfit)) {
 		// fail
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
 		free(args);

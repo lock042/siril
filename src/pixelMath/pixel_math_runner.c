@@ -323,13 +323,13 @@ static gboolean end_pixel_math_operation(gpointer p) {
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
-		clearfits(gfit);
+		clearfits(&gfit);
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
 		invalidate_gfit_histogram();
 
-		memcpy(gfit, args->fit, sizeof(fits));
-		icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
+		memcpy(&gfit, args->fit, sizeof(fits));
+		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		gui_function(open_single_image_from_gfit, NULL);
@@ -480,7 +480,7 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 	if (!f[0] && single_image_is_loaded() )
 		// if no fit used (only constants),
 		// we copy the metadata from gfit
-		copy_fits_metadata(gfit, fit);
+		copy_fits_metadata(&gfit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
 	update_fits_header(fit);
@@ -526,7 +526,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 			imstats *stats = NULL;
 
 			if (g_strcmp0(param, T_CURRENT) == 0) {
-				stats = statistics(NULL, -1, gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
+				stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
 				if (!stats) {
 					g_free(full_match);
 					g_free(function);
@@ -544,8 +544,8 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 				bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
 				mad = stats->mad;
 				sdev = stats->sigma;
-				w = (double) gfit->rx;
-				h = (double) gfit->ry;
+				w = (double) gfit.rx;
+				h = (double) gfit.ry;
 				free_stats(stats);
 			} else {
 				for (int j = 0; j < nb_images; j++) {
@@ -722,9 +722,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			}
 		}
 		if (args->has_gfit && nb_rows == 0) {
-			width = gfit->naxes[0];
-			height = gfit->naxes[1];
-			nchan = gfit->naxes[2];
+			width = gfit.naxes[0];
+			height = gfit.naxes[1];
+			nchan = gfit.naxes[2];
 		} else {
 			width = var_fit[0].naxes[0];
 			height = var_fit[0].naxes[1];
@@ -742,10 +742,10 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = (double) var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					if (gfit->type == DATA_USHORT) {
-						x[nb_rows] = (double) gfit->data[px] / USHRT_MAX_DOUBLE;
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = (double) gfit.data[px] / USHRT_MAX_DOUBLE;
 					} else {
-						x[nb_rows] = (double) gfit->fdata[px];
+						x[nb_rows] = (double) gfit.fdata[px];
 					}
 				}
 
@@ -784,10 +784,10 @@ gpointer apply_pixel_math_operation(gpointer p) {
 					x[i] = var_fit[i].fdata[px];
 				}
 				if (args->has_gfit) {
-					if (gfit->type == DATA_USHORT) {
-						x[nb_rows] = gfit->data[px] / USHRT_MAX_DOUBLE;
+					if (gfit.type == DATA_USHORT) {
+						x[nb_rows] = gfit.data[px] / USHRT_MAX_DOUBLE;
 					} else {
-						x[nb_rows] = gfit->fdata[px];
+						x[nb_rows] = gfit.fdata[px];
 					}
 				}
 
@@ -864,8 +864,8 @@ failure: // failure before the eval loop
 	if (com.headless) {
 		// no display or threading needed
 		if (!failed) {
-			clearfits(gfit);
-			memcpy(gfit, args->fit, sizeof(fits));
+			clearfits(&gfit);
+			memcpy(&gfit, args->fit, sizeof(fits));
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
@@ -1140,7 +1140,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
 
-	if (replace_t_with_gfit(args) && gfit->naxes[2] > 1) {
+	if (replace_t_with_gfit(args) && gfit.naxes[2] > 1) {
 		queue_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
 		retval = 1;
 		goto free_expressions;
@@ -1148,9 +1148,9 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	fits *fit = NULL;
 	if (args->has_gfit) { // in the case where no images are loaded, at least gfit must be laded
-		width = gfit->rx;
-		height = gfit->ry;
-		channel = args->single_rgb ? gfit->naxes[2] : 3;
+		width = gfit.rx;
+		height = gfit.ry;
+		channel = args->single_rgb ? gfit.naxes[2] : 3;
 		if (nb_rows > 0) {
 			if (width != var_fit[0].naxes[0] ||
 				height != var_fit[0].naxes[1]) {

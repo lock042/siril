@@ -707,12 +707,12 @@ gdouble get_catalogue_object_radius(const CatalogObjects *object) {
 }
 
 void refresh_found_objects() {
-	if (has_wcs(gfit)) {
+	if (has_wcs(&gfit)) {
 		if (com.found_object) {
 			g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
 			com.found_object = NULL;
 		}
-		com.found_object = find_objects_in_field(gfit);
+		com.found_object = find_objects_in_field(&gfit);
 	}
 }
 

@@ -418,7 +418,7 @@ static void opendial(int whichdial) {
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
 			retval = open_single_image(filename);
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 			set_cursor_waiting(FALSE);
 			if (retval == OPEN_IMAGE_CANCEL) goto wait;
 			break;
@@ -507,7 +507,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 	}
 
 	open_single_image(path);
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 
 	g_free(uri);
 	g_free(path);

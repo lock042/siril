@@ -234,7 +234,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!single_image_is_loaded()) return;
 
-	if (gfit->orig_bitpix == BYTE_IMG) {
+	if (gfit.orig_bitpix == BYTE_IMG) {
 		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
 		return;
 	}
@@ -244,7 +244,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->yc = get_yc();
 	args->dR = get_dR();
 	args->da = get_da();
-	args->fit = gfit;
+	args->fit = &gfit;
 
 	if ((args->xc >= args->fit->rx) || (args->yc >= args->fit->ry)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong center coordinates"),
@@ -253,7 +253,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 
-	undo_save_state(gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
+	undo_save_state(&gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 
 	if (!start_in_new_thread(rgradient_filter, args))
@@ -264,7 +264,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
 	if (com.selection.h && com.selection.w) {
 		psf_error error = PSF_NO_ERR;
-		psf_star *result = psf_get_minimisation(gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, PSF_GAUSSIAN, &error);
+		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, PSF_GAUSSIAN, &error);
 		if (result && error == PSF_NO_ERR) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);

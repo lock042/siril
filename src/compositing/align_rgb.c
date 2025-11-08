@@ -70,33 +70,33 @@ static int initialize_internal_rgb_sequence() {
 	seq = create_internal_sequence(3);
 	for (int i = 0; i < 3; i++) {
 		fits *fit = calloc(1, sizeof(fits));
-		if (extract_fits(gfit, fit, i, FALSE)) {
+		if (extract_fits(&gfit, fit, i, FALSE)) {
 			free(fit);
 			free_sequence(seq, TRUE);
 			return -1;
 		}
 		internal_sequence_set(seq, i, fit);
 	}
-	seq->rx = gfit->rx;
-	seq->ry = gfit->ry;
-	seq->bitpix = gfit->bitpix;
+	seq->rx = gfit.rx;
+	seq->ry = gfit.ry;
+	seq->bitpix = gfit.bitpix;
 
 	return 0;
 }
 
 static void compose() {
-	size_t npixels = gfit->rx * gfit->ry;
+	size_t npixels = gfit.rx * gfit.ry;
 	fits *fit[3];
 	for (int i = 0 ; i < 3 ; i++) {
 		fit[i] = internal_sequence_get(seq, i);
 	}
-	if (gfit->type == DATA_FLOAT) {
+	if (gfit.type == DATA_FLOAT) {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit->fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
+			memcpy(gfit.fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
 		}
 	} else {
 		for (int i = 0 ; i < 3 ; i++) {
-			memcpy(gfit->pdata[i], fit[i]->data, sizeof(WORD) * npixels);
+			memcpy(gfit.pdata[i], fit[i]->data, sizeof(WORD) * npixels);
 		}
 	}
 }

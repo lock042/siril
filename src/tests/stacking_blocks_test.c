@@ -46,7 +46,7 @@
 
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits *gfit;	// currently loaded image
+fits gfit;	// currently loaded image
 #endif
 
 int check_that_blocks_cover_the_image(const long naxes[3], struct _image_block *blocks, int nb_blocks) {

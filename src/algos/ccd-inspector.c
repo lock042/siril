@@ -246,7 +246,7 @@ static int tilt_finalize_hook(struct generic_seq_args *args) {
 	float ref = (t_args->m1 + t_args->m2 + t_args->m3 + t_args->m4) / 4.f;
 
 	if (t_args->draw_polygon) {
-		draw_polygon((float) gfit->rx, (float) gfit->ry, t_args->m1, t_args->m2, t_args->m3, t_args->m4, t_args->mr1);
+		draw_polygon((float) gfit.rx, (float) gfit.ry, t_args->m1, t_args->m2, t_args->m3, t_args->m4, t_args->mr1);
 	}
 
 	siril_log_message(_("Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-axis aberration[FWHM]: %.2f\n"),
@@ -306,7 +306,7 @@ static char *edge_w[] = {
 };
 
 static void set_edge_square(gchar **panel) {
-	int cvport = gfit->naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
+	int cvport = gfit.naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
 	struct image_view *view = &gui.view[cvport];
 
@@ -314,8 +314,8 @@ static void set_edge_square(gchar **panel) {
 	if (edge_surface)
 		cairo_surface_destroy(edge_surface);
 
-	image_width = gfit->rx;
-	image_height = gfit->ry;
+	image_width = gfit.rx;
+	image_height = gfit.ry;
 	/* New surface as we modify it */
 	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
 

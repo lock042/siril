@@ -802,7 +802,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
-	args->fit = gfit;
+	args->fit = &gfit;
 	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
 	set_cursor_waiting(TRUE);
 
@@ -817,7 +817,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->threading = MULTI_THREADED;
-		undo_save_state(gfit, _("Cosmetic Correction"));
+		undo_save_state(&gfit, _("Cosmetic Correction"));
 		if (!start_in_new_thread(autoDetectThreaded, args)) {
 			free(args->seqEntry);
 			free(args);

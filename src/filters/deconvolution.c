@@ -82,7 +82,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
+	the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : &gfit;
 	imageorientation = get_imageorientation();
 	args->fdata = NULL;
 	args->rx = 0;
@@ -545,7 +545,7 @@ gpointer deconvolve(gpointer p) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
-		the_fit = gfit;
+		the_fit = &gfit;
 	}
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
@@ -598,9 +598,9 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (the_fit == gfit || the_fit == &gui.roi.fit)
+	if (the_fit == &gfit || the_fit == &gui.roi.fit)
 		if (!com.script && !com.headless && !args.previewing)
-			undo_save_state(gfit, _("Deconvolution"));
+			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
 	args.fdata = malloc(args.ndata * sizeof(float));
 	if (the_fit->type == DATA_FLOAT)
@@ -792,7 +792,7 @@ int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fit
 	int ret = 0;
 	the_fit = fit;
 	ret = GPOINTER_TO_INT(deconvolve(NULL));
-	the_fit = gfit; // Prevent bad things happening if fit is freed and we then try to do things with the_fit
+	the_fit = &gfit; // Prevent bad things happening if fit is freed and we then try to do things with the_fit
 	args.oldpsftype = args.psftype; // Need to store the previous psf type so we can restore
 	// it later and avoid inconsistency between the GTK widget and the parameter.
 	args.psftype = PSF_PREVIOUS; // For all but the first image in the sequence we will reuse the kernel calculated for the first image.

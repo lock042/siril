@@ -322,7 +322,7 @@ static void auto_photometry_data () {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-	args->fit = gfit;
+	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
 	g_free(target_name);
 	args->narrow_fov = narrow;

@@ -47,7 +47,7 @@ static gboolean single_image_stretch_applied = FALSE;
 static int asinh_update_preview() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	asinhlut(fit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	notify_gfit_modified();
 	return 0;
@@ -83,7 +83,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 			notify_gfit_modified();
 		}
 	} else {
-		invalidate_stats_from_fit(gfit);
+		invalidate_stats_from_fit(&gfit);
 		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
 				asinh_stretch_value, asinh_black_value);
@@ -91,10 +91,10 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	roi_supported(FALSE);
 	remove_roi_callback(asinh_change_between_roi_and_image);
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (gfit->icc_profile)
-			cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, gfit->icc_profile != NULL);
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(original_icc);
+		color_manage(&gfit, gfit.icc_profile != NULL);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
@@ -103,7 +103,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 static int asinh_process_all() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
 		copy_backup_to_gfit();
-	asinhlut(gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
+	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	populate_roi();
 	notify_gfit_modified();
 	single_image_stretch_applied = TRUE;
@@ -356,15 +356,15 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 	GtkWidget *clipmode = lookup_widget("asinh_clip_settings");
-	gtk_widget_set_visible(clipmode, (gfit->naxes[2] == 3));
+	gtk_widget_set_visible(clipmode, (gfit.naxes[2] == 3));
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
 	if (original_icc)
 		cmsCloseProfile(original_icc);
-	original_icc = copyICCProfile(gfit->icc_profile);
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+	original_icc = copyICCProfile(gfit.icc_profile);
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 	single_image_stretch_applied = FALSE;
 	// When opening the dialog with a single image loaded, we cache the original ICC
 	// profile (may be NULL) in case the user closes the dialog without applying a
@@ -372,9 +372,9 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	if (single_image_is_loaded()) {
 		if (original_icc) {
 			cmsCloseProfile(original_icc);
-			original_icc = copyICCProfile(gfit->icc_profile);
+			original_icc = copyICCProfile(gfit.icc_profile);
 		}
-		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+		icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 	} else {
 		if (original_icc) {
 			cmsCloseProfile(original_icc);

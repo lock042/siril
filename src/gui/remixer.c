@@ -170,7 +170,7 @@ void display_remix_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width
 		displayed_values = tmp;
 		memset(displayed_values, 0, nb_bins_allocated);
 	}
-	if (gfit->naxis == 2)
+	if (gfit.naxis == 2)
 		cairo_set_source_rgb(cr, 255.0, 255.0, 255.0);
 	else
 		cairo_set_source_rgb(cr, histo_color_r[layer], histo_color_g[layer],
@@ -337,13 +337,13 @@ void close_histograms(gboolean clear_left, gboolean clear_right) {
 
 	if (clear_left) {
 		if (remix_histlayers_left[0]) {
-			for (int i = 0; i < gfit->naxes[2]; i++) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
 				gsl_histogram_free(remix_histlayers_left[i]);
 				remix_histlayers_left[i] = NULL;
 			}
 		}
 		if (remix_histlayers_backup_left[0]) {
-			for (int i = 0; i < gfit->naxes[2]; i++) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
 				gsl_histogram_free(remix_histlayers_backup_left[i]);
 				remix_histlayers_backup_left[i] = NULL;
 			}
@@ -351,13 +351,13 @@ void close_histograms(gboolean clear_left, gboolean clear_right) {
 	}
 	if (clear_right) {
 		if (remix_histlayers_right[0]) {
-			for (int i = 0; i < gfit->naxes[2]; i++) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
 				gsl_histogram_free(remix_histlayers_right[i]);
 				remix_histlayers_right[i] = NULL;
 			}
 		}
 		if (remix_histlayers_backup_right[0]) {
-			for (int i = 0; i < gfit->naxes[2]; i++) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
 				gsl_histogram_free(remix_histlayers_backup_right[i]);
 				remix_histlayers_backup_right[i] = NULL;
 			}
@@ -495,28 +495,28 @@ int remixer() {
 
 	// Combine images together
 
-	const size_t ndata = gfit->naxes[0] * gfit->naxes[1] * gfit->naxes[2];
-	if (gfit->data)
-		memset(gfit->data, 0, ndata * sizeof(WORD));
-	if (gfit->fdata)
-		memset(gfit->fdata, 0, ndata * sizeof(float));
+	const size_t ndata = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
+	if (gfit.data)
+		memset(gfit.data, 0, ndata * sizeof(WORD));
+	if (gfit.fdata)
+		memset(gfit.fdata, 0, ndata * sizeof(float));
 
-	size_t npixels = gfit->naxes[0] * gfit->naxes[1];
+	size_t npixels = gfit.naxes[0] * gfit.naxes[1];
 	const float norm = USHRT_MAX_SINGLE;
 	const float invnorm = 1.f / norm;
-	if (gfit->naxes[2] == 1) {
-		switch (gfit->type) {
+	if (gfit.naxes[2] == 1) {
+		switch (gfit.type) {
 			case DATA_FLOAT:
-				if (gfit->fdata) {
+				if (gfit.fdata) {
 					for (size_t i = 0 ; i < npixels ; i++) {
-						gfit->fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
+						gfit.fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
 					}
 				}
 				break;
 			case DATA_USHORT:
-				if (gfit->data) {
+				if (gfit.data) {
 					for (size_t i = 0 ; i < npixels ; i++) {
-						gfit->data[i] = roundf_to_WORD(norm * (1.f - (1.f - (fit_left_calc.data[i]*invnorm))*(1.f - (fit_right_calc.data[i]*invnorm))));
+						gfit.data[i] = roundf_to_WORD(norm * (1.f - (1.f - (fit_left_calc.data[i]*invnorm))*(1.f - (fit_right_calc.data[i]*invnorm))));
 					}
 				}
 				break;
@@ -524,23 +524,23 @@ int remixer() {
 				break;
 		}
 	} else {
-		switch (gfit->type) {
+		switch (gfit.type) {
 			case DATA_FLOAT:
 				if (left_loaded && !right_loaded) {
-					memcpy(gfit->fdata, fit_left_calc.fdata, npixels * 3 * sizeof(float));
+					memcpy(gfit.fdata, fit_left_calc.fdata, npixels * 3 * sizeof(float));
 				} else if (right_loaded && !left_loaded) {
-					memcpy(gfit->fdata, fit_right_calc.fdata, npixels * 3 * sizeof(float));
+					memcpy(gfit.fdata, fit_right_calc.fdata, npixels * 3 * sizeof(float));
 				} else {
-					screen(&fit_left_calc, &fit_right_calc, gfit, !com.pref.force_16bit, com.max_thread);
+					screen(&fit_left_calc, &fit_right_calc, &gfit, !com.pref.force_16bit, com.max_thread);
 				}
 				break;
 			case DATA_USHORT:
 				if (left_loaded && !right_loaded) {
-					memcpy(gfit->data, fit_left_calc.data, npixels * 3 * sizeof(WORD));
+					memcpy(gfit.data, fit_left_calc.data, npixels * 3 * sizeof(WORD));
 				} else if (right_loaded && !left_loaded) {
-					memcpy(gfit->data, fit_right_calc.data, npixels * 3 * sizeof(WORD));
+					memcpy(gfit.data, fit_right_calc.data, npixels * 3 * sizeof(WORD));
 				} else {
-					screen(&fit_left_calc, &fit_right_calc, gfit, !com.pref.force_16bit, com.max_thread);
+					screen(&fit_left_calc, &fit_right_calc, &gfit, !com.pref.force_16bit, com.max_thread);
 				}
 				break;
 			default:
@@ -629,7 +629,7 @@ void reset_controls_and_values() {
 
 static void remixer_close() {
 	close_histograms(TRUE, TRUE);
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	clearfits(&fit_left);
 	clearfits(&fit_right);
 	clearfits(&fit_left_calc);
@@ -694,7 +694,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			close_single_image();
-			copyfits(&fit_left, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			left_loaded = TRUE; // Mark LHS image as loaded
 			left_changed = TRUE; // Force update on initial draw
 			permit_calculation = TRUE;
@@ -706,10 +706,10 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
-			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
-			gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
-			gfit->keywords.livetime = fit_left.keywords.livetime;
+			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
+			gfit.keywords.livetime = fit_left.keywords.livetime;
 			initialise_image();
 			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
 			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
@@ -1076,7 +1076,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 					siril_log_message(_("Color profiles did not match: right-hand image has been assigned the left-hand image color profile.\n"));
 				}
 			}
-			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
 				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
@@ -1088,11 +1088,11 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
 					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
-						gfit->keywords.livetime = fit_left.keywords.livetime;
-						gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit->keywords.livetime = fit_right.keywords.livetime;
-						gfit->keywords.stackcnt = fit_right.keywords.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);
@@ -1104,8 +1104,8 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		check_profile_correct(&fit_left);
 		close_single_image();
 		close_sequence(FALSE);
-		clearfits(gfit);
-		copyfits(&fit_left, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		clearfits(&gfit);
+		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		left_loaded = TRUE;
@@ -1169,7 +1169,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 				siril_colorspace_transform(&fit_right, fit_left.icc_profile);
 				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 			}
-			merge_fits_headers_to_result(gfit, FALSE, &fit_left, &fit_right, NULL);
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
 				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
@@ -1181,11 +1181,11 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
 					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
-						gfit->keywords.livetime = fit_left.keywords.livetime;
-						gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit->keywords.livetime = fit_right.keywords.livetime;
-						gfit->keywords.stackcnt = fit_right.keywords.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);
@@ -1197,8 +1197,8 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		check_profile_correct(&fit_right);
 		close_single_image();
 		close_sequence(FALSE);
-		clearfits(gfit);
-		copyfits(&fit_right, gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		clearfits(&gfit);
+		copyfits(&fit_right, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		initialise_image();
 		right_loaded = TRUE;
 		clearfits(&fit_left_calc);

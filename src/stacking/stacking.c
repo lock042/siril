@@ -401,10 +401,10 @@ static gboolean end_stacking(gpointer p) {
 
 	if (args->retval == ST_OK) {
 		/* copy result to gfit if success */
-		clearfits(gfit);
-		memcpy(gfit, &args->result, sizeof(fits));
+		clearfits(&gfit);
+		memcpy(&gfit, &args->result, sizeof(fits));
 		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
+			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
 		if (args->upscale_at_stacking)
@@ -415,18 +415,18 @@ static gboolean end_stacking(gpointer p) {
 		 * which is quite slow */
 		com.uniq = calloc(1, sizeof(single));
 		com.uniq->comment = strdup(_("Stacking result image"));
-		com.uniq->nb_layers = gfit->naxes[2];
-		com.uniq->fit = gfit;
+		com.uniq->nb_layers = gfit.naxes[2];
+		com.uniq->fit = &gfit;
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 		/* Giving noise estimation (new thread) */
-		bgnoise_async(gfit, TRUE);
+		bgnoise_async(&gfit, TRUE);
 
 		// updating the header string to parse the final name
 		// and parse the name
 		int status = PATHPARSE_ERR_OK;
 		gchar *expression = g_strdup(args->output_filename);
-		gchar *parsedname = update_header_and_parse(gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 
 		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
 			args->output_parsed_filename = g_strdup("unknown");
@@ -444,7 +444,7 @@ static gboolean end_stacking(gpointer p) {
 				if (!failed) {
 					if (g_unlink(args->output_parsed_filename) == -1)
 						failed = 1;
-					if (!failed && savefits(args->output_parsed_filename, gfit))
+					if (!failed && savefits(args->output_parsed_filename, &gfit))
 						failed = 1;
 					if (!failed) {
 						com.uniq->filename = strdup(args->output_parsed_filename);
@@ -454,14 +454,14 @@ static gboolean end_stacking(gpointer p) {
 			}
 			else {
 				// output folder (if any) was already created by update_header_and_parse
-				if (!savefits(args->output_parsed_filename, gfit)) {
+				if (!savefits(args->output_parsed_filename, &gfit)) {
 					com.uniq->filename = strdup(args->output_parsed_filename);
 					com.uniq->fileexist = TRUE;
 				} else {
 					failed = 1;
 				}
 			}
-			gfit->keywords.filename[0] = '\0'; // clear the reference to the original filename
+			gfit.keywords.filename[0] = '\0'; // clear the reference to the original filename
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;

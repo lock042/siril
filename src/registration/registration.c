@@ -155,13 +155,13 @@ void create_output_sequence_for_registration(struct registration_args *args, int
  * they must be at least 2 */
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square) {
 	//fprintf(stdout, "function entry: %d,%d,\t%dx%d\n", area->x, area->y, area->w, area->h);
-	if (area->x >= 0 && area->x + area->w <= gfit->rx && area->y >= 0
-			&& area->y + area->h <= gfit->ry)
+	if (area->x >= 0 && area->x + area->w <= gfit.rx && area->y >= 0
+			&& area->y + area->h <= gfit.ry)
 		return;
 
 	if (area->x < 0) {
 		area->x++;
-		if (area->x + area->w > gfit->rx) {
+		if (area->x + area->w > gfit.rx) {
 			/* reduce area */
 			area->w -= hsteps;
 			if (preserve_square) {
@@ -169,7 +169,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 				area->y++;
 			}
 		}
-	} else if (area->x + area->w > gfit->rx) {
+	} else if (area->x + area->w > gfit.rx) {
 		area->x--;
 		if (area->x < 0) {
 			/* reduce area */
@@ -184,7 +184,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 
 	if (area->y < 0) {
 		area->y++;
-		if (area->y + area->h > gfit->ry) {
+		if (area->y + area->h > gfit.ry) {
 			/* reduce area */
 			area->h -= hsteps;
 			if (preserve_square) {
@@ -192,7 +192,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 				area->x++;
 			}
 		}
-	} else if (area->y + area->h > gfit->ry) {
+	} else if (area->y + area->h > gfit.ry) {
 		area->y--;
 		if (area->y < 0) {
 			/* reduce area */

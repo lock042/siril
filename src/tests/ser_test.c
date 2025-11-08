@@ -40,7 +40,7 @@
 
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-fits *gfit;	// currently loaded image
+fits gfit;	// currently loaded image
 #endif
 
 #ifndef _WIN32

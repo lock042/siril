@@ -55,7 +55,7 @@
 
 #include "image_display.h"
 
-/* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
+/* is gfit.icc_profile identical to the monitor profile, if so we can avoid the
  * transform */
 static cmsBool identical = FALSE;
 
@@ -83,16 +83,16 @@ static GtkSpinButton *tri_cut_spin_step = NULL;
 static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
-	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx);
+	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit.rx);
 
 	// allocate the image surface if not already done or the same size
 	if (stride != view->full_surface_stride
-			|| gfit->ry != view->full_surface_height
+			|| gfit.ry != view->full_surface_height
 			|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
-		view->full_surface_height = gfit->ry;
-		guchar *tmp = realloc(view->buf, stride * gfit->ry * sizeof(guchar));
+		view->full_surface_height = gfit.ry;
+		guchar *tmp = realloc(view->buf, stride * gfit.ry * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			if (view->buf)
@@ -103,7 +103,7 @@ static int allocate_full_surface(struct image_view *view) {
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
-				CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
+				CAIRO_FORMAT_RGB24, gfit.rx, gfit.ry, stride);
 		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
@@ -115,8 +115,8 @@ static int allocate_full_surface(struct image_view *view) {
 }
 
 void check_gfit_profile_identical_to_monitor() {
-	if (!com.headless && gfit->icc_profile && gfit->color_managed)
-		identical = profiles_identical(gfit->icc_profile, gui.icc.monitor);
+	if (!com.headless && gfit.icc_profile && gfit.color_managed)
+		identical = profiles_identical(gfit.icc_profile, gui.icc.monitor);
 	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }
 
@@ -127,7 +127,7 @@ static void remaprgb(void) {
 	int nbdata;
 
 	siril_debug_print("remaprgb\n");
-	if (!isrgb(gfit))
+	if (!isrgb(&gfit))
 		return;
 
 	struct image_view *rgbview = &gui.view[RGB_VPORT];
@@ -144,7 +144,7 @@ static void remaprgb(void) {
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
-	nbdata = gfit->rx * gfit->ry;	// source images are 32-bit RGBA
+	nbdata = gfit.rx * gfit.ry;	// source images are 32-bit RGBA
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -203,7 +203,7 @@ static void remap(int vport) {
 		remaprgb();
 		return;
 	}
-	if (gfit->type == DATA_UNSUPPORTED) {
+	if (gfit.type == DATA_UNSUPPORTED) {
 		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
@@ -226,10 +226,10 @@ static void remap(int vport) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
 		gsl_histogram *histo;
-		compute_histo_for_fit(gfit);
+		compute_histo_for_gfit();
 		histo = com.layers_hist[vport];
 		hist_nb_bins = gsl_histogram_bins(histo);
-		nb_pixels = (double)(gfit->rx * gfit->ry);
+		nb_pixels = (double)(gfit.rx * gfit.ry);
 		// build the remap_index
 		index = gui.remap_index[0];
 		index[0] = 0;
@@ -245,11 +245,11 @@ static void remap(int vport) {
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance_default(gfit, stf);
-			else find_linked_midtones_balance_default(gfit, stf);
+				find_unlinked_midtones_balance_default(&gfit, stf);
+			else find_linked_midtones_balance_default(&gfit, stf);
 			stf_computed = TRUE;
 		}
-		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 			make_hd_index_for_current_display(vport);
 		}
 		else
@@ -257,8 +257,8 @@ static void remap(int vport) {
 		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
-	src = gfit->pdata[vport];
-	fsrc = gfit->fpdata[vport];
+	src = gfit.pdata[vport];
+	fsrc = gfit.fpdata[vport];
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
@@ -271,7 +271,7 @@ static void remap(int vport) {
 		make_index_for_rainbow(rainbow_index);
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 
-	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
 	if (hd_mode) {
 		index = gui.hd_remap_index[target_index];
 	}
@@ -281,18 +281,18 @@ static void remap(int vport) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
-	for (guint y = 0; y < gfit->ry; y++) {
-		guint src_i = y * gfit->rx;
-		guint dst_i = ((gfit->ry - 1 - y) * gfit->rx) * 4;
-		for (guint x = 0; x < gfit->rx; ++x, ++src_i, dst_i += 2) {
+	for (guint y = 0; y < gfit.ry; y++) {
+		guint src_i = y * gfit.rx;
+		guint dst_i = ((gfit.ry - 1 - y) * gfit.rx) * 4;
+		for (guint x = 0; x < gfit.rx; ++x, ++src_i, dst_i += 2) {
 			BYTE dst_pixel_value = 0;
-			if (gfit->type == DATA_USHORT) {
+			if (gfit.type == DATA_USHORT) {
 				if (hd_mode) {
 					dst_pixel_value = index[src[src_i] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
 				} else {
 					dst_pixel_value = index[src[src_i]];
 				}
-			} else if (gfit->type == DATA_FLOAT) {
+			} else if (gfit.type == DATA_FLOAT) {
 				if (hd_mode)
 					dst_pixel_value = index[float_to_max_range(fsrc[src_i], gui.hd_remap_max)];
 				else
@@ -301,7 +301,7 @@ static void remap(int vport) {
 			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
 
 			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-			guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+			guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
 			switch (color) {
 				default:
 				case NORMAL_COLOR:
@@ -350,24 +350,24 @@ static void remap_all_vports() {
 	WORD *src[3];
 	float *fsrc[3];
 
-	if (gfit->type == DATA_UNSUPPORTED) {
+	if (gfit.type == DATA_UNSUPPORTED) {
 		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
 
 	lock_display_transform();
-	if (gfit->color_managed) {
+	if (gfit.color_managed) {
 		// Set the transform in case it is missing
 		if (!gui.icc.proofing_transform) {
 			gui.icc.proofing_transform = initialize_proofing_transform();
 			gui.icc.profile_changed = TRUE;
 		}
 		if (gui.icc.profile_changed) {
-			gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+			gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
 //			gui.icc.same_primaries = FALSE;
 			check_gfit_profile_identical_to_monitor();
 			// Calling color_manage() like this updates the color management button tooltip
-			color_manage(gfit, gfit->color_managed);
+			color_manage(&gfit, gfit.color_managed);
 			if (is_preview_active())
 				copy_gfit_icc_to_backup();
 		}
@@ -375,7 +375,7 @@ static void remap_all_vports() {
 
 	make_index_for_current_display(0);
 	index[0] = gui.remap_index[0];
-	if (gfit->color_managed) {
+	if (gfit.color_managed) {
 		for (int i = 1 ; i < 3 ; i++) {
 			make_index_for_current_display(i);
 			index[i] = gui.remap_index[i];
@@ -389,14 +389,14 @@ static void remap_all_vports() {
 	last_mode = gui.rendering_mode;
 
 	for (int i = 0 ; i < 3 ; i++) {
-		src[i] = gfit->pdata[i];
-		fsrc[i] = gfit->fpdata[i];
+		src[i] = gfit.pdata[i];
+		fsrc[i] = gfit.fpdata[i];
 		if (allocate_full_surface(view[i]))
 			return;
 		dst[i] = view[i]->buf;
 	}
 
-	int norm = (int) get_normalized_value(gfit);
+	int norm = (int) get_normalized_value(&gfit);
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
 		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
@@ -404,23 +404,23 @@ static void remap_all_vports() {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
-		for (y = 0; y < gfit->ry; y++) {
+		for (y = 0; y < gfit.ry; y++) {
 			guint x;
-			guint src_i = y * gfit->rx;
+			guint src_i = y * gfit.rx;
 
 			// Set up a buffer so that the color space transform can be carried out on
 			//a whole row at a time using OpenMP to parallelize rows and the single
 			// threaded lcms2 context to give SIMD parallelisation within the rows
-			WORD *pixelbuf = malloc(gfit->rx * 3 * sizeof(WORD));
-			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit->rx) , (pixelbuf + 2 * gfit->rx) };
-			BYTE *pixelbuf_byte = malloc(gfit->rx * 3);
-			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit->rx) , (pixelbuf_byte + 2 * gfit->rx) };
-			if (gfit->type == DATA_FLOAT) {
+			WORD *pixelbuf = malloc(gfit.rx * 3 * sizeof(WORD));
+			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit.rx) , (pixelbuf + 2 * gfit.rx) };
+			BYTE *pixelbuf_byte = malloc(gfit.rx * 3);
+			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit.rx) , (pixelbuf_byte + 2 * gfit.rx) };
+			if (gfit.type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 					float *source = fsrc[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < gfit.rx ; x++)
 						line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
 				}
 			} else if (norm == UCHAR_MAX) {
@@ -428,26 +428,26 @@ static void remap_all_vports() {
 					WORD *line = linebuf[c];
 					const WORD *source = src[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < gfit.rx ; x++)
 						line[x] = source[src_i + x] << 8;
 				}
 			} else {
 				for (int c = 0 ; c < 3 ; c++)
 // No omp simd here as memcpy should already be highly optimized
-					memcpy(linebuf[c], src[c] + src_i, gfit->rx * sizeof(WORD));
+					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-			if (gfit->type == DATA_USHORT && norm == UCHAR_MAX) {
+			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < gfit.rx ; x++)
 						line[x] = line[x] >> 8;
 				}
 			}
 			for (int c = 0 ; c < 3 ; c++) {
-				const int cc = gfit->color_managed ? c : 0;
+				const int cc = gfit.color_managed ? c : 0;
 #pragma omp simd
-				for (x = 0; x < gfit->rx; ++x) {
+				for (x = 0; x < gfit.rx; ++x) {
 					WORD val = linebuf[c][x];
 					if (gui.cut_over && val > gui.hi) {	// cut
 						linebuf_byte[c][x] = 0;
@@ -459,15 +459,15 @@ static void remap_all_vports() {
 				}
 			}
 			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit->rx, 1, gfit->rx * 3, gfit->rx * 3, gfit->rx, gfit->rx);
+				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit.rx, 1, gfit.rx * 3, gfit.rx * 3, gfit.rx, gfit.rx);
 			}
 			switch (color) {
 				case NORMAL_COLOR:
 #pragma omp simd collapse(2)
 					for (int c = 0 ; c < 3 ; c++) {
-						for (x = 0 ; x < gfit->rx ; x++) {
+						for (x = 0 ; x < gfit.rx ; x++) {
 							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-							guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+							guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
 							BYTE dst_pixel_value = linebuf_byte[c][x];
 							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
 						}
@@ -476,9 +476,9 @@ static void remap_all_vports() {
 				case RAINBOW_COLOR:
 #pragma omp simd collapse(2)
 					for (int c = 0 ; c < 3 ; c++) {
-						for (x = 0 ; x < gfit->rx ; x++) {
+						for (x = 0 ; x < gfit.rx ; x++) {
 							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-							guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+							guint dst_index = ((gfit.ry - 1 - y) * gfit.rx + x) * 4;
 							BYTE dst_pixel_value = linebuf_byte[c][x];
 							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
 						}
@@ -604,7 +604,7 @@ static int make_index_for_current_display(int vport) {
 				index[i] = roundf_to_BYTE((float) i * slope);
 				break;
 			case STF_DISPLAY:
-				pxl = (gfit->orig_bitpix == BYTE_IMG ?
+				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
 				index[i] = roundf_to_BYTE((MTFp(pxl, stf[target_index])) * slope);
@@ -622,7 +622,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit->color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
+	if (gfit.color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;
@@ -780,9 +780,9 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
 		cairo_matrix_t y_reflection_matrix, flipped_matrix;
 		cairo_matrix_init_identity(&y_reflection_matrix);
-		if (livestacking_is_started() && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
+		if (livestacking_is_started() && !g_strcmp0(gfit.keywords.row_order, "TOP-DOWN")) {
 			y_reflection_matrix.yy = -1.0;
-			y_reflection_matrix.y0 = gfit->ry;
+			y_reflection_matrix.y0 = gfit.ry;
 		}
 		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &gui.display_matrix);
 		cairo_transform(cached_cr, &flipped_matrix);
@@ -849,9 +849,9 @@ static void draw_roi(const draw_data_t *dd) {
 
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		if ((com.selection.x + com.selection.w > gfit->rx) ||
-		(com.selection.y + com.selection.h > gfit->ry)) {
-			rectangle area = {0, 0, gfit->rx, gfit->ry};
+		if ((com.selection.x + com.selection.w > gfit.rx) ||
+		(com.selection.y + com.selection.h > gfit.ry)) {
+			rectangle area = {0, 0, gfit.rx, gfit.ry};
 			memcpy(&com.selection, &area, sizeof(rectangle));
 		}
 		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
@@ -1230,8 +1230,8 @@ static void draw_stars(const draw_data_t* dd) {
 		/* draw a cross on excluded images */
 		if (com.seq.imgparam && com.seq.current >= 0 &&
 				!com.seq.imgparam[com.seq.current].incl) {
-			int w = dd->image_width > gfit->rx ? gfit->rx : dd->image_width;
-			int h = dd->image_height > gfit->ry ? gfit->ry : dd->image_height;
+			int w = dd->image_width > gfit.rx ? gfit.rx : dd->image_width;
+			int h = dd->image_height > gfit.ry ? gfit.ry : dd->image_height;
 			cairo_set_dash(cr, NULL, 0, 0);
 			cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
@@ -1315,7 +1315,7 @@ static void draw_in_progress_poly(const draw_data_t* dd) {
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
-	fits *fit = gfit;
+	fits *fit = &gfit;
 	cairo_t *cr = dd->cr;
 	cairo_set_line_width(cr, 3.0 / dd->zoom);
 	double ra0, dec0;
@@ -1432,7 +1432,7 @@ static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3
 
 static void draw_wcs_grid(const draw_data_t* dd) {
 	if (!gui.show_wcs_grid) return;
-	fits *fit = gfit;
+	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
@@ -1653,7 +1653,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 
 static void draw_wcs_disto(const draw_data_t* dd) {
 	if (!gui.show_wcs_disto) return;
-	fits *fit = gfit;
+	fits *fit = &gfit;
 	if (!has_wcs(fit) || !fit->keywords.wcslib->lin.dispre) return; // no platesolve or no distortions
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
@@ -1701,10 +1701,10 @@ static gdouble y_circle(gdouble y, gdouble radius, gdouble angle) {
 
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
-	gdouble resolution = get_wcs_image_resolution(gfit);
+	gdouble resolution = get_wcs_image_resolution(&gfit);
 	if (resolution <= 0) return;
-	double width = (double) gfit->rx;
-	double height = (double) gfit->ry;
+	double width = (double) gfit.rx;
+	double height = (double) gfit.ry;
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
@@ -1865,7 +1865,7 @@ static void draw_analysis(const draw_data_t* dd) {
 		g_free(str);
 		/* fwhm center */
 		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
-		cairo_move_to(cr, gfit->rx / 2.0, (gfit->ry / 2.0) + size);
+		cairo_move_to(cr, gfit.rx / 2.0, (gfit.ry / 2.0) + size);
 		cairo_show_text(cr, str);
 		cairo_stroke(cr);
 		g_free(str);
@@ -1965,7 +1965,7 @@ void initialize_image_display() {
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
- * size in argument and the image size in gfit->
+ * size in argument and the image size in gfit.
  * Should not be called before displaying the main gray window when using zoom to fit */
 double get_zoom_val() {
 	int window_width, window_height;
@@ -1974,10 +1974,10 @@ double get_zoom_val() {
 	/* else if zoom is < 0, it means fit to window */
 	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
-	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
+	if (gfit.rx == 0 || gfit.ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
-	double wtmp = (double) window_width / (double) gfit->rx;
-	double htmp = (double) window_height / (double) gfit->ry;
+	double wtmp = (double) window_width / (double) gfit.rx;
+	double htmp = (double) window_height / (double) gfit.ry;
 	return min(wtmp, htmp);
 }
 
@@ -2027,10 +2027,10 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
-	size_t npixels_gfit = gfit->rx * gfit->ry;
-	if (gui.roi.fit.type != gfit->type) {
+	size_t npixels_gfit = gfit.rx * gfit.ry;
+	if (gui.roi.fit.type != gfit.type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
-		if (gfit->type == DATA_FLOAT) {
+		if (gfit.type == DATA_FLOAT) {
 			fit_replace_buffer(&gui.roi.fit, gui.roi.fit.bitpix == BYTE_IMG ? ushort8_buffer_to_float(gui.roi.fit.data, roi_ndata): ushort_buffer_to_float(gui.roi.fit.data, roi_ndata), DATA_FLOAT);
 			if (is_preview_active()) {
 				fits *roi_backup = get_roi_backup();
@@ -2038,7 +2038,7 @@ void copy_roi_into_gfit() {
 			}
 		} else {
 			fit_replace_buffer(&gui.roi.fit, float_buffer_to_ushort(gui.roi.fit.fdata, roi_ndata), DATA_USHORT);
-			if (gfit->bitpix == BYTE_IMG) {
+			if (gfit.bitpix == BYTE_IMG) {
 				for (size_t i = 0 ; i < roi_ndata ; i++) {
 					gui.roi.fit.data[i] >>= 8;
 				}
@@ -2047,7 +2047,7 @@ void copy_roi_into_gfit() {
 			if (is_preview_active()) {
 				fits *roi_backup = get_roi_backup();
 				fit_replace_buffer(roi_backup, float_buffer_to_ushort(roi_backup->fdata, roi_ndata), DATA_USHORT);
-				if (gfit->bitpix == BYTE_IMG) {
+				if (gfit.bitpix == BYTE_IMG) {
 					for (size_t i = 0 ; i < roi_ndata ; i++) {
 						roi_backup->data[i] >>= 8;
 					}
@@ -2064,7 +2064,7 @@ void copy_roi_into_gfit() {
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
 				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
+				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y - 1) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
 			}
 		}
@@ -2075,7 +2075,7 @@ void copy_roi_into_gfit() {
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
 				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
+				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y - 1) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
 			}
 		}
@@ -2084,7 +2084,7 @@ void copy_roi_into_gfit() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
+	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit.type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit.type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
@@ -2095,13 +2095,13 @@ void redraw(remap_type doremap) {
 		case REMAP_ALL:
 			stf_computed = FALSE;
 			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < gfit->naxes[2]; i++) {
+				for (int i = 0; i < gfit.naxes[2]; i++) {
 					remap(i);
 				}
 			} else {
 				remap_all_vports();
 			}
-			if (gfit->naxis == 3)
+			if (gfit.naxis == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
@@ -2166,8 +2166,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 
 	dd.zoom = get_zoom_val();
-	dd.image_width = gfit->rx;
-	dd.image_height = gfit->ry;
+	dd.image_width = gfit.rx;
+	dd.image_height = gfit.ry;
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 
 	GVariant *state = g_action_get_state(action_neg);
@@ -2272,8 +2272,8 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	dd.window_width = gtk_widget_get_allocated_width(widget);
 	dd.window_height = gtk_widget_get_allocated_height(widget);
 	dd.zoom = get_zoom_val();
-	dd.image_width = gfit->rx;
-	dd.image_height = gfit->ry;
+	dd.image_width = gfit.rx;
+	dd.image_height = gfit.ry;
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 	dd.neg_view = g_variant_get_boolean(state);
 	g_variant_unref(state);

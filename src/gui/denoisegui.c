@@ -88,7 +88,7 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	denoise_roi_callback();
 	add_roi_callback(denoise_roi_callback);
 	gtk_spin_button_set_value(spin_denoise_modulation, 1.0);
-	gtk_widget_set_visible(GTK_WIDGET(denoise_artefact_control), (gfit->naxes[2] == 3));
+	gtk_widget_set_visible(GTK_WIDGET(denoise_artefact_control), (gfit.naxes[2] == 3));
 }
 
 void close_denoise() {
@@ -143,7 +143,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->suppress_artefacts = gtk_toggle_button_get_active(check_denoise_suppress_artefacts);
 	if (args->sos)
 		args->sos = gtk_spin_button_get_value(spin_sos_iters);
-	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : gfit;
+	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
 	if (!start_in_new_thread(run_nlbayes_on_fit, args)) {
 		free(args);
 	}

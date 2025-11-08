@@ -97,7 +97,7 @@ static gboolean cm_worker(gpointer user_data) {
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
-	if (fit == gfit && !com.script) {
+	if (fit == &gfit && !com.script) {
 		if (com.python_script) {
 			execute_idle_and_wait_for_it(cm_worker, &data);
 		} else {
@@ -243,21 +243,21 @@ void display_index_transform(BYTE* index, int vport) {
 
 cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(gui.icc.monitor);
-	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
+	if (gfit.icc_profile == NULL || gfit.color_managed == FALSE)
 		return NULL;
 	cmsUInt32Number flags = gui.icc.proofing_flags;
-	if (fit_icc_is_linear(gfit))
+	if (fit_icc_is_linear(&gfit))
 		flags |= cmsFLAGS_NOOPTIMIZE;
 	gboolean gamutcheck = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkgamut")));
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
-	cmsUInt32Number type = (gfit->naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
+	cmsUInt32Number type = (gfit.naxes[2] == 1 ? TYPE_GRAY_8 : TYPE_RGB_8_PLANAR);
 	g_mutex_lock(&soft_proof_profile_mutex);
 	g_mutex_lock(&monitor_profile_mutex);
 	cmsHPROFILE proofing_transform = cmsCreateProofingTransformTHR(
 						com.icc.context_single,
-						gfit->icc_profile,
+						gfit.icc_profile,
 						type,
 						gui.icc.monitor,
 						TYPE_RGB_8_PLANAR,
@@ -336,7 +336,7 @@ gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c) {
 
 void reset_icc_transforms() {
 	g_mutex_lock(&display_transform_mutex);
-//	if (gfit->color_managed) {
+//	if (gfit.color_managed) {
 		if (gui.icc.proofing_transform) {
 			cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
@@ -708,15 +708,15 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 cmsHTRANSFORM initialize_display_transform() {
 	g_assert(gui.icc.monitor);
 	cmsHTRANSFORM transform = NULL;
-	if (gfit->icc_profile == NULL || !gfit->color_managed) {
+	if (gfit.icc_profile == NULL || !gfit.color_managed) {
 		siril_debug_print("NULL display transform\n");
 		return NULL;
 	}
-	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit->icc_profile);
-	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit->type, TRUE);
+	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
+	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
 	g_mutex_lock(&monitor_profile_mutex);
 	// The display transform is always single threaded as OpenMP is used within the remap function
-	transform = cmsCreateTransformTHR(com.icc.context_single, gfit->icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	transform = cmsCreateTransformTHR(com.icc.context_single, gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
 	g_mutex_unlock(&monitor_profile_mutex);
 	if (transform == NULL)
 		siril_log_message("Error: failed to create display_transform!\n");
@@ -742,7 +742,7 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 /* Refreshes the display and proofing transforms after a profile is changed. */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
 		g_mutex_lock(&display_transform_mutex);
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
@@ -1319,7 +1319,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 		set_cursor_waiting(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
-		if (fit == gfit && !com.headless) {
+		if (fit == &gfit && !com.headless) {
 			set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_modified();
@@ -1351,7 +1351,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 		fit->icc_profile = NULL;
 		color_manage(fit, FALSE);
 	}
-	if (fit == gfit) {
+	if (fit == &gfit) {
 		set_source_information();
 		refresh_icc_transforms();
 		notify_gfit_modified();

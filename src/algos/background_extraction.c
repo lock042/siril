@@ -829,16 +829,16 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
 	const char *err;
-	com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
+	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
 		g_mutex_unlock(&bgsamples_mutex);
 		return 1;
 	}
 
-	if (com.grad_samples && gfit->naxes[2] > 1) {
+	if (com.grad_samples && gfit.naxes[2] > 1) {
 		/* If RGB we need to update all local median, not only the first one */
-		com.grad_samples = update_median_samples(com.grad_samples, gfit);
+		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
 	g_mutex_unlock(&bgsamples_mutex);
 	return 0;
@@ -850,7 +850,7 @@ gboolean end_background(gpointer p);	// in gui/background_extraction.c
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	gchar *error = NULL;
-	double *background = malloc(gfit->ry * gfit->rx * sizeof(double));
+	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 
 	if (!background) {
 		PRINT_ALLOC_ERR;
@@ -860,7 +860,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	const size_t n = gfit->naxes[0] * gfit->naxes[1];
+	const size_t n = gfit.naxes[0] * gfit.naxes[1];
 	double *image = malloc(n * sizeof(double));
 	if (!image) {
 		free(background);
@@ -870,21 +870,21 @@ gpointer remove_gradient_from_image(gpointer p) {
 
 	/* Make sure to update local median. Useful if undo is pressed */
 	g_mutex_lock(&bgsamples_mutex);
-	update_median_samples(com.grad_samples, gfit);
+	update_median_samples(com.grad_samples, &gfit);
 	g_mutex_unlock(&bgsamples_mutex);
 
-	double background_mean = get_background_mean(com.grad_samples, gfit->naxes[2]);
+	double background_mean = get_background_mean(com.grad_samples, gfit.naxes[2]);
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	for (int channel = 0; channel < gfit->naxes[2]; channel++) {
+	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
 		if (args->interpolation_method == BACKGROUND_INTER_POLY) {
 			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel,
-					gfit->rx, gfit->ry, args->degree, &error);
+					gfit.rx, gfit.ry, args->degree, &error);
 		} else {
 			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel,
-					gfit->rx, gfit->ry, args->smoothing, &error, args->threads);
+					gfit.rx, gfit.ry, args->smoothing, &error, args->threads);
 		}
 
 		if (!interpolation_worked) {
@@ -903,14 +903,14 @@ gpointer remove_gradient_from_image(gpointer p) {
 		}
 		/* remove background */
 		const char *c_name;
-		if (gfit->naxes[2] > 1)
+		if (gfit.naxes[2] > 1)
 			c_name = channel_number_to_name(channel);
 		else
 			c_name = _("monochrome");
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
-		convert_fits_to_img(gfit, image, channel, args->dither);
+		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
-		convert_img_to_fits(image, gfit, channel);
+		convert_img_to_fits(image, &gfit, channel);
 
 	}
 	siril_log_message(_("Background with %s interpolation computed.\n"),
@@ -920,7 +920,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	/* free memory */
 	free(image);
 	free(background);
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
 		g_mutex_lock(&bgsamples_mutex);
 		free_background_sample_list(com.grad_samples);
@@ -968,7 +968,7 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_cfa_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	sensor_pattern pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
+	sensor_pattern pattern = get_validated_cfa_pattern(&gfit, FALSE, FALSE);
 	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
 		return GINT_TO_POINTER(1);
@@ -985,11 +985,11 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 	// Split the FITS into the 4 subchannels
 	int ret = 1;
-	if (gfit->type == DATA_USHORT) {
-		ret = split_cfa_ushort(gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+	if (gfit.type == DATA_USHORT) {
+		ret = split_cfa_ushort(&gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
-	else if (gfit->type == DATA_FLOAT) {
-		ret = split_cfa_float(gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+	else if (gfit.type == DATA_FLOAT) {
+		ret = split_cfa_float(&gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
 	if (ret) {
 		siril_log_color_message(_("Error splitting into CFA subchannels, aborting...\n"), "red");
@@ -1080,7 +1080,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 
 	}
 	fits *out = merge_cfa(cfachans[0], cfachans[1], cfachans[2], cfachans[3], pattern);
-	fits_swap_image_data(out, gfit); // Efficiently move the merged pixeldata from out to gfit
+	fits_swap_image_data(out, &gfit); // Efficiently move the merged pixeldata from out to gfit
 	clearfits(out);
 	free(out);
 	siril_log_message(_("Background with %s interpolation computed for CFA image.\n"),
@@ -1089,7 +1089,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	show_time(t_start, t_end);
 	/* free memory */
 	cfachans_cleanup(cfachans);
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	if (!args->from_ui) {
 		g_mutex_lock(&bgsamples_mutex);
 		free_background_sample_list(com.grad_samples);

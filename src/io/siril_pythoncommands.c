@@ -679,13 +679,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit->rx), height (gfit->ry), and channels (gfit->naxes[2])
+				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
 				uint8_t response_data[12]; // 3 x 4 bytes for width, height, and channels
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t width_BE = GUINT32_TO_BE(gfit->rx);
-				uint32_t height_BE = GUINT32_TO_BE(gfit->ry);
-				uint32_t channels_BE = GUINT32_TO_BE(gfit->naxes[2]);
+				uint32_t width_BE = GUINT32_TO_BE(gfit.rx);
+				uint32_t height_BE = GUINT32_TO_BE(gfit.ry);
+				uint32_t channels_BE = GUINT32_TO_BE(gfit.naxes[2]);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &width_BE, sizeof(uint32_t));      // First 4 bytes: width
@@ -740,7 +740,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded();
 
 			if (result) {
-				// Prepare the response data: width (gfit->rx), height (gfit->ry), and channels (gfit->naxes[2])
+				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
@@ -768,8 +768,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.y),
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
-					if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-								selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+					if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+								selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
@@ -792,8 +792,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 2) {
 				gboolean as_preview = (gboolean) (uint8_t) payload[0];
 				gboolean linked = (gboolean) (uint8_t) payload[1];
-				rectangle region = {0, 0, gfit->rx, gfit->ry};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
+				rectangle region = {0, 0, gfit.rx, gfit.ry};
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				// Send shared memory info to Python
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
@@ -822,22 +822,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
-			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
+			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
 				selection.w < 5 || selection.w > 300 ||
 				selection.h < 5 || selection.h > 300 ||
-				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
 					const char* error_msg = _("Invalid selection");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-			if (layer < 0 || layer >= gfit->naxes[2]) {
+			if (layer < 0 || layer >= gfit.naxes[2]) {
 					const char* error_msg = _("Invalid channel");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
-			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
 			if (!psf || error) {
 				free_psf(psf);
 				error_occurred = TRUE;
@@ -849,10 +849,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf->xpos = selection.x + psf->x0;
 			psf->ypos = selection.y + selection.h - psf->y0;
 			// Set RA and dec if there is a plate solution
-			if (gfit->keywords.wcslib) {
+			if (gfit.keywords.wcslib) {
 				double fx, fy;
-				display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit->ry);
-				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
+				display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
+				pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
 			const size_t psf_star_size = 36 * sizeof(double);
@@ -882,8 +882,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-					selection.y < 0 || selection.y  + selection.h > gfit->ry - 1) {
+				if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+					selection.y < 0 || selection.y  + selection.h > gfit.ry - 1) {
 					const char* error_msg = _("Invalid region: selection breaches image dimensions");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
@@ -913,23 +913,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
-			if (layer >= gfit->naxes[2]) {
+			if (layer >= gfit.naxes[2]) {
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
 			// Check selection is valid
-			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
+			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
 				selection.w * selection.h < 3 ||
-				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
 					const char* error_msg = _("Invalid selection");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 			}
 
 			// Compute stats
-			imstats *stats = statistics(NULL, -1, gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
+			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
 			const size_t total_size = 14 * sizeof(double);
 			unsigned char* response_buffer = g_try_malloc0(total_size);
 			unsigned char* ptr = response_buffer;
@@ -954,7 +954,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				shared_memory_info_t *info = handle_pixeldata_request(conn, gfit, region, as_preview, linked);
+				shared_memory_info_t *info = handle_pixeldata_request(conn, &gfit, region, as_preview, linked);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			} else {
@@ -1101,7 +1101,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				// Ensure null-terminated string for undo message
 				char* log_msg = g_strndup(payload, payload_length);
-				undo_save_state(gfit, log_msg);
+				undo_save_state(&gfit, log_msg);
 				g_free(log_msg);
 
 				// Send success response
@@ -1189,7 +1189,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Invalid payload length");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
-				success = handle_set_pixeldata_request(conn, gfit, payload, payload_length);
+				success = handle_set_pixeldata_request(conn, &gfit, payload, payload_length);
 			}
 			break;
 		}
@@ -1337,13 +1337,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
-			if (channel >= gfit->naxes[2]) {
+			if (channel >= gfit.naxes[2]) {
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
-			fits *fit = gfit;
+			fits *fit = &gfit;
 
 			// If there are no stats available we return NONE, the script can use
 			// cmd("stat") to generate them if required
@@ -1424,7 +1424,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
-			if (keywords_to_py(gfit, ptr, total_size)) {
+			if (keywords_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -1847,14 +1847,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				}
 
-				sf_data->im.fit = gfit;
+				sf_data->im.fit = &gfit;
 				sf_data->im.from_seq = NULL;
 				sf_data->im.index_in_seq = -1;
-				sf_data->layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				sf_data->layer = (gfit.naxes[2] == 1) ? 0 : 1;
 				sf_data->max_stars_fitted = MAX_STARS;
 				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
-				sf_data->save_eqcoords = has_wcs(gfit); // save coords if plate solved
-				sf_data->ref_wcs = gfit->keywords.wcslib;
+				sf_data->save_eqcoords = has_wcs(&gfit); // save coords if plate solved
+				sf_data->ref_wcs = gfit.keywords.wcslib;
 				sf_data->stars = &stars;
 				sf_data->nb_stars = &nb_stars;
 				sf_data->threading = MULTI_THREADED;
@@ -2002,7 +2002,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_try_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (fits_to_py(gfit, ptr, total_size)) {
+			if (fits_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 			} else {
@@ -2018,14 +2018,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (gfit->icc_profile == NULL) {
+			if (gfit.icc_profile == NULL) {
 				const char* error_msg = _("Image has no ICC profile");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
 			guint32 profile_size;
-			unsigned char* profile_data = get_icc_profile_data(gfit->icc_profile, &profile_size);
+			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2056,7 +2056,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = gfit;
+			fits *fit = &gfit;
 			if (fit->header == NULL) {
 				const char* error_msg = _("Image has no FITS header");
 				siril_debug_print("No FITS header\n");
@@ -2077,7 +2077,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = gfit;
+			fits *fit = &gfit;
 			if (fit->history == NULL) {
 				const char* error_msg = _("Image has no history entries");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2110,7 +2110,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			fits *fit = gfit;
+			fits *fit = &gfit;
 			if (fit->unknown_keys == NULL || fit->unknown_keys[0] == '\0') {
 				const char* error_msg = _("Image has no unknown keys");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
@@ -2172,7 +2172,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_PIX2WCS: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
-				if (!has_wcs(gfit)) {
+				if (!has_wcs(&gfit)) {
 					// Handle no WCS error
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2188,8 +2188,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double ra, dec, ra_BE, dec_BE;
 					double fx, fy;
 					fx = x;
-					fy = gfit->ry - y;
-					pix2wcs2(gfit->keywords.wcslib, fx, fy, &ra, &dec);
+					fy = gfit.ry - y;
+					pix2wcs2(gfit.keywords.wcslib, fx, fy, &ra, &dec);
 					// ra and dec = -1 is the error code
 					TO_BE64_INTO(ra_BE, ra, double);
 					TO_BE64_INTO(dec_BE, dec, double);
@@ -2212,7 +2212,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_WCS2PIX: {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
-				if (!has_wcs(gfit)) {
+				if (!has_wcs(&gfit)) {
 					// Handle no WCS error
 					const char* error_msg = _("Siril image is not plate solved");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2226,9 +2226,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					FROM_BE64_INTO(ra, ra_BE, double);
 					FROM_BE64_INTO(dec, dec_BE, double);
 					double x, y, fx, fy, x_BE, y_BE;
-					wcs2pix(gfit, ra, dec, &fx, &fy);
+					wcs2pix(&gfit, ra, dec, &fx, &fy);
 					x = fx;
-					y = gfit->ry - fy;
+					y = gfit.ry - fy;
 					TO_BE64_INTO(x_BE, x, double);
 					TO_BE64_INTO(y_BE, y, double);
 					unsigned char* payload = g_try_malloc0(2 * sizeof(double));

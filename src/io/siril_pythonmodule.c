@@ -541,7 +541,7 @@ shared_memory_info_t* handle_rawdata_request(Connection *conn, void* data, size_
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
-	if (fit == gfit && !conn->thread_claimed) {
+	if (fit == &gfit && !conn->thread_claimed) {
 		const char* error_msg = _("Processing thread is not claimed: unable to update the current image. "
 								"This is a script error: claim_thread() has either not been called or has failed, or "
 								"the thread has been released too early.");
@@ -707,7 +707,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
 	fit->naxes[2] = info->channels;
-	if (fit == gfit) {
+	if (fit == &gfit) {
 		if (!com.headless) {
 			if (g_main_context_is_owner(g_main_context_default())) {
 				// it is safe to call the function directly
@@ -1142,7 +1142,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 			memcpy(p, &samples[i].position, sizeof(point));
 			pts = g_slist_append(pts, p);
 		}
-		com.grad_samples = add_background_samples(com.grad_samples, gfit, pts);
+		com.grad_samples = add_background_samples(com.grad_samples, &gfit, pts);
 	}
 	// Otherwise, create copies of each individual sample and add them directly
 	// to com.grad_samples
@@ -1215,13 +1215,13 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 
 	// Unpack the FITS header string
 	char *header = (char*) shm_ptr;
-	if (fits_parse_header_str(gfit, header)) {
+	if (fits_parse_header_str(&gfit, header)) {
 		const char* error_msg = _("Error: could not parse FITS header string");
 		if (send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
 			siril_debug_print("Error in send_response()\n");
 		goto cleanup;
 	}
-	update_fits_header(gfit);
+	update_fits_header(&gfit);
 
 	gui_function(update_MenuItem, NULL);
 
@@ -1275,10 +1275,10 @@ gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_in
 	}
 
 	// convert the bytes into a cmsPROFILE
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
-	color_manage(gfit, TRUE);
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = cmsOpenProfileFromMem(shm_ptr, info->size);
+	color_manage(&gfit, TRUE);
 
 	// Cleanup shared memory
 	#ifdef _WIN32

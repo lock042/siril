@@ -132,7 +132,7 @@ static siril_cat_index get_cat_index_from_combo() {
 		cat = CAT_AAVSO_CHART;
 	else if (g_str_has_prefix(cat_char, "solsys")) {
 		cat = CAT_IMCCE;
-		if (!gfit->keywords.date_obs) {
+		if (!gfit.keywords.date_obs) {
 			siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
 			return CAT_AUTO;
 		}
@@ -235,20 +235,20 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
-	if (has_wcs(gfit) && (com.selection.h && com.selection.w)) {
+	if (has_wcs(&gfit) && (com.selection.h && com.selection.w)) {
 		psf_error error = PSF_NO_ERR;
-		psf_star *result = psf_get_minimisation(gfit, select_vport(gui.cvport), &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 		if (result && error == PSF_NO_ERR) {
 			double world_x, world_y;
 			gchar *ra, *dec;
 
 			result->xpos = result->x0 + com.selection.x;
-			if (gfit->top_down)
+			if (gfit.top_down)
 				result->ypos = result->y0 + com.selection.y;
 			else
 				result->ypos = com.selection.y + com.selection.h - result->y0;
 
-			pix2wcs(gfit, result->xpos, (double) gfit->ry - result->ypos - 1.0, &world_x, &world_y);
+			pix2wcs(&gfit, result->xpos, (double) gfit.ry - result->ypos - 1.0, &world_x, &world_y);
 			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
 				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 				if (world_cs) {

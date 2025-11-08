@@ -53,7 +53,7 @@
 #include "core/undo.h"
 #include "core/processing.h"
 
-/* Closes and frees resources attached to the single image opened in gfit->
+/* Closes and frees resources attached to the single image opened in gfit.
  * If a sequence is loaded and one of its images is displayed, nothing is done.
  */
 void close_single_image() {
@@ -151,11 +151,11 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
-	cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = NULL;
+	cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = NULL;
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
-		save_stats_from_fit(gfit, &com.seq, com.seq.current);
+		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
 
 	invalidate_gfit_histogram();
 
@@ -179,7 +179,7 @@ void free_image_data() {
 			free_image_data_gui(NULL);
 		}
 	}
-	clearfits(gfit);
+	clearfits(&gfit);
 	siril_debug_print("free_image_data() complete\n");
 }
 
@@ -261,15 +261,15 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 	}
 	com.uniq->filename = filename;
 	com.uniq->fileexist = exists;
-	com.uniq->nb_layers = gfit->naxes[2];
-	com.uniq->fit = gfit;
+	com.uniq->nb_layers = gfit.naxes[2];
+	com.uniq->fit = &gfit;
 	return 0;
 }
 
 /* This function is used to load a single image, meaning outside a sequence,
  * whether a sequence is loaded or not, whether an image was already loaded or
  * not. The opened file is available in the usual global variable for current
- * image, gfit->
+ * image, gfit.
  */
 int open_single_image(const char* filename) {
 	int retval = 0;
@@ -289,7 +289,7 @@ int open_single_image(const char* filename) {
 		close_single_image();	// close the previous image and free resources
 
 		/* open the new file */
-		retval = read_single_image(filename, gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
 	}
 	if (retval) {
 		queue_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
@@ -402,21 +402,21 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
 }
 
 /* gfit has been loaded, now we copy the hi and lo values into the com.uniq or com.seq layers.
- * gfit->hi and gfit->lo may only be available in some FITS files; if they are not available, the
+ * gfit.hi and gfit.lo may only be available in some FITS files; if they are not available, the
  * min and max value for the layer is used.
  * If gfit changed, its hi and lo values need to be updated, and they are taken from min and
  * max.
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
-	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
+	if (gfit.keywords.hi == 0 || force_minmax == MINMAX) {
 		gui.sliders = MINMAX;
-		image_find_minmax(gfit);
-		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi);
+		image_find_minmax(&gfit);
+		fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi);
 	} else {
 		gui.sliders = MIPSLOHI;
-		gui.hi = gfit->keywords.hi;
-		gui.lo = gfit->keywords.lo;
+		gui.hi = gfit.keywords.hi;
+		gui.lo = gfit.keywords.lo;
 	}
 }
 
@@ -464,7 +464,7 @@ gboolean end_gfit_operation(gpointer data) {
  * end of a processing operation, not for previews */
 void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
-	invalidate_stats_from_fit(gfit);
+	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 
 	gui_function(end_gfit_operation, NULL);

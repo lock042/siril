@@ -161,10 +161,10 @@ static void normalisation_spectra_float(unsigned int w, unsigned int h, const fl
 static void save_dft_information_in_gfit(fits *fit) {
 	int i;
 
-	strcpy(gfit->keywords.dft.ord, fit->keywords.dft.type);
-	strcpy(gfit->keywords.dft.ord, fit->keywords.dft.ord);
+	strcpy(gfit.keywords.dft.ord, fit->keywords.dft.type);
+	strcpy(gfit.keywords.dft.ord, fit->keywords.dft.ord);
 	for (i = 0; i < fit->naxes[2]; i++)
-		gfit->keywords.dft.norm[i] = fit->keywords.dft.norm[i];
+		gfit.keywords.dft.norm[i] = fit->keywords.dft.norm[i];
 
 }
 
@@ -489,7 +489,7 @@ gpointer fourier_transform(gpointer p) {
 		}
 
 		/* We display the modulus on screen */
-		if (copyfits(tmp1, gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+		if (copyfits(tmp1, &gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 			args->retval = 1;
 			goto end;
 		}
@@ -529,7 +529,7 @@ gpointer fourier_transform(gpointer p) {
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
 		/* We display the result on screen */
-		if (copyfits(tmp2, gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+		if (copyfits(tmp2, &gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 			args->retval = 1;
 			goto end;
 		}
@@ -620,7 +620,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	if ((mag != NULL) && (phase != NULL)) {
 		set_cursor_waiting(TRUE);
 		struct fft_data *args = calloc(1, sizeof(struct fft_data));
-		args->fit = gfit;
+		args->fit = &gfit;
 		args->type = type;
 		args->modulus = mag;
 		args->phase = phase;

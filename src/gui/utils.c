@@ -316,7 +316,7 @@ int select_vport(int vport) {
 
 gboolean check_ok_if_cfa() {
 	gboolean retval;
-	if (gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
+	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		int confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
 				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
 		retval = confirm ? TRUE : FALSE;
@@ -400,7 +400,7 @@ OverrangeResponse apply_limits(fits *fit, double minval, double maxval, Overrang
 			method = RESPONSE_CANCEL;
 	}
 
-	if (fit == gfit)
+	if (fit == &gfit)
 		notify_gfit_modified();
 
 	return method;

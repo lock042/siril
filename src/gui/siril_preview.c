@@ -69,17 +69,17 @@ static void free_struct(gpointer user_data) {
 }
 
 void copy_gfit_icc_to_backup() {
-	if (!gfit->icc_profile)
+	if (!gfit.icc_profile)
 		return;
 	if (preview_icc_backup)
 		cmsCloseProfile(preview_icc_backup);
-	preview_icc_backup = copyICCProfile(gfit->icc_profile);
+	preview_icc_backup = copyICCProfile(gfit.icc_profile);
 }
 
 static void copy_backup_icc_to_gfit() {
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = copyICCProfile(preview_icc_backup);
+	if (gfit.icc_profile)
+		cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = copyICCProfile(preview_icc_backup);
 }
 
 static void clear_backup_icc() {
@@ -106,16 +106,16 @@ int restore_roi() {
 }
 
 void copy_gfit_to_backup() {
-	guint64 gfit_size = gfit->rx * gfit->ry * gfit->naxes[2] * gfit->type == DATA_FLOAT ? 4 : 2;
+	guint64 gfit_size = gfit.rx * gfit.ry * gfit.naxes[2] * gfit.type == DATA_FLOAT ? 4 : 2;
 	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
 		siril_log_color_message(_("Warning: insufficient memory available to create a preview.\n"), "salmon");
 		return;
 	}
-	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(&gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
-	copy_fits_metadata(gfit, &preview_gfit_backup);
+	copy_fits_metadata(&gfit, &preview_gfit_backup);
 	if (!com.script)
 		copy_gfit_icc_to_backup();
 	if (gui.roi.active && backup_roi()) {
@@ -127,16 +127,16 @@ void copy_gfit_to_backup() {
 
 int copy_backup_to_gfit() {
 	int retval = 0;
-	if (!gfit->data && !gfit->fdata)
+	if (!gfit.data && !gfit.fdata)
 		retval = 1;
 	else {
-		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA, -1)) {
+		if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
 			siril_debug_print("Image copy error in previews\n");
 			retval = 1;
 		} else if (!com.script) {
 			copy_backup_icc_to_gfit();
 		}
-		if (retval == 0) copy_fits_metadata(&preview_gfit_backup, gfit);
+		if (retval == 0) copy_fits_metadata(&preview_gfit_backup, &gfit);
 		if (gui.roi.active && restore_roi()) {
 			siril_debug_print("Image copy error in ROI\n");
 			retval = 1;
@@ -146,7 +146,7 @@ int copy_backup_to_gfit() {
 }
 
 fits *get_preview_gfit_backup() {
-	return (is_preview_active()) ? &preview_gfit_backup : gfit;
+	return (is_preview_active()) ? &preview_gfit_backup : &gfit;
 }
 
 fits *get_roi_backup() {

@@ -1308,7 +1308,7 @@ void clearfits_header(fits *fit) {
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
-	if (fit == gfit && is_preview_active())
+	if (fit == &gfit && is_preview_active())
 		clear_backup();
 	memset(fit, 0, sizeof(fits));
 }

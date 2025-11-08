@@ -176,7 +176,7 @@ void check_gaia_archive_status() {
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
-	if (!has_wcs(gfit)) {
+	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("There is no valid WCS information in the header. Please platesolve first.\n"), "red");
 		return;
 	}
@@ -196,7 +196,7 @@ static void start_photometric_cc(gboolean spcc) {
 		pcc_args->spcc = FALSE;
 	}
 
-	pcc_args->fit = gfit;
+	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 	pcc_args->bg_area = get_bkg_selection();
 	pcc_args->mag_mode = LIMIT_MAG_AUTO;
@@ -283,10 +283,10 @@ void initialize_photometric_cc_dialog() {
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
 
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit->rx);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit->ry);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit->rx);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit->ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit.ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit.ry);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
@@ -364,10 +364,10 @@ void initialize_spectrophotometric_cc_dialog() {
 
 	gtk_window_set_title(parent, _("Spectrophotometric Color Calibration"));
 
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit->rx);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit->ry);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit->rx);
-	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit->ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit.ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit.ry);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
@@ -376,9 +376,9 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(catalog_box_spcc), local_gaia_xpsamp_available() ? 1 : 0);
 
 	gchar *tooltip = NULL;
-	double airmass, centalt = gfit->keywords.centalt, height = gfit->keywords.siteelev;
-	if (gfit->keywords.airmass > 0.0) {
-		airmass = gfit->keywords.airmass;
+	double airmass, centalt = gfit.keywords.centalt, height = gfit.keywords.siteelev;
+	if (gfit.keywords.airmass > 0.0) {
+		airmass = gfit.keywords.airmass;
 		tooltip = g_strdup(N_("Airmass read from FITS header AIRMASS card"));
 	} else if (centalt > 0.0 && centalt < 90.0) {
 		airmass = compute_airmass(90.0 - centalt);
@@ -1299,7 +1299,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	if (args.atmos_corr) {
-		if (!args.fit) args.fit = gfit;
+		if (!args.fit) args.fit = &gfit;
 		xpsampled atmos = init_xpsampled();
 		fill_xpsampled_from_atmos_model(&atmos, &args);
 		gchar *spl_legend = g_strdup(_("Atmosphere model"));
@@ -1500,7 +1500,7 @@ void on_spcc_plot_atmos_clicked(GtkButton* button, gpointer user_data) {
 	xpsampled data = init_xpsampled();
 	struct photometric_cc_data args = { 0 };
 	set_spcc_args(&args);
-	args.fit = gfit;
+	args.fit = &gfit;
 	fill_xpsampled_from_atmos_model(&data, &args);
 	gchar *spl_legend = g_strdup_printf(_("Atmospheric model\nHeight: %d m\nPressure: %.2f hPa (%s)"), (int) args.atmos_obs_height, args.atmos_pressure, args.atmos_pressure_is_slp ? N_("sea level") : N_("local"));
 	siril_plot_add_xydata(spl_data, spl_legend, XPSAMPLED_LEN, data.x, data.y, NULL, NULL);

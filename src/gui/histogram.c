@@ -64,7 +64,7 @@ static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
 
-static fits* fit = NULL;
+static fits* fit = &gfit;
 
 static gboolean auto_display_compensation = FALSE;
 
@@ -125,7 +125,6 @@ static void clear_hist_backup() {
 
 static void init_toggles() {
 	if (!toggles[0]) {
-		fit = gfit;
 		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
 		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
 		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
@@ -174,7 +173,7 @@ static void histo_startup() {
 		}
 	}
 	// also get the backup histogram
-	compute_histo_for_fit(fit);
+	compute_histo_for_gfit();
 	for (int i = 0; i < fit->naxes[2]; i++)
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
 	if (com.sat_hist) {
@@ -203,10 +202,10 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		clear_hsl();
 	}
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (gfit->icc_profile)
-			cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = copyICCProfile(original_icc);
-		color_manage(gfit, gfit->icc_profile != NULL);
+		if (gfit.icc_profile)
+			cmsCloseProfile(gfit.icc_profile);
+		gfit.icc_profile = copyICCProfile(original_icc);
+		color_manage(&gfit, gfit.icc_profile != NULL);
 	}
 	clear_backup();
 	clear_hist_backup();
@@ -523,7 +522,7 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 gsl_histogram* computeHistoSat(void* buf) {
 	size_t i, ndata, size;
 
-	size = get_histo_size(gfit);
+	size = get_histo_size(&gfit);
 	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
 	gsl_histogram_set_ranges_uniform(histo, 0, 1.0 + 1.0 / size);
 	ndata = fit->naxes[0] * fit->naxes[1];
@@ -951,7 +950,7 @@ static void update_histo_mtf() {
 }
 
 static int histo_update_preview() {
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	if (!closing)
 		histo_recompute();
 	return 0;
@@ -1016,13 +1015,13 @@ gsl_histogram* computeHisto_Selection(fits* fit, int layer,
 }
 
 /* call from main thread */
-void compute_histo_for_fit(fits *thefit) {
+void compute_histo_for_gfit() {
 	int nb_layers = 3;
-	if (thefit->naxis == 2)
+	if (fit->naxis == 2)
 		nb_layers = 1;
 	for (int i = 0; i < nb_layers; i++) {
 		if (!com.layers_hist[i])
-			set_histogram(computeHisto(thefit, i), i);
+			set_histogram(computeHisto(&gfit, i), i);
 	}
 	if (nb_layers == 3 && satbuf_working)
 		set_sat_histogram(computeHistoSat(satbuf_working));
@@ -1041,7 +1040,7 @@ void invalidate_gfit_histogram() {
 void update_gfit_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (is_histogram_visible()) {
-		compute_histo_for_fit(fit);
+		compute_histo_for_gfit();
 		queue_window_redraw();
 	}
 }
@@ -1117,7 +1116,7 @@ void histo_change_between_roi_and_image() {
 	// This should be called if the ROI is set, changed or cleared to ensure the
 	// histogram dialog continues to process the right data. Especially important
 	// in GHT saturation stretch mode.
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	if (_payne_colourstretchmodel == COL_SAT) {
 		clear_hsl();
 		setup_hsl();
@@ -1199,7 +1198,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
-	compute_histo_for_fit(fit);
+	compute_histo_for_gfit();
 }
 
 gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
@@ -1304,7 +1303,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	} else {
 		// the apply button resets everything after recomputing with the current values
-		fit = gfit;
+		fit = &gfit;
 		if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview"))) || gui.roi.active) {
 			copy_backup_to_gfit();
 			if (_payne_colourstretchmodel == COL_SAT) {
@@ -1440,7 +1439,7 @@ void setup_ght_dialog() {
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), (gfit->naxes[2] == 3));
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), (gfit.naxes[2] == 3));
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
@@ -1521,11 +1520,10 @@ void toggle_histogram_window_visibility(int _invocation) {
 
 		siril_close_dialog("histogram_dialog");
 	} else {
-		fit = gfit;
 		if (original_icc)
 			cmsCloseProfile(original_icc);
-		original_icc = copyICCProfile(gfit->icc_profile);
-		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+		original_icc = copyICCProfile(gfit.icc_profile);
+		icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 		single_image_stretch_applied = FALSE;
 		// When opening the dialog with a single image loaded, we cache the original ICC
 		// profile (may be NULL) in case the user closes the dialog without applying a
@@ -1533,9 +1531,9 @@ void toggle_histogram_window_visibility(int _invocation) {
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
-				original_icc = copyICCProfile(gfit->icc_profile);
+				original_icc = copyICCProfile(gfit.icc_profile);
 			}
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_STRETCH);
 		} else {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
