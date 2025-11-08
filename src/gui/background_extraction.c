@@ -77,7 +77,7 @@ static void background_startup() {
 
 static void copy_gfit_to_bkg_backup() {
 	if (!background_computed) return;
-	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
@@ -86,9 +86,9 @@ static void copy_gfit_to_bkg_backup() {
 static int copy_bkg_backup_to_gfit() {
 	if (!background_computed) return 0;
 	int retval = 0;
-	if (!gfit.data && !gfit.fdata)
+	if (!gfit->data && !gfit->fdata)
 		retval = 1;
-	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
+	else if (copyfits(&background_backup, gfit, CP_COPYA, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
@@ -157,11 +157,11 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->degree = (poly_order) degree;
 	args->smoothing = smoothing;
 	args->dither = use_dither;
-	args->fit = &gfit;
+	args->fit = gfit;
 
 	// Check if the image has a Bayer CFA pattern
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
-	gboolean is_cfa = gfit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
+	gboolean is_cfa = gfit->naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
 	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
 						remove_gradient_from_image, args)) {
 		free(args->seqEntry);

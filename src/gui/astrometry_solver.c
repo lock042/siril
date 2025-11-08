@@ -166,7 +166,7 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
-	gboolean is_bayer = !isseq && gfit.keywords.bayer_pattern[0] != '\0';
+	gboolean is_bayer = !isseq && gfit->keywords.bayer_pattern[0] != '\0';
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq && !is_bayer);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
@@ -247,12 +247,12 @@ static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitud
 }
 
 gboolean has_any_keywords() {
-	return (gfit.keywords.focal_length > 0.0 ||
-			gfit.keywords.pixel_size_x > 0.f ||
-			gfit.keywords.pixel_size_y > 0.f ||
-			(has_wcs(&gfit) && gfit.keywords.wcslib->crval[0] != 0.0 && gfit.keywords.wcslib->crval[1] != 0.0) ||
-			(gfit.keywords.wcsdata.objctra[0] != '\0' && gfit.keywords.wcsdata.objctdec[0] != '\0') ||
-			(gfit.keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE && gfit.keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE));
+	return (gfit->keywords.focal_length > 0.0 ||
+			gfit->keywords.pixel_size_x > 0.f ||
+			gfit->keywords.pixel_size_y > 0.f ||
+			(has_wcs(gfit) && gfit->keywords.wcslib->crval[0] != 0.0 && gfit->keywords.wcslib->crval[1] != 0.0) ||
+			(gfit->keywords.wcsdata.objctra[0] != '\0' && gfit->keywords.wcsdata.objctdec[0] != '\0') ||
+			(gfit->keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE && gfit->keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE));
 }
 
 /* effective focal length in mm */
@@ -311,16 +311,16 @@ static gboolean is_save_disto_activated() {
 }
 
 static void update_pixel_size() {
-	double pixel = gfit.keywords.pixel_size_x > gfit.keywords.pixel_size_y ? gfit.keywords.pixel_size_x : gfit.keywords.pixel_size_y;
-	if (com.pref.binning_update && gfit.keywords.binning_x > 1) {
-		pixel *= gfit.keywords.binning_x;
+	double pixel = gfit->keywords.pixel_size_x > gfit->keywords.pixel_size_y ? gfit->keywords.pixel_size_x : gfit->keywords.pixel_size_y;
+	if (com.pref.binning_update && gfit->keywords.binning_x > 1) {
+		pixel *= gfit->keywords.binning_x;
 	}
 
 	if (pixel > 0.0) {
 		gchar *cpixels = g_strdup_printf("%.2lf", pixel);
 		gtk_entry_set_text(pixelentry, cpixels);
 		g_free(cpixels);
-		has_pixel = gfit.pixelkey;
+		has_pixel = gfit->pixelkey;
 	} else
 		has_pixel = FALSE;
 	if (!has_pixel)
@@ -330,13 +330,13 @@ static void update_pixel_size() {
 }
 
 static void update_focal() {
-	double focal = gfit.keywords.focal_length;
+	double focal = gfit->keywords.focal_length;
 
 	if (focal > 0.0) {
 		gchar *cfocal = g_strdup_printf("%.1lf", focal);
 		gtk_entry_set_text(focalentry, cfocal);
 		g_free(cfocal);
-		has_focal = gfit.focalkey;
+		has_focal = gfit->focalkey;
 	} else
 		has_focal = FALSE;
 	if (!has_focal)
@@ -389,7 +389,7 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 }
 
 void update_coords() {
-	SirilWorldCS *world_cs = get_eqs_from_header(&gfit);
+	SirilWorldCS *world_cs = get_eqs_from_header(gfit);
 	update_coordinates(world_cs);
 	if (world_cs) {
 		unselect_all_items();
@@ -812,7 +812,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	gboolean is_siril = !args->solver;
 	args->for_sequence = gtk_toggle_button_get_active(seqsolvebutton) && sequence_is_loaded();
 	if (!args->for_sequence) {
-		args->fit = &gfit;
+		args->fit = gfit;
 		args->manual = is_detection_manual();
 		args->verbose = TRUE;
 		args->flip_image = flip_image_after_ps() && (!sequence_is_loaded() || com.seq.current == RESULT_IMAGE);
@@ -822,7 +822,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->update_reg = gtk_toggle_button_get_active(sequseforreg) && gtk_widget_get_visible(GTK_WIDGET(sequseforreg)); // not visible for FITSEQ and SER
 		args->sfargs = calloc(1, sizeof(struct starfinder_data));
 		args->sfargs->im.from_seq = &com.seq;
-		args->sfargs->layer = (gfit.naxes[2] == 1) ? RLAYER : GLAYER;
+		args->sfargs->layer = (gfit->naxes[2] == 1) ? RLAYER : GLAYER;
 		args->sfargs->keep_stars = TRUE;
 		args->sfargs->save_to_file = com.selection.w == 0 || com.selection.h == 0; // TODO make this a pref
 		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;

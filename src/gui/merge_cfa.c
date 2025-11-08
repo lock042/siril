@@ -369,13 +369,13 @@ void apply_to_img() {
 			out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
 			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 			close_single_image();
-			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			copy_fits_metadata(out, &gfit);
-			update_sampling_information(&gfit, 0.5f);
-			update_bayer_pattern_information(&gfit, pattern);
+			copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			copy_fits_metadata(out, gfit);
+			update_sampling_information(gfit, 0.5f);
+			update_bayer_pattern_information(gfit, pattern);
 
-			free_wcs(&gfit);
-			update_fits_header(&gfit);
+			free_wcs(gfit);
+			update_fits_header(gfit);
 			clearfits(out);
 			free(out);
 			clear_stars_list(TRUE);

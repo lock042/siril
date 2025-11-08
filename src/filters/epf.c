@@ -200,7 +200,7 @@ int edge_preserving_filter(struct epfargs *args) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
 
-	if (fit == &gfit && args->applying && !com.script) {
+	if (fit == gfit && args->applying && !com.script) {
 		populate_roi();
 		copy_gfit_to_backup();
 	}

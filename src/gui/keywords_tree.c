@@ -218,7 +218,7 @@ static void remove_selected_keys () {
 					gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
 				    if (G_VALUE_HOLDS_STRING(&g_key)) {
 				        gchar *FITS_key = (gchar *)g_value_get_string(&g_key);
-						updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE, FALSE);
+						updateFITSKeyword(gfit, FITS_key, NULL, NULL, NULL, TRUE, FALSE);
 						gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 				        g_value_unset(&g_key);
@@ -266,7 +266,7 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 			if (strlen(new_val) > 8) {
 				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
 			} else {
-				if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
+				if (!updateFITSKeyword(gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
 					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
 				}
 			}
@@ -291,7 +291,7 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS key */
 		process_keyword_string_value(new_val, valstring, dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\''));
 		if (g_strcmp0(original_val, valstring)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
+			if (!updateFITSKeyword(gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
 			}
 		}
@@ -317,7 +317,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 			siril_debug_print("Exceeded FITS COMMENT length\n");
 		}
 		if (g_strcmp0(original_comment, new_comment)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
+			if (!updateFITSKeyword(gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
 			}
 		}
@@ -610,7 +610,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 						continue;
 					}
 				} else {
-					updateFITSKeyword(&gfit, key, NULL, valstring[0] == '\0' ? NULL : valstring, comment, TRUE, FALSE);
+					updateFITSKeyword(gfit, key, NULL, valstring[0] == '\0' ? NULL : valstring, comment, TRUE, FALSE);
 					gui_function(refresh_keywords_dialog, NULL);
 					scroll_to_end();
 					break;
@@ -671,9 +671,9 @@ gboolean refresh_keywords_dialog(gpointer user_data) {
 	gboolean is_a_single_image_loaded = single_image_is_loaded() &&
 			(!sequence_is_loaded() || (sequence_is_loaded() &&
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
-	listFITSKeywords(&gfit, is_a_single_image_loaded);
-	if (gfit.header)
-		show_header_text(gfit.header);
+	listFITSKeywords(gfit, is_a_single_image_loaded);
+	if (gfit->header)
+		show_header_text(gfit->header);
 	return FALSE;
 }
 

@@ -51,7 +51,7 @@ static void clahe_close(gboolean revert) {
 	if (revert) {
 		siril_preview_hide();
 	} else {
-		invalidate_stats_from_fit(&gfit);
+		invalidate_stats_from_fit(gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("CLAHE (size=%d, clip=%.2f)"), clahe_tile_size, clahe_limit_value);
 	}
@@ -66,7 +66,7 @@ static int clahe_update_preview() {
 
 	set_cursor_waiting(TRUE);
 
-	args->fit = &gfit;
+	args->fit = gfit;
 	args->clip = clahe_limit_value;
 	args->tileSize = clahe_tile_size;
 

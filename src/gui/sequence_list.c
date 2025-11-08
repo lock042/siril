@@ -195,16 +195,16 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
 					}
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit->keywords.pixel_size_x, gfit->keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
 					}
@@ -236,7 +236,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case FWHM:
 					if (is_arcsec) {
-						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
+						fwhm_to_arcsec_if_needed(gfit, psfs[index]);
 						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
 					} else {
 						fwhm = psfs[index]->fwhmx;

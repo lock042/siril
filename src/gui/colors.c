@@ -97,19 +97,19 @@ void initialize_calibration_interface() {
 		selection_white_adjustment[3] = GTK_ADJUSTMENT(
 				gtk_builder_get_object(gui.builder, "adjustment_white_h"));
 	}
-	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit.rx);
-	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit.ry);
-	gtk_adjustment_set_upper(selection_black_adjustment[2], gfit.rx);
-	gtk_adjustment_set_upper(selection_black_adjustment[3], gfit.ry);
+	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_black_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_black_adjustment[3], gfit->ry);
 	gtk_adjustment_set_value(selection_black_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_black_adjustment[3], 0);
 
-	gtk_adjustment_set_upper(selection_white_adjustment[0], gfit.rx);
-	gtk_adjustment_set_upper(selection_white_adjustment[1], gfit.ry);
-	gtk_adjustment_set_upper(selection_white_adjustment[2], gfit.rx);
-	gtk_adjustment_set_upper(selection_white_adjustment[3], gfit.ry);
+	gtk_adjustment_set_upper(selection_white_adjustment[0], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[1], gfit->ry);
+	gtk_adjustment_set_upper(selection_white_adjustment[2], gfit->rx);
+	gtk_adjustment_set_upper(selection_white_adjustment[3], gfit->ry);
 	gtk_adjustment_set_value(selection_white_adjustment[0], 0);
 	gtk_adjustment_set_value(selection_white_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_white_adjustment[2], 0);
@@ -144,10 +144,10 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	black_selection.w = gtk_spin_button_get_value(selection_black_value[2]);
 	black_selection.h = gtk_spin_button_get_value(selection_black_value[3]);
 
-	undo_save_state(&gfit, _("Background neutralization"));
+	undo_save_state(gfit, _("Background neutralization"));
 
 	set_cursor_waiting(TRUE);
-	background_neutralize(&gfit, black_selection);
+	background_neutralize(gfit, black_selection);
 	populate_roi();
 	delete_selected_area();
 
@@ -271,8 +271,8 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	}
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Color Calibration"));
-	white_balance(&gfit, is_manual, white_selection, black_selection);
+	undo_save_state(gfit, _("Color Calibration"));
+	white_balance(gfit, is_manual, white_selection, black_selection);
 
 	gettimeofday(&t_end, NULL);
 
@@ -314,9 +314,9 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 
 void negative_processing() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(&gfit, _("Negative Transformation"));
-	pos_to_neg(&gfit);
-	invalidate_stats_from_fit(&gfit);
+	undo_save_state(gfit, _("Negative Transformation"));
+	pos_to_neg(gfit);
+	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
@@ -382,7 +382,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 	if (args->type != EXTRACT_RGB) {
 		// Not RGB, so we need to value_check the image to avoid out-of-range pixels
-		if (!value_check(&gfit)) {
+		if (!value_check(gfit)) {
 			siril_log_color_message(_("Error in value_check(). This should not happen...\n"), "red");
 			return;
 		}
@@ -399,7 +399,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 	args->fit = calloc(1, sizeof(fits));
 	set_cursor_waiting(TRUE);
-	if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	if (copyfits(gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_log_message(_("Could not copy the input image, aborting.\n"));
 		clearfits(args->fit);
 		free(args->fit);
@@ -408,7 +408,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args->channel[2]);
 		free(args);
 	} else {
-		copy_fits_metadata(&gfit, args->fit);
+		copy_fits_metadata(gfit, args->fit);
 		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
 			free(args->fit);
@@ -469,11 +469,11 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
 			free(args);
 			return;
-		} else if (gfit.icc_profile && gfit.color_managed) {
+		} else if (gfit->icc_profile && gfit->color_managed) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
 						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
 						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
-			color_manage(&gfit, FALSE);
+			color_manage(gfit, FALSE);
 			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
 		}
 
@@ -483,19 +483,19 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
 					args->power);
 
-		undo_save_state(&gfit, buf);
+		undo_save_state(gfit, buf);
 		g_free(buf);
 
-		ccm_calc(&gfit, args->matrix, args->power);
-		invalidate_stats_from_fit(&gfit);
+		ccm_calc(gfit, args->matrix, args->power);
+		invalidate_stats_from_fit(gfit);
 		notify_gfit_modified();
 		free(args);
 	}
 }
 
 void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit.icc_profile) {
-		color_manage(&gfit, TRUE);
+	if (gfit->icc_profile) {
+		color_manage(gfit, TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
 	}
 }
