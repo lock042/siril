@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_alloc.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -1400,12 +1401,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 	}
 	for (i = 0; i < pool_size; i++) {
-		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
+		data_pool[i].pix = siril_malloc(nb_frames * sizeof(void *));
 		if (masking)
-			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
+			data_pool[i].mask = siril_malloc(nb_frames * sizeof(float *));
 		if (args->drizzle)
-			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
-		data_pool[i].tmp = malloc(bufferSize);
+			data_pool[i].drizz = siril_malloc(nb_frames * sizeof(float *));
+		data_pool[i].tmp = siril_malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask) || (args->drizzle && !data_pool[i].drizz)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
@@ -1761,10 +1762,10 @@ free_and_close:
 
 	if (data_pool) {
 		for (i=0; i<pool_size; i++) {
-			if (data_pool[i].pix) free(data_pool[i].pix);
-			if (data_pool[i].mask) free(data_pool[i].mask);
-			if (data_pool[i].drizz) free(data_pool[i].drizz);
-			if (data_pool[i].tmp) free(data_pool[i].tmp);
+			if (data_pool[i].pix) siril_free(data_pool[i].pix);
+			if (data_pool[i].mask) siril_free(data_pool[i].mask);
+			if (data_pool[i].drizz) siril_free(data_pool[i].drizz);
+			if (data_pool[i].tmp) siril_free(data_pool[i].tmp);
 		}
 		free(data_pool);
 	}
