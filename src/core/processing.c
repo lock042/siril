@@ -1461,3 +1461,116 @@ int *compute_thread_distribution(int nb_workers, int max) {
 	}
 	return threads;
 }
+
+/* Image processing worker and hooks */
+
+/** Default memory check hook - ensures enough memory for mem_ratio * image size */
+static int default_img_mem_hook(struct generic_img_args *args) {
+	if (!args || !args->in)
+		return 1;
+
+	gint64 required_mem = (gint64)(args->mem_ratio *
+		args->in->rx * args->in->ry * args->in->naxes[2] *
+		(args->in->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD)));
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
+				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_log_message(_("Memory check passed: need %.1f MB, have %.1f MB\n"),
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
+/** Default idle function to end generic image processing */
+static gboolean end_generic_image(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	free(args);
+	return FALSE;
+}
+
+/** Free generic_img_args structure */
+static void free_generic_img_args(struct generic_img_args *args) {
+	if (!args)
+		return;
+	free(args);
+}
+
+/** Main generic image worker function
+ * Works with a single image, optionally using multiple threads for processing
+ */
+gpointer generic_image_worker(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->in);
+	assert(args->image_hook);
+
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_img_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && args->verbose) {
+		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
+		siril_log_color_message(desc, "green");
+		g_free(desc);
+	}
+
+	set_progress_bar_data(_("Processing image..."), 0.1f);
+
+	// Call the image processing hook
+	if (args->image_hook(args, args->out, args->max_threads)) {
+		if (args->verbose)
+			siril_log_color_message(_("Image processing failed.\n"), "red");
+		args->retval = 1;
+	} else {
+		if (args->verbose)
+			siril_log_color_message(_("Image processing succeeded.\n"), "green");
+		gettimeofday(&t_end, NULL);
+		if (args->verbose)
+			show_time(t_start, t_end);
+	}
+
+the_end:
+	if (args->retval) {
+		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+	}
+
+	int retval = args->retval;
+
+	gboolean run_idle;
+	if (args->idle_function)
+		run_idle = siril_add_idle(args->idle_function, args) > 0;
+	else
+		run_idle = siril_add_idle(end_generic_image, args) > 0;
+
+	if (!run_idle) {
+		free_generic_img_args(args);
+		end_generic(NULL);
+	}
+
+	return GINT_TO_POINTER(retval);
+}

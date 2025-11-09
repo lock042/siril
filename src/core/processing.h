@@ -163,9 +163,44 @@ struct _multi_split {
 	fits **images;
 };
 
+struct generic_img_args {
+	/** input image to be processed */
+	fits *in;
+
+	/** output image (can be same as input for in-place operations) */
+	fits *out;
+
+	/** peak memory requirement as multiple of image size */
+	float mem_ratio;
+
+	/** function called to process the image
+	 *  Returns 0 on success, non-zero on error */
+	int (*image_hook)(struct generic_img_args *, fits *, int);
+
+	/** idle function to register at the end, if not already_in_a_thread.
+	 *  If NULL, the default idle function that stops the thread is used.
+	 *  Return false for single execution. It should free its argument. */
+	GSourceFunc idle_function;
+
+	/** retval, useful for the idle_function, set by the worker */
+	int retval;
+
+	/** string description for progress and logs */
+	const char *description;
+
+	/** enable verbose logging */
+	gboolean verbose;
+
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention should be freed in the idle hook */
+	void *user;
+
+	/** number of threads to use for the operation */
+	int max_threads;
+};
+
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
-
 /* default functions for some hooks */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 int seq_prepare_hook(struct generic_seq_args *args);
@@ -230,6 +265,9 @@ void remove_child_from_children(GPid pid);
 gboolean add_child(GPid child_pid, int program, const gchar *name);
 void child_mutex_lock();
 void child_mutex_unlock();
+
+/* Single image processing worker and hooks */
+gpointer generic_image_worker(gpointer p);
 
 #ifdef __cplusplus
 }
