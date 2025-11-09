@@ -501,16 +501,17 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		p->data = fit;
 		// Convert fit to 32-bit float if required
-		float *newbuf = NULL;
 		if (fit->type == DATA_USHORT) {
 			siril_debug_print("Replacing ushort buffer for drizzling\n");
-			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
-			newbuf = malloc(ndata * sizeof(float));
-			float invnorm = 1.f / USHRT_MAX_SINGLE;
-			for (size_t i = 0 ; i < ndata ; i++) {
-				newbuf[i] = fit->data[i] * invnorm;
+			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, fit->rx * fit->ry * fit->naxes[2]), DATA_FLOAT);
+			if (!fit->data) {
+				PRINT_ALLOC_ERR;
+				free(p->error);
+				siril_free(p->pixmap->xmap);
+				free(p->pixmap);
+				free(p);
+				return 1;
 			}
-			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 		}
 		/* Set up output fits */
 		fits out = { 0 };
@@ -529,6 +530,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry;
 		out.fdata = siril_calloc(out.naxes[2] * chansize, sizeof(float));
+		if (!out.fdata) {
+			PRINT_ALLOC_ERR;
+			free(p->error);
+			siril_free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
 		out.fpdata[RLAYER] = out.fdata;
 		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
@@ -538,6 +547,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
 		output_counts->fdata = siril_calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		if (!output_counts->fdata) {
+			PRINT_ALLOC_ERR;
+			free(p->error);
+			siril_free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
 		output_counts->fpdata[RLAYER] = output_counts->fdata;
 		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
 		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
@@ -563,6 +580,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+			if (!fit->fdata) {
+				PRINT_ALLOC_ERR;
+				free(p->error);
+				siril_free(p->pixmap->xmap);
+				free(p->pixmap);
+				free(p);
+				return 1;
+			}
 		}
 		if (driz->is_bayer) {
 			/* we need to do something special here because it's a 1-channel sequence and
