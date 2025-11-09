@@ -1,3 +1,10 @@
+siril 1.4.0
+--/--/--
+
+**Fixes**
+* Fixed typo in platesolve tooltip
+* Fixed error in meson configuration
+
 siril 1.4.0-RC1
 11/08/25
 
