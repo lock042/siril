@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-07 21:02+0100\n"
-"PO-Revision-Date: 2025-10-14 03:04+0000\n"
+"PO-Revision-Date: 2025-11-09 13:19+0000\n"
 "Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
-"siril/ja/>\n"
+"siril-1-6/ja/>\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -7806,7 +7806,7 @@ msgstr "<b>スワップストレージディレクトリ</b>"
 
 #: src/gui/uifiles/settings_window.ui:5967
 msgid "Don't ask before quitting"
-msgstr ""
+msgstr "終了前に確認しない"
 
 #: src/gui/uifiles/settings_window.ui:5982
 msgid "Don't ask before saving when display is not linear"
@@ -7879,7 +7879,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:6214
 msgid "Software Location"
-msgstr "ソフトウェアの位置"
+msgstr "ソフトウェアの場所"
 
 #: src/gui/uifiles/settings_window.ui:6237
 msgid "Copyright when saving image as TIFF"
@@ -17135,7 +17135,7 @@ msgstr ""
 
 #: src/core/command_def.h:92
 msgid "Lists files and directories in the working directory"
-msgstr "ワーキングディレクトリー内のファイルとディレクトリーを表示"
+msgstr "作業ディレクトリ内のファイルとディレクトリを表示"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -17465,9 +17465,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:118
-#, fuzzy
 msgid "Prints the current working directory"
-msgstr "ワーキングディレクトリーを変更"
+msgstr "現在の作業ディレクトリを表示"
 
 #: src/core/command_def.h:119
 msgid ""
@@ -17713,11 +17712,10 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:135
-#, fuzzy
 msgid ""
 "Saves current image under the form of a bitmap file with 8-bit per channel: "
 "<b>filename</b>.bmp (BMP 24-bit)"
-msgstr "この画像を PNG-ファイル:  ``ファイル名’’.png に保存"
+msgstr "この画像を PNG-ファイル: ``ファイル名’’.png に保存"
 
 #: src/core/command_def.h:136
 msgid ""
@@ -23585,6 +23583,10 @@ msgid ""
 "will be unavailable. Further information may be available at https://"
 "www.cosmos.esa.int/web/gaia/"
 msgstr ""
+"ガイアアーカイブの状態インジケーターが応答していません。これは必ずしもガイア"
+"アーカイブがオフラインであることを意味するわけではありませんが、オフラインの"
+"場合、SPCCは利用できなくなります。詳細な情報は https://www.cosmos.esa.int/"
+"web/gaia/ で確認できるかもしれません"
 
 #: src/gui/photometric_cc.c:121
 msgid "Gaia archive available"
