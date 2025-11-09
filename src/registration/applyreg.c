@@ -528,7 +528,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry;
-		out.fdata = calloc(out.naxes[2] * chansize, sizeof(float));
+		out.fdata = siril_calloc(out.naxes[2] * chansize, sizeof(float));
 		out.fpdata[RLAYER] = out.fdata;
 		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
@@ -537,7 +537,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		// Set up the output_counts fits to store pixel hit counts
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
-		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		output_counts->fdata = siril_calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 		output_counts->fpdata[RLAYER] = output_counts->fdata;
 		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
 		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
@@ -554,6 +554,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		if (out.keywords.date_obs)
 			fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		siril_free(out.fdata); // was siril_calloc'ed, we need to free it here
+		out.fdata = NULL;
 		clearfits(&out);
 		// restore the astrometry
 		if (wcs_out) {
@@ -599,6 +601,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		} // else we save as 32b
 
 		savefits(count_filename, output_counts);
+		siril_free(output_counts->fdata); // was siril_calloc'ed, we need to free it here
+		output_counts->fdata = NULL;
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
