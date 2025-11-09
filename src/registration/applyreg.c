@@ -29,6 +29,7 @@
 #include "algos/demosaicing.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_alloc.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -485,6 +486,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 		if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, scale, disto, threads)) {
 			free(p->error);
+			siril_free(p->pixmap->xmap);
 			free(p->pixmap);
 			free(p);
 			return 1;
@@ -573,7 +575,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			clear_Bayer_information(fit); // we also reset the bayerpattern
 		}
 
-		free(p->pixmap->xmap);
+		siril_free(p->pixmap->xmap);
 		free(p->pixmap);
 
 		// Save drizzle weights to the drizztmp folder
@@ -1053,7 +1055,7 @@ clean_and_exit:
 		clearfits(tiny_flat);
 		free(tiny_flat);
 	}
-	free(p->pixmap->xmap);
+	siril_free(p->pixmap->xmap);
 	free(p->pixmap);
 	free(p->error);
 	free(p);
