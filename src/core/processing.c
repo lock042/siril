@@ -1466,12 +1466,12 @@ int *compute_thread_distribution(int nb_workers, int max) {
 
 /** Default memory check hook - ensures enough memory for mem_ratio * image size */
 static int default_img_mem_hook(struct generic_img_args *args) {
-	if (!args || !args->in)
+	if (!args || !args->fit)
 		return 1;
 
 	gint64 required_mem = (gint64)(args->mem_ratio *
-		args->in->rx * args->in->ry * args->in->naxes[2] *
-		(args->in->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD)));
+		args->fit->rx * args->fit->ry * args->fit->naxes[2] *
+		(args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD)));
 
 	gint64 available_mem = get_available_memory();
 
@@ -1511,12 +1511,22 @@ gpointer generic_image_worker(gpointer p) {
 	struct timeval t_start, t_end;
 
 	assert(args);
-	assert(args->in);
+	assert(args->fit);
 	assert(args->image_hook);
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
+
+	// Create a copy so we still have the original fit for combining with the result
+	// according to a mask
+	fits orig;
+	memset(&orig, 0, sizeof(fits));
+	if (copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+		siril_log_color_message(_("Failed to copy original image.\n"), "red");
+		args->retval = 1;
+		goto the_end_no_orig;
+	}
 
 	// Set default max_threads if not specified
 	if (args->max_threads < 1)
@@ -1539,12 +1549,15 @@ gpointer generic_image_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing image..."), 0.1f);
 
-	// Call the image processing hook
-	if (args->image_hook(args, args->out, args->max_threads)) {
+	// Call the image processing hook - operates in-place on args->fit
+	if (args->image_hook(args, args->fit, args->max_threads)) {
 		if (args->verbose)
 			siril_log_color_message(_("Image processing failed.\n"), "red");
 		args->retval = 1;
 	} else {
+		// TODO: once masks are implemented, combine orig with args->fit according to the mask
+		// For now, the processed result is in args->fit
+
 		if (args->verbose)
 			siril_log_color_message(_("Image processing succeeded.\n"), "green");
 		gettimeofday(&t_end, NULL);
@@ -1553,6 +1566,10 @@ gpointer generic_image_worker(gpointer p) {
 	}
 
 the_end:
+	// Always clean up orig
+	clearfits(&orig);
+
+the_end_no_orig:
 	if (args->retval) {
 		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
 	} else {

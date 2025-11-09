@@ -165,10 +165,7 @@ struct _multi_split {
 
 struct generic_img_args {
 	/** input image to be processed */
-	fits *in;
-
-	/** output image (can be same as input for in-place operations) */
-	fits *out;
+	fits *fit;
 
 	/** peak memory requirement as multiple of image size */
 	float mem_ratio;
@@ -197,6 +194,12 @@ struct generic_img_args {
 
 	/** number of threads to use for the operation */
 	int max_threads;
+
+	/** if TRUE, this is a preview operation and should not save undo */
+	gboolean for_preview;
+
+	/** if TRUE, operation is being applied to ROI only */
+	gboolean for_roi;
 };
 
 gpointer generic_sequence_worker(gpointer p);
