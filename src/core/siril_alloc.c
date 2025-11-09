@@ -28,7 +28,7 @@
 #endif
 
 #include <stddef.h>
-
+#include "core/siril.h"
 	
 /**
  * Allocates a block of memory of the specified size.
@@ -48,6 +48,7 @@ void* siril_malloc(size_t size) {
 	// MEM_COMMIT | MEM_RESERVE allocates and commits memory in one step
 	// PAGE_READWRITE allows read/write access
 	void* ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	siril_debug_print("Calling VirtualAlloc\n");
 	return ptr;  // Returns NULL on failure, just like malloc
 #else
 	return malloc(size);
@@ -77,6 +78,7 @@ void* siril_calloc(size_t num, size_t size) {
 #ifdef _WIN32
 	// VirtualAlloc already zeros the allocated memory
 	void* ptr = VirtualAlloc(NULL, total_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	siril_debug_print("Calling VirtualAlloc\n");
 	return ptr;  // Memory is already zeroed, returns NULL on failure
 #else
 	return calloc(num, size);
