@@ -916,11 +916,11 @@ void python_releases_thread() {
 static gboolean stop_processing_requested = FALSE;
 
 static gboolean stop_processing_thread_idle(gpointer user_data) {
+    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
     if (com.thread == NULL) {
-        siril_debug_print("The processing thread is not running.\n");
+        siril_debug_print("The processing thread is not running (may have already finished).\n");
         return FALSE;
     }
-    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
     set_thread_run(FALSE);
     if (!thread_being_waited)
         waiting_for_thread();
@@ -1497,7 +1497,7 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 	}
 
 	if (args->verbose)
-		siril_log_message(_("Memory check passed: need %.1f MB, have %.1f MB\n"),
+		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
 			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
 	return 0;
 }

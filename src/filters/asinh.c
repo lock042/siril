@@ -36,11 +36,11 @@ int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 /* Idle function for preview updates */
 static gboolean asinh_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
 
 	if (args->retval == 0) {
 		notify_gfit_modified();
 	}
-	stop_processing_thread();
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -48,13 +48,13 @@ static gboolean asinh_preview_idle(gpointer p) {
 /* Idle function for final application */
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
 
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
 		populate_roi();
 		notify_gfit_modified();
 	}
-	stop_processing_thread();
 	free_generic_img_args(args);
 	return FALSE;
 }
