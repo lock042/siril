@@ -1509,7 +1509,7 @@ static gboolean end_generic_image(gpointer p) {
 }
 
 /** Free generic_img_args structure */
-static void free_generic_img_args(struct generic_img_args *args) {
+void free_generic_img_args(struct generic_img_args *args) {
 	if (!args)
 		return;
 	if (args->user)

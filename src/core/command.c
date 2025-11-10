@@ -2741,31 +2741,54 @@ int process_asinh(int nb) {
 int process_clahe(int nb) {
 	gchar *end;
 	double clip_limit = g_ascii_strtod(word[1], &end);
-
 	if (end == word[1] || clip_limit <= 0.0) {
 		siril_log_message(_("Clip limit must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
-
 	int size = g_ascii_strtoull(word[2], &end, 10);
-
-	if (end == word[2] || size <= 0.0) {
+	if (end == word[2] || size <= 0) {
 		siril_log_message(_("Tile size must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
+	image_cfa_warning_check();
+
+	// Allocate parameters
+	clahe_params *params = calloc(1, sizeof(clahe_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->clip = clip_limit;
+	params->tileSize = size;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
 
 	args->fit = gfit;
-	args->clip = clip_limit;
-	args->tileSize = size;
-	image_cfa_warning_check();
-	if (!start_in_new_thread(clahe, args)) {
+	args->mem_ratio = 2.0f;
+	args->image_hook = clahe_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("CLAHE");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_ls(int nb){

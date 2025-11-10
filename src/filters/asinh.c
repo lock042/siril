@@ -40,33 +40,22 @@ static gboolean asinh_preview_idle(gpointer p) {
 	if (args->retval == 0) {
 		notify_gfit_modified();
 	}
-
-	// Free the params
-	if (args->user)
-		free(args->user);
-
 	stop_processing_thread();
-	free(args);
+	free_generic_img_args(args);
 	return FALSE;
 }
 
 /* Idle function for final application */
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
-	asinh_params *params = (asinh_params *)args->user;
 
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
 		populate_roi();
 		notify_gfit_modified();
 	}
-
-	// Free the params
-	if (params)
-		free(params);
-
 	stop_processing_thread();
-	free(args);
+	free_generic_img_args(args);
 	return FALSE;
 }
 

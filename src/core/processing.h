@@ -204,6 +204,7 @@ struct generic_img_args {
 	gboolean for_roi;
 };
 
+void free_generic_img_args(struct generic_img_args *args);
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
 /* default functions for some hooks */
