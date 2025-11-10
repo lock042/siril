@@ -5933,45 +5933,77 @@ int process_fft(int nb){
 }
 
 int process_fixbanding(int nb) {
-	struct banding_data *args = calloc(1, sizeof(struct banding_data));
-	args->seq = NULL;
 	gchar *end1, *end2;
-
-	args->amount = g_ascii_strtod(word[1], &end1);
-	if (end1 == word[1] || args->amount < 0 || args->amount > 4) {
+	double amount = g_ascii_strtod(word[1], &end1);
+	if (end1 == word[1] || amount < 0 || amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
-		free(args);
 		return CMD_ARG_ERROR;
 	}
-	args->sigma = g_ascii_strtod(word[2], &end2);
-	if (end2 == word[2] || args->sigma < 0 || args->sigma > 5) {
+	double sigma = g_ascii_strtod(word[2], &end2);
+	if (end2 == word[2] || sigma < 0 || sigma > 5) {
 		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
-		free(args);
 		return CMD_ARG_ERROR;
 	}
 
-	args->protect_highlights = TRUE;
-	args->applyRotation = FALSE;
-	args->fit = gfit;
+	gboolean applyRotation = FALSE;
 	if (nb > 3) {
 		int arg_index = 3;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
 			if (!g_strcmp0(arg, "-vertical")) {
-				args->applyRotation = TRUE;
+				applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 			arg_index++;
 		}
 	}
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(BandingEngineThreaded, args)) {
+
+	// Allocate parameters using the allocator
+	struct banding_data *params = new_banding_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->protect_highlights = TRUE;
+	params->amount = amount;
+	params->sigma = sigma;
+	params->applyRotation = applyRotation;
+	params->seqEntry = NULL;
+	params->seq = NULL;
+	params->fit = NULL;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_banding_data(params);
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = banding_single_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("Canon Banding Reduction");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_banding_data(params);
+		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
