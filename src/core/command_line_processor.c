@@ -611,9 +611,11 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			g_print("input command:%s\n", myline);
 
 		parse_line(myline, len, &wordnb);
+		com.command = TRUE;
 		ret = execute_command(wordnb);
 
 		if (ret) {
+			com.command = FALSE;
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!(com.script || com.python_script) && !com.headless &&
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
@@ -633,7 +635,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				remove_child_from_children((GPid) -2); // remove processing thread from list
 			}
 		}
-
+		com.command = FALSE;
 		free(myline);
 	}
 

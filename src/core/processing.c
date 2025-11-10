@@ -59,6 +59,20 @@ void child_mutex_unlock() {
 	g_mutex_unlock(&child_mutex);
 }
 
+/* destroy_any_args() will destroy any operation-specific arguments struct that
+ * contains a destructor as its first member.
+ * The idea is that all structs passed to generic_seq_args or generic_img_args as
+ * user_data fit this polymorphic pattern. If the destroy_fn is NULL we assume
+ * there are no dynamically allocated members and the struct can just be freed.
+ */
+static void destroy_any_args(void *obj) {
+    destructor *destroy_fn = obj; // first field assumed destroy
+    if (*destroy_fn)
+		(*destroy_fn)(obj);
+	else
+		free(obj);
+}
+
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
 gpointer generic_sequence_worker(gpointer p) {
@@ -1490,9 +1504,7 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 
 /** Default idle function to end generic image processing */
 static gboolean end_generic_image(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-	free(args);
 	return FALSE;
 }
 
@@ -1500,6 +1512,8 @@ static gboolean end_generic_image(gpointer p) {
 static void free_generic_img_args(struct generic_img_args *args) {
 	if (!args)
 		return;
+	if (args->user)
+		destroy_any_args(args->user);
 	free(args);
 }
 
@@ -1578,11 +1592,17 @@ the_end_no_orig:
 
 	int retval = args->retval;
 
-	gboolean run_idle;
-	if (args->idle_function)
-		run_idle = siril_add_idle(args->idle_function, args) > 0;
-	else
-		run_idle = siril_add_idle(end_generic_image, args) > 0;
+	gboolean run_idle = FALSE;
+	/*
+	 *
+	 */
+	if (!(com.command || com.script)) {
+		if (args->idle_function) {
+			run_idle = siril_add_idle(args->idle_function, args) > 0;
+		} else {
+			run_idle = siril_add_idle(end_generic_image, args) > 0;
+		}
+	}
 
 	if (!run_idle) {
 		free_generic_img_args(args);
@@ -1591,3 +1611,4 @@ the_end_no_orig:
 
 	return GINT_TO_POINTER(retval);
 }
+

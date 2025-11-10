@@ -2686,7 +2686,50 @@ int process_asinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	image_cfa_warning_check();
-	command_asinh(gfit, beta, offset, human_luminance, clip_mode);
+
+	// Allocate parameters
+	asinh_params *params = calloc(1, sizeof(asinh_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->beta = beta;
+	params->offset = offset;
+	params->human_luminance = human_luminance;
+	params->clip_mode = clip_mode;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = asinh_image_hook;
+	args->idle_function = NULL; // No idle function for synchronous execution
+	args->description = _("Asinh stretch");
+	args->verbose = FALSE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run synchronously by calling the worker directly
+	generic_image_worker(args);
+
+	// Check return value
+	int retval = args->retval;
+
+	// Resources are freed at the end of the generic image worker
+
+	if (retval != 0) {
+		siril_log_color_message(_("Asinh stretch failed\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");

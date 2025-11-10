@@ -20,36 +20,17 @@
 
 #include "asinh.h"
 
-static gboolean asinh_rgb_space = FALSE;
-static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
-static clip_mode_t clip_mode = RGBBLEND;
-
 // Original ICC profile, in case we don't apply a stretch and need to revert
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
 
-/* Structure to hold asinh-specific parameters */
-typedef struct {
-	float beta;
-	float offset;
-	gboolean human_luminance;
-	clip_mode_t clip_mode;
-} asinh_params;
-
 /* The actual asinh processing hook */
-static int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	asinh_params *params = (asinh_params *)args->user;
 	if (!params)
 		return 1;
 
-	// Temporarily set the global clip_mode for the asinhlut functions
-	clip_mode_t old_clip_mode = clip_mode;
-	clip_mode = params->clip_mode;
-
-	int retval = asinhlut(fit, params->beta, params->offset, params->human_luminance);
-
-	clip_mode = old_clip_mode;
-	return retval;
+	return asinhlut(fit, params->beta, params->offset, params->human_luminance, params->clip_mode);
 }
 
 /* Idle function for preview updates */
@@ -89,19 +70,29 @@ static gboolean asinh_apply_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Helper function to get current widget values */
+static void get_asinh_values(float *stretch, float *black, gboolean *rgb_space, clip_mode_t *clipmode) {
+	if (stretch)
+		*stretch = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_asinh")));
+	if (black)
+		*black = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh")));
+	if (rgb_space)
+		*rgb_space = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace")));
+	if (clipmode)
+		*clipmode = (clip_mode_t)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("asinh_clipmode")));
+}
+
 /* Create and launch asinh processing */
 static int asinh_process_with_worker(gboolean for_preview) {
 	// Allocate parameters
-	asinh_params *params = malloc(sizeof(asinh_params));
+	asinh_params *params = calloc(1, sizeof(asinh_params));
 	if (!params) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 
-	params->beta = asinh_stretch_value;
-	params->offset = asinh_black_value;
-	params->human_luminance = asinh_rgb_space;
-	params->clip_mode = clip_mode;
+	// Get current values from widgets
+	get_asinh_values(&params->beta, &params->offset, &params->human_luminance, &params->clip_mode);
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -155,13 +146,19 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	set_cursor_waiting(TRUE);
 
 	if (revert) {
-		if (asinh_stretch_value != 0.0f || asinh_black_value != 0.0f) {
+		float stretch_value, black_value;
+		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
+
+		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
 			notify_gfit_modified();
 		}
 	} else {
 		// Save undo state when applying (not reverting)
 		invalidate_stats_from_fit(gfit);
+
+		float stretch_value, black_value;
+		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
 
 		fits undo_fit = {0};
 		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
@@ -170,7 +167,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
-				asinh_stretch_value, asinh_black_value);
+				stretch_value, black_value);
 	}
 
 	roi_supported(FALSE);
@@ -185,8 +182,8 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	set_cursor_waiting(FALSE);
 }
 
-/* Keep the existing asinhlut functions unchanged */
-int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance) {
+/* Keep the existing asinhlut functions with clip_mode as parameter */
+int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	const gboolean do_channel[3] = { TRUE, TRUE, TRUE };
 	float m_CB = 1.f;
@@ -292,7 +289,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 	return 0;
 }
 
-static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance) {
+static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 	const gboolean do_channel[3] = { TRUE, TRUE, TRUE };
 
@@ -389,25 +386,25 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 	return 0;
 }
 
-int asinhlut(fits *fit, float beta, float offset, gboolean human_luminance) {
+int asinhlut(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	if (fit->type == DATA_USHORT)
-		return asinhlut_ushort(fit, beta, offset, human_luminance);
+		return asinhlut_ushort(fit, beta, offset, human_luminance, clip_mode);
 	if (fit->type == DATA_FLOAT)
-		return asinhlut_float(fit, beta, offset, human_luminance);
+		return asinhlut_float(fit, beta, offset, human_luminance, clip_mode);
 	return 1;
 }
 
 int command_asinh(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clipmode) {
-	clip_mode_t old_clip_mode = clip_mode;
-	clip_mode = clipmode;
-	int retval = asinhlut(fit, beta, offset, human_luminance);
-	clip_mode = old_clip_mode;
-	return retval;
+	return asinhlut(fit, beta, offset, human_luminance, clipmode);
 }
 
-/* Keep all the GTK callbacks unchanged */
+/* Keep all the GTK callbacks - now they don't set static variables */
 static void apply_asinh_changes() {
-	gboolean changed = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
+	float stretch_value, black_value;
+	gboolean rgb_space;
+	get_asinh_values(&stretch_value, &black_value, &rgb_space, NULL);
+
+	gboolean changed = (stretch_value != 1.0f) || (black_value != 0.0f) || !rgb_space;
 	asinh_close(!changed, !changed);
 }
 
@@ -455,14 +452,11 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	}
 
 	asinh_startup();
-	asinh_stretch_value = 0.0f;
-	asinh_black_value = 0.0f;
-	asinh_rgb_space = TRUE;
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_rgb, asinh_rgb_space);
-	gtk_spin_button_set_value(spin_stretch, asinh_stretch_value);
-	gtk_spin_button_set_value(spin_black_p, asinh_black_value);
+	gtk_toggle_button_set_active(toggle_rgb, TRUE);
+	gtk_spin_button_set_value(spin_stretch, 0.0f);
+	gtk_spin_button_set_value(spin_black_p, 0.0f);
 	gtk_spin_button_set_increments(spin_black_p, 0.001, 0.01);
 	set_notify_block(FALSE);
 }
@@ -482,17 +476,15 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	remove_roi_callback(asinh_change_between_roi_and_image);
 
 	// Allocate parameters for full image processing
-	asinh_params *params = malloc(sizeof(asinh_params));
+	asinh_params *params = calloc(1, sizeof(asinh_params));
 	if (!params) {
 		PRINT_ALLOC_ERR;
 		add_roi_callback(asinh_change_between_roi_and_image);
 		return;
 	}
 
-	params->beta = asinh_stretch_value;
-	params->offset = asinh_black_value;
-	params->human_luminance = asinh_rgb_space;
-	params->clip_mode = clip_mode;
+	// Get current values from widgets
+	get_asinh_values(&params->beta, &params->offset, &params->human_luminance, &params->clip_mode);
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -528,9 +520,6 @@ gboolean on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
-	double prev_stretch = asinh_stretch_value;
-	double prev_bp = asinh_black_value;
-
 	set_notify_block(TRUE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace")), TRUE);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh")), 0);
@@ -540,32 +529,14 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
-	if (prev_stretch != 0.0 || prev_bp != 0.0) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = asinh_update_preview;
-		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-		notify_update((gpointer) param);
-	}
-}
-
-void on_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
-	asinh_stretch_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
 	notify_update((gpointer) param);
 }
 
-void on_black_point_spin_asinh_value_changed(GtkSpinButton *button, gpointer user_data) {
-	asinh_black_value = gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-	notify_update((gpointer) param);
-}
-
-void on_asinh_RGBspace_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	asinh_rgb_space = gtk_toggle_button_get_active(togglebutton);
+/* Generic callback for all parameter changes that trigger preview update */
+void on_asinh_parameter_changed(GtkWidget *widget, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
@@ -588,9 +559,5 @@ void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_asinh_clipmode_changed(GtkComboBox *combo, gpointer user_data) {
-	clip_mode = (clip_mode_t) gtk_combo_box_get_active(combo);
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
-	notify_update((gpointer) param);
+	on_asinh_parameter_changed(GTK_WIDGET(combo), user_data);
 }

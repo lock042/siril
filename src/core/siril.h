@@ -109,6 +109,10 @@ typedef unsigned short WORD;	// default type for internal image data
 
 typedef struct _SirilDialogEntry SirilDialogEntry;
 
+// typedef for an args destructor function, for use in free_generic_seq_args and
+// free_generic_img_args
+typedef void (*destructor)(void *);
+
 /* used for open and savedialog */
 typedef GtkWidget SirilWidget;
 
@@ -376,6 +380,9 @@ typedef struct {
 	gchar *filename; // filename if DISTO_FILE
 	pointf velocity; // shift velocity if DISTO_FILE_COMET
 } disto_params;
+
+// Early declaration
+struct generic_img_args;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -876,8 +883,10 @@ struct cominf {
 	gsl_histogram *sat_hist;
 					      // TODO: move in ffit?
 
+	// TODO: combine these gbooleans into a single bitmask state variable
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
+	gboolean command;		// a command is being executed
 	gboolean python_script;	// python script being executed
 	gboolean python_command;	// python is running a Siril command
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion

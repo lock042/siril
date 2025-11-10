@@ -189,7 +189,9 @@ struct generic_img_args {
 	gboolean verbose;
 
 	/** user data: pointer to operation-specific data. It is managed by the
-	 * caller and by convention should be freed in the idle hook */
+	 * caller and by convention MUST have a destructor as its
+	 first member, which is called in free_generic_img_args()
+	 */
 	void *user;
 
 	/** number of threads to use for the operation */
