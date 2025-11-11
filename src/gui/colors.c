@@ -315,6 +315,7 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 void negative_processing() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(&gfit, _("Negative Transformation"));
+	siril_log_color_message(_("Negative Transformation\n"), "green");
 	pos_to_neg(&gfit);
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();

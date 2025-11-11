@@ -130,10 +130,11 @@ gpointer unpurple(gpointer p) {
 	}
 
 	char log[90];
-	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod_b, thresh, withstarmask);
+	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d\n", mod_b, thresh, withstarmask);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
-	if (args->for_final)
+	if (args->for_final) {
 		populate_roi();
+	}
 	free(args);
 	return GINT_TO_POINTER(0);
 }

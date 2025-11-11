@@ -1320,53 +1320,57 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		undo_fit.icc_profile = original_icc;
 		undo_fit.color_managed = original_icc != NULL;
 
+		gchar *log_string = NULL;
+
 		if (invocation == HISTO_STRETCH) {
-			siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-				_shadows, _midtones, _highlights);
-			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
-				_midtones, _shadows, _highlights);
-			undo_save_state(&undo_fit,
-				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
-				_midtones, _shadows, _highlights);
+			log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"), _midtones, _shadows, _highlights);
+
 		} else if (invocation == GHT_STRETCH) {
 			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
+
 			if (_payne_colourstretchmodel != COL_SAT) {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						undo_save_state(&undo_fit, _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						undo_save_state(&undo_fit, _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						undo_save_state(&undo_fit, _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						undo_save_state(&undo_fit, _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
-						undo_save_state(&undo_fit, _("GHS LINEAR BP: %.2f"), _BP);
+						log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), _BP);
 						break;
 				}
 			} else {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						undo_save_state(&undo_fit, _("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						undo_save_state(&undo_fit, _("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						undo_save_state(&undo_fit, _("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						undo_save_state(&undo_fit, _("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
-						undo_save_state(&undo_fit, _("GHS LINEAR SAT BP: %.2f"), _BP);
+						log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), _BP);
 						break;
 				}
 			}
+		}
+
+		if (log_string) {
+			undo_save_state(&undo_fit, log_string);
+			siril_log_color_message("%s\n", "green", log_string);
+			g_free(log_string);
 		}
 		clear_backup();
 		clear_hist_backup();

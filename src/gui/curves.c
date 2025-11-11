@@ -555,8 +555,17 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	siril_log_message(_("Applying %s curve transformation with %d points\n"),
-					  algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(curve_points));
+	GString *msg = g_string_new(NULL);
+	g_string_append_printf(msg,
+			_("Applying %s curve transformation with %d points: "),
+			algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(curve_points));
+	for (GList *iter = curve_points; iter; iter = iter->next) {
+		point *p = (point *)iter->data;
+		g_string_append_printf(msg, "(%.3f, %.3f) ", p->x, p->y);
+	}
+	g_string_append_printf(msg,"\n");
+	siril_log_color_message(msg->str, "green");
+	g_string_free(msg, TRUE);
 
 	if (gtk_toggle_button_get_active(curves_sequence_check)
 		&& sequence_is_loaded()) {

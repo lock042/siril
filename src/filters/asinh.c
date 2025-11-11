@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "core/processing.h"
@@ -86,6 +87,8 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
+				asinh_stretch_value, asinh_black_value);
+		siril_log_color_message(_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"), "green",
 				asinh_stretch_value, asinh_black_value);
 	}
 	roi_supported(FALSE);
@@ -404,7 +407,6 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))) || gui.roi.active) {
 		asinh_process_all();
 	}
-
 	apply_asinh_changes();
 	siril_close_dialog("asinh_dialog");
 }

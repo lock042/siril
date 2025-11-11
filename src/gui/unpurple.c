@@ -254,6 +254,12 @@ void on_unpurple_apply_clicked(GtkButton *button, gpointer user_data) {
 		unpurple_process_all();
 	}
 
+	gboolean withstarmask = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars")));
+	char log[90];
+	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod_b, thresh, withstarmask);
+
+	siril_log_color_message("%s\n", "green", log);
+
 	apply_unpurple_changes();
 	siril_close_dialog("unpurple_dialog");
 }

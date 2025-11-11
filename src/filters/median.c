@@ -796,9 +796,12 @@ gpointer median_filter(gpointer p) {
 	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
-	if (!com.script && !args->previewing)
-		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
-			args->ksize, args->ksize);
+	if (!com.script && !args->previewing) {
+		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
+			args->ksize, args->ksize, args->iterations, args->amount);
+		siril_log_color_message(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"), "green",
+			args->ksize, args->ksize, args->iterations, args->amount);
+	}
 	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
 		retval = median_filter_ushort(p);

@@ -25,6 +25,7 @@
 #include "algos/statistics.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/siril_log.h"
 #include "opencv/opencv.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -54,6 +55,7 @@ static void clahe_close(gboolean revert) {
 		invalidate_stats_from_fit(&gfit);
 		undo_save_state(get_preview_gfit_backup(),
 				_("CLAHE (size=%d, clip=%.2f)"), clahe_tile_size, clahe_limit_value);
+		siril_log_color_message(_("CLAHE (size=%d, clip=%.2f)"), "green", clahe_tile_size, clahe_limit_value);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);

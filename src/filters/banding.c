@@ -189,7 +189,12 @@ gpointer BandingEngineThreaded(gpointer p) {
 	struct timeval t_start, t_end;
 
 	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
+	if (!args->protect_highlights) {
+		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)\n"), args->amount, args->sigma);
+	} else {
+		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"),
+				args->amount, args->sigma);
+	}	gettimeofday(&t_start, NULL);
 
 	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation, MULTI_THREADED);
 
@@ -416,11 +421,12 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	protect_highlights = gtk_toggle_button_get_active(
 			toggle_protect_highlights_banding);
 
-	if (!protect_highlights)
+	if (!protect_highlights) {
 		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
-	else
+	} else {
 		undo_save_state(&gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
 				amount, invsigma);
+	}
 
 	args->fit = &gfit;
 	args->protect_highlights = protect_highlights;

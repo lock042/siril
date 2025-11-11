@@ -464,7 +464,15 @@ gpointer autoDetectThreaded(gpointer p) {
 	int retval = 0, chan;
 	long icold, ihot;
 
-	siril_log_color_message(_("Cosmetic Correction: processing...\n"), "green");
+	if (args->sigma[0] >= 0.0 && args->sigma[1] >= 0.0) {
+		siril_log_color_message(_("Cosmetic Correction: processing (hot sigma %.2lf, cold sigma %.2lf, amount %.2lf)...\n"), "green", args->sigma[1], args->sigma[0], args->amount);
+	} else if (args->sigma[0] >= 0.0) {
+		siril_log_color_message(_("Cosmetic Correction: processing (cold sigma %.2lf, amount %.2lf)...\n"), "green", args->sigma[0], args->amount);
+	} else if (args->sigma[1] >= 0.0) {
+		siril_log_color_message(_("Cosmetic Correction: processing (hot sigma %.2lf, amount %.2lf)...\n"), "green", args->sigma[1], args->amount);
+	}
+	// Can't apply unless at least one of hot sigma and cold sigma are selected
+
 	gettimeofday(&t_start, NULL);
 
 	icold = ihot = 0L;
