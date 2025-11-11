@@ -32,34 +32,34 @@
 
 #include "filters/epf.h"
 
-gboolean end_epf(gpointer p) {
-	set_cursor_waiting(FALSE);
-	stop_processing_thread();
-	notify_gfit_modified();
-	return FALSE;
+/*****************************************************************************
+ *      E P F      A L L O C A T O R   A N D   D E S T R U C T O R          *
+ ****************************************************************************/
+
+/* Allocator for epfargs */
+struct epfargs *new_epf_args() {
+	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	if (args) {
+		args->destroy_fn = free_epf_args;
+	}
+	return args;
 }
 
-gpointer epfhandler (gpointer args) {
-	lock_roi_mutex();
-	struct epfargs *p = (struct epfargs*) args;
-	set_cursor_waiting(TRUE);
-	int retval = edge_preserving_filter(p);
-	unlock_roi_mutex();
-	if (!com.script)
-		execute_idle_and_wait_for_it(end_epf, NULL);
-	return GINT_TO_POINTER(retval);
+/* Destructor for epfargs */
+void free_epf_args(void *ptr) {
+	struct epfargs *args = (struct epfargs *)ptr;
+	if (!args)
+		return;
+
+	if (args->guide_needs_freeing && args->guidefit) {
+		clearfits(args->guidefit);
+		free(args->guidefit);
+		args->guidefit = NULL;
+	}
+	free(ptr);
 }
 
-gpointer epf_filter (gpointer args) {
-	struct epfargs *p = (struct epfargs*) args;
-	set_cursor_waiting(TRUE);
-	int retval = edge_preserving_filter(p);
-	if (!com.script)
-		execute_idle_and_wait_for_it(end_epf, NULL);
-	return GINT_TO_POINTER(retval);
-}
-
-int match_guide_to_roi(fits *guide, fits *guide_roi) {
+static int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	int retval = 0;
 	if (!gui.roi.active)
 		return 1;
@@ -104,7 +104,7 @@ int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	return retval;
 }
 
-int edge_preserving_filter(struct epfargs *args) {
+static int edge_preserving_filter(struct epfargs *args) {
 	fits *fit = args->fit;
 	fits *guide = args->guidefit;
 	double d = args->d;
@@ -202,7 +202,6 @@ int edge_preserving_filter(struct epfargs *args) {
 
 	if (fit == gfit && args->applying && !com.script) {
 		populate_roi();
-		copy_gfit_to_backup();
 	}
 
 	if (verbose) {
@@ -210,8 +209,44 @@ int edge_preserving_filter(struct epfargs *args) {
 		show_time(t_start, t_end);
 	}
 
-	if (args->guide_needs_freeing)
-		free(args->guidefit);
-	free(args);
 	return 0;
+}
+
+/* The actual EPF processing hook */
+int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct epfargs *params = (struct epfargs *)args->user;
+	if (!params)
+		return 1;
+	params->fit = fit;
+	return edge_preserving_filter(params);
+}
+
+/* Idle function for preview updates */
+gboolean epf_preview_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
+}
+
+/* Idle function for final application */
+gboolean epf_apply_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
 }

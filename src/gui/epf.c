@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -38,7 +39,6 @@
 #include "opencv/opencv.h"
 
 // Statics declarations
-
 GtkButton *epf_undo = NULL, *epf_cancel = NULL, *epf_apply = NULL;
 GtkComboBox *ep_filter_type = NULL;
 GtkDialog *epf_dialog = NULL;
@@ -49,8 +49,10 @@ GtkScale *scale_epf_d = NULL;
 GtkSpinButton *spin_epf_d = NULL, *spin_epf_sigma_spatial = NULL, *spin_epf_sigma_col = NULL, *spin_epf_mod = NULL;
 GtkToggleButton *guided_filter_selfguide = NULL, *epf_preview = NULL;
 
-// Statics init
+// Static for loaded guide image
+static fits loaded_fit = { 0 };
 
+// Statics init
 void epf_dialog_init_statics() {
 	if (epf_undo == NULL) {
 		// GtkButton
@@ -84,45 +86,90 @@ void epf_dialog_init_statics() {
 	}
 }
 
+/* Helper function to get current widget values */
+static void get_epf_values(double *d, double *sigma_col, double *sigma_space, double *mod, ep_filter_t *filter_type) {
+	if (d)
+		*d = gtk_spin_button_get_value(spin_epf_d);
+	if (sigma_col)
+		*sigma_col = gtk_spin_button_get_value(spin_epf_sigma_col);
+	if (sigma_space)
+		*sigma_space = gtk_spin_button_get_value(spin_epf_sigma_spatial);
+	if (mod)
+		*mod = gtk_spin_button_get_value(spin_epf_mod);
+	if (filter_type)
+		*filter_type = (ep_filter_t)gtk_combo_box_get_active(ep_filter_type);
+}
 
-static float epf_d_value = 0.0f, epf_sigma_col_value = 11.0f, epf_sigma_spatial_value = 11.0f, mod = 1.f;
-static ep_filter_t filter_type = EP_BILATERAL;
-static fits *guide = NULL, loaded_fit = { 0 };
+/* Create and launch EPF processing */
+static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
+	// Allocate parameters
+	struct epfargs *params = new_epf_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
 
-static int epf_update_preview() {
-	gboolean guide_needs_freeing = FALSE;
-	if (gtk_toggle_button_get_active(epf_preview))
-		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
-	if (filter_type == EP_GUIDED) {
+	// Get current values from widgets
+	get_epf_values(&params->d, &params->sigma_col, &params->sigma_space, &params->mod, &params->filter);
+
+	// Set up guide image
+	params->guide_needs_freeing = FALSE;
+	if (params->filter == EP_GUIDED) {
 		if (gtk_toggle_button_get_active(guided_filter_selfguide)) {
-			guide = fit;
+			params->guidefit = for_roi ? &gui.roi.fit : gfit;
 		} else {
 			if (loaded_fit.rx != 0) {
-				guide = &loaded_fit;
+				params->guidefit = &loaded_fit;
 			} else {
+				free_epf_args(params);
+				free(params);
 				return 1;
 			}
 		}
 	} else {
-		guide = NULL;
+		params->guidefit = NULL;
 	}
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) {.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
-								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
-								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = FALSE };
-	set_cursor_waiting(TRUE);
-	// We call epf_filter here as update_preview already handles the ROI mutex lock
-	if (!start_in_new_thread(epf_filter, args)) {
-		free(args);
+
+	params->verbose = !for_preview;
+	params->applying = !for_preview;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_epf_args(params);
+		free(params);
 		return 1;
+	}
+
+	// Set the fit based on whether ROI is active
+	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->mem_ratio = 3.0f; // EPF needs memory for conversions and modulation
+	args->image_hook = epf_image_hook;
+	args->idle_function = for_preview ? epf_preview_idle : epf_apply_idle;
+	args->description = _("Edge Preserving Filter");
+	args->verbose = !for_preview;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = for_roi;
+
+	start_in_new_thread(generic_image_worker, args);
+	return 0;
+}
+
+/* Update preview using the worker */
+static int epf_update_preview() {
+	if (gtk_toggle_button_get_active(epf_preview)) {
+		copy_backup_to_gfit();
+		return epf_process_with_worker(TRUE, gui.roi.active);
 	}
 	return 0;
 }
 
 void epf_change_between_roi_and_image() {
+	gui.roi.operation_supports_roi = TRUE;
 	// If we are showing the preview, update it after the ROI change.
-	roi_supported(TRUE);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
@@ -130,8 +177,7 @@ void epf_change_between_roi_and_image() {
 }
 
 static void epf_startup() {
-	if (gui.roi.active)
-		copy_gfit_to_backup();
+	copy_gfit_to_backup();
 	add_roi_callback(epf_change_between_roi_and_image);
 	roi_supported(TRUE);
 }
@@ -143,9 +189,13 @@ static void epf_close(gboolean revert) {
 		notify_gfit_modified();
 	} else {
 		invalidate_stats_from_fit(gfit);
+
+		double d, sigma_col, sigma_space;
+		get_epf_values(&d, &sigma_col, &sigma_space, NULL, NULL);
+
 		undo_save_state(get_preview_gfit_backup(),
 				_("Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"),
-				epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value);
+				d, sigma_col, sigma_space);
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(epf_change_between_roi_and_image);
@@ -154,41 +204,10 @@ static void epf_close(gboolean revert) {
 	set_cursor_waiting(FALSE);
 }
 
-static int epf_process_all() {
-	if (gtk_toggle_button_get_active(epf_preview))
-		copy_backup_to_gfit();
-	fits *fit = gfit;
-	gboolean guide_needs_freeing = FALSE;
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	if (filter_type != EP_BILATERAL) {
-		if (gtk_toggle_button_get_active(guided_filter_selfguide)) {
-			guide = fit;
-		} else {
-			if (loaded_fit.rx != 0) {
-				guide = &loaded_fit;
-				guide_needs_freeing = TRUE;
-			} else {
-				siril_log_color_message(_("Error, no guide image loaded."), "red");
-				free(args);
-				return 1;
-			}
-		}
-	} else {
-		guide = NULL;
-	}
-	*args = (struct epfargs) {	.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
-								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
-								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE, .applying = TRUE};
-	// We call epfhandler here as we need to take care of the ROI mutex lock
-	if (!start_in_new_thread(epfhandler, args)) {
-		free(args);
-		return 1;
-	}
-	return 0;
-}
-
 static void apply_epf_changes() {
-	gboolean status = (epf_sigma_col_value != 0.0f) || (epf_sigma_spatial_value != 0.0f);
+	double sigma_col, sigma_space;
+	get_epf_values(NULL, &sigma_col, &sigma_space, NULL, NULL);
+	gboolean status = (sigma_col != 0.0) || (sigma_space != 0.0);
 	epf_close(!status);
 }
 
@@ -203,10 +222,6 @@ void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	epf_dialog_init_statics();
 
 	epf_startup();
-	epf_d_value = 0.0f;
-	epf_sigma_col_value = 11.0f;
-	epf_sigma_spatial_value = 11.0f;
-	filter_type = EP_BILATERAL;
 	clearfits(&loaded_fit);
 
 	set_notify_block(TRUE);
@@ -217,9 +232,10 @@ void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_toggle_button_set_active(epf_preview, FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), FALSE);
 	gtk_combo_box_set_active(ep_filter_type, EP_BILATERAL);
-	gtk_spin_button_set_value(spin_epf_d, epf_d_value);
-	gtk_spin_button_set_value(spin_epf_sigma_spatial, epf_sigma_spatial_value);
-	gtk_spin_button_set_value(spin_epf_sigma_col, epf_sigma_col_value);
+	gtk_spin_button_set_value(spin_epf_d, 0.0);
+	gtk_spin_button_set_value(spin_epf_sigma_spatial, 11.0);
+	gtk_spin_button_set_value(spin_epf_sigma_col, 11.0);
+	gtk_spin_button_set_value(spin_epf_mod, 1.0);
 	set_notify_block(FALSE);
 }
 
@@ -230,13 +246,17 @@ void on_epf_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_epf_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (!gtk_toggle_button_get_active(epf_preview) || gui.roi.active) {
-		epf_process_all();
+
+	// If preview is on, need to copy backup to gfit first
+	if (gtk_toggle_button_get_active(epf_preview)) {
+		copy_backup_to_gfit();
 	}
 
-	apply_epf_changes();
+	// Always process full image when Apply is clicked
+	epf_process_with_worker(FALSE, FALSE);
 
-//	siril_close_dialog("epf_dialog");
+	apply_epf_changes();
+	siril_close_dialog("epf_dialog");
 }
 
 void on_epf_dialog_close(GtkDialog *dialog, gpointer user_data) {
@@ -264,7 +284,7 @@ void on_epf_undo_clicked(GtkButton *button, gpointer user_data) {
 
 /*** adjusters **/
 void on_ep_filter_type_changed(GtkComboBox *combo, gpointer user_data) {
-	filter_type = gtk_combo_box_get_active(combo);
+	ep_filter_t filter_type = gtk_combo_box_get_active(combo);
 	gtk_widget_set_visible(GTK_WIDGET(guide_image_widgets), filter_type != EP_BILATERAL);
 	gtk_widget_set_visible(GTK_WIDGET(epf_sigma_spatial_settings), filter_type == EP_BILATERAL);
 	update_image *param = malloc(sizeof(update_image));
@@ -279,7 +299,6 @@ void on_guided_filter_selfguide_toggled(GtkToggleButton *button, gpointer user_d
 		clearfits(&loaded_fit);
 		gtk_file_chooser_unselect_all(guided_filter_guideimage);
 		gtk_widget_set_sensitive(GTK_WIDGET(guided_filter_selfguide), FALSE);
-
 	}
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
@@ -313,7 +332,6 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 }
 
 void on_spin_epf_d_value_changed(GtkSpinButton *button, gpointer user_data) {
-	epf_d_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
@@ -321,7 +339,6 @@ void on_spin_epf_d_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_epf_sigma_col_value_changed(GtkSpinButton *button, gpointer user_data) {
-	epf_sigma_col_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
@@ -329,7 +346,6 @@ void on_spin_epf_sigma_col_value_changed(GtkSpinButton *button, gpointer user_da
 }
 
 void on_spin_epf_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
-	mod = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
@@ -337,7 +353,6 @@ void on_spin_epf_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_epf_sigma_spatial_value_changed(GtkSpinButton *button, gpointer user_data) {
-	epf_sigma_spatial_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);

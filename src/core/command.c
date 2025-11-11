@@ -1164,7 +1164,6 @@ int process_epf(int nb) {
 	ep_filter_t filter = EP_BILATERAL;
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
-	fits *fit = gfit;
 	gboolean guide_needs_freeing = FALSE;
 
 	for (int i = 1 ; i < nb ; i++) {
@@ -1256,7 +1255,7 @@ int process_epf(int nb) {
 			g_free(filename);
 			guide_needs_freeing = TRUE;
 		} else {
-			guidefit = fit;
+			guidefit = gfit;
 		}
 		if (guidefit->rx != gfit->rx || guidefit->ry != gfit->ry) {
 			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
@@ -1271,17 +1270,48 @@ int process_epf(int nb) {
 		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
 		d = 5.0;
 	}
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) {.fit = fit,
-							.guidefit = guidefit,
-							.d = d,
-							.sigma_col = sigma_col,
-							.sigma_space = sigma_space,
-							.mod = mod,
-							.filter = filter,
-							.guide_needs_freeing = guide_needs_freeing,
-							.verbose = TRUE };
 
+	// Allocate parameters using the allocator
+	struct epfargs *params = new_epf_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		if (guide_needs_freeing) {
+			clearfits(guidefit);
+			free(guidefit);
+		}
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->fit = gfit;
+	params->guidefit = guidefit;
+	params->guide_needs_freeing = guide_needs_freeing;
+	params->d = d;
+	params->sigma_col = sigma_col;
+	params->sigma_space = sigma_space;
+	params->mod = mod;
+	params->filter = filter;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_epf_args(params);
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 3.0f;
+	args->image_hook = epf_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("Edge Preserving Filter");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
 
 	char log[90];
 	if (filter == EP_BILATERAL) {
@@ -1290,13 +1320,15 @@ int process_epf(int nb) {
 		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
 	}
 	gfit->history = g_slist_append(gfit->history, strdup(log));
-	// We call epfhandler here as we need to take care of the ROI mutex lock
-	if (!start_in_new_thread(epfhandler, args)) {
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_epf_args(params);
+		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_getref(int nb) {
