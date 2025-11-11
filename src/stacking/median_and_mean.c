@@ -496,7 +496,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
 			if (area.h == 0 || area.w == 0 || maskscaled_area.w == 0 || maskscaled_area.h == 0)
 				continue;
-			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
+			mask_scaled = siril_malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
 				free(mask_scaled);
 				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
@@ -505,7 +505,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 			float *mbuffer = data->mask[frame] + offset;
 			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
-			free(mask_scaled);
+			siril_free(mask_scaled);
 			if (args->maximize_framing) {
 				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
@@ -530,8 +530,11 @@ static int stack_read_block_data(struct stacking_args *args,
 				area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
-			flip_buffer(FLOAT_IMG, dbuffer, &area);
-			// siril_debug_print("frame: %d, channel: %d, area.y: %d, area.h: %d, val: %.2f\n", frame, my_block->channel, area.y, area.h, dbuffer[0]);
+			if (!flip_buffer(FLOAT_IMG, dbuffer, &area)) {
+				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+					area.x, area.y, area.w, area.h);
+				return ST_SEQUENCE_ERROR;
+			}
 			if (args->maximize_framing) {
 				rearrange_block_data(dbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
