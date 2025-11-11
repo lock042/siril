@@ -331,28 +331,7 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 	notify_update((gpointer) param);
 }
 
-void on_spin_epf_d_value_changed(GtkSpinButton *button, gpointer user_data) {
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = epf_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(epf_preview);
-	notify_update((gpointer) param);
-}
-
-void on_spin_epf_sigma_col_value_changed(GtkSpinButton *button, gpointer user_data) {
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = epf_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(epf_preview);
-	notify_update((gpointer) param);
-}
-
-void on_spin_epf_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = epf_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(epf_preview);
-	notify_update((gpointer) param);
-}
-
-void on_spin_epf_sigma_spatial_value_changed(GtkSpinButton *button, gpointer user_data) {
+void on_epf_parameter_changed(GtkWidget *button, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = epf_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(epf_preview);
