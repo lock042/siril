@@ -2193,6 +2193,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    self.execute_command(_Command.RELEASE_SHM, shm_info)
                 except Exception as e:
                     pass
 
