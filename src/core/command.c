@@ -1152,6 +1152,7 @@ int process_unpurple(int nb){
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
+	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d\n"), mod, thresh, withstarmask);
 
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -2260,6 +2261,7 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
+	siril_log_message(_("Wavelet reconstruction\n"));
 	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -2766,6 +2768,7 @@ int process_asinh(int nb) {
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
 	gfit->history = g_slist_append(gfit->history, strdup(log));
+	siril_log_message(log);
 
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -9815,6 +9818,7 @@ int process_extract(int nb) {
 	args->Type = TO_PAVE_BSPLINE;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = gfit;
+	siril_log_message(_("Extracting wavelets (%d plans)\n"), Nbr_Plan);
 	if (!start_in_new_thread(extract_plans, args)) {
 		free(args);
 		return CMD_ARG_ERROR;

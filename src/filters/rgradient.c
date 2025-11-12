@@ -65,11 +65,12 @@ static gboolean end_rgradient_filter(gpointer p) {
 
 gpointer rgradient_filter(gpointer p) {
 	struct timeval t_start, t_end;
+	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 
 	siril_log_color_message(_("Rotational gradient: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
+	siril_log_message(_("Radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)\n"), args->dR, args->da, args->xc, args->yc);
 
-	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
+	gettimeofday(&t_start, NULL);
 
 	gboolean was_ushort;
 	fits imA = { 0 }, imB = { 0 };

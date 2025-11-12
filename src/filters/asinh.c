@@ -7,6 +7,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "core/processing.h"
@@ -156,6 +157,8 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
+				stretch_value, black_value);
+		siril_log_color_message(_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"), "green",
 				stretch_value, black_value);
 	}
 

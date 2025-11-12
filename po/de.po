@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-07 21:02+0100\n"
-"PO-Revision-Date: 2025-10-16 08:30+0000\n"
+"PO-Revision-Date: 2025-11-09 13:19+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
-"siril/de/>\n"
+"siril-1-6/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -511,8 +511,7 @@ msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr ""
-"Alle aktuellen Anmerkungen aus dem User-Katalog löschen (Default in rot)."
+msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -5617,7 +5616,7 @@ msgid ""
 "and last non-whitespace character on the line respectively"
 msgstr ""
 "Wenn Smart Home / End aktiviert ist, springen die Tasten Home und Ende zum "
-"ersten bzw. letzten Zeichen in der Zeile, das kein Leerzeichen ist."
+"ersten bzw. letzten Zeichen in der Zeile, das kein Leerzeichen ist"
 
 #: src/gui/uifiles/python_scratchpad.ui:494
 msgid "Smart Home / End"
@@ -5661,9 +5660,8 @@ msgid "Python API reference"
 msgstr "Python API Referenz"
 
 #: src/gui/uifiles/python_scratchpad.ui:553
-#, fuzzy
 msgid "Open Siril command reference documentation"
-msgstr "SIRIL Befehlsreferenz"
+msgstr "Öffne die SIRIL Befehlsreferenzdokumentation"
 
 #: src/gui/uifiles/python_scratchpad.ui:555
 msgid "Siril Command Reference"
@@ -9309,7 +9307,7 @@ msgstr "Öffnet den Dialog Gradationskurven"
 
 #: src/gui/uifiles/siril.ui:1502
 msgid "Curves Transformation..."
-msgstr "Kurven Transformation"
+msgstr "Kurventransformation..."
 
 #: src/gui/uifiles/siril.ui:1515
 msgid "Open the hystogram transform dialog"
@@ -12047,7 +12045,7 @@ msgid ""
 "Current state: linked."
 msgstr ""
 "Verkettung/Verknüpfung von Kanälen im Autostretch-Viewer-Modus.\n"
-"Aktuelle Einstellung: Verknüpft"
+"Aktuelle Einstellung: Verknüpft."
 
 #: src/gui/uifiles/siril.ui:10062
 msgid "Switch to normal and negative view"
@@ -13848,9 +13846,8 @@ msgid "stars within"
 msgstr "Sterne im Inneren"
 
 #: src/algos/demosaicing.c:148
-#, fuzzy
 msgid "Invalid FITS file or pattern for debayering\n"
-msgstr "Ungültiger Dateideskriptor nach shm_open\n"
+msgstr "Ungültige FITS-Datei oder Muster fürs Debayern\n"
 
 #: src/algos/demosaicing.c:152
 #, c-format
@@ -13880,9 +13877,8 @@ msgid "from header"
 msgstr "aus dem Header"
 
 #: src/algos/demosaicing.c:278 src/algos/demosaicing.c:280
-#, fuzzy
 msgid "from settings"
-msgstr "Einstellungen"
+msgstr "aus den Einstellungen"
 
 #: src/algos/demosaicing.c:279
 msgid "top-down"
@@ -13908,9 +13904,8 @@ msgid "Cannot perform debayering on image with more than one channel\n"
 msgstr "De-Bayern nicht möglich bei Bildern mit mehr als einem Kanal.\n"
 
 #: src/algos/demosaicing.c:565
-#, fuzzy
 msgid "No pattern found to debayer\n"
-msgstr "Keine Bayer-Matrix im Datei-Header gefunden.\n"
+msgstr "Kein Mustter zum Debayern\n"
 
 #: src/algos/demosaicing.c:577
 msgid "Cannot perform debayering\n"
@@ -16488,20 +16483,19 @@ msgid "Invalid argument: %s\n"
 msgstr "Ungültige Argumente: %s\n"
 
 #: src/core/command.c:4649
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required when called from a script\n"
 msgstr ""
-"Argumente sind nicht optional, wenn sie vom Skript aus aufgerufen werden\n"
+"Ebene und Argumente für die Sternposition sind notwendig, wenn sie von einem "
+"Skript aufgerufen werden\n"
 
 #: src/core/command.c:4654
-#, fuzzy
 msgid ""
 "Layer and star position arguments are required, or make a selection around a "
 "star\n"
 msgstr ""
-"Argumente sind nur optional, wenn bereits eine Sequenz geladen ist und eine "
-"Auswahl um einen Stern getroffen wurde\n"
+"Ebene und Argumente für die Sternposition sind notwendig, oder mache eine "
+"Auswahl um einen Stern\n"
 
 #: src/core/command.c:4663 src/core/command.c:4723
 #, c-format
@@ -17288,13 +17282,12 @@ msgstr ""
 "und kann nicht gestackt werden. Abbruch\n"
 
 #: src/core/command.c:8745
-#, fuzzy
 msgid ""
 "No registration data in the sequence or images with different sizes or "
 "drizzled. Upscale at stacking will be ignored\n"
 msgstr ""
 "Keine Registrierungsdaten in der Sequenz oder Bilder mit unterschiedlichen "
-"Größen. Upscale beim Stapeln wird ignoriert\n"
+"Größen oder gedrizzelt. Upscale beim Stapeln wird ignoriert\n"
 
 #: src/core/command.c:8749
 msgid "Cannot upscale or maximize framing with median stacking. Disabling\n"
@@ -21581,7 +21574,6 @@ msgstr ""
 "pro Filter erstellt"
 
 #: src/core/command_def.h:176
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -21595,7 +21587,9 @@ msgid ""
 msgstr ""
 "Gleicher Befehl wie SUBSKY aber für die Sequenz <b>sequencename</b>.\n"
 "Dithering, welches für schwache dynamische Gradienten erforderlich ist, kann "
-"mit <b>-nodither</b> deaktiviert werden.\n"
+"mit <b>-nodither</b> deaktiviert werden. Beachten Sie, dass die Option "
+"<b>-existing</b> für die Entfernung des Sequenzhintergrunds nicht verfügbar "
+"ist, da die Frames einer Sequenz nicht unbedingt immer ausgerichtet sind.\n"
 "\n"
 "Der Name der Ausgabesequenz beginnt mit dem Prefix \"bkg_\", sofern er nicht "
 "mit der Option <b>-prefix=</b> anders festgelegt wird. Es werden nur "
@@ -23422,9 +23416,10 @@ msgid "Image %d not found for writing\n"
 msgstr "Bilddatei %d nicht gefunden\n"
 
 #: src/core/processing.c:819 src/core/processing.c:840
-#, fuzzy
 msgid "Warning: failed to add processing thread to child list\n"
-msgstr "Warnung: Der Repository-Indexeintrag konnte nicht abgerufen werden.\n"
+msgstr ""
+"Warnung: Hinzufügen des Verarbeitungsthreads zur untergeordneten Liste "
+"fehlgeschlagen\n"
 
 #: src/core/processing.c:1183
 msgid "Process aborted by user\n"
@@ -25256,9 +25251,8 @@ msgstr ""
 "Sternsynthese (Erstellung einer vollständigen Sternmaske): Verarbeitung...\n"
 
 #: src/filters/synthstar.c:349
-#, fuzzy
 msgid "Memory allocation failed\n"
-msgstr "Fehler bei der Speicherzuweisung"
+msgstr "Fehler bei der Speicherzuweisung\n"
 
 #: src/filters/synthstar.c:375
 #, fuzzy
@@ -25281,9 +25275,9 @@ msgstr ""
 "durchgeführt...\n"
 
 #: src/filters/synthstar.c:729
-#, fuzzy, c-format
+#, c-format
 msgid "Star detection failed for channel %u\n"
-msgstr "Stacking für Bild %d fehlgeschlagen"
+msgstr "Sternerkennung für Kanal %u fehlgeschlagen\n"
 
 #: src/filters/synthstar.c:736
 #, c-format
@@ -25451,7 +25445,7 @@ msgstr "Ersetzen"
 
 #: src/gui/annotations_pref.c:32
 msgid "Messier Catalogue (M)"
-msgstr "Messier Catalogue (M)"
+msgstr "Messier Katalog (M)"
 
 #: src/gui/annotations_pref.c:33
 msgid "New General Catalogue (NGC)"
@@ -25467,7 +25461,7 @@ msgstr "Lynds Catalogue of Dark Nebulae (LdN)"
 
 #: src/gui/annotations_pref.c:36
 msgid "Sharpless Catalogue (Sh2)"
-msgstr "Sharpless Catalogue (Sh2)"
+msgstr "Sharpless Katalog (Sh2)"
 
 #: src/gui/annotations_pref.c:37
 msgid "Star Catalogue"
@@ -30816,15 +30810,12 @@ msgstr ""
 "geradzahlige Höhe haben, Auswahl wird neu dimensioniert.\n"
 
 #: src/io/sequence_export.c:309
-#, fuzzy
 msgid ""
 "Export has detected registration data with more than simple shifts, this is "
 "not supported\n"
 msgstr ""
 "Der Export hat Registrierungsdaten mit mehr als nur einfachen Verschiebungen "
-"erkannt.\n"
-"Normalerweise sollten Sie bestehende Registrierungen vor dem Exportieren "
-"anwenden."
+"erkannt, dies wird nicht unterstützt.\n"
 
 #: src/io/sequence_export.c:363
 #, c-format
@@ -32081,9 +32072,8 @@ msgid "Saved plot to %s\n"
 msgstr "Speichere Grafik unter %s\n"
 
 #: src/io/siril_pythonmodule.c:1219
-#, fuzzy
 msgid "Error: could not parse FITS header string"
-msgstr "Fehler: -to-Werte konnten nicht analysiert werden.\n"
+msgstr "Fehler: konnte FITS Header String nicht auswerten"
 
 #: src/io/siril_pythonmodule.c:1299
 msgid "Failed to add user polygon: no image loaded"
@@ -32250,9 +32240,9 @@ msgstr ""
 "werden.\n"
 
 #: src/io/siril_pythonmodule.c:2708
-#, fuzzy, c-format
+#, c-format
 msgid "Warning: failed to add %s to child process list\n"
-msgstr "Warnung: Der Repository-Indexeintrag konnte nicht abgerufen werden.\n"
+msgstr "Warnung: konnte %s zur Liste der Kindprozess nicht hinzufügen\n"
 
 #: src/io/siril_pythonmodule.c:2727
 #, c-format

@@ -17,6 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* ** Reduces Banding in Canon DSLR images. **
+ * This code originates from CanonBandingReduction.js v0.9.1, a script
+ * of PixInsight, originally written by Georg Viehoever and
+ * distributed under the terms of the GNU General Public License
+ */
+
 #include <float.h>
 #include <string.h>
 #include <gsl/gsl_statistics.h>
@@ -234,11 +241,6 @@ static int fmul_layer_float(fits *a, int layer, float coeff) {
 	return 0;
 }
 
-/*** Reduces Banding in Canon DSLR images.
- * This code come from CanonBandingReduction.js v0.9.1, a script of
- * PixInsight, originally written by Georg Viehoever and
- * distributed under the terms of the GNU General Public License ******/
-
 static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
 	int chan, row, i, ret = 0;
 	WORD *line, *fixline;
@@ -454,11 +456,16 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 			toggle_protect_highlights_banding);
 	gboolean applyRotation = gtk_toggle_button_get_active(vertical);
 
-	if (!protect_highlights)
+	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
+	if (!protect_highlights) {
 		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
-	else
+		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)\n"), amount, invsigma);
+	} else {
+		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"),
+				amount, invsigma);
 		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
 				amount, invsigma);
+	}
 
 	set_cursor_waiting(TRUE);
 
