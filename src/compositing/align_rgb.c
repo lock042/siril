@@ -30,6 +30,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "registration/registration.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -157,6 +158,7 @@ int rgb_align(int m) {
 		notify_gfit_modified();
 		redraw(REMAP_ALL);
 	}
+	siril_log_message(_("Aligned RGB channels\n"));
 	set_cursor_waiting(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;

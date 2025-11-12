@@ -705,6 +705,30 @@ gpointer deconvolve(gpointer p) {
 			invalidate_stats_from_fit(the_fit);
 		}
 	}
+	if (the_fit == gfit) {
+		gchar *msg = NULL;
+		switch (args.nonblindtype) {
+			case DECONV_SB:
+				msg = g_strdup_printf(_("Split Bregman deconvolution: alpha=%.3f, iters=%d\n"),
+									args.alpha, args.finaliters);
+				break;
+			case DECONV_RL:
+				msg = g_strdup_printf(_("%s Richardson-Lucy deconvolution: alpha=%.3f, iters=%d, step size=%.3e (gradient descent only), "
+						"%s regularization\n"),
+									args.rl_method == RL_MULT ? _("Multiplicative") : _("Gradient descent"),
+									args.alpha, args.finaliters, args.stepsize,
+									(args.regtype == REG_TV_GRAD || args.regtype == REG_TV_MULT) ? _("total variation") :
+											(args.regtype == REG_FH_GRAD || args.regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"));
+				break;
+			case DECONV_WIENER:
+				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f\n"),
+									args.alpha);
+				break;
+			default:
+		}
+		siril_log_color_message(msg, "green");
+		g_free(msg);
+	}
 ENDDECONV:
 	// Do not free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {

@@ -488,6 +488,7 @@ void open_compositing_window() {
 		} while (layers[i]);
 		gui_function(update_MenuItem, NULL);
 	}
+	siril_log_message(_("Starting a RGB composition\n"));
 	if (compositing_loaded == 1)
 		siril_open_dialog("composition_dialog");
 }

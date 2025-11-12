@@ -204,6 +204,11 @@ int edge_preserving_filter(struct epfargs *args) {
 		populate_roi();
 		copy_gfit_to_backup();
 	}
+	if (fit == gfit) {
+		siril_log_color_message(_("%s filter applied: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, modulation=%.3f\n"), "green",
+								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
+								args->d, args->sigma_col, args->sigma_space, args->mod);
+	}
 
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
