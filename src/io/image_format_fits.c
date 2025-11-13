@@ -2957,22 +2957,22 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		preview_data[idx] = (preview_data[idx] - minmin) * scale;
 	}
 
-	fits *tmp = NULL;
-	new_fit_image_with_data(&tmp, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
+	fits tmp = {0};
+	fits *tmp_ptr = &tmp;
+	new_fit_image_with_data(&tmp_ptr, Ws, Hs, n_channels, DATA_FLOAT, preview_data);
 	struct mtf_params mtfp[3] = {
 		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
 		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE },
 		{ 0.f, 0.f, 0.f, TRUE, TRUE, TRUE }
 	};
 
-	find_unlinked_midtones_balance_default(tmp, mtfp);
-	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
-	tmp->fdata = NULL;
-	tmp->fpdata[0] = NULL;
-	tmp->fpdata[1] = NULL;
-	tmp->fpdata[2] = NULL;
-	clearfits(tmp);
-	free(tmp);
+	find_unlinked_midtones_balance_default(&tmp, mtfp);
+	apply_unlinked_mtf_to_fits(&tmp, &tmp, mtfp);
+	tmp.fdata = NULL;
+	tmp.fpdata[0] = NULL;
+	tmp.fpdata[1] = NULL;
+	tmp.fpdata[2] = NULL;
+	clearfits(&tmp);
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
 
