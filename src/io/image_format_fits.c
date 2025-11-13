@@ -2966,7 +2966,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	};
 
 	find_unlinked_midtones_balance_default(tmp, mtfp);
-	//apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 	tmp->fdata = NULL;
 	tmp->fpdata[0] = NULL;
 	tmp->fpdata[1] = NULL;

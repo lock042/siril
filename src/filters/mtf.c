@@ -332,29 +332,69 @@ int find_linked_midtones_balance_default(fits *fit, struct mtf_params *result) {
 void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params) {
 	int threads = com.max_thread;
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
-	const size_t ndata = from->naxes[0] * from->naxes[1];
+	const size_t ndata = (size_t)from->naxes[0] * (size_t)from->naxes[1];
 	g_assert(from->type == to->type);
+	g_assert(params != NULL);
 
+	/* Defensive: avoid divide-by-zero in normalization */
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
+		if (norm == 0.f) norm = 1.f;
 		float invnorm = 1.0f / norm;
-		// Set up a LUT
-		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+
+		/* Allocate LUT once (we will refill it per channel). */
+		WORD *lut = malloc((size_t)(USHRT_MAX + 1) * sizeof(WORD));
+		if (!lut) {
+			siril_log_message(_("apply_unlinked_mtf_to_fits: cannot allocate LUT\n"));
+			return;
+		}
 
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			/* Build LUT for this channel */
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(threads) schedule(static) if (threads > 1)
 #endif
-			for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
-				lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params[chan]));
+			for (int v = 0; v <= USHRT_MAX; v++) {
+				/* protect MTFp input using invnorm */
+				float srcv = (float)v * invnorm;
+				lut[v] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(srcv, params[chan]));
 			}
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 					params[chan].shadows, params[chan].midtones, params[chan].highlights);
+
+			/* If from and to are the same, read from a temporary copy to avoid
+			   concurrent read/write issues on some platforms (clang/macOS-intel). */
+			if (from == to) {
+				/* allocate input copy for this channel */
+				WORD *input_copy = malloc(ndata * sizeof(WORD));
+				if (!input_copy) {
+					/* fallback: do in-place transform but single-threaded to reduce risk */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(1) schedule(static)
+#endif
+					for (size_t i = 0; i < ndata; i++) {
+						to->pdata[chan][i] = lut[from->pdata[chan][i]];
+					}
+				} else {
+					/* copy source into input_copy (single memcpy is best) */
+					memcpy(input_copy, from->pdata[chan], ndata * sizeof(WORD));
+					/* now safe to write into to->pdata[chan] in parallel */
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-			for (size_t i = 0; i < ndata; i++) {
-				to->pdata[chan][i] = lut[from->pdata[chan][i]];
+					for (size_t i = 0; i < ndata; i++) {
+						to->pdata[chan][i] = lut[input_copy[i]];
+					}
+					free(input_copy);
+				}
+			} else {
+				/* different buffers: safe to do parallel in-place mapping */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < ndata; i++) {
+					to->pdata[chan][i] = lut[from->pdata[chan][i]];
+				}
 			}
 		}
 		free(lut);
@@ -363,11 +403,36 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 					params[chan].shadows, params[chan].midtones, params[chan].highlights);
+
+			/* For floats do the safe-copy trick as well when from==to to avoid
+			   subtle platform-dependent behaviour with vectorization. */
+			if (from == to) {
+				float *input_copy = malloc(ndata * sizeof(float));
+				if (!input_copy) {
+					/* fallback single-threaded */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(1) schedule(static)
+#endif
+					for (size_t i = 0; i < ndata; i++) {
+						to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+					}
+				} else {
+					memcpy(input_copy, from->fpdata[chan], ndata * sizeof(float));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
-			for (size_t i = 0; i < ndata; i++) {
-				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+					for (size_t i = 0; i < ndata; i++) {
+						to->fpdata[chan][i] = MTFp(input_copy[i], params[chan]);
+					}
+					free(input_copy);
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
+#endif
+				for (size_t i = 0; i < ndata; i++) {
+					to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+				}
 			}
 		}
 	}
