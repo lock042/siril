@@ -725,6 +725,7 @@ gpointer deconvolve(gpointer p) {
 									args.alpha);
 				break;
 			default:
+				break;
 		}
 		siril_log_color_message(msg, "green");
 		g_free(msg);
