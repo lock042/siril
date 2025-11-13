@@ -2969,13 +2969,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	printf("Start of apply_unlinked_mtf_to_fits\n");
 	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 	printf("End of apply_unlinked_mtf_to_fits\n");
-/*	tmp->fdata = NULL;
-	tmp->fpdata[0] = NULL;
-	tmp->fpdata[1] = NULL;
-	tmp->fpdata[2] = NULL;
-	clearfits(tmp);
-	free(tmp);
-	printf("tmp is freed\n"); */
+
+	// DEBUG: Check for NaN/infinity in preview_data
+	for (int i = 0; i < prev_size * n_channels; i++) {
+		if (!isfinite(preview_data[i])) {
+			printf("Found non-finite value at index %d: %f\n", i, preview_data[i]);
+		}
+	}
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
 	if (!pixbuf_data) {
@@ -2990,6 +2990,9 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	// Recalculate num_threads as we rely on simd in the inner loop
 	num_threads = choose_num_threads(1, Hs, com.max_thread);
 	printf("Recalculate num_threads: %d\n", num_threads);
+	printf("preview_data ptr: %p, pixbuf_data ptr: %p, alignment: %zu\n",
+		preview_data, pixbuf_data, ((uintptr_t)pixbuf_data) % 16);
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
@@ -2997,9 +3000,9 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		int src_row_offset  = i * Ws;
 		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
 
-#ifdef _OPENMP
-#pragma omp simd
-#endif
+//#ifdef _OPENMP
+//#pragma omp simd
+//#endif
 		for (int j = 0; j < Ws; j++) {
 			int src_idx  = src_row_offset + j;
 			int dest_idx = dest_row_offset + j * 3;
@@ -3023,7 +3026,6 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	printf("tmp is freed\n");
 	fits_close_file(fp, &status);
 	free(ima_data);
-	// free(preview_data);
 
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
 			GDK_COLORSPACE_RGB,
