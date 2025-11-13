@@ -2969,13 +2969,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	printf("Start of apply_unlinked_mtf_to_fits\n");
 	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
 	printf("End of apply_unlinked_mtf_to_fits\n");
-	tmp->fdata = NULL;
+/*	tmp->fdata = NULL;
 	tmp->fpdata[0] = NULL;
 	tmp->fpdata[1] = NULL;
 	tmp->fpdata[2] = NULL;
 	clearfits(tmp);
 	free(tmp);
-	printf("tmp is freed\n");
+	printf("tmp is freed\n"); */
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
 
@@ -3012,9 +3012,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	}
 	printf("pixbub_data is allocated\n");
 
+	clearfits(tmp);
+	printf("clearfits complete\n");
+	free(tmp);
+	printf("tmp is freed\n");
 	fits_close_file(fp, &status);
 	free(ima_data);
-	free(preview_data);
+	// free(preview_data);
 
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
 			GDK_COLORSPACE_RGB,
