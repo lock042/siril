@@ -2978,13 +2978,14 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	printf("tmp is freed\n"); */
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
-
+	printf("pixbuf_data allocation\n");
 	// Move this outside the loop to avoid unnecessary multiplications
 	// in the loop
 	int twice_prev_size = prev_size * 2;
 
 	// Recalculate num_threads as we rely on simd in the inner loop
 	num_threads = choose_num_threads(1, Hs, com.max_thread);
+	printf("Recalculate num_threads\n");
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
