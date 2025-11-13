@@ -2978,14 +2978,18 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	printf("tmp is freed\n"); */
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
-	printf("pixbuf_data allocation\n");
+	if (!pixbuf_data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	printf("pixbuf_data allocated\n");
 	// Move this outside the loop to avoid unnecessary multiplications
 	// in the loop
 	int twice_prev_size = prev_size * 2;
 
 	// Recalculate num_threads as we rely on simd in the inner loop
 	num_threads = choose_num_threads(1, Hs, com.max_thread);
-	printf("Recalculate num_threads\n");
+	printf("Recalculate num_threads: %d\n", num_threads);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(num_threads) if(num_threads > 1)
 #endif
@@ -3011,7 +3015,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			}
 		}
 	}
-	printf("pixbub_data is allocated\n");
+	printf("pixbuf_data is populated\n");
 
 	clearfits(tmp);
 	printf("clearfits complete\n");
@@ -3029,7 +3033,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			Ws * 3,
 			(GdkPixbufDestroyNotify) free_preview_data,
 			NULL);
-	printf("pixbub is allocated\¬");
+	printf("GdkPixbuf *pixbuf is allocated\n");
 
 	*descr = description;
 	return pixbuf;

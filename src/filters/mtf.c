@@ -433,9 +433,8 @@ int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float targ
 		}
 
 	}
-	// Commented out to test whether there could be an issue to do with stats refcounting
-//	for (i = 0; i < nb_channels; ++i)
-//		free_stats(stat[i]);
+	for (i = 0; i < nb_channels; ++i)
+		free_stats(stat[i]);
 	return 0;
 }
 
