@@ -2967,10 +2967,25 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	find_unlinked_midtones_balance_default(tmp, mtfp);
 	apply_unlinked_mtf_to_fits(tmp, tmp, mtfp);
+
+	float *modified_data = tmp->fpdata[RLAYER];
+	
+	if (!modified_data) {
+		clearfits(tmp);
+		free(tmp);
+		free(ima_data);
+		free(preview_data);
+		fits_close_file(fp, &status);
+		g_free(description);
+		return NULL;
+	}
 	tmp->fdata = NULL;
-	tmp->fpdata[0] = NULL;
-	tmp->fpdata[1] = NULL;
-	tmp->fpdata[2] = NULL;
+	tmp->fpdata[RLAYER] = NULL;
+	tmp->fpdata[GLAYER] = NULL;
+	tmp->fpdata[BLAYER] = NULL;
+	tmp->pdata[RLAYER] = NULL;
+	tmp->pdata[GLAYER] = NULL;
+	tmp->pdata[BLAYER] = NULL;
 	clearfits(tmp);
 	free(tmp);
 
@@ -2997,12 +3012,12 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			int dest_idx = dest_row_offset + j * 3;
 
 			if (is_color) {
-				float r = preview_data[src_idx];
-				float g = preview_data[prev_size + src_idx];
-				float b = preview_data[twice_prev_size + src_idx];
+				float r = modified_data[src_idx];
+				float g = modified_data[prev_size + src_idx];
+				float b = modified_data[twice_prev_size + src_idx];
 				set_rgb(r, g, b, &pixbuf_data[dest_idx]);
 			} else {
-				float gray = preview_data[src_idx];
+				float gray = modified_data[src_idx];
 				gray2rgb(gray, &pixbuf_data[dest_idx]);
 			}
 		}
@@ -3010,7 +3025,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	fits_close_file(fp, &status);
 	free(ima_data);
-	free(preview_data);
+	free(modified_data);
 
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
 			GDK_COLORSPACE_RGB,
