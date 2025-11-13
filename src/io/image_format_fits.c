@@ -2975,6 +2975,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	tmp->fpdata[2] = NULL;
 	clearfits(tmp);
 	free(tmp);
+	printf("tmp is freed\n");
 
 	guchar *pixbuf_data = malloc(3 * prev_size * sizeof(guchar));
 
@@ -3009,6 +3010,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			}
 		}
 	}
+	printf("pixbub_data is allocated\n");
 
 	fits_close_file(fp, &status);
 	free(ima_data);
@@ -3022,6 +3024,8 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			Ws * 3,
 			(GdkPixbufDestroyNotify) free_preview_data,
 			NULL);
+	printf("pixbub is allocated\¬");
+
 	*descr = description;
 	return pixbuf;
 }
