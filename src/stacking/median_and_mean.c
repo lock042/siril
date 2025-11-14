@@ -708,15 +708,6 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 
 	memcpy(o_stack, stack, N * sizeof(WORD)); /* making a copy of unsorted stack to apply weights (before the median sorts in place)*/
 
-	/* remove null pixels */
-	for (int frame = 0; frame < N; frame++) {
-		if (stack[frame] > 0) {
-			if (frame != kept) {
-				stack[kept] = stack[frame];
-			}
-			kept++;
-		}
-	}
 	/* remove null pixels (or null drizzle weights or both)*/
 	if (args->drizzle) {
 		float *d_stack = (float*) data->dstack;
