@@ -2988,10 +2988,6 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	for (int i = 0; i < Hs; i++) {
 		int src_row_offset  = i * Ws;
 		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
-
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 		for (int j = 0; j < Ws; j++) {
 			int src_idx  = src_row_offset + j;
 			int dest_idx = dest_row_offset + j * 3;
