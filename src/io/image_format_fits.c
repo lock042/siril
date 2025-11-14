@@ -3006,7 +3006,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		for (int j = 0; j < Ws; j++) {
 			int src_idx  = src_row_offset + j;
 			int dest_idx = dest_row_offset + j * 3;
-
+			printf("src_idx: %d dest_idx: %d\n");
 			if (is_color) {
 				float r = preview_data[src_idx];
 				float g = preview_data[prev_size + src_idx];
