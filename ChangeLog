@@ -6,6 +6,7 @@ siril 1.4.0
 * Fixed error in meson configuration
 * Fixed writing registration information for the reference image with global registration (#1849)
 * Fixed shared memory leak in set_seq_frame_pixeldata()
+* Fixed crash with intel macOS because of a bad pragma simd clause (#1856)
 
 siril 1.4.0-RC1
 11/08/25
