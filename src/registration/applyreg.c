@@ -501,10 +501,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		p->data = fit;
 		// Convert fit to 32-bit float if required
+		float *newbuf = NULL;
 		if (fit->type == DATA_USHORT) {
 			siril_debug_print("Replacing ushort buffer for drizzling\n");
-			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, fit->rx * fit->ry * fit->naxes[2]), DATA_FLOAT);
-			if (!fit->data) {
+			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+			newbuf = malloc(ndata * sizeof(float));
+			if (!newbuf) {
 				PRINT_ALLOC_ERR;
 				free(p->error);
 				siril_free(p->pixmap->xmap);
@@ -512,6 +514,11 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				free(p);
 				return 1;
 			}
+			float invnorm = 1.f / USHRT_MAX_SINGLE;
+			for (size_t i = 0 ; i < ndata ; i++) {
+				newbuf[i] = fit->data[i] * invnorm;
+			}
+			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 		}
 		/* Set up output fits */
 		fits out = { 0 };
@@ -580,7 +587,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
-			if (!fit->fdata) {
+			if (!fit->data) {
 				PRINT_ALLOC_ERR;
 				free(p->error);
 				siril_free(p->pixmap->xmap);
