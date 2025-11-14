@@ -342,15 +342,16 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			printf(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
+					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(threads) schedule(static) if (threads > 1)
 #endif
 			for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
 				lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params[chan]));
 			}
-			printf(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
