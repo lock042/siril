@@ -1291,12 +1291,12 @@ int process_epf(int nb) {
 	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	// We call epfhandler here as we need to take care of the ROI mutex lock
-	if (!start_in_new_thread(epfhandler, args)) {
+	if (!start_in_new_thread(epfcommandhandler, args)) {
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK;
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_getref(int nb) {

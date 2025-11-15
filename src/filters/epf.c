@@ -50,12 +50,20 @@ gpointer epfhandler (gpointer args) {
 	return GINT_TO_POINTER(retval);
 }
 
-gpointer epf_filter (gpointer args) {
+gpointer epfcommandhandler (gpointer args) {
+	lock_roi_mutex();
 	struct epfargs *p = (struct epfargs*) args;
 	set_cursor_waiting(TRUE);
 	int retval = edge_preserving_filter(p);
-	if (!com.script)
-		execute_idle_and_wait_for_it(end_epf, NULL);
+	unlock_roi_mutex();
+	return GINT_TO_POINTER(retval);
+}
+
+gpointer epf_filter (gpointer args) { // used in the preview update
+	struct epfargs *p = (struct epfargs*) args;
+	int retval = edge_preserving_filter(p);
+	notify_gfit_modified();
+	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
