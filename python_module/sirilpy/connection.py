@@ -2092,6 +2092,8 @@ class SirilInterface:
         """
 
         shm = None
+        shm_info = None  # Initialize at the start so it's available in finally
+
         try:
             # Validate input array
             if not isinstance(image_data, np.ndarray):
@@ -2182,20 +2184,29 @@ class SirilInterface:
             if not self._execute_command(_Command.SET_SEQ_FRAME_PIXELDATA, payload):
                 raise SirilError(_("Failed to send set_seq_frame_pixeldata command"))
 
-            return
+            return True
 
         except (ValueError, SirilError):
             raise
         except Exception as e:
-            raise SirilError("Error in set_seq_frame_pixeldata(): {e}") from e
+            raise SirilError(f"Error in set_seq_frame_pixeldata(): {e}") from e
 
         finally:
+            # Close the shared memory handle first
             if shm is not None:
                 try:
                     shm.close()
-                    self.execute_command(_Command.RELEASE_SHM, shm_info)
-                except Exception as e:
+                except Exception:
                     pass
+
+            # Then send the release command to the C side
+            if shm_info is not None:
+                try:
+                    shm_name_str = shm_info.shm_name.decode('utf-8').rstrip('\x00')
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        print(f"Warning: Failed to release shared memory in set_seq_frame_pixeldata")
+                except Exception as e:
+                    print(f"Exception during shm cleanup in set_seq_frame_pixeldata: {e}")
 
     def get_image_iccprofile(self) -> Optional[bytes]:
         """
@@ -3163,6 +3174,11 @@ class SirilInterface:
         shm_header = None
         shm_icc_profile = None
 
+        # Initialize info variables at the start so they're available in finally
+        shm_pixels_info = None
+        shm_header_info = None
+        shm_icc_info = None
+
         data_payload = struct.pack('!I???', frame, with_pixels, preview, linked)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
@@ -3303,7 +3319,8 @@ class SirilInterface:
                 except (OSError, ValueError) as e:
                     raise SharedMemoryError(_("Failed to map header shared memory: {}").format(e)) from e
 
-                buffer = bytes(shm_header.buf)[:shm_header_info.size]
+                # CRITICAL: Must copy data out of shared memory before it's released
+                buffer = bytearray(shm_header.buf[:shm_header_info.size])
                 try:
                     header_data = buffer.decode('utf-8').rstrip('\x00')
                 except UnicodeDecodeError as e:
@@ -3331,8 +3348,9 @@ class SirilInterface:
                 except (OSError, ValueError) as e:
                     raise SharedMemoryError(_("Failed to map ICC profile shared memory: {}").format(e)) from e
 
-                buffer = bytes(shm_icc_profile.buf)[:shm_icc_info.size]
-                icc_profile_data = bytes(buffer)
+                # Copy data out of shared memory before it's released
+                buffer = bytearray(shm_icc_profile.buf[:shm_icc_info.size])
+                icc_profile_data = bytes(buffer)  # Convert bytearray copy to immutable bytes
 
             # Build FFit object using core_vals and fits_keywords
             fit = FFit(
@@ -3367,35 +3385,53 @@ class SirilInterface:
 
         finally:
             # Clean up all shared memory mappings
-            shm_infos_to_cleanup = []
+            # Must release ALL shared memory segments that the C code sent us,
+            # even if we didn't successfully open them. The C code tracks ALL allocations
+            # and expects release commands for each one.
 
+            # Close any successfully opened shared memory handles
             if shm_pixels is not None:
                 try:
                     shm_pixels.close()
-                    shm_infos_to_cleanup.append(('pixels', shm_pixels_info))
                 except Exception:
                     pass
 
             if shm_header is not None:
                 try:
                     shm_header.close()
-                    shm_infos_to_cleanup.append(('header', shm_header_info))
                 except Exception:
                     pass
 
             if shm_icc_profile is not None:
                 try:
                     shm_icc_profile.close()
-                    shm_infos_to_cleanup.append(('icc_profile', shm_icc_info))
                 except Exception:
                     pass
 
+            # Now send RELEASE_SHM commands for ALL segments that were reported in the response,
+            # regardless of whether we successfully opened them
+            shm_infos_to_release = []
+
+            if shm_pixels_info is not None:
+                shm_infos_to_release.append(('pixels', shm_pixels_info))
+
+            if shm_header_info is not None:
+                shm_infos_to_release.append(('header', shm_header_info))
+
+            if shm_icc_info is not None:
+                shm_infos_to_release.append(('icc_profile', shm_icc_info))
+
             # Signal that Python is done with all shared memory segments
-            for shm_type, shm_info in shm_infos_to_cleanup:
+            for shm_type, shm_info in shm_infos_to_release:
                 try:
-                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
-                        raise SirilError(_("Failed to cleanup {} shared memory").format(shm_type))
-                except Exception:
+                    shm_name_str = shm_info.shm_name.decode('utf-8').rstrip('\x00')
+                    # Only send release command if there was actually a shared memory allocation
+                    # (indicated by non-empty name and non-zero size)
+                    if shm_name_str and shm_info.size > 0:
+                        if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                            print(f"Warning: Failed to cleanup {shm_type} shared memory")
+                except Exception as e:
+                    print(f"Exception during {shm_type} shm cleanup: {e}")
                     pass
 
     def get_seq_frame_header(self, frame: int, return_as = 'str') -> Union[str, dict, None]:
