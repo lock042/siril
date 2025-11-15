@@ -695,6 +695,8 @@ cleanup:
 
 // Update GUI script list from repository
 int update_repo_scripts_list() {
+	if (!is_online())
+		return 0;
 	int retval = 0;
 	git_repository *repo = NULL;
 	git_index *index = NULL;
@@ -784,10 +786,11 @@ cleanup:
 // Called at the end of setting up the venv
 gpointer update_repo_scripts_list_and_menu_in_thread() {
 	update_repo_scripts_list();
-	gui_mutex_lock();
-	execute_idle_and_wait_for_it(refresh_script_menu_idle, NULL);
-	gui_mutex_unlock();
-
+	if (!com.headless) {
+		gui_mutex_lock();
+		execute_idle_and_wait_for_it(refresh_script_menu_idle, NULL);
+		gui_mutex_unlock();
+	}
 	return GINT_TO_POINTER(0);
 }
 
