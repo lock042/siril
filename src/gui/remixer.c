@@ -688,7 +688,6 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		if (invocation == CALL_FROM_STARNET) {
 			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_left, &fit_left);
-			fit_left.header = strndup(_fit_left->header, 10000000);
 			clearfits(_fit_left);
 			free(_fit_left);
 			close_histograms(TRUE, TRUE);
@@ -701,7 +700,6 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			permit_calculation = TRUE;
 			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_right, &fit_right);
-			fit_right.header = strndup(_fit_right->header, 10000000);
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
