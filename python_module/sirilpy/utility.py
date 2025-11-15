@@ -27,6 +27,46 @@ from .exceptions import SirilError
 if TYPE_CHECKING:
     from .connection import SirilInterface
 
+def _maybe_flatpak_prefix(command):
+    """
+    Internal method used by safe_subprocess_Popen and safe_subprocess_run to check whether we are
+    in a flatpak environment.
+
+    Introduced in sirilpy version 1.0.3
+    """
+    if isinstance(command, str):
+        command = command.split()
+    if os.environ.get("container") == "flatpak":
+        command = ["flatpak-spawn", "--host"] + command
+        print(f"[Flatpak detected] Executing via host: {' '.join(command)}")
+    return command
+
+def safe_subprocess_Popen(command, **kwargs):
+    """
+    Provides a safe alternative to subprocess.Popen, accounting for the fact that a subprocess
+    command line may be run from a flatpak environment and require use of flatpak-spawn to ensure
+    it runs outside the sandbox, avoiding issues with subprocesses that rely on environment
+    variables and so on. safe_subprocess_Popen is a drop-in replacement for subprocess.Popen
+    for use in Siril scripts.
+
+    Introduced in sirilpy version 1.0.3
+    """
+    command = _maybe_flatpak_prefix(command)
+    return subprocess.Popen(command, **kwargs)
+
+def safe_subprocess_run(command, **kwargs):
+    """
+    Provides a safe alternative to subprocess.Popen, accounting for the fact that a subprocess
+    command line may be run from a flatpak environment and require use of flatpak-spawn to ensure
+    it runs outside the sandbox, avoiding issues with subprocesses that rely on environment
+    variables and so on. safe_subprocess_run is a drop-in replacement for subprocess.run
+    for use in Siril scripts.
+
+    Introduced in sirilpy version 1.0.3
+    """
+    command = _maybe_flatpak_prefix(command)
+    return subprocess.run(command, **kwargs)
+
 def truncate_utf8(data, max_bytes):
     """
     Truncates utf8 input. Accepts either bytes or str as input and
