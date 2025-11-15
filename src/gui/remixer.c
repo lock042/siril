@@ -688,6 +688,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		if (invocation == CALL_FROM_STARNET) {
 			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_left, &fit_left);
+			fit_left.header = strndup(_fit_left->header, 10000000);
 			clearfits(_fit_left);
 			free(_fit_left);
 			close_histograms(TRUE, TRUE);
@@ -700,6 +701,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			permit_calculation = TRUE;
 			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			copy_fits_metadata(_fit_right, &fit_right);
+			fit_right.header = strndup(_fit_right->header, 10000000);
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
@@ -710,6 +712,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
 			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 			gfit.keywords.livetime = fit_left.keywords.livetime;
+			// Update the header
+			update_fits_header(&gfit);
 			initialise_image();
 			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
 			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
