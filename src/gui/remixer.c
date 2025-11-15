@@ -710,6 +710,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
 			gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
 			gfit->keywords.livetime = fit_left.keywords.livetime;
+			// Update the header
+			update_fits_header(gfit);
 			initialise_image();
 			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
 			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
