@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-07 21:02+0100\n"
-"PO-Revision-Date: 2025-11-09 08:15+0000\n"
-"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
+"PO-Revision-Date: 2025-11-16 18:02+0000\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -5651,9 +5651,8 @@ msgid "_Help"
 msgstr "_Hilfe"
 
 #: src/gui/uifiles/python_scratchpad.ui:544
-#, fuzzy
 msgid "Open Python API reference documentation"
-msgstr "Python API Referenz"
+msgstr "Python API Referenz öffnen"
 
 #: src/gui/uifiles/python_scratchpad.ui:546
 msgid "Python API reference"
@@ -6034,11 +6033,13 @@ msgid "Plot fits"
 msgstr "SPCC-Anpassungen zeichnen"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
-msgstr "Lineare SPCC-Anpassungen für die R/G und B/G-Verhältnisse im Bild"
+msgstr ""
+"Lineare SPCC-Anpassungen für Katalog-zu-Bild-R/G- und B/G-Verhältnisse "
+"zeichnen. Im Schmalbandmodus werden Diagramme degenerierter Verhältnisse "
+"nicht angezeigt."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -6602,7 +6603,6 @@ msgstr ""
 "dem konfigurierten Muster erzwungen."
 
 #: src/gui/uifiles/settings_window.ui:375
-#, fuzzy
 msgid ""
 "Due to algorithm constraints more complex demosaicing algorithms cannot be "
 "used in the rejection stacking. Our tests also showed that there is no gain "
@@ -6611,8 +6611,8 @@ msgid ""
 msgstr ""
 "Wegen Beschränkungen im Algorithmus können komplexere Debayering Algorithmen "
 "im Ausschluss-Stacking nicht verwendet werden. Zudem ergaben Tests keine "
-"Verbesserung der Bildqualität bei Verwendung vieler Frames, aber dafür ein "
-"Vielfaches an Rechenzeit."
+"Verbesserung der Bildqualität bei Verwendung vieler Frames, aber dafür "
+"steigt die Rechenzeit um das 20-fache."
 
 #: src/gui/uifiles/settings_window.ui:377
 msgid ""
@@ -6773,7 +6773,6 @@ msgid "Row-order preference:"
 msgstr "Einstellung Zeilenreihenfolge:"
 
 #: src/gui/uifiles/settings_window.ui:572
-#, fuzzy
 msgid ""
 "Siril read FITS data in the bottom-up orientation but a lot of capture "
 "software do not meet this specification. Most of them now write a ROWORDER "
@@ -8530,6 +8529,9 @@ msgid ""
 "Type here to filter the list of scripts. The search matches any part of the "
 "script name. Filtering is case-insensitive and updates instantly as you type."
 msgstr ""
+"Tippen Sie hier um die Liste der Skripte zu filtern. Die Suche findet jeden "
+"Teil des Skriptnames. Die Filterung ist unabhängig von Groß-/Kleinschreibung "
+"und aktualisiert sich sofort während Sie tippen."
 
 #: src/gui/uifiles/settings_window.ui:5203
 msgid ""
@@ -8827,13 +8829,12 @@ msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW Optionen</b>"
 
 #: src/gui/uifiles/settings_window.ui:5811
-#, fuzzy
 msgid "Drizzle"
-msgstr "Drizzle benutzen"
+msgstr "Drizzle"
 
 #: src/gui/uifiles/settings_window.ui:5823
 msgid "High resolution Drizzle weight files"
-msgstr ""
+msgstr "Hochauflösende Drizzle-Gewichtungsdateien"
 
 #: src/gui/uifiles/settings_window.ui:5827
 msgid ""
@@ -8846,6 +8847,17 @@ msgid ""
 "and can be deleted when stacking is finished: if a sequence is re-drizzled, "
 "any existing drizzle weights will be overwritten."
 msgstr ""
+"Standardmäßig verwendet Drizzle 8-Bit-Gewichtungsdateien. Dies ist für viele "
+"Zwecke ausreichend und relativ sparsam im Hinblick auf die "
+"Speicheranforderungen.\n"
+"Durch Aktivieren dieses Kontrollkästchens wird die Genauigkeit erhöht: Die "
+"Drizzle-Gewichtungen werden mit derselben Bittiefe wie die Drizzle-Sequenz "
+"gespeichert, was bedeutet, dass die Gewichtungsdateien genauso viel "
+"Speicherplatz beanspruchen wie eine zusätzliche Kopie der Drizzle-Sequenz.\n"
+"Gewichtungsdateien werden im Unterordner „drizztmp” des "
+"Arbeitsverzeichnisses gespeichert und können nach Abschluss des Stackings "
+"gelöscht werden: Wenn eine Sequenz erneut gedrizzled wird, werden alle "
+"vorhandenen Drizzle-Gewichtungen überschrieben."
 
 #: src/gui/uifiles/settings_window.ui:5861
 #: src/gui/uifiles/settings_window.ui:6304
@@ -11148,13 +11160,12 @@ msgid "Pixel Fraction"
 msgstr "Pixelanteil"
 
 #: src/gui/uifiles/siril.ui:7151
-#, fuzzy
 msgid ""
 "Select the droplet model. See the documentation for details of when to use "
 "each model."
 msgstr ""
-"Wählen Sie den Filtertyp. In der Dokumentation finden Sie eine Erklärung der "
-"Unterschiede."
+"Wählen Sie das Droplet-Modell aus. Einzelheiten dazu, wann welches Modell zu "
+"verwenden ist, finden Sie in der Dokumentation."
 
 #: src/gui/uifiles/siril.ui:7154
 msgid "Square"
@@ -13391,6 +13402,8 @@ msgstr "Astrometry.net blinde astrometrische Lösung\n"
 #: src/algos/astrometry_solver.c:1822
 msgid "Warning: failed to add astrometry.net to child process list\n"
 msgstr ""
+"Warnung: Hinzufügen von astrometry.net zur Child-Prozessliste "
+"fehlgeschlaten\n"
 
 #: src/algos/astrometry_solver.c:1856
 msgid "No astrometric solution found\n"
@@ -13898,6 +13911,8 @@ msgid ""
 "Offsets: %d, %d not suitable for a Bayer pattern (%d), check your "
 "preferences\n"
 msgstr ""
+"Offsets; %d, %d nicht für das Bayer-Matrixmuster (%d) geeignet, prüfen Sie "
+"ihre Voreinstellungen\n"
 
 #: src/algos/demosaicing.c:560
 msgid "Cannot perform debayering on image with more than one channel\n"
@@ -17303,20 +17318,20 @@ msgstr ""
 "aktiviert ist. Deaktiviert\n"
 
 #: src/core/command.c:8758 src/gui/stacking.c:150
-#, fuzzy
 msgid ""
 "Weighting by noise is allowed only if normalization has been activated, "
 "ignoring weights.\n"
 msgstr ""
-"Die Gewichtung ist nur erlaubt, wenn die Normalisierung aktiviert wurde, "
-"wird ignoriert.\n"
+"Die Gewichtung über den Rauschwert ist nur erlaubt, wenn die Normalisierung "
+"aktiviert wurde, wird ignoriert.\n"
 
 #: src/core/command.c:8762 src/gui/stacking.c:163
-#, fuzzy
 msgid ""
 "Weighting by noise cannot be used with overlap normalization, ignoring "
 "weights.\n"
-msgstr "Die Gewichtung ist nur bei Mean-Stacking erlaubt und wird ignoriert.\n"
+msgstr ""
+"Die Gewichtung über den Rauschwert kann nicht mit der "
+"Überlappungsnormalisierung verwendet werden, wird ignoriert\n"
 
 #: src/core/command.c:8783
 #, c-format
@@ -18479,7 +18494,6 @@ msgstr ""
 "Geordnetes Schließen des Bildes und der Sequenz, sofern eine vorhanden ist"
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Displays stars from the local catalog by default for the loaded plate solved "
 "image, down to the provided <b>limit_magnitude</b> (13 by default for most "
@@ -18522,13 +18536,13 @@ msgstr ""
 "simbad, aavso_chart\n"
 "- für Exoplaneten: exo\n"
 "- für Deep-Sky: pgc\n"
-"- für Objekte des Sonnensystems: solsys (nächster <a href=\"https://"
-"vo.imcce.fr/webservices/data/displayIAUObsCodes.php\">IAU Sternwartencode</"
-"a> kann mit dem Argument <b>-obscode=</b> für eine bessere Genauigkeit "
-"übergeben werden)\n"
+"- für Objekte des Sonnensystems: solsys (nächster <a href=\"https://vo.imcce."
+"fr/webservices/data/displayIAUObsCodes.php\">IAU Sternwartencode</a> kann "
+"mit dem Argument <b>-obscode=</b> für eine bessere Genauigkeit übergeben "
+"werden)\n"
 "\n"
-"Bei Sternkatalogen, die photometrische Daten enthalten, werden Sterne ohne B-"
-"V-Informationen beibehalten; sie können durch die Angabe von <b>-phot</b> "
+"Bei Sternkatalogen, die photometrische Daten enthalten, werden Sterne ohne "
+"B-V-Informationen beibehalten; sie können durch die Angabe von <b>-phot</b> "
 "ausgeschlossen werden.\n"
 "Das Argument <b>-trix=</b> kan statt eines Katalogs angegeben werden, "
 "gefolgt von einer Zahl zwischen 0 und 511 um Sterne anzuzeigen die in "
@@ -18540,10 +18554,9 @@ msgstr ""
 "und drucken sie im Log. Bei anderen Katalogen mit einer größeren Anzahl von "
 "Objekten, nämlich vsx und simbad, können die Informationen ebenfalls "
 "angezeigt werden, aber da sie die Anzeige überladen könnten, sind sie "
-"standardmäßig nicht aktiviert. Dieses Verhalten kann mit den Optionen <b>-"
-"tag=on|off</b> ein-/ausgeschaltet werden, um Namen neben Markierungen "
-"anzuzeigen, und <b>-log=on|off</b>, um die Objekte im Konsolenprotokoll "
-"anzuzeigen\n"
+"standardmäßig nicht aktiviert. Dieses Verhalten kann mit den Optionen "
+"<b>-tag=on|off</b> für die Bildanzeige und <b>-log=on|off</b> für das "
+"Konsolenlog ein-/ausgeschaltet werden.\n"
 "\n"
 "Die Liste der Objekte im aktuellen Bild kann optional als CSV-Datei "
 "gespeichert werden durch Angabe des Arguments <b>-out=</b>"
@@ -19928,7 +19941,6 @@ msgstr ""
 "Remote-Katalogabfragen, Aktualisierung von Git-Repositories usw. erlaubt"
 
 #: src/core/command_def.h:112
-#, fuzzy
 msgid ""
 "Parses the string <b>str</b> using the information contained in the header "
 "of the image currently loaded. Main purpose of this command is to debug path "
@@ -20135,7 +20147,6 @@ msgstr ""
 "Schlüsselwörter wie LIVETIME und STACKCNT aus"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -20171,11 +20182,10 @@ msgstr ""
 "b> sind obligatorisch.\n"
 "\n"
 "Das Argument <b>-layer=<i>{red | grün | blau | lum | col</i></b> gibt an, "
-"welcher Kanal (oder welche Luminanz oder Farbe) dargestellt werden soll, "
-"wenn das Bild farbig ist. Dies kann in Verbindung mit spektrometrischen "
-"Optionen verwendet werden. Es kann auch mit der Option <b>-tri</b> verwendet "
-"werden, die drei parallele Profile mit gleichem Abstand generiert, die "
-"jeweils durch <b>-spacing=</b> Pixel getrennt sind. Beachten Sie jedoch, "
+"welcher Kanal (oder welche Luminanz- oder Farbebene) dargestellt werden "
+"soll, wenn das Bild farbig ist. Es kann auch mit der Option <b>-tri</b> "
+"verwendet werden, die drei parallele Profile mit gleichem Abstand generiert, "
+"die jeweils durch <b>-spacing=</b> Pixel getrennt sind. Beachten Sie jedoch, "
 "dass bei Tri-Profilen die Option <i><b>col</b></i> genauso behandelt wird "
 "wie die Option <i><b>lum</b></i>.\n"
 "\n"
@@ -20195,25 +20205,6 @@ msgstr ""
 "Argument <b>-filename=</b> verwendet werden, um einen Dateinamen anzugeben, "
 "in den die Datendatei geschrieben werden soll. (Die Option <b>-filename=</b> "
 "impliziert <b>-savedat</b>.)\n"
-"\n"
-"<b>Spektrometrische Optionen</b>\n"
-"\n"
-"Wenn spektrometrische Optionen bereitgestellt werden, müssen alle folgenden "
-"Angaben gemacht werden: <b>-wavenumber1=</b> / <b>-wavelength1=</b> und <b>-"
-"wavenumber2=</b> / <b>-wavelength2=</b> definieren 2 Wellenzahlen in "
-"cm<sup>-1</sup> / Wellenlängen in nm, und <b>-wn1=x,y</b> und <b>-wn2=x,y</"
-"b> definieren Punkte im Bild die mit diesen Wellenzahlen korrespondieren. "
-"Der Einfachheit halber können stattdessen <b>-wavelength1=</b> und <b>-"
-"wavelength2=</b> verwendet werden, um Wellenlängen in nm anzugeben. Die "
-"folgenden optionalen spektrometrischen Argumente können angegeben werden: "
-"<b>-width=</b>, definiert wie viele Pixel senkrecht zur Profilline gemittelt "
-"werden sollen, <b>-bgremove</b>, definiert den Modus zur "
-"Hintergrundextraktion (sollte zusammen mit <b>-spacing=</b> genutzt werden "
-"um den Abstand der Hintergrundmessung zum Profil des Hauptspektrums zu "
-"definieren), <b>-bgpoly=</b>, definiert die Ordnung der Polynome die den "
-"Hintergrund anpassen (Der Default ist 3), und einer von <b>-"
-"xaxis=wavelength</b> oder <b>-xaxis=wavenumber</b>, welche die Einheiten der "
-"X-Achse definiert (Default ist wavelength/Wellenlänge).\n"
 "\n"
 "Das Argument <b>\"-title=<i>Mein Titel\"</i></b> stellt einen "
 "benutzerdefinierten Titel \"Mein Titel\" ein"
@@ -20433,6 +20424,11 @@ msgid ""
 "update will happen asynchronously (i.e. the command will trigger the update "
 "but will not wait for the update to complete)"
 msgstr ""
+"Lädt den Skriptordner neu ein und aktualisiert das Scriptmenu. Beachten Sie, "
+"dass dieser Befehle im Headless-Modus (d.h. über siril-cli) eventuell nicht "
+"benutzt werden kann und beachten Sie außerdem, dass die Aktualisierung "
+"asynchron erfolgt (d.h. der Befehl initiiert die Aktualisierung, wartet aber "
+"nicht auf die Fertigstellung)"
 
 #: src/core/command_def.h:124
 msgid ""
@@ -21168,7 +21164,6 @@ msgstr ""
 "festzulegen"
 
 #: src/core/command_def.h:163
-#, fuzzy
 msgid ""
 "Merges 4 sequences of images to recombine the Bayer pattern. The sequences "
 "are specified in the arguments <b>sequencename0</b>, <b>sequencename1</b>, "
@@ -21374,7 +21369,6 @@ msgstr ""
 "ausgefüllt)"
 
 #: src/core/command_def.h:168
-#, fuzzy
 msgid ""
 "Same command as PSF but runs on sequences. This is similar to the one-star "
 "registration, except results can be used for photometry analysis rather than "
@@ -21410,17 +21404,15 @@ msgstr ""
 "können und die Koordinaten des Sterns über Optionen bereitgestellt werden "
 "können.\n"
 "Dieser Befehl wird intern durch das Menü aufgerufen, das beim Rechtsklick im "
-"Bild erscheint, mit der PSF für den Sequenzeintrag. Standardmäßig läuft es "
-"mit aktivierter Parallelisierung; Wenn für die Sequenz bereits "
-"Registrierungsdaten vorhanden sind, werden diese zum Verschieben des "
-"Suchfensters in jedem Bild verwendet. Wenn keine Registrierungsdaten "
-"vorhanden sind und zwischen den Bildern in der Sequenz erhebliche "
-"Verschiebungen auftreten, können die Standardeinstellungen keine Sterne an "
-"der Anfangsposition des Suchbereichs finden.\n"
-"Die Option „Stern folgen“ kann aktiviert werden, indem Sie auf der "
-"Registerkarte „Registrierung“ die Ein-Stern-Registrierung auswählen und das "
-"Kontrollkästchen „Sternbewegung folgen“ aktivieren (Standardeinstellung im "
-"Headless-Modus, wenn keine Registrierungsdaten verfügbar sind).\n"
+"Bild erscheint, mit der PSF für den Sequenzeintrag. Wenn bereits "
+"Registrierungsdaten für die Sequenz vorhanden sind, können diese verwendet "
+"werden, um das Suchfenster in jedem Bild zu verschieben. Wenn keine "
+"Registrierungsdaten vorhanden sind und wenn es eine signifikante "
+"Verschiebung zwischen den Bildern in der Sequenz gibt, können die Sterne in "
+"der Ausgangsposition des Suchbereichs mit den Standardeinstellungen nicht "
+"gefunden werden.\n"
+"Die Option „Follow Star” kann dann mit dem Argument <b>-followstar</b> "
+"aktiviert werden.\n"
 "\n"
 "Die Ergebnisse werden auf der Registerkarte „Grafischer Plot“ angezeigt, von "
 "wo aus sie zur externen Analyse auch in eine Datei mit durch Kommas "
@@ -22275,7 +22267,6 @@ msgid "Stops the live stacking session. Only possible after START_LS"
 msgstr "Beendet die Live-Stacking-Sitzung. Nur möglich nach START_LS"
 
 #: src/core/command_def.h:204
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -22294,11 +22285,14 @@ msgstr ""
 "<b>-rbf</b> stattdessen angegeben) und subtrahiert ihn vom Bild. \n"
 "Die Anzahl der Stichproben pro horizontaler Linie und die Toleranz zum "
 "Ausschluss hellerer Bereiche können mit den optionalen Argumenten "
-"eingestellt werden. Die Toleranz wird in mad-Einheiten angegeben: Median + "
+"eingestellt werden. Die Toleranz wird in MAD-Einheiten angegeben: Median + "
 "Toleranz * mad.\n"
 "Dithering, notwendig für schwache dynamische Gradienten, kann durch die "
-"Option <b>-dither</b> deaktiviert werden.\n"
-"Für RBF ist auch der zusätzliche Glättungsparameter verfügbar"
+"Option <b>-dither</b> aktiviert werden.\n"
+"Für RBF steht auch der zusätzliche Glättungsparameter zur Verfügung. Um "
+"bereits vorhandene Hintergrundabtastwerte zu verwenden (z. B. wenn Sie "
+"Hintergrundabtastwerte mithilfe eines Python-Skripts festgelegt haben), muss "
+"das Argument <b>-existing</b> verwendet werden."
 
 #: src/core/command_def.h:205
 msgid ""
@@ -23737,9 +23731,8 @@ msgid "type of interpolation"
 msgstr "Art der Interpolation"
 
 #: src/core/settings.c:393
-#, fuzzy
 msgid "row-order preference"
-msgstr "Einstellungen öffnen"
+msgstr "Einstellung Zeilenreihenfolge"
 
 #: src/core/settings.c:394
 msgid "Bayer matrix offset X"
@@ -23998,7 +23991,7 @@ msgstr "benutzte Begrenzungsmethode mit Lanczos und kubischer Interpolation"
 
 #: src/core/settings.c:471
 msgid "Match Drizzle weights bitpix to sequence"
-msgstr ""
+msgstr "Passe die Bitpix-Gewichte von Drizzle an die Sequenz an"
 
 #: src/core/settings.c:473
 msgid "index of the selected method"
@@ -25015,7 +25008,7 @@ msgstr "Start von StarNet gescheitert: %s\n"
 
 #: src/filters/starnet.c:98
 msgid "Error adding Starnet to child process list\n"
-msgstr ""
+msgstr "Fehler beim Hinzufügen von Starnet zur Kindprozessliste\n"
 
 #: src/filters/starnet.c:134
 msgid "Running StarNet"
@@ -25146,12 +25139,11 @@ msgstr ""
 "auf das Bild.\n"
 
 #: src/filters/starnet.c:575
-#, fuzzy
 msgid ""
 "StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"
 msgstr ""
-"StarNet++: linearer Modus. Anwendung der inversen MTF-Streckung auf ein "
-"sternloses Bild.\n"
+"StarNet++: linearer Modus. Anwendung einer MTF-Streckung auf ein StarNet "
+"Eingabebild.\n"
 
 #: src/filters/starnet.c:591
 msgid "StarNet: 2x upscaling selected. Upscaling image...\n"
@@ -25200,10 +25192,9 @@ msgstr ""
 "auf Originalgröße...\n"
 
 #: src/filters/starnet.c:714
-#, fuzzy
 msgid "StarNet: linear mode. Applying inverse autostretch to starless image.\n"
 msgstr ""
-"StarNet++: linearer Modus. Anwendung der inversen MTF-Streckung auf ein "
+"StarNet++: linearer Modus. Anwendung der inversen Streckung auf ein "
 "sternloses Bild.\n"
 
 #: src/filters/starnet.c:731
@@ -25255,9 +25246,8 @@ msgid "Memory allocation failed\n"
 msgstr "Fehler bei der Speicherzuweisung\n"
 
 #: src/filters/synthstar.c:375
-#, fuzzy
 msgid "Star detection failed\n"
-msgstr "Script-Ausführung fehlgeschlagen.\n"
+msgstr "Sternerkennung fehlgeschlagen\n"
 
 #: src/filters/synthstar.c:388 src/gui/unpurple.c:68
 msgid "No stars detected in the image.\n"
@@ -25977,7 +25967,7 @@ msgstr "Wert "
 
 #: src/gui/colors.c:386
 msgid "Error in value_check(). This should not happen...\n"
-msgstr ""
+msgstr "Fehler in value_check(). Dies sollte nicht passieren...\n"
 
 #: src/gui/colors.c:469 src/gui/cut.c:1013
 msgid "No sequence is loaded"
@@ -26464,9 +26454,8 @@ msgid "Measured background"
 msgstr "gemessener Hintergrund"
 
 #: src/gui/cut.c:815
-#, fuzzy
 msgid "Error: failed to read CFA pattern or invalid found.\n"
-msgstr "Nicht unterstütztes CFA-Muster für diese Funktion\n"
+msgstr "Fehler: Ungültiges oder fehlendes CFA-Muster.\n"
 
 #: src/gui/cut.c:826 src/gui/cut.c:834
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -26652,9 +26641,8 @@ msgid "Error loading script contents: %s\n"
 msgstr "Fehler beim Laden des Skriptinhalts: %s\n"
 
 #: src/gui/git_gui.c:341
-#, fuzzy
 msgid "Select Revision"
-msgstr "Auswahl"
+msgstr "Version auswählen"
 
 #: src/gui/git_gui.c:348
 msgid ""
@@ -26666,10 +26654,18 @@ msgid ""
 "repository, but it allows you to save a local copy in one of your script "
 "folders for use until the upstream script is fixed."
 msgstr ""
+"Lassen Sie den Wert auf 0, um die aktuelle Skriptversion zu öffnen. Falls "
+"Probleme mit einem Skriptupdate auftreten, können Sie damit zu früheren "
+"Versionen zurückkehren. Beginnen Sie mit der Version 1 zurück und erhöhen "
+"Sie die Zahl, bis Sie die letzte funktionierende Version gefunden haben. "
+"Beachten Sie, dass dadurch nur die vorherige Version im Skripteditor "
+"geöffnet wird. Das Skript im lokalen Repository wird nicht zurückgesetzt, "
+"aber Sie können eine lokale Kopie in einem Ihrer Skriptordner speichern, die "
+"Sie verwenden können, bis das Originalskript repariert ist."
 
 #: src/gui/git_gui.c:358
 msgid "Revisions to go back (leave at 0 to get current revision):"
-msgstr ""
+msgstr "Version um zurückzugehen (0 = aktuelle Version):"
 
 #: src/gui/git_gui.c:393
 msgid "Loading commit message..."
@@ -27705,13 +27701,12 @@ msgstr ""
 "Weißreferenz ausgewählt sind.\n"
 
 #: src/gui/photometric_cc.c:609
-#, fuzzy
 msgid ""
 "Error: ensure OSC sensor, OSC filter or NB filter values, and white "
 "reference are selected.\n"
 msgstr ""
-"Fehler: Stellen Sie sicher, dass OSC-Sensor, OSC-Filter und Weißreferenz "
-"ausgewählt sind.\n"
+"Fehler: Stellen Sie sicher, dass OSC-Sensor, OSC-Filter, Schmalbandfilter "
+"und Weißreferenz ausgewählt sind.\n"
 
 #: src/gui/photometric_cc.c:1031
 msgid "one-shot color (OSC)"
@@ -27730,9 +27725,8 @@ msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Quanteneffizienz / Durchlass / Relative Photonenzahl"
 
 #: src/gui/photometric_cc.c:1256 src/gui/photometric_cc.c:1297
-#, fuzzy
 msgid "Narrowband filters"
-msgstr "Schmalband-Modus"
+msgstr "Schmalbandfilter"
 
 #: src/gui/photometric_cc.c:1305
 msgid "Atmosphere model"
@@ -28011,16 +28005,15 @@ msgstr ""
 
 #: src/gui/python_gui.c:715
 msgid "No file is currently loaded to reload.\n"
-msgstr ""
+msgstr "Es ist aktuell keine Datei geladen die neu gelesen werden könnte.\n"
 
 #: src/gui/python_gui.c:719
-#, fuzzy
 msgid ""
 "This will replace the entry buffer with the last saved version of the file. "
 "You will not be able to recover any contents."
 msgstr ""
-"Dadurch wird der Eingabepuffer ersetzt. Sie können keine Inhalte "
-"wiederherstellen."
+"Dadurch wird der Eingabepuffer durch die zuletzt gespeicherte Version "
+"ersetzt. Sie können keine Inhalte wiederherstellen."
 
 #: src/gui/python_gui.c:785 src/gui/python_gui.c:856
 msgid ""
@@ -28245,9 +28238,8 @@ msgid "Pick object in two images"
 msgstr "Wählen Sie ein Objekt in zwei Bildern"
 
 #: src/gui/registration.c:754
-#, fuzzy
 msgid "Pick at least one star"
-msgstr "1. Stern auswählen"
+msgstr "Wählen Sie mindestens einen Stern"
 
 #: src/gui/registration.c:832
 msgid "Failed to determine registration method...\n"
@@ -29208,14 +29200,18 @@ msgstr ""
 #: src/gui/utils.c:378
 msgid "Significantly out of range pixels detected: clipping outliers\n"
 msgstr ""
+"Deutlich außerhalb des Bereichs liegende Pixel erkannt: Ausreißer werden "
+"abgeschnitten\n"
 
 #: src/gui/utils.c:382
 msgid "Negative-valued pixels detected: clipping and scaling to [0,1]\n"
-msgstr ""
+msgstr "Negative Pixelwerte erkannt: Beschneiden und Skalieren auf [0,1]\n"
 
 #: src/gui/utils.c:388
 msgid "Marginally out of range pixels detected: scaling to [0,1]\n"
 msgstr ""
+"Pixel, die knapp außerhalb des Bereichs liegen, wurden erkannt: Skalierung "
+"auf [0,1]\n"
 
 #: src/io/FITS_symlink.c:78
 msgid ""
@@ -29566,6 +29562,8 @@ msgstr ""
 #, c-format
 msgid "Cannot find FITS file %s or any variant with supported extensions\n"
 msgstr ""
+"Kann die FITS-Datei %s oder eine Variante mit einer unterstützten "
+"Dateiendung nicht finden\n"
 
 #: src/io/fits_sequence.c:211
 #, c-format
@@ -30959,7 +30957,7 @@ msgstr ""
 #: src/io/ser.c:235
 #, c-format
 msgid "Unknown SER type to debayer (%d), should not happen\n"
-msgstr ""
+msgstr "Unbekannter SER-Typ zum Debayern (%d), sollte nicht passieren\n"
 
 #: src/io/ser.c:241
 #, c-format
@@ -31312,9 +31310,8 @@ msgstr ""
 "Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.\n"
 
 #: src/io/siril_git.c:502 src/io/siril_git.c:833
-#, fuzzy
 msgid "Failed to open repository.\n"
-msgstr "Remote-Suche ist fehlgeschlagen.\n"
+msgstr "Repository kann nicht geöffnet werden.\n"
 
 #: src/io/siril_git.c:508 src/io/siril_git.c:614 src/io/siril_git.c:839
 #: src/io/siril_git.c:919
@@ -31322,21 +31319,19 @@ msgid "Failed to lookup remote.\n"
 msgstr "Remote-Suche ist fehlgeschlagen.\n"
 
 #: src/io/siril_git.c:515 src/io/siril_git.c:847
-#, fuzzy
 msgid "Cannot identify local repository's configured remote.\n"
 msgstr ""
-"Fehler: Kann die lokal konfigurierten Repositories auf dem Server nicht "
-"identifizieren\n"
+"Das konfigurierte Remote-Repository des lokalen Repositories konnte nicht "
+"identifiziert werden.\n"
 
 #: src/io/siril_git.c:522
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-scripts repository folder %s is not configured with %s as its "
 "remote.\n"
 msgstr ""
-"Fehler: Der lokale siril-scripts-Repository-Ordner ist nicht mit %s als "
-"Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und Siril "
-"neu starten, um das richtige Repository neu zu klonen.\n"
+"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:539
 msgid ""
@@ -31408,9 +31403,8 @@ msgid "Scripts repository directory does not exist.\n"
 msgstr "Skript Repository Verzeichnis existiert nicht\n"
 
 #: src/io/siril_git.c:715
-#, fuzzy
 msgid "Failed to open scripts repository.\n"
-msgstr "Fehler: Lokales Skript-Repository kann nicht geöffnet werden.\n"
+msgstr "Skript-Repository kann nicht geöffnet werden.\n"
 
 #: src/io/siril_git.c:724
 msgid "Error accessing repository index.\n"
@@ -31430,14 +31424,13 @@ msgstr ""
 "Warnung: Die Speicherzuweisung für den Skriptpfad ist fehlgeschlagen.\n"
 
 #: src/io/siril_git.c:854
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local siril-spcc-database repository folder %s is not configured with %s as "
 "its remote.\n"
 msgstr ""
-"Fehler: Der lokale siril-SPCC-Datenbank-Repository-Ordner ist nicht mit %s "
-"als Remote-Ordner konfiguriert. Sie sollten den Ordner %s entfernen und "
-"Siril neu starten, um das richtige Repository neu zu klonen.\n"
+"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:871
 msgid "Existing directory is not a valid git repository. Cleaning up...\n"
@@ -31593,14 +31586,13 @@ msgid "Invalid payload length"
 msgstr "Ungültige Datenlänge"
 
 #: src/io/siril_pythoncommands.c:1205
-#, fuzzy
 msgid "Invalid sequence type"
-msgstr "Ungültiger Kerneltyp"
+msgstr "Ungültiger Sequenztyp"
 
 #: src/io/siril_pythoncommands.c:1225
-#, fuzzy
 msgid "Failed to load sequence frame: index out of range"
-msgstr "Bild einer Sequenz konnte nicht geladen werden"
+msgstr ""
+"Bild einer Sequenz konnte nicht geladen werden: Index außerhalb des Bereichts"
 
 #: src/io/siril_pythoncommands.c:1244
 msgid "Failed to load sequence frame"
@@ -31669,36 +31661,32 @@ msgid "Failed to read frame metadata"
 msgstr "Konnte keine Metadaten aus dem Bild laden"
 
 #: src/io/siril_pythoncommands.c:1710 src/io/siril_pythoncommands.c:2666
-#, fuzzy
 msgid "Memory allocation error: response buffer"
-msgstr "Speicherzuweisungsfehler"
+msgstr "Speicherzuweisungsfehler: Antwortpuffer"
 
 #: src/io/siril_pythoncommands.c:1721 src/io/siril_pythoncommands.c:2675
 msgid "fits_to_py conversion error"
-msgstr ""
+msgstr "fits_to_py Umwandlungsfehler"
 
 #: src/io/siril_pythoncommands.c:1729 src/io/siril_pythoncommands.c:2682
 msgid "keywords_to_py conversion error"
-msgstr ""
+msgstr "keywords_to_py Umwandlungsfehler"
 
 #: src/io/siril_pythoncommands.c:1741
-#, fuzzy
 msgid "Pixel shared memory allocation error"
-msgstr "Speicherzuweisungsfehler"
+msgstr "Fehler bei der Zuweisung des gemeinsamen Pixelspeichers"
 
 #: src/io/siril_pythoncommands.c:1871
-#, fuzzy
 msgid "Star detection failed"
-msgstr "Sternerkennung"
+msgstr "Sternerkennung fehlgeschlagen"
 
 #: src/io/siril_pythoncommands.c:1885
 msgid "No stars in image"
 msgstr "Keine Sterne im Bild"
 
 #: src/io/siril_pythoncommands.c:1910
-#, fuzzy
 msgid "Star conversion error"
-msgstr "Fehler bei der Auswahl der Mittelpunktskoordinaten"
+msgstr "Sternumwandung fehlgeschlagen"
 
 #: src/io/siril_pythoncommands.c:1938
 msgid "No background samples list available"
@@ -31829,91 +31817,81 @@ msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr "Ungültige Nutzdaten für CMD_DRAW_POLYGON"
 
 #: src/io/siril_pythoncommands.c:2628 src/io/siril_pythoncommands.c:2792
-#, fuzzy
 msgid "Invalid filepath length"
-msgstr "Ungültige Datenlänge"
+msgstr "Ungültige Dateipfadlänge"
 
 #: src/io/siril_pythoncommands.c:2638 src/io/siril_pythoncommands.c:2804
 msgid "File does not exist or is not accessible"
 msgstr "Datei existiert nicht oder kann nicht benutzt werden"
 
 #: src/io/siril_pythoncommands.c:2647 src/io/siril_pythoncommands.c:2818
-#, fuzzy
 msgid "Failed to read image file"
-msgstr "Bildpuffer konnte nicht zugewiesen werden"
+msgstr "Bilddatei konnte nicht geladen werden"
 
 #: src/io/siril_pythoncommands.c:2708
 msgid "imstats_to_py conversion error"
-msgstr ""
+msgstr "imstats_to_py Umwandlungsfehler"
 
 #: src/io/siril_pythoncommands.c:2723 src/io/siril_pythoncommands.c:2742
 #: src/io/siril_pythoncommands.c:2762
-#, fuzzy
 msgid "Shared memory allocation error"
-msgstr "Speicherzuweisungsfehler"
+msgstr "Fehler bei der Zuweisung des gemeinsamen Speichers"
 
 #: src/io/siril_pythoncommands.c:2898
-#, fuzzy
 msgid "No analysis available"
-msgstr "Keine regdata verfügbar"
+msgstr "Keine Analyse verfügbar"
 
 #: src/io/siril_pythoncommands.c:3001
-#, fuzzy
 msgid "Failed to set STF - invalid mode value"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "STF konnte nicht festgelegt werden – ungültiger Moduswert"
 
 #: src/io/siril_pythoncommands.c:3013 src/io/siril_pythoncommands.c:3041
 #: src/io/siril_pythoncommands.c:3098
-#, fuzzy
 msgid "Failed to set slider state - invalid payload length"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr ""
+"Fehler beim Festlegen des Schiebereglerstatus – ungültige Nutzdatenlänge"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3020 src/io/siril_pythoncommands.c:3047
 #: src/io/siril_pythoncommands.c:3105
-#, fuzzy
 msgid "Failed to set slider state - no image loaded"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "Fehler beim Festlegen des Schiebereglerstatus – kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:3087
-#, fuzzy
 msgid "Failed to set slider state - invalid mode value"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "Fehler beim Festlegen des Schiebereglerstatus – ungültiger Moduswert"
 
 #: src/io/siril_pythoncommands.c:3123
 msgid "Error: invalid slider values"
 msgstr "Fehler: ungültige Werte der Schieberegler"
 
 #: src/io/siril_pythoncommands.c:3135
-#, fuzzy
 msgid "Failed to set slider values - invalid payload length"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr ""
+"Fehler beim Festlegen des Schiebereglerwertes – ungültige Nutzdatenlänge"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3142
-#, fuzzy
 msgid "Failed to set slider values - no image loaded"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "Fehler beim Festlegen des Schiebereglerwertes – kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:3165 src/io/siril_pythoncommands.c:3197
-#, fuzzy
 msgid "Failed to set display offset - invalid payload length"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "Anzeigeoffset konnte nicht festgelegt werden – ungültige Nutzdatenlänge"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3172 src/io/siril_pythoncommands.c:3204
-#, fuzzy
 msgid "Failed to set display offset - no image loaded"
-msgstr "Auswahl kann nicht gesetzt werden - kein Bild geladen"
+msgstr "Anzeigeoffset konnte nicht festgelegt werden – kein Bild geladen"
 
 #: src/io/siril_pythoncommands.c:3231
-#, fuzzy
 msgid "Failed to set image filename - empty filename provided"
-msgstr "Bildabmessungen konnten nicht abgerufen werden - kein Bild geladen"
+msgstr ""
+"Dateiname des Bildes kann nicht gesetzt werden - leerer Dateiname übergeben"
 
 #: src/io/siril_pythoncommands.c:3241
 msgid "Log only available in GUI mode"
-msgstr ""
+msgstr "Das Log ist nur im GUI-Modus verfügbar"
 
 #: src/io/siril_pythoncommands.c:3270
 msgid "Unknown command"
@@ -31945,9 +31923,8 @@ msgid "Failed to map shared memory: %s\n"
 msgstr "Fehler beim Zuordnen des gemeinsamen Speichers: %s\n"
 
 #: src/io/siril_pythonmodule.c:336
-#, fuzzy
 msgid "Failed to retrieve pixel data - no FITS image"
-msgstr "Pixeldaten konnten nicht abgerufen werden - kein Bild geladen"
+msgstr "Pixeldaten konnten nicht abgerufen werden - kein FITS-Bild"
 
 #: src/io/siril_pythonmodule.c:363 src/io/siril_pythonmodule.c:372
 #: src/io/siril_pythonmodule.c:381 src/io/siril_pythonmodule.c:492
@@ -32027,29 +32004,24 @@ msgid "Failed to allocate image buffer"
 msgstr "Bildpuffer konnte nicht zugewiesen werden"
 
 #: src/io/siril_pythonmodule.c:739
-#, fuzzy
 msgid "Invalid save image info size"
-msgstr "Ungültige Bildgrößeninformation"
+msgstr "Ungültige Bildgrößeninformation beim Speichern"
 
 #: src/io/siril_pythonmodule.c:810
-#, fuzzy
 msgid "Failed to open shared memory for image data"
-msgstr "Der gemeinsame Speicher konnte nicht geöffnet werden."
+msgstr "Der gemeinsame Speicher für Bilddaten konnte nicht geöffnet werden."
 
 #: src/io/siril_pythonmodule.c:818
-#, fuzzy
 msgid "Failed to map shared memory for image data"
-msgstr "Fehler beim Zuordnen des gemeinsamen Speichers"
+msgstr "Fehler beim Zuordnen des gemeinsamen Speichers für Bilddaten"
 
 #: src/io/siril_pythonmodule.c:865
-#, fuzzy
 msgid "Failed to open shared memory for header"
-msgstr "Der gemeinsame Speicher konnte nicht geöffnet werden."
+msgstr "Der gemeinsame Speicher für Headerdaten konnte nicht geöffnet werden."
 
 #: src/io/siril_pythonmodule.c:875
-#, fuzzy
 msgid "Failed to map shared memory for header"
-msgstr "Fehler beim Zuordnen des gemeinsamen Speichers"
+msgstr "Fehler beim Zuordnen des gemeinsamen Speichers für Headerdaten"
 
 #: src/io/siril_pythonmodule.c:1021 src/io/siril_pythonmodule.c:1121
 #: src/io/siril_pythonmodule.c:1212 src/io/siril_pythonmodule.c:1273
@@ -32109,6 +32081,8 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:2078
 msgid "Error checking python magic number: pyc files will not work"
 msgstr ""
+"Fehler beim Prüfen der magischen Python-Zahl: pyc-Dateien werden nicht "
+"funktionieren"
 
 #: src/io/siril_pythonmodule.c:2098
 #, c-format
@@ -32229,9 +32203,8 @@ msgid "Error: failed to create Python connection.\n"
 msgstr "Fehler: Python-Verbindung kann nicht erstellt werden.\n"
 
 #: src/io/siril_pythonmodule.c:2577
-#, fuzzy
 msgid "Error: Python worker thread not available.\n"
-msgstr "Fehler: Python Verbindung ist nicht verfügbar\n"
+msgstr "Fehler: Python Arbeitsthread nicht verfügbar.\n"
 
 #: src/io/siril_pythonmodule.c:2643
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -33016,6 +32989,7 @@ msgstr "Bilder müssen die gleiche Größe haben"
 #: src/pixelMath/pixel_math_runner.c:1324
 msgid "Error: maximum variable index exceeded - too many variables!\n"
 msgstr ""
+"Fehler: Maximalwert des Variablenindex überschritten - zu viele Variablen.\n"
 
 #: src/pixelMath/pixel_math_runner.c:1387
 msgid "Cannot load new image"
@@ -33141,10 +33115,9 @@ msgid "Framing: Shift from reference origin: %d, %d\n"
 msgstr "Einrahmen: Verschiebung vom Referenzursprung: %d, %d\n"
 
 #: src/registration/applyreg.c:347
-#, fuzzy
 msgid "Applying interpolation on a sequence opened as CFA is a bad idea.\n"
 msgstr ""
-"Die Registrierung einer als CFA geöffneten Sequenz ist eine schlechte Idee.\n"
+"Interpolation bei einer als CFA geöffneten Sequenz ist eine schlechte Idee.\n"
 
 #: src/registration/applyreg.c:350
 msgid ""
@@ -33170,6 +33143,7 @@ msgstr "Frame %d:\n"
 #: src/registration/applyreg.c:465
 msgid "Drizzle: Could not get compiled CFA pattern from the image.\n"
 msgstr ""
+"Drizzle: Kann das kompilierte CFA-Muster nicht aus dem Bild ermitteln.\n"
 
 #: src/registration/applyreg.c:472
 #, c-format
@@ -33177,15 +33151,16 @@ msgid ""
 "Drizzle: CFA pattern mismatch between reference image and image #%d, using "
 "reference pattern.\n"
 msgstr ""
+"Drizzle: CFA-Musterabweichung zwischen Referenzbild und Bild #%d bei "
+"Verwendung des Referenzmusters.\n"
 
 #: src/registration/applyreg.c:494
 msgid "Error generating mapping array.\n"
 msgstr "Fehler beim erzeugen der Mapping-Matrix\n"
 
 #: src/registration/applyreg.c:656 src/registration/global.c:435
-#, fuzzy
 msgid "No image was registered to the reference\n"
-msgstr "Bild %d überlappt das Referenzbild nicht\n"
+msgstr "Kein Bild wurde auf die Referenz registriert\n"
 
 #: src/registration/applyreg.c:696 src/registration/comet.c:239
 msgid "Applying registration completed.\n"
@@ -33203,15 +33178,19 @@ msgstr "Transformation abgebrochen.\n"
 #: src/registration/applyreg.c:903
 msgid "Drizzle: Could not allocate memory for weight calculation.\n"
 msgstr ""
+"Drizzle: Speicher für Gewichtungsberechnung konnte nicht reserviert werden.\n"
 
 #: src/registration/applyreg.c:910
 msgid "Drizzle: Could not allocate memory for tiny flat calculation.\n"
 msgstr ""
+"Drizzle: Für die Berechnung der Tiny-Flats konnte kein Speicher zugewiesen "
+"werden.\n"
 
 #: src/registration/applyreg.c:958
-#, fuzzy
 msgid "Drizzle: Could not compute mapping for weights calculation.\n"
-msgstr "Bildauflösung konnte nicht berechnet werden\n"
+msgstr ""
+"Drizzle: Berechnung der Abbildung für die Gewichtungsberechnung konnte nicht "
+"durchgeführt werden.\n"
 
 #: src/registration/applyreg.c:964
 msgid "Drizzle:Error generating mapping array.\n"
@@ -33220,16 +33199,16 @@ msgstr "Drizzle: Fehler beim Erzeugen der Mapping-Matrix.\n"
 #: src/registration/applyreg.c:998 src/registration/applyreg.c:1009
 #, c-format
 msgid "Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"
-msgstr ""
+msgstr "Drizzle: Statistik für Drizzle-Flat im Layer %d ist ungültig.\n"
 
 #: src/registration/applyreg.c:1034
 msgid "Error computing statistics for drizzle weights.\n"
-msgstr ""
+msgstr "Fehler beim Berechnen der Drizzlegewichtung.\n"
 
 #: src/registration/applyreg.c:1039
 #, c-format
 msgid "Max drizzle weight for layer %d is invalid.\n"
-msgstr ""
+msgstr "Maximale Drizzlegewichtung für Ebene %d ist ungültig.\n"
 
 #: src/registration/applyreg.c:1066
 msgid "Initializing drizzle data..."
@@ -33240,6 +33219,7 @@ msgid ""
 "Warning: the CFA pattern in the reference image is not supported by "
 "drizzle.\n"
 msgstr ""
+"Warnung: Das CFA-Muster im Referenzbild wird für Drizzle nicht unterstützt.\n"
 
 #: src/registration/applyreg.c:1157
 msgid ""
@@ -33450,9 +33430,8 @@ msgid "Sequence framing: %.1f\n"
 msgstr "Rahmung der Sequenz: %.1f\n"
 
 #: src/registration/astrometric.c:376
-#, fuzzy
 msgid "Could not create WCS structure for framing, aborting\n"
-msgstr "Konnte %s nicht erstellen, Abbruch\n"
+msgstr "Konnte keine WCS-Struktur für die Rahmung erstellen, breche ab\n"
 
 #: src/registration/astrometric.c:424
 msgid "Astrometric registration computed.\n"
@@ -33907,7 +33886,7 @@ msgstr "Öffne Bilder zum Stacken"
 #: src/stacking/median_and_mean.c:104
 #, c-format
 msgid "Drizzle file %s not found in ./drizztmp folder, aborting\n"
-msgstr ""
+msgstr "Drizzledatei %s im Ordner ./drizztmp nicht gefunden, breche ab\n"
 
 #: src/stacking/median_and_mean.c:117 src/stacking/median_and_mean.c:123
 #, c-format
@@ -33930,14 +33909,15 @@ msgstr ""
 "Benutzen Sie stattdessen das \"Summen-Stacking\".\n"
 
 #: src/stacking/median_and_mean.c:241
-#, fuzzy
 msgid "Drizzle stacking will be used.\n"
-msgstr "Livestacking wird die Bilder debayern\n"
+msgstr "Drizzle-Stapelverarbeitung wird genutzt.\n"
 
 #: src/stacking/median_and_mean.c:244
 msgid ""
 "Drizzle stacking cannot be performed because drizzle weights are missing.\n"
 msgstr ""
+"Drizzle-Stapelverarbeitung kann nicht durchgeführt werden weil die "
+"Gewichtungen fehlen.\n"
 
 #: src/stacking/median_and_mean.c:305
 #, c-format
@@ -33963,9 +33943,9 @@ msgid "Error reading one of the masks areas (%d: %d %d %d %d)\n"
 msgstr "Fehler beim Einlesen eines der Bildbereiche (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:528 src/stacking/sum.c:124
-#, fuzzy, c-format
+#, c-format
 msgid "Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"
-msgstr "Fehler beim Einlesen eines der Bildbereiche (%d: %d %d %d %d)\n"
+msgstr "Fehler beim Einlesen einer der Drizzlegewichtung (%d: %d %d %d %d)\n"
 
 #: src/stacking/median_and_mean.c:1119 src/stacking/median_and_mean.c:1166
 #, c-format
