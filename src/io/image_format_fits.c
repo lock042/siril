@@ -3103,7 +3103,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 // f is NULL-terminated and not empty
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	// input validation
-	if (!f || !f[0] || !f[1] || !result) {
+	if (!f || !f[0] || !result) {
 		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
 		return;
 	}
