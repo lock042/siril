@@ -1657,11 +1657,14 @@ int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit) {
 	return read_fits_metadata_from_path_internal(filename, fit, FALSE);
 }
 
-void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
+gboolean flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 	/* reverse the read data, because it's stored upside-down */
 	if (get_data_type(bitpix) == DATA_FLOAT) {
 		int line_size = area->w * sizeof(float);
 		void *swap = malloc(line_size);
+		if (!swap) {
+			return FALSE;
+		}
 		float *buf = (float *)buffer;
 		int i;
 		for (i = 0; i < area->h/2 ; i++) {
@@ -1673,6 +1676,9 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 	} else {
 		int line_size = area->w * sizeof(WORD);
 		void *swap = malloc(line_size);
+		if (!swap) {
+			return FALSE;
+		}
 		WORD *buf = (WORD *)buffer;
 		int i;
 		for (i = 0; i < area->h/2 ; i++) {
@@ -1682,6 +1688,7 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 		}
 		free(swap);
 	}
+	return TRUE;
 }
 
 
@@ -1721,7 +1728,9 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	if (status)
 		return 1;
 
-	flip_buffer(seq->bitpix, buffer, area);
+	if (!flip_buffer(seq->bitpix, buffer, area)) {
+		return 1;
+	}
 	return 0;
 }
 
@@ -3094,7 +3103,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 // f is NULL-terminated and not empty
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	// input validation
-	if (!f || !f[0] || !f[1] || !result) {
+	if (!f || !f[0] || !result) {
 		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
 		return;
 	}
