@@ -10,6 +10,7 @@ siril 1.4.0
 * Fixed rejection stacking for drizzled sequence in 16b (#1858)
 * Updated log messages to avoid double newlines
 * Fixed rejection stacking for sequence in 16b (#1858)
+* Increase sirilpy timeouts
 
 siril 1.4.0-RC1
 11/08/25
