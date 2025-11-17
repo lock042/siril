@@ -33,7 +33,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
 int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
-void flip_buffer(int bitpix, void *buffer, const rectangle *area);
+gboolean flip_buffer(int bitpix, void *buffer, const rectangle *area);
 int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		const rectangle *area);
 int siril_fits_compress(fits *f);

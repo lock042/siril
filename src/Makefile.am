@@ -151,6 +151,8 @@ siril_common_SOURCES = \
 	core/siril.c \
 	core/siril_actions.c \
 	core/siril_actions.h \
+	core/siril_alloc.c \
+	core/siril_alloc.h \
 	core/siril_app_dirs.c \
 	core/siril_app_dirs.h \
 	core/siril_cmd_help.c \
