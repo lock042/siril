@@ -23,6 +23,13 @@
 
 #include <glib.h>
 
+// Structure to store config files with their versions
+typedef struct {
+	gchar *filename;
+	int major;
+	int minor;
+} ConfigFile;
+
 enum token_index {
 	WD = 0,		/* Working Directory */
 	BAY = 1,	/* Bayer settings */
