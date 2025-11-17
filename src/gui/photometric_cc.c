@@ -123,7 +123,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
 			case 1:
-				text = _("Gaia archive running but performing slightly slower\n");
+				text = _("Gaia archive running but performing slightly slower");
 				colortext = "green";
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 				break;
@@ -164,7 +164,7 @@ void check_gaia_archive_status() {
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		const gchar *text = N_("Siril is offline or built without networking. Gaia archive is unavailable.\n");
 		gtk_widget_set_tooltip_text(image, text);
-		siril_log_color_message("%s\n", "red", text);
+		siril_log_color_message("%s", "red", text);
 		return;
 	}
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));

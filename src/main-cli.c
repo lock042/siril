@@ -48,6 +48,10 @@
 #include <omp.h>
 #endif
 
+#ifdef HAVE_LIBGIT2
+#include <git2.h>
+#endif
+
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -142,7 +146,9 @@ static void global_initialization() {
 #ifdef _OPENMP
 	omp_set_max_active_levels(2);
 #endif
-
+#ifdef HAVE_LIBGIT2
+	git_libgit2_init();
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
