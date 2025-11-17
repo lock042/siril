@@ -9,6 +9,7 @@ siril 1.4.0
 * Fixed crash with intel macOS because of a bad pragma simd clause (#1856)
 * Fixed rejection stacking for drizzled sequence in 16b (#1858)
 * Updated log messages to avoid double newlines
+* Fixed rejection stacking for sequence in 16b (#1858)
 
 siril 1.4.0-RC1
 11/08/25

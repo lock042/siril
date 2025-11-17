@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/siril_alloc.h"
 #include "core/siril_log.h"
 #include "opencv/opencv.h"
 #include "driz_portability.h"
@@ -315,7 +316,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
-	p->xmap = malloc(source_rx * source_ry * 2 * sizeof(float));
+	p->xmap = siril_malloc(source_rx * source_ry * 2 * sizeof(float));
 	if (!p->xmap)
 		return 1;
 	p->ymap = p->xmap + (source_rx * source_ry);
