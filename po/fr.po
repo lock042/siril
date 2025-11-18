@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-17 21:02+0100\n"
-"PO-Revision-Date: 2025-11-07 20:27+0000\n"
+"PO-Revision-Date: 2025-11-18 12:23+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -27820,9 +27820,9 @@ msgid "Gaia archive available"
 msgstr "Les archives de Gaia sont disponibles"
 
 #: src/gui/photometric_cc.c:126
-#, fuzzy
 msgid "Gaia archive running but performing slightly slower"
-msgstr "L'archive Gaia fonctionne, mais est légèrement plus lente\n"
+msgstr ""
+"Les archives Gaia fonctionnent, mais leur performance est légèrement ralentie"
 
 #: src/gui/photometric_cc.c:131
 msgid "Gaia archive running but performing very slowly"
@@ -32316,11 +32316,10 @@ msgstr ""
 "prendre quelques secondes...\n"
 
 #: src/io/siril_pythonmodule.c:2078
-#, fuzzy
 msgid "Error checking python magic number: pyc files will not work\n"
 msgstr ""
 "Erreur lors de la vérification du nombre magique Python : les fichiers pyc "
-"ne fonctionneront pas"
+"ne fonctionneront pas\n"
 
 #: src/io/siril_pythonmodule.c:2098
 #, c-format
