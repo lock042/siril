@@ -7,7 +7,6 @@ siril 1.4.0
 * Fixed writing registration information for the reference image with global registration (#1849)
 * Fixed shared memory leak in set_seq_frame_pixeldata()
 * Fixed crash with intel macOS because of a bad pragma simd clause (#1856)
-* Fixed rejection stacking for drizzled sequence in 16b (#1858)
 * Updated log messages to avoid double newlines
 * Fixed rejection stacking for sequence in 16b (#1858)
 * Increase sirilpy timeouts
