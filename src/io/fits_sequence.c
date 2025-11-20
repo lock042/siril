@@ -361,7 +361,8 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 
 	if (internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix, buffer, layer, area))
 		return 1;
-	flip_buffer(fitseq->bitpix, buffer, area);
+	if (!flip_buffer(fitseq->bitpix, buffer, area))
+		return 1;
 	return 0;
 }
 

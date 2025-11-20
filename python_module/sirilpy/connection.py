@@ -31,7 +31,7 @@ from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, Siri
         STFType, SlidersMode
 from .utility import truncate_utf8, parse_fits_header
 
-DEFAULT_TIMEOUT = 5.
+DEFAULT_TIMEOUT = 10.
 
 if os.name == 'nt':
     import win32file
@@ -988,7 +988,7 @@ class SirilInterface:
             # Append a newline character to the string
             # Convert string to bytes using UTF-8 encoding
             message_bytes = my_string.encode('utf-8')
-            return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes)
+            return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes, timeout=60)
 
         except Exception as e:
             raise SirilError(f"Error in undo_save_state(): {e}") from e
