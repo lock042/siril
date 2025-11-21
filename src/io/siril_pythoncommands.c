@@ -2063,6 +2063,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+			// Ensure header is up-to-date
+			update_fits_header(fit);
+
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
@@ -2083,19 +2086,42 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Prepare data
 			size_t total_length = 0;
-			for (GSList *item = fit->history; item != NULL; item = item->next) {
-				gchar *str = (gchar *)item->data;
-				total_length += strlen(str) + 1;  // +1 to account for the null terminator
+			if (fit->history) {
+				for (GSList *item = fit->history; item != NULL; item = item->next) {
+					gchar *str = (gchar *)item->data;
+					total_length += strlen(str) + 1;  // +1 to account for the null terminator
+				}
+			}
+			if (com.history) {
+				for (int i = 0; i < com.hist_display; i++) {
+					if (com.history[i].history[0] != '\0') {
+						gchar *str = (gchar *) com.history[i].history;
+						total_length += strlen(str) + 1;
+					}
+				}
 			}
 			gchar *buffer = malloc(total_length * sizeof(char));
 			gchar *ptr = buffer;
-			for (GSList *item = fit->history; item != NULL; item = item->next) {
-				gchar *str = (gchar *)item->data;
-				size_t len = strlen(str) + 1;
-				memcpy(ptr, str, len * sizeof(char));
-				ptr += len;
+			if (fit->history) {
+				for (GSList *item = fit->history; item != NULL; item = item->next) {
+					gchar *str = (gchar *)item->data;
+					size_t len = strlen(str) + 1;
+					memcpy(ptr, str, len * sizeof(char));
+					ptr += len;
+				}
+			}
+			if (com.history) {
+				for (int i = 0; i < com.hist_display; i++) {
+					if (com.history[i].history[0] != '\0') {
+						gchar *str = (gchar *) com.history[i].history;
+						size_t len = strlen(str) + 1;
+						memcpy(ptr, str, len * sizeof(char));
+						ptr += len;
+					}
+				}
 			}
 			shared_memory_info_t *info = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));

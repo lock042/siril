@@ -1,4 +1,10 @@
-siril 1.4.0
+siril-1.4.0
+xx/xx/xx
+
+**Fixes**
+* Fixed get_image_history(): now correctly updates history with operations done since loading
+
+siril 1.4.0-RC2
 11/20/25
 
 **Fixes**
