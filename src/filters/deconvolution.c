@@ -53,6 +53,22 @@ int sequence_is_running;
 
 estk_data args = { 0 };
 
+void free_estk_data(void *p) {
+	estk_data *data = (estk_data*) p;
+	free(data->savepsf_filename);
+	free(p);
+}
+
+estk_data *alloc_estk_data() {
+	estk_data *p = calloc(1, sizeof(estk_data));
+	if (!p) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	p->destroy_fn = free_estk_data;
+	return p;
+}
+
 orientation_t get_imageorientation() {
 	orientation_t result;
 	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
@@ -439,7 +455,6 @@ gpointer estimate_only(gpointer p) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
 	}
 	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
@@ -544,7 +559,6 @@ gpointer deconvolve(gpointer p) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
 		the_fit = gfit;
 	}
 	gboolean stars_need_clearing = FALSE;
@@ -754,6 +768,46 @@ ENDDECONV:
 	return GINT_TO_POINTER(retval);
 }
 
+///////// ******  IMAGE PROCESSING   ****** //////////
+
+/* Wrapper hooks for deconvolution */
+int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(deconvolve(args->user));
+}
+
+int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(estimate_only(args->user));
+}
+
+/* Idle function for deconvolution */
+gboolean deconvolve_img_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
+}
+
+/* Idle function for PSF estimation */
+gboolean estimate_img_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	// Estimation doesn't modify gfit directly, but may update the kernel
+	// No need to notify_gfit_modified() here
+
+	// Free using the generic cleanup
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
+}
+
 ///////// ****** SEQUENCE PROCESSING ****** //////////
 
 static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gboolean for_writer) {
@@ -811,7 +865,6 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	sequence_is_running = 0;
 	return retval;
 }
-
 
 int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 0;

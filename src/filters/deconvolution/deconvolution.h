@@ -37,9 +37,9 @@ typedef enum { REG_TV_GRAD, REG_FH_GRAD, REG_NONE_GRAD, REG_TV_MULT, REG_FH_MULT
 typedef enum { BOTTOM_UP, TOP_DOWN, UNDEFINED } orientation_t;
 
 EXTERNC typedef struct estk_data {
+	destructor destroy_fn;
 	orientation_t kernelorientation;
-	char* wisdom_file;
-	float* fdata;
+	float* fdata; // Reference only, the struct does not own fdata and must not free it
 	unsigned rx;
 	unsigned ry;
 	unsigned nchans;
@@ -99,6 +99,13 @@ EXTERNC typedef struct estk_data {
 	gboolean stars_need_clearing; // for the makepsf stars option
 	gboolean previewing;
 } estk_data;
+
+EXTERNC void free_estk_data(void *p);
+EXTERNC estk_data *alloc_estk_data();
+EXTERNC int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+EXTERNC int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+EXTERNC gboolean deconvolve_img_idle(gpointer p);
+EXTERNC gboolean estimate_img_idle(gpointer p);
 
 EXTERNC float *estimate_kernel(estk_data *args, int max_threads);
 EXTERNC float *gf_estimate_kernel(estk_data *args, int max_threads);

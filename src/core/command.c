@@ -1369,9 +1369,35 @@ int process_grey_flat(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/* Wrapper hook for command-line PSF estimation with dynamic estk_data */
+int estimate_only_cmd_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct estk_data *data = (struct estk_data *)args->user;
+	if (!data)
+		return 1;
+	return GPOINTER_TO_INT(estimate_only(data));
+}
+
+/* Idle function for command-line PSF estimation */
+gboolean estimate_only_cmd_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	// PSF estimation doesn't modify gfit directly, but may update the kernel
+	// No need to notify_gfit_modified() here
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
+}
+
 int process_makepsf(int nb) {
 	gboolean error = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
 	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
 
@@ -1482,9 +1508,35 @@ int process_makepsf(int nb) {
 				}
 			}
 			image_cfa_warning_check();
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				// Call destructor on data before freeing
+				if (data->destroy_fn)
+					data->destroy_fn(data);
+				else {
+					g_free(data->savepsf_filename);
+					free(data);
+				}
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Blind)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
@@ -1541,9 +1593,35 @@ int process_makepsf(int nb) {
 				data->recalc_ks = TRUE;
 			}
 			image_cfa_warning_check();
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				// Call destructor on data before freeing
+				if (data->destroy_fn)
+					data->destroy_fn(data);
+				else {
+					g_free(data->savepsf_filename);
+					free(data);
+				}
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Stars)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
@@ -1692,9 +1770,35 @@ int process_makepsf(int nb) {
 					goto terminate_makepsf;
 				}
 			}
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				// Call destructor on data before freeing
+				if (data->destroy_fn)
+					data->destroy_fn(data);
+				else {
+					g_free(data->savepsf_filename);
+					free(data);
+				}
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Manual)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
@@ -1715,8 +1819,13 @@ int process_makepsf(int nb) {
 		}
 	}
 terminate_makepsf:
-	g_free(data->savepsf_filename);
-	free(data);
+	// Call destructor if available, otherwise manual cleanup
+	if (data->destroy_fn)
+		data->destroy_fn(data);
+	else {
+		g_free(data->savepsf_filename);
+		free(data);
+	}
 	return status;
 }
 
@@ -1830,19 +1939,48 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
-	estk_data* data = calloc(1, sizeof(estk_data));
+	estk_data* data = alloc_estk_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
 	int ret = parse_deconvolve(1, nb, data, type);
-	if (ret == CMD_OK){
+	if (ret == CMD_OK) {
 		image_cfa_warning_check();
-		if (!start_in_new_thread(deconvolve, data)) {
-			g_free(data->savepsf_filename);
-			free(data);
+
+		// Allocate generic worker args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			PRINT_ALLOC_ERR;
+			// Call destructor on data before freeing
+			if (data->destroy_fn)
+				data->destroy_fn(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 4.0f; // Deconvolution needs significant memory
+		args->image_hook = deconvolve_image_hook;
+		args->idle_function = NULL;
+		args->description = _("Deconvolution");
+		args->verbose = TRUE;
+		args->user = data; // Dynamic estk_data managed by generic worker
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			// Free both args and data on thread start failure
+			free_generic_img_args(args);
 			return CMD_GENERIC_ERROR;
 		}
 		return CMD_OK;
 	}
-	free(data);
+
+	// Call destructor on data if parse failed
+	if (data->destroy_fn)
+		data->destroy_fn(data);
 	return ret;
 }
 

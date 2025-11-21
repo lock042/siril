@@ -749,13 +749,36 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 	set_cursor_waiting(TRUE);
+
 	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Sequence selected"), _("Preview cannot be used with \"Apply to Sequence\" selected"));
 	} else {
 		copy_backup_to_gfit();
 		args.previewing = TRUE;
-		the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
-		start_in_new_thread(deconvolve, NULL);
+
+		gboolean is_roi = (!com.headless && gui.roi.active);
+		the_fit = is_roi ? &gui.roi.fit : gfit;
+
+		// Allocate generic worker args
+		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
+		if (!worker_args) {
+			PRINT_ALLOC_ERR;
+			set_cursor_waiting(FALSE);
+			return;
+		}
+
+		worker_args->fit = the_fit;
+		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
+		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->idle_function = deconvolve_idle;
+		worker_args->description = _("Deconvolution Preview");
+		worker_args->verbose = TRUE;
+		worker_args->user = NULL; // estk_data is managed statically in deconvolve
+		worker_args->max_threads = com.max_thread;
+		worker_args->for_preview = TRUE;
+		worker_args->for_roi = is_roi;
+
+		start_in_new_thread(generic_image_worker, worker_args);
 	}
 }
 
@@ -769,6 +792,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 	set_cursor_waiting(TRUE);
+
 	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
 		seqargs = calloc(1, sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;
@@ -782,7 +806,27 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		copy_backup_to_gfit();
 		the_fit = gfit;
-		start_in_new_thread(deconvolve, NULL);
+
+		// Allocate generic worker args
+		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
+		if (!worker_args) {
+			PRINT_ALLOC_ERR;
+			set_cursor_waiting(FALSE);
+			return;
+		}
+
+		worker_args->fit = gfit;
+		worker_args->mem_ratio = 4.0f; // Deconvolution needs significant memory
+		worker_args->image_hook = deconvolve_image_hook;
+		worker_args->idle_function = deconvolve_img_idle;
+		worker_args->description = _("Deconvolution");
+		worker_args->verbose = TRUE;
+		worker_args->user = NULL; // estk_data is managed statically in deconvolve
+		worker_args->max_threads = com.max_thread;
+		worker_args->for_preview = FALSE;
+		worker_args->for_roi = FALSE;
+
+		start_in_new_thread(generic_image_worker, worker_args);
 	}
 }
 
@@ -791,18 +835,43 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	gboolean abort = FALSE;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gtk_file_chooser_unselect_all(bdeconv_filechooser);
+
 	if(!sequence_is_loaded())
 		the_fit = gfit; // The blind estimate is still always done on the whole image.
 		// TODO: consider if this should be done on the ROI if active...
+
 	if(!com.headless)
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions
+
 	if (args.psftype == PSF_STARS || args.psftype == PSF_BLIND)
 		abort = !check_ok_if_cfa();
+
 	if (!abort) {
 		set_cursor_waiting(TRUE);
-		start_in_new_thread(estimate_only, NULL);
+
+		// Allocate generic worker args
+		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
+		if (!worker_args) {
+			PRINT_ALLOC_ERR;
+			set_cursor_waiting(FALSE);
+			return;
+		}
+
+		worker_args->fit = gfit;
+		worker_args->mem_ratio = 3.0f; // PSF estimation memory requirement
+		worker_args->image_hook = estimate_only_image_hook;
+		worker_args->idle_function = estimate_img_idle;
+		worker_args->description = _("PSF Estimation");
+		worker_args->verbose = TRUE;
+		worker_args->user = NULL; // estk_data is managed statically in estimate_only
+		worker_args->max_threads = com.max_thread;
+		worker_args->for_preview = FALSE;
+		worker_args->for_roi = FALSE;
+
+		start_in_new_thread(generic_image_worker, worker_args);
 	}
 }
+
 
 // Actual drawing function
 void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
