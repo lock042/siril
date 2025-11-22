@@ -18,11 +18,14 @@ void reset_conv_kernel();
 gboolean set_kernel_size_in_gui(gpointer user_data);
 gboolean DrawPSF(gpointer user_data);
 void calculate_parameters();
-orientation_t get_imageorientation();
+int load_kernel(gchar* filename, estk_data *args);
+int save_kernel(gchar* filename, estk_data *args);
+orientation_t get_imageorientation(fits *fit);
 
-int load_kernel(gchar* filename);
-int save_kernel(gchar* filename);
 void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data);
+gboolean deconvolve_img_idle(gpointer p);
+gboolean estimate_img_idle(gpointer p);
+
 gboolean deconvolve_idle(gpointer arg);
 gpointer deconvolve(gpointer p);
 gboolean estimate_idle(gpointer arg);

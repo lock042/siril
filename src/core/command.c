@@ -1393,12 +1393,16 @@ gboolean estimate_only_cmd_idle(gpointer p) {
 
 int process_makepsf(int nb) {
 	gboolean error = FALSE;
-	estk_data* data = calloc(1, sizeof(estk_data));
+	// Use the new allocator to ensure function pointers (destructor) are set
+	estk_data* data = alloc_estk_data();
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		return CMD_GENERIC_ERROR;
 	}
+
 	reset_conv_args(data);
+	data->fit = gfit; // Explicitly enforce gfit per instructions
+
 	cmd_errors status = CMD_OK;
 
 	char *arg_1 = word[1];
@@ -1415,19 +1419,29 @@ int process_makepsf(int nb) {
 		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
-				on_bdeconv_savekernel_clicked(NULL, NULL);
+				// We cannot call on_bdeconv_savekernel_clicked here as it now reads from GUI widgets.
+				// Enforce filename argument in command line mode.
+				siril_log_color_message(_("Error: a filename must be specified when saving a PSF from the command line.\n"), "red");
+				status = CMD_ARG_ERROR;
 			} else {
 				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
 					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 					status = CMD_ARG_ERROR;
 					goto terminate_makepsf;
 				}
-				save_kernel(word[2]);
+				// Update: pass data to save_kernel
+				save_kernel(word[2], data);
 			}
 			goto terminate_makepsf;
 		}
-		reset_conv_kernel();
+
+		// If we aren't loading, we are generating, so reset previous
+		if (g_strcmp0(arg_1, "load") != 0) {
+			reset_conv_kernel();
+		}
+
 		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
+
 		if (!g_strcmp0(arg_1, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
@@ -1513,13 +1527,7 @@ int process_makepsf(int nb) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				PRINT_ALLOC_ERR;
-				// Call destructor on data before freeing
-				if (data->destroy_fn)
-					data->destroy_fn(data);
-				else {
-					g_free(data->savepsf_filename);
-					free(data);
-				}
+				if (data->destroy_fn) data->destroy_fn(data);
 				return CMD_GENERIC_ERROR;
 			}
 
@@ -1566,6 +1574,7 @@ int process_makepsf(int nb) {
 						goto terminate_makepsf;
 					}
 					data->ks = ks;
+					force_ks = TRUE;
 				}
 				else if (g_str_has_prefix(arg, "-savepsf=")) {
 					if (data->savepsf_filename) {
@@ -1598,13 +1607,7 @@ int process_makepsf(int nb) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				PRINT_ALLOC_ERR;
-				// Call destructor on data before freeing
-				if (data->destroy_fn)
-					data->destroy_fn(data);
-				else {
-					g_free(data->savepsf_filename);
-					free(data);
-				}
+				if (data->destroy_fn) data->destroy_fn(data);
 				return CMD_GENERIC_ERROR;
 			}
 
@@ -1775,13 +1778,7 @@ int process_makepsf(int nb) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
 				PRINT_ALLOC_ERR;
-				// Call destructor on data before freeing
-				if (data->destroy_fn)
-					data->destroy_fn(data);
-				else {
-					g_free(data->savepsf_filename);
-					free(data);
-				}
+				if (data->destroy_fn) data->destroy_fn(data);
 				return CMD_GENERIC_ERROR;
 			}
 
@@ -1805,7 +1802,8 @@ int process_makepsf(int nb) {
 		} else if (!g_strcmp0(arg_1, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
-				if (load_kernel(word[2])) {
+				// Update: pass data to load_kernel
+				if (load_kernel(word[2], data)) {
 					siril_log_color_message(_("Error loading PSF.\n"), "red");
 					status = CMD_FILE_NOT_FOUND;
 					goto terminate_makepsf;
@@ -1819,34 +1817,45 @@ int process_makepsf(int nb) {
 		}
 	}
 terminate_makepsf:
-	// Call destructor if available, otherwise manual cleanup
+	// If we reached here, the data struct was not handed off to a worker thread.
+	// Clean it up.
 	if (data->destroy_fn)
 		data->destroy_fn(data);
 	else {
+		// Fallback if destructor missing (shouldn't happen with alloc_estk_data)
 		g_free(data->savepsf_filename);
 		free(data);
 	}
 	return status;
 }
 
-int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
+int parse_deconvolve(int first_arg, int nb, estk_data* data, nonblind_t type) {
 	gboolean error = FALSE;
 	gboolean kernel_loaded = FALSE;
+
 	reset_conv_args(data);
+	data->fit = gfit; // Ensure we operate on the global fit for commands
+
 	data->regtype = REG_NONE_GRAD;
+
+	// If a kernel already exists globally, sync the kernel size to the struct
 	if (com.kernel && com.kernelsize > 0)
 		data->ks = com.kernelsize;
+
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
+
 	for (int i = first_arg; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
+
 		if (g_str_has_prefix(arg, "-loadpsf=")) {
 			arg += 9;
-			if (arg[0] != '\0' && load_kernel(arg)) {
+			// UPDATE: pass 'data' to load_kernel
+			if (arg[0] != '\0' && load_kernel(arg, data)) {
 				siril_log_message(_("Error loading PSF.\n"));
 				return CMD_FILE_NOT_FOUND;
 			}
@@ -1902,7 +1911,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 			}
 		}
 		else if (!g_strcmp0(arg, "-tv")) {
-			 data->regtype = REG_TV_GRAD;
+			data->regtype = REG_TV_GRAD;
 		}
 		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
@@ -1918,6 +1927,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	if (error) {
 		return CMD_ARG_ERROR;
 	}
+
 	// Guess the user's intentions for a kernel:
 	// Order of preference is: if a PSF has specifically been loaded, use that, else
 	// if com.stars is populated, assume the user wants to make a PSF from stars and
@@ -1932,18 +1942,23 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel
-	else data->psftype = PSF_BLIND; // blind deconvolve
+	else
+		data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
 	return CMD_OK;
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
+	// Use the new allocator
 	estk_data* data = alloc_estk_data();
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
+
+	// Explicitly set gfit
+	data->fit = gfit;
 
 	int ret = parse_deconvolve(1, nb, data, type);
 	if (ret == CMD_OK) {
@@ -1953,7 +1968,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		if (!args) {
 			PRINT_ALLOC_ERR;
-			// Call destructor on data before freeing
 			if (data->destroy_fn)
 				data->destroy_fn(data);
 			return CMD_ALLOC_ERROR;
@@ -1978,7 +1992,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 		return CMD_OK;
 	}
 
-	// Call destructor on data if parse failed
+	// Call destructor on data if parse failed or thread didn't start
 	if (data->destroy_fn)
 		data->destroy_fn(data);
 	return ret;
