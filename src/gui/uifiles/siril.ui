@@ -5171,6 +5171,7 @@ Uncheck if images come from a monochrome sensor.</property>
 * The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
                                                             <property name="valign">center</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            <signal name="changed" handler="update_prepro_interface" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">True</property>
