@@ -3,10 +3,12 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "core/settings.h"
 #include "core/siril.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "algos/photometry.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
 #include "core/siril_actions.h"
@@ -325,7 +327,7 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_BE64(data->s_Bmag, double);
 	COPY_BE64(data->SNR, double);
 	// photometry *phot not currently passed to python
-	// gboolean phot_is_valid not currently passed to python
+	COPY_BE64((int64_t) data->phot_is_valid, int64_t);
 	COPY_BE64(data->BV, double);
 	COPY_BE64(data->B_err, double);
 	COPY_BE64(data->A_err, double);
@@ -837,8 +839,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
-			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
-			if (!psf || error) {
+			// For get_star_in_selection we will do photometry to get more accurate mag, s_mag, SNR
+			struct phot_config *ps = phot_set_adjusted_for_image(gfit);
+			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, TRUE, TRUE, ps, TRUE, profile, &error);
+			free(ps); // Free the struct used for photometry
+			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry failed on a saturated star
+																		 // We still return the PSF, just with phot_is_valid == False
 				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");
@@ -855,7 +861,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
-			const size_t psf_star_size = 36 * sizeof(double);
+			const size_t psf_star_size = 37 * sizeof(double);
 			unsigned char* star = g_try_malloc0(psf_star_size);
 			unsigned char* ptr = star;
 			if (psfstar_to_py(psf, ptr, psf_star_size)) {
@@ -1890,7 +1896,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Allocate memory for all star data
-			const size_t psf_star_size = 36 * sizeof(double);
+			const size_t psf_star_size = 37 * sizeof(double);
 			const size_t total_size = nb_stars * psf_star_size;
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {

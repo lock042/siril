@@ -1232,6 +1232,11 @@ class SirilInterface:
         selection, the first one identified by Siril's internal star detection
         algorithm is returned.
 
+        **Update**: from sirilpy 1.0.4 this method uses Siril's photometry functions to
+        try to provide photometrically accurate values for PSFStar.mag, PSFStar.s_mag
+        and PSFStar.SNR. If photometry succeeded and no saturated pixels were detected
+        then PSFStar.phot_is_valid will be True, otherwise it will be False.
+
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
                    retrieve from. w x h must not exceed 300 px x 300 px.
@@ -1290,11 +1295,6 @@ class SirilInterface:
 
             if not response:
                 raise RuntimeError(_("Failed to transfer star data: No data received"))
-
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
-
-            # Extract the bytes for this struct and unpack
-            values = struct.unpack(format_string, response)
 
             return PSFStar.deserialize(response)
 
@@ -3584,7 +3584,7 @@ class SirilInterface:
             except (OSError, ValueError) as e:
                 raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            format_string = '!13d2qdq7d q d8d q 2d'  # Define the format string based on PSFStar structure
             fixed_size = struct.calcsize(format_string)
 
             # Read entire buffer at once using memoryview
