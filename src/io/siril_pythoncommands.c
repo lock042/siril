@@ -852,7 +852,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf_error error = PSF_NO_ERR;
 			// For get_star_in_selection we will do photometry to get more accurate mag, s_mag, SNR
 			struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, TRUE, FALSE, ps, TRUE, profile, &error);
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, TRUE, TRUE, ps, TRUE, profile, &error);
 			free(ps); // Free the struct used for photometry
 			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry failed on a saturated star
 																		 // We still return the PSF, just with phot_is_valid == False
