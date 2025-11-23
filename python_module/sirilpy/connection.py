@@ -3584,7 +3584,7 @@ class SirilInterface:
             except (OSError, ValueError) as e:
                 raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            format_string = '!13d2qdq7d q d8d q 2d'  # Define the format string based on PSFStar structure
             fixed_size = struct.calcsize(format_string)
 
             # Read entire buffer at once using memoryview
