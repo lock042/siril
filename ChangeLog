@@ -1,5 +1,7 @@
 siril-1.4.0
 xx/xx/xx
+**Improvements**
+SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!tbc)
 
 **Fixes**
 * Fixed get_image_history(): now correctly updates history with operations done since loading
