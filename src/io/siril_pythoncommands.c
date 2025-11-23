@@ -824,14 +824,25 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 			}
-			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
-				selection.w < 5 || selection.w > 300 ||
-				selection.h < 5 || selection.h > 300 ||
-				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
-					const char* error_msg = _("Invalid selection");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
-				}
+			// Check for an invalid selection
+			if (selection.x < 0 || selection.w < 5 || selection.w > 300 ||
+						selection.h < 5 || selection.h > 300 || selection.y < 0) {
+				const char* error_msg = _("Invalid selection");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			// Check if we need to adjust the selection to fit the image (we do this automatically rather than rejecting to
+			// make it easier to automate get_selection_star() based on square shapes around star centres)
+			if (selection.x + selection.w > gfit.rx - 1)
+				selection.w = max(0, gfit.rx - 1 - selection.x);
+			if (selection.y + selection.h > gfit.ry - 1)
+				selection.h = max(0, gfit.ry - 1 - selection.y);
+
+			if (selection.w < 5 || selection.h < 5) {
+				const char* error_msg = _("Selection too close to edge of image");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
 			if (layer < 0 || layer >= gfit.naxes[2]) {
 					const char* error_msg = _("Invalid channel");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
