@@ -807,10 +807,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_STAR_IN_SELECTION: {
 			gboolean error_occurred = FALSE;
+			gboolean centred = FALSE;
 			int layer = 0;
 			rectangle selection;
 			memcpy(&selection, &com.selection, sizeof(rectangle));
-			if (payload_length == 16 || payload_length == 20) {
+			if (payload_length == 20 || payload_length == 24 || payload_length == 28) {
 				rectangle region_BE = *(rectangle*) payload;
 				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
 									GUINT32_FROM_BE(region_BE.y),
@@ -819,7 +820,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				memcpy(&selection, &com.selection, sizeof(rectangle));
 			}
-			if (payload_length == 20) {
+			if (payload_length == 24) {
+				centred = GUINT32_FROM_BE(*((int*) payload + 4)) != 0;
+			} else if (payload_length == 28) {
+				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+				centred = GUINT32_FROM_BE(*((int*) payload + 5)) != 0;
+			} else if (payload_length == 20) {
 				layer = GUINT32_FROM_BE(*((int*) payload + 4));
 			} else {
 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
@@ -833,10 +839,43 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Check if we need to adjust the selection to fit the image (we do this automatically rather than rejecting to
 			// make it easier to automate get_selection_star() based on square shapes around star centres)
-			if (selection.x + selection.w > gfit.rx - 1)
-				selection.w = max(0, gfit.rx - 1 - selection.x);
-			if (selection.y + selection.h > gfit.ry - 1)
-				selection.h = max(0, gfit.ry - 1 - selection.y);
+			if (centred) {
+				// When centred, we need to preserve the centre position while clipping
+				int center_x = selection.x + selection.w / 2;
+				int center_y = selection.y + selection.h / 2;
+
+				// Clip width and height to fit image
+				if (selection.x + selection.w > gfit.rx) {
+					selection.w = gfit.rx - selection.x;
+				}
+				if (selection.y + selection.h > gfit.ry) {
+					selection.h = gfit.ry - selection.y;
+				}
+				if (selection.x < 0) {
+					selection.w += selection.x;  // Reduce width by the amount we're shifting right
+					selection.x = 0;
+				}
+				if (selection.y < 0) {
+					selection.h += selection.y;  // Reduce height by the amount we're shifting up
+					selection.y = 0;
+				}
+
+				// Now adjust x and y to maintain the original centre
+				int new_center_x = selection.x + selection.w / 2;
+				int new_center_y = selection.y + selection.h / 2;
+				selection.x += (center_x - new_center_x);
+				selection.y += (center_y - new_center_y);
+
+				// Final bounds check to ensure we haven't gone out of bounds
+				selection.x = max(0, min(selection.x, (int)gfit.rx - selection.w));
+				selection.y = max(0, min(selection.y, (int)gfit.ry - selection.h));
+			} else {
+				// Original behavior: just clip the width and height
+				if (selection.x + selection.w > gfit.rx - 1)
+					selection.w = max(0, gfit.rx - 1 - selection.x);
+				if (selection.y + selection.h > gfit.ry - 1)
+					selection.h = max(0, gfit.ry - 1 - selection.y);
+			}
 
 			if (selection.w < 5 || selection.h < 5) {
 				const char* error_msg = _("Selection too close to edge of image");
@@ -844,18 +883,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			if (layer < 0 || layer >= gfit.naxes[2]) {
-					const char* error_msg = _("Invalid channel");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
+				const char* error_msg = _("Invalid channel");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
 			// For get_star_in_selection we will do photometry to get more accurate mag, s_mag, SNR
 			struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, TRUE, TRUE, ps, TRUE, profile, &error);
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, TRUE, centred, ps, TRUE, profile, &error);
 			free(ps); // Free the struct used for photometry
 			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry failed on a saturated star
-																		 // We still return the PSF, just with phot_is_valid == False
+																		// We still return the PSF, just with phot_is_valid == False
 				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");

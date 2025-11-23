@@ -1224,7 +1224,7 @@ class SirilInterface:
             raise SirilError(_("Error occurred in get_image_shape()")) from e
 
     def get_selection_star(self, shape: Optional[list[int]] = None, \
-        channel: Optional[int] = None)-> Optional[PSFStar]:
+        channel: Optional[int] = None, assume_centred: bool = False)-> Optional[PSFStar]:
 
         """
         Retrieves a PSFStar star model from the current selection in Siril.
@@ -1239,19 +1239,21 @@ class SirilInterface:
 
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
-                   retrieve from. w x h must not exceed 300 px x 300 px.
-                   If provided, looks for a star in the specified selection
-                   If None, looks for a star in the selection already made in
-                   Siril, if one is made.
+                retrieve from. w x h must not exceed 300 px x 300 px.
+                If provided, looks for a star in the specified selection
+                If None, looks for a star in the selection already made in
+                Siril, if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                     channel is omitted the current viewport will be used if
-                     in GUI mode, or if not in GUI mode the method will fall back
-                     to channel 0
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the current viewport will be used if
+                    in GUI mode, or if not in GUI mode the method will fall back
+                    to channel 0
+            assume_centred: Optional bool specifying whether to assume the star
+                        is already centred in the selection. Defaults to False.
 
         Returns:
             PSFStar: the PSFStar object representing the star model, or None if
-                     no star is detected in the selection.
+                    no star is detected in the selection.
 
         Raises:
             ValueError: If an invalid shape is provided,
@@ -1272,10 +1274,11 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be non-negative"))
 
                 # Pack shape data for the command
+                centred_flag = 1 if assume_centred else 0
                 if channel is None:
-                    shape_data = struct.pack('!IIII', *shape)
+                    shape_data = struct.pack('!IIIII', *shape, centred_flag)
                 else:
-                    shape_data = struct.pack('!IIIII', *shape, channel)
+                    shape_data = struct.pack('!IIIIII', *shape, channel, centred_flag)
 
             status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
 
