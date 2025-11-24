@@ -208,6 +208,7 @@ int execute_command(int wordnb) {
 		if (!com.python_script) {
 			notify_gfit_modified();
 		} else {
+			waiting_for_thread();
 			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
 			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
