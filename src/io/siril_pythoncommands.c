@@ -1923,6 +1923,34 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf_star **stars = NULL;
 			int nb_stars = 0;
 			gboolean stars_needs_freeing = FALSE;
+			int layer = 0;
+			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
+
+			// Parse channel from payload if provided
+			if (payload_length == 4) {
+				guint32 channel_BE = *((guint32*) payload);
+				guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+
+				if (channel_val != SENTINEL_VALUE) {
+					layer = channel_val;
+					// Validate channel
+					if (layer < 0 || layer >= gfit.naxes[2]) {
+						const char* error_msg = _("Invalid channel");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						break;
+					}
+				} else {
+					// Use default: channel 0 for mono, channel 1 (green) for color
+					layer = (gfit.naxes[2] == 1) ? 0 : 1;
+				}
+			} else if (payload_length == 0) {
+				// No payload means use default
+				layer = (gfit.naxes[2] == 1) ? 0 : 1;
+			} else {
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 
 			// Check if we need to find stars or use existing ones
 			if (starcount(com.stars) < 1) {
@@ -1933,11 +1961,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-
 				sf_data->im.fit = &gfit;
 				sf_data->im.from_seq = NULL;
 				sf_data->im.index_in_seq = -1;
-				sf_data->layer = (gfit.naxes[2] == 1) ? 0 : 1;
+				sf_data->layer = layer;  // Use the determined layer
 				sf_data->max_stars_fitted = MAX_STARS;
 				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
 				sf_data->save_eqcoords = has_wcs(&gfit); // save coords if plate solved
@@ -1949,11 +1976,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				sf_data->process_all_images = FALSE;
 				sf_data->already_in_thread = TRUE;
 				sf_data->keep_stars = FALSE;  // Changed to FALSE so worker doesn't try to manage lifecycle
-
 				// Call the worker function
 				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
 				free(sf_data);
-
 				if (retval != 0 || !stars) {
 					const char* error_msg = _("Star detection failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -2003,16 +2028,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Clean up and send response
 			if (stars_needs_freeing)
 				free_fitted_stars(stars);
-
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			}
-
 			g_free(allstars);
 			break;
 		}
+
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
 			sample_mutex_lock();

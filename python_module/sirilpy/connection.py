@@ -3533,9 +3533,16 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_stars(self) -> List[PSFStar]:
+    def get_image_stars(self, channel: Optional[int] = None) -> List[PSFStar]:
         """
         Request star model PSF data from Siril.
+
+        Args:
+            channel: Optional int specifying the channel to retrieve from.
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the default behavior will be used:
+                    channel 0 for mono images, channel 1 (green) for color images.
+                    **channel requires sirilpy v1.0.8 or higher.**
 
         Returns:
             List of PSFStar objects containing the star data, or None if
@@ -3546,15 +3553,29 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilError: For other errors during  data retrieval,
+            ValueError: If an invalid channel is provided,
+            SirilError: For other errors during data retrieval,
         """
 
         stars = []
         shm = None
+        shm_info = None
 
         try:
+            # Sentinel value for not-provided channel
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            channel_val = SENTINEL_VALUE if channel is None else channel
+
+            # Pack channel data for the command
+            channel_data = struct.pack('!I', channel_val)
+
             # Request shared memory setup
-            status, response = self._send_command(_Command.GET_PSFSTARS)
+            status, response = self._send_command(_Command.GET_PSFSTARS, channel_data)
 
             # Handle error responses
             if status == _Status.ERROR:
@@ -3570,9 +3591,6 @@ class SirilInterface:
 
             if not response:
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
-
-            if status == _Status.NONE:
-                return None
 
             try:
                 # Parse the shared memory information
@@ -3598,15 +3616,15 @@ class SirilInterface:
             # Validate buffer size
             if shm_info.size % fixed_size != 0:
                 raise ValueError(_("Buffer size {} is not a multiple "
-                                   "of struct size {}").format(len(buffer), fixed_size))
+                                "of struct size {}").format(len(buffer), fixed_size))
 
             num_stars = len(buffer) // fixed_size
 
             # Sanity check for number of stars
-            if num_stars <= 0:  # adjust max limit as needed
+            if num_stars <= 0:
                 raise ValueError(_("Invalid number of stars: {}").format(num_stars))
 
-            if num_stars > 200000: # to match the #define MAX_STARS
+            if num_stars > 200000:  # to match the #define MAX_STARS
                 num_stars = 200000
                 self.log(_("Limiting stars to max 200000"))
 
@@ -3634,10 +3652,10 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()  # First close the memory mapping as we have finished with it
-                    # (We don't unlink it as C wll do that)
+                    # (We don't unlink it as C will do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                    if shm_info is not None and not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
