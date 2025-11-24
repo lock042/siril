@@ -838,7 +838,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
->>>>>>> parent of c7a667e81 (Handle coords that may exceed img width / height more intelligently)
 			if (layer < 0 || layer >= gfit.naxes[2]) {
 				const char* error_msg = _("Invalid channel");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
