@@ -9,17 +9,23 @@
 #define GHT_STRETCH 2
 
 struct mtf_data {
+	void (*destroy_fn)(void *args);  // First member - destructor
 	fits *fit;
 	sequence *seq;
 	struct mtf_params params;
 	char *seqEntry;
+	gboolean auto_display_compensation;
+	gboolean is_preview;
 };
 
 struct ght_data {
+	void (*destroy_fn)(void *args);  // First member - destructor
 	fits *fit;
 	sequence *seq;
 	struct ght_params *params_ght;
 	char *seqEntry;
+	gboolean auto_display_compensation;
+	gboolean is_preview;
 };
 
 typedef enum {
@@ -27,6 +33,16 @@ typedef enum {
 	SCALE_MID,
 	SCALE_HI
 } ScaleType;
+
+struct mtf_data* create_mtf_data();
+struct ght_data* create_ght_data();
+void destroy_mtf_data(void *args);
+void destroy_ght_data(void *args);
+
+int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
+int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gboolean mtf_single_image_idle(gpointer p);
+gboolean ght_single_image_idle(gpointer p);
 
 gsl_histogram* computeHisto(fits*, int);
 gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);

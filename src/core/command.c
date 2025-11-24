@@ -2667,50 +2667,469 @@ int process_seq_linstretch(int nb) {
 	return process_seq_ghs(nb, STRETCH_LINEAR);
 }
 
-int process_ghs(int nb, int stretchtype) {
-	struct ght_data *seqdata = NULL;
+int process_mtf(int nb) {
+	struct mtf_params params;
+	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
+	gchar *end1, *end2, *end3;
+	params.shadows = g_ascii_strtod(word[1], &end1);
+	params.midtones = g_ascii_strtod(word[2], &end2);
+	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 
+	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
+			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
+			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return CMD_ARG_ERROR;
+	}
+
+	if (word[4]) {
+		if (!strcmp(word[4], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		}
+		if (!strcmp(word[4], "RG")) {
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "RB")) {
+			params.do_green = FALSE;
+		}
+		if (!strcmp(word[4], "GB")) {
+			params.do_red = FALSE;
+		}
+	}
+
+	image_cfa_warning_check();
+
+	if (inverse) {
+		// For inverse MTF, use direct call for now
+		// TODO: Create inverse_mtf_single_image_hook if needed for mask support
+		apply_linked_pseudoinverse_mtf_to_fits(gfit, gfit, params, TRUE);
+	} else {
+		// Create data structure
+		struct mtf_data *data = create_mtf_data();
+		if (!data) {
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->fit = gfit;
+		data->params = params;
+		data->auto_display_compensation = FALSE;
+		data->is_preview = FALSE;
+
+		// Create generic_img_args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_mtf_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = mtf_single_image_hook;
+		args->idle_function = NULL;  // No idle in command mode
+		args->description = _("Midtones Transfer Function");
+		args->verbose = TRUE;
+		args->user = data;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		// Run worker synchronously - cleanup happens via destructor
+		gpointer result = generic_image_worker(args);
+		int retval = GPOINTER_TO_INT(result);
+
+		if (retval != 0) {
+			return CMD_GENERIC_ERROR;
+		}
+
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+	}
+
+	// Add to history
+	char log[90];
+	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
+			inverse ? "Inverse midtones" : "Midtones",
+			params.shadows, params.midtones, params.highlights);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_ghs(int nb, int stretchtype) {
 	ght_params *params = calloc(1, sizeof(ght_params));
 	if (!params)
 		return CMD_ALLOC_ERROR;
 
+	struct ght_data *seqdata = NULL;
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
 	if (retval) {
-		free (params);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
+
 	if (params->payne_colourstretchmodel == COL_SAT && gfit->naxes[2] != 3) {
 		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
 		free(params);
 		return CMD_ARG_ERROR;
 	}
+
 	image_cfa_warning_check();
-	if (params->payne_colourstretchmodel == COL_SAT)
-		apply_sat_ght_to_fits(gfit, params, TRUE);
-	else
-		apply_linked_ght_to_fits(gfit, gfit, params, TRUE);
+
+	// Create data structure
+	struct ght_data *data = create_ght_data();
+	if (!data) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->fit = gfit;
+	data->params_ght = params;  // Take ownership of params
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+
+	// Create generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_ght_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = (params->payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
+	args->image_hook = ght_single_image_hook;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = _("Generalised Hyperbolic Stretch");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run worker synchronously - cleanup happens via destructor
+	gpointer result = generic_image_worker(args);
+	retval = GPOINTER_TO_INT(result);
+
+	if (retval != 0) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Add to history
 	char log[100];
 	switch (stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
-			sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+				params->SP, params->D, params->B, params->LP, params->HP);
 			break;
 		case STRETCH_PAYNE_INVERSE:
-			sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+				params->SP, params->D, params->B, params->LP, params->HP);
 			break;
 		case STRETCH_ASINH:
-			sprintf(log, "GHS asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			sprintf(log, "GHS asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])",
+				params->SP, params->D, params->LP, params->HP);
 			break;
 		case STRETCH_INVASINH:
-			sprintf(log, "GHS inverse asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			sprintf(log, "GHS inverse asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])",
+				params->SP, params->D, params->LP, params->HP);
 			break;
 		case STRETCH_LINEAR:
 			sprintf(log, "GHS BP shift (new BP: %.3f)", params->BP);
 			break;
 	}
 	gfit->history = g_slist_append(gfit->history, strdup(log));
-	free(params);
+
 	if (gui.roi.active)
 		populate_roi();
+
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_autoghs(int nb) {
+	int argidx = 1;
+	gboolean linked = FALSE;
+	clip_mode_t clip_mode = RGBBLEND;
+	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
+
+	if (!g_strcmp0(word[1], "-linked")) {
+		linked = TRUE;
+		argidx++;
+	}
+
+	gchar *end = NULL;
+	shadows_clipping = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
+	float amount = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-b=")) {
+			char *arg = word[argidx] + 3;
+			b = g_ascii_strtod(arg, &end);
+			if (fabsf(b) < 1.e-3f)
+				b = 0.f;
+			if (arg == end || b < -5.0f || b > 15.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-hp=")) {
+			char *arg = word[argidx] + 4;
+			hp = g_ascii_strtod(arg, &end);
+			if (arg == end || hp < 0.0f || hp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lp=")) {
+			char *arg = word[argidx] + 4;
+			lp = g_ascii_strtod(arg, &end);
+			if (arg == end || lp < 0.0f || lp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-clipmode=")) {
+			char *argument = word[argidx] + 10;
+			if (!g_ascii_strncasecmp(argument, "clip", 4))
+				clip_mode = CLIP;
+			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
+				clip_mode = RESCALE;
+			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
+				clip_mode = RESCALEGLOBAL;
+			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
+				clip_mode = RGBBLEND;
+			else {
+				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	int nb_channels = (int)gfit->naxes[2];
+	imstats *stats[3] = { NULL };
+	int ret = compute_all_channels_statistics_single_image(gfit, STATS_BASIC, MULTI_THREADED, stats);
+	if (ret) {
+		for (int i = 0; i < nb_channels; ++i) {
+			free_stats(stats[i]);
+		}
+		return CMD_GENERIC_ERROR;
+	}
+
+	image_cfa_warning_check();
+
+	if (linked) {
+		double median = 0.0, sigma = 0.0;
+		for (int i = 0; i < nb_channels; ++i) {
+			median += stats[i]->median;
+			sigma += stats[i]->sigma;
+			free_stats(stats[i]);
+		}
+		median /= nb_channels;
+		sigma /= nb_channels;
+		float SP = median + shadows_clipping * sigma;
+		if (gfit->type == DATA_USHORT)
+			SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+		siril_log_message(_("Symmetry point SP=%f\n"), SP);
+
+		// Create data structure for linked processing
+		struct ght_data *data = create_ght_data();
+		if (!data) {
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->fit = gfit;
+		data->params_ght = malloc(sizeof(ght_params));
+		if (!data->params_ght) {
+			destroy_ght_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->params_ght->B = b;
+		data->params_ght->D = amount;
+		data->params_ght->LP = lp;
+		data->params_ght->SP = SP;
+		data->params_ght->HP = hp;
+		data->params_ght->BP = 0.0;
+		data->params_ght->stretchtype = STRETCH_PAYNE_NORMAL;
+		data->params_ght->payne_colourstretchmodel = COL_INDEP;
+		data->params_ght->do_red = TRUE;
+		data->params_ght->do_green = TRUE;
+		data->params_ght->do_blue = TRUE;
+		data->params_ght->clip_mode = clip_mode;
+		data->auto_display_compensation = FALSE;
+		data->is_preview = FALSE;
+
+		// Create generic_img_args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_ght_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = ght_single_image_hook;
+		args->idle_function = NULL;  // No idle in command mode
+		args->description = _("AutoGHS");
+		args->verbose = TRUE;
+		args->user = data;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		// Run worker synchronously - cleanup happens via destructor
+		gpointer result = generic_image_worker(args);
+		ret = GPOINTER_TO_INT(result);
+
+		if (ret != 0) {
+			return CMD_GENERIC_ERROR;
+		}
+
+	} else {
+		// Unlinked mode - process each channel independently
+		// For now, keep direct processing as it uses apply_ght_to_fits_channel
+		// TODO: Implement per-channel worker support for mask compatibility
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
+#endif
+		for (int i = 0; i < nb_channels; ++i) {
+			if (stats[i]) {
+				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+				if (gfit->type == DATA_USHORT)
+					SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+
+				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
+				apply_ght_to_fits_channel(gfit, gfit, i, &params, TRUE);
+
+				free_stats(stats[i]);
+			}
+		}
+	}
+
+	char log[100];
+	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_autostretch(int nb) {
+	int arg_index = 1;
+	gboolean linked = FALSE;
+	if (nb > 1 && !strcmp(word[1], "-linked")) {
+		linked = TRUE;
+		arg_index++;
+	}
+
+	gchar *end = NULL;
+	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
+	if (nb > arg_index) {
+		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
+		if (end == word[arg_index]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
+			return CMD_ARG_ERROR;
+		}
+		arg_index++;
+	}
+
+	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
+	if (nb > arg_index) {
+		target_bg = g_ascii_strtod(word[arg_index], &end);
+		if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
+			siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
+			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+	image_cfa_warning_check();
+
+	if (linked) {
+		struct mtf_params params;
+		find_linked_midtones_balance(gfit, shadows_clipping, target_bg, &params);
+		params.do_red = TRUE;
+		params.do_green = TRUE;
+		params.do_blue = TRUE;
+
+		// Create data structure
+		struct mtf_data *data = create_mtf_data();
+		if (!data) {
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->fit = gfit;
+		data->params = params;
+		data->auto_display_compensation = FALSE;
+		data->is_preview = FALSE;
+
+		// Create generic_img_args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_mtf_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = mtf_single_image_hook;
+		args->idle_function = NULL;  // No idle in command mode
+		args->description = _("Autostretch");
+		args->verbose = TRUE;
+		args->user = data;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		// Run worker synchronously - cleanup happens via destructor
+		gpointer result = generic_image_worker(args);
+		int retval = GPOINTER_TO_INT(result);
+
+		if (retval != 0) {
+			return CMD_GENERIC_ERROR;
+		}
+
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+
+	} else {
+		// Unlinked mode - keep direct processing
+		// TODO: Implement per-channel worker support for mask compatibility
+		struct mtf_params params[3];
+		find_unlinked_midtones_balance(gfit, shadows_clipping, target_bg, params);
+		apply_unlinked_mtf_to_fits(gfit, gfit, params);
+	}
+
+	char log[90];
+	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
+			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -3383,241 +3802,6 @@ int process_mirrorx(int nb){
 
 int process_mirrory(int nb){
 	mirrory(gfit, TRUE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_mtf(int nb) {
-	struct mtf_params params;
-	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
-	gchar *end1, *end2, *end3;
-	params.shadows = g_ascii_strtod(word[1], &end1);
-	params.midtones = g_ascii_strtod(word[2], &end2);
-	params.highlights = g_ascii_strtod(word[3], &end3);
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
-			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
-			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
-		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
-		return CMD_ARG_ERROR;
-	}
-	if (word[4]) {
-		if (!strcmp(word[4], "R")) {
-			params.do_green = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "G")) {
-			params.do_red = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "B")) {
-			params.do_green = FALSE;
-			params.do_red = FALSE;
-		}
-		if (!strcmp(word[4], "RG")) {
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "RB")) {
-			params.do_green = FALSE;
-		}
-		if (!strcmp(word[4], "GB")) {
-			params.do_red = FALSE;
-		}
-	}
-	image_cfa_warning_check();
-	if (inverse)
-		apply_linked_pseudoinverse_mtf_to_fits(gfit, gfit, params, TRUE);
-	else {
-		apply_linked_mtf_to_fits(gfit, gfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
-	}
-	char log[90];
-	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
-			inverse ? "Inverse midtones" : "Midtones",
-			params.shadows, params.midtones, params.highlights);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_autoghs(int nb) {
-	int argidx = 1;
-	gboolean linked = FALSE;
-	clip_mode_t clip_mode = RGBBLEND;
-	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
-
-	if (!g_strcmp0(word[1], "-linked")) {
-		linked = TRUE;
-		argidx++;
-	}
-
-	gchar *end = NULL;
-	shadows_clipping = g_ascii_strtod(word[argidx], &end);
-	if (end == word[argidx]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-		return CMD_ARG_ERROR;
-	}
-	argidx++;
-
-	float amount = g_ascii_strtod(word[argidx], &end);
-	if (end == word[argidx]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-		return CMD_ARG_ERROR;
-	}
-	argidx++;
-
-	while (argidx < nb) {
-		if (g_str_has_prefix(word[argidx], "-b=")) {
-			char *arg = word[argidx] + 3;
-			b = g_ascii_strtod(arg, &end);
-			if (fabsf(b) < 1.e-3f)
-				b = 0.f;
-			if (arg == end || b < -5.0f || b > 15.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-hp=")) {
-			char *arg = word[argidx] + 4;
-			hp = g_ascii_strtod(arg, &end);
-			if (arg == end || hp < 0.0f || hp > 1.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-lp=")) {
-			char *arg = word[argidx] + 4;
-			lp = g_ascii_strtod(arg, &end);
-			if (arg == end || lp < 0.0f || lp > 1.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-clipmode=")) {
-			char *argument = word[argidx] + 10;
-			if (!g_ascii_strncasecmp(argument, "clip", 4))
-				clip_mode = CLIP;
-			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
-				clip_mode = RESCALE;
-			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
-				clip_mode = RESCALEGLOBAL;
-			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
-				clip_mode = RGBBLEND;
-			else {
-				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
-				return CMD_ARG_ERROR;
-			}
-		}
-		argidx++;
-	}
-
-	int nb_channels = (int)gfit->naxes[2];
-	imstats *stats[3] = { NULL };
-	int ret = compute_all_channels_statistics_single_image(gfit, STATS_BASIC, MULTI_THREADED, stats);
-	if (ret) {
-		for (int i = 0; i < nb_channels; ++i) {
-			free_stats(stats[i]);
-		}
-		return CMD_GENERIC_ERROR;
-	}
-	image_cfa_warning_check();
-	if (linked) {
-		double median = 0.0, sigma = 0.0;
-		for (int i = 0; i < nb_channels; ++i) {
-			median += stats[i]->median;
-			sigma += stats[i]->sigma;
-			free_stats(stats[i]);
-		}
-		median /= nb_channels;
-		sigma /= nb_channels;
-		float SP = median + shadows_clipping * sigma;
-		if (gfit->type == DATA_USHORT)
-			SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-		siril_log_message(_("Symmetry point SP=%f\n"), SP);
-
-		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE, clip_mode };
-		apply_linked_ght_to_fits(gfit, gfit, &params, TRUE);
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
-#endif
-		for (int i = 0; i < nb_channels; ++i) {
-			if (stats[i]) {
-				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-				if (gfit->type == DATA_USHORT)
-					SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
-
-				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
-				apply_ght_to_fits_channel(gfit, gfit, i, &params, TRUE);
-
-				free_stats(stats[i]);
-			}
-		}
-	}
-
-	char log[100];
-	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
-			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_autostretch(int nb) {
-	int arg_index = 1;
-	gboolean linked = FALSE;
-	if (nb > 1 && !strcmp(word[1], "-linked")) {
-		linked = TRUE;
-		arg_index++;
-	}
-	gchar *end = NULL;
-	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
-	if (nb > arg_index) {
-		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
-		if (end == word[arg_index]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
-			return CMD_ARG_ERROR;
-		}
-		arg_index++;
-	}
-
-	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
-	if (nb > arg_index) {
-		target_bg = g_ascii_strtod(word[arg_index], &end);
-		if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
-			siril_log_message(_("The target background value must be in the [0, 1] range\n"));
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
-			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
-	image_cfa_warning_check();
-	if (linked) {
-		struct mtf_params params;
-		find_linked_midtones_balance(gfit, shadows_clipping, target_bg, &params);
-		params.do_red = TRUE;
-		params.do_green = TRUE;
-		params.do_blue = TRUE;
-		apply_linked_mtf_to_fits(gfit, gfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-			params.shadows, params.midtones, params.highlights);
-
-	} else {
-		struct mtf_params params[3];
-		find_unlinked_midtones_balance(gfit, shadows_clipping, target_bg, params);
-		apply_unlinked_mtf_to_fits(gfit, gfit, params);
-	}
-
-	char log[90];
-	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
-			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 

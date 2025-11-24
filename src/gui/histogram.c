@@ -102,6 +102,39 @@ static void setup_hsl();
 static void clear_hsl();
 static void set_sat_histogram(gsl_histogram *histo);
 
+struct mtf_data* create_mtf_data() {
+	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
+	if (data) {
+		data->destroy_fn = destroy_mtf_data;
+	}
+	return data;
+}
+
+struct ght_data* create_ght_data() {
+	struct ght_data *data = calloc(1, sizeof(struct ght_data));
+	if (data) {
+		data->destroy_fn = destroy_ght_data;
+	}
+	return data;
+}
+
+void destroy_mtf_data(void *args) {
+	if (!args)
+		return;
+	struct mtf_data *data = (struct mtf_data *)args;
+	free(data->seqEntry);
+	free(data);
+}
+
+void destroy_ght_data(void *args) {
+	if (!args)
+		return;
+	struct ght_data *data = (struct ght_data *)args;
+	free(data->seqEntry);
+	free(data->params_ght);
+	free(data);
+}
+
 static int get_width_of_histo() {
 	return gtk_widget_get_allocated_width(lookup_widget("drawingarea_histograms"));
 }
@@ -270,68 +303,102 @@ static void histo_recompute() {
 	set_cursor("progress");
 	gboolean auto_comp = auto_display_compensation;
 	auto_display_compensation = FALSE;
+
+	// Ensure we're working with the right fit
+	fit = gui.roi.active ? &gui.roi.fit : gfit;
+
 	copy_backup_to_gfit();
 
+	// Create appropriate data structure and setup worker args
+	struct generic_img_args *args = NULL;
+
 	if (invocation == HISTO_STRETCH) {
-		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
-		apply_linked_mtf_to_fits(fit, fit, params, TRUE);
-	// com.layers_hist should be good, update_histo_mtf() is always called before
+		struct mtf_data *data = create_mtf_data();
+		if (!data) {
+			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			return;
+		}
+
+		data->fit = fit;
+		data->params.shadows = _shadows;
+		data->params.midtones = _midtones;
+		data->params.highlights = _highlights;
+		data->params.do_red = do_channel[0];
+		data->params.do_green = do_channel[1];
+		data->params.do_blue = do_channel[2];
+		data->auto_display_compensation = auto_comp;
+		data->is_preview = TRUE;
+
+		args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_mtf_data(data);
+			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			return;
+		}
+
+		args->fit = fit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = mtf_single_image_hook;
+		args->idle_function = mtf_single_image_idle;
+		args->description = _("MTF Preview");
+		args->verbose = FALSE;
+		args->user = data;
+		args->max_threads = com.max_thread;
+		args->for_preview = TRUE;
+		args->for_roi = gui.roi.active;
+
 	} else if (invocation == GHT_STRETCH) {
-		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2], .clip_mode = _clip_mode };
-		if (_payne_colourstretchmodel == COL_SAT) {
-			if (fit->type == DATA_FLOAT)
-				apply_linked_ght_to_fbuf_indep((float*) satbuf_orig, (float*) satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
-			else
-				apply_linked_ght_to_Wbuf_indep((WORD*) satbuf_orig, (WORD*) satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
-			hsl_to_fit(huebuf, satbuf_working, lumbuf);
-		} else {
-			apply_linked_ght_to_fits(fit, fit, &params_ght, TRUE);
+		struct ght_data *data = create_ght_data();
+		if (!data) {
+			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			return;
 		}
+
+		data->fit = fit;
+		data->params_ght = malloc(sizeof(struct ght_params));
+		if (!data->params_ght) {
+			destroy_ght_data(data);
+			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			return;
+		}
+
+		data->params_ght->B = _B;
+		data->params_ght->D = _D;
+		data->params_ght->LP = _LP;
+		data->params_ght->SP = _SP;
+		data->params_ght->HP = _HP;
+		data->params_ght->BP = _BP;
+		data->params_ght->stretchtype = _stretchtype;
+		data->params_ght->payne_colourstretchmodel = _payne_colourstretchmodel;
+		data->params_ght->do_red = do_channel[0];
+		data->params_ght->do_green = do_channel[1];
+		data->params_ght->do_blue = do_channel[2];
+		data->params_ght->clip_mode = _clip_mode;
+		data->auto_display_compensation = auto_comp;
+		data->is_preview = TRUE;
+
+		args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_ght_data(data);
+			siril_log_color_message(_("Memory allocation failed.\n"), "red");
+			return;
+		}
+
+		args->fit = fit;
+		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
+		args->image_hook = ght_single_image_hook;
+		args->idle_function = ght_single_image_idle;
+		args->description = _("GHT Preview");
+		args->verbose = FALSE;
+		args->user = data;
+		args->max_threads = com.max_thread;
+		args->for_preview = TRUE;
+		args->for_roi = gui.roi.active;
 	}
-	if (auto_comp) {
-		int depth = fit->naxes[2];
-		if (depth == 1) {
-			fits_change_depth(fit, 3);
-			if (fit->type == DATA_FLOAT) {
-				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
-				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
-			} else {
-				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
-				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
-			}
-		}
-		// WARNING: the following section is *ONLY* applicable to autostretch. It should
-		// not be copied into any other code as it will mess things up if the image
-		// ICC profile is not the same as the monitor ICC profile.
-		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(gui.icc.monitor);
-		siril_colorspace_transform(fit, temp);
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = copyICCProfile(temp);
-		cmsCloseProfile(temp);
-		////////////////////////////////////////////////////////////////////////////////
-		if (depth == 1) {
-			size_t npixels = fit->rx * fit->ry;
-			if (fit->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0 ; i < npixels; i++) {
-					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i])/3.f;
-				}
-			} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-				for (size_t i = 0 ; i < npixels; i++) {
-					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i])/3.f;
-				}
-			}
-			fits_change_depth(fit, 1);
-		}
+
+	if (args) {
+		start_in_new_thread(generic_image_worker, args);
 	}
-	notify_gfit_modified();
 }
 
 static void _init_clipped_pixels() {
@@ -1046,6 +1113,203 @@ void update_gfit_histogram_if_needed() {
 	}
 }
 
+int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data)
+		return 1;
+
+	// Apply the MTF transform
+	apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
+
+	// Handle auto display compensation if requested
+	if (data->auto_display_compensation) {
+		int depth = fit->naxes[2];
+		if (depth == 1) {
+			fits_change_depth(fit, 3);
+			if (fit->type == DATA_FLOAT) {
+				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
+			} else {
+				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
+				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
+			}
+		}
+
+		// Apply ICC transform to monitor profile
+		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(gui.icc.monitor);
+		siril_colorspace_transform(fit, temp);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(temp);
+		cmsCloseProfile(temp);
+
+		if (depth == 1) {
+			size_t npixels = fit->rx * fit->ry;
+			if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) / 3.f;
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) / 3;
+				}
+			}
+			fits_change_depth(fit, 1);
+		}
+	}
+
+	return 0;
+}
+
+int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct ght_data *data = (struct ght_data *)args->user;
+	if (!data || !data->params_ght)
+		return 1;
+
+	// Apply the GHT transform
+	if (data->params_ght->payne_colourstretchmodel == COL_SAT) {
+		// Process saturation channel
+		if (fit->type == DATA_FLOAT)
+			apply_linked_ght_to_fbuf_indep((float*)satbuf_orig, (float*)satbuf_working,
+				fit->rx * fit->ry, 1, data->params_ght, TRUE);
+		else
+			apply_linked_ght_to_Wbuf_indep((WORD*)satbuf_orig, (WORD*)satbuf_working,
+				fit->rx * fit->ry, 1, data->params_ght, TRUE);
+
+		// Convert back from HSL to RGB
+		hsl_to_fit(huebuf, satbuf_working, lumbuf);
+	} else {
+		apply_linked_ght_to_fits(fit, fit, data->params_ght, TRUE);
+	}
+
+	// Handle auto display compensation if requested
+	if (data->auto_display_compensation) {
+		int depth = fit->naxes[2];
+		if (depth == 1) {
+			fits_change_depth(fit, 3);
+			if (fit->type == DATA_FLOAT) {
+				memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
+			} else {
+				memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
+				memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
+			}
+		}
+
+		// Apply ICC transform to monitor profile
+		cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(gui.icc.monitor);
+		siril_colorspace_transform(fit, temp);
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(temp);
+		cmsCloseProfile(temp);
+
+		if (depth == 1) {
+			size_t npixels = fit->rx * fit->ry;
+			if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) / 3.f;
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) / 3;
+				}
+			}
+			fits_change_depth(fit, 1);
+		}
+	}
+
+	return 0;
+}
+
+gboolean mtf_single_image_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	if (!args) {
+		stop_processing_thread();
+		return FALSE;
+	}
+
+	struct mtf_data *data = (struct mtf_data *)args->user;
+
+	// Check if processing succeeded
+	if (args->retval == 0) {
+		// Update histograms
+		compute_histo_for_fit(fit);
+		queue_window_redraw();
+
+		// Notify that gfit was modified
+		notify_gfit_modified();
+
+		// If this was a final apply (not preview), clear backups and reinitialize
+		if (!data->is_preview) {
+			clear_backup();
+			clear_hist_backup();
+
+			// Reinitialize for next use
+			histo_startup();
+			reset_cursors_and_values(FALSE);
+		}
+	} else {
+		siril_log_color_message(_("MTF processing failed.\n"), "red");
+	}
+
+	// Cleanup
+	free_generic_img_args(args);
+	stop_processing_thread();
+	return FALSE;
+}
+
+gboolean ght_single_image_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	if (!args) {
+		stop_processing_thread();
+		return FALSE;
+	}
+
+	struct ght_data *data = (struct ght_data *)args->user;
+
+	// Check if processing succeeded
+	if (args->retval == 0) {
+		// Update histograms
+		compute_histo_for_fit(fit);
+		queue_window_redraw();
+
+		// Notify that gfit was modified
+		notify_gfit_modified();
+
+		// If this was a final apply (not preview), clear backups and reinitialize
+		if (!data->is_preview) {
+			clear_backup();
+			clear_hist_backup();
+
+			// Reinitialize for next use
+			histo_startup();
+			reset_cursors_and_values(FALSE);
+		}
+	} else {
+		siril_log_color_message(_("GHT processing failed.\n"), "red");
+	}
+
+	// Cleanup
+	free_generic_img_args(args);
+	stop_processing_thread();
+	return FALSE;
+}
+
 static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct mtf_data *m_args = (struct mtf_data*) args->user;
@@ -1232,7 +1496,10 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+
 	set_controls_active(TRUE);
+
+	// Check if there's anything to apply
 	if (invocation == HISTO_STRETCH) {
 		if ((_midtones == 0.5f) && (_shadows == 0.0f) && (_highlights == 1.0f)) {
 			return;
@@ -1244,46 +1511,66 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq"));
-	if (gtk_toggle_button_get_active(seq_button)
-			&& sequence_is_loaded()) {
+
+	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
 		/* Apply to the whole sequence */
 		sequence_working = TRUE;
+
 		if (invocation == HISTO_STRETCH) {
-			struct mtf_data *args = calloc(1, sizeof(struct mtf_data));
-			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
-			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
-			args->params = params;
+			struct mtf_data *args = create_mtf_data();
+			if (!args) {
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			args->params.shadows = _shadows;
+			args->params.midtones = _midtones;
+			args->params.highlights = _highlights;
+			args->params.do_red = do_channel[0];
+			args->params.do_green = do_channel[1];
+			args->params.do_blue = do_channel[2];
 			args->seqEntry = strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
 			if (args->seqEntry && args->seqEntry[0] == '\0') {
 				free(args->seqEntry);
 				args->seqEntry = strdup("stretch_");
 			}
 			args->seq = &com.seq;
-		/* here it is a bit tricky.
-		 * It is better to first close the window as it is a liveview tool
-		 * TODO: could we improve this behavior?
-		 */
+
+			// Close the window for sequence processing
 			histo_close(TRUE, FALSE, FALSE);
 			siril_close_dialog("histogram_dialog");
 
-		/* apply the process */
+			// Apply the process
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_mtf_to_sequence(args);
+
 		} else if (invocation == GHT_STRETCH) {
-			struct ght_data *args = calloc(1, sizeof(struct ght_data));
-			struct ght_params *params = malloc(sizeof(struct ght_params));
-			params->B = _B;
-			params->D = _D;
-			params->LP = _LP;
-			params->SP = _SP;
-			params->HP = _HP;
-			params->BP = _BP;
-			params->stretchtype = _stretchtype;
-			params->payne_colourstretchmodel = _payne_colourstretchmodel;
-			params->do_red = do_channel[0];
-			params->do_green = do_channel[1];
-			params->do_blue = do_channel[2];
-			args->params_ght = params;
+			struct ght_data *args = create_ght_data();
+			if (!args) {
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			args->params_ght = malloc(sizeof(struct ght_params));
+			if (!args->params_ght) {
+				destroy_ght_data(args);
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			args->params_ght->B = _B;
+			args->params_ght->D = _D;
+			args->params_ght->LP = _LP;
+			args->params_ght->SP = _SP;
+			args->params_ght->HP = _HP;
+			args->params_ght->BP = _BP;
+			args->params_ght->stretchtype = _stretchtype;
+			args->params_ght->payne_colourstretchmodel = _payne_colourstretchmodel;
+			args->params_ght->do_red = do_channel[0];
+			args->params_ght->do_green = do_channel[1];
+			args->params_ght->do_blue = do_channel[2];
+			args->params_ght->clip_mode = _clip_mode;
+
 			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			args->seqEntry = strdup(temp);
 			if (args->seqEntry && args->seqEntry[0] == '\0') {
@@ -1291,57 +1578,160 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				args->seqEntry = strdup("stretch_");
 			}
 			args->seq = &com.seq;
-		/* here it is a bit tricky.
-		 * It is better to first close the window as it is a liveview tool
-		 * TODO: could we improve this behavior?
-		 */
+
+			// Close the window for sequence processing
 			histo_close(TRUE, FALSE, TRUE);
 			siril_close_dialog("histogram_dialog");
 
-		/* apply the process */
+			// Apply the process
 			gtk_toggle_button_set_active(seq_button, FALSE);
 			apply_ght_to_sequence(args);
 		}
+
 	} else {
-		// the apply button resets everything after recomputing with the current values
+		/* Apply to single image */
 		fit = gfit;
-		if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview"))) || gui.roi.active) {
+
+		// Check if preview is active
+		gboolean preview_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+
+		// If preview is active and no ROI, the image is already stretched in gfit
+		// We just need to save undo and finalize
+		if (preview_active && !gui.roi.active) {
+			// The stretch is already applied to gfit via preview
+			// Just need to prepare undo with the backup
+
+			populate_roi();
+
+			// Prepare undo state with ICC profile handling
+			// Use the backup which contains the original unstretched image
+			fits *backup = get_preview_gfit_backup();
+			fits undo_fit = {0};
+			memcpy(&undo_fit, backup, sizeof(fits));
+			undo_fit.icc_profile = original_icc;
+			undo_fit.color_managed = original_icc != NULL;
+
+			gchar *log_string = NULL;
+
+			if (invocation == HISTO_STRETCH) {
+				log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
+					_midtones, _shadows, _highlights);
+
+			} else if (invocation == GHT_STRETCH) {
+				siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f",
+					_D, _B, _LP, _SP, _HP);
+
+				if (_payne_colourstretchmodel != COL_SAT) {
+					switch (_stretchtype) {
+						case STRETCH_PAYNE_NORMAL:
+							log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+								_SP, _D, _B, _LP, _HP);
+							break;
+						case STRETCH_PAYNE_INVERSE:
+							log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+								_SP, _D, _B, _LP, _HP);
+							break;
+						case STRETCH_ASINH:
+							log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+								_SP, _D, _LP, _HP);
+							break;
+						case STRETCH_INVASINH:
+							log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+								_SP, _D, _LP, _HP);
+							break;
+						case STRETCH_LINEAR:
+							log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), _BP);
+							break;
+					}
+				} else {
+					switch (_stretchtype) {
+						case STRETCH_PAYNE_NORMAL:
+							log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+								_SP, _D, _B, _LP, _HP);
+							break;
+						case STRETCH_PAYNE_INVERSE:
+							log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+								_SP, _D, _B, _LP, _HP);
+							break;
+						case STRETCH_ASINH:
+							log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+								_SP, _D, _LP, _HP);
+							break;
+						case STRETCH_INVASINH:
+							log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+								_SP, _D, _LP, _HP);
+							break;
+						case STRETCH_LINEAR:
+							log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), _BP);
+							break;
+					}
+				}
+			}
+
+			if (log_string) {
+				undo_save_state(&undo_fit, log_string);
+				siril_log_color_message("%s\n", "green", log_string);
+				g_free(log_string);
+			}
+
+			// Clear backups and reinitialize
+			clear_backup();
+			clear_hist_backup();
+			single_image_stretch_applied = TRUE;
+
+			// Reinitialize for next use
+			histo_startup();
+			reset_cursors_and_values(FALSE);
+
+			set_cursor("default");
+			return;
+		}
+
+		// If preview wasn't active or ROI is active, need to apply the stretch
+		if (!preview_active || gui.roi.active) {
 			copy_backup_to_gfit();
 			if (_payne_colourstretchmodel == COL_SAT) {
 				clear_hsl();
 				setup_hsl();
 			}
-			histo_recompute();
 		}
+
 		populate_roi();
-		// janky undo preparation to account for ICC usage
-		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
+
+		// Prepare undo state with ICC profile handling BEFORE applying stretch
+		fits *backup = get_preview_gfit_backup();
 		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+		memcpy(&undo_fit, backup, sizeof(fits));
 		undo_fit.icc_profile = original_icc;
 		undo_fit.color_managed = original_icc != NULL;
 
 		gchar *log_string = NULL;
 
 		if (invocation == HISTO_STRETCH) {
-			log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"), _midtones, _shadows, _highlights);
+			log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
+				_midtones, _shadows, _highlights);
 
 		} else if (invocation == GHT_STRETCH) {
-			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
+			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f",
+				_D, _B, _LP, _SP, _HP);
 
 			if (_payne_colourstretchmodel != COL_SAT) {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+							_SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+							_SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+							_SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+							_SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
 						log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), _BP);
@@ -1350,16 +1740,20 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			} else {
 				switch (_stretchtype) {
 					case STRETCH_PAYNE_NORMAL:
-						log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+							_SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_PAYNE_INVERSE:
-						log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+							_SP, _D, _B, _LP, _HP);
 						break;
 					case STRETCH_ASINH:
-						log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+							_SP, _D, _LP, _HP);
 						break;
 					case STRETCH_INVASINH:
-						log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+							_SP, _D, _LP, _HP);
 						break;
 					case STRETCH_LINEAR:
 						log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), _BP);
@@ -1373,13 +1767,100 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			siril_log_color_message("%s\n", "green", log_string);
 			g_free(log_string);
 		}
-		clear_backup();
-		clear_hist_backup();
-		// reinit
-		histo_startup();
-		reset_cursors_and_values(FALSE);
 
-		single_image_stretch_applied = TRUE;
+		// Now apply using generic_img_worker
+		struct generic_img_args *args = NULL;
+
+		if (invocation == HISTO_STRETCH) {
+			struct mtf_data *data = create_mtf_data();
+			if (!data) {
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			data->fit = gfit;
+			data->params.shadows = _shadows;
+			data->params.midtones = _midtones;
+			data->params.highlights = _highlights;
+			data->params.do_red = do_channel[0];
+			data->params.do_green = do_channel[1];
+			data->params.do_blue = do_channel[2];
+			data->auto_display_compensation = FALSE;
+			data->is_preview = FALSE;
+
+			args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				destroy_mtf_data(data);
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 1.0f;
+			args->image_hook = mtf_single_image_hook;
+			args->idle_function = mtf_single_image_idle;
+			args->description = _("Histogram Transformation");
+			args->verbose = TRUE;
+			args->user = data;
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = gui.roi.active;
+
+		} else if (invocation == GHT_STRETCH) {
+			struct ght_data *data = create_ght_data();
+			if (!data) {
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			data->fit = gfit;
+			data->params_ght = malloc(sizeof(struct ght_params));
+			if (!data->params_ght) {
+				destroy_ght_data(data);
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			data->params_ght->B = _B;
+			data->params_ght->D = _D;
+			data->params_ght->LP = _LP;
+			data->params_ght->SP = _SP;
+			data->params_ght->HP = _HP;
+			data->params_ght->BP = _BP;
+			data->params_ght->stretchtype = _stretchtype;
+			data->params_ght->payne_colourstretchmodel = _payne_colourstretchmodel;
+			data->params_ght->do_red = do_channel[0];
+			data->params_ght->do_green = do_channel[1];
+			data->params_ght->do_blue = do_channel[2];
+			data->params_ght->clip_mode = _clip_mode;
+			data->auto_display_compensation = FALSE;
+			data->is_preview = FALSE;
+
+			args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				destroy_ght_data(data);
+				siril_log_color_message(_("Memory allocation failed.\n"), "red");
+				return;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
+			args->image_hook = ght_single_image_hook;
+			args->idle_function = ght_single_image_idle;
+			args->description = _("Generalised Hyperbolic Stretch");
+			args->verbose = TRUE;
+			args->user = data;
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = gui.roi.active;
+		}
+
+		if (args) {
+			single_image_stretch_applied = TRUE;
+			start_in_new_thread(generic_image_worker, args);
+
+			// Note: cleanup and reinitialization now happens in idle function
+		}
 
 		set_cursor("default");
 	}
@@ -1400,24 +1881,37 @@ void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {
 
 void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	/* we always apply this function on original data */
-	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = TRUE, .do_green = TRUE, .do_blue = TRUE };
+
+	/* We always apply this function on original data */
+	struct mtf_params params = {
+		.shadows = _shadows,
+		.midtones = _midtones,
+		.highlights = _highlights,
+		.do_red = TRUE,
+		.do_green = TRUE,
+		.do_blue = TRUE
+	};
+
 	if (!find_linked_midtones_balance_default(get_preview_gfit_backup(), &params)) {
 		_shadows = params.shadows;
 		_midtones = params.midtones;
 		_highlights = 1.0f;
 		_update_entry_text();
 		update_histo_mtf();
+
+		// Set auto display compensation flag and trigger recompute
+		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
+			auto_display_compensation = TRUE;
+
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = histo_update_preview;
 		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
-		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
-			auto_display_compensation = TRUE;
 		notify_update((gpointer) param);
 		set_controls_active(FALSE);
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
 	}
+
 	set_cursor_waiting(FALSE);
 }
 
