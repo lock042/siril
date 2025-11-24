@@ -285,7 +285,10 @@ static version_number get_last_version_number(gchar *version_str) {
 }
 
 /**
- * This function compare x1.y1.z1.patch1 vs x2.y2.z2.patch2
+ * This function compares two version numbers following the pattern x.y.z[-type#]
+ * where type can be beta, rc, or a stable patch number.
+ * Version ordering: beta < rc < stable < stable-patch
+ * Examples: 1.4.0-beta1 < 1.4.0-rc2 < 1.4.0 < 1.4.0-1
  * @param v1 First version number to be tested
  * @param v2 Second version number to be tested
  * @return -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 is equal to v2
@@ -306,15 +309,34 @@ int compare_version(version_number v1, version_number v2) {
 			else if (v1.micro_version > v2.micro_version)
 				return 1;
 			else {
-				if (v1.beta_version && v2.rc_version) return -1;
-				if (v2.beta_version && v1.rc_version) return 1;
-				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
-				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
-				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
+				// Determine version type
+				int v1_is_stable = !v1.rc_version && !v1.beta_version;
+				int v2_is_stable = !v2.rc_version && !v2.beta_version;
 
-				/* check for patched version */
-				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
-						(v1.rc_version && v2.rc_version) || (v1.beta_version && v2.beta_version)) {
+				// Order: beta < rc < stable
+				if (v1.beta_version && !v2.beta_version) return -1;  // beta < (rc or stable)
+				if (v2.beta_version && !v1.beta_version) return 1;   // (rc or stable) > beta
+				if (v1.rc_version && v2_is_stable) return -1;        // rc < stable
+				if (v2.rc_version && v1_is_stable) return 1;         // stable > rc
+
+				// Same type: compare patched_version
+				if (v1.beta_version && v2.beta_version) {
+					// Both beta versions
+					if (v1.patched_version < v2.patched_version)
+						return -1;
+					else if (v1.patched_version > v2.patched_version)
+						return 1;
+				}
+				else if (v1.rc_version && v2.rc_version) {
+					// Both rc versions
+					if (v1.patched_version < v2.patched_version)
+						return -1;
+					else if (v1.patched_version > v2.patched_version)
+						return 1;
+				}
+				else if (v1_is_stable && v2_is_stable) {
+					// Both stable versions: compare patches
+					// 1.4.0 (patch=0) < 1.4.0-1 (patch=1)
 					if (v1.patched_version < v2.patched_version)
 						return -1;
 					else if (v1.patched_version > v2.patched_version)
