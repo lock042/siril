@@ -1224,19 +1224,16 @@ class SirilInterface:
             raise SirilError(_("Error occurred in get_image_shape()")) from e
 
     def get_selection_star(self, shape: Optional[list[int]] = None, \
-        channel: Optional[int] = None, assume_centred: bool = False)-> Optional[PSFStar]:
-
+        channel: Optional[int] = None, assume_centred: bool = False) -> Optional[PSFStar]:
         """
         Retrieves a PSFStar star model from the current selection in Siril.
         Only a single PSFStar is returned: if there are more than one in the
         selection, the first one identified by Siril's internal star detection
         algorithm is returned.
-
         **Update**: from sirilpy 1.0.4 this method uses Siril's photometry functions to
         try to provide photometrically accurate values for PSFStar.mag, PSFStar.s_mag
         and PSFStar.SNR. If photometry succeeded and no saturated pixels were detected
         then PSFStar.phot_is_valid will be True, otherwise it will be False.
-
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
                 retrieve from. w x h must not exceed 300 px x 300 px.
@@ -1250,21 +1247,25 @@ class SirilInterface:
                     to channel 0
             assume_centred: Optional bool specifying whether to assume the star
                         is already centred in the selection. Defaults to False.
-
         Returns:
             PSFStar: the PSFStar object representing the star model, or None if
                     no star is detected in the selection.
-
         Raises:
             ValueError: If an invalid shape is provided,
             NoImageError: If no image is loaded,
             SirilConnectionError: If a communication error occurs,
             SirilError: If any other error occurred during execution.
         """
-
         try:
-            # Validate shape if provided
-            shape_data = None
+            # Sentinel values for not-provided parameters
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Default values
+            x = y = w = h = SENTINEL_VALUE
+            channel_val = SENTINEL_VALUE if channel is None else channel
+            centred_flag = 1 if assume_centred else 0
+
+            # Validate and set shape if provided
             if shape is not None:
                 if len(shape) != 4:
                     raise ValueError(_("Shape must be a list of [x, y, w, h]"))
@@ -1272,13 +1273,14 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be integers"))
                 if any(v < 0 for v in shape):
                     raise ValueError(_("All shape values must be non-negative"))
+                x, y, w, h = shape
 
-                # Pack shape data for the command
-                centred_flag = 1 if assume_centred else 0
-                if channel is None:
-                    shape_data = struct.pack('!IIIII', *shape, centred_flag)
-                else:
-                    shape_data = struct.pack('!IIIIII', *shape, channel, centred_flag)
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            # Always pack the same payload: x, y, w, h, channel, centred_flag (24 bytes)
+            shape_data = struct.pack('!IIIIII', x, y, w, h, channel_val, centred_flag)
 
             status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
 
