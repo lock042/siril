@@ -1309,6 +1309,7 @@ int process_epf(int nb) {
 	args->idle_function = NULL; // Use default idle function for command-line
 	args->description = _("Edge Preserving Filter");
 	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -1329,7 +1330,7 @@ int process_epf(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_getref(int nb) {
@@ -1978,6 +1979,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 		args->image_hook = deconvolve_image_hook;
 		args->idle_function = NULL;
 		args->description = _("Deconvolution");
+		args->command_updates_gfit = TRUE;
 		args->verbose = TRUE;
 		args->user = data; // Dynamic estk_data managed by generic worker
 		args->max_threads = com.max_thread;
@@ -2739,6 +2741,7 @@ int process_mtf(int nb) {
 		args->image_hook = mtf_single_image_hook;
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("Midtones Transfer Function");
+		args->command_updates_gfit = TRUE;
 		args->verbose = TRUE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -2764,7 +2767,7 @@ int process_mtf(int nb) {
 			params.shadows, params.midtones, params.highlights);
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_ghs(int nb, int stretchtype) {
@@ -2811,6 +2814,7 @@ int process_ghs(int nb, int stretchtype) {
 	args->image_hook = ght_single_image_hook;
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Generalised Hyperbolic Stretch");
+	args->command_updates_gfit = TRUE;
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -2853,7 +2857,7 @@ int process_ghs(int nb, int stretchtype) {
 	if (gui.roi.active)
 		populate_roi();
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_autoghs(int nb) {
@@ -2993,6 +2997,7 @@ int process_autoghs(int nb) {
 		args->image_hook = ght_single_image_hook;
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("AutoGHS");
+		args->command_updates_gfit = TRUE;
 		args->verbose = TRUE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -3035,7 +3040,7 @@ int process_autoghs(int nb) {
 			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_autostretch(int nb) {
@@ -3100,6 +3105,7 @@ int process_autostretch(int nb) {
 		args->image_hook = mtf_single_image_hook;
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("Autostretch");
+		args->command_updates_gfit = TRUE;
 		args->verbose = TRUE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -3130,7 +3136,7 @@ int process_autostretch(int nb) {
 			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_ght(int nb) {
@@ -3317,6 +3323,7 @@ int process_asinh(int nb) {
 	args->image_hook = asinh_image_hook;
 	args->idle_function = NULL; // No idle function for synchronous execution
 	args->description = _("Asinh stretch");
+	args->command_updates_gfit = TRUE;
 	args->verbose = FALSE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -3341,7 +3348,7 @@ int process_asinh(int nb) {
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 	siril_log_message(log);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_clahe(int nb) {
@@ -3382,6 +3389,7 @@ int process_clahe(int nb) {
 	args->image_hook = clahe_image_hook;
 	args->idle_function = NULL; // Use default idle function for command-line
 	args->description = _("CLAHE");
+	args->command_updates_gfit = TRUE;
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -6362,6 +6370,7 @@ int process_fixbanding(int nb) {
 	args->image_hook = banding_single_image_hook;
 	args->idle_function = NULL; // Use default idle function for command-line
 	args->description = _("Canon Banding Reduction");
+	args->command_updates_gfit = TRUE;
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;

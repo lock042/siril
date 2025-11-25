@@ -188,6 +188,13 @@ struct generic_img_args {
 	/** enable verbose logging */
 	gboolean verbose;
 
+	/** command requires gfit update: this should only be set in command.c
+	 * and provides a means to ensure gfit is updated in the generic_image_worker
+	 * thread. Commands that ues the generic_sequence_worker must set this and
+	 * must NOT return CMD_NOTIFY_GFIT_MODIFIED otherwise a segfault will occur
+	 **/
+	gboolean command_updates_gfit;
+
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()

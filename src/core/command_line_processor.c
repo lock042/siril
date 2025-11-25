@@ -205,17 +205,17 @@ int execute_command(int wordnb) {
 	if (gui.roi.active)
 		populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
+		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {
 			notify_gfit_modified();
 		} else {
-			waiting_for_thread();
 			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
 			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}
-	return (int) retval;
+	return (int) retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 static void update_log_icon(gboolean is_running) {
@@ -612,11 +612,9 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			g_print("input command:%s\n", myline);
 
 		parse_line(myline, len, &wordnb);
-		com.command = TRUE;
 		ret = execute_command(wordnb);
 
 		if (ret) {
-			com.command = FALSE;
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!(com.script || com.python_script) && !com.headless &&
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
@@ -636,7 +634,6 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				remove_child_from_children((GPid) -2); // remove processing thread from list
 			}
 		}
-		com.command = FALSE;
 		free(myline);
 	}
 

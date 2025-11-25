@@ -886,7 +886,6 @@ struct cominf {
 	// TODO: combine these gbooleans into a single bitmask state variable
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
-	gboolean command;		// a command is being executed
 	gboolean python_script;	// python script being executed
 	gboolean python_command;	// python is running a Siril command
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion

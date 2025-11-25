@@ -38,6 +38,7 @@
 #include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "io/single_image.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "gui/utils.h"
@@ -1504,7 +1505,17 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 
 /** Default idle function to end generic image processing */
 static gboolean end_generic_image(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+static gboolean end_generic_image_update_gfit(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	notify_gfit_modified();
+	free_generic_img_args(args);
 	return FALSE;
 }
 
@@ -1592,21 +1603,17 @@ the_end_no_orig:
 
 	int retval = args->retval;
 
-	gboolean run_idle = FALSE;
 	/*
 	 *
 	 */
-	if (!(com.command || com.script)) {
+	if (!com.script) {
 		if (args->idle_function) {
-			run_idle = siril_add_idle(args->idle_function, args) > 0;
+			execute_idle_and_wait_for_it(args->idle_function, args);
+		} else if (args->command_updates_gfit){
+			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
 		} else {
-			run_idle = siril_add_idle(end_generic_image, args) > 0;
+			execute_idle_and_wait_for_it(end_generic_image, args);
 		}
-	}
-
-	if (!run_idle) {
-		free_generic_img_args(args);
-		end_generic(NULL);
 	}
 
 	return GINT_TO_POINTER(retval);
