@@ -1,8 +1,11 @@
 siril-1.4.0
 xx/xx/xx
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
 **Fixes**
 * Fixed get_image_history(): now correctly updates history with operations done since loading
+* Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 
 siril 1.4.0-RC2
 11/20/25

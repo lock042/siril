@@ -115,6 +115,41 @@ static GtkGrid *grid_layers = NULL;
 
 static GtkButton *add_button = NULL;
 static cmsHPROFILE reference = NULL;
+
+/******* Custom file filter for .fit.fz and .fits.fz *******/
+
+/* Custom filter function to properly handle double extensions like .fit.fz */
+static gboolean compositing_file_filter_func(const GtkFileFilterInfo *filter_info, gpointer data) {
+	if (!filter_info->filename)
+		return FALSE;
+
+	const gchar *filename = filter_info->filename;
+	gchar *filename_lower = g_ascii_strdown(filename, -1);
+	gboolean result = FALSE;
+
+	/* Check all supported extensions */
+	if (g_str_has_suffix(filename_lower, ".fit") ||
+		g_str_has_suffix(filename_lower, ".fits") ||
+		g_str_has_suffix(filename_lower, ".fts") ||
+		g_str_has_suffix(filename_lower, ".fit.fz") ||
+		g_str_has_suffix(filename_lower, ".fits.fz") ||
+		g_str_has_suffix(filename_lower, ".tif") ||
+		g_str_has_suffix(filename_lower, ".tiff")) {
+		result = TRUE;
+		}
+
+	g_free(filename_lower);
+	return result;
+}
+
+/* Create custom file filter for compositing files */
+static GtkFileFilter* create_compositing_file_filter(void) {
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, _("FITS and TIFF files"));
+	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, compositing_file_filter_func, NULL, NULL);
+	return filter;
+}
+
 /******* internal functions *******/
 static void remove_layer(int layer);
 static void add_the_layer_add_button();
@@ -215,7 +250,9 @@ layer *create_layer(int index) {
 
 	ret->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_file_chooser_button_new("Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ret->chooser), com.wd);
-	siril_set_file_filter(GTK_FILE_CHOOSER(ret->chooser), "filefilter_comp", "FITS and TIFF files");
+	GtkFileFilter *filter = create_compositing_file_filter();
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(ret->chooser), filter);
+	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser), filter);
 
 	gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
@@ -418,7 +455,10 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
-		siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_lum")), "filefilter_comp", "FITS and TIFF files");
+		GtkWidget *filechooser_lum = lookup_widget("filechooser_lum");
+		GtkFileFilter *filter_lum = create_compositing_file_filter();
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(filechooser_lum), filter_lum);
+		gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(filechooser_lum), filter_lum);
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
