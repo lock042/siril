@@ -104,6 +104,7 @@ static void set_sat_histogram(gsl_histogram *histo);
 
 struct mtf_data* create_mtf_data() {
 	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
+	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
 	if (data) {
 		data->destroy_fn = destroy_mtf_data;
 	}
@@ -1119,7 +1120,10 @@ int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads)
 		return 1;
 
 	// Apply the MTF transform
-	apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
+	if (data->linked)
+		apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
+	else
+		apply_unlinked_mtf_to_fits(fit, fit, data->uparams);
 
 	// Handle auto display compensation if requested
 	if (data->auto_display_compensation) {

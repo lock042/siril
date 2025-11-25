@@ -12,7 +12,9 @@ struct mtf_data {
 	void (*destroy_fn)(void *args);  // First member - destructor
 	fits *fit;
 	sequence *seq;
+	gboolean linked;
 	struct mtf_params params;
+	struct mtf_params uparams[3]; // for unlinked stretch
 	char *seqEntry;
 	gboolean auto_display_compensation;
 	gboolean is_preview;
