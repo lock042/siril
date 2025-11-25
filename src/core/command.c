@@ -995,7 +995,43 @@ int process_rebayer(int nb){
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_imoper(int nb){
+// Structure to hold imoper-specific data
+struct imoper_data {
+	void (*destructor)(void *);  // Required as first member
+	image_operator oper;
+	char *filename;
+	gboolean force_to_float;
+};
+
+// Destructor for imoper_data
+static void free_imoper_data(void *data) {
+	struct imoper_data *imoper = (struct imoper_data *)data;
+	if (!imoper)
+		return;
+	free(imoper->filename);
+	free(imoper);
+}
+
+// Image processing hook for imoper
+static int imoper_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct imoper_data *data = (struct imoper_data *)args->user;
+
+	// Read the second image
+	fits operand = { 0 };
+	if (readfits(data->filename, &operand, NULL, data->force_to_float)) {
+		siril_log_color_message(_("Failed to read operand image\n"), "red");
+		return 1;
+	}
+
+	// Perform the operation
+	int retval = imoper(fit, &operand, data->oper, data->force_to_float);
+
+	clearfits(&operand);
+	return retval;
+}
+
+// Main command function
+int process_imoper(int nb) {
 	image_operator oper;
 	switch (word[0][1]) {
 		case 'a':
@@ -1019,13 +1055,54 @@ int process_imoper(int nb){
 			return CMD_ARG_ERROR;
 	}
 
-	fits fit = { 0 };
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
+	// Allocate and initialize user data
+	struct imoper_data *imoper = calloc(1, sizeof(struct imoper_data));
+	if (!imoper) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
-	int retval = imoper(gfit, &fit, oper, !com.pref.force_16bit) ? CMD_GENERIC_ERROR : CMD_OK;
+	imoper->destructor = free_imoper_data;
+	imoper->oper = oper;
+	imoper->filename = strdup(word[1]);
+	imoper->force_to_float = !com.pref.force_16bit;
 
-	clearfits(&fit);
-	return retval | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_imoper_data(imoper);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Need memory for original + operand image
+	args->image_hook = imoper_image_hook;
+	args->idle_function = NULL;  // Use default
+	switch (oper) {
+		case OPER_ADD:
+			args->description = _("Image addition");
+			break;
+		case OPER_SUB:
+			args->description = _("Image subtraction");
+			break;
+		case OPER_MUL:
+			args->description = _("Image multiplication");
+			break;
+		default:
+			args->description = _("Image division");
+	}
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->user = imoper;
+	args->max_threads = 1;  // imoper likely doesn't need multi-threading
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	start_in_new_thread(generic_image_worker, args);
+
+	return CMD_OK;  // No longer need to return CMD_NOTIFY_GFIT_MODIFIED
 }
 
 int process_addmax(int nb){
@@ -1324,9 +1401,7 @@ int process_epf(int nb) {
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_epf_args(params);
-		free(params);
-		free(args);
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -5672,6 +5747,25 @@ int process_nozero(int nb){
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+// Structure to hold DDP-specific data
+struct ddp_data {
+	void (*destructor)(void *);  // Required as first member, can be NULL
+	float level;
+	float coeff;
+	float sigma;
+};
+
+// Image processing hook for DDP
+static int ddp_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct ddp_data *data = (struct ddp_data *)args->user;
+
+	// Perform the DDP operation
+	int retval = ddp(fit, data->level, data->coeff, data->sigma);
+
+	return retval;
+}
+
+// Main command function
 int process_ddp(int nb) {
 	gchar *end;
 	float level = (float) g_ascii_strtod(word[1], &end);
@@ -5689,9 +5783,48 @@ int process_ddp(int nb) {
 		siril_log_message(_("Sigma value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
+
 	image_cfa_warning_check();
-	ddp(gfit, level, coeff, sigma);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	// Allocate and initialize user data
+	struct ddp_data *ddp_args = calloc(1, sizeof(struct ddp_data));
+	if (!ddp_args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	ddp_args->destructor = NULL;  // Use default free()
+	ddp_args->level = level;
+	ddp_args->coeff = coeff;
+	ddp_args->sigma = sigma;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(ddp_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.f;
+	args->image_hook = ddp_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Digital Development Processing");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->user = ddp_args;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_new(int nb){
