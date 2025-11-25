@@ -807,44 +807,117 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_STAR_IN_SELECTION: {
 			gboolean error_occurred = FALSE;
+			gboolean centred = FALSE;
 			int layer = 0;
 			rectangle selection;
-			memcpy(&selection, &com.selection, sizeof(rectangle));
-			if (payload_length == 16 || payload_length == 20) {
-				rectangle region_BE = *(rectangle*) payload;
-				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
-									GUINT32_FROM_BE(region_BE.y),
-									GUINT32_FROM_BE(region_BE.w),
-									GUINT32_FROM_BE(region_BE.h)};
-			} else {
-				memcpy(&selection, &com.selection, sizeof(rectangle));
+			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
+
+			// Always expect 24 bytes: x, y, w, h, channel, centred_flag
+			if (payload_length != 24) {
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
-			if (payload_length == 20) {
-				layer = GUINT32_FROM_BE(*((int*) payload + 4));
-			} else {
-				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+
+			// Unpack the payload
+			guint32 x_BE = *((guint32*) payload);
+			guint32 y_BE = *((guint32*) (payload + 4));
+			guint32 w_BE = *((guint32*) (payload + 8));
+			guint32 h_BE = *((guint32*) (payload + 12));
+			guint32 channel_BE = *((guint32*) (payload + 16));
+			guint32 centred_BE = *((guint32*) (payload + 20));
+
+			guint32 x = GUINT32_FROM_BE(x_BE);
+			guint32 y = GUINT32_FROM_BE(y_BE);
+			guint32 w = GUINT32_FROM_BE(w_BE);
+			guint32 h = GUINT32_FROM_BE(h_BE);
+			guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+			centred = GUINT32_FROM_BE(centred_BE) != 0;
+
+			// Check if shape was provided (not sentinel values)
+			gboolean shape_provided = (x != SENTINEL_VALUE && y != SENTINEL_VALUE &&
+									w != SENTINEL_VALUE && h != SENTINEL_VALUE);
+
+			if (shape_provided) {
+				// Use provided shape
+				selection = (rectangle) {x, y, w, h};
+ 			} else {
+				// Use current selection from com.selection
+ 				memcpy(&selection, &com.selection, sizeof(rectangle));
+ 			}
+			// Determine layer/channel
+			if (channel_val != SENTINEL_VALUE) {
+				layer = channel_val;
+ 			} else {
+				// Default behavior: use current viewport in GUI mode, or channel 0 in headless
+ 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+ 			}
+			// Check for an invalid selection
+			if (selection.x < 0 || selection.w < 5 || selection.w > 300 ||
+						selection.h < 5 || selection.h > 300 || selection.y < 0) {
+				const char* error_msg = _("Invalid selection");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
-			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-				selection.w < 5 || selection.w > 300 ||
-				selection.h < 5 || selection.h > 300 ||
-				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
-					const char* error_msg = _("Invalid selection");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
+
+			// Check if we need to adjust the selection to fit the image
+			if (centred) {
+				// When centred, we need to preserve the centre position while clipping
+				int center_x = selection.x + selection.w / 2;
+				int center_y = selection.y + selection.h / 2;
+
+				// Clip width and height to fit image
+				if (selection.x + selection.w > gfit->rx) {
+					selection.w = gfit->rx - selection.x;
 				}
+				if (selection.y + selection.h > gfit->ry) {
+					selection.h = gfit->ry - selection.y;
+				}
+				if (selection.x < 0) {
+					selection.w += selection.x;  // Reduce width by the amount we're shifting right
+					selection.x = 0;
+				}
+				if (selection.y < 0) {
+					selection.h += selection.y;  // Reduce height by the amount we're shifting up
+					selection.y = 0;
+				}
+
+				// Now adjust x and y to maintain the original centre
+				int new_center_x = selection.x + selection.w / 2;
+				int new_center_y = selection.y + selection.h / 2;
+				selection.x += (center_x - new_center_x);
+				selection.y += (center_y - new_center_y);
+
+				// Final bounds check to ensure we haven't gone out of bounds
+				selection.x = max(0, min(selection.x, (int)gfit->rx - selection.w));
+				selection.y = max(0, min(selection.y, (int)gfit->ry - selection.h));
+			} else {
+				// Original behavior: just clip the width and height
+				if (selection.x + selection.w > gfit->rx - 1)
+					selection.w = max(0, gfit->rx - 1 - selection.x);
+				if (selection.y + selection.h > gfit->ry - 1)
+					selection.h = max(0, gfit->ry - 1 - selection.y);
+			}
+
+			if (selection.w < 5 || selection.h < 5) {
+				const char* error_msg = _("Selection too close to edge of image");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
 			if (layer < 0 || layer >= gfit->naxes[2]) {
-					const char* error_msg = _("Invalid channel");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
+				const char* error_msg = _("Invalid channel");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
 			// For get_star_in_selection we will do photometry to get more accurate mag, s_mag, SNR
 			struct phot_config *ps = phot_set_adjusted_for_image(gfit);
-			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, TRUE, TRUE, ps, TRUE, profile, &error);
+			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, TRUE, centred, ps, TRUE, profile, &error);
 			free(ps); // Free the struct used for photometry
-			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry failed on a saturated star
-																		 // We still return the PSF, just with phot_is_valid == False
+			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry
+																		 // failed on a saturated star. We still return the PSF, just with
+																		 // phot_is_valid == False
 				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");
@@ -861,6 +934,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
+
 			const size_t psf_star_size = 37 * sizeof(double);
 			unsigned char* star = g_try_malloc0(psf_star_size);
 			unsigned char* ptr = star;
@@ -870,9 +944,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			if(!error_occurred) {
 				success = send_response(conn, STATUS_OK, star, psf_star_size);
 			}
+
 			g_free(star);
 			break;
 		}
@@ -1842,6 +1918,34 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf_star **stars = NULL;
 			int nb_stars = 0;
 			gboolean stars_needs_freeing = FALSE;
+			int layer = 0;
+			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
+
+			// Parse channel from payload if provided
+			if (payload_length == 4) {
+				guint32 channel_BE = *((guint32*) payload);
+				guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+
+				if (channel_val != SENTINEL_VALUE) {
+					layer = channel_val;
+					// Validate channel
+					if (layer < 0 || layer >= gfit->naxes[2]) {
+						const char* error_msg = _("Invalid channel");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						break;
+					}
+				} else {
+					// Use default: channel 0 for mono, channel 1 (green) for color
+					layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				}
+			} else if (payload_length == 0) {
+				// No payload means use default
+				layer = (gfit->naxes[2] == 1) ? 0 : 1;
+			} else {
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 
 			// Check if we need to find stars or use existing ones
 			if (starcount(com.stars) < 1) {
@@ -1856,7 +1960,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				sf_data->im.fit = gfit;
 				sf_data->im.from_seq = NULL;
 				sf_data->im.index_in_seq = -1;
-				sf_data->layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				sf_data->layer = layer;
 				sf_data->max_stars_fitted = MAX_STARS;
 				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
 				sf_data->save_eqcoords = has_wcs(gfit); // save coords if plate solved
@@ -1868,11 +1972,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				sf_data->process_all_images = FALSE;
 				sf_data->already_in_thread = TRUE;
 				sf_data->keep_stars = FALSE;  // Changed to FALSE so worker doesn't try to manage lifecycle
-
 				// Call the worker function
 				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
 				free(sf_data);
-
 				if (retval != 0 || !stars) {
 					const char* error_msg = _("Star detection failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1922,16 +2024,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Clean up and send response
 			if (stars_needs_freeing)
 				free_fitted_stars(stars);
-
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			}
-
 			g_free(allstars);
 			break;
 		}
+
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
 			sample_mutex_lock();
