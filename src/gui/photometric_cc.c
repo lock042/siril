@@ -102,57 +102,35 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
-	size_t retval;
 	gchar *text = NULL, *colortext = NULL;
 	stop_processing_thread();
-	if (args->code != 200) {
-		// status page is down
+
+	if (args->code != 200 || !args->content) {
+		// Failed to fetch status
 		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
 		colortext = "salmon";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
-		if (args->content) {
-			retval = g_ascii_strtoull(args->content, NULL, 10);
+		// Check if response contains "true" or "false"
+		if (g_strstr_len(args->content, -1, "<available>true</available>")) {
+			text = _("Gaia archive available");
+			colortext = "green";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
+		} else if (g_strstr_len(args->content, -1, "<available>false</available>")) {
+			text = _("Gaia archive unavailable");
+			colortext = "red";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		} else {
-			retval = 5;
-		}
-		switch (retval) {
-			case 0:
-				text = _("Gaia archive available");
-				colortext = "green";
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-				break;
-			case 1:
-				text = _("Gaia archive running but performing slightly slower\n");
-				colortext = "green";
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-				break;
-			case 2:
-				text = _("Gaia archive running but performing very slowly");
-				colortext = "salmon";
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
-				break;
-			case 3:
-			case 4:
-				text = _("Gaia archive unavailable");
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-				colortext = "red";
-				break;
-			case 5:
-				text = _("Gaia archive unreachable");
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-				colortext = "red";
-				break;
-			default:
-				text = _("Unknown Gaia archive status");
-				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-				colortext = "red";
+			// Unexpected response format
+			text = _("Unknown Gaia archive status");
+			colortext = "salmon";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 		}
 	}
+
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
-
 	free(args->content);
 	free(args);
 	return FALSE;
@@ -164,11 +142,11 @@ void check_gaia_archive_status() {
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		const gchar *text = N_("Siril is offline or built without networking. Gaia archive is unavailable.\n");
 		gtk_widget_set_tooltip_text(image, text);
-		siril_log_color_message("%s\n", "red", text);
+		siril_log_color_message("%s", "red", text);
 		return;
 	}
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/latest_check_value.out");
+	args->url = g_strdup("https://gea.esac.esa.int/tap-server/tap/availability");
 	args->idle_function = end_gaiacheck_idle;
 	g_thread_unref(g_thread_new("gaia-status-check", fetch_url_async, args));
 }
