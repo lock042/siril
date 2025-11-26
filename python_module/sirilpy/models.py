@@ -875,6 +875,7 @@ class PSFStar:
     s_mag: float = 999.99      #: error on the (V) magnitude
     s_Bmag: float = 999.99     #: error on the B magnitude
     SNR: float = 0.0           #: SNR of the star
+    phot_is_valid: bool = False #: True if mag, Bmag, s_mag, s_Bmag and SNR are photometrically accurate with no saturated pixels. Introduced in sirilpy 1.0.4.
     BV: float = 0.0            #: only used to pass data in photometric color calibration
 
     # uncertainties
@@ -907,7 +908,9 @@ class PSFStar:
             ValueError: If the buffer slice size does not match the expected size.
             struct.error: If there is an error unpacking the binary data.
         """
-        format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+        # CORRECTED format_string:
+        # 13d (B to sat) | 2q (R, has_saturated) | d (beta) | q (profile) | 7d (xpos to SNR) | q (phot_is_valid) | d (BV) | 8d (B_err to beta_err) | q (layer) | 2d (ra, dec)
+        format_string = '!13d2qdq7d q d8d q 2d'
         expected_size = struct.calcsize(format_string)
         # Verify we got the expected amount of data
 
@@ -927,11 +930,13 @@ class PSFStar:
                 has_saturated=bool(values[14]), beta=values[15],
                 profile=values[16], xpos=values[17], ypos=values[18],
                 mag=values[19], Bmag=values[20], s_mag=values[21],
-                s_Bmag=values[22], SNR=values[23], BV=values[24],
-                B_err=values[25], A_err=values[26], x_err=values[27],
-                y_err=values[28], sx_err=values[29], sy_err=values[30],
-                ang_err=values[31], beta_err=values[32], layer=values[33],
-                ra=values[34], dec=values[35]
+                s_Bmag=values[22], SNR=values[23],
+                phot_is_valid=bool(values[24]), # <--- Index shift + casting to bool
+                BV=values[25],
+                B_err=values[26], A_err=values[27], x_err=values[28],
+                y_err=values[29], sx_err=values[30], sy_err=values[31],
+                ang_err=values[32], beta_err=values[33], layer=values[34],
+                ra=values[35], dec=values[36]
             )
         except struct.error as e:
             raise SirilError(f"Deserialization error: {e}") from e

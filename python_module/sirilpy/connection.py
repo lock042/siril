@@ -1224,40 +1224,48 @@ class SirilInterface:
             raise SirilError(_("Error occurred in get_image_shape()")) from e
 
     def get_selection_star(self, shape: Optional[list[int]] = None, \
-        channel: Optional[int] = None)-> Optional[PSFStar]:
-
+        channel: Optional[int] = None, assume_centred: bool = False) -> Optional[PSFStar]:
         """
         Retrieves a PSFStar star model from the current selection in Siril.
         Only a single PSFStar is returned: if there are more than one in the
         selection, the first one identified by Siril's internal star detection
         algorithm is returned.
-
+        **Update**: from sirilpy 1.0.4 this method uses Siril's photometry functions to
+        try to provide photometrically accurate values for PSFStar.mag, PSFStar.s_mag
+        and PSFStar.SNR. If photometry succeeded and no saturated pixels were detected
+        then PSFStar.phot_is_valid will be True, otherwise it will be False.
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
-                   retrieve from. w x h must not exceed 300 px x 300 px.
-                   If provided, looks for a star in the specified selection
-                   If None, looks for a star in the selection already made in
-                   Siril, if one is made.
+                retrieve from. w x h must not exceed 300 px x 300 px.
+                If provided, looks for a star in the specified selection
+                If None, looks for a star in the selection already made in
+                Siril, if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                     channel is omitted the current viewport will be used if
-                     in GUI mode, or if not in GUI mode the method will fall back
-                     to channel 0
-
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the current viewport will be used if
+                    in GUI mode, or if not in GUI mode the method will fall back
+                    to channel 0
+            assume_centred: Optional bool specifying whether to assume the star
+                        is already centred in the selection. Defaults to False.
         Returns:
             PSFStar: the PSFStar object representing the star model, or None if
-                     no star is detected in the selection.
-
+                    no star is detected in the selection.
         Raises:
             ValueError: If an invalid shape is provided,
             NoImageError: If no image is loaded,
             SirilConnectionError: If a communication error occurs,
             SirilError: If any other error occurred during execution.
         """
-
         try:
-            # Validate shape if provided
-            shape_data = None
+            # Sentinel values for not-provided parameters
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Default values
+            x = y = w = h = SENTINEL_VALUE
+            channel_val = SENTINEL_VALUE if channel is None else channel
+            centred_flag = 1 if assume_centred else 0
+
+            # Validate and set shape if provided
             if shape is not None:
                 if len(shape) != 4:
                     raise ValueError(_("Shape must be a list of [x, y, w, h]"))
@@ -1265,12 +1273,14 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be integers"))
                 if any(v < 0 for v in shape):
                     raise ValueError(_("All shape values must be non-negative"))
+                x, y, w, h = shape
 
-                # Pack shape data for the command
-                if channel is None:
-                    shape_data = struct.pack('!IIII', *shape)
-                else:
-                    shape_data = struct.pack('!IIIII', *shape, channel)
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            # Always pack the same payload: x, y, w, h, channel, centred_flag (24 bytes)
+            shape_data = struct.pack('!IIIIII', x, y, w, h, channel_val, centred_flag)
 
             status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
 
@@ -1290,11 +1300,6 @@ class SirilInterface:
 
             if not response:
                 raise RuntimeError(_("Failed to transfer star data: No data received"))
-
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
-
-            # Extract the bytes for this struct and unpack
-            values = struct.unpack(format_string, response)
 
             return PSFStar.deserialize(response)
 
@@ -3528,9 +3533,16 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_stars(self) -> List[PSFStar]:
+    def get_image_stars(self, channel: Optional[int] = None) -> List[PSFStar]:
         """
         Request star model PSF data from Siril.
+
+        Args:
+            channel: Optional int specifying the channel to retrieve from.
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the default behavior will be used:
+                    channel 0 for mono images, channel 1 (green) for color images.
+                    **channel requires sirilpy v1.0.8 or higher.**
 
         Returns:
             List of PSFStar objects containing the star data, or None if
@@ -3541,15 +3553,29 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilError: For other errors during  data retrieval,
+            ValueError: If an invalid channel is provided,
+            SirilError: For other errors during data retrieval,
         """
 
         stars = []
         shm = None
+        shm_info = None
 
         try:
+            # Sentinel value for not-provided channel
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            channel_val = SENTINEL_VALUE if channel is None else channel
+
+            # Pack channel data for the command
+            channel_data = struct.pack('!I', channel_val)
+
             # Request shared memory setup
-            status, response = self._send_command(_Command.GET_PSFSTARS)
+            status, response = self._send_command(_Command.GET_PSFSTARS, channel_data)
 
             # Handle error responses
             if status == _Status.ERROR:
@@ -3566,9 +3592,6 @@ class SirilInterface:
             if not response:
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
 
-            if status == _Status.NONE:
-                return None
-
             try:
                 # Parse the shared memory information
                 shm_info = _SharedMemoryInfo.from_buffer_copy(response)
@@ -3584,7 +3607,7 @@ class SirilInterface:
             except (OSError, ValueError) as e:
                 raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            format_string = '!13d2qdq7d q d8d q 2d'  # Define the format string based on PSFStar structure
             fixed_size = struct.calcsize(format_string)
 
             # Read entire buffer at once using memoryview
@@ -3593,15 +3616,15 @@ class SirilInterface:
             # Validate buffer size
             if shm_info.size % fixed_size != 0:
                 raise ValueError(_("Buffer size {} is not a multiple "
-                                   "of struct size {}").format(len(buffer), fixed_size))
+                                "of struct size {}").format(len(buffer), fixed_size))
 
             num_stars = len(buffer) // fixed_size
 
             # Sanity check for number of stars
-            if num_stars <= 0:  # adjust max limit as needed
+            if num_stars <= 0:
                 raise ValueError(_("Invalid number of stars: {}").format(num_stars))
 
-            if num_stars > 200000: # to match the #define MAX_STARS
+            if num_stars > 200000:  # to match the #define MAX_STARS
                 num_stars = 200000
                 self.log(_("Limiting stars to max 200000"))
 
@@ -3629,10 +3652,10 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()  # First close the memory mapping as we have finished with it
-                    # (We don't unlink it as C wll do that)
+                    # (We don't unlink it as C will do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                    if shm_info is not None and not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
