@@ -1133,24 +1133,150 @@ int process_fdiv(int nb){
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_fmul(int nb){
-	gboolean from8b = (gfit->orig_bitpix == BYTE_IMG); // get orig bitdepth of 8b before it gets converted to 32b by soper
+// Structure to hold fmul-specific data
+struct fmul_data {
+	void (*destructor)(void *);  // Required as first member
+	float coeff;
+	gboolean from8b;
+};
+
+// Image processing hook for fmul
+static int fmul_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fmul_data *data = (struct fmul_data *)args->user;
+
+	// Perform the scalar multiplication
+	int retval = soper(fit, data->coeff, OPER_MUL, TRUE);
+
+	if (data->from8b) {
+		// Image is now 32b, need to reset slider max and update hi/lo
+		invalidate_stats_from_fit(fit);
+		image_find_minmax(fit);
+		fit->keywords.hi = (WORD)(fit->maxi * USHRT_MAX_SINGLE);
+		fit->keywords.lo = (WORD)(fit->mini * USHRT_MAX_SINGLE);
+		set_cutoff_sliders_max_values();
+	}
+
+	return retval;
+}
+
+// Main command function for fmul
+int process_fmul(int nb) {
 	gchar *end;
 	float coeff = g_ascii_strtod(word[1], &end);
 	if (end == word[1] || coeff <= 0.f) {
 		siril_log_message(_("Multiplying by a coefficient less than or equal to 0 is not possible.\n"));
 		return CMD_ARG_ERROR;
 	}
-	soper(gfit, coeff, OPER_MUL, TRUE);
-	if (from8b) { // image is now 32b, need to reset slider max and update hi/lo
-		invalidate_stats_from_fit(gfit);
-		image_find_minmax(gfit);
-		gfit->keywords.hi = (WORD)(gfit->maxi * USHRT_MAX_SINGLE);
-		gfit->keywords.lo = (WORD)(gfit->mini * USHRT_MAX_SINGLE);
-		set_cutoff_sliders_max_values();
+
+	// Allocate and initialize user data
+	struct fmul_data *data = calloc(1, sizeof(struct fmul_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	data->destructor = NULL;  // Use default free()
+	data->coeff = coeff;
+	data->from8b = (gfit->orig_bitpix == BYTE_IMG);
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // soper works in-place
+	args->image_hook = fmul_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Scalar multiplication");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->user = data;
+	args->max_threads = 1;  // soper doesn't need multi-threading
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
+}
+
+// Structure to hold gauss-specific data
+struct gauss_data {
+	void (*destructor)(void *);  // Required as first member
+	double sigma;
+};
+
+// Image processing hook for gauss
+static int gauss_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct gauss_data *data = (struct gauss_data *)args->user;
+
+	// Perform the Gaussian blur
+	int retval = unsharp(fit, data->sigma, 0.0, TRUE);
+
+	// Add to history
+	char log[90];
+	sprintf(log, "Gaussian filtering, sigma: %.2f", data->sigma);
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return retval;
+}
+
+// Main command function for gauss
+int process_gauss(int nb) {
+	gchar *end;
+	double sigma = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || sigma <= 0.0) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+
+	image_cfa_warning_check();
+
+	// Allocate and initialize user data
+	struct gauss_data *data = calloc(1, sizeof(struct gauss_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->destructor = NULL;  // Use default free()
+	data->sigma = sigma;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Gaussian blur needs temporary buffers
+	args->image_hook = gauss_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Gaussian blur");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->user = data;
+	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_entropy(int nb){
@@ -1168,23 +1294,6 @@ int process_entropy(int nb){
 	}
 	siril_log_message(_("Entropy: %.3f\n"), e);
 	return CMD_OK;
-}
-
-int process_gauss(int nb){
-	gchar *end;
-	double sigma = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || sigma <= 0.0) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-		return CMD_ARG_ERROR;
-	}
-	image_cfa_warning_check();
-	unsharp(gfit, sigma, 0.0, TRUE);
-	//gaussian_blur_RT(gfit, sigma, com.max_thread);
-
-	char log[90];
-	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 int process_unpurple(int nb){
@@ -5666,69 +5775,183 @@ int process_inspector(int nb) {
 	return CMD_OK;
 }
 
-int process_thresh(int nb){
+// Enum to distinguish threshold operations
+typedef enum {
+	THRESH_BOTH,
+	THRESH_LO,
+	THRESH_HI
+} thresh_type;
+
+// Structure to hold threshold-specific data
+struct thresh_data {
+	void (*destructor)(void *);  // Required as first member
+	thresh_type type;
+	int lo;
+	int hi;
+};
+
+// Image processing hook for threshold operations
+static int thresh_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct thresh_data *data = (struct thresh_data *)args->user;
+
+	// Perform the threshold operation(s)
+	if (data->type == THRESH_BOTH || data->type == THRESH_LO) {
+		threshlo(fit, data->lo);
+	}
+	if (data->type == THRESH_BOTH || data->type == THRESH_HI) {
+		threshhi(fit, data->hi);
+	}
+
+	// Add to history
+	char log[90];
+	if (data->type == THRESH_BOTH) {
+		sprintf(log, "Image clamped to [%d, %d]", data->lo, data->hi);
+	} else if (data->type == THRESH_LO) {
+		sprintf(log, "Image clamped to [%d, max]", data->lo);
+	} else {
+		sprintf(log, "Image clamped to [min, %d]", data->hi);
+	}
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return 0;
+}
+
+// Unified threshold processing function
+int process_thresh(int nb) {
 	gchar *end1, *end2;
 	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], &end1, 10);
-	if (end1 == word[1] || lo < 0 || lo > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	int hi = g_ascii_strtoull(word[2], &end2, 10);
-	if (end2 == word[2] || hi < 0 || hi > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	if (lo >= hi) {
-		siril_log_message(_("lo must be strictly smaller than hi\n"));
-		return CMD_ARG_ERROR;
-	}
-	threshlo(gfit, lo);
-	threshhi(gfit, hi);
+	thresh_type type;
+	int lo = 0, hi = maxlevel;
 
-	char log[90];
-	sprintf(log, "Image clamped to [%d, %d]", lo, hi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Determine operation type by examining word[0]
+	if (strcmp(word[0], "thresh") == 0) {
+		type = THRESH_BOTH;
+		lo = g_ascii_strtoull(word[1], &end1, 10);
+		if (end1 == word[1] || lo < 0 || lo > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+		hi = g_ascii_strtoull(word[2], &end2, 10);
+		if (end2 == word[2] || hi < 0 || hi > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+		if (lo >= hi) {
+			siril_log_message(_("lo must be strictly smaller than hi\n"));
+			return CMD_ARG_ERROR;
+		}
+	} else if (strcmp(word[0], "threshlo") == 0) {
+		type = THRESH_LO;
+		lo = g_ascii_strtoull(word[1], &end1, 10);
+		if (end1 == word[1] || lo < 0 || lo > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+	} else if (strcmp(word[0], "threshhi") == 0) {
+		type = THRESH_HI;
+		hi = g_ascii_strtoull(word[1], &end1, 10);
+		if (end1 == word[1] || hi < 0 || hi > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+	} else {
+		return CMD_ARG_ERROR;
+	}
+
+	// Allocate and initialize user data
+	struct thresh_data *data = calloc(1, sizeof(struct thresh_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->destructor = NULL;
+	data->type = type;
+	data->lo = lo;
+	data->hi = hi;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Threshold operations work in-place
+	args->image_hook = thresh_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Threshold operation");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
-int process_threshlo(int nb) {
-	gchar *end;
-	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || lo < 0 || lo > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	threshlo(gfit, lo);
+// Structure for neg operation (simple, no extra data needed)
+struct neg_data {
+	void (*destructor)(void *);  // Required as first member
+};
 
-	char log[90];
-	sprintf(log, "Image clamped to [%d, max]", lo);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+// Image processing hook for neg
+static int neg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	pos_to_neg(fit);
+
+	// Add to history
+	fit->history = g_slist_append(fit->history, strdup(_("Image made negative")));
+
+	return 0;
 }
 
-int process_threshhi(int nb) {
-	gchar *end;
-	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int hi = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || hi < 0 || hi > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	threshhi(gfit, hi);
-
-	char log[90];
-	sprintf(log, "Image clamped to [min, %d]", hi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
+// Main command function for neg
 int process_neg(int nb) {
-	set_cursor_waiting(TRUE);
-	pos_to_neg(gfit);
-	gfit->history = g_slist_append(gfit->history, strdup("Image made negative"));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize user data
+	struct neg_data *data = calloc(1, sizeof(struct neg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->destructor = NULL;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Neg operation works in-place
+	args->image_hook = neg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Negative");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_nozero(int nb){

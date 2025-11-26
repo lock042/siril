@@ -259,8 +259,8 @@ static command commands[] = {
 	{"subsky", 1, "subsky { -rbf | degree } [-dither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-existing]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"threshlo", 1, "threshlo level", process_thresh, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"threshhi", 1, "threshi level", process_thresh, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"tilt", 0, "tilt [clear]", process_tilt, STR_TILT, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"trixel", 0, "trixel [-p]", process_trixel, STR_TRIXEL, TRUE, REQ_CMD_NONE | REQ_CMD_NO_THREAD},
