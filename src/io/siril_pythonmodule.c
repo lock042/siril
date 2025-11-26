@@ -2013,6 +2013,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			"-m",
 			"pip",
 			"install",
+			"--no-cache-dir",
 			arg_module_path,
 			NULL  // Array must be NULL-terminated
 		};
