@@ -7,6 +7,7 @@ xx/xx/xx
 * Fixed get_image_history(): now correctly updates history with operations done since loading
 * Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 * Fixed Gaia online catalogue status indicator (!963)
+* Enabled the use of the bad pixel map without having a master dark (#1876)
 
 siril 1.4.0-RC2
 11/20/25

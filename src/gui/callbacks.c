@@ -840,15 +840,18 @@ static void set_initial_histogram_display_mode(int x) {
 
 void update_prepro_interface(gboolean allow_debayer) {
 	static GtkToggleButton *udark = NULL, *uoffset = NULL, *uflat = NULL,
-			       *checkAutoEvaluate = NULL;
+			       *checkAutoEvaluate = NULL, *cosmEnabledCheck = NULL;
 	static GtkWidget *prepro_button = NULL, *cosme_grid = NULL, *dark_optim = NULL;
        	static GtkWidget *equalize = NULL, *auto_eval = NULL, *flat_norm = NULL;
        	static GtkWidget *debayer = NULL, *fix_xtrans = NULL;
 	static GtkComboBox *output_type = NULL;
+	gboolean has_bad_pix_map = FALSE;
+
 	if (udark == NULL) {
 		udark = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
 		uoffset = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
 		uflat = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+		cosmEnabledCheck = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
 		checkAutoEvaluate = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
 		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
@@ -861,10 +864,26 @@ void update_prepro_interface(gboolean allow_debayer) {
 		fix_xtrans = lookup_widget("fix_xtrans_af");
 	}
 
+	/* now we want to know which cosmetic correction we choose */
+	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+	GtkWidget *w = gtk_stack_get_visible_child(stack);
+	if (w) {
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_INT);
+		gtk_container_child_get_property(GTK_CONTAINER(stack), w, "position", &value);
+		gint position = g_value_get_int(&value);
+		has_bad_pix_map = position == 0 ? FALSE : TRUE;
+		g_value_unset(&value);
+	}
+	if (has_bad_pix_map) {
+		const gchar *path = gtk_entry_get_text(GTK_ENTRY(lookup_widget("pixelmap_entry")));
+		has_bad_pix_map = (path && path[0] != '\0') && g_file_test(path, G_FILE_TEST_EXISTS);
+	}
+
 	gtk_widget_set_sensitive(prepro_button,
 			gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(debayer)) ||
 			((sequence_is_loaded() || single_image_is_loaded()) &&
-			(gtk_toggle_button_get_active(udark) ||
+			((gtk_toggle_button_get_active(udark) || (has_bad_pix_map && gtk_toggle_button_get_active(cosmEnabledCheck))) ||
 			gtk_toggle_button_get_active(uoffset) ||
 			gtk_toggle_button_get_active(uflat))));
 
@@ -1439,6 +1458,10 @@ gboolean set_GUI_CWD(gpointer user_data) {
 	return FALSE;
 }
 
+static void on_stack_changed(GtkStack *stack, GParamSpec *pspec, gpointer user_data) {
+	update_prepro_interface(TRUE);
+}
+
 static void initialize_preprocessing() {
 	GtkToggleButton *cfaButton, *eqButton, *xtransButton;
 
@@ -1448,6 +1471,9 @@ static void initialize_preprocessing() {
 	gtk_toggle_button_set_active(eqButton, com.pref.prepro.equalize_cfa);
 	xtransButton = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
 	gtk_toggle_button_set_active(xtransButton, com.pref.prepro.fix_xtrans);
+
+	GtkStack *stack = GTK_STACK(gtk_builder_get_object(gui.builder, "stack_cc"));
+	g_signal_connect(stack, "notify::visible-child", G_CALLBACK(on_stack_changed), NULL);
 
 	update_prepro_interface(FALSE);
 }
@@ -1900,6 +1926,8 @@ void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(CFA, is_active);
 	gtk_widget_set_sensitive(cc_frame_dark, is_active);
 	gtk_widget_set_sensitive(cc_frame_bad_pixel_map, is_active);
+
+	update_prepro_interface(TRUE);
 }
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
