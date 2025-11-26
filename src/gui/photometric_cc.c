@@ -107,7 +107,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 	if (args->code != 200 || !args->content) {
 		// Failed to fetch status
-		text = _("Unable to check Gaia archive status. The archive may still be available. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
 		colortext = "salmon";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
