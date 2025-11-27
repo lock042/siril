@@ -194,6 +194,7 @@ struct generic_img_args {
 	 * must NOT return CMD_NOTIFY_GFIT_MODIFIED otherwise a segfault will occur
 	 **/
 	gboolean command_updates_gfit;
+	gboolean command;
 
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention MUST have a destructor as its

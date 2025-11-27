@@ -111,12 +111,12 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 
 	// Get current values from widgets
 	get_epf_values(&params->d, &params->sigma_col, &params->sigma_space, &params->mod, &params->filter);
-
+	params->fit = for_roi ? &gui.roi.fit : gfit;
 	// Set up guide image
 	params->guide_needs_freeing = FALSE;
 	if (params->filter == EP_GUIDED) {
 		if (gtk_toggle_button_get_active(guided_filter_selfguide)) {
-			params->guidefit = for_roi ? &gui.roi.fit : gfit;
+			params->guidefit = params->fit;
 		} else {
 			if (loaded_fit.rx != 0) {
 				params->guidefit = &loaded_fit;
@@ -154,7 +154,10 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
 
-	start_in_new_thread(generic_image_worker, args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return 1;
+	}
 	return 0;
 }
 

@@ -300,7 +300,7 @@ static void fit_to_hsl() {
 	}
 }
 
-static void histo_recompute() {
+static void histo_recompute(gboolean for_preview) {
 	set_cursor("progress");
 	gboolean auto_comp = auto_display_compensation;
 	auto_display_compensation = FALSE;
@@ -398,7 +398,10 @@ static void histo_recompute() {
 	}
 
 	if (args) {
-		start_in_new_thread(generic_image_worker, args);
+		if (for_preview)
+			generic_image_worker(args);
+		else
+			start_in_new_thread(generic_image_worker, args);
 	}
 }
 
@@ -1021,7 +1024,7 @@ static void update_histo_mtf() {
 static int histo_update_preview() {
 	fit = gui.roi.active ? &gui.roi.fit : gfit;
 	if (!closing)
-		histo_recompute();
+		histo_recompute(TRUE);
 	return 0;
 }
 

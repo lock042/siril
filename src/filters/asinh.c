@@ -104,7 +104,10 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
 
-	start_in_new_thread(generic_image_worker, args);
+	if (for_preview)
+		generic_image_worker(args);
+	else
+		start_in_new_thread(generic_image_worker, args);
 	return 0;
 }
 

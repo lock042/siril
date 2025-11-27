@@ -1606,14 +1606,17 @@ the_end_no_orig:
 	/*
 	 *
 	 */
-	if (!com.script) {
-		if (args->idle_function) {
-			execute_idle_and_wait_for_it(args->idle_function, args);
-		} else if (args->command_updates_gfit){
+	if (args->command) {
+		// commands do not use custom idles and the generic ones must run synchronously
+		if (args->command_updates_gfit) {
 			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
 		} else {
 			execute_idle_and_wait_for_it(end_generic_image, args);
 		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_image_update_gfit, args);
 	}
 
 	return GINT_TO_POINTER(retval);

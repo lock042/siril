@@ -273,42 +273,92 @@ int process_seq_clean(int nb) {
 	return CMD_OK;
 }
 
-int process_satu(int nb){
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
-	args->background_factor = 1.0;
+int process_satu(int nb) {
 	gchar *end;
-	args->coeff = g_ascii_strtod(word[1], &end);
+	double coeff = g_ascii_strtod(word[1], &end);
 	if (end == word[1]) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-		free(args);
 		return CMD_ARG_ERROR;
 	}
+
+	double background_factor = 1.0;
 	if (nb > 2) {
-		args->background_factor = g_ascii_strtod(word[2], &end);
-		if (end == word[2] || args->background_factor < 0.0) {
+		background_factor = g_ascii_strtod(word[2], &end);
+		if (end == word[2] || background_factor < 0.0) {
 			siril_log_message(_("Background factor must be positive\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	int satu_hue_type = 6;
 	if (nb > 3) {
 		satu_hue_type = g_ascii_strtoull(word[3], &end, 10);
 		if (end == word[3] || satu_hue_type > 6) {
 			siril_log_message(_("Hue range must be [0, 6]\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	satu_set_hues_from_types(args, satu_hue_type);
-	args->input = gfit;
-	args->output = gfit;
-	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g times (median + sigma).\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	// Allocate parameters
+	saturation_params *params = calloc(1, sizeof(saturation_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
+	params->free = free; // Destructor
+	params->coeff = coeff;
+	params->background_factor = background_factor;
+	satu_set_hues_from_types(params, satu_hue_type);
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = saturation_image_hook;
+	args->idle_function = NULL; // Synchronous execution
+	args->description = _("Saturation");
+	args->command_updates_gfit = TRUE; // Ensure gfit is notified
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = FALSE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run synchronously
 	set_cursor_waiting(TRUE);
-	return GPOINTER_TO_INT(enhance_saturation(args));
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	int retval = args->retval;
+
+	// args is freed by generic_image_worker at end_generic_image_update_gfit
+	// or manually if we were running in thread, but generic_image_worker
+	// handles cleanup if it completes, though for synchronous calls
+	// we usually rely on it returning.
+	// NOTE: generic_image_worker calls execute_idle_and_wait_for_it
+	// which will clean up args.
+
+	if (retval != 0) {
+		siril_log_color_message(_("Saturation enhancement failed\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
+	char log[90];
+	sprintf(log, "Color saturation %d%%, threshold %.2f",
+		round_to_int(coeff * 100.0), background_factor);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+	siril_log_message(_("%s\n"), log);
+
+	return CMD_OK;
 }
 
 int process_save(int nb){
@@ -1094,6 +1144,7 @@ int process_imoper(int nb) {
 	}
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = imoper;
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
@@ -1194,6 +1245,7 @@ int process_fmul(int nb) {
 	args->description = _("Scalar multiplication");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
@@ -1265,6 +1317,7 @@ int process_gauss(int nb) {
 	args->description = _("Gaussian blur");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
@@ -1496,6 +1549,7 @@ int process_epf(int nb) {
 	args->description = _("Edge Preserving Filter");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = params;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -2164,6 +2218,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 		args->idle_function = NULL;
 		args->description = _("Deconvolution");
 		args->command_updates_gfit = TRUE;
+		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data; // Dynamic estk_data managed by generic worker
 		args->max_threads = com.max_thread;
@@ -2229,6 +2284,29 @@ int process_seq_wiener(int nb) {
 	return process_seqdeconvolve(nb, DECONV_WIENER);
 }
 
+// Structure to hold unsharp-specific data
+struct unsharp_data {
+	void (*destructor)(void *);  // Required as first member
+	double sigma;
+	double multi;
+};
+
+// Image processing hook for unsharp
+static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct unsharp_data *data = (struct unsharp_data *)args->user;
+
+	// Perform the unsharp mask operation
+	int retval = unsharp(fit, data->sigma, data->multi, TRUE);
+
+	// Add to history
+	char log[90];
+	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", data->sigma, data->multi);
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return retval;
+}
+
+// Main command function for unsharp
 int process_unsharp(int nb) {
 	gchar *end;
 	double sigma = g_ascii_strtod(word[1], &end);
@@ -2241,12 +2319,46 @@ int process_unsharp(int nb) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
-	unsharp(gfit, sigma, multi, TRUE);
 
-	char log[90];
-	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", sigma, multi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize user data
+	struct unsharp_data *data = calloc(1, sizeof(struct unsharp_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->destructor = NULL;
+	data->sigma = sigma;
+	data->multi = multi;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Unsharp mask needs temporary buffers
+	args->image_hook = unsharp_cmd_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Unsharp mask");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 #define CHECK_KEY_LENGTH(__key__) \
@@ -2926,6 +3038,7 @@ int process_mtf(int nb) {
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("Midtones Transfer Function");
 		args->command_updates_gfit = TRUE;
+		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -2999,6 +3112,7 @@ int process_ghs(int nb, int stretchtype) {
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Generalised Hyperbolic Stretch");
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -3182,6 +3296,7 @@ int process_autoghs(int nb) {
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("AutoGHS");
 		args->command_updates_gfit = TRUE;
+		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -3293,6 +3408,7 @@ int process_autostretch(int nb) {
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Autostretch");
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
@@ -3503,6 +3619,7 @@ int process_asinh(int nb) {
 	args->idle_function = NULL; // No idle function for synchronous execution
 	args->description = _("Asinh stretch");
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -3510,7 +3627,10 @@ int process_asinh(int nb) {
 	args->for_roi = FALSE;
 
 	// Run synchronously by calling the worker directly
-	generic_image_worker(args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 
 	// Check return value
 	int retval = args->retval;
@@ -3569,6 +3689,7 @@ int process_clahe(int nb) {
 	args->idle_function = NULL; // Use default idle function for command-line
 	args->description = _("CLAHE");
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
@@ -3581,7 +3702,7 @@ int process_clahe(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_ls(int nb){
@@ -5885,6 +6006,7 @@ int process_thresh(int nb) {
 	args->description = _("Threshold operation");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -5940,6 +6062,7 @@ int process_neg(int nb) {
 	args->description = _("Negative");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -6036,6 +6159,7 @@ int process_ddp(int nb) {
 	args->description = _("Digital Development Processing");
 	args->verbose = TRUE;
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
 	args->user = ddp_args;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -6474,26 +6598,48 @@ int process_seq_cosme(int nb) {
 }
 
 int process_fmedian(int nb){
-	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
+	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
 	gchar *end1, *end2;
-	args->ksize = g_ascii_strtoull(word[1], &end1, 10);
-	args->amount = g_ascii_strtod(word[2], &end2);
-	args->iterations = 1;
-
-	if (end1 == word[1] || !(args->ksize & 1) || args->ksize < 2 || args->ksize > 15) {
+	params->ksize = g_ascii_strtoull(word[1], &end1, 10);
+	params->amount = g_ascii_strtod(word[2], &end2);
+	params->iterations = 1;
+	if (end1 == word[1] || !(params->ksize & 1) || params->ksize < 2 || params->ksize > 15) {
 		siril_log_message(_("The size of the kernel MUST be odd and in the range [3, 15].\n"));
-		free(args);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
-	if (end2 == word[2] || args->amount < 0.0 || args->amount > 1.0) {
+	if (end2 == word[2] || params->amount < 0.0 || params->amount > 1.0) {
 		siril_log_message(_("Modulation value MUST be between 0 and 1\n"));
-		free(args);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
+	params->fit = gfit;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
 	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = median_image_hook;
+	args->idle_function = NULL; // No idle function for command execution
+	args->description = _("Median filter");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = FALSE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(median_filter, args)) {
-		free(args);
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free(params);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6722,6 +6868,7 @@ int process_fixbanding(int nb) {
 	args->idle_function = NULL; // Use default idle function for command-line
 	args->description = _("Canon Banding Reduction");
 	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
