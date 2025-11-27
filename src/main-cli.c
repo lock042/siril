@@ -348,6 +348,7 @@ int main(int argc, char *argv[]) {
 	GApplication *app;
 	const gchar *dir;
 	gint status;
+	com.headless = TRUE;
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
