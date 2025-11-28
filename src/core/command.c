@@ -2498,10 +2498,10 @@ static gboolean crop_command_idle(gpointer arg) {
 }
 
 
+/* Command interpreter function for CCM using generic_image_worker */
 int process_ccm(int nb) {
 	sequence *seq = NULL;
 	char *prefix = NULL;
-
 	int arg_index = 1, offset;
 	gboolean is_sequence = (word[0][2] == 'q');
 
@@ -2514,10 +2514,13 @@ int process_ccm(int nb) {
 		}
 	} else {
 		offset = 0;
-		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
+		if (!single_image_is_loaded())
+			return CMD_IMAGE_NOT_FOUND;
 	}
 
 	arg_index++;
+
+	// Parse prefix argument for sequences
 	while (arg_index < nb && word[arg_index]) {
 		char *arg = word[arg_index];
 		if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
@@ -2535,70 +2538,110 @@ int process_ccm(int nb) {
 		}
 		arg_index++;
 	}
-	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
 
-	args->power = 1.f;
+	// Allocate ccm_data structure
+	struct ccm_data *args = new_ccm_data();
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(prefix);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Parse matrix elements
 	gchar *end;
-	for (int i = 0 ; i < 3 ; i++) {
-		for (int j = 0 ; j < 3 ; j++) {
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
 			int word_index = 3 * i + j + 1 + offset;
 			args->matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
 				free(prefix);
+				free_ccm_data(args);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
 	}
+
+	// Parse power parameter (optional)
 	if (word[10 + offset]) {
 		args->power = g_ascii_strtod(word[10 + offset], &end);
-			if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
-				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
-				free(prefix);
-				free(args);
-				return CMD_ARG_ERROR;
-			}
+		if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
+			siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
+			free(prefix);
+			free_ccm_data(args);
+			free(args);
+			return CMD_ARG_ERROR;
+		}
 	}
+
 	siril_log_message(_("Applying CCM with coefficients %f, %f, %f, %f, %f, %f, %f, %f, %f and power %f\n"),
 						args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 						args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
 						args->matrix[2][0], args->matrix[2][1], args->matrix[2][2], args->power);
 
-
-	printf("args->power=%lf\n", args->power);
 	if (is_sequence) {
-
+		// Sequence processing
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("ccm_");
-
 		apply_ccm_to_sequence(args);
+		return CMD_OK;
 	} else {
+		// Single image processing
 		if (!isrgb(gfit)) {
 			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
-			g_free(args->seqEntry);
+			free(prefix);
+			free_ccm_data(args);
 			free(args);
 			return CMD_INVALID_IMAGE;
 		}
 
-		ccm_calc(gfit, args->matrix, args->power);
-		char log[90];
-		snprintf(log, 89, "Color correction matrix applied:");
+		// Allocate worker args
+		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
+		if (!worker_args) {
+			PRINT_ALLOC_ERR;
+			free(prefix);
+			free_ccm_data(args);
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
+
+		worker_args->fit = gfit;
+		worker_args->mem_ratio = 1.5f;
+		worker_args->image_hook = ccm_single_image_hook;
+		worker_args->idle_function = NULL; // Use default idle for commands
+		worker_args->description = _("Color Conversion Matrix");
+		worker_args->verbose = TRUE;
+		worker_args->user = args;
+		worker_args->max_threads = com.max_thread;
+		worker_args->for_preview = FALSE;
+		worker_args->for_roi = FALSE;
+		worker_args->command = TRUE;  // This is being called from a command
+		worker_args->command_updates_gfit = TRUE;  // We need gfit to be updated
+
+		// Build history log
+		char log[256];
+		snprintf(log, 255, "Color correction matrix applied:");
 		gfit->history = g_slist_append(gfit->history, strdup(log));
-		snprintf(log, 89, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
+		snprintf(log, 255, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
 					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
 					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
 		gfit->history = g_slist_append(gfit->history, strdup(log));
-		snprintf(log, 89, "Power: %.4f", args->power);
+		snprintf(log, 255, "Power: %.4f", args->power);
 		gfit->history = g_slist_append(gfit->history, strdup(log));
-		g_free(args->seqEntry);
-		free(args);
-		return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 
+		free(prefix);
+
+		if (!start_in_new_thread(generic_image_worker, worker_args)) {
+			free_generic_img_args(worker_args);
+			return CMD_GENERIC_ERROR;
+		}
+
+		// Note: We do NOT return CMD_NOTIFY_GFIT_MODIFIED here because
+		// command_updates_gfit is set to TRUE, which handles the notification
+		return CMD_OK;
 	}
-
-	return CMD_OK;
 }
 
 
@@ -6739,53 +6782,90 @@ int process_offset(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_scnr(int nb){
-	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
-	args->type = SCNR_AVERAGE_NEUTRAL;
-	args->amount = 0.0;
-	args->fit = gfit;
-	args->preserve = TRUE;
-
+/* Command interpreter function for SCNR using generic_image_worker */
+int process_scnr(int nb) {
+	// Parse command arguments
+	scnr_type type = SCNR_AVERAGE_NEUTRAL;
+	double amount = 0.0;
+	gboolean preserve = TRUE;
 	int argidx = 1;
-	if (argidx < nb && !g_strcmp0(word[1], "-nopreserve")) {
-		args->preserve = FALSE;
+
+	if (argidx < nb && !g_strcmp0(word[argidx], "-nopreserve")) {
+		preserve = FALSE;
 		argidx++;
 	}
 
 	if (argidx < nb) {
 		gchar *end;
-		args->type = g_ascii_strtoull(word[argidx], &end, 10);
-		if (end == word[argidx] || args->type > 3) {
+		type = g_ascii_strtoull(word[argidx], &end, 10);
+		if (end == word[argidx] || type > 3) {
 			siril_log_message(_("Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 		argidx++;
 	}
 
-	if (argidx < nb && (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)) {
+	if (argidx < nb && (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK)) {
 		gchar *end;
-		args->amount = g_ascii_strtod(word[argidx], &end);
-		if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
+		amount = g_ascii_strtod(word[argidx], &end);
+		if (end == word[argidx] || amount < 0.0 || amount > 1.0) {
 			siril_log_message(_("Amount can only be [0, 1]\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	char log[90];
-	char amountstr[30] = "";
-	if (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)
-		sprintf(amountstr, "amount %.2f, ", args->amount);
-	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
-			scnr_type_to_string(args->type), amountstr,
-			args->preserve ? "" : "not ");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	if (!start_in_new_thread(scnr, args)) {
-		free(args);
+	// Allocate parameters
+	struct scnr_data *params = new_scnr_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
 		return CMD_GENERIC_ERROR;
 	}
+
+	params->type = type;
+	params->amount = amount;
+	params->preserve = preserve;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_scnr_data(params);
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = scnr_image_hook;
+	args->idle_function = NULL; // Use default idle for commands
+	args->description = _("SCNR");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command = TRUE;  // This is being called from a command
+	args->command_updates_gfit = TRUE;  // We need gfit to be updated
+
+	// Build history log
+	char log[90];
+	char amountstr[30] = "";
+	if (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK)
+		sprintf(amountstr, "amount %.2f, ", amount);
+	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
+			scnr_type_to_string(type), amountstr,
+			preserve ? "" : "not ");
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Note: We do NOT return CMD_NOTIFY_GFIT_MODIFIED here because
+	// command_updates_gfit is set to TRUE, which handles the notification
 	return CMD_OK;
 }
 
