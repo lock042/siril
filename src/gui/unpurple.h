@@ -24,7 +24,5 @@
 #include "core/siril.h"
 
 void unpurple_change_between_roi_and_image();
-void apply_unpurple_cancel();
-int generate_binary_starmask(fits *fit, fits *starmask, double thresh);
 
 #endif /* SRC_GUI_ASINH_H_ */

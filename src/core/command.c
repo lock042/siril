@@ -1349,15 +1349,13 @@ int process_entropy(int nb){
 	return CMD_OK;
 }
 
-int process_unpurple(int nb){
+int process_unpurple(int nb) {
 	gchar *end;
-	double mod = 1.f, thresh = 0.f;
+	double mod = 1.0, thresh = 0.0;
 	gboolean withstarmask = FALSE;
-	fits *fit = gfit;
-	fits starmask = {0};
 
 	// Extract parameters
-	for (int i = 1 ; i < nb ; i++) {
+	for (int i = 1; i < nb; i++) {
 		gchar *arg = word[i];
 		if (!g_strcmp0(arg, "-starmask")) {
 			withstarmask = TRUE;
@@ -1380,20 +1378,69 @@ int process_unpurple(int nb){
 		}
 	}
 
-	if (withstarmask) {
-		generate_binary_starmask(fit, &starmask, thresh);
-	}
-
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
-
-	if (!start_in_new_thread(unpurple_handler, args)) {
-		free(args);
+	// Allocate parameters
+	struct unpurpleargs *params = new_unpurple_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
 		return CMD_GENERIC_ERROR;
 	}
-	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d\n"), mod, thresh, withstarmask);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Set parameters
+	params->mod_b = mod;
+	params->thresh = thresh;
+	params->withstarmask = withstarmask;
+	params->fit = gfit;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	// Set up starmask if needed
+	params->starmask_needs_freeing = FALSE;
+	if (withstarmask) {
+		params->starmask = calloc(1, sizeof(fits));
+		if (!params->starmask) {
+			PRINT_ALLOC_ERR;
+			free_unpurple_args(params);
+			return CMD_GENERIC_ERROR;
+		}
+
+		if (generate_binary_starmask(gfit, &params->starmask, thresh)) {
+			free_unpurple_args(params);
+			return CMD_GENERIC_ERROR;
+		}
+		params->starmask_needs_freeing = TRUE;
+	} else {
+		params->starmask = NULL;
+	}
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_unpurple_args(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = unpurple_image_hook;
+	args->idle_function = NULL; // Use default
+	args->description = _("Unpurple Filter");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d\n"), mod, thresh, withstarmask);
+	return CMD_OK;
 }
 
 int process_epf(int nb) {
