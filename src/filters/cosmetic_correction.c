@@ -841,3 +841,53 @@ int denoise_hook_cosmetic(fits *fit) {
 	}
 	return 0;
 }
+
+/*****************************************************************************
+ *      C O S M E      A L L O C A T O R   A N D   D E S T R U C T O R      *
+ ****************************************************************************/
+
+/* Allocator for cosme_data */
+struct cosme_data *new_cosme_data() {
+	struct cosme_data *args = calloc(1, sizeof(struct cosme_data));
+	if (args) {
+		args->destroy_fn = free_cosme_data;
+	}
+	return args;
+}
+
+/* Destructor for cosme_data */
+void free_cosme_data(void *ptr) {
+	struct cosme_data *args = (struct cosme_data *)ptr;
+	if (!args)
+		return;
+
+	g_clear_object(&args->file);
+	if (args->prefix)
+		free(args->prefix);
+
+	free(ptr);
+}
+
+/* Image processing hook for generic_image_worker */
+int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct cosme_data *params = (struct cosme_data *)args->user;
+	if (!params)
+		return 1;
+
+	return apply_cosme_to_image(fit, params->file, params->is_cfa);
+}
+
+/* Idle function for cosmetic correction */
+gboolean cosme_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	return FALSE;
+}

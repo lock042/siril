@@ -6555,8 +6555,6 @@ int process_fix_xtrans(int nb) {
 
 int process_cosme(int nb) {
 	gchar *filename;
-	int retval = 0;
-
 	if (!g_str_has_suffix(word[1], ".lst")) {
 		filename = g_strdup_printf("%s.lst", word[1]);
 	} else {
@@ -6570,20 +6568,51 @@ int process_cosme(int nb) {
 	}
 
 	GFile *file = g_file_new_for_path(filename);
+	g_free(filename);
 
 	int is_cfa = (word[0][5] == '_') ? 1 : 0;
 
-	retval = apply_cosme_to_image(gfit, file, is_cfa);
-
-	g_free(filename);
-	if (file)
+	// Allocate parameters using the new allocator
+	struct cosme_data *params = new_cosme_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
 		g_object_unref(file);
-	if (retval)
-		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
+		return CMD_GENERIC_ERROR;
+	}
 
-	invalidate_stats_from_fit(gfit);
-	notify_gfit_modified();
-	return retval ? CMD_GENERIC_ERROR : ( CMD_OK | CMD_NOTIFY_GFIT_MODIFIED );
+	params->file = file;  // Transfer ownership
+	params->is_cfa = is_cfa;
+	params->fit = NULL;  // Not used in this context
+	params->seq = NULL;  // Not used in this context
+	params->prefix = NULL;  // Not used in this context
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_cosme_data(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Cosmetic correction works in-place with minimal overhead
+	args->image_hook = cosme_image_hook_generic;
+	args->idle_function = NULL;
+	args->description = _("Cosmetic Correction");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_seq_cosme(int nb) {

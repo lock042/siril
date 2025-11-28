@@ -18,6 +18,7 @@ struct cosmetic_data {
 
 /* structure for cosme command */
 struct cosme_data {
+	destructor destroy_fn;  // Must be first member
 	fits *fit;
 	sequence *seq;
 	int is_cfa;
@@ -44,5 +45,14 @@ int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa);
 int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa);
 
 int denoise_hook_cosmetic(fits *fit);
+
+struct cosme_data *new_cosme_data();
+void free_cosme_data(void *args);
+
+/* Image processing hook for generic_image_worker */
+int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads);
+
+/* Idle function for generic_image_worker */
+gboolean cosme_idle(gpointer p);
 
 #endif /* COSMETIC_CORRECTION_H_ */
