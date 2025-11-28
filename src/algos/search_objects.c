@@ -164,18 +164,38 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		gchar **fields = g_strsplit(token[4], ",", -1);
 		guint n = g_strv_length(fields);
 		if (n == 16) { // with site coordinates passed
-			ra = parse_hms(fields[2]);
-			dec = parse_dms(fields[3]);
+			if (g_utf8_strchr(fields[2], -1, ':'))
+				ra = parse_hms(fields[2]);
+			else
+				ra = g_strtod(fields[2], NULL);
+			if (g_utf8_strchr(fields[3], -1, ':'))
+				dec = parse_dms(fields[3]);
+			else
+				dec = g_strtod(fields[3], NULL);
 			vra = g_strtod(fields[13], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[14], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[9], NULL);
 		} else if (n == 11) { // with @500 passed
-			ra = parse_hms(fields[1]);
-			dec = parse_dms(fields[2]);
+			if (g_utf8_strchr(fields[1], -1, ':'))
+				ra = parse_hms(fields[1]);
+			else
+				ra = g_strtod(fields[1], NULL);
+			if (g_utf8_strchr(fields[2], -1, ':'))
+				dec = parse_dms(fields[2]);
+			else
+				dec = g_strtod(fields[2], NULL);
 			vra = g_strtod(fields[8], NULL) * 60.; // vra stored in arcsec/hr but given in arcsec/min
 			vdec = g_strtod(fields[9], NULL) * 60.; // vdec stored in arcsec/hr but given in arcsec/min
 			mag = g_strtod(fields[5], NULL);
 		} else {
+			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
+			g_strfreev(token);
+			g_free(objname);
+			g_free(objtype);
+			args->retval = 1;
+			return 1;
+		}
+		if (isnan(ra) || isnan(dec) || isnan(vra) || isnan(vdec) || isnan(mag)) {
 			siril_log_message(_("Could not parse the server response: %s\n"), token[4]);
 			g_strfreev(token);
 			g_free(objname);
@@ -463,7 +483,7 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		g_string_append_printf(string_url, "&-observer=%s", formatted_site);
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
-		if (args->fit->keywords.sitelat == DEFAULT_FLOAT_VALUE || args->fit->keywords.sitelong == DEFAULT_FLOAT_VALUE) {
+		if (!g_strcmp0(formatted_site, "@500")) {
 			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
 		} else {
 			double elev = (args->fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : args->fit->keywords.siteelev;
