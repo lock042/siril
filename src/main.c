@@ -611,6 +611,9 @@ int main(int argc, char *argv[]) {
 #elif _WIN32
 	// suppression of annoying error boxes, hack from RawTherapee
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+	// avoid Python interfering with Siril's embedded Python
+	g_unsetenv("PYTHONPATH");
+	g_unsetenv("PYTHONHOME");
 #endif
 
 #ifdef _WIN32
