@@ -8,6 +8,7 @@ xx/xx/xx
 * Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 * Fixed Gaia online catalogue status indicator (!963)
 * Fixed catsearch function for solar system objects (#1882)
+* Fixed cleaning python related environment variables within Siril app for Windows (#1880)
 
 siril 1.4.0-RC2
 11/20/25
