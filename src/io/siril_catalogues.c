@@ -1280,7 +1280,7 @@ gpointer conesearch_worker(gpointer p) {
 
 	// Prepare the temporary annotation catalogue if GUI or output file is requested
 	if (args->has_GUI || args->outfilename) {
-		temp_cat = siril_catalog_new(CAT_AN_USER_TEMP);
+		temp_cat = siril_catalog_new(siril_cat->cat_index);
 		if (!temp_cat) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -1324,21 +1324,15 @@ gpointer conesearch_worker(gpointer p) {
 		{
 			continue;
 		}
-		// If GUI is active, copy the item into the temporary catalogue
-		if (args->has_GUI) {
+		// If GUI is active or output file is requested, copy the item into the temporary catalogue
+		if (args->has_GUI || args->outfilename) {
 			siril_catalogue_copy_item(&siril_cat->cat_items[i],
 									  &temp_cat->cat_items[j]);
 			if (stardiam)
 				temp_cat->cat_items[j].diameter = stardiam;
-			if (hide_display_tag) {
+			if (siril_cat->cat_index == CAT_PGC) {
 				g_free(temp_cat->cat_items[j].name);
-				temp_cat->cat_items[j].name = NULL;
-			} else {
-				if (siril_cat->cat_index == CAT_PGC) {
-					g_free(temp_cat->cat_items[j].name);
-					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s",
-																  siril_cat->cat_items[i].name);
-				}
+				temp_cat->cat_items[j].name = g_strdup_printf("PGC %s", siril_cat->cat_items[i].name);
 			}
 		}
 		if (args->display_log) {
@@ -1469,6 +1463,16 @@ gpointer conesearch_worker(gpointer p) {
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
 		} else {
 			siril_log_message(_("Failed to save list to %s\n"), args->outfilename);
+		}
+	}
+	// The catalogue has been written, we can now remove the names if needed for display
+	if (args->has_GUI) {
+		temp_cat->cat_index = CAT_AN_USER_TEMP;
+		if (hide_display_tag) {
+			for (int i = 0; i < temp_cat->nbitems; i++) {
+				g_free(temp_cat->cat_items[i].name);
+				temp_cat->cat_items[i].name = NULL;
+			}
 		}
 	}
 

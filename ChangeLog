@@ -10,6 +10,7 @@ xx/xx/xx
 * Enabled the use of the bad pixel map without having a master dark (#1876)
 * Fixed catsearch function for solar system objects (#1882)
 * Fixed cleaning python related environment variables within Siril app for Windows (#1880)
+* Fixed empty csv file exported by conesearch command when called from script (#1885)
 
 siril 1.4.0-RC2
 11/20/25
