@@ -116,7 +116,8 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 			text = _("Gaia archive available");
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-		} else if (g_strstr_len(args->content, -1, "<available>false</available>")) {
+		} else if (g_strstr_len(args->content, -1, "<available>false</available>")
+				|| g_strstr_len(args->content, -1, "Maintenance ongoing")) {
 			text = _("Gaia archive unavailable");
 			colortext = "red";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
