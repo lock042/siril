@@ -342,6 +342,7 @@ int main(int argc, char *argv[]) {
 	GApplication *app;
 	const gchar *dir;
 	gint status;
+	com.headless = TRUE;
 	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
@@ -365,6 +366,9 @@ int main(int argc, char *argv[]) {
 #elif _WIN32
 	// suppression of annoying error boxes, hack from RawTherapee
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+	// avoid Python interfering with Siril's embedded Python
+	g_unsetenv("PYTHONPATH");
+	g_unsetenv("PYTHONHOME");
 #endif
 
 	initialize_siril_directories();
