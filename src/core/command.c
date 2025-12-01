@@ -649,74 +649,113 @@ int process_denoise(int nb){
 	return CMD_OK;
 }
 
-int process_starnet(int nb){
+int process_starnet(int nb) {
 #ifdef HAVE_LIBTIFF
 	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
 		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
 		return CMD_FILE_NOT_FOUND;
 	}
 	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
-		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"), "red", com.pref.starnet_exe);
+		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"),
+			"red", com.pref.starnet_exe);
 		return CMD_GENERIC_ERROR;
 	}
-	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->linear = FALSE;
-	starnet_args->customstride = FALSE;
-	starnet_args->upscale = FALSE;
-	starnet_args->starmask = TRUE;
-	starnet_args->follow_on = FALSE;
-	starnet_args->starnet_fit = gfit;
+
+	// Allocate StarNet parameters using the allocator
+	starnet_data *starnet_params = new_starnet_args();
+	if (!starnet_params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set defaults
+	starnet_params->linear = FALSE;
+	starnet_params->customstride = FALSE;
+	starnet_params->upscale = FALSE;
+	starnet_params->starmask = TRUE;
+	starnet_params->follow_on = FALSE;
+	starnet_params->starnet_fit = gfit;
+
+	// Parse arguments
 	gboolean error = FALSE;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
 		if (g_str_has_prefix(arg, "-stretch")) {
-			starnet_args->linear = TRUE;
+			starnet_params->linear = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-upscale")) {
-			starnet_args->upscale = TRUE;
+			starnet_params->upscale = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nostarmask")) {
-			starnet_args->starmask = FALSE;
+			starnet_params->starmask = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
 			int stride = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
+			if (arg == end) {
+				error = TRUE;
+			} else if ((stride < 2) || (stride > 512) || (stride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
-				free(starnet_args);
+				free_starnet_args(starnet_params);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				starnet_args->stride = g_strdup_printf("%d", stride);
-				starnet_args->customstride = TRUE;
+				starnet_params->stride = g_strdup_printf("%d", stride);
+				starnet_params->customstride = TRUE;
 			}
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(starnet_args);
+			free_starnet_args(starnet_params);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
-			free(starnet_args);
+			free_starnet_args(starnet_params);
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	image_cfa_warning_check();
 
+	// Save backup for undo before processing
+	copy_gfit_to_backup();
+
+	// Allocate generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_starnet_args(starnet_params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f;
+	args->image_hook = starnet_single_image_hook;
+	args->idle_function = starnet_single_image_idle;
+	args->description = _("StarNet");
+	args->verbose = TRUE;
+	args->user = starnet_params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
 	set_cursor_waiting(TRUE);
-	if (!start_in_new_thread(do_starnet, starnet_args)) {
-		free_starnet_args(starnet_args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
+	return CMD_OK;
 #else
 	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
+	return CMD_NOT_FOR_THIS_OS;
 #endif
-	return CMD_OK;
 }
 
 int process_seq_starnet(int nb){
@@ -739,7 +778,7 @@ int process_seq_starnet(int nb){
 	struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
 	if (!multi_args)
 		return CMD_ALLOC_ERROR;
-	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
+	starnet_data *starnet_args = new_starnet_args();
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
 	starnet_args->linear = FALSE;
