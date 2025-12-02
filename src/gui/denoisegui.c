@@ -193,6 +193,7 @@ static int denoise_update_preview() {
 
 void denoise_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
+	gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 	// Restore original image first
 	copy_backup_to_gfit();
 	// If we are showing the preview, update it after the ROI change.
@@ -238,12 +239,11 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_toggle_button_set_active(check_denoise_suppress_artefacts, FALSE);
 	gtk_spin_button_set_value(spin_rho, 0.2);
 	gtk_spin_button_set_value(spin_sos_iters, 1);
-	if (denoise_preview_toggle)
-		gtk_toggle_button_set_active(denoise_preview_toggle, FALSE);
 	set_notify_block(FALSE);
 
 	gtk_widget_set_visible(GTK_WIDGET(denoise_artefact_control), (gfit->naxes[2] == 3));
 	gtk_widget_set_visible(GTK_WIDGET(sos_advanced_options), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(denoise_roi_preview), gui.roi.active);
 }
 
 void close_denoise() {
