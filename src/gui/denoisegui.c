@@ -26,6 +26,7 @@
 #include "io/image_format_fits.h"
 #include "core/siril_log.h"
 #include "filters/nlbayes/call_nlbayes.h"
+#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
 #include "gui/dialogs.h"
@@ -195,11 +196,8 @@ void denoise_change_between_roi_and_image() {
 	// Restore original image first
 	copy_backup_to_gfit();
 	// If we are showing the preview, update it after the ROI change.
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = denoise_update_preview;
-	param->show_preview = denoise_preview_toggle ?
-	                      gtk_toggle_button_get_active(denoise_preview_toggle) : FALSE;
-	notify_update((gpointer) param);
+	restore_roi();
+	notify_gfit_modified();
 }
 
 static void denoise_startup() {
