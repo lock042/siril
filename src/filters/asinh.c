@@ -501,6 +501,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
+	args->custom_undo = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);
 

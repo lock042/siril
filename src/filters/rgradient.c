@@ -77,7 +77,7 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 
 gchar *rgradient_log_hook(struct generic_img_args *p) {
 	struct rgradient_data *args = (struct rgradient_data *) p->user;
-	gchar *message = g_strdup_printf(_("Radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)"),
+	gchar *message = g_strdup_printf(_("Rotational gradient radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)"),
 			args->dR, args->da, args->xc, args->yc);
 	return message;
 }
@@ -280,10 +280,6 @@ static int rgradient_process_with_worker() {
 		free(params);
 		return 1;
 	}
-
-	// Save undo state
-	undo_save_state(gfit, _("RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"),
-		dR, da, xc, yc);
 
 	// Set up generic_img_args
 	args->fit = gfit;

@@ -1540,16 +1540,17 @@ gpointer generic_image_worker(gpointer p) {
 	assert(args->fit);
 	assert(args->image_hook);
 
+	gboolean verbose = !args->for_preview;
+	gchar *message = NULL;
+
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
-	gboolean undo_set = FALSE;
-
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
 	fits orig = { 0 };
-	if (args->supports_mask && copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+	if (copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 		siril_log_color_message(_("Failed to copy original image.\n"), "red");
 		args->retval = 1;
 		goto the_end_no_orig;
@@ -1568,47 +1569,50 @@ gpointer generic_image_worker(gpointer p) {
 	}
 
 	// Output print of operation description
-	if (args->description && args->verbose) {
+	if (args->description && verbose) {
 		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
 		siril_log_color_message(desc, "green");
 		g_free(desc);
-	}
-
-	// If we are being run from the GUI, set the undo state
-	if (args->fit == gfit && !(args->for_preview || args->command)) {
-		if (!undo_save_state(gfit, args->description)) // We just use the short description here
-			undo_set = TRUE;
 	}
 
 	set_progress_bar_data(_("Processing image..."), 0.1f);
 
 	// If there is a log_hook, set the HISTORY card and update the log as required
 	// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
-	if (args->log_hook) {
-		gchar *message = args->log_hook(args); // Dynamically allocates memory
-		if (!args->for_preview)
-			siril_log_message("%s\n", message); // Log the detailed description
-		args->fit->history = g_slist_append(args->fit->history, message); // args->fit->history now owns the allocated memory
-	}
+	// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
+	message = args->log_hook ? args->log_hook(args): g_strdup(args->description); // Dynamically allocates memory
+	if (!args->for_preview)
+		siril_log_message("%s\n", message); // Log the detailed description
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
 		if (args->verbose)
 			siril_log_color_message(_("%s failed.\n"), "red", args->description);
 		args->retval = 1;
-		if (undo_set) {
-			undo_display_data(REDO); // get rid of the saved undo state, because the operation failed.
-		}
 	} else {
+		// If we are being run from the GUI and not just updating a preview, set the undo state
+		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
+			undo_save_state(&orig, message); // We just use the short description here
+			g_free(message); // free the message
+		} else {
+			// Update the HISTORY card if it wasn't updated by undo_save_state'
+			if ((args->custom_undo)) {
+				// Do nothing, the custom undo will handle it
+				g_free(message);
+			} else {
+				args->fit->history = g_slist_append(args->fit->history, message);
+				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
+			}
+		}
 		if (args->supports_mask) {
 			// TODO: once masks are implemented, combine orig with args->fit according to the mask
 			// For now, the processed result is in args->fit
 		}
-		if (args->verbose)
+		if (verbose) {
 			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
-		gettimeofday(&t_end, NULL);
-		if (args->verbose)
+			gettimeofday(&t_end, NULL);
 			show_time(t_start, t_end);
+		}
 	}
 
 the_end:
