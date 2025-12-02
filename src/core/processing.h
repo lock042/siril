@@ -166,28 +166,23 @@ struct _multi_split {
 struct generic_img_args {
 	/** input image to be processed */
 	fits *fit;
-
 	/** peak memory requirement as multiple of image size */
 	float mem_ratio;
-
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
 	int (*image_hook)(struct generic_img_args *, fits *, int);
-
 	/** idle function to register at the end, if not already_in_a_thread.
 	 *  If NULL, the default idle function that stops the thread is used.
 	 *  Return false for single execution. It should free its argument. */
 	GSourceFunc idle_function;
-
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
-
-	/** string description for progress and logs */
+	/** string description for progress and undo */
 	const char *description;
-
+	/** hook to produce an extended description for HISTORY and logs. */
+	gchar* (*log_hook)(struct generic_img_args *);
 	/** enable verbose logging */
 	gboolean verbose;
-
 	/** command requires gfit update: this should only be set in command.c
 	 * and provides a means to ensure gfit is updated in the generic_image_worker
 	 * thread. Commands that ues the generic_sequence_worker must set this and
@@ -195,21 +190,19 @@ struct generic_img_args {
 	 **/
 	gboolean command_updates_gfit;
 	gboolean command;
-
 	/** user data: pointer to operation-specific data. It is managed by the
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()
 	 */
 	void *user;
-
 	/** number of threads to use for the operation */
 	int max_threads;
-
 	/** if TRUE, this is a preview operation and should not save undo */
 	gboolean for_preview;
-
 	/** if TRUE, operation is being applied to ROI only */
 	gboolean for_roi;
+	/** if TRUE, operation supports masks */
+	gboolean supports_mask;
 };
 
 void free_generic_img_args(struct generic_img_args *args);

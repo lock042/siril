@@ -4535,6 +4535,7 @@ int process_rgradient(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 3.0f; // Need memory for two temporary images
 	args->image_hook = rgradient_image_hook;
+	args->log_hook = rgradient_log_hook;
 	args->idle_function = NULL; // Use default idle for commands
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;

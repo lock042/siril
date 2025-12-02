@@ -75,23 +75,23 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 	p->y = center.y + r * sin(theta);
 }
 
+gchar *rgradient_log_hook(struct generic_img_args *p) {
+	struct rgradient_data *args = (struct rgradient_data *) p->user;
+	gchar *message = g_strdup_printf(_("Radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)"),
+			args->dR, args->da, args->xc, args->yc);
+	return message;
+}
+
 static int apply_rgradient_filter(struct rgradient_data *args) {
 	fits *fit = args->fit;
-	gboolean verbose = args->verbose;
 	int retval = 0;
 	const point center = {args->xc, args->yc};
 	const double dAlpha = M_PI / 180.0 * args->da;
 	gboolean was_ushort;
 	fits imA = { 0 }, imB = { 0 };
 
-	if (verbose) {
-		siril_log_message(_("Radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)\n"),
-			args->dR, args->da, args->xc, args->yc);
-	}
-
 	int cur_nb = 0;
 	const double total = fit->ry * fit->naxes[2];
-	set_progress_bar_data(_("Rotational gradient in progress..."), PROGRESS_RESET);
 
 	was_ushort = fit->type == DATA_USHORT;
 
@@ -190,14 +190,6 @@ end_rgradient:
 			fit_replace_buffer(fit, newbuf, DATA_USHORT);
 	}
 
-	if (!retval) {
-		set_progress_bar_data(_("Rotational gradient complete."), PROGRESS_DONE);
-	} else {
-		set_progress_bar_data(_("Rotational gradient failed."), PROGRESS_RESET);
-		if (verbose)
-			siril_log_color_message(_("Rotational gradient failed.\n"), "red");
-	}
-
 	return retval;
 }
 
@@ -248,7 +240,7 @@ static int rgradient_process_with_worker() {
 		return 1;
 
 	if (gfit->orig_bitpix == BYTE_IMG) {
-		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		siril_log_color_message(_("Error: this process cannot be applied to 8b images\n"), "red");
 		return 1;
 	}
 
@@ -297,6 +289,7 @@ static int rgradient_process_with_worker() {
 	args->fit = gfit;
 	args->mem_ratio = 3.0f; // Need memory for two temporary images
 	args->image_hook = rgradient_image_hook;
+	args->log_hook = rgradient_log_hook;
 	args->idle_function = rgradient_idle;
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;

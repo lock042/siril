@@ -36,6 +36,7 @@
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
 #include "core/OS_utils.h"
+#include "core/undo.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "io/single_image.h"
@@ -1543,11 +1544,12 @@ gpointer generic_image_worker(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
+	gboolean undo_set = FALSE;
+
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
-	fits orig;
-	memset(&orig, 0, sizeof(fits));
-	if (copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+	fits orig = { 0 };
+	if (args->supports_mask && copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 		siril_log_color_message(_("Failed to copy original image.\n"), "red");
 		args->retval = 1;
 		goto the_end_no_orig;
@@ -1572,19 +1574,38 @@ gpointer generic_image_worker(gpointer p) {
 		g_free(desc);
 	}
 
+	// If we are being run from the GUI, set the undo state
+	if (args->fit == gfit && !(args->for_preview || args->command)) {
+		if (!undo_save_state(gfit, args->description)) // We just use the short description here
+			undo_set = TRUE;
+	}
+
 	set_progress_bar_data(_("Processing image..."), 0.1f);
+
+	// If there is a log_hook, set the HISTORY card and update the log as required
+	// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
+	if (args->log_hook) {
+		gchar *message = args->log_hook(args); // Dynamically allocates memory
+		if (!args->for_preview)
+			siril_log_message("%s\n", message); // Log the detailed description
+		args->fit->history = g_slist_append(args->fit->history, message); // args->fit->history now owns the allocated memory
+	}
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
 		if (args->verbose)
-			siril_log_color_message(_("Image processing failed.\n"), "red");
+			siril_log_color_message(_("%s failed.\n"), "red", args->description);
 		args->retval = 1;
+		if (undo_set) {
+			undo_display_data(REDO); // get rid of the saved undo state, because the operation failed.
+		}
 	} else {
-		// TODO: once masks are implemented, combine orig with args->fit according to the mask
-		// For now, the processed result is in args->fit
-
+		if (args->supports_mask) {
+			// TODO: once masks are implemented, combine orig with args->fit according to the mask
+			// For now, the processed result is in args->fit
+		}
 		if (args->verbose)
-			siril_log_color_message(_("Image processing succeeded.\n"), "green");
+			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
 		gettimeofday(&t_end, NULL);
 		if (args->verbose)
 			show_time(t_start, t_end);
