@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-07 21:02+0100\n"
-"PO-Revision-Date: 2025-03-13 15:45+0000\n"
-"Last-Translator: Roberto Rodoero <roberto.rodoero@gmail.com>\n"
+"PO-Revision-Date: 2025-11-27 01:05+0000\n"
+"Last-Translator: Carlo Mollicone <carlo.mollicone@alice.it>\n"
 "Language-Team: Italian <https://weblate.siril.org/projects/siril/software/"
-"siril/it/>\n"
+"siril-1-6/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -150,15 +150,17 @@ msgstr "Chiudi"
 
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
-#, fuzzy
 msgid "ROI Preview"
-msgstr "Anteprima"
+msgstr "Anteprima ROI"
 
 #: src/gui/uifiles/Median_dialog.ui:84
 msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
 msgstr ""
+"Nota: l'anteprima della ROI mostrerà un bordo nero. Non preoccupatevi, il "
+"bordo verrà sovrascritto dalle ROI future e dall'applicazione finale del "
+"filtro mediano."
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
@@ -316,7 +318,6 @@ msgid "Blue"
 msgstr "Blu"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
 msgstr "Parametri AAVSO"
 
@@ -407,9 +408,8 @@ msgid "Comparison star: "
 msgstr "Comparazione stella: "
 
 #: src/gui/uifiles/aavso_dialog.ui:284
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "Inseririre il numero dell'immagine da raggiungere."
+msgstr "Il numero della stella di confronto."
 
 #: src/gui/uifiles/aavso_dialog.ui:297
 msgid "Cstd: "
@@ -465,6 +465,16 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"Si prega di utilizzare l'ID di sequenza che troverete scritto in grassetto "
+"nella parte superiore della tabella fotometrica in una frase che recita "
+"\"Segnalare questa sequenza come [ID] nel campo grafico del vostro rapporto "
+"di osservazione\". Se avete utilizzato le vostre stelle di confronto (ad "
+"esempio, in caso di avvisi urgenti quando il Sequence Team non ha avuto il "
+"tempo di creare una sequenza), non fornite un ID grafico, anche se avete "
+"tracciato il grafico utilizzando VSP. Utilizzate il codice di commento K ("
+"grafico non AAVSO) e assegnate un nome grafico appropriato, ad esempio "
+"\"APASS DR10\". Quindi aggiungete informazioni sulle stelle di confronto "
+"nelle note. Limite: 20 caratteri."
 
 #: src/gui/uifiles/aavso_dialog.ui:365
 msgid "Chart: "
@@ -477,6 +487,7 @@ msgstr "Note: "
 #: src/gui/uifiles/aavso_dialog.ui:388
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
 msgstr ""
+"Commenti o note sull'osservazione. Se non ci sono commenti, usare \"na\"."
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2491
 msgid "Aberration Inspector"
@@ -501,6 +512,8 @@ msgstr "Pulisci tutto"
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current temporary annotations (in red by default)"
 msgstr ""
+"Cancella tutte le annotazioni temporanee correnti (in rosso per impostazione "
+"predefinita)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -510,9 +523,8 @@ msgid "Close the window."
 msgstr "Chiudi la finestra."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "Applico registrazione"
+msgstr "Applica registrazione"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
 #, fuzzy
@@ -584,9 +596,8 @@ msgid "gcvs (General Catalogue of Variable Stars)"
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:141
-#, fuzzy
 msgid "vsx (Variable Stars Index)"
-msgstr "Nessuna stella selezionata"
+msgstr "vsx (Variable Stars Index)"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum (GAIA DR3 Variability)"
@@ -771,9 +782,8 @@ msgstr ""
 "personalizzato."
 
 #: src/gui/uifiles/annotate_dialog.ui:564
-#, fuzzy
 msgid "Get coordinates from selection"
-msgstr "Errore di selezione delle coordinate centrali"
+msgstr "Ottieni le coordinate dalla selezione"
 
 #: src/gui/uifiles/annotate_dialog.ui:585
 msgid "Single Coordinates"
@@ -32637,7 +32647,7 @@ msgstr ""
 #: src/registration/shift_methods.c:461
 #, c-format
 msgid "Cannot perform KOMBAT alignment for frame %d\n"
-msgstr "NonImpossibile eseguire l’allineamento KOMBAT per il frame %d\n"
+msgstr "Impossibile eseguire l'allineamento KOMBAT per il frame %d\n"
 
 #: src/registration/shift_methods.c:481
 #, c-format
@@ -33143,7 +33153,7 @@ msgstr "Normalizzazione ............. %s\n"
 
 #: src/stacking/stacking.c:417
 msgid "Stacking result image"
-msgstr "Stacking dell'immagine risultato"
+msgstr "Immagine risultante dallo stacking"
 
 #: src/stacking/stacking.c:466
 msgid "Unsaved stacking result"
@@ -33161,7 +33171,7 @@ msgstr "Stacking: non posso leggere il frame, interruzione\n"
 
 #: src/stacking/stackminmax.c:161
 msgid "Stacking: image in sequence doesn't has the same dimensions\n"
-msgstr "Stracking: l'immagine nella sequenza non ha le stesse dimensioni\n"
+msgstr "Stacking: l'immagine nella sequenza non ha le stesse dimensioni\n"
 
 #: src/stacking/stackminmax.c:298
 msgid "Stacking failed. Check the log."
@@ -33181,7 +33191,7 @@ msgstr ""
 
 #: src/stacking/upscaling.c:138
 msgid "Up-scaling sequence for stacking"
-msgstr "Sto up-scalando la sequenza per lo stalking"
+msgstr "Sequenza di up-scaling per l'impilamento"
 
 #: src/stacking/upscaling.c:149
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
