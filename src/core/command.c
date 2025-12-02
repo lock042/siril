@@ -561,88 +561,202 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
-int process_denoise(int nb){
+/*****************************************************************************
+ *      D E N O I S E   A L L O C A T O R   A N D   D E S T R U C T O R     *
+ ****************************************************************************/
+
+/* Allocator for denoise_args */
+struct denoise_args *new_denoise_args() {
+	struct denoise_args *args = calloc(1, sizeof(struct denoise_args));
+	if (args) {
+		args->destroy_fn = free_denoise_args;
+		// Set default values
+		args->modulation = 1.0f;
+		args->sos = 1;
+		args->rho = 0.2f;
+		args->da3d = 0;
+		args->do_anscombe = FALSE;
+		args->do_cosme = TRUE;
+		args->suppress_artefacts = FALSE;
+		args->previewing = FALSE;
+	}
+	return args;
+}
+
+/* Destructor for denoise_args */
+void free_denoise_args(void *ptr) {
+	struct denoise_args *args = (struct denoise_args *)ptr;
+	if (!args)
+		return;
+	free(ptr);
+}
+
+/*****************************************************************************
+ *      D E N O I S E   P R O C E S S I N G   H O O K                       *
+ ****************************************************************************/
+
+/* The actual denoising processing hook */
+int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct denoise_args *params = (struct denoise_args *)args->user;
+	if (!params) {
+		siril_log_color_message(_("Denoising failed: invalid parameters\n"), "red");
+		return 1;
+	}
+
+	// Update fit pointer to the one being processed
+	params->fit = fit;
+
+	// Log what we're doing (only if verbose)
+	if (args->verbose) {
+		if (params->do_anscombe)
+			siril_log_message(_("Applying generalised Anscombe variance stabilising transform.\n"));
+		if (params->da3d)
+			siril_log_message(_("Carrying out final stage DA3D denoising.\n"));
+		if (params->sos > 1)
+			siril_log_message(_("Performing %d SOS iterations with rho=%.2f.\n"), params->sos, params->rho);
+		siril_log_message(_("Cosmetic correction: %s, Suppress artefacts: %s\n"),
+		                  params->do_cosme ? _("enabled") : _("disabled"),
+		                  params->suppress_artefacts ? _("enabled") : _("disabled"));
+	}
+
+	// Call the actual denoising function
+	// Note: do_nlbayes doesn't take cosmetic or suppress_artefacts parameters
+	// These might need to be applied separately or the function signature needs updating
+	int retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
+	                        params->rho, params->do_anscombe);
+
+	if (retval != 0 && args->verbose) {
+		siril_log_color_message(_("NL-Bayes denoising failed.\n"), "red");
+	} else if (retval == 0 && args->verbose) {
+		siril_log_color_message(_("NL-Bayes denoising completed successfully.\n"), "green");
+	}
+
+	return retval;
+}
+
+/*****************************************************************************
+ *      C O M M A N D   P R O C E S S I N G                                 *
+ ****************************************************************************/
+
+int process_denoise(int nb) {
 	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
-	denoise_args *args = calloc(1, sizeof(denoise_args));
-	args->sos = 1;
-	args->rho = 0.2f;
-	args->modulation = 1.f;
-	args->da3d = 0;
-	args->do_anscombe = FALSE;
-	args->do_cosme = TRUE;
-	args->suppress_artefacts = FALSE;
-	args->previewing = FALSE;
-	args->fit = gfit;
+
+	// Allocate parameters
+	struct denoise_args *params = new_denoise_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Parse command line arguments
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
+
 		if (g_str_has_prefix(arg, "-vst")) {
-			args->do_anscombe = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-da3d")) {
-			args->da3d = 1;
-		}
-		else if (g_str_has_prefix(arg, "-indep")) {
-			args->suppress_artefacts = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-nocosmetic")) {
-			args->do_cosme = FALSE;
-		}
-		else if (g_str_has_prefix(arg, "-mod=")) {
+			params->do_anscombe = TRUE;
+		} else if (g_str_has_prefix(arg, "-da3d")) {
+			params->da3d = 1;
+		} else if (g_str_has_prefix(arg, "-indep")) {
+			params->suppress_artefacts = TRUE;
+		} else if (g_str_has_prefix(arg, "-nocosmetic")) {
+			params->do_cosme = FALSE;
+		} else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
 			float mod = (float) g_ascii_strtod(arg, &end);
 			if (mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
-				free(args);
-				return CMD_OK;
-			} else args->modulation = mod;
-		}
-		else if (g_str_has_prefix(arg, "-rho=")) {
+				free_denoise_args(params);
+				free(params);
+				set_cursor_waiting(FALSE);
+				return CMD_ARG_ERROR;
+			}
+			params->modulation = mod;
+		} else if (g_str_has_prefix(arg, "-rho=")) {
 			arg += 5;
 			float rho = g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((rho <= 0.f) || (rho >= 1.f)) {
+			if (arg == end) {
+				error = TRUE;
+			} else if ((rho <= 0.f) || (rho >= 1.f)) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
-				free(args);
+				free_denoise_args(params);
+				free(params);
+				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				args->rho = rho;
+				params->rho = rho;
 			}
-		}
-		else if (g_str_has_prefix(arg, "-sos=")) {
+		} else if (g_str_has_prefix(arg, "-sos=")) {
 			arg += 5;
 			unsigned sos = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if (sos < 1) {
+			if (arg == end) {
+				error = TRUE;
+			} else if (sos < 1) {
 				siril_log_message(_("Error: SOS iterations must be >= 1. Defaulting to 1.\n"));
 				sos = 1;
-			} else if (sos > 10)
+			} else if (sos > 10) {
 				siril_log_message(_("Note: high number of SOS iterations. Processing time may be lengthy...\n"));
+			}
 			if (!error) {
-				args->sos = sos;
+				params->sos = sos;
 			}
 		}
 	}
-	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
+
+	// Validate parameter combinations
+	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
 		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
-		free(args);
+		free_denoise_args(params);
+		free(params);
+		set_cursor_waiting(FALSE);
 		return CMD_ARG_ERROR;
 	}
-	if (args->do_anscombe)
+
+	if (params->do_anscombe)
 		siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
-	if (args->da3d) {
+
+	if (params->da3d) {
 		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
-		if (args->sos != 1) {
+		if (params->sos != 1) {
 			siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
-			args->sos = 1;
+			params->sos = 1;
 		}
 	}
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(run_nlbayes_on_fit, args)) {
-		free(args);
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_denoise_args(params);
+		free(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f; // Denoising needs extra memory for processing
+	args->image_hook = denoise_image_hook;
+	args->idle_function = denoise_apply_idle;
+	args->description = _("NL-Bayes Denoising");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	set_cursor_waiting(FALSE);
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 

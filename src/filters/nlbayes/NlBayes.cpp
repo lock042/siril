@@ -246,6 +246,7 @@ int runNlBayes(
 	ImageSize imSizeSub;
 	if (subDivide(imNoisy, imNoisySub, p_imSize, imSizeSub, paramStep1.boundary, nbParts)
 		!= EXIT_SUCCESS) {
+        cout << "runNlBayes: error in subDivide";
 		return EXIT_FAILURE;
 	}
 	int retval = 0;
@@ -272,12 +273,15 @@ int runNlBayes(
 		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1, thread, pass);
 	}
 
-	if (retval != 0)
+	if (retval != 0) {
+        cout << "runNlBayes: error in processNlBayes...";
 		return EXIT_FAILURE;
+    }
 
 	//! Get the basic estimate
 	if (subBuild(o_imBasic, imBasicSub, p_imSize, imSizeSub, paramStep1.boundary)
 		!= EXIT_SUCCESS) {
+        cout << "runNlBayes: error in subBuild...";
 		return EXIT_FAILURE;
 	}
 	fprintf(stdout,"ready for YUV2RGB\n");
@@ -297,10 +301,12 @@ int runNlBayes(
 	//! Divide the noisy and basic images into sub-images in order to easier parallelize the process
 	if (subDivide(i_imNoisy, imNoisySub, p_imSize, imSizeSub, paramStep2.boundary, nbParts)
         != EXIT_SUCCESS) {
+        cout << "runNlBayes: error in subDivide...";
 		return EXIT_FAILURE;
 	}
 	if (subDivide(o_imBasic, imBasicSub, p_imSize, imSizeSub, paramStep2.boundary, nbParts)
 		!= EXIT_SUCCESS) {
+        cout << "runNlBayes: error in subDivide...";
 		return EXIT_FAILURE;
 	}
 	thread = 0;
@@ -326,12 +332,15 @@ int runNlBayes(
 		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2, thread, pass);
 	}
 
-	if (retval != 0)
+	if (retval != 0) {
+        cout << "runNlBayes: error in processNlBayes...";
 		return EXIT_FAILURE;
+    }
 
 	//! Get the final result
 	if (subBuild(o_imFinal, imFinalSub, p_imSize, imSizeSub, paramStep2.boundary)
 		!= EXIT_SUCCESS) {
+        cout << "runNlBayes: error in subBuild...";
 		return EXIT_FAILURE;
 	}
 

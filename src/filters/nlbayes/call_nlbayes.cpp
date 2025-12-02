@@ -119,7 +119,8 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     set_progress_bar_data(_("NL-Bayes denoising..."), 0.0);
 
     if(!get_thread_run()) {
-      return EXIT_FAILURE;
+        siril_debug_print("do_nlbayes: get_thread_run() returned FALSE\n");
+        return EXIT_FAILURE;
     }
     if (do_anscombe) {
       sos = 1; // SOS doesn't make sense with VST as it would be adding non-Gaussian noise back into an AWGN denoising algorithm.
@@ -156,8 +157,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
         fSigma = (float) intermediate_bgnoise;
       }
       // Operate the NL-Bayes algorithm
-      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
+      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS) {
+        siril_debug_print("do_nlbayes: runNlBayes returned an error code\n");
         return EXIT_FAILURE;
+      }
 
       if (do_anscombe && iter == 0) {
         siril_log_message(_("Applying exact unbiased inverse Anscombe VST\n"));
@@ -202,8 +205,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       }
       int retval = 0;
       Image output = DA3D(retval, input, guide, lastfSigma);
-      if (retval != 0)
+      if (retval != 0) {
+        siril_debug_print("do_nlbayes: DA3D returned an error code\n");
         return EXIT_FAILURE;
+      }
       bgr_da3dout = output.data();
       memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
     }
