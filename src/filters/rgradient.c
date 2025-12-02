@@ -75,7 +75,7 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 	p->y = center.y + r * sin(theta);
 }
 
-gchar *rgradient_log_hook(struct generic_img_args *p) {
+gchar *rgradient_log_hook(struct generic_img_args *p, log_hook_detail detail) {
 	struct rgradient_data *args = (struct rgradient_data *) p->user;
 	gchar *message = g_strdup_printf(_("Rotational gradient radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)"),
 			args->dR, args->da, args->xc, args->yc);

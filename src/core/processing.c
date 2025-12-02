@@ -1541,7 +1541,8 @@ gpointer generic_image_worker(gpointer p) {
 	assert(args->image_hook);
 
 	gboolean verbose = !args->for_preview;
-	gchar *message = NULL;
+	gchar *history = NULL;
+	gchar *summary = NULL;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
@@ -1577,33 +1578,37 @@ gpointer generic_image_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing image..."), 0.1f);
 
-	// If there is a log_hook, set the HISTORY card and update the log as required
-	// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
-	// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
-	message = args->log_hook ? args->log_hook(args): g_strdup(args->description); // Dynamically allocates memory
-	if (!args->for_preview)
-		siril_log_message("%s\n", message); // Log the detailed description
-
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
 		if (args->verbose)
 			siril_log_color_message(_("%s failed.\n"), "red", args->description);
 		args->retval = 1;
 	} else {
-		// If we are being run from the GUI and not just updating a preview, set the undo state
+		// If there is a log_hook, set the HISTORY card and update the log as required
+		// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
+
+		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
+		history = args->log_hook ? args->log_hook(args, DETAILED): g_strdup(args->description); // Dynamically allocates memory
+		if (!args->for_preview)
+			siril_log_message("%s\n", history); // Log the full detailed description
+
+			// If we are being run from the GUI and not just updating a preview, set the undo state
 		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
-			undo_save_state(&orig, message); // We just use the short description here
-			g_free(message); // free the message
+			summary = args->log_hook ? args->log_hook(args, SUMMARY): g_strdup(args->description);
+			undo_save_state(&orig, summary); // We just use the short description here
+			g_free(summary); // free the message
+			g_free(history); // free the full description, we don't need it in this case
 		} else {
 			// Update the HISTORY card if it wasn't updated by undo_save_state'
 			if ((args->custom_undo)) {
 				// Do nothing, the custom undo will handle it
-				g_free(message);
+				g_free(history);
 			} else {
-				args->fit->history = g_slist_append(args->fit->history, message);
+				args->fit->history = g_slist_append(args->fit->history, history);
 				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
 			}
 		}
+
 		if (args->supports_mask) {
 			// TODO: once masks are implemented, combine orig with args->fit according to the mask
 			// For now, the processed result is in args->fit

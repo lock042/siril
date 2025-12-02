@@ -123,6 +123,11 @@ typedef GtkWidget SirilWidget;
 #endif
 
 typedef enum {
+	DETAILED,
+	SUMMARY
+} log_hook_detail;
+
+typedef enum {
 	RESPONSE_CANCEL = 1,
 	RESPONSE_CLIP,
 	RESPONSE_RESCALE_CLIPNEG,

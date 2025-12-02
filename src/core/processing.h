@@ -177,10 +177,13 @@ struct generic_img_args {
 	GSourceFunc idle_function;
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
-	/** string description for progress and undo */
+	/** terse string description for progress messages */
 	const char *description;
-	/** hook to produce an extended description for HISTORY and logs. */
-	gchar* (*log_hook)(struct generic_img_args *);
+	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
+	 * provides the level of detail, with SUMMARY providing a shorter summary suitable for
+	 * undo state labels. (If the full description isn't very long then the log_hook may elect
+	 * to ignore this parameter and return the same string in both cases.) */
+	gchar* (*log_hook)(struct generic_img_args *, log_hook_detail);
 	/** enable verbose logging */
 	gboolean verbose;
 	/** command requires gfit update: this should only be set in command.c
