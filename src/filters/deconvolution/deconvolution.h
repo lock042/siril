@@ -103,6 +103,8 @@ EXTERNC typedef struct estk_data {
 
 EXTERNC void free_estk_data(void *p);
 EXTERNC estk_data *alloc_estk_data();
+EXTERNC gchar *makepsf_log_hook(gpointer p, log_hook_detail detail);
+EXTERNC gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail);
 EXTERNC int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 EXTERNC int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 

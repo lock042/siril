@@ -455,6 +455,67 @@ END:
 	return retval;
 }
 
+gchar *makepsf_log_hook(gpointer p, log_hook_detail detail) {
+	estk_data *args = (estk_data *) p;
+	gchar *message = NULL;
+	message = g_strdup_printf(_("Est. deconv kernel (%s)"), args->psftype==PSF_BLIND ? _("blind") :
+															args->psftype==PSF_STARS ? _("from stars") :
+															/* args->psftype==PSF_MANUAL ? */ _("manual"));
+	return message;
+}
+
+gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
+	estk_data *args = (estk_data *) p;
+	gchar *msg = NULL;
+	if (detail == DETAILED) {
+		switch (args->nonblindtype) {
+			case DECONV_SB:;
+				msg = g_strdup_printf(_("Split Bregman deconvolution: alpha=%.3f, iters=%d"),
+									args->alpha, args->finaliters);
+				break;
+			case DECONV_RL:;
+				gchar *ss_string = args->rl_method == RL_MULT ? g_strdup("") : g_strdup_printf(_(", step size=%.3e"), args->stepsize);
+				msg = g_strdup_printf(_("%s Richardson-Lucy deconvolution: alpha=%.3f, iters=%d, %s regularization%s"),
+									args->rl_method == RL_MULT ? _("Multiplicative") : _("Gradient descent"),
+									args->alpha, args->finaliters,
+									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("total variation") :
+											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"),
+									  ss_string);
+				break;
+			case DECONV_WIENER:;
+				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f"),
+									args->alpha);
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch (args->nonblindtype) {
+			case DECONV_SB:;
+				msg = g_strdup_printf(_("SB deconv: alpha=%.3f, iters=%d"),
+									args->alpha, args->finaliters);
+				break;
+			case DECONV_RL:;
+				gchar *ss_string = args->rl_method == RL_MULT ? g_strdup("") : g_strdup_printf(_(", step size=%.2e"), args->stepsize);
+				msg = g_strdup_printf(_("%s RL deconv: alpha=%.2f, iters=%d, %s reg%s"),
+									args->rl_method == RL_MULT ? _("Mult.") : _("GD"),
+									args->alpha, args->finaliters,
+									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("TV") :
+											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("FoH") : _("no"),
+									ss_string);
+				g_free(ss_string);
+				break;
+			case DECONV_WIENER:;
+				msg = g_strdup_printf(_("Wiener deconv: alpha=%.3f"),
+									args->alpha);
+				break;
+			default:
+				break;
+		}
+	}
+	return msg;
+}
+
 gpointer estimate_only(gpointer p) {
 	lock_roi_mutex();
 	estk_data *args = (estk_data *) p;
@@ -759,31 +820,7 @@ gpointer deconvolve(gpointer p) {
 			invalidate_stats_from_fit(args->fit);
 		}
 	}
-	if (args->fit == gfit) {
-		gchar *msg = NULL;
-		switch (args->nonblindtype) {
-			case DECONV_SB:
-				msg = g_strdup_printf(_("Split Bregman deconvolution: alpha=%.3f, iters=%d\n"),
-									args->alpha, args->finaliters);
-				break;
-			case DECONV_RL:
-				msg = g_strdup_printf(_("%s Richardson-Lucy deconvolution: alpha=%.3f, iters=%d, step size=%.3e (gradient descent only), "
-						"%s regularization\n"),
-									args->rl_method == RL_MULT ? _("Multiplicative") : _("Gradient descent"),
-									args->alpha, args->finaliters, args->stepsize,
-									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("total variation") :
-											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"));
-				break;
-			case DECONV_WIENER:
-				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f\n"),
-									args->alpha);
-				break;
-			default:
-				break;
-		}
-		siril_log_color_message(msg, "green");
-		g_free(msg);
-	}
+
 ENDDECONV:
 	// Do not free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
