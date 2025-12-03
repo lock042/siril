@@ -340,8 +340,9 @@ static void histo_recompute(gboolean for_preview) {
 		args->fit = fit;
 		args->mem_ratio = 1.0f;
 		args->image_hook = mtf_single_image_hook;
+		args->log_hook = mtf_log_hook;
 		args->idle_function = mtf_single_image_idle;
-		args->description = _("MTF Preview");
+		args->description = _("Midtone Transfer Function");
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -389,8 +390,9 @@ static void histo_recompute(gboolean for_preview) {
 		args->fit = fit;
 		args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
 		args->image_hook = ght_single_image_hook;
+		args->log_hook = ght_log_hook;
 		args->idle_function = ght_single_image_idle;
-		args->description = _("GHT Preview");
+		args->description = _("Generalized Hyperbolic Transform");
 		args->verbose = FALSE;
 		args->user = data;
 		args->max_threads = com.max_thread;
@@ -1501,6 +1503,81 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 	return FALSE;
 }
 
+static gchar* generate_stretch_log_message(gpointer p, int invocation) {
+	gchar *log_string = NULL;
+
+	if (invocation == HISTO_STRETCH) {
+		struct mtf_params *params = (struct mtf_params *)p;
+		log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
+			params->midtones, params->shadows, params->highlights);
+
+	} else if (invocation == GHT_STRETCH) {
+		struct ght_params *params = (struct ght_params *)p;
+
+		siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f",
+			params->D, params->B, params->LP, params->SP, params->HP);
+
+		if (params->payne_colourstretchmodel != COL_SAT) {
+			switch (params->stretchtype) {
+				case STRETCH_PAYNE_NORMAL:
+					log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->B, params->LP, params->HP);
+					break;
+				case STRETCH_PAYNE_INVERSE:
+					log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->B, params->LP, params->HP);
+					break;
+				case STRETCH_ASINH:
+					log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->LP, params->HP);
+					break;
+				case STRETCH_INVASINH:
+					log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->LP, params->HP);
+					break;
+				case STRETCH_LINEAR:
+					log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), params->BP);
+					break;
+			}
+		} else {
+			switch (params->stretchtype) {
+				case STRETCH_PAYNE_NORMAL:
+					log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->B, params->LP, params->HP);
+					break;
+				case STRETCH_PAYNE_INVERSE:
+					log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->B, params->LP, params->HP);
+					break;
+				case STRETCH_ASINH:
+					log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->LP, params->HP);
+					break;
+				case STRETCH_INVASINH:
+					log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
+						params->SP, params->D, params->LP, params->HP);
+					break;
+				case STRETCH_LINEAR:
+					log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), params->BP);
+					break;
+			}
+		}
+	}
+	return log_string;
+}
+
+gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
+	struct mtf_data *args = (struct mtf_data*) p;
+	gchar *message = generate_stretch_log_message(&args->params, HISTO_STRETCH);
+	return message;
+}
+
+gchar *ght_log_hook(gpointer p, log_hook_detail detail) {
+	struct ght_data *args = (struct ght_data*) p;
+	gchar *message = generate_stretch_log_message(args->params_ght, GHT_STRETCH);
+	return message;
+}
+
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
@@ -1622,58 +1699,32 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			gchar *log_string = NULL;
 
 			if (invocation == HISTO_STRETCH) {
-				log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
-					_midtones, _shadows, _highlights);
+				struct mtf_params params = {
+					.midtones = _midtones,
+					.shadows = _shadows,
+					.highlights = _highlights,
+					.do_red = do_channel[0],
+					.do_green = do_channel[1],
+					.do_blue = do_channel[2]
+				};
+				log_string = generate_stretch_log_message(&params, invocation);
 
 			} else if (invocation == GHT_STRETCH) {
-				siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f",
-					_D, _B, _LP, _SP, _HP);
-
-				if (_payne_colourstretchmodel != COL_SAT) {
-					switch (_stretchtype) {
-						case STRETCH_PAYNE_NORMAL:
-							log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-								_SP, _D, _B, _LP, _HP);
-							break;
-						case STRETCH_PAYNE_INVERSE:
-							log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-								_SP, _D, _B, _LP, _HP);
-							break;
-						case STRETCH_ASINH:
-							log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-								_SP, _D, _LP, _HP);
-							break;
-						case STRETCH_INVASINH:
-							log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-								_SP, _D, _LP, _HP);
-							break;
-						case STRETCH_LINEAR:
-							log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), _BP);
-							break;
-					}
-				} else {
-					switch (_stretchtype) {
-						case STRETCH_PAYNE_NORMAL:
-							log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-								_SP, _D, _B, _LP, _HP);
-							break;
-						case STRETCH_PAYNE_INVERSE:
-							log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-								_SP, _D, _B, _LP, _HP);
-							break;
-						case STRETCH_ASINH:
-							log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-								_SP, _D, _LP, _HP);
-							break;
-						case STRETCH_INVASINH:
-							log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-								_SP, _D, _LP, _HP);
-							break;
-						case STRETCH_LINEAR:
-							log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), _BP);
-							break;
-					}
-				}
+				struct ght_params params = {
+					.B = _B,
+					.D = _D,
+					.LP = _LP,
+					.SP = _SP,
+					.HP = _HP,
+					.BP = _BP,
+					.stretchtype = _stretchtype,
+					.payne_colourstretchmodel = _payne_colourstretchmodel,
+					.do_red = do_channel[0],
+					.do_green = do_channel[1],
+					.do_blue = do_channel[2],
+					.clip_mode = _clip_mode
+				};
+				log_string = generate_stretch_log_message(&params, invocation);
 			}
 
 			if (log_string) {
@@ -1716,58 +1767,32 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		gchar *log_string = NULL;
 
 		if (invocation == HISTO_STRETCH) {
-			log_string = g_strdup_printf(_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
-				_midtones, _shadows, _highlights);
+			struct mtf_params params = {
+				.midtones = _midtones,
+				.shadows = _shadows,
+				.highlights = _highlights,
+				.do_red = do_channel[0],
+				.do_green = do_channel[1],
+				.do_blue = do_channel[2]
+			};
+			log_string = generate_stretch_log_message(&params, invocation);
 
 		} else if (invocation == GHT_STRETCH) {
-			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f",
-				_D, _B, _LP, _SP, _HP);
-
-			if (_payne_colourstretchmodel != COL_SAT) {
-				switch (_stretchtype) {
-					case STRETCH_PAYNE_NORMAL:
-						log_string = g_strdup_printf(_("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-							_SP, _D, _B, _LP, _HP);
-						break;
-					case STRETCH_PAYNE_INVERSE:
-						log_string = g_strdup_printf(_("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-							_SP, _D, _B, _LP, _HP);
-						break;
-					case STRETCH_ASINH:
-						log_string = g_strdup_printf(_("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-							_SP, _D, _LP, _HP);
-						break;
-					case STRETCH_INVASINH:
-						log_string = g_strdup_printf(_("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-							_SP, _D, _LP, _HP);
-						break;
-					case STRETCH_LINEAR:
-						log_string = g_strdup_printf(_("GHS LINEAR BP: %.2f"), _BP);
-						break;
-				}
-			} else {
-				switch (_stretchtype) {
-					case STRETCH_PAYNE_NORMAL:
-						log_string = g_strdup_printf(_("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-							_SP, _D, _B, _LP, _HP);
-						break;
-					case STRETCH_PAYNE_INVERSE:
-						log_string = g_strdup_printf(_("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"),
-							_SP, _D, _B, _LP, _HP);
-						break;
-					case STRETCH_ASINH:
-						log_string = g_strdup_printf(_("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-							_SP, _D, _LP, _HP);
-						break;
-					case STRETCH_INVASINH:
-						log_string = g_strdup_printf(_("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"),
-							_SP, _D, _LP, _HP);
-						break;
-					case STRETCH_LINEAR:
-						log_string = g_strdup_printf(_("GHS LINEAR SAT BP: %.2f"), _BP);
-						break;
-				}
-			}
+			struct ght_params params = {
+				.B = _B,
+				.D = _D,
+				.LP = _LP,
+				.SP = _SP,
+				.HP = _HP,
+				.BP = _BP,
+				.stretchtype = _stretchtype,
+				.payne_colourstretchmodel = _payne_colourstretchmodel,
+				.do_red = do_channel[0],
+				.do_green = do_channel[1],
+				.do_blue = do_channel[2],
+				.clip_mode = _clip_mode
+			};
+			log_string = generate_stretch_log_message(&params, invocation);
 		}
 
 		if (log_string) {
@@ -1806,6 +1831,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->fit = gfit;
 			args->mem_ratio = 1.0f;
 			args->image_hook = mtf_single_image_hook;
+			args->log_hook = mtf_log_hook;
 			args->idle_function = mtf_single_image_idle;
 			args->description = _("Histogram Transformation");
 			args->verbose = TRUE;
@@ -1854,6 +1880,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->fit = gfit;
 			args->mem_ratio = (_payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
 			args->image_hook = ght_single_image_hook;
+			args->log_hook = ght_log_hook;
 			args->idle_function = ght_single_image_idle;
 			args->description = _("Generalised Hyperbolic Stretch");
 			args->verbose = TRUE;

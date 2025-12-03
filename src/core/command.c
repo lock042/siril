@@ -3279,6 +3279,7 @@ int process_mtf(int nb) {
 		args->fit = gfit;
 		args->mem_ratio = 1.0f;
 		args->image_hook = mtf_single_image_hook;
+		args->log_hook = mtf_log_hook;
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("Midtones Transfer Function");
 		args->command_updates_gfit = TRUE;
@@ -3353,6 +3354,7 @@ int process_ghs(int nb, int stretchtype) {
 	args->fit = gfit;
 	args->mem_ratio = (params->payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
 	args->image_hook = ght_single_image_hook;
+	args->log_hook = ght_log_hook;
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Generalised Hyperbolic Stretch");
 	args->command_updates_gfit = TRUE;
@@ -3537,6 +3539,7 @@ int process_autoghs(int nb) {
 		args->fit = gfit;
 		args->mem_ratio = 1.0f;
 		args->image_hook = ght_single_image_hook;
+		args->log_hook = ght_log_hook;
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("AutoGHS");
 		args->command_updates_gfit = TRUE;
@@ -3649,6 +3652,7 @@ int process_autostretch(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mtf_single_image_hook;
+	args->log_hook = mtf_log_hook;
 	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Autostretch");
 	args->command_updates_gfit = TRUE;
