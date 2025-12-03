@@ -1,5 +1,5 @@
 siril-1.4.0
-xx/xx/xx
+12/05/25
 **Improvements**
 * SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
