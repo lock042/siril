@@ -180,10 +180,12 @@ struct generic_img_args {
 	/** terse string description for progress messages */
 	const char *description;
 	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
-	 * provides the level of detail, with SUMMARY providing a shorter summary suitable for
-	 * undo state labels. (If the full description isn't very long then the log_hook may elect
-	 * to ignore this parameter and return the same string in both cases.) */
-	gchar* (*log_hook)(struct generic_img_args *, log_hook_detail);
+	 * provides the level of detail, with SUMMARY providing a concise (<= 70 characters)
+	 * version for the undo label and FITS HISTORY card. (If the full description isn't
+	 * very long then the log_hook may elect to ignore this parameter and return the same
+	 * string in both cases.) Note, the string produced by the log_hook should NOT be
+	 * newline-terminated.*/
+	gchar* (*log_hook)(gpointer, log_hook_detail);
 	/** enable verbose logging */
 	gboolean verbose;
 	/** command requires gfit update: this should only be set in command.c
@@ -197,7 +199,7 @@ struct generic_img_args {
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()
 	 */
-	void *user;
+	gpointer user;
 	/** number of threads to use for the operation */
 	int max_threads;
 	/** if TRUE, this is a preview operation and should not save undo */

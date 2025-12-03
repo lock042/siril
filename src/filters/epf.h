@@ -20,6 +20,8 @@ struct epfargs {
 	gboolean applying;
 };
 
+gchar *epf_log_hook(gpointer p, log_hook_detail detail);
+
 /* Allocator and destructor functions */
 struct epfargs *new_epf_args();
 void free_epf_args(void *args);

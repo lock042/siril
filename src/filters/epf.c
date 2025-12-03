@@ -59,6 +59,20 @@ void free_epf_args(void *ptr) {
 	free(ptr);
 }
 
+gchar *epf_log_hook(gpointer p, log_hook_detail detail) {
+	struct epfargs *args = (struct epfargs*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY)
+		message = g_strdup_printf(_("%s filter: d=%.2f, sig_col=%.2f, sig_spatial=%.2f, mod=%.2f"),
+								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
+								args->d, args->sigma_col, args->sigma_space, args->mod);
+		else
+		message = g_strdup_printf(_("%s filter: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, mod=%.3f"),
+								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
+								args->d, args->sigma_col, args->sigma_space, args->mod);
+	return message;
+}
+
 static int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	int retval = 0;
 	if (!gui.roi.active)
@@ -111,16 +125,10 @@ static int edge_preserving_filter(struct epfargs *args) {
 	double sigma_col = args->sigma_col;
 	double sigma_space = args->sigma_space;
 	double mod = args->mod;
-	gboolean verbose = args->verbose;
 	ep_filter_t filter_type = args->filter;
 
-	struct timeval t_start, t_end;
 	if (sigma_col <= 0.0 || (sigma_space <= 0.0 && filter_type == EP_BILATERAL))
 		return 1;
-	if (verbose) {
-		siril_log_color_message(_("Bilateral filter: processing...\n"), "green");
-		gettimeofday(&t_start, NULL);
-	}
 	sigma_col /= 100.0;
 
 	if (fit->naxes[2] == 1) {
@@ -203,17 +211,6 @@ static int edge_preserving_filter(struct epfargs *args) {
 	if (fit == gfit && args->applying && !com.script) {
 		populate_roi();
 	}
-	if (fit == gfit) {
-		siril_log_color_message(_("%s filter applied: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, modulation=%.3f\n"), "green",
-								args->filter == EP_BILATERAL ? _("Bilateral") : _("Guided"),
-								args->d, args->sigma_col, args->sigma_space, args->mod);
-	}
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-
 	return 0;
 }
 

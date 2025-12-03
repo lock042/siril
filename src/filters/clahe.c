@@ -46,6 +46,13 @@ int clahe_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return cvClahe(fit, params->clip, params->tileSize);
 }
 
+gchar *clahe_log_hook(gpointer p, log_hook_detail detail) {
+	clahe_params *params = (clahe_params *) p;
+	if (!params) return NULL;
+	gchar *message = g_strdup_printf(_("CLAHE (size=%d, clip=%.2f)"), params->tileSize, params->clip);
+	return message;
+}
+
 /* Idle function for preview / final application updates */
 static gboolean clahe_worker_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
@@ -94,6 +101,7 @@ static int clahe_process_with_worker(gboolean for_preview) {
 	args->description = _("CLAHE");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;
+	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = FALSE; // CLAHE always operates on full image (no ROI support)
@@ -125,10 +133,6 @@ static void clahe_close(gboolean revert) {
 		double clip;
 		int tileSize;
 		get_clahe_values(&clip, &tileSize);
-
-		undo_save_state(get_preview_gfit_backup(),
-				_("CLAHE (size=%d, clip=%.2f)"), tileSize, clip);
-		siril_log_color_message(_("CLAHE (size=%d, clip=%.2f)"), "green", tileSize, clip);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
@@ -202,6 +206,7 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->description = _("CLAHE");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

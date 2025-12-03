@@ -122,6 +122,18 @@ static gboolean banding_single_idle(gpointer p) {
 	return FALSE;
 }
 
+gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
+	struct banding_data *params = (struct banding_data*) p;
+	gchar *message = NULL;
+	if (!params->protect_highlights) {
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)"), params->amount, params->sigma);
+	} else {
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
+				params->amount, params->sigma);
+	}
+	return message;
+}
+
 static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
 	/* [rotation => O(2n)]
 	 * new image -> O(2n)
@@ -456,17 +468,6 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 			toggle_protect_highlights_banding);
 	gboolean applyRotation = gtk_toggle_button_get_active(vertical);
 
-	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
-	if (!protect_highlights) {
-		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
-		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)\n"), amount, invsigma);
-	} else {
-		siril_log_message(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"),
-				amount, invsigma);
-		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
-				amount, invsigma);
-	}
-
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
@@ -522,6 +523,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		args->description = _("Canon Banding Reduction");
 		args->verbose = TRUE;
 		args->user = params;
+		args->log_hook = banding_log_hook;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;

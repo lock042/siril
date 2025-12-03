@@ -135,6 +135,13 @@ static void asinh_startup() {
 	copy_gfit_to_backup();
 }
 
+gchar *asinh_log_hook(gpointer p, log_hook_detail detail) {
+	asinh_params *params = (asinh_params*) p;
+	gchar *message = g_strdup_printf(_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
+				params->beta, params->offset);
+	return message;
+}
+
 static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 	set_cursor_waiting(TRUE);
 
@@ -160,8 +167,6 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		undo_save_state(&undo_fit,
 				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
-				stretch_value, black_value);
-		siril_log_color_message(_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"), "green",
 				stretch_value, black_value);
 	}
 
@@ -498,6 +503,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->description = _("Asinh stretch");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

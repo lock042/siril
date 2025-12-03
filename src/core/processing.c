@@ -1588,13 +1588,13 @@ gpointer generic_image_worker(gpointer p) {
 		// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
 
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
-		history = args->log_hook ? args->log_hook(args, DETAILED): g_strdup(args->description); // Dynamically allocates memory
+		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
 		if (!args->for_preview)
 			siril_log_message("%s\n", history); // Log the full detailed description
 
 			// If we are being run from the GUI and not just updating a preview, set the undo state
 		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
-			summary = args->log_hook ? args->log_hook(args, SUMMARY): g_strdup(args->description);
+			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 			undo_save_state(&orig, summary); // We just use the short description here
 			g_free(summary); // free the message
 			g_free(history); // free the full description, we don't need it in this case

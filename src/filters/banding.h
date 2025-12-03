@@ -19,6 +19,8 @@ struct banding_data {
 struct banding_data *new_banding_data();
 void free_banding_data(void *args);
 
+gchar *banding_log_hook(gpointer p, log_hook_detail detail);
+
 /* Image processing hooks */
 int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 

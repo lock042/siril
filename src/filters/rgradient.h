@@ -21,6 +21,6 @@ int rgradient_image_hook(struct generic_img_args *args, fits *fit, int nb_thread
 
 /* Idle function */
 gboolean rgradient_idle(gpointer p);
-gchar *rgradient_log_hook(struct generic_img_args *p, log_hook_detail detail);
+gchar *rgradient_log_hook(gpointer p, log_hook_detail detail);
 
 #endif /* SRC_ALGOS_RGRADIENT_H_ */

@@ -150,6 +150,7 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->description = _("Edge Preserving Filter");
 	args->verbose = !for_preview;
 	args->user = params;
+	args->log_hook = epf_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
@@ -192,14 +193,10 @@ static void epf_close(gboolean revert) {
 		notify_gfit_modified();
 	} else {
 		invalidate_stats_from_fit(gfit);
-
 		double d, sigma_col, sigma_space;
 		get_epf_values(&d, &sigma_col, &sigma_space, NULL, NULL);
-
-		undo_save_state(get_preview_gfit_backup(),
-				_("Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"),
-				d, sigma_col, sigma_space);
 	}
+
 	roi_supported(FALSE);
 	remove_roi_callback(epf_change_between_roi_and_image);
 	clearfits(&loaded_fit);
