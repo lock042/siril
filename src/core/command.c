@@ -3551,10 +3551,8 @@ int process_autoghs(int nb) {
 		args->for_roi = FALSE;
 
 		// Run worker synchronously - cleanup happens via destructor
-		gpointer result = generic_image_worker(args);
-		ret = GPOINTER_TO_INT(result);
-
-		if (ret != 0) {
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
 			return CMD_GENERIC_ERROR;
 		}
 
