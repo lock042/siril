@@ -76,6 +76,15 @@ static gboolean median_apply_idle(gpointer p) {
 	return FALSE;
 }
 
+gchar* median_log_hook(gpointer p, log_hook_detail detail) {
+	struct median_filter_data *params = (struct median_filter_data *) p;
+	if (detail == SUMMARY)
+		return g_strdup_printf(_("Median filter: ksize %d, iters %d, amount %.3f"),
+				params->ksize, params->iterations, params->amount);
+	return g_strdup_printf(_("Median filter: kernel size %d, iters %d, amount %.3f"),
+			params->ksize, params->iterations, params->amount);
+}
+
 int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct median_filter_data *params = (struct median_filter_data*) args->user;
 	if (!params)
