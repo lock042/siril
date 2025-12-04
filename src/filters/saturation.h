@@ -11,6 +11,7 @@ typedef struct {
 	double h_max;
 } saturation_params;
 
+gchar* satu_log_hook(gpointer p, log_hook_detail detail);
 void satu_change_between_roi_and_image();
 void apply_satu_cancel();
 void satu_set_hues_from_types(saturation_params *args, int type);

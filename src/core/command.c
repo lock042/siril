@@ -327,6 +327,7 @@ int process_satu(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
+	args->log_hook = satu_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1398,6 +1399,11 @@ static int fmul_image_hook(struct generic_img_args *args, fits *fit, int threads
 	return retval;
 }
 
+static gchar *fmul_log_hook(gpointer p, log_hook_detail detail) {
+	struct fmul_data *args = (struct fmul_data*) p;
+	return g_strdup_printf(_("Scalar multiplication: factor %.6f"), args->coeff);
+}
+
 // Main command function for fmul
 int process_fmul(int nb) {
 	gchar *end;
@@ -1435,6 +1441,7 @@ int process_fmul(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->log_hook = fmul_log_hook;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1467,6 +1474,11 @@ static int gauss_image_hook(struct generic_img_args *args, fits *fit, int thread
 	fit->history = g_slist_append(fit->history, strdup(log));
 
 	return retval;
+}
+
+static gchar *gauss_log_hook(gpointer p, log_hook_detail detail) {
+	struct gauss_data *data = (struct gauss_data*) p;
+	return g_strdup_printf(_("Gaussian blur: sigma = %f"), data->sigma);
 }
 
 // Main command function for gauss
@@ -1507,6 +1519,7 @@ int process_gauss(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->log_hook = gauss_log_hook;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -2542,6 +2555,11 @@ static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int 
 	return retval;
 }
 
+static gchar *unsharp_log_hook(gpointer p, log_hook_detail detail) {
+	struct unsharp_data *data = (struct unsharp_data *) p;
+	return g_strdup_printf(_("Unsharp mask: sigma=%f, amount=%f"), data->sigma, data->multi);
+}
+
 // Main command function for unsharp
 int process_unsharp(int nb) {
 	gchar *end;
@@ -2584,6 +2602,7 @@ int process_unsharp(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->log_hook = unsharp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -6262,6 +6281,16 @@ static int thresh_image_hook(struct generic_img_args *args, fits *fit, int threa
 	return 0;
 }
 
+static gchar *thresh_log_hook(gpointer p, log_hook_detail detail) {
+	struct thresh_data *args = (struct thresh_data *) p;
+	if (args->type == THRESH_LO) {
+		return g_strdup_printf(_("Low threshold: %d"), args->lo);
+	} else if (args->type == THRESH_HI) {
+		return g_strdup_printf(_("High threshold: %d"), args->hi);
+	}
+	return g_strdup_printf(_("Threshold: lo = %d, hi = %d"), args->lo, args->hi);
+}
+
 // Unified threshold processing function
 int process_thresh(int nb) {
 	gchar *end1, *end2;
@@ -6333,6 +6362,7 @@ int process_thresh(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->log_hook = thresh_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -6389,6 +6419,7 @@ int process_neg(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	// No log_hook required here as the basic description is enough
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -6434,6 +6465,14 @@ static int ddp_image_hook(struct generic_img_args *args, fits *fit, int threads)
 	int retval = ddp(fit, data->level, data->coeff, data->sigma);
 
 	return retval;
+}
+
+static gchar *ddp_log_hook(gpointer p, log_hook_detail detail) {
+	struct ddp_data *args = (struct ddp_data*) p;
+	if (detail == SUMMARY) {
+		return g_strdup_printf(_("DDP: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
+	}
+	return g_strdup_printf(_("Digital Development Processing: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
 }
 
 // Main command function
@@ -6486,6 +6525,7 @@ int process_ddp(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = ddp_args;
+	args->log_hook = ddp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

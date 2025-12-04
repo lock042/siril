@@ -184,7 +184,6 @@ int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return 1;
 }
 
-/* Idle function: PREVIEW */
 static gboolean satu_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
@@ -196,28 +195,21 @@ static gboolean satu_preview_idle(gpointer p) {
 	return FALSE;
 }
 
-/* Idle function: APPLY/FINAL */
 static gboolean satu_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-
+	populate_roi();
 	if (args->retval == 0) {
-		saturation_params *params = (saturation_params *)args->user;
-		// Save Undo
-		undo_save_state(get_preview_gfit_backup(),
-				_("Saturation enhancement (amount=%4.2lf)"), params->coeff);
-
-		// Add to history
-		char log[90];
-		sprintf(log, "Color saturation %d%%, threshold %.2f",
-			round_to_int(params->coeff * 100.0), params->background_factor);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
-
-		populate_roi();
 		notify_gfit_modified();
 	}
 	free_generic_img_args(args);
 	return FALSE;
+}
+
+gchar* satu_log_hook(gpointer p, log_hook_detail detail) {
+	saturation_params *params = (saturation_params *) p;
+	return g_strdup_printf(_("Color saturation %d%%, threshold %.2f"),
+		round_to_int(params->coeff * 100.0), params->background_factor);
 }
 
 /* Helper to launch the worker */
