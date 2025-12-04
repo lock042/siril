@@ -1233,6 +1233,40 @@ static int imoper_image_hook(struct generic_img_args *args, fits *fit, int threa
 	return retval;
 }
 
+static gchar* imoper_log_hook(gpointer p, log_hook_detail detail) {
+	struct imoper_data *data = (struct imoper_data*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+	switch (data->oper) {
+		case OPER_ADD:
+			message = g_strdup_printf(_("Image addition"));
+			break;
+		case OPER_SUB:
+			message = g_strdup_printf(_("Image subtraction"));
+			break;
+		case OPER_MUL:
+			message = g_strdup_printf(_("Image multiplication"));
+			break;
+		default:
+			message = g_strdup_printf(_("Image division"));
+	}	} else {
+		switch (data->oper) {
+			case OPER_ADD:
+				message = g_strdup_printf(_("Image addition of %s"), data->filename);
+				break;
+			case OPER_SUB:
+				message = g_strdup_printf(_("Image subtraction of %s"), data->filename);
+				break;
+			case OPER_MUL:
+				message = g_strdup_printf(_("Image multiplication by %s"), data->filename);
+				break;
+			default:
+				message = g_strdup_printf(_("Image division by %s"), data->filename);
+		}
+	}
+	return message;
+}
+
 // Main command function
 int process_imoper(int nb) {
 	image_operator oper;
@@ -1299,6 +1333,7 @@ int process_imoper(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = imoper;
+	args->log_hook = imoper_log_hook;
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

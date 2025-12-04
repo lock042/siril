@@ -358,6 +358,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
+		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
