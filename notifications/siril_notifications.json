@@ -12,7 +12,7 @@
     "valid-to": "2026-09-22T23:59:00+01:00",
     "version-from": "1.3.6",
     "version-to": "1.5.1",
-    "message": "SPCC issue with remote catalogue: the Gaia archive datalink is currently not correctly responding to queries. This is under investigation to see whether the archive has changed something that will require a Siril update or if the service is just experiencing ongoing problems. Until this is resolved, SPCC is only available using the local Gaia photometric catalogue which can be installed using the catalogue installer python script.",
+    "message": "The Gaia archive is now down for maintenance until 10 December therefore until at least then, SPCC will only be available using the local photometric catalogue, which can be installed using the Catalog Installer script. The previously reported issue with accessing the datalink products for use with SPCC remains under investigation by the Gaia helpdesk.",
     "priority": 2
   }
 ]
