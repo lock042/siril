@@ -2830,11 +2830,6 @@ int process_ccm(int nb) {
 		}
 	}
 
-	siril_log_message(_("Applying CCM with coefficients %f, %f, %f, %f, %f, %f, %f, %f, %f and power %f\n"),
-						args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
-						args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
-						args->matrix[2][0], args->matrix[2][1], args->matrix[2][2], args->power);
-
 	if (is_sequence) {
 		// Sequence processing
 		args->seq = seq;
@@ -2868,6 +2863,7 @@ int process_ccm(int nb) {
 		worker_args->description = _("Color Conversion Matrix");
 		worker_args->verbose = TRUE;
 		worker_args->user = args;
+		worker_args->log_hook = ccm_log_hook;
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = FALSE;
 		worker_args->for_roi = FALSE;
@@ -7195,29 +7191,17 @@ int process_scnr(int nb) {
 	args->description = _("SCNR");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = scnr_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->command = TRUE;  // This is being called from a command
 	args->command_updates_gfit = TRUE;  // We need gfit to be updated
 
-	// Build history log
-	char log[90];
-	char amountstr[30] = "";
-	if (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK)
-		sprintf(amountstr, "amount %.2f, ", amount);
-	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
-			scnr_type_to_string(type), amountstr,
-			preserve ? "" : "not ");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
-
-	// Note: We do NOT return CMD_NOTIFY_GFIT_MODIFIED here because
-	// command_updates_gfit is set to TRUE, which handles the notification
 	return CMD_OK;
 }
 

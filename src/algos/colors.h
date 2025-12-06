@@ -79,5 +79,5 @@ void free_ccm_data(void *ptr);
 struct ccm_data *new_ccm_data();
 int ccm_process_with_worker(ccm matrix, float power);
 int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
-
+gchar *ccm_log_hook(gpointer p, log_hook_detail detail);
 #endif

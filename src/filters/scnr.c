@@ -71,17 +71,22 @@ void free_scnr_data(void *ptr) {
 	free(ptr);
 }
 
+gchar *scnr_log_hook(gpointer p, log_hook_detail detail) {
+	struct scnr_data* args = (struct scnr_data*) p;
+	return g_strdup_printf(_("SCNR: %s algorithm%s..."),
+				scnr_type_to_string(args->type),
+				args->preserve ? _(", preserving lightness") : "");
+}
+
 /* Subtractive Chromatic Noise Reduction - core processing function */
 static int scnr_process(struct scnr_data *args, fits *fit) {
 	g_assert(fit->type == DATA_USHORT || fit->type == DATA_FLOAT);
 	size_t i, nbdata = fit->naxes[0] * fit->naxes[1];
 	gint nb_above_1 = 0;
 
-	if (args->verbose) {
-		siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
-				"green", scnr_type_to_string(args->type),
-				args->preserve ? _(", preserving lightness") : "");
-	}
+	gchar *msg = scnr_log_hook(args, SUMMARY);
+	set_progress_bar_data(msg, PROGRESS_PULSATE);
+	g_free(msg);
 
 	double norm = get_normalized_value(fit);
 	double invnorm = 1.0 / norm;
@@ -232,15 +237,10 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	args->description = _("Subtractive Chromatic Noise Reduction");
 	args->verbose = !for_preview;
 	args->user = params;
+	args->log_hook = scnr_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
-
-	// Save undo state before processing (only for final apply, not preview)
-	if (!for_preview && !com.script) {
-		undo_save_state(gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
-				scnr_type_to_string(type), amount, preserve ? "true" : "false");
-	}
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);

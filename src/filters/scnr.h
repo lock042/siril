@@ -24,8 +24,9 @@ struct scnr_data {
 struct scnr_data *new_scnr_data();
 void free_scnr_data(void *args);
 
-/* Image processing hook for generic_image_worker */
+/* Image processing hooks for generic_image_worker */
 int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar *scnr_log_hook(gpointer p, log_hook_detail detail);
 
 /* Idle functions */
 gboolean scnr_preview_idle(gpointer p);

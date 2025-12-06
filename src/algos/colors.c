@@ -1330,26 +1330,32 @@ int ccm_calc(fits *fit, ccm matrix, float power) {
 	return 0;
 }
 
-/* CCM processing function with logging */
-static int ccm_process(struct ccm_data *args, fits *fit) {
-
-	siril_log_color_message(_("CCM: applying color conversion matrix...\n"), "green");
-
-	int retval = ccm_calc(fit, args->matrix, args->power);
-
-	if (retval == 0) {
-		populate_roi();
-	}
-
-	if (retval == 0) {
-		siril_log_color_message(_("CCM applied successfully: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f\n"),
-			"green",
+gchar *ccm_log_hook(gpointer p, log_hook_detail detail) {
+	struct ccm_data *args = (struct ccm_data*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+		message = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
 			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
 			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
 			args->power);
 	} else {
-		siril_log_color_message(_("CCM failed: image must be RGB.\n"), "red");
+		message = g_strdup_printf(_("CCM applied successfully: [[%.6f %.6f %.6f][%.6f %.6f %.6f][%.6f %.6f %.6f]], pwr: %.6f"),
+			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+			args->power);
+	}
+	return message;
+}
+
+/* CCM processing function with logging */
+static int ccm_process(struct ccm_data *args, fits *fit) {
+
+	int retval = ccm_calc(fit, args->matrix, args->power);
+
+	if (retval == 0) {
+		populate_roi();
 	}
 
 	return retval;
@@ -1415,22 +1421,12 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = ccm_log_hook;
 	args->max_threads = com.max_thread;
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent
 	// args->for_preview = FALSE;
 	// args->for_roi = FALSE;
-
-	// Save undo state before processing (only for final apply, not preview)
-	if (!com.script) {
-		gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
-					matrix[0][0], matrix[0][1], matrix[0][2],
-					matrix[1][0], matrix[1][1], matrix[1][2],
-					matrix[2][0], matrix[2][1], matrix[2][2],
-					power);
-		undo_save_state(gfit, buf);
-		g_free(buf);
-	}
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
