@@ -150,6 +150,13 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	return 0;
 }
 
+gchar *unpurple_log_hook(gpointer p, log_hook_detail detail) {
+	struct unpurpleargs *args = (struct unpurpleargs*) p;
+	gchar *message = g_strdup_printf(_("Unpurple mod: %.2f, threshold: %.2f, starmask: %s"),
+			args->mod_b, args->thresh, args->withstarmask ? _("true"): _("false"));
+	return message;
+}
+
 //TODO improve this filter!
 static int unpurple_filter(struct unpurpleargs *args) {
 	fits *fit = args->fit;
@@ -157,14 +164,6 @@ static int unpurple_filter(struct unpurpleargs *args) {
 	double mod_b = args->mod_b;
 	double thresh = args->thresh;
 	gboolean withstarmask = args->withstarmask;
-	gboolean verbose = args->verbose;
-
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_color_message(_("Unpurple filter: processing...\n"), "green");
-		gettimeofday(&t_start, NULL);
-	}
 
 	if (mod_b < 1) {
 		for (size_t j = 0; j < fit->ry; j++) {
@@ -222,15 +221,6 @@ static int unpurple_filter(struct unpurpleargs *args) {
 		siril_log_color_message(_("Unpurple filter applied: mod_b=%.3f, threshold=%.3f, withstarmask=%d\n"), "green",
 								args->mod_b, args->thresh, args->withstarmask);
 	}
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-
-	char log[90];
-	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod_b, thresh, withstarmask);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	return 0;
 }

@@ -117,6 +117,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 	args->description = _("Unpurple Filter");
 	args->verbose = !for_preview;
 	args->user = params;
+	args->log_hook = unpurple_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
@@ -158,13 +159,6 @@ static void unpurple_close(gboolean revert) {
 		notify_gfit_modified();
 	} else {
 		invalidate_stats_from_fit(gfit);
-
-		double mod_b_val, thresh_val;
-		get_unpurple_values(&mod_b_val, &thresh_val, NULL);
-
-		undo_save_state(get_preview_gfit_backup(),
-				_("Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"),
-				thresh_val, mod_b_val);
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(unpurple_change_between_roi_and_image);

@@ -453,62 +453,45 @@ static gboolean end_denoise(gpointer p) {
 	return FALSE;
 }
 
+gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
+	denoise_args *args = (denoise_args *) p;
+
+	GString *gs = g_string_new(NULL);
+
+	/* Base message */
+	g_string_append_printf(gs, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
+
+	/* Optional DA3D / SOS / VST info */
+	if (args->da3d) {
+		g_string_append(gs, _(", DA3D enabled"));
+	} else if (args->sos > 1) {
+		g_string_append_printf(gs, _(", SOS enabled (iters=%d, rho=%.3f)"),
+							args->sos, args->rho);
+	} else if (args->do_anscombe) {
+		g_string_append(gs, _(", VST enabled"));
+	}
+
+	/* Optional CC info */
+	if (args->do_cosme) {
+		g_string_append(gs, _(", CC enabled)"));
+	} else {
+		g_string_append(gs, _(")"));
+	}
+
+	/* Convert to gchar* */
+	gchar *result = g_strdup(gs->str);
+	g_string_free(gs, TRUE);
+
+	return result;  /* caller must g_free() */
+}
+
 gpointer run_nlbayes_on_fit(gpointer p) {
 	lock_roi_mutex();
 	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
-	struct timeval t_start, t_end;
-	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
-	int n = 0, m = 0, q = 0;
-	n = snprintf(NULL, 0, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	msg1 = malloc(n + 1);
-	n = snprintf(msg1, n + 1, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	if(args->da3d) {
-		m = snprintf(NULL, 0, _(", DA3D enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", DA3D enabled"));
-	} else if (args->sos > 1) {
-		m = snprintf(NULL, 0, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-	} else if (args->do_anscombe) {
-		m = snprintf(NULL, 0, _(", VST enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", VST enabled"));
-	}
-	if (args->do_cosme) {
-		q = snprintf(NULL, 0, _(", CC enabled)"));
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(", CC enabled)"));
-	} else {
-		q = 1;
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(")"));
-	}
-	log_msg = malloc(n + m + q + 1);
-	if (m == 0 && q == 0)
-		snprintf(log_msg, n + 1, "%s", msg1);
-	else if (m > 0 && q == 0)
-		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
-	else if(m == 0 && q > 0)
-		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
-	else if (m > 0 && q > 0)
-		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
-	else
-		snprintf(log_msg, 26, _("Error, this can't happen!"));
 
-	if (msg1) free(msg1);
-	if (msg2) free(msg2);
-	if (msg3) free(msg3);
-
-	siril_log_message("%s\n", log_msg);
-	if (!args->previewing && !com.script)
-		undo_save_state(gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
-	free(log_msg);
-	gettimeofday(&t_start, NULL);
-	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
 
 	int retval = 0;
 
@@ -554,11 +537,8 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	unlock_roi_mutex();
-	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
@@ -628,8 +608,6 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 
 	if (retval != 0 && args->verbose) {
 		siril_log_color_message(_("NL-Bayes denoising failed.\n"), "red");
-	} else if (retval == 0 && args->verbose) {
-		siril_log_color_message(_("NL-Bayes denoising completed successfully.\n"), "green");
 	}
 
 	return retval;
@@ -748,6 +726,7 @@ int process_denoise(int nb) {
 	args->description = _("NL-Bayes Denoising");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = denoise_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -1629,6 +1608,7 @@ int process_unpurple(int nb) {
 	args->description = _("Unpurple Filter");
 	args->verbose = TRUE;
 	args->user = params;
+	args->log_hook = unpurple_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

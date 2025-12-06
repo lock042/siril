@@ -30,7 +30,7 @@ EXTERNC int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_
 /* Idle functions */
 EXTERNC gboolean denoise_preview_idle(gpointer p);
 EXTERNC gboolean denoise_apply_idle(gpointer p);
-
+EXTERNC gchar *denoise_log_hook(gpointer p, log_hook_detail detail);
 /* Core denoising function */
 EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d,
                        const float rho, const gboolean do_anscombe);

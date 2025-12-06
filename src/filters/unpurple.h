@@ -41,7 +41,7 @@ void free_unpurple_args(void *args);
 
 /* Image processing hook */
 int unpurple_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
-
+gchar *unpurple_log_hook(gpointer p, log_hook_detail detail);
 /* Idle functions */
 gboolean unpurple_preview_idle(gpointer p);
 gboolean unpurple_apply_idle(gpointer p);

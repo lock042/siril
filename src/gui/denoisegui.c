@@ -171,6 +171,7 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->description = _("NL-Bayes Denoising");
 	args->verbose = !for_preview;
 	args->user = params;
+	args->log_hook = denoise_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = for_roi;
