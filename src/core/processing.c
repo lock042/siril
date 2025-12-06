@@ -1585,8 +1585,6 @@ gpointer generic_image_worker(gpointer p) {
 		args->retval = 1;
 	} else {
 		// If there is a log_hook, set the HISTORY card and update the log as required
-		// TODO: migrate functions already converted to use generic_image_worker to have log_hooks
-
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
 		if (!args->for_preview)
