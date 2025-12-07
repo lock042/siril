@@ -21,21 +21,21 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#if defined(HAVE_LIBCURL)
-#include "yyjson.h"
 
 #include <string.h>
 
 #include "core/siril.h"
-#include "core/siril_networking.h"
 #include "core/proto.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
 #include "core/siril_update.h"
 
+#if defined(HAVE_LIBCURL)
+#include "yyjson.h"
+#include "core/siril_networking.h"
+#include "core/processing.h"
+#include "gui/message_dialog.h"
+#include "gui/progress_and_log.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
@@ -43,6 +43,149 @@
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
+#endif
+
+// ============================================================================
+// UTILITY FUNCTIONS - Independent of libcurl
+// These functions work with version numbers and strings, no network required
+// ============================================================================
+
+static void remove_alpha(gchar *str, gboolean *is_rc, gboolean *is_beta) {
+	unsigned long i = 0;
+	unsigned long j = 0;
+	char c;
+
+	if (g_str_has_prefix(str, "beta")) {
+		*is_rc = FALSE;
+		*is_beta = TRUE;
+	} else if (g_str_has_prefix(str, "rc")) {
+		*is_rc = TRUE;
+		*is_beta = FALSE;
+	} else {
+		*is_rc = FALSE;
+		*is_beta = FALSE;
+	}
+
+	while ((c = str[i++]) != '\0') {
+		if (g_ascii_isdigit(c)) {
+			str[j++] = c;
+		}
+	}
+	str[j] = '\0';
+}
+
+/**
+ * Check if the version is a patched version.
+ * patched version are named like that x.y.z.patch where patch only contains digits.
+ * if patch contains alpha char it is because that's a RC or beta version. Not a patched one.
+ * @param version version to be tested
+ * @return 0 if the version is not patched. The version of the patch is returned otherwise.
+ */
+static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta) {
+	remove_alpha(version, is_rc, is_beta);
+	return (g_ascii_strtoull(version, NULL, 10));
+}
+
+version_number get_version_number_from_string(const gchar *input) {
+	version_number version = { 0 };
+	gchar **version_string = NULL;
+	const gchar *string = find_first_numeric(input);
+	if (!string)
+		goto the_end;
+	version_string = g_strsplit_set(string, ".-", -1);
+	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
+	if (version_string[1])
+		version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
+	else
+		goto the_end;
+	if (version_string[2])
+		version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
+	else
+		goto the_end;
+	if (version_string[3] == NULL) {
+		version.patched_version = 0;
+		version.rc_version = FALSE;
+		version.beta_version = FALSE;
+	} else {
+		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
+	}
+the_end:
+	g_strfreev(version_string);
+	return version;
+}
+
+version_number get_current_version_number() {
+	return get_version_number_from_string(PACKAGE_VERSION);
+}
+
+/**
+ * This function compare x1.y1.z1.patch1 vs x2.y2.z2.patch2
+ * @param v1 First version number to be tested
+ * @param v2 Second version number to be tested
+ * @return -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 is equal to v2
+ */
+int compare_version(version_number v1, version_number v2) {
+	if (v1.major_version < v2.major_version)
+		return -1;
+	else if (v1.major_version > v2.major_version)
+		return 1;
+	else {
+		if (v1.minor_version < v2.minor_version)
+			return -1;
+		else if (v1.minor_version > v2.minor_version)
+			return 1;
+		else {
+			if (v1.micro_version < v2.micro_version)
+				return -1;
+			else if (v1.micro_version > v2.micro_version)
+				return 1;
+			else {
+				if (v1.beta_version && v2.rc_version) return -1;
+				if (v2.beta_version && v1.rc_version) return 1;
+				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
+				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
+				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
+
+				/* check for patched version */
+				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
+						(v1.rc_version && v2.rc_version) || (v1.beta_version && v2.beta_version)) {
+					if (v1.patched_version < v2.patched_version)
+						return -1;
+					else if (v1.patched_version > v2.patched_version)
+						return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+// ============================================================================
+// NETWORK-DEPENDENT FUNCTIONS - Require libcurl
+// ============================================================================
+
+#if defined(HAVE_LIBCURL)
+
+static version_number get_last_version_number(gchar *version_str) {
+	gchar **v;
+	version_number version = { 0 };
+
+	v = g_strsplit_set(version_str, ".-", -1);
+
+	if (v[0])
+		version.major_version = g_ascii_strtoull(v[0], NULL, 10);
+	if (v[0] && v[1])
+		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
+	if (v[0] && v[1] && v[2])
+		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
+	if (v[0] && v[1] && v[2] && v[3]) {
+		remove_alpha(v[3], &version.rc_version, &version.beta_version);
+		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
+	}
+
+	g_strfreev(v);
+	return version;
+}
 
 static gboolean siril_update_get_highest(yyjson_doc *doc,
 		gchar **highest_version, gint64 *release_timestamp,
@@ -193,137 +336,6 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 	}
 
 	return FALSE;
-}
-
-static void remove_alpha(gchar *str, gboolean *is_rc, gboolean *is_beta) {
-	unsigned long i = 0;
-	unsigned long j = 0;
-	char c;
-
-	if (g_str_has_prefix(str, "beta")) {
-		*is_rc = FALSE;
-		*is_beta = TRUE;
-	} else if (g_str_has_prefix(str, "rc")) {
-		*is_rc = TRUE;
-		*is_beta = FALSE;
-	} else {
-		*is_rc = FALSE;
-		*is_beta = FALSE;
-	}
-
-	while ((c = str[i++]) != '\0') {
-		if (g_ascii_isdigit(c)) {
-			str[j++] = c;
-		}
-	}
-	str[j] = '\0';
-}
-
-/**
- * Check if the version is a patched version.
- * patched version are named like that x.y.z.patch where patch only contains digits.
- * if patch contains alpha char it is because that's a RC or beta version. Not a patched one.
- * @param version version to be tested
- * @return 0 if the version is not patched. The version of the patch is returned otherwise.
- */
-static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta) {
-	remove_alpha(version, is_rc, is_beta);
-	return (g_ascii_strtoull(version, NULL, 10));
-}
-
-version_number get_version_number_from_string(const gchar *input) {
-	version_number version = { 0 };
-	gchar **version_string = NULL;
-	const gchar *string = find_first_numeric(input);
-	if (!string)
-		goto the_end;
-	version_string = g_strsplit_set(string, ".-", -1);
-	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
-	if (version_string[1])
-		version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
-	else
-		goto the_end;
-	if (version_string[2])
-		version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
-	else
-		goto the_end;
-	if (version_string[3] == NULL) {
-		version.patched_version = 0;
-		version.rc_version = FALSE;
-		version.beta_version = FALSE;
-	} else {
-		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
-	}
-the_end:
-	g_strfreev(version_string);
-	return version;
-}
-
-version_number get_current_version_number() {
-	return get_version_number_from_string(PACKAGE_VERSION);
-}
-
-static version_number get_last_version_number(gchar *version_str) {
-	gchar **v;
-	version_number version = { 0 };
-
-	v = g_strsplit_set(version_str, ".-", -1);
-
-	if (v[0])
-		version.major_version = g_ascii_strtoull(v[0], NULL, 10);
-	if (v[0] && v[1])
-		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
-	if (v[0] && v[1] && v[2])
-		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3]) {
-		remove_alpha(v[3], &version.rc_version, &version.beta_version);
-		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
-	}
-
-	g_strfreev(v);
-	return version;
-}
-
-/**
- * This function compare x1.y1.z1.patch1 vs x2.y2.z2.patch2
- * @param v1 First version number to be tested
- * @param v2 Second version number to be tested
- * @return -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 is equal to v2
- */
-int compare_version(version_number v1, version_number v2) {
-	if (v1.major_version < v2.major_version)
-		return -1;
-	else if (v1.major_version > v2.major_version)
-		return 1;
-	else {
-		if (v1.minor_version < v2.minor_version)
-			return -1;
-		else if (v1.minor_version > v2.minor_version)
-			return 1;
-		else {
-			if (v1.micro_version < v2.micro_version)
-				return -1;
-			else if (v1.micro_version > v2.micro_version)
-				return 1;
-			else {
-				if (v1.beta_version && v2.rc_version) return -1;
-				if (v2.beta_version && v1.rc_version) return 1;
-				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
-				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
-				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
-
-				/* check for patched version */
-				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
-						(v1.rc_version && v2.rc_version) || (v1.beta_version && v2.beta_version)) {
-					if (v1.patched_version < v2.patched_version)
-						return -1;
-					else if (v1.patched_version > v2.patched_version)
-						return 1;
-				}
-			}
-		}
-	}
-	return 0;
 }
 
 static gchar *parse_changelog(gchar *changelog) {
@@ -661,4 +673,4 @@ void siril_check_notifications(gboolean verbose) {
 	g_thread_new("siril-notifications", fetch_url_async, args);
 }
 
-#endif
+#endif // HAVE_LIBCURL
