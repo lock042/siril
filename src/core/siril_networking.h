@@ -21,12 +21,8 @@ gpointer fetch_url_async(gpointer p);
 char *fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet);
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 
-// HAVE_LIBCURL
-//#endif
-
 gboolean siril_compiled_with_networking();
 gboolean is_online();
 gboolean set_online_status(gboolean status);
 
-// SIRIL_NETWORKING_H
 #endif

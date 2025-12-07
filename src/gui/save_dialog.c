@@ -532,6 +532,7 @@ static void initialize_data(gpointer p) {
 	args->checksum = gtk_toggle_button_get_active(checksum);
 }
 
+#ifdef HAVE_JPEG
 static long calculate_jpeg_size(struct savedial_data *args) {
 	char const *tmp_dir = g_get_tmp_dir();
 	gchar *tmp_filename;
@@ -595,6 +596,14 @@ static gpointer calculate_jpeg_size_thread(gpointer p) {
 	siril_add_idle(end_calculate_jpeg_size, args);
 	return NULL;
 }
+
+#else
+static gpointer calculate_jpeg_size_thread(gpointer p) {
+	printf("Should not happen\n");
+	return NULL;
+}
+
+#endif
 
 static gpointer mini_save_dialog(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
