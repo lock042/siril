@@ -20,11 +20,12 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
-#if ( defined(HAVE_LIBCURL)  || defined(HAVE_LIBGIT2) )
-
 int compare_version(version_number v1, version_number v2);
 version_number get_version_number_from_string(const gchar *string);
 version_number get_current_version_number();
+
+#if ( defined(HAVE_LIBCURL)  || defined(HAVE_LIBGIT2) )
+
 void siril_check_updates(gboolean verbose);
 void siril_check_notifications(gboolean verbose);
 

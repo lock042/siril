@@ -18,12 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-#if defined(HAVE_LIBCURL)
-#include <curl/curl.h>
-
 #include <string.h>
 
 #include "core/siril.h"
@@ -34,6 +28,13 @@
 #include "gui/progress_and_log.h"
 
 static gboolean online_status = TRUE;
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#if defined(HAVE_LIBCURL)
+
+#include <curl/curl.h>
 
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
@@ -192,6 +193,41 @@ gboolean siril_compiled_with_networking() {
 }
 
 #else
+
+// Stub functions when libcurl is not available
+// These return errors but allow the code to compile and link
+
+gpointer fetch_url_async(gpointer p) {
+	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	g_assert(args->idle_function != NULL);
+
+	siril_log_color_message(_("Error: Siril was compiled without libcurl support. Network features are unavailable.\n"), "red");
+
+	// Clean up and call the idle function with NULL content to signal failure
+	g_free(args->url);
+	args->url = NULL;
+	args->length = 0;
+	args->content = NULL;
+	args->code = 0;
+
+	siril_add_idle(args->idle_function, args);
+	return NULL;
+}
+
+char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
+	if (!quiet) {
+		siril_log_color_message(_("Error: Siril was compiled without libcurl support. Cannot fetch URL: %s\n"), "red", url);
+	}
+	*error = 1;
+	*length = 0;
+	return NULL;
+}
+
+int submit_post_request(const char *url, const char *post_data, char **post_response) {
+	siril_log_color_message(_("Error: Siril was compiled without libcurl support. Cannot submit POST request to: %s\n"), "red", url);
+	*post_response = NULL;
+	return 1;
+}
 
 gboolean siril_compiled_with_networking() {
 	return FALSE;
