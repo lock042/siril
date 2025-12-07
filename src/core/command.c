@@ -438,6 +438,8 @@ int process_unclip(int nb) {
 	return CMD_OK;
 }
 
+// TODO: check this against the new denoise idles
+/*
 static gboolean end_denoise(gpointer p) {
 	stop_processing_thread();
 	struct denoise_args *args = (struct denoise_args *) p;
@@ -451,7 +453,7 @@ static gboolean end_denoise(gpointer p) {
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
-}
+}*/
 
 gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	denoise_args *args = (denoise_args *) p;
@@ -1324,18 +1326,109 @@ int process_imoper(int nb) {
 	return CMD_OK;  // No longer need to return CMD_NOTIFY_GFIT_MODIFIED
 }
 
-int process_addmax(int nb){
-	fits fit = { 0 };
+struct addmax_data {
+	void (*destructor)(void *);
+	fits *operand_fit;
+};
 
-	if (readfits(word[1], &fit, NULL, gfit->type == DATA_FLOAT))
-		return CMD_INVALID_IMAGE;
-	addmax(gfit, &fit);
-	clearfits(&fit);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+static void addmax_destructor(void *p) {
+	struct addmax_data *data = (struct addmax_data *)p;
+	if (data->operand_fit) {
+		clearfits(data->operand_fit);
+		free(data->operand_fit);
+	}
+	free(data);
 }
 
-int process_fdiv(int nb){
-	// combines an image division and a scalar multiplication.
+static int addmax_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct addmax_data *data = (struct addmax_data *)args->user;
+	addmax(fit, data->operand_fit);
+	return 0;
+}
+
+static gchar *addmax_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup_printf(_("Add max operation"));
+}
+
+int process_addmax(int nb) {
+	// Allocate and read operand fits
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	if (readfits(word[1], operand_fit, NULL, gfit->type == DATA_FLOAT)) {
+		free(operand_fit);
+		return CMD_INVALID_IMAGE;
+	}
+
+	// Allocate and initialize user data
+	struct addmax_data *data = calloc(1, sizeof(struct addmax_data));
+	if (!data) {
+		clearfits(operand_fit);
+		free(operand_fit);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = addmax_destructor;
+	data->operand_fit = operand_fit;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		addmax_destructor(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = addmax_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Add max");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = addmax_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+struct fdiv_data {
+	void (*destructor)(void *);
+	fits *operand_fit;
+	float norm;
+};
+
+static void fdiv_destructor(void *p) {
+	struct fdiv_data *data = (struct fdiv_data *)p;
+	if (data->operand_fit) {
+		clearfits(data->operand_fit);
+		free(data->operand_fit);
+	}
+	free(data);
+}
+
+static int fdiv_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fdiv_data *data = (struct fdiv_data *)args->user;
+	siril_fdiv(fit, data->operand_fit, data->norm, TRUE);
+	return 0;
+}
+
+static gchar *fdiv_log_hook(gpointer p, log_hook_detail detail) {
+	struct fdiv_data *args = (struct fdiv_data*) p;
+	return g_strdup_printf(_("Image division with normalization: %.6f"), args->norm);
+}
+
+int process_fdiv(int nb) {
 	gchar *end;
 	float norm = g_ascii_strtod(word[2], &end);
 	if (end == word[2]) {
@@ -1343,13 +1436,56 @@ int process_fdiv(int nb){
 		return CMD_ARG_ERROR;
 	}
 
-	fits fit = { 0 };
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
-	siril_fdiv(gfit, &fit, norm, TRUE);
+	// Allocate and read operand fits
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
-	clearfits(&fit);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	if (readfits(word[1], operand_fit, NULL, !com.pref.force_16bit)) {
+		free(operand_fit);
+		return CMD_INVALID_IMAGE;
+	}
+
+	// Allocate and initialize user data
+	struct fdiv_data *data = calloc(1, sizeof(struct fdiv_data));
+	if (!data) {
+		clearfits(operand_fit);
+		free(operand_fit);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = fdiv_destructor;
+	data->operand_fit = operand_fit;
+	data->norm = norm;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		fdiv_destructor(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fdiv_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Image division");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = fdiv_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 // Structure to hold fmul-specific data
@@ -6574,6 +6710,32 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
+struct ffill_data {
+	void (*destructor)(void *);
+	int level;
+	rectangle area;
+};
+
+static int ffill_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct ffill_data *data = (struct ffill_data *)args->user;
+	rectangle area = data->area;
+
+	int retval = fill(fit, data->level, &area);
+	if (retval) {
+		return retval;
+	}
+
+	// Mirror operation
+	area.x = fit->rx - area.x - area.w;
+	area.y = fit->ry - area.y - area.h;
+	return fill(fit, data->level, &area);
+}
+
+static gchar *ffill_log_hook(gpointer p, log_hook_detail detail) {
+	struct ffill_data *args = (struct ffill_data*) p;
+	return g_strdup_printf(_("Fill mirrored region with level %d"), args->level);
+}
+
 int process_ffill(int nb) {
 	gchar *end;
 	rectangle area;
@@ -6596,23 +6758,50 @@ int process_ffill(int nb) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
-		}
-		else {
+		} else {
 			siril_log_message(_("Fill2: select a region or provide x, y, width, height\n"));
 			return CMD_ARG_ERROR;
 		}
 	} else {
 		area = com.selection;
 	}
-	int retval = fill(gfit, level, &area);
-	if (retval) {
-		siril_log_message(_("Wrong parameters.\n"));
-		return CMD_ARG_ERROR;
+
+	// Allocate and initialize user data
+	struct ffill_data *data = calloc(1, sizeof(struct ffill_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	area.x = gfit->rx - area.x - area.w;
-	area.y = gfit->ry - area.y - area.h;
-	fill(gfit, level, &area);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	data->destructor = NULL;
+	data->level = level;
+	data->area = area;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = ffill_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Fill mirrored region");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = ffill_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
@@ -7020,14 +7209,68 @@ int process_fmedian(int nb){
 /* The name of this command should be COG in english but this choice
  * was done to be consistent with IRIS
  */
-int process_cdg(int nb) {
-	float x_avg, y_avg;
+struct cdg_data {
+	void (*destructor)(void *);
+	float x_avg;
+	float y_avg;
+	gboolean success;
+};
 
-	if (!FindCentre(gfit, &x_avg, &y_avg)) {
-		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"), x_avg, y_avg);
-		return CMD_OK;
+static int cdg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct cdg_data *data = (struct cdg_data *)args->user;
+	data->success = !FindCentre(fit, &data->x_avg, &data->y_avg);
+	if (data->success) {
+		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"),
+						  data->x_avg, data->y_avg);
 	}
-	return CMD_GENERIC_ERROR;
+	return 0;
+}
+
+static gchar *cdg_log_hook(gpointer p, log_hook_detail detail) {
+	struct cdg_data *args = (struct cdg_data*) p;
+	if (detail == DETAILED && args->success) {
+		return g_strdup_printf(_("Center of gravity: (%.3f, %.3f)"),
+							   args->x_avg, args->y_avg);
+	}
+	return g_strdup(_("Center of gravity computation"));
+}
+
+int process_cdg(int nb) {
+	// Allocate and initialize user data
+	struct cdg_data *data = calloc(1, sizeof(struct cdg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = NULL;
+	data->success = FALSE;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = cdg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Center of gravity");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = cdg_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 static gboolean clear_log_buffer(gpointer user_data) {
@@ -7059,7 +7302,24 @@ int process_close(int nb) {
 	return CMD_OK;
 }
 
-int process_fill(int nb){
+struct fill_data {
+	void (*destructor)(void *);
+	int level;
+	rectangle area;
+};
+
+static int fill_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fill_data *data = (struct fill_data *)args->user;
+	rectangle area = data->area;
+	return fill(fit, data->level, &area);
+}
+
+static gchar *fill_log_hook(gpointer p, log_hook_detail detail) {
+	struct fill_data *args = (struct fill_data*) p;
+	return g_strdup_printf(_("Fill region with level %d"), args->level);
+}
+
+int process_fill(int nb) {
 	rectangle area;
 	gchar *end;
 
@@ -7076,39 +7336,121 @@ int process_fill(int nb){
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
-		}
-		else {
-			area.w = gfit->rx; area.h = gfit->ry;
-			area.x = 0; area.y = 0;
+		} else {
+			area.w = gfit->rx;
+			area.h = gfit->ry;
+			area.x = 0;
+			area.y = 0;
 		}
 	} else {
 		area = com.selection;
 	}
+
 	int level = g_ascii_strtoull(word[1], &end, 10);
 	if (end == word[1] || level < 0 || level > USHRT_MAX) {
 		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
-	int retval = fill(gfit, level, &area);
-	if (retval) {
-		siril_log_message(_("Wrong parameters.\n"));
-		return CMD_ARG_ERROR;
+
+	// Allocate and initialize user data
+	struct fill_data *data = calloc(1, sizeof(struct fill_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	data->destructor = NULL;
+	data->level = level;
+	data->area = area;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fill_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Fill region");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = fill_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+struct offset_data {
+	void (*destructor)(void *);
+	float level;
+};
+
+static int offset_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct offset_data *data = (struct offset_data *)args->user;
+	off(fit, data->level);
+	return 0;
+}
+
+static gchar *offset_log_hook(gpointer p, log_hook_detail detail) {
+	struct offset_data *args = (struct offset_data*) p;
+	return g_strdup_printf(_("Offset: %.0f"), args->level);
 }
 
 int process_offset(int nb) {
 	gchar *end;
-
 	int level = g_ascii_strtoull(word[1], &end, 10);
 	if (end == word[1]) {
 		siril_log_message(_("Wrong parameters.\n"));
 		return CMD_ARG_ERROR;
 	}
-	off(gfit, (float)level);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	// Allocate and initialize user data
+	struct offset_data *data = calloc(1, sizeof(struct offset_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = NULL;
+	data->level = (float)level;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = offset_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Offset");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = offset_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
+
 
 /* Command interpreter function for SCNR using generic_image_worker */
 int process_scnr(int nb) {
