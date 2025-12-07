@@ -24,6 +24,10 @@
 
 #include <string.h>
 
+#if defined(HAVE_LIBCURL)
+#include <curl/curl.h>
+#endif
+
 #include "core/siril.h"
 #include "core/siril_networking.h"
 #include "core/proto.h"
@@ -34,8 +38,6 @@
 static gboolean online_status = TRUE;
 
 #if defined(HAVE_LIBCURL)
-
-#include <curl/curl.h>
 
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
