@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <string.h>
 
 #include "core/siril.h"
@@ -29,9 +33,6 @@
 
 static gboolean online_status = TRUE;
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 #if defined(HAVE_LIBCURL)
 
 #include <curl/curl.h>
