@@ -1648,20 +1648,79 @@ int process_gauss(int nb) {
 	return CMD_OK;
 }
 
-int process_entropy(int nb){
+struct entropy_data {
+	void (*destructor)(void *);
 	rectangle area;
+	gboolean has_selection;
+	float total_entropy;
+};
+
+static int entropy_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct entropy_data *data = (struct entropy_data *)args->user;
 	float e = 0.f;
+
 	image_cfa_warning_check();
-	if (com.selection.w > 0 && com.selection.h > 0) {
-		area = com.selection;
-		for (int c = 0; c < gfit->naxes[2]; c++)
-			e += entropy(gfit, c, &area, NULL);
+
+	if (data->has_selection) {
+		rectangle area = data->area;
+		for (int c = 0; c < fit->naxes[2]; c++)
+			e += entropy(fit, c, &area, NULL);
+	} else {
+		for (int c = 0; c < fit->naxes[2]; c++)
+			e += entropy(fit, c, NULL, NULL);
 	}
-	else {
-		for (int c = 0; c < gfit->naxes[2]; c++)
-			e += entropy(gfit, c, NULL, NULL);
+
+	data->total_entropy = e;
+	return 0;
+}
+
+static gchar *entropy_log_hook(gpointer p, log_hook_detail detail) {
+	struct entropy_data *args = (struct entropy_data*) p;
+	if (detail == DETAILED) {
+		return g_strdup_printf(_("Entropy: %.3f"), args->total_entropy);
 	}
-	siril_log_message(_("Entropy: %.3f\n"), e);
+	return g_strdup(_("Entropy computation"));
+}
+
+int process_entropy(int nb) {
+	// Allocate and initialize user data
+	struct entropy_data *data = calloc(1, sizeof(struct entropy_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = NULL;
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->area = com.selection;
+	}
+	data->total_entropy = 0.f;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = entropy_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Entropy");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = entropy_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -1963,14 +2022,35 @@ int process_getref(int nb) {
 	return CMD_OK;
 }
 
+static int grey_flat_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	compute_grey_flat(fit);
+	return 0;
+}
+
 int process_grey_flat(int nb) {
 	if (isrgb(gfit)) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	compute_grey_flat(gfit);
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = grey_flat_image_hook;
+	args->description = _("Grey flat");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 /* Wrapper hook for command-line PSF estimation with dynamic estk_data */
@@ -6258,25 +6338,162 @@ int process_seq_resample(int nb) {
 	return CMD_OK;
 }
 
-int process_bg(int nb) {
-	WORD us_bg;
+// ============================================================================
+// BG (Background)
+// ============================================================================
+struct bg_data {
+	void (*destructor)(void *);
+	rectangle selection;
+	gboolean has_selection;
+	double bg_values[3];  // Store background for up to 3 channels
+	WORD us_bg_values[3];
+	int nchannels;
+};
+
+static int bg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct bg_data *data = (struct bg_data *)args->user;
+
 	image_cfa_warning_check();
-	for (int layer = 0; layer < gfit->naxes[2]; layer++) {
-		double bg = background(gfit, layer, &com.selection, MULTI_THREADED);
-		if (gfit->type == DATA_USHORT) {
-			us_bg = round_to_WORD(bg);
-			bg = bg / get_normalized_value(gfit);
-		} else if (gfit->type == DATA_FLOAT) {
-			us_bg = float_to_ushort_range(bg);
-		} else return CMD_INVALID_IMAGE;
-		siril_log_message(_("Background value (channel: #%d): %d (%.3e)\n"), layer, us_bg, bg);
+
+	rectangle *sel_ptr = data->has_selection ? &data->selection : NULL;
+	data->nchannels = fit->naxes[2];
+
+	for (int layer = 0; layer < fit->naxes[2]; layer++) {
+		double bg = background(fit, layer, sel_ptr, MULTI_THREADED);
+		data->bg_values[layer] = bg;
+
+		if (fit->type == DATA_USHORT) {
+			data->us_bg_values[layer] = round_to_WORD(bg);
+			data->bg_values[layer] = bg / get_normalized_value(fit);
+		} else if (fit->type == DATA_FLOAT) {
+			data->us_bg_values[layer] = float_to_ushort_range(bg);
+		}
+	}
+
+	return 0;
+}
+/*
+static void bg_idle_function(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	struct bg_data *data = (struct bg_data *)args->user;
+
+	for (int layer = 0; layer < data->nchannels; layer++) {
+		siril_log_message(_("Background value (channel: #%d): %d (%.3e)\n"),
+						  layer, data->us_bg_values[layer], data->bg_values[layer]);
+	}
+}
+*/
+static gchar *bg_log_hook(gpointer p, log_hook_detail detail) {
+	struct bg_data *args = (struct bg_data*) p;
+	if (detail == DETAILED && args->nchannels > 0) {
+		if (args->nchannels == 1) {
+			return g_strdup_printf(_("Background: %d (%.3e)"),
+								   args->us_bg_values[0], args->bg_values[0]);
+		} else {
+			return g_strdup_printf(_("Background (RGB): %d, %d, %d"),
+								   args->us_bg_values[0],
+								   args->us_bg_values[1],
+								   args->us_bg_values[2]);
+		}
+	}
+	return g_strdup(_("Background computation"));
+}
+
+int process_bg(int nb) {
+	// Allocate and initialize user data
+	struct bg_data *data = calloc(1, sizeof(struct bg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = NULL;
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->selection = com.selection;
+	}
+	data->nchannels = 0;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = bg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Background");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = bg_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }
 
-int process_bgnoise(int nb) {
+static int bgnoise_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct noise_data *data = (struct noise_data *)args->user;
+
 	image_cfa_warning_check();
-	evaluate_noise_in_image();
+
+	// Call the noise worker directly
+	noise_worker(data);
+
+	return 0;
+}
+
+static gchar *bgnoise_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Background noise estimation"));
+}
+
+int process_bgnoise(int nb) {
+	// Allocate noise_data
+	struct noise_data *noise_args = calloc(1, sizeof(struct noise_data));
+	if (!noise_args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	noise_args->fit = gfit;
+	noise_args->use_idle = FALSE;
+	noise_args->display_results = TRUE;
+	noise_args->display_start_end = TRUE;
+	memset(noise_args->bgnoise, 0.0, sizeof(double[3]));
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(noise_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = bgnoise_image_hook;
+	args->idle_function = NULL;  // noise_worker handles its own idle function
+	args->description = _("Background noise");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = noise_args;
+	args->log_hook = bgnoise_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -6348,6 +6565,10 @@ int process_tilt(int nb) {
 }
 
 int process_inspector(int nb) {
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot run inspector while headless"), "red");
+		return CMD_ARG_ERROR;
+	}
 	compute_aberration_inspector();
 	return CMD_OK;
 }
@@ -6496,10 +6717,6 @@ struct neg_data {
 // Image processing hook for neg
 static int neg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	pos_to_neg(fit);
-
-	// Add to history
-	fit->history = g_slist_append(fit->history, strdup(_("Image made negative")));
-
 	return 0;
 }
 
@@ -6545,7 +6762,23 @@ int process_neg(int nb) {
 	return CMD_OK;
 }
 
-int process_nozero(int nb){
+struct nozero_data {
+	void (*destructor)(void *);
+	WORD level;
+};
+
+static int nozero_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct nozero_data *data = (struct nozero_data *)args->user;
+	nozero(fit, data->level);
+	return 0;
+}
+
+static gchar *nozero_log_hook(gpointer p, log_hook_detail detail) {
+	struct nozero_data *args = (struct nozero_data*) p;
+	return g_strdup_printf(_("Replace zeros with %d"), args->level);
+}
+
+int process_nozero(int nb) {
 	gchar *end;
 	int level = g_ascii_strtoull(word[1], &end, 10);
 	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
@@ -6553,12 +6786,42 @@ int process_nozero(int nb){
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
-	nozero(gfit, (WORD)level);
 
-	char log[90];
-	sprintf(log, "Replaced zeros with %d", level);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize user data
+	struct nozero_data *data = calloc(1, sizeof(struct nozero_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = NULL;
+	data->level = (WORD)level;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = nozero_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Replace zeros");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = nozero_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 // Structure to hold DDP-specific data
@@ -7034,10 +7297,30 @@ int process_findhot(int nb){
 	return CMD_OK;
 }
 
+static int fix_xtrans_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return fix_xtrans_ac(fit);
+}
+
 int process_fix_xtrans(int nb) {
-	fix_xtrans_ac(gfit);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fix_xtrans_image_hook;
+	args->description = _("Fix X-Trans artefacts");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_cosme(int nb) {
@@ -8682,13 +8965,125 @@ int process_seq_extractHaOIII(int nb) {
 	return CMD_OK;
 }
 
-int process_stat(int nb){
-	int nplane, layer, option = STATS_BASIC;
-	char layername[6];
+static int stat_cmd_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct stat_data *data = (struct stat_data *)args->user;
+	rectangle *sel_ptr = data->has_selection ? &data->selection : NULL;
 
-	nplane = gfit->naxes[2];
+	for (int layer = 0; layer < data->nplane; layer++) {
+		int super_layer = layer;
+		if (data->cfa)
+			super_layer = -layer - 1;
+
+		data->stats[layer] = statistics(NULL, -1, fit, super_layer, sel_ptr, STATS_MAIN, MULTI_THREADED);
+		if (!data->stats[layer]) {
+			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+		}
+	}
+
+	return 0;
+}
+
+static gchar *stat_log_hook(gpointer p, log_hook_detail detail) {
+	struct stat_data *data = (struct stat_data *)p;
+
+	if (detail == SUMMARY) {
+		if (data->cfa)
+			return g_strdup(_("Statistics (CFA)"));
+		else if (data->option == STATS_MAIN)
+			return g_strdup(_("Statistics (main)"));
+		else
+			return g_strdup(_("Statistics"));
+	}
+
+	// DETAILED - recompute stats for logging
+	int nplane = data->cfa ? 3 : data->fit->naxes[2];
+	rectangle *sel_ptr = (data->selection.w > 0 && data->selection.h > 0) ? &data->selection : NULL;
+
+	GString *result = g_string_new("");
+
+	for (int layer = 0; layer < nplane; layer++) {
+		int super_layer = layer;
+		if (data->cfa)
+			super_layer = -layer - 1;
+
+		imstats *stat = statistics(NULL, -1, data->fit, super_layer, sel_ptr, STATS_MAIN, MULTI_THREADED);
+		if (!stat)
+			continue;
+
+		const char *layername;
+		switch (layer) {
+			case 0:
+				layername = (nplane == 1) ? "B&W" : "Red";
+				break;
+			case 1:
+				layername = "Green";
+				break;
+			case 2:
+				layername = "Blue";
+				break;
+			default:
+				layername = "Unknown";
+		}
+
+		if (layer > 0)
+			g_string_append(result, "\n");
+
+		if (data->option == STATS_BASIC) {
+			if (data->fit->type == DATA_USHORT) {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.6f"),
+					layername, stat->mean, stat->median, stat->sigma,
+					stat->min, stat->max, stat->bgnoise);
+			} else {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f"),
+					layername, stat->mean * USHRT_MAX_DOUBLE,
+					stat->median * USHRT_MAX_DOUBLE,
+					stat->sigma * USHRT_MAX_DOUBLE,
+					stat->min * USHRT_MAX_DOUBLE,
+					stat->max * USHRT_MAX_DOUBLE,
+					stat->bgnoise * USHRT_MAX_DOUBLE);
+			}
+		} else if (data->option == STATS_MAIN) {
+			if (data->fit->type == DATA_USHORT) {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+					  "avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f"),
+					layername, stat->mean, stat->median, stat->sigma,
+					stat->min, stat->max, stat->bgnoise, stat->avgDev,
+					stat->mad, stat->sqrtbwmv);
+			} else {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+					  "avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f"),
+					layername, stat->mean * USHRT_MAX_DOUBLE,
+					stat->median * USHRT_MAX_DOUBLE,
+					stat->sigma * USHRT_MAX_DOUBLE,
+					stat->min * USHRT_MAX_DOUBLE,
+					stat->max * USHRT_MAX_DOUBLE,
+					stat->bgnoise * USHRT_MAX_DOUBLE,
+					stat->avgDev * USHRT_MAX_DOUBLE,
+					stat->mad * USHRT_MAX_DOUBLE,
+					stat->sqrtbwmv * USHRT_MAX_DOUBLE);
+			}
+		}
+
+		free_stats(stat);
+	}
+
+	return g_string_free(result, FALSE);
+}
+
+int process_stat(int nb) {
+	int nplane = gfit->naxes[2];
 	gboolean cfa = FALSE;
+	int option = STATS_BASIC;
 	int argidx = 1;
+
 	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
@@ -8699,75 +9094,47 @@ int process_stat(int nb){
 		}
 		argidx++;
 	}
+
 	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
 		option = STATS_MAIN;
 
-	for (layer = 0; layer < nplane; layer++) {
-		int super_layer = layer;
-		if (cfa)
-			super_layer = -layer - 1;
-		imstats* stat = statistics(NULL, -1, gfit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
-			continue;
-		}
+	// Allocate and initialize user data
+	struct stat_data *data = alloc_stat_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destroy_fn = free_stat_data;
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->selection = com.selection;
+	}
+	data->fit = gfit;
+	data->option = option;
+	data->cfa = cfa;
+	data->nplane = nplane;
+	memset(data->stats, 0, sizeof(data->stats));
 
-		switch (layer) {
-			case 0:
-				if (nplane == 1)
-					strcpy(layername, "B&W");
-				else
-					strcpy(layername, "Red");
-				break;
-			case 1:
-				strcpy(layername, "Green");
-				break;
-			case 2:
-				strcpy(layername, "Blue");
-				break;
-		}
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_stat_data(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = stat_cmd_image_hook;
+	args->description = _("Statistics");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = stat_log_hook;
+	args->max_threads = 1;
 
-		if (option == STATS_BASIC) {
-			if (gfit->type == DATA_USHORT) {
-				siril_log_message(_("%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.6f\n"),
-						layername, stat->mean, stat->median, stat->sigma,
-						stat->min, stat->max, stat->bgnoise);
-			} else {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
-						layername, stat->mean * USHRT_MAX_DOUBLE,
-						stat->median * USHRT_MAX_DOUBLE,
-						stat->sigma * USHRT_MAX_DOUBLE,
-						stat->min * USHRT_MAX_DOUBLE,
-						stat->max * USHRT_MAX_DOUBLE,
-						stat->bgnoise * USHRT_MAX_DOUBLE);
-			}
-
-		} else if (option == STATS_MAIN) {
-			if (gfit->type == DATA_USHORT) {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
-							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
-						layername, stat->mean, stat->median, stat->sigma,
-						stat->min, stat->max, stat->bgnoise, stat->avgDev,
-						stat->mad, stat->sqrtbwmv);
-			} else {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
-							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
-						layername, stat->mean * USHRT_MAX_DOUBLE,
-						stat->median * USHRT_MAX_DOUBLE,
-						stat->sigma * USHRT_MAX_DOUBLE,
-						stat->min * USHRT_MAX_DOUBLE,
-						stat->max * USHRT_MAX_DOUBLE,
-						stat->bgnoise * USHRT_MAX_DOUBLE,
-						stat->avgDev * USHRT_MAX_DOUBLE,
-						stat->mad * USHRT_MAX_DOUBLE,
-						stat->sqrtbwmv * USHRT_MAX_DOUBLE);
-			}
-		}
-		free_stats(stat);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }

@@ -56,6 +56,29 @@
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
 
+void free_stat_data(void *p) {
+	struct stat_data *data = (struct stat_data *)p;
+	if (data) {
+		for (int i = 0; i < 3; i++) {
+			if (data->stats[i]) {
+				free_stats(data->stats[i]);
+			}
+		}
+		free(data);
+	}
+}
+
+struct stat_data *alloc_stat_data() {
+	struct stat_data *data = calloc(1, sizeof(struct stat_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	data->destroy_fn = free_stat_data;
+	return data;
+}
+
+
 static void stats_set_default_values(imstats *stat);
 
 // copies the area of an image into the memory buffer data

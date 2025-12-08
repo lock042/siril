@@ -101,27 +101,19 @@ gpointer noise_worker(gpointer p) {
 	return args;
 }
 
-// called by the GUI or the command, uses the processing thread
+// Forward declaration to avoid including command.h
+int process_bgnoise(int nb);
+
+// called by the GUI, uses the processing thread
 void evaluate_noise_in_image() {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
-
 	set_cursor_waiting(TRUE);
-
-	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
-
-	struct noise_data *args = calloc(1, sizeof(struct noise_data));
-	args->fit = gfit;
-	args->use_idle = TRUE;
-	args->display_results = TRUE;
-	args->display_start_end = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-	if (!start_in_new_thread(noise_worker, args)) {
-		free(args);
-	}
+	// Use the command processor
+	process_bgnoise(0);
 }
 
 // called in general from another function like stacking,

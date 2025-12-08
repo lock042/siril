@@ -1601,9 +1601,12 @@ gpointer generic_image_worker(gpointer p) {
 			if ((args->custom_undo)) {
 				// Do nothing, the custom undo will handle it
 				g_free(history);
-			} else {
+			} else if (args->command_updates_gfit) {
 				args->fit->history = g_slist_append(args->fit->history, history);
 				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
+				update_fits_header(args->fit); // update the header so the history is up to date and correctly ordered
+			} else {
+				g_free(history);
 			}
 		}
 
