@@ -398,6 +398,13 @@ void on_layer_remove(const GtkButton *button, gpointer user_data) {
 static void grid_remove_row(int layer, int free_the_row) {
 	GtkContainer *cont = GTK_CONTAINER(grid_layers);
 	if (!layers[layer]) return;
+
+	// Flatpak portal fix: clear selection, disconnect signals, and hide before removing
+	g_signal_handlers_disconnect_by_func(layers[layer]->chooser,
+	                                     on_filechooser_file_set, NULL);
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[layer]->chooser));
+	gtk_widget_hide(GTK_WIDGET(layers[layer]->chooser));
+
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->remove_button));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->color_w));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->chooser));
@@ -407,14 +414,14 @@ static void grid_remove_row(int layer, int free_the_row) {
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->spinbutton_r));
 	gtk_container_remove(cont, GTK_WIDGET(layers[layer]->centerbutton));
 	if (free_the_row) {
-		g_object_unref(G_OBJECT(layers[layer]->remove_button));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->color_w));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->chooser));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->label));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->spinbutton_x));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));	// don't destroy it on removal from grid
-		g_object_unref(G_OBJECT(layers[layer]->centerbutton));	// don't destroy it on removal from grid
+		g_object_unref(G_OBJECT(layers[layer]->remove_button));
+		g_object_unref(G_OBJECT(layers[layer]->color_w));
+		g_object_unref(G_OBJECT(layers[layer]->chooser));
+		g_object_unref(G_OBJECT(layers[layer]->label));
+		g_object_unref(G_OBJECT(layers[layer]->spinbutton_x));
+		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));
+		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));
+		g_object_unref(G_OBJECT(layers[layer]->centerbutton));
 	}
 }
 
@@ -1572,9 +1579,14 @@ void reset_compositing_module() {
 	if (!compositing_loaded)
 		return;
 
+	// Flatpak portal fix: clear all file chooser selections first
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[0]->chooser));
+
 	if (has_fit(0))
 		clearfits(&layers[0]->the_fit);
 	for (int i = 1; layers[i]; i++) {
+		// Clear selection before any cleanup
+		gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(layers[i]->chooser));
 		if (has_fit(i))
 			clearfits(&layers[i]->the_fit);
 		grid_remove_row(i, 1);
@@ -1589,6 +1601,7 @@ void reset_compositing_module() {
 
 	/* Reset GtkFileChooserButton Luminance */
 	GtkFileChooserButton *lum = GTK_FILE_CHOOSER_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
+	// Already cleared above, but ensure it's clear
 	gtk_file_chooser_unselect_all (GTK_FILE_CHOOSER (lum));
 
 	if (seq) {
