@@ -352,21 +352,25 @@ class FileBrowser(tk.Toplevel):
         # -------- devices
         devices = psutil.disk_partitions(all=True if OSNAME == "nt" else False)
 
-        dupes = []
+        dupes = set()
         for d in devices:
-            m = d.mountpoint
-            if m == "/":
-                txt = "/"
-            else:
-                if OSNAME == 'nt':
-                    txt = m
-                else:
-                    txt = split(m)[-1]
-            if not m in dupes:
-                self.left_tree.insert("", "end", iid=m, text=txt,
-                                  image=self.im_drive)
-                wrapper.add_tooltip(m, m)
-                dupes.append(m)
+            raw_m = d.mountpoint
+            # Normalise: remove trailing slashes, expand real path
+            m = raw_m.rstrip("/") or "/"
+
+            txt = "/" if m == "/" else split(m)[-1]
+
+            # Guarantee unique iid
+            unique_iid = m
+            counter = 1
+            while unique_iid in dupes:
+                unique_iid = f"{m}__{counter}"
+                counter += 1
+
+            self.left_tree.insert("", "end", iid=unique_iid, text=txt,
+                                image=self.im_drive)
+            wrapper.add_tooltip(unique_iid, raw_m)
+            dupes.add(unique_iid)
 
         # -------- home
         home = expanduser("~")
@@ -415,14 +419,26 @@ class FileBrowser(tk.Toplevel):
                 ch[0] = unquote(ch[0]).replace("file://", "")
                 bm.append(ch)
         for l in bm:
-            if len(l) == 1:
-                txt = split(l[0])[-1]
-            else:
-                txt = l[1]
-            self.left_tree.insert("", "end", iid=l[0],
-                                  text=txt,
-                                  image=self.im_folder)
-            wrapper.add_tooltip(l[0], l[0])
+            path = l[0]
+            txt = split(path)[-1] if len(l) == 1 else l[1]
+
+            # Normalise bookmark path
+            norm = path.rstrip("/") or "/"
+
+            # Guarantee unique iid
+            unique_iid = norm
+            counter = 1
+            while unique_iid in dupes:
+                unique_iid = f"{norm}__bm{counter}"
+                counter += 1
+
+            self.left_tree.insert("", "end", iid=unique_iid,
+                                text=txt,
+                                image=self.im_folder)
+            wrapper.add_tooltip(unique_iid, path)
+
+            dupes.add(unique_iid)
+
 
         # ---  right pane
         right_pane = ttk.Frame(paned)
