@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:11+0100\n"
-"PO-Revision-Date: 2025-10-14 03:04+0000\n"
+"PO-Revision-Date: 2025-12-07 13:22+0000\n"
 "Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
-"siril/es/>\n"
+"siril-1-6/es/>\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5404,7 +5404,7 @@ msgstr "Puede usarse en un script: "
 
 #: src/gui/uifiles/python_scratchpad.ui:160
 msgid "_New"
-msgstr ""
+msgstr "_Nuevo"
 
 #: src/gui/uifiles/python_scratchpad.ui:169
 msgid "Open a script from a file"
@@ -5560,6 +5560,9 @@ msgid ""
 "Set the position of the right margin indicator in the editor. This visual "
 "guide helps maintain consistent line lengths and improve code readability."
 msgstr ""
+"Establezca la posición del indicador de margen derecho en el editor. Esta "
+"guía visual ayuda a mantener la longitud de línea constante y mejora la "
+"legibilidad del código."
 
 #: src/gui/uifiles/python_scratchpad.ui:416
 msgid "Set right margin position"
@@ -5707,6 +5710,11 @@ msgid ""
 "script is run from the Scripts menu, so scripts should not be solely reliant "
 "on arguments for input."
 msgstr ""
+"Esta entrada puede usarse para establecer los argumentos con los que se "
+"ejecutará el script, lo que permite probar su comportamiento al llamarlo con "
+"el comando <b>pyscript</b> con argumentos. Tenga en cuenta que no se pueden "
+"proporcionar argumentos al ejecutar un script desde el menú Scripts, por lo "
+"que los scripts no deben depender únicamente de argumentos como entrada."
 
 #: src/gui/uifiles/resample_dialog.ui:63
 msgid "Resample"
@@ -5779,6 +5787,8 @@ msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
 msgstr ""
+"Aplicar un factor de fijación a la interpolación Bicúbica y Lanczos-4 para "
+"evitar artefactos de anillo"
 
 #: src/gui/uifiles/rgradient_dialog.ui:45
 msgid "Rotational Gradient"
@@ -5984,6 +5994,11 @@ msgid ""
 "model). For modified DSLRs, select the replacement LPF (if there isn't an "
 "exact match the Baader BCF is probably close)."
 msgstr ""
+"Para DSLRs sin modificar, seleccione el filtro de paso bajo (LPF) que mejor "
+"se adapte a su modelo (muchos LPF de Canon son casi idénticos, por lo que "
+"podría no haber uno exactamente igual a su modelo). Para DSLRs modificadas, "
+"seleccione el LPF de reemplazo (si no hay una coincidencia exacta, "
+"probablemente el BCF de Baader sea similar)."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:506
 #, fuzzy
@@ -5996,10 +6011,13 @@ msgid "Plot all"
 msgstr "Trazar"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:519
+#, fuzzy
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
 msgstr ""
+"Grafique el QE del sensor seleccionado, respuestas del filtro y recuento "
+"relativo de fotones de referencia blanca como función de longitud de onda"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:533
 #, fuzzy
@@ -6024,6 +6042,9 @@ msgid ""
 "Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
+"Longitud de onda nominal de la banda de paso en nm\n"
+"Longitudes de onda comunes: S II - 672 nm; Ha - 656,46 nm; O III - 500 nm; "
+"Hb - 486,1 nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:601
 msgid "Filter bandwidth in nm"
@@ -6484,6 +6505,16 @@ msgid ""
 "filesize than TIFF compression at the expense of being slower and not "
 "providing the metadata that is available with TIFF."
 msgstr ""
+"Calidad. Ajustar la calidad a 100 proporciona una compresión sin pérdidas ("
+"tenga en cuenta que puede ser bastante lenta). Otros valores de calidad "
+"funcionan de forma similar a la calidad JPEG, pero no hay extrapolación "
+"directa (un mismo valor de calidad no ofrece la misma calidad visual ni el "
+"mismo tamaño de archivo que un archivo JPEG).\n"
+"\n"
+"NOTA: La compresión con pérdidas produce malos resultados al guardar datos "
+"lineales debido a su alto rango dinámico. Sin embargo, la compresión sin "
+"pérdidas ofrece un tamaño de archivo menor que la compresión TIFF a costa de "
+"ser más lenta y no proporcionar los metadatos disponibles con TIFF."
 
 #: src/gui/uifiles/savepopup.ui:895
 msgid "Effort:"
@@ -6510,6 +6541,10 @@ msgid ""
 "its native bit depth (32 bit images will be stored as 32 bit; 16 bit images "
 "will be stored as 16 bit unless they originated as 8 bit images)"
 msgstr ""
+"Si se marca, la salida será de 8 bits. Si no se marca, la imagen se guardará "
+"con su profundidad de bits nativa (las imágenes de 32 bits se almacenarán "
+"como 32 bits; las imágenes de 16 bits se almacenarán como 16 bits, a menos "
+"que se generaran como imágenes de 8 bits)"
 
 #: src/gui/uifiles/savepopup.ui:975
 #, fuzzy
@@ -6580,6 +6615,9 @@ msgid ""
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
+"Cuando se activa o desactiva, el contorno de la imagen de referencia "
+"transformada con los datos de registro se dibuja en cada imagen para revisar "
+"la posición de la imagen con respecto a la referencia."
 
 #: src/gui/uifiles/seqlist_dialog.ui:319
 msgid "Reference image"
@@ -6788,6 +6826,9 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
+"Número de pasadas para el algoritmo de demosaico X-Trans\n"
+"Markesteijn, 1 es el valor predeterminado, 3 puede ser un poco mejor, pero "
+"más lento."
 
 #: src/gui/uifiles/settings_window.ui:532
 #, fuzzy
@@ -6810,22 +6851,32 @@ msgid ""
 "This setting is ignored with SER files which are always assumed Top-Down as "
 "per their standard."
 msgstr ""
+"Siril lee datos FITS con orientación ascendente, pero muchos programas de "
+"captura no cumplen con esta especificación. La mayoría escribe una clave "
+"ROWORDER en los metadatos de las imágenes para indicar cómo se almacenaron "
+"los datos.\n"
+"Seleccione su opción preferida en esta lista. Las dos primeras intentarán "
+"leer primero ROWORDER desde el encabezado y si no, usarán una solución "
+"alternativa. Las dos últimas opciones fuerzan la orientación descendente o "
+"ascendente.\n"
+"Esta configuración se ignora con los archivos SER, que siempre se asumen "
+"descendentes según su estándar."
 
 #: src/gui/uifiles/settings_window.ui:578
 msgid "Header then Top-Down"
-msgstr ""
+msgstr "Encabezado y luego de arriba hacia abajo"
 
 #: src/gui/uifiles/settings_window.ui:579
 msgid "Header then Bottom-Up"
-msgstr ""
+msgstr "Encabezado y luego de abajo hacia arriba"
 
 #: src/gui/uifiles/settings_window.ui:580
 msgid "Force Top-Down"
-msgstr ""
+msgstr "Fuerza de arriba hacia abajo"
 
 #: src/gui/uifiles/settings_window.ui:581
 msgid "Force Bottom-Up"
-msgstr ""
+msgstr "Fuerza de abajo hacia arriba"
 
 #: src/gui/uifiles/settings_window.ui:597 src/gui/uifiles/siril.ui:3952
 #: src/gui/open_dialog.c:191
@@ -6891,6 +6942,10 @@ msgid ""
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
+"Esto puede ser útil para abrir archivos FITS científicos que no fueron "
+"creados por Siril y que contienen múltiples imágenes de diferentes "
+"dimensiones, que de otro modo se considerarían como archivos FITSEQ de Siril "
+"no válidos."
 
 #: src/gui/uifiles/settings_window.ui:739
 msgid "<b>FITS Format</b>"
@@ -6925,6 +6980,11 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
+"Se utiliza para el cálculo del muestreo de imágenes, el tamaño de píxel se "
+"puede obtener de dos maneras: se proporciona el tamaño de píxel real, pero "
+"debe multiplicarse por el binning (marcado), o se proporciona el tamaño de "
+"píxel ya multiplicado (no marcado).\n"
+"Depende del software de adquisición utilizado para crear los FITS."
 
 #: src/gui/uifiles/settings_window.ui:800
 #, fuzzy
@@ -6937,6 +6997,10 @@ msgid ""
 "you need interoperability with a program that fails to handle FITS with "
 "embedded ICC profiles (none are currently known)."
 msgstr ""
+"Incruste perfiles ICC en archivos FITS. Por lo general, esta opción debería "
+"dejarse activada, a menos que necesite interoperabilidad con un programa que "
+"no sea compatible con FITS con perfiles ICC integrados (no se conoce ninguno "
+"actualmente)."
 
 #: src/gui/uifiles/settings_window.ui:817
 msgid "Verify file checksums in FITS header (DATASUM and CHECKSUM)"
@@ -6948,6 +7012,9 @@ msgid ""
 "file is read, which may significantly impact Siril's performance when using "
 "a sequence."
 msgstr ""
+"Verifica las sumas de comprobación de los archivos, si existen. La "
+"verificación se realiza cada vez que se lee el archivo, lo que puede afectar "
+"significativamente el rendimiento de Siril al usar una secuencia."
 
 #: src/gui/uifiles/settings_window.ui:839
 msgid "<b>FITS Header</b>"
