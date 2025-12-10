@@ -7,10 +7,8 @@ xx/xx/xx
 siril-1.4.0
 12/05/25
 
-**Improvements**
-* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
-
 **Fixes**
+* Fixes build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
 * Fixed get_image_history(): now correctly updates history with operations done since loading
 * Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 * Fixed Gaia online catalogue status indicator (!963)
@@ -18,6 +16,9 @@ siril-1.4.0
 * Fixed catsearch function for solar system objects (#1882)
 * Fixed cleaning python related environment variables within Siril app for Windows (#1880)
 * Fixed empty csv file exported by conesearch command when called from script (#1885)
+
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
 siril 1.4.0-RC2
 11/20/25

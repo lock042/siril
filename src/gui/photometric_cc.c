@@ -103,7 +103,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	gchar *text = NULL, *colortext = NULL;
-	stop_processing_thread();
+//	stop_processing_thread(); // Not required as fetch_url_async doesn't use the processing thread
 
 	if (args->code != 200 || !args->content) {
 		// Failed to fetch status
