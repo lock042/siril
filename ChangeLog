@@ -1,5 +1,12 @@
-siril-1.4.0
+siril-1.4.1
 xx/xx/xx
+
+**Fixes**
+* Fix issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
+
+siril-1.4.0
+12/05/25
+
 **Improvements**
 * SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
