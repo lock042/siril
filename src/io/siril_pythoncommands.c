@@ -762,7 +762,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (payload_length == 16) {
 					rectangle region_BE = *(rectangle*) payload;
@@ -770,8 +770,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.y),
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
-					if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-								selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+					if (selection.x < 0 || selection.x + selection.w > gfit->rx ||
+								selection.y < 0 || selection.y + selection.h > gfit->ry) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)

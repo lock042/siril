@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:11+0100\n"
-"PO-Revision-Date: 2025-11-16 18:02+0000\n"
+"PO-Revision-Date: 2025-12-10 02:41+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/de/>\n"
@@ -511,7 +511,7 @@ msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)."
+msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -11638,8 +11638,8 @@ msgid ""
 msgstr ""
 "Sieben Verfahren stehen zur Verfügung:\n"
 "\n"
-"<b>Perzentil Clipping</b> ist ein einstufiger Ablehnungsalgorithmus, der "
-"sich ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
+"<b>Perzentil Clipping</b> ist ein einstufiger Ausschlußalgorithmus, der sich "
+"ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
 "\n"
 "<b>Sigma Clipping</b> ist ein iterativer Algorithmus, der Pixel verwirft, "
 "deren Abweichung vom Median-Wert größer ist als der der beiden vorgegebenen "
@@ -14894,13 +14894,12 @@ msgid "Registration complete."
 msgstr "Registrierung abgeschlossen."
 
 #: src/compositing/align_rgb.c:161
-#, fuzzy
 msgid "Aligned RGB channels\n"
-msgstr "Rot-Kanal"
+msgstr "Ausgerichtete RGB-Kanäle\n"
 
 #: src/compositing/compositing.c:148
 msgid "FITS and TIFF files"
-msgstr ""
+msgstr "FITS und TIFF Dateien"
 
 #: src/compositing/compositing.c:207
 msgid ""
@@ -14961,9 +14960,8 @@ msgid "Manual alignment"
 msgstr "Manuelle Ausrichtung"
 
 #: src/compositing/compositing.c:531
-#, fuzzy
 msgid "Starting a RGB composition\n"
-msgstr "Stern-Neuzusammensetzung"
+msgstr "Eine RGB-Zusammensetzung beginnen\n"
 
 #: src/compositing/compositing.c:608
 msgid "Could not display image, unloading it\n"
@@ -15922,9 +15920,8 @@ msgid "Wrong parameters.\n"
 msgstr "Falsche Parameter.\n"
 
 #: src/core/command.c:2232
-#, fuzzy
 msgid "Wavelet reconstruction\n"
-msgstr "Wavelet Kontrolle"
+msgstr "Wavelet Wiederherstellung\n"
 
 #: src/core/command.c:2281 src/core/command.c:3258
 #, c-format
@@ -17632,7 +17629,7 @@ msgstr "Fehler: Befehl %s ist nicht verfügbar\n"
 #: src/core/command.c:9691
 #, c-format
 msgid "Extracting wavelets (%d plans)\n"
-msgstr ""
+msgstr "Extrahiere Wavelets (%d Pläne)\n"
 
 #: src/core/command.c:9702
 msgid "Error: cannot reload script menu when running headless\n"
@@ -23110,9 +23107,9 @@ msgstr ""
 "nicht benutzt.\n"
 
 #: src/core/initfile.c:168
-#, fuzzy, c-format
+#, c-format
 msgid "Error creating regex: %s\n"
-msgstr "Fehler beim Lesen von stderr: %s\n"
+msgstr "Fehler beim erzeugen der Regex: %s\n"
 
 #: src/core/initfile.c:229
 #, c-format
@@ -24810,23 +24807,20 @@ msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 msgstr "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 
 #: src/filters/asinh.c:91
-#, fuzzy
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"
-msgstr "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
+msgstr "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"
 
 #: src/filters/banding.c:191
 msgid "Banding Reducing: processing...\n"
 msgstr "Banding Reduzierung: in Bearbeitung...\n"
 
 #: src/filters/banding.c:193
-#, fuzzy
 msgid "Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)\n"
-msgstr "Canon Banding-Reduktion (Menge=%.2lf, Protect=TRUE, invsigma=%.2lf)"
+msgstr "Canon Banding-Reduktion (Menge=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"
 
 #: src/filters/banding.c:195
-#, fuzzy
 msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"
-msgstr "Canon Banding-Reduktion (Menge=%.2lf, Protect=TRUE, invsigma=%.2lf)"
+msgstr "Canon Banding-Reduktion (Menge=%.2lf, Protect=TRUE, invsigma=%.2lf)\n"
 
 #: src/filters/banding.c:425
 msgid "Canon Banding Reduction (amount=%.2lf)"
@@ -24847,23 +24841,22 @@ msgid "Image %d: %ld pixel corrected (%ld + %ld)\n"
 msgstr "Bild %d: %ld Pixels korrigiert (%ld + %ld)\n"
 
 #: src/filters/cosmetic_correction.c:468
-#, fuzzy
 msgid ""
 "Cosmetic Correction: processing (hot sigma %.2lf, cold sigma %.2lf, amount "
 "%.2lf)...\n"
 msgstr ""
-"Kosmetische Korrektur von Masterdark: Verwendung von sigma %.2lf für kalte "
-"Pixel.\n"
+"Kosmetische Korrektur: Verarbeitung (hot sigma %.2lf, cold sigma %.2lf, "
+"Stärke %.2lf)...\n"
 
 #: src/filters/cosmetic_correction.c:470
-#, fuzzy
 msgid "Cosmetic Correction: processing (cold sigma %.2lf, amount %.2lf)...\n"
-msgstr "Kosmetische Korrektur: in Bearbeitung...\n"
+msgstr ""
+"Kosmetische Korrektur: Verarbeitung (cold sigma %.2lf, Stärke %.2lf)...\n"
 
 #: src/filters/cosmetic_correction.c:472
-#, fuzzy
 msgid "Cosmetic Correction: processing (hot sigma %.2lf, amount %.2lf)...\n"
-msgstr "Kosmetische Korrektur: in Bearbeitung...\n"
+msgstr ""
+"Kosmetische Korrektur: Verarbeitung (hot sigma %.2lf, Stärke %.2lf)...\n"
 
 #: src/filters/cosmetic_correction.c:578
 #, c-format
@@ -24875,21 +24868,21 @@ msgid "Bilateral filter: processing...\n"
 msgstr "BeidseitigerFilter: in Bearbeitung...\n"
 
 #: src/filters/epf.c:208
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s filter applied: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, "
 "modulation=%.3f\n"
-msgstr "Bilaterales Filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
+msgstr ""
+"%s Filter angewendet: d=%.3f, sigma_col=%.3f, sigma_spatial=%.3f, "
+"modulation=%.3f\n"
 
 #: src/filters/epf.c:209
-#, fuzzy
 msgid "Bilateral"
-msgstr "Beidseitiger Filter"
+msgstr "Bilateral"
 
 #: src/filters/epf.c:209
-#, fuzzy
 msgid "Guided"
-msgstr "geführter Filter"
+msgstr "geführt"
 
 #: src/filters/fft.c:455
 msgid "Siril FFT wisdom imported successfully...\n"
@@ -24945,14 +24938,12 @@ msgid "Median filter applied"
 msgstr "Median Filter angewandt"
 
 #: src/filters/median.c:800
-#, fuzzy
 msgid "Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"
-msgstr "Median Filter (filter=%dx%d Pixel)"
+msgstr "Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"
 
 #: src/filters/median.c:802
-#, fuzzy
 msgid "Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"
-msgstr "Median Filter (filter=%dx%d Pixel)"
+msgstr "Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"
 
 #: src/filters/mtf.c:121
 #, c-format
@@ -25387,9 +25378,8 @@ msgid "Wavelets Transformation"
 msgstr "Wavelet Transformation"
 
 #: src/filters/wavelets.c:224
-#, fuzzy
 msgid "Wavelets Transformation\n"
-msgstr "Wavelet Transformation"
+msgstr "Wavelet Transformation\n"
 
 #: src/filters/wavelets.c:302
 #, c-format
@@ -26048,9 +26038,8 @@ msgid "Color Calibration: processing...\n"
 msgstr "Farb-Kalibrierung: bearbeite...\n"
 
 #: src/gui/colors.c:318
-#, fuzzy
 msgid "Negative Transformation\n"
-msgstr "Negative Transformation"
+msgstr "Negative Transformation\n"
 
 #. HSL
 #. HSV
@@ -26391,9 +26380,9 @@ msgid "Toggles whether to apply the curve to the monochrome channel"
 msgstr "Schaltet um, ob die Kurve für den monochromen Kanal gilt"
 
 #: src/gui/curves.c:561
-#, fuzzy, c-format
+#, c-format
 msgid "Applying %s curve transformation with %d points: "
-msgstr "Kurventransformation %s mit %d Punkten anwenden\n"
+msgstr "Kurventransformation %s mit %d Punkten anwenden: "
 
 #: src/gui/curves.c:642
 msgid "Curves Transform"
@@ -28319,7 +28308,7 @@ msgstr ""
 #: src/gui/registration.c:610
 #, c-format
 msgid "Registering %d images of the %d of the sequence"
-msgstr "Registriere %d Bildern aus %d aus der Sequenz"
+msgstr "Registriere %d Bildern aus %d der Sequenz"
 
 #: src/gui/registration.c:731
 msgid ""
@@ -31424,7 +31413,7 @@ msgid ""
 "Local siril-scripts repository folder %s is not configured with %s as its "
 "remote.\n"
 msgstr ""
-"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Der lokaler Siril-Skript-Repository-Ordner %s ist nicht mit %s als Remote-"
 "Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:539
@@ -31523,7 +31512,7 @@ msgid ""
 "Local siril-spcc-database repository folder %s is not configured with %s as "
 "its remote.\n"
 msgstr ""
-"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Der lokaler Siril-Skript-Repository-Ordner %s ist nicht mit %s als Remote-"
 "Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:871
@@ -31610,9 +31599,8 @@ msgid "Invalid selection"
 msgstr "ungültige Auswahl"
 
 #: src/io/siril_pythoncommands.c:903
-#, fuzzy
 msgid "Selection too close to edge of image"
-msgstr "Auswahl ist größer als das Bild\n"
+msgstr "Auswahl ist zu nahe am Bildrand"
 
 #: src/io/siril_pythoncommands.c:908 src/io/siril_pythoncommands.c:999
 #: src/io/siril_pythoncommands.c:1423 src/io/siril_pythoncommands.c:1933
@@ -32999,19 +32987,19 @@ msgid "Pixel Math result"
 msgstr "Ergebnis von Pixel Math"
 
 #: src/pixelMath/pixel_math_runner.c:666
-#, fuzzy, c-format
+#, c-format
 msgid "Pixelmath expression 1: %s\n"
-msgstr "Fehler bei der Auswertung eines PixelMath-Ausdruckes.\n"
+msgstr "PixelMath-Ausdruck 1: %s\n"
 
 #: src/pixelMath/pixel_math_runner.c:668
-#, fuzzy, c-format
+#, c-format
 msgid "Pixelmath expression 2: %s\n"
-msgstr "Fehler bei der Auswertung eines PixelMath-Ausdruckes.\n"
+msgstr "PixelMath-Ausdruck 2: %s\n"
 
 #: src/pixelMath/pixel_math_runner.c:670
-#, fuzzy, c-format
+#, c-format
 msgid "Pixelmath expression 3: %s\n"
-msgstr "Fehler bei der Auswertung eines PixelMath-Ausdruckes.\n"
+msgstr "PixelMath-Ausdrucke 3: %s\n"
 
 #: src/pixelMath/pixel_math_runner.c:702 src/pixelMath/pixel_math_runner.c:713
 #: src/pixelMath/pixel_math_runner.c:723
