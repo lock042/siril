@@ -2,7 +2,9 @@ siril-1.4.1
 xx/xx/xx
 
 **Fixes**
+* Fixes build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
 * Fix issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
+* Fix too-strict condition and off-by-one error in sirilpy
 
 siril-1.4.0
 12/05/25

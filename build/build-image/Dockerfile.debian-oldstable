@@ -118,4 +118,4 @@ RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && cd ../.. \
     && rm -rf opencv-4.5.3 opencv.zip
 
-RUN pip install meson ninja!=1.11.1
+RUN pip install meson==1.9.1 ninja!=1.11.1

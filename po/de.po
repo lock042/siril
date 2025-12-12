@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:10+0100\n"
-"PO-Revision-Date: 2025-11-16 18:02+0000\n"
-"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
+"PO-Revision-Date: 2025-12-09 18:50+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -511,7 +511,7 @@ msgstr "Löschen"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current temporary annotations (in red by default)"
-msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)."
+msgstr "Alle aktuellen Anmerkungen löschen (Default in rot)"
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -11638,8 +11638,8 @@ msgid ""
 msgstr ""
 "Sieben Verfahren stehen zur Verfügung:\n"
 "\n"
-"<b>Perzentil Clipping</b> ist ein einstufiger Ablehnungsalgorithmus, der "
-"sich ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
+"<b>Perzentil Clipping</b> ist ein einstufiger Ausschlußalgorithmus, der sich "
+"ideal für kleine Datensätze (bis zu 6 Bilder) eignet.\n"
 "\n"
 "<b>Sigma Clipping</b> ist ein iterativer Algorithmus, der Pixel verwirft, "
 "deren Abweichung vom Median-Wert größer ist als der der beiden vorgegebenen "
@@ -14895,7 +14895,7 @@ msgstr "Registrierung abgeschlossen."
 
 #: src/compositing/compositing.c:148
 msgid "FITS and TIFF files"
-msgstr ""
+msgstr "FITS und TIFF Dateien"
 
 #: src/compositing/compositing.c:207
 msgid ""
@@ -28218,7 +28218,7 @@ msgstr ""
 #: src/gui/registration.c:610
 #, c-format
 msgid "Registering %d images of the %d of the sequence"
-msgstr "Registriere %d Bildern aus %d aus der Sequenz"
+msgstr "Registriere %d Bildern aus %d der Sequenz"
 
 #: src/gui/registration.c:731
 msgid ""
@@ -31323,7 +31323,7 @@ msgid ""
 "Local siril-scripts repository folder %s is not configured with %s as its "
 "remote.\n"
 msgstr ""
-"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Der lokaler Siril-Skript-Repository-Ordner %s ist nicht mit %s als Remote-"
 "Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:539
@@ -31422,7 +31422,7 @@ msgid ""
 "Local siril-spcc-database repository folder %s is not configured with %s as "
 "its remote.\n"
 msgstr ""
-"Der lokaler Siril-Skript-Repository-Ordner %d ist nicht mit %s als Remote-"
+"Der lokaler Siril-Skript-Repository-Ordner %s ist nicht mit %s als Remote-"
 "Ordner konfiguriert.\n"
 
 #: src/io/siril_git.c:874
@@ -31509,9 +31509,8 @@ msgid "Invalid selection"
 msgstr "ungültige Auswahl"
 
 #: src/io/siril_pythoncommands.c:905
-#, fuzzy
 msgid "Selection too close to edge of image"
-msgstr "Auswahl ist größer als das Bild\n"
+msgstr "Auswahl ist zu nahe am Bildrand"
 
 #: src/io/siril_pythoncommands.c:911 src/io/siril_pythoncommands.c:1004
 #: src/io/siril_pythoncommands.c:1428 src/io/siril_pythoncommands.c:1938
@@ -32079,11 +32078,10 @@ msgstr ""
 "paar Sekunden dauern...\n"
 
 #: src/io/siril_pythonmodule.c:2079
-#, fuzzy
 msgid "Error checking python magic number: pyc files will not work\n"
 msgstr ""
 "Fehler beim Prüfen der magischen Python-Zahl: pyc-Dateien werden nicht "
-"funktionieren"
+"funktionieren\n"
 
 #: src/io/siril_pythonmodule.c:2099
 #, c-format
