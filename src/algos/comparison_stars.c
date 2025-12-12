@@ -37,6 +37,18 @@
 #define MAX_SEPARATION  2 * 0.000277778 // the max sepration to consider stars are the same
 const siril_cat_index var_cat[MAX_VAR_CAT] = { CAT_VSX, CAT_GCVS, CAT_VARISUM }; // the variable stars catalogues, order to be consistent with discard_var_catalogues
 
+void free_compstars_arg(gpointer p) {
+	struct compstars_arg *args = (struct compstars_arg *) p;
+	g_free(args->target_name);
+	g_free(args->nina_file);
+	siril_catalog_free(args->cat_stars);
+	if (args->target_star)
+		siril_catalog_free_item(args->target_star);
+	g_free(args->AAVSO_chartid);
+	g_free(args->AAVSO_uri);
+	free(args);
+}
+
 // area is not recovering another at least half their size (assumed square and identical)
 static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	int half_size = area->w / 2;
@@ -164,7 +176,6 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 static gboolean end_compstars(gpointer p) {
 	siril_debug_print("end_compstars\n");
 	struct compstars_arg *args = (struct compstars_arg *) p;
-	g_free(args->target_name);
 
 	// display the comp star list
 	clear_stars_list(args->has_GUI);
@@ -183,14 +194,8 @@ static gboolean end_compstars(gpointer p) {
 	} else {
 		siril_catalog_free(args->comp_stars); // we don't free args->compstars if it's being used for the annotations
 	}
-	g_free(args->nina_file);
-	siril_catalog_free(args->cat_stars);
-	if (args->target_star)
-		siril_catalog_free_item(args->target_star);
-	g_free(args->AAVSO_chartid);
-	g_free(args->AAVSO_uri);
 	redraw(REDRAW_OVERLAY);
-	free(args);
+	free_compstars_arg(args);
 	return end_generic(NULL);
 }
 

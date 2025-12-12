@@ -303,11 +303,30 @@ void search_object(GtkEntry *entry) {
 	if (!has_wcs(gfit))
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	sky_object_query_args *args = init_sky_object_query();
-	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+	sky_object_query_args *query_args = init_sky_object_query();
+	query_args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+	query_args->fit = gfit;
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_sky_object_query(query_args);
+		PRINT_ALLOC_ERR;
+		return;
+	}
 	args->fit = gfit;
-	if (!start_in_new_thread(catsearch_worker, args)) {
-		free_sky_object_query(args);
+	args->mem_ratio = 1.0f;
+	args->image_hook = catsearch_image_hook;
+	args->description = _("Catalog search");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;
+	args->command = FALSE;
+	args->idle_function = end_process_catsearch;
+	args->user = query_args;
+	args->log_hook = catsearch_log_hook;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		siril_log_color_message(_("Error running image worker for catsearch\n"), "red");
+		return;
 	}
 }
 
@@ -516,6 +535,32 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 #endif
 }
 
+int catsearch_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	sky_object_query_args *query_args = (sky_object_query_args *)args->user;
+
+	if (!has_wcs(fit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return 1;
+	}
+
+	// Call the worker directly (it handles its own idle function)
+	gpointer result = catsearch_worker(query_args);
+
+	return GPOINTER_TO_INT(result);
+}
+
+
+gchar *catsearch_log_hook(gpointer p, log_hook_detail detail) {
+	sky_object_query_args *query_args = (sky_object_query_args *)p;
+	if (detail == SUMMARY) {
+		return g_strdup(_("Catalog search"));
+	}
+	if (query_args && query_args->name) {
+		return g_strdup_printf(_("Catalog search: %s"), query_args->name);
+	}
+	return g_strdup(_("Catalog search"));
+}
+
 gpointer catsearch_worker(gpointer p) {
 	sky_object_query_args *args = (sky_object_query_args *)p;
 	if(!args)
@@ -532,11 +577,8 @@ gpointer catsearch_worker(gpointer p) {
 	}
 	gboolean found_it = !cached_object_lookup(args);
 
-	if (!com.script) { // we need to update GUI
-		siril_add_idle(end_process_catsearch, args); // this will free the args
-	} else {
-		free_sky_object_query(args);
-	}
+	if (!com.script)
+		execute_idle_and_wait_for_it(end_process_catsearch, args);
 
 	return GINT_TO_POINTER(!found_it);
 }

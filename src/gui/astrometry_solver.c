@@ -420,8 +420,8 @@ gboolean end_process_catsearch(gpointer p) {
 			redraw(REDRAW_OVERLAY);
 		}
 	}
-	free_sky_object_query(args);
-	return end_generic(NULL);
+	set_cursor_waiting(FALSE);
+	return(FALSE);
 }
 
 gboolean end_plate_solver(gpointer p) {

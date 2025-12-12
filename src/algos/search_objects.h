@@ -70,7 +70,8 @@ void add_plated_from_annotations(const cat_item *obj);
 void free_Platedobject();
 gboolean has_nonzero_coords();
 int parse_resolver_buffer(const gchar *buffer, struct sky_object *obj);
-
+int catsearch_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *catsearch_log_hook(gpointer p, log_hook_detail detail);
 gpointer catsearch_worker(gpointer p);
 
 #endif

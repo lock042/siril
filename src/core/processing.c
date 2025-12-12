@@ -1540,7 +1540,7 @@ gpointer generic_image_worker(gpointer p) {
 	assert(args->fit);
 	assert(args->image_hook);
 
-	gboolean verbose = !args->for_preview;
+	gboolean verbose = args->verbose || !args->for_preview;
 	gchar *history = NULL;
 	gchar *summary = NULL;
 

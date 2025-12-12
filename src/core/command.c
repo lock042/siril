@@ -12862,24 +12862,65 @@ int process_conesearch(int nb) {
 	if (!params) {
 		return CMD_ARG_ERROR;
 	}
-	int result = execute_conesearch(params);
-	return result;
+
+	// Set destructor (assuming free_conesearch_params exists)
+	params->destroy_fn = (destructor)free_conesearch_params;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_conesearch_params(params);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = conesearch_image_hook;
+	args->description = _("Cone search");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;
+	args->command = TRUE;
+	args->user = params;
+	args->log_hook = NULL;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
-int process_catsearch(int nb){
+int process_catsearch(int nb) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	sky_object_query_args *args = init_sky_object_query();
-	args->fit = gfit;
+
+	sky_object_query_args *query_args = init_sky_object_query();
+	query_args->fit = gfit;
 	if (nb > 2) {
-		args->name = build_string_from_words(word + 1);
+		query_args->name = build_string_from_words(word + 1);
 	} else {
-		args->name = g_strdup(word[1]);
+		query_args->name = g_strdup(word[1]);
 	}
-	if (!start_in_new_thread(catsearch_worker, args)) {
-		free_sky_object_query(args);
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_sky_object_query(query_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = catsearch_image_hook;
+	args->description = _("Catalog search");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = query_args;
+	args->log_hook = catsearch_log_hook;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;

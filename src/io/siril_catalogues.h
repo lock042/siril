@@ -174,6 +174,7 @@ typedef struct {
 #define has_field_from_columns(columns, column) (columns & (1 << CAT_FIELD_##column))
 
 typedef struct {
+	destructor destroy_fn;
 	// query parameters
 	fits *fit;
 	gchar* name;
@@ -186,6 +187,7 @@ typedef struct {
 } sky_object_query_args;
 
 typedef struct {
+	destructor destroy_fn;
 	fits *fit; // the image queried
 	siril_catalogue *siril_cat; // the catalogue queried
 	gboolean display_log; // if true, displays the list in the log
@@ -197,6 +199,7 @@ typedef struct {
 } conesearch_args;
 
 typedef struct {
+	destructor destroy_fn;
 	float limit_mag;
 	gboolean photometric;
 	super_bool display_tag;
@@ -221,6 +224,11 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void free_conesearch_args(void *p);
+conesearch_args *init_conesearch_args();
+void free_conesearch_params(void *p);
+conesearch_params *init_conesearch_params();
 
 uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
@@ -258,11 +266,12 @@ double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
 
 sky_object_query_args *init_sky_object_query();
-void free_sky_object_query(sky_object_query_args *args);
+void free_sky_object_query(void *p);
 int check_conesearch_args(conesearch_args *args);
 conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
-int execute_conesearch(conesearch_params *params);
+int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads);
+// int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
 
 #ifdef __cplusplus

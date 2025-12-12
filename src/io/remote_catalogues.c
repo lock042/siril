@@ -253,7 +253,9 @@ static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 			g_string_append_printf(url, fmtstr, siril_cat->center_ra, siril_cat->center_dec, 2. * siril_cat->radius / 60.); // request uses diameter not radius (despite what's written in the doc)
 			g_free(fmtstr);
 			g_string_append_printf(url,"&-observer=%s", (siril_cat->IAUcode) ? siril_cat->IAUcode : "500");
-			return g_string_free(url, FALSE);
+			gchar *urlstring = g_string_free(url, FALSE);
+			siril_debug_print("%s\n", urlstring);
+			return urlstring;
 		default:
 			break;
 	}
