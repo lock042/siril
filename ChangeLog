@@ -2,15 +2,15 @@ siril-1.4.1
 xx/xx/xx
 
 **Fixes**
-* Fixes build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
-* Fix issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
-* Fix too-strict condition and off-by-one error in sirilpy
+* Fixed build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
+* Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
+* Fixed too-strict condition and off-by-one error in sirilpy
+* Fixed sirilpy.FFit class data setter
 
 siril-1.4.0
 12/05/25
 
 **Fixes**
-* Fixes build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
 * Fixed get_image_history(): now correctly updates history with operations done since loading
 * Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 * Fixed Gaia online catalogue status indicator (!963)
