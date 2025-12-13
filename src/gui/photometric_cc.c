@@ -103,7 +103,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	gchar *text = NULL, *colortext = NULL;
-	stop_processing_thread();
+//	stop_processing_thread(); // Not required as fetch_url_async doesn't use the processing thread
 
 	if (args->code != 200 || !args->content) {
 		// Failed to fetch status
@@ -116,7 +116,8 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 			text = _("Gaia archive available");
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-		} else if (g_strstr_len(args->content, -1, "<available>false</available>")) {
+		} else if (g_strstr_len(args->content, -1, "<available>false</available>")
+				|| g_strstr_len(args->content, -1, "Maintenance ongoing")) {
 			text = _("Gaia archive unavailable");
 			colortext = "red";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");

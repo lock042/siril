@@ -2153,7 +2153,9 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 		// this repopulates gui.repo_scripts and updates the script menu
 		// the reason for doing it on completion of python installation is that pyscript_version_check
 		// cannot check python script versions until it knows what module version is installed
+#ifdef HAVE_LIBGIT2
 		g_thread_unref(g_thread_new("update_scripts_list", update_repo_scripts_list_and_menu_in_thread, NULL));
+#endif
 	}
 	g_free(module_path);
 

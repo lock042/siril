@@ -1,7 +1,14 @@
-siril-1.4.0
+siril-1.4.1
 xx/xx/xx
-**Improvements**
-* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
+
+**Fixes**
+* Fixed build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
+* Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
+* Fixed too-strict condition and off-by-one error in sirilpy
+* Fixed sirilpy.FFit class data setter
+
+siril-1.4.0
+12/05/25
 
 **Fixes**
 * Fixed get_image_history(): now correctly updates history with operations done since loading
@@ -11,6 +18,9 @@ xx/xx/xx
 * Fixed catsearch function for solar system objects (#1882)
 * Fixed cleaning python related environment variables within Siril app for Windows (#1880)
 * Fixed empty csv file exported by conesearch command when called from script (#1885)
+
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
 siril 1.4.0-RC2
 11/20/25
