@@ -166,11 +166,22 @@ struct _multi_split {
 struct generic_img_args {
 	/** input image to be processed */
 	fits *fit;
+	/** placeholder: need a mask pointer here */
 	/** peak memory requirement as multiple of image size */
 	float mem_ratio;
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
 	int (*image_hook)(struct generic_img_args *, fits *, int);
+	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
+	 * provides the level of detail, with SUMMARY providing a concise (<= 70 characters)
+	 * version for the undo label and FITS HISTORY card. (If the full description isn't
+	 * very long then the log_hook may elect to ignore this parameter and return the same
+	 * string in both cases.) Note, the string produced by the log_hook should NOT be
+	 * newline-terminated.*/
+	gchar* (*log_hook)(gpointer, log_hook_detail);
+	/** Mask hook to perform any required updates to the mask (e.g. if the image is cropped,
+	 * it is necessary to perform the same crop on the mask).*/
+	int (*mask_hook) (struct generic_img_args *);
 	/** idle function to register at the end, if not already_in_a_thread.
 	 *  If NULL, the default idle function that stops the thread is used.
 	 *  Return false for single execution. It should free its argument. */
@@ -179,13 +190,6 @@ struct generic_img_args {
 	int retval;
 	/** terse string description for progress messages */
 	const char *description;
-	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
-	 * provides the level of detail, with SUMMARY providing a concise (<= 70 characters)
-	 * version for the undo label and FITS HISTORY card. (If the full description isn't
-	 * very long then the log_hook may elect to ignore this parameter and return the same
-	 * string in both cases.) Note, the string produced by the log_hook should NOT be
-	 * newline-terminated.*/
-	gchar* (*log_hook)(gpointer, log_hook_detail);
 	/** enable verbose logging */
 	gboolean verbose;
 	/** command requires gfit update: this should only be set in command.c
