@@ -250,7 +250,7 @@ layer *create_layer(int index) {
 	g_object_ref(G_OBJECT(ret->color_w));	// don't destroy it on removal from grid
 
 	// Replace GtkFileChooserButton with GtkButton
-	ret->chooser_button = GTK_BUTTON(gtk_button_new_with_label(_("Select source image")));
+	ret->chooser_button = GTK_BUTTON(gtk_button_new_with_label(_("(None)")));
 	ret->selected_filename = NULL;
 	g_signal_connect(ret->chooser_button, "clicked", G_CALLBACK(on_chooser_button_clicked), ret);
 	g_object_ref(G_OBJECT(ret->chooser_button));	// don't destroy it on removal from grid
@@ -839,8 +839,6 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     layer *l = (layer *)user_data;
 
-    siril_log_message("File chooser button clicked\n");
-
     // Get the parent window
     GtkWindow *parent = GTK_WINDOW(lookup_widget("composition_dialog"));
     if (!parent) {
@@ -856,8 +854,6 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
         return;
     }
 
-    siril_log_message("Dialog created successfully\n");
-
     // Set up filters using the custom filter function
     GtkFileFilter *filter = create_compositing_file_filter();
     gtk_file_chooser_add_filter(dialog, filter);
@@ -866,7 +862,6 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     // Set current folder
     if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
         gtk_file_chooser_set_current_folder(dialog, com.wd);
-        siril_log_message("Current folder set to: %s\n", com.wd);
     }
 
     // Set to not allow multiple selection
@@ -876,19 +871,15 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     // If we already have a file selected, show it
     if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
         gtk_file_chooser_set_filename(dialog, l->selected_filename);
-        siril_log_message("Pre-selected file: %s\n", l->selected_filename);
     }
 
     // Show the dialog and wait for response - use siril_dialog_run
-    siril_log_message("Running dialog...\n");
     gint response = siril_dialog_run(widgetdialog);
-    siril_log_message("Dialog response: %d (GTK_RESPONSE_ACCEPT=%d)\n", response, GTK_RESPONSE_ACCEPT);
 
     if (response == GTK_RESPONSE_ACCEPT) {
         gchar *filename = siril_file_chooser_get_filename(dialog);
 
         if (filename) {
-            siril_log_message("File selected: %s\n", filename);
 
             g_free(l->selected_filename);
             l->selected_filename = filename;  // Don't free this, we're storing it
@@ -904,14 +895,11 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
             siril_log_message("Warning: File selected but filename is NULL\n");
         }
     } else if (response == GTK_RESPONSE_CANCEL) {
-        siril_log_message("User cancelled file selection\n");
+        siril_debug_print("User cancelled file selection\n");
     } else {
-        siril_log_message("Dialog closed with response: %d\n", response);
+        siril_debug_print("Dialog closed with response: %d\n", response);
     }
-
-    siril_log_message("Destroying dialog\n");
     siril_widget_destroy(widgetdialog);
-    siril_log_message("File chooser completed\n");
 }
 
 gboolean valid_rgbcomp_seq() {
@@ -1682,7 +1670,7 @@ void reset_compositing_module() {
 	if (layers[0]) {
 		g_free(layers[0]->selected_filename);
 		layers[0]->selected_filename = NULL;
-		gtk_button_set_label(layers[0]->chooser_button, _("Select source image"));
+		gtk_button_set_label(layers[0]->chooser_button, _("(None)"));
 	}
 
 	// For layers 1+, grid_remove_row with free_the_row=1 already frees selected_filename

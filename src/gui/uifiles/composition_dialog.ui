@@ -291,7 +291,7 @@ Rotation is shown in degrees anticlockwise.</property>
             </child>
             <child>
               <object class="GtkButton" id="filechooser_lum">
-                <property name="label" translatable="yes">Luminance image</property>
+                <property name="label" translatable="yes">(None)</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
