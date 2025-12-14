@@ -360,12 +360,13 @@ static void remove_layer(int layer) {
 		clearfits(&layers[layer]->the_fit);
 		refresh = 1;
 	}
-	grid_remove_row(layer, 1);	// remove these widgets for good
-	free(layers[layer]);
+	grid_remove_row(layer, 1);	// This frees selected_filename inside
+	free(layers[layer]);		// Free the layer structure itself
+	// NOTE: Do NOT free selected_filename here - grid_remove_row already did it
 
 	do {
 		layers[layer] = layers[layer+1];
-		grid_remove_row(layer, 0);		// switch rows
+		grid_remove_row(layer, 0);		// switch rows (free_the_row=0)
 		grid_add_row(layer, layer+1, 0);
 		layer++;
 	} while (layers[layer]) ;
@@ -411,7 +412,9 @@ static void grid_remove_row(int layer, int free_the_row) {
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_y));
 		g_object_unref(G_OBJECT(layers[layer]->spinbutton_r));
 		g_object_unref(G_OBJECT(layers[layer]->centerbutton));
-		g_free(layers[layer]->selected_filename);  // Free filename
+		// Free the filename string (this is the ONLY place for layers 1+)
+		g_free(layers[layer]->selected_filename);
+		layers[layer]->selected_filename = NULL;
 	}
 }
 
@@ -824,12 +827,19 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 }
 
 /* Handler for the file chooser button click */
+/* Handler for the file chooser button click */
 static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     layer *l = (layer *)user_data;
 
+    // Get the parent window properly
+    GtkWidget *parent = gtk_widget_get_toplevel(GTK_WIDGET(button));
+    if (!GTK_IS_WINDOW(parent)) {
+        parent = NULL;
+    }
+
     GtkFileChooserNative *native = gtk_file_chooser_native_new(
         _("Select source image"),
-        GTK_WINDOW(lookup_widget("composition_dialog")),
+        GTK_WINDOW(parent),
         GTK_FILE_CHOOSER_ACTION_OPEN,
         _("_Open"),
         _("_Cancel"));
@@ -840,25 +850,31 @@ static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(native), filter);
 
     // Set current folder
-    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(native), com.wd);
+    if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(native), com.wd);
+    }
 
     // If we already have a file selected, show it
-    if (l->selected_filename) {
+    if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
         gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(native), l->selected_filename);
     }
 
-    if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(native)) == GTK_RESPONSE_ACCEPT) {
+    // Show the dialog and wait for response
+    gint response = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
+
+    if (response == GTK_RESPONSE_ACCEPT) {
         g_free(l->selected_filename);
         l->selected_filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(native));
 
-        // Update button label to show filename
-        gchar *basename = g_path_get_basename(l->selected_filename);
-        gtk_button_set_label(l->chooser_button, basename);
-        g_free(basename);
+        if (l->selected_filename) {
+            // Update button label to show filename
+            gchar *basename = g_path_get_basename(l->selected_filename);
+            gtk_button_set_label(l->chooser_button, basename);
+            g_free(basename);
 
-        // Call the existing file-set handler
-        // We need to pass the native dialog cast as a file chooser button
-        on_filechooser_file_set_internal(GTK_FILE_CHOOSER(native), l);
+            // Call the existing file-set handler
+            on_filechooser_file_set_internal(GTK_FILE_CHOOSER(native), l);
+        }
     }
 
     g_object_unref(native);
@@ -1628,16 +1644,20 @@ void reset_compositing_module() {
 		clearfits(&layers[0]->the_fit);
 
 	// Clear the luminance layer filename and reset button label
-	g_free(layers[0]->selected_filename);
-	layers[0]->selected_filename = NULL;
-	gtk_button_set_label(layers[0]->chooser_button, _("Select source image"));
+	// layers[0] is NOT freed by grid_remove_row, so we handle it separately
+	if (layers[0]) {
+		g_free(layers[0]->selected_filename);
+		layers[0]->selected_filename = NULL;
+		gtk_button_set_label(layers[0]->chooser_button, _("Select source image"));
+	}
 
+	// For layers 1+, grid_remove_row with free_the_row=1 already frees selected_filename
+	// so DON'T free it again here
 	for (int i = 1; layers[i]; i++) {
 		if (has_fit(i))
 			clearfits(&layers[i]->the_fit);
-		grid_remove_row(i, 1);
-		g_free(layers[i]->selected_filename);  // Free stored filename
-		free(layers[i]);
+		grid_remove_row(i, 1);  // This frees selected_filename
+		free(layers[i]);        // This frees the layer structure itself
 		layers[i] = NULL;
 		layers_count--;
 	}
