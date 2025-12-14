@@ -826,17 +826,22 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 	gui_function(update_MenuItem, NULL);
 }
 
-/* Handler for the file chooser button click */
-/* Handler for the file chooser button click */
+/* Handler for the file chooser button click - DEBUG VERSION */
 static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     layer *l = (layer *)user_data;
+
+    siril_debug_print("File chooser button clicked\n");
 
     // Get the parent window properly
     GtkWidget *parent = gtk_widget_get_toplevel(GTK_WIDGET(button));
     if (!GTK_IS_WINDOW(parent)) {
+        siril_debug_print("Warning: Could not get parent window\n");
         parent = NULL;
+    } else {
+        siril_debug_print("Parent window found: %p\n", parent);
     }
 
+    siril_debug_print("Creating GtkFileChooserNative...\n");
     GtkFileChooserNative *native = gtk_file_chooser_native_new(
         _("Select source image"),
         GTK_WINDOW(parent),
@@ -844,29 +849,43 @@ static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
         _("_Open"),
         _("_Cancel"));
 
+    if (!native) {
+        siril_log_color_message(_("Error: Could not create file chooser dialog\n"), "red");
+        return;
+    }
+
+    siril_debug_print("Native dialog created: %p\n", native);
+
     // Set up filters
     GtkFileFilter *filter = create_compositing_file_filter();
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(native), filter);
     gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(native), filter);
+    siril_debug_print("File filter added\n");
 
     // Set current folder
     if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(native), com.wd);
+        siril_debug_print("Current folder set to: %s\n", com.wd);
     }
 
     // If we already have a file selected, show it
     if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
         gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(native), l->selected_filename);
+        siril_debug_print("Pre-selected file: %s\n", l->selected_filename);
     }
 
     // Show the dialog and wait for response
+    siril_debug_print("Running native dialog...\n");
     gint response = gtk_native_dialog_run(GTK_NATIVE_DIALOG(native));
+    siril_debug_print("Dialog response: %d (GTK_RESPONSE_ACCEPT=%d)\n", response, GTK_RESPONSE_ACCEPT);
 
     if (response == GTK_RESPONSE_ACCEPT) {
         g_free(l->selected_filename);
         l->selected_filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(native));
 
         if (l->selected_filename) {
+            siril_debug_print("File selected: %s\n", l->selected_filename);
+
             // Update button label to show filename
             gchar *basename = g_path_get_basename(l->selected_filename);
             gtk_button_set_label(l->chooser_button, basename);
@@ -874,10 +893,18 @@ static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 
             // Call the existing file-set handler
             on_filechooser_file_set_internal(GTK_FILE_CHOOSER(native), l);
+        } else {
+            siril_debug_print("Warning: File selected but filename is NULL\n");
         }
+    } else if (response == GTK_RESPONSE_CANCEL) {
+        siril_debug_print("User cancelled file selection\n");
+    } else {
+        siril_debug_print("Dialog closed with response: %d\n", response);
     }
 
+    siril_debug_print("Unreffing native dialog\n");
     g_object_unref(native);
+    siril_debug_print("File chooser completed\n");
 }
 
 gboolean valid_rgbcomp_seq() {
