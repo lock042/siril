@@ -180,7 +180,7 @@ gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, 
 gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data); // Keep for glade compatibility
 static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer);
-static void on_chooser_button_clicked(GtkButton *button, gpointer user_data);
+void on_chooser_button_clicked(GtkButton *button, gpointer user_data);
 void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data);
 
 /********************************************************/
@@ -474,13 +474,22 @@ void open_compositing_window() {
 		layers[0] = calloc(1, sizeof(layer));
 		layers[0]->chooser_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filechooser_lum"));
 		layers[0]->selected_filename = NULL;
-		g_signal_connect(layers[0]->chooser_button, "clicked", G_CALLBACK(on_chooser_button_clicked), layers[0]);
+
+		// Disconnect any signals that glade might have auto-connected
+		g_signal_handlers_disconnect_by_func(layers[0]->chooser_button,
+		                                      G_CALLBACK(on_chooser_button_clicked),
+		                                      NULL);
+
+		// Connect with the proper user_data (the layer pointer)
+		g_signal_connect(layers[0]->chooser_button, "clicked",
+		                 G_CALLBACK(on_chooser_button_clicked), layers[0]);
 
 		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
 		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
 		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
 		layers[0]->spinbutton_r = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_r"));
 		layers[0]->centerbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "centerbutton_lum"));
+
 
 		for (i=1; i<4; i++) {
 			/* Create the three default layers */
@@ -827,7 +836,7 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 }
 
 /* Handler for the file chooser button click - DEBUG VERSION */
-static void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
+void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
     layer *l = (layer *)user_data;
 
     siril_debug_print("File chooser button clicked\n");
