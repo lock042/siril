@@ -124,6 +124,7 @@ src_files = [
   'filters/scnr.c',
   'filters/starnet.c',
   'filters/synthstar.c',
+  'filters/tgvdenoise.c',
   'filters/unpurple.c',
   'filters/wavelets.c',
 
