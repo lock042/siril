@@ -61,7 +61,6 @@ static gboolean do_channel[3];
 
 static fits *fit = NULL;
 
-// static float graph_height = 0.f;	// the max value of all bins
 static long clipped[] = {0, 0};
 
 // The histogram displayed on the drawingarea
@@ -264,71 +263,52 @@ static void _update_clipped_pixels(size_t data) {
 	gtk_entry_set_text(curves_clip_low, buffer);
 }
 
-static void curves_recompute() {
-	set_cursor("progress");
-	copy_backup_to_gfit();
-
-	// Set the clipped to 0, then count the clipped pixels but set them as negative
-	// later on, count the clipped pixels again but that time increase the value
-	clipped[0] = 0;
-	clipped[1] = 0;
-	if (fit->type == DATA_USHORT) {
-		for (size_t i = 0; i < fit->naxes[2]; i++) {
-			for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-				if (fit->pdata[i][j] <= 0) clipped[0]--;
-				else if (fit->pdata[i][j] >= USHRT_MAX_DOUBLE) clipped[1]--;
-			}
-		}
-	} else if (fit->type == DATA_FLOAT) {
-		for (size_t i = 0; i < fit->naxes[2]; i++) {
-			for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-				if (fit->fpdata[i][j] <= 0) clipped[0]--;
-				else if (fit->fpdata[i][j] >= 1) clipped[1]--;
-			}
-		}
+/* Create and launch curve processing with generic_image_worker */
+static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
+	// Allocate parameters
+	struct curve_params *params = new_curve_params();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
 	}
 
-	struct curve_params params = {.points = curve_points, .algorithm = algorithm, .do_channel = {do_channel[0],
-																								 do_channel[1],
-																								 do_channel[2]}};
-	apply_curve(fit, fit, params, TRUE);
+	// Set up curve parameters
+	params->points = curve_points;
+	params->algorithm = algorithm;
+	params->do_channel[0] = do_channel[0];
+	params->do_channel[1] = do_channel[1];
+	params->do_channel[2] = do_channel[2];
+	params->fit = for_roi ? &gui.roi.fit : gfit;
+	params->verbose = !for_preview;
+	params->for_preview = for_preview;
 
-
-	int depth = fit->naxes[2];
-	if (depth == 1) {
-		fits_change_depth(fit, 3);
-		if (fit->type == DATA_FLOAT) {
-			memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
-			memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
-		} else {
-			memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
-			memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
-		}
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_curve_params(params);
+		free(params);
+		return 1;
 	}
 
-	if (depth == 1) {
-		size_t npixels = fit->rx * fit->ry;
-		float factor = 1 / 3.f;
-		if (fit->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0; i < npixels; i++) {
-				fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) * factor;
-			}
-		} else {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0; i < npixels; i++) {
-				fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) * factor;
-			}
-		}
-		fits_change_depth(fit, 1);
+	// Set the fit based on whether ROI is active
+	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
+	args->image_hook = curve_image_hook;
+	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
+	args->description = _("Curve Transformation");
+	args->verbose = !for_preview;
+	args->user = params;
+	args->log_hook = curves_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = for_roi;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return 1;
 	}
-	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	_update_clipped_pixels(data);
-	notify_gfit_modified();
+	return 0;
 }
 
 static void _initialize_clip_text() {
@@ -460,10 +440,65 @@ static void reset_cursors_and_values(gboolean full_reset) {
 
 static int curves_update_preview() {
 	fit = gui.roi.active ? &gui.roi.fit : gfit;
-	if (!closing)
-		curves_recompute();
+	if (!closing) {
+		copy_backup_to_gfit();
+
+		// Reset clipped pixels counter
+		clipped[0] = 0;
+		clipped[1] = 0;
+		if (fit->type == DATA_USHORT) {
+			for (size_t i = 0; i < fit->naxes[2]; i++) {
+				for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
+					if (fit->pdata[i][j] <= 0) clipped[0]--;
+					else if (fit->pdata[i][j] >= USHRT_MAX_DOUBLE) clipped[1]--;
+				}
+			}
+		} else if (fit->type == DATA_FLOAT) {
+			for (size_t i = 0; i < fit->naxes[2]; i++) {
+				for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
+					if (fit->fpdata[i][j] <= 0) clipped[0]--;
+					else if (fit->fpdata[i][j] >= 1) clipped[1]--;
+				}
+			}
+		}
+
+		// Process with worker
+		curves_process_with_worker(TRUE, gui.roi.active);
+
+	}
 	return 0;
 }
+
+/* Idle function for preview updates */
+gboolean curve_preview_idle(gpointer p) {
+	// Update clipped pixels after processing completes
+	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	_update_clipped_pixels(data);
+
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/* Idle function for final application */
+gboolean curve_apply_idle(gpointer p) {
+	// Update clipped pixels after processing completes
+	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	_update_clipped_pixels(data);
+
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 
 static gboolean is_curves_log_scale() {
 	return (gtk_toggle_button_get_active(curves_log_check));
@@ -556,34 +591,22 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	GString *msg = g_string_new(NULL);
-	g_string_append_printf(msg,
-			_("Applying %s curve transformation with %d points: "),
-			algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(curve_points));
-	for (GList *iter = curve_points; iter; iter = iter->next) {
-		point *p = (point *)iter->data;
-		g_string_append_printf(msg, "(%.3f, %.3f) ", p->x, p->y);
-	}
-	g_string_append_printf(msg,"\n");
-	siril_log_color_message(msg->str, "green");
-	g_string_free(msg, TRUE);
-
 	if (gtk_toggle_button_get_active(curves_sequence_check)
 		&& sequence_is_loaded()) {
 		// apply to sequence
 		int algoritm = gtk_combo_box_get_active(GTK_COMBO_BOX(curves_interpolation_combo));
-		struct curve_params params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
+		struct curve_params temp_params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
 																									do_channel[1],
 																									do_channel[2]}};
-		struct curve_data *args = calloc(1, sizeof(struct mtf_data));
+		struct curve_data *args = calloc(1, sizeof(struct curve_data));
 
-		args->params = params;
+		args->params = temp_params;
 		args->seq_entry = strdup(gtk_entry_get_text(curves_seq_entry));
 		args->seq = &com.seq;
 		// If entry text is empty, set the sequence prefix to default 'curve_'
 		if (args->seq_entry && args->seq_entry[0] == '\0') {
 			free(args->seq_entry);
-			args->seq_entry = strdup("stretch_");
+			args->seq_entry = strdup("curve_");
 		}
 
 		curves_close(FALSE, TRUE);
@@ -600,13 +623,12 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
 		undo_fit.icc_profile = original_icc;
 		undo_fit.color_managed = original_icc != NULL;
-		if (!gtk_toggle_button_get_active(curves_preview_check) || gui.roi.active) {
-			copy_backup_to_gfit();
-			curves_recompute();
-		}
+		copy_backup_to_gfit();
+
+		curves_process_with_worker(FALSE, FALSE);
+
 		single_image_stretch_applied = TRUE;
 		populate_roi();
-		undo_save_state(&undo_fit, "Curves Transformation with %d points", g_list_length(curve_points));
 
 		clear_backup();
 		clear_display_histogram();
@@ -624,10 +646,9 @@ int curve_finalize_hook(struct generic_seq_args *args) {
 	return return_value;
 }
 
-static int curve_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-							rectangle *_, int threads) {
+static int curve_image_hook_seq(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct curve_data *curve_args = (struct curve_data *) args->user;
-	apply_curve(fit, fit, curve_args->params, FALSE);
+	apply_curve(fit, fit, &curve_args->params, FALSE);
 	return 0;
 }
 
@@ -637,7 +658,7 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 	args->nb_filtered_images = curve_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = curve_finalize_hook;
-	args->image_hook = curve_image_hook;
+	args->image_hook = curve_image_hook_seq;
 	args->stop_on_error = FALSE;
 	args->description = _("Curves Transform");
 	args->has_output = TRUE;
@@ -683,7 +704,7 @@ void setup_curve_dialog() {
 
 void toggle_curves_window_visibility() {
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog")))
-		siril_close_dialog("histogram_dialog");
+	siril_close_dialog("histogram_dialog");
 
 	// Initialize UI elements
 	curves_dialog_init_statics();
@@ -725,7 +746,7 @@ void toggle_curves_window_visibility() {
 
 gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data) {
 	if (!is_drawingarea_pressed)
-		return FALSE;
+	return FALSE;
 
 	gdouble xpos = ((GdkEventMotion *) event)->x / (gdouble) gtk_widget_get_allocated_width(curves_drawingarea);
 	// y position is inverted
@@ -841,8 +862,7 @@ gboolean on_curves_drawingarea_button_press_event(GtkWidget *widget, GdkEventBut
 	return FALSE;
 }
 
-gboolean on_curves_drawingarea_button_release_event(GtkWidget *widget,
-													GdkEventButton *event, gpointer user_data) {
+gboolean on_curves_drawingarea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	is_drawingarea_pressed = FALSE;
 	curves_update_image();
 	return FALSE;
@@ -851,7 +871,7 @@ gboolean on_curves_drawingarea_button_release_event(GtkWidget *widget,
 gboolean on_curves_prev_button_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	// Ignore double clicks (double click would register as 3 button presses)
 	if (event->type != GDK_BUTTON_PRESS)
-		return TRUE;
+	return TRUE;
 
 	int selected_point_index = g_list_index(curve_points, selected_point);
 	if (selected_point_index > 0) {
@@ -866,7 +886,7 @@ gboolean on_curves_prev_button_clicked(GtkWidget *widget, GdkEventButton *event,
 gboolean on_curves_next_button_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	// Ignore double clicks (double click would register as 3 button presses)
 	if (event->type != GDK_BUTTON_PRESS)
-		return TRUE;
+	return TRUE;
 
 	int selected_point_index = g_list_index(curve_points, selected_point);
 	if (selected_point_index < g_list_length(curve_points) - 1) {
@@ -894,8 +914,7 @@ void on_curves_id_entry_activate(GtkEntry *entry, gpointer user_data) {
 	_update_entry_text();
 }
 
-gboolean on_curves_id_entry_focus_out_event(GtkWidget *widget, GdkEvent *event,
-											gpointer user_data) {
+gboolean on_curves_id_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	on_curves_id_entry_activate(curves_id_entry, user_data);
 	return FALSE;
 }
@@ -931,8 +950,7 @@ void on_curves_x_entry_activate(GtkEntry *entry, gpointer user_data) {
 	_update_entry_text();
 }
 
-gboolean on_curves_x_entry_focus_out_event(GtkWidget *widget, GdkEvent *event,
-										   gpointer user_data) {
+gboolean on_curves_x_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	on_curves_x_entry_activate(curves_x_entry, user_data);
 	return FALSE;
 }
@@ -949,8 +967,7 @@ void on_curves_y_entry_activate(GtkEntry *entry, gpointer user_data) {
 	g_free(str);
 }
 
-gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event,
-										   gpointer user_data) {
+gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	on_curves_y_entry_activate(curves_y_entry, user_data);
 	return FALSE;
 }
@@ -969,3 +986,6 @@ void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_curves_log_check_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_queue_draw(curves_drawingarea);
 }
+
+
+
