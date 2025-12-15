@@ -716,7 +716,7 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 		return;
 	}
 
-	filename = gtk_file_chooser_get_filename(chooser);
+	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
 	if (!filename) return;
 
 	if (layers[layer]->the_fit.rx != 0) {	// already loaded image
