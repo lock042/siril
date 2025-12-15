@@ -408,7 +408,7 @@ class FFit:
         if value is not None:
             shape = value.shape
             if len(shape) == 2:
-                self._naxes = (shape[2], shape[1], 1)  # width, height, 1 channel
+                self._naxes = (shape[1], shape[0], 1)  # width, height, 1 channel
             elif len(shape) == 3:
                 if shape[2] not in (1, 3):
                     raise ValueError(_("Third dimension must be 1 or 3"))
