@@ -71,7 +71,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 
 	com.tilt->fwhm_centre = mcentre;
 
-	redraw(REDRAW_OVERLAY);
+	queue_redraw(REDRAW_OVERLAY);
 }
 
 void clear_sensor_tilt() {
