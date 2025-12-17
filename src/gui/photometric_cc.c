@@ -107,21 +107,21 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 	if (resptime == -1) {
 		// Failed to fetch status
-		text = _("The Gaia archive status indicator is not responding.");
-		colortext = "salmon";
+		text = g_strdup(_("The Gaia remote catalogue is not responding."));
+		colortext = "red";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 	} else {
 		// Check if response contains "true" or "false"
-		if (resptime < 150) {
-			text = _("Gaia archive available, response < 150 ms");
+		if (resptime < 250) {
+			text = g_strdup_printf(_("Gaia remote catalogue available, response %d ms"), resptime);
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 		} else if (resptime < 500) {
-			text = _("Remote catalogue slow, 150 ms < response < 500 ms");
+			text = g_strdup_printf(_("Gaia remote catalogue slow, response %d ms"), resptime);
 			colortext = "salmon";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 		} else {
-			text = _("Remote catalogue very slow, response > 500 ms");
+			text = g_strdup_printf(_("Gaia remote catalogue very slow, response %d ms"), resptime);
 			colortext = "red";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		}
@@ -129,14 +129,14 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
+	g_free(text);
 	return FALSE;
 }
 
 gpointer gaia_check(gpointer user_data) {
-	fetch_url_async_data *args = (fetch_url_async_data *) user_data;
-	int responsetime = http_check(args->url);
-	free(args->content);
-	free(args);
+	gchar *url = (gchar*) user_data;
+	int responsetime = http_check(url);
+	g_free(url);
 	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(responsetime));
 	return NULL;
 }
@@ -150,10 +150,8 @@ void check_gaia_archive_status() {
 		siril_log_color_message("%s", "red", text);
 		return;
 	}
-	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	args->url = g_strdup("https://gaia.wheep.co.uk/siril_cat1_healpix8_xpsamp_0.dat");
-	args->idle_function = end_gaiacheck_idle;
-	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, args));
+	gchar *url = g_strdup("https://gaia.wheep.co.uk/siril_cat1_healpix8_xpsamp_0.dat");
+	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, url));
 }
 
 static void start_photometric_cc(gboolean spcc) {
