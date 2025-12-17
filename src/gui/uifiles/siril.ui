@@ -9985,7 +9985,7 @@ WARNING: This option should not be checked for master stacking.</property>
                             <property name="receives-default">True</property>
                             <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the visual modes available in Siril.
 
-&lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only conveniant way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
+&lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only convenient way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
                             <property name="popup">menu_display</property>
                             <property name="use-popover">False</property>
                             <child>
