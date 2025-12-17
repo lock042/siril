@@ -141,7 +141,7 @@ void check_gaia_archive_status() {
 	if (!is_online()) {
 		GtkWidget *image = lookup_widget("gaia_status_widget");
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-		const gchar *text = N_("Siril is offline or built without networking. Gaia archive is unavailable.\n");
+		const gchar *text = N_("Siril is offline or built without networking. The remote Gaia catalogue is unavailable.\n");
 		gtk_widget_set_tooltip_text(image, text);
 		siril_log_color_message("%s", "red", text);
 		return;

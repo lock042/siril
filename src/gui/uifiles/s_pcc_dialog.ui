@@ -1056,8 +1056,8 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
 Gaia DR3 contains sampled spectra for c. 30 million stars down to magnitude 17.6.</property>
                         <property name="active">0</property>
                         <items>
-                          <item>Gaia DR3 via Gaia archive</item>
-                          <item translatable="yes">Local Gaia DR3 xp_sampled catalogue</item>
+                          <item>Gaia DR3 (remote catalogue)</item>
+                          <item translatable="yes">Gaia DR3 (local catalogue)</item>
                         </items>
                         <signal name="changed" handler="on_ComboBoxSPCCCatalog_changed" swapped="no"/>
                       </object>
