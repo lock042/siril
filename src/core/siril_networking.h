@@ -17,12 +17,21 @@ typedef struct _fetch_url_async_data {
 	gboolean (*idle_function)(gpointer args);
 } fetch_url_async_data;
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 gpointer fetch_url_async(gpointer p);
 char *fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet);
+char* fetch_url_range(const gchar *url, size_t start, size_t length,
+                      gsize *response_length, int *error, gboolean quiet);
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 
 gboolean siril_compiled_with_networking();
 gboolean is_online();
 gboolean set_online_status(gboolean status);
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
-#endif
+#endif // SIRIL_NETWORKING_H

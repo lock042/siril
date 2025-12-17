@@ -414,7 +414,7 @@ int get_spcc_catalog_from_GUI() {
 	if (gtk_combo_box_get_active(box) == 1) {
 		return CAT_LOCAL_GAIA_XPSAMP;
 	} else {
-		return CAT_GAIADR3_DIRECT;
+		return CAT_REMOTE_GAIA_XPSAMP;
 	}
 }
 /*****

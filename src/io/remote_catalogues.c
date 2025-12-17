@@ -29,6 +29,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/arithm.h"
 #include "core/siril_networking.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
@@ -37,6 +38,7 @@
 #include "algos/astrometry_solver.h"
 #include "io/siril_catalogues.h"
 #include "io/remote_catalogues.h"
+#include "io/healpix/healpix_cat.h"
 
 // These statics define the formatting for some fields used when writing catalog names
 static const gchar *catcodefmt = "%02d", *rafmt = "%08.4f", *decfmt = "%+08.4f",
@@ -684,6 +686,37 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		siril_debug_print("Online cat query - Should not happen\n");
 		return 0;
 	}
+
+	if (siril_cat->cat_index == CAT_REMOTE_GAIA_XPSAMP) {
+		uint32_t nb_stars;
+		double ra_mult = siril_catalog_ra_multiplier(siril_cat->cat_index);
+		double dec_mult = siril_catalog_dec_multiplier(siril_cat->cat_index);
+		SourceEntryXPsamp *stars = NULL;
+		if (get_raw_stars_from_remote_gaia_xpsampled_catalogue(siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius, siril_cat->limitmag, &stars, &nb_stars))
+			return 0;
+		siril_cat->nbitems = (int)nb_stars;
+		siril_cat->nbincluded = (int)nb_stars;
+		siril_cat->cat_items = calloc(siril_cat->nbitems, sizeof(cat_item));
+		for (int i = 0; i < siril_cat->nbitems; i++) {
+			siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
+			siril_cat->cat_items[i].ra = (double)stars[i].ra_scaled * ra_mult;
+			siril_cat->cat_items[i].dec = (double)stars[i].dec_scaled * dec_mult;
+			siril_cat->cat_items[i].pmra = (double)stars[i].dra_scaled;
+			siril_cat->cat_items[i].pmdec = (double)stars[i].ddec_scaled;
+			siril_cat->cat_items[i].mag = (float)stars[i].mag_scaled * 0.001;
+			float powexp = pow(10.f, stars[i].fexpo);
+			for (int j = 0 ; j < XPSAMPLED_LEN ; j++) {
+				float d = half_to_float(stars[i].flux[j]);
+				siril_cat->cat_items[i].xp_sampled[j] = d / powexp;
+			}
+			siril_cat->cat_items[i].included = TRUE;
+		}
+		free(stars);
+		if (!siril_cat->nbitems)
+			return -1;
+		return siril_cat->nbitems;
+	}
+
 	gchar *catfile = download_catalog(siril_cat);
 	if (!catfile)
 		return 0;
@@ -694,7 +727,7 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 		return -1; // empty but not failed
 	return 0;
 }
-
+/*
 static int submit_async_request(const char *url, const char *post_data, char **job_id) {
 	if (!is_online()) {
 		siril_log_message(_("Offline, cannot retrieve URL.\n"));
@@ -852,7 +885,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		g_free(job_retrieval);
 
 		// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
-		/* check if catalogue already exists in cache */
+		// check if catalogue already exists in cache
 		GOutputStream *csvoutput_stream = NULL;
 		GFile *csvfile = NULL;
 
@@ -991,3 +1024,4 @@ datalink_download_error:
 		g_free(filepath);
 	return -1;
 }
+*/
