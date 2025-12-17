@@ -284,6 +284,44 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 	return (res != CURLE_OK ? 1 : 0);
 }
 
+int http_check(const gchar *url) {
+	CURL *curl;
+	CURLcode res;
+	int time_ms = -1;
+
+	if (!url) {
+		return -1;
+	}
+
+	curl = curl_easy_init();
+	if (!curl) {
+		return -1;
+	}
+
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);        // HEAD request
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);       // 5 second timeout
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);      // Thread-safe
+
+	res = curl_easy_perform(curl);
+
+	if (res == CURLE_OK) {
+		long response_code;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+		// Consider 2xx and 3xx status codes as "up"
+		if (response_code >= 200 && response_code < 400) {
+			double total_time;
+			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+			time_ms = (int)(total_time * 1000.0);
+		}
+	}
+
+	curl_easy_cleanup(curl);
+	return time_ms;
+}
+
 gboolean siril_compiled_with_networking() {
 	return TRUE;
 }
@@ -338,6 +376,10 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 
 gboolean siril_compiled_with_networking() {
 	return FALSE;
+}
+
+int http_check(const gchar *url) {
+	retutn -1;
 }
 
 #endif

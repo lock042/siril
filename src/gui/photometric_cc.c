@@ -101,40 +101,44 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
 	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
 	gtk_widget_show(image);
-	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	int resptime = GPOINTER_TO_INT(p);;
 	gchar *text = NULL, *colortext = NULL;
 //	stop_processing_thread(); // Not required as fetch_url_async doesn't use the processing thread
 
-	if (args->code != 200 || !args->content) {
+	if (resptime == -1) {
 		// Failed to fetch status
-		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		text = _("The Gaia archive status indicator is not responding.");
 		colortext = "salmon";
-		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
+		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 	} else {
 		// Check if response contains "true" or "false"
-		if (g_strstr_len(args->content, -1, "<available>true</available>")) {
-			text = _("Gaia archive available");
+		if (resptime < 150) {
+			text = _("Gaia archive available, response < 150 ms");
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-		} else if (g_strstr_len(args->content, -1, "<available>false</available>")
-				|| g_strstr_len(args->content, -1, "Maintenance ongoing")) {
-			text = _("Gaia archive unavailable");
-			colortext = "red";
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-		} else {
-			// Unexpected response format
-			text = _("Unknown Gaia archive status");
+		} else if (resptime < 500) {
+			text = _("Remote catalogue slow, 150 ms < response < 500 ms");
 			colortext = "salmon";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
+		} else {
+			text = _("Remote catalogue very slow, response > 500 ms");
+			colortext = "red";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		}
 	}
-
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
+	return FALSE;
+}
+
+gpointer gaia_check(gpointer user_data) {
+	fetch_url_async_data *args = (fetch_url_async_data *) user_data;
+	int responsetime = http_check(args->url);
 	free(args->content);
 	free(args);
-	return FALSE;
+	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(responsetime));
+	return NULL;
 }
 
 void check_gaia_archive_status() {
@@ -147,9 +151,9 @@ void check_gaia_archive_status() {
 		return;
 	}
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	args->url = g_strdup("https://gea.esac.esa.int/tap-server/tap/availability");
+	args->url = g_strdup("https://gaia.wheep.co.uk/siril_cat1_healpix8_xpsamp_0.dat");
 	args->idle_function = end_gaiacheck_idle;
-	g_thread_unref(g_thread_new("gaia-status-check", fetch_url_async, args));
+	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, args));
 }
 
 static void start_photometric_cc(gboolean spcc) {
