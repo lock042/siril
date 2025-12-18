@@ -8,20 +8,20 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:10+0100\n"
-"PO-Revision-Date: 2024-07-09 12:15+0000\n"
-"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
-"Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
-"siril/siril-application/zh_Hant/>\n"
+"PO-Revision-Date: 2025-12-16 17:51+0000\n"
+"Last-Translator: YAN SHU WIMG <lewisyan78@gmail.com>\n"
+"Language-Team: Chinese (Traditional Han script) <https://weblate.siril.org/"
+"projects/siril/software/siril/zh_Hant/>\n"
 "Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr ""
+msgstr "對比度-限制自適應直方圖均衡化…"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:69 src/gui/uifiles/asinh_dialog.ui:63
 #: src/gui/uifiles/ccm_dialog.ui:43 src/gui/uifiles/curves_dialog.ui:80
@@ -76,21 +76,21 @@ msgstr "套用"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:129
 msgid "Tiles Grid Size"
-msgstr ""
+msgstr "分塊網格大小"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:168
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
-msgstr ""
+msgstr "設定直方圖均衡化網格的尺寸。影像將被分割成大小相等的矩形圖塊。 "
 
 #: src/gui/uifiles/CLAHE_dialog.ui:189
 msgid "Clip Limit"
-msgstr ""
+msgstr "剪輯限制"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:224
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "設定對比度限制閾值。"
 
 #. Try to have 3 lines here.
 #: src/gui/uifiles/CLAHE_dialog.ui:242
@@ -99,6 +99,8 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"請務必透過裁切影像去除所有黑色邊框或其它堆疊殘留物。\n"
+"否則，可能會出現瑕疵。"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:255 src/gui/uifiles/asinh_dialog.ui:252
 #: src/gui/uifiles/curves_dialog.ui:704 src/gui/uifiles/epf_dialog.ui:471
@@ -110,7 +112,7 @@ msgstr "預覽"
 
 #: src/gui/uifiles/Median_dialog.ui:48
 msgid "Median Filter"
-msgstr ""
+msgstr "中值濾波器"
 
 #: src/gui/uifiles/Median_dialog.ui:66 src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/StatWindow.ui:78 src/gui/uifiles/aavso_dialog.ui:22
@@ -152,34 +154,41 @@ msgstr "預覽選取區域"
 msgid ""
 "Note: ROI preview will show a black border. Do not panic, the border will be "
 "overwritten by future ROIs and when finally applying the median filter."
-msgstr ""
+msgstr "注意：ROI預覽將顯示黑色邊框。請不要擔心，該邊框將在後續的ROI創建過程中以及最"
+"終應用中值濾波後被覆蓋。"
 
 #: src/gui/uifiles/Median_dialog.ui:138
 msgid "Kernel Size:"
-msgstr ""
+msgstr "內核大小："
 
 #: src/gui/uifiles/Median_dialog.ui:150
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
-msgstr ""
+msgstr "內核大小。這是每個像素所考慮的鄰域的奇數大小。"
 
 #: src/gui/uifiles/Median_dialog.ui:186 src/gui/uifiles/bdeconv_dialog.ui:1153
 #: src/gui/uifiles/bdeconv_dialog.ui:1929
+#, fuzzy
 msgid "Iterations"
-msgstr ""
+msgstr "多次重複一組指令"
 
 #: src/gui/uifiles/Median_dialog.ui:198
+#, fuzzy
 msgid ""
 "Number of iterations of the algorithm.\n"
 "This is useful when modulation parameter is different to 1 helping the whole "
 "process to converge to better result."
 msgstr ""
+"演算法迭代次數。\n"
+"\n"
+"當調製參數不等於 1 時，此參數非常有用，有助於整個過程收斂到更好的結果。"
 
 #: src/gui/uifiles/Median_dialog.ui:244 src/gui/uifiles/denoise_dialog.ui:400
 #: src/gui/uifiles/epf_dialog.ui:414
+#, fuzzy
 msgid "Modulation"
-msgstr ""
+msgstr "調節"
 
 #: src/gui/uifiles/Median_dialog.ui:280
 msgid ""
@@ -191,15 +200,16 @@ msgstr ""
 #: src/gui/uifiles/Median_dialog.ui:297
 #: src/gui/uifiles/composition_dialog.ui:229
 msgid "Use Luminance"
-msgstr ""
+msgstr "使用亮度"
 
 #: src/gui/uifiles/SCNR_dialog.ui:41
+#, fuzzy
 msgid "Subtractive Chromatic Green Noise Reduction"
-msgstr ""
+msgstr "抑制綠色雜訊減少"
 
 #: src/gui/uifiles/SCNR_dialog.ui:124
 msgid "Protection method: "
-msgstr ""
+msgstr "保護方法： "
 
 #: src/gui/uifiles/SCNR_dialog.ui:136
 msgid ""
