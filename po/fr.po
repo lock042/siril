@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:11+0100\n"
-"PO-Revision-Date: 2025-12-02 14:06+0000\n"
+"PO-Revision-Date: 2025-12-19 02:43+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
@@ -15010,7 +15010,7 @@ msgstr "Rouge"
 
 #: src/compositing/compositing.c:148
 msgid "FITS and TIFF files"
-msgstr ""
+msgstr "Fichiers FITS et TIFF"
 
 #: src/compositing/compositing.c:207
 msgid ""
@@ -31836,9 +31836,8 @@ msgid "Invalid selection"
 msgstr "Sélection non valide"
 
 #: src/io/siril_pythoncommands.c:903
-#, fuzzy
 msgid "Selection too close to edge of image"
-msgstr "La sélection est plus grande que l'image\n"
+msgstr "Sélection trop proche du bord de l'image"
 
 #: src/io/siril_pythoncommands.c:908 src/io/siril_pythoncommands.c:999
 #: src/io/siril_pythoncommands.c:1423 src/io/siril_pythoncommands.c:1933
