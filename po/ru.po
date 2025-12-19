@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-03 10:10+0100\n"
-"PO-Revision-Date: 2025-12-18 13:06+0000\n"
+"PO-Revision-Date: 2025-12-19 02:43+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -13306,6 +13306,8 @@ msgstr "Astrometry.net решает вслепую\n"
 #: src/algos/astrometry_solver.c:1822
 msgid "Warning: failed to add astrometry.net to child process list\n"
 msgstr ""
+"Предупреждение: не удалось добавить astrometry.net в список дочерних "
+"процессов\n"
 
 #: src/algos/astrometry_solver.c:1856
 msgid "No astrometric solution found\n"
@@ -23219,9 +23221,9 @@ msgid "Image %d not found for writing\n"
 msgstr "Изображение %d для записи не найдено\n"
 
 #: src/core/processing.c:819 src/core/processing.c:840
-#, fuzzy
 msgid "Warning: failed to add processing thread to child list\n"
-msgstr "Предупреждение: не удалось получить запись индекса репозитория.\n"
+msgstr ""
+"Предупреждение: не удалось добавить обрабатывающий поток в дочерний список\n"
 
 #: src/core/processing.c:1183
 msgid "Process aborted by user\n"
@@ -24807,7 +24809,7 @@ msgstr "Не удалось запустить дочерний процесс s
 
 #: src/filters/starnet.c:98
 msgid "Error adding Starnet to child process list\n"
-msgstr ""
+msgstr "Ошибка при добавлении Starnet в список дочерних процессов\n"
 
 #: src/filters/starnet.c:134
 msgid "Running StarNet"
@@ -24937,12 +24939,11 @@ msgstr ""
 "растягивания с помощью функции передачи полутонов (MTF).\n"
 
 #: src/filters/starnet.c:575
-#, fuzzy
 msgid ""
 "StarNet: linear mode. Applying MTF autostretch to StarNet input image.\n"
 msgstr ""
-"StarNet: линейный режим. Применяется обратное растягивание MTF к изображению "
-"без звёзд.\n"
+"StarNet: линейный режим. Применяется авторастягивание MTF к входящем "
+"изображению StarNet.\n"
 
 #: src/filters/starnet.c:591
 msgid "StarNet: 2x upscaling selected. Upscaling image...\n"
@@ -24990,10 +24991,9 @@ msgstr ""
 "изображения без звёзд к первоначальному размеру...\n"
 
 #: src/filters/starnet.c:714
-#, fuzzy
 msgid "StarNet: linear mode. Applying inverse autostretch to starless image.\n"
 msgstr ""
-"StarNet: линейный режим. Применяется обратное растягивание MTF к изображению "
+"StarNet: линейный режим. Применяется обратное авторастягивание к изображению "
 "без звёзд.\n"
 
 #: src/filters/starnet.c:731
@@ -25041,14 +25041,12 @@ msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr "Синтез звёзд (создание полной маски звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:349
-#, fuzzy
 msgid "Memory allocation failed\n"
-msgstr "Не удалось выделить память"
+msgstr "Не удалось выделить память\n"
 
 #: src/filters/synthstar.c:375
-#, fuzzy
 msgid "Star detection failed\n"
-msgstr "Не удалось выполнить сценарий.\n"
+msgstr "Не удалось определить звёзды\n"
 
 #: src/filters/synthstar.c:388 src/gui/unpurple.c:68
 msgid "No stars detected in the image.\n"
@@ -25065,9 +25063,9 @@ msgstr ""
 "Синтез звёзд (обесцвечивание обрезанных профилей звёзд): выполняется...\n"
 
 #: src/filters/synthstar.c:729
-#, fuzzy, c-format
+#, c-format
 msgid "Star detection failed for channel %u\n"
-msgstr "Не удалась укладка изображения %d"
+msgstr "Не удалась определить звёзды в канале %u\n"
 
 #: src/filters/synthstar.c:736
 #, c-format
@@ -25763,7 +25761,7 @@ msgstr "Значение: "
 
 #: src/gui/colors.c:386
 msgid "Error in value_check(). This should not happen...\n"
-msgstr ""
+msgstr "Ошибка в value_check(). Это не должно было произойти...\n"
 
 #: src/gui/colors.c:469 src/gui/cut.c:1013
 msgid "No sequence is loaded"
@@ -30541,14 +30539,12 @@ msgstr ""
 "размера выделения.\n"
 
 #: src/io/sequence_export.c:309
-#, fuzzy
 msgid ""
 "Export has detected registration data with more than simple shifts, this is "
 "not supported\n"
 msgstr ""
 "Экспортом определены данные регистрации, включающие больше преобразований, "
-"чем простые сдвиги.\n"
-"Обычно перед экспортом необходимо применить существующую регистрацию."
+"чем простые сдвиги. Это не поддерживается\n"
 
 #: src/io/sequence_export.c:363
 #, c-format
@@ -31392,9 +31388,8 @@ msgid "Failed to read frame metadata"
 msgstr "Не удалось прочитать метаданные кадра"
 
 #: src/io/siril_pythoncommands.c:1797 src/io/siril_pythoncommands.c:2803
-#, fuzzy
 msgid "Memory allocation error: response buffer"
-msgstr "Ошибка выделения памяти"
+msgstr "Ошибка выделения памяти: буфер ответа"
 
 #: src/io/siril_pythoncommands.c:1808 src/io/siril_pythoncommands.c:2812
 msgid "fits_to_py conversion error"
@@ -31410,9 +31405,8 @@ msgid "Pixel shared memory allocation error"
 msgstr "ошибка выделения памяти"
 
 #: src/io/siril_pythoncommands.c:1983
-#, fuzzy
 msgid "Star detection failed"
-msgstr "Определение звёзд"
+msgstr "Не удалось определить звёзды"
 
 #: src/io/siril_pythoncommands.c:1997
 msgid "No stars in image"
@@ -31519,18 +31513,16 @@ msgid "No polygon found matching id"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2612
-#, fuzzy
 msgid "Failed to serialize user polygon"
-msgstr "Не удалось получить путь к пакету (bundle)"
+msgstr "Не удалось сериализовать пользовательский полигон"
 
 #: src/io/siril_pythoncommands.c:2632
 msgid "No user polygons to serialize"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2638
-#, fuzzy
 msgid "Failed to serialize user polygon list"
-msgstr "Не удалось получить путь к пакету (bundle)"
+msgstr "Не удалось сериализовать список пользовательских полигонов"
 
 #: src/io/siril_pythoncommands.c:2653 src/io/siril_pythoncommands.c:2659
 #: src/io/siril_pythoncommands.c:2665
@@ -31550,9 +31542,8 @@ msgid "Invalid payload for CMD_DRAW_POLYGON"
 msgstr ""
 
 #: src/io/siril_pythoncommands.c:2765 src/io/siril_pythoncommands.c:2929
-#, fuzzy
 msgid "Invalid filepath length"
-msgstr "Неверная длина полезной нагрузки"
+msgstr "Недопустимая длина пути к файлу"
 
 #: src/io/siril_pythoncommands.c:2775 src/io/siril_pythoncommands.c:2941
 msgid "File does not exist or is not accessible"
@@ -31582,16 +31573,15 @@ msgstr "Не удалось установить выделение — изоб
 
 #: src/io/siril_pythoncommands.c:3150 src/io/siril_pythoncommands.c:3178
 #: src/io/siril_pythoncommands.c:3235
-#, fuzzy
 msgid "Failed to set slider state - invalid payload length"
-msgstr "Не удалось установить выделение — изображение не загружено"
+msgstr ""
+"Не удалось установить состояние ползунка — неверная длина полезной нагрузки"
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3157 src/io/siril_pythoncommands.c:3184
 #: src/io/siril_pythoncommands.c:3242
-#, fuzzy
 msgid "Failed to set slider state - no image loaded"
-msgstr "Не удалось установить выделение — изображение не загружено"
+msgstr "Не удалось установить состояние ползунка — изображение не загружено"
 
 #: src/io/siril_pythoncommands.c:3224
 #, fuzzy
@@ -31599,9 +31589,8 @@ msgid "Failed to set slider state - invalid mode value"
 msgstr "Не удалось установить выделение — изображение не загружено"
 
 #: src/io/siril_pythoncommands.c:3260
-#, fuzzy
 msgid "Error: invalid slider values"
-msgstr "Ошибка: отсутствующие или неверные массивы значений.\n"
+msgstr "Ошибка: неверные значения ползунка"
 
 #: src/io/siril_pythoncommands.c:3272
 #, fuzzy
@@ -31610,9 +31599,8 @@ msgstr "Не удалось установить выделение — изоб
 
 #. Handle error - no image loaded
 #: src/io/siril_pythoncommands.c:3279
-#, fuzzy
 msgid "Failed to set slider values - no image loaded"
-msgstr "Не удалось установить выделение — изображение не загружено"
+msgstr "Не удалось установить значения ползунка — изображение не загружено"
 
 #: src/io/siril_pythoncommands.c:3302 src/io/siril_pythoncommands.c:3334
 #, fuzzy
@@ -31626,9 +31614,8 @@ msgid "Failed to set display offset - no image loaded"
 msgstr "Не удалось установить выделение — изображение не загружено"
 
 #: src/io/siril_pythoncommands.c:3368
-#, fuzzy
 msgid "Failed to set image filename - empty filename provided"
-msgstr "Не удалось получить размеры изображения — нет загруженных изображений"
+msgstr "Не удалось задать название изображения — указано пустое название"
 
 #: src/io/siril_pythoncommands.c:3378
 msgid "Log only available in GUI mode"
@@ -31747,9 +31734,8 @@ msgid "Invalid save image info size"
 msgstr "Неверные данные о размере изображения"
 
 #: src/io/siril_pythonmodule.c:810
-#, fuzzy
 msgid "Failed to open shared memory for image data"
-msgstr "Не удалось открыть разделяемую память"
+msgstr "Не удалось открыть разделяемую память для данных изображения"
 
 #: src/io/siril_pythonmodule.c:818
 #, fuzzy
@@ -31757,9 +31743,8 @@ msgid "Failed to map shared memory for image data"
 msgstr "Ошибка при сопоставлении разделяемой памяти"
 
 #: src/io/siril_pythonmodule.c:865
-#, fuzzy
 msgid "Failed to open shared memory for header"
-msgstr "Не удалось открыть разделяемую память"
+msgstr "Не удалось открыть разделяемую память для заголовка"
 
 #: src/io/siril_pythonmodule.c:875
 #, fuzzy
@@ -31787,9 +31772,8 @@ msgid "Saved plot to %s\n"
 msgstr "График сохранён в %s\n"
 
 #: src/io/siril_pythonmodule.c:1219
-#, fuzzy
 msgid "Error: could not parse FITS header string"
-msgstr "Ошибка: Не удалось разобрать значения -to.\n"
+msgstr "Ошибка: Не удалось разобрать строку заголовка FITS"
 
 #: src/io/siril_pythonmodule.c:1299
 msgid "Failed to add user polygon: no image loaded"
@@ -31955,9 +31939,9 @@ msgstr ""
 "python.\n"
 
 #: src/io/siril_pythonmodule.c:2709
-#, fuzzy, c-format
+#, c-format
 msgid "Warning: failed to add %s to child process list\n"
-msgstr "Предупреждение: не удалось получить запись индекса репозитория.\n"
+msgstr "Предупреждение: не удалось добавить %s в список дочерних процессов\n"
 
 #: src/io/siril_pythonmodule.c:2728
 #, c-format
@@ -33479,13 +33463,13 @@ msgid "The number of stars has capped, readapting threshold and filtering\n"
 msgstr "Ограничение кол-ва звёзд, изменение порога и фильтрация\n"
 
 #: src/registration/global.c:1016
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Trial #%d: After sequence alignment, image #%d could not align more than "
 "half of the frames, recomputing\n"
 msgstr ""
 "Попытка №%d: После выравнивания последовательности, более половины кадров не "
-"могут быть выравнены на изображение %d, пересчёт\n"
+"могут быть выравнены на изображение №%d, пересчёт\n"
 
 #: src/registration/global.c:1038
 #, c-format
