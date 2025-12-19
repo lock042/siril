@@ -363,20 +363,36 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 static gchar *parse_changelog(gchar *changelog) {
 	gchar **token;
 	GString *strResult;
-	guint nargs, i;
+	guint nargs;
 
 	token = g_strsplit(changelog, "\n", -1);
 	nargs = g_strv_length(token);
 
-	strResult = g_string_new(token[0]);
+	if (nargs < 2) {
+		g_strfreev(token);
+		return g_strdup("");
+	}
+
+	strResult = g_string_new(token[0]);  // Version (e.g., "siril-1.4.0")
+	strResult = g_string_append(strResult, "\n");
+	strResult = g_string_append(strResult, token[1]);  // Date (e.g., "12/05/25")
 	strResult = g_string_append(strResult, "\n\n");
-	/* we start at line 3 */
-	i = 3;
-	while (i < nargs && token[i][0] != '\0') {
+
+	/* Start reading from line 2 onwards */
+	int i = 2;
+	while (i < nargs) {
+		// Stop if we encounter another version line (starts with "siril")
+		if (g_str_has_prefix(g_strstrip(token[i]), "siril ") ||
+			g_str_has_prefix(g_strstrip(token[i]), "siril-")) {
+			break;
+			}
+
+		// Include all lines (even empty ones) to preserve formatting
 		strResult = g_string_append(strResult, token[i]);
 		strResult = g_string_append(strResult, "\n");
 		i++;
 	}
+
 	g_strfreev(token);
 	return g_string_free(strResult, FALSE);
 }
