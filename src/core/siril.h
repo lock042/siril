@@ -924,6 +924,7 @@ struct cominf {
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
+	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
 };
 
 #ifndef MAIN

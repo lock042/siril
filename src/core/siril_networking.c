@@ -202,7 +202,6 @@ char* fetch_url_range(const gchar *url, size_t start, size_t length,
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
-	retval |= curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 
 	g_free(range_header);
 

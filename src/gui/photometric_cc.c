@@ -53,6 +53,13 @@
 #define spcc_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST && DEBUG_SPCC) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
+// Array of primary + mirrors for the remote catalogue
+const char* spcc_mirrors[] = {
+	"https://zenodo.org/records/17988559/files",
+	"https://gaia.wheep.co.uk",
+	NULL
+};
+
 static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
@@ -99,11 +106,10 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 static gboolean end_gaiacheck_idle(gpointer p) {
 	GtkWidget *image = lookup_widget("gaia_status_widget");
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
+	gtk_widget_set_tooltip_text(image, _("Checking SPCC remote catalogue status..."));
 	gtk_widget_show(image);
 	int resptime = GPOINTER_TO_INT(p);;
 	gchar *text = NULL, *colortext = NULL;
-//	stop_processing_thread(); // Not required as fetch_url_async doesn't use the processing thread
 
 	if (resptime == -1) {
 		// Failed to fetch status
@@ -116,7 +122,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 			text = g_strdup_printf(_("Gaia remote catalogue available, response %d ms"), resptime);
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-		} else if (resptime < 500) {
+		} else if (resptime < 1000) {
 			text = g_strdup_printf(_("Gaia remote catalogue slow, response %d ms"), resptime);
 			colortext = "salmon";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
@@ -134,9 +140,22 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 }
 
 gpointer gaia_check(gpointer user_data) {
-	gchar *url = (gchar*) user_data;
-	int responsetime = http_check(url);
-	g_free(url);
+	int best_mirror_index = -1;
+	int responsetime = INT32_MAX;
+	for (int i = 0; spcc_mirrors[i]; i++) {
+		gchar *mirror_url = g_strdup_printf("%s/siril_cat1_healpix8_xpsamp_0.dat", spcc_mirrors[i]);
+		int mirror_responsetime = http_check(mirror_url);
+		g_free(mirror_url);
+		if (mirror_responsetime != -1 && mirror_responsetime < responsetime) {
+			best_mirror_index = i;
+			responsetime = mirror_responsetime;  // Update to track the best time
+		}
+	}
+	if (best_mirror_index != -1) {
+		g_free(com.spcc_remote_catalogue);
+		com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
+		siril_log_message(_("Fastest responsive SPCC catalogue: %s\n"), com.spcc_remote_catalogue);
+	}
 	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(responsetime));
 	return NULL;
 }
@@ -150,8 +169,7 @@ void check_gaia_archive_status() {
 		siril_log_color_message("%s", "red", text);
 		return;
 	}
-	gchar *url = g_strdup("https://gaia.wheep.co.uk/siril_cat1_healpix8_xpsamp_0.dat");
-	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, url));
+	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, NULL));
 }
 
 static void start_photometric_cc(gboolean spcc) {

@@ -29,7 +29,7 @@
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
-//#define HEALPIX_DEBUG
+#define HEALPIX_DEBUG
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
@@ -847,11 +847,7 @@ extern "C" {
         double radius_h = pow(sin(0.5 * radius_rad), 2);
 
         // Construct base URL
-//        std::string base_url = "https://zenodo.org/records/" +
-//                              std::string(ZENODO_GAIA_XPSAMP_RECORD_ID) + "/files";
-
-        // For testing, use Wheep
-        std::string base_url = "https://gaia.wheep.co.uk";
+        std::string base_url(com.spcc_remote_catalogue);
 
         // Read header from first chunk to get catalog parameters
         // Note: You may need to adjust this filename based on your actual first chunk
