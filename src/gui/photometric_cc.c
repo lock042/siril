@@ -141,22 +141,40 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 gpointer gaia_check(gpointer user_data) {
 	int best_mirror_index = -1;
-	int responsetime = INT32_MAX;
-	for (int i = 0; spcc_mirrors[i]; i++) {
+	int best_responsetime = INT32_MAX;
+	int num_mirrors = 0;
+
+	// Count mirrors
+	while (spcc_mirrors[num_mirrors]) num_mirrors++;
+
+	// Arrays to store results from parallel checks
+	int *response_times = g_new(int, num_mirrors);
+
+	// Parallel loop to check all mirrors
+#pragma omp parallel for
+	for (int i = 0; i < num_mirrors; i++) {
 		gchar *mirror_url = g_strdup_printf("%s/siril_cat1_healpix8_xpsamp_0.dat", spcc_mirrors[i]);
-		int mirror_responsetime = http_check(mirror_url);
+		response_times[i] = http_check(mirror_url);
 		g_free(mirror_url);
-		if (mirror_responsetime != -1 && mirror_responsetime < responsetime) {
+	}
+#pragma omp barrier
+
+	// After barrier: find the best mirror sequentially
+	for (int i = 0; i < num_mirrors; i++) {
+		if (response_times[i] != -1 && response_times[i] < best_responsetime) {
 			best_mirror_index = i;
-			responsetime = mirror_responsetime;  // Update to track the best time
+			best_responsetime = response_times[i];
 		}
 	}
+
+	g_free(response_times);
+
 	if (best_mirror_index != -1) {
 		g_free(com.spcc_remote_catalogue);
 		com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
 		siril_log_message(_("Fastest responsive SPCC catalogue: %s\n"), com.spcc_remote_catalogue);
 	}
-	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(responsetime));
+	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));
 	return NULL;
 }
 
