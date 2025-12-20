@@ -6,6 +6,7 @@ xx/xx/xx
 * Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
 * Fixed too-strict condition and off-by-one error in sirilpy
 * Fixed sirilpy.FFit class data setter
+* Fixed remote catalogue to avoid dependency on Gaia Archive (!969)
 
 siril-1.4.0
 12/05/25
