@@ -118,7 +118,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 	} else {
 		// Check if response contains "true" or "false"
-		if (resptime < 250) {
+		if (resptime < 500) {
 			text = g_strdup_printf(_("Gaia remote catalogue available, response %d ms"), resptime);
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");

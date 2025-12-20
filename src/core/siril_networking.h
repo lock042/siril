@@ -3,6 +3,10 @@
 
 #include <glib.h>
 
+#if defined(HAVE_LIBCURL)
+#include <curl/curl.h>
+#endif
+
 struct ucontent {
 	char *data;
 	size_t len;
@@ -25,6 +29,9 @@ gpointer fetch_url_async(gpointer p);
 char *fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet);
 char* fetch_url_range(const gchar *url, size_t start, size_t length,
                       gsize *response_length, int *error, gboolean quiet);
+char* fetch_url_range_with_curl(CURL* curl, const gchar *url, size_t start, size_t length,
+                                gsize *response_length, int *error, gboolean quiet);
+
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 int http_check(const gchar *url);
 

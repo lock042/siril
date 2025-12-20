@@ -33,7 +33,6 @@
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
-
 // Enum for Gaia version designator
 enum class GaiaVersion {
     DR1 = 0,
@@ -104,105 +103,6 @@ static std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int
     // Add last range
     ranges.push_back(current_range);
     return ranges;
-}
-
-// Template function to query catalog via HTTP range requests using Siril's networking
-template<typename EntryType>
-static std::vector<EntryType> query_catalog_http(const std::string& base_url,
-                                                  const std::string& filename,
-                                                  std::vector<HealPixelRange>& healpixel_ranges,
-                                                  const HealpixCatHeader& header) {
-    constexpr size_t HEADER_SIZE = 128;
-    std::vector<EntryType> results;
-    uint32_t nside = 1 << header.healpix_level;
-    uint32_t n_healpixels = 12 * nside * nside;
-
-    if (header.chunked) {
-        uint32_t nside_chunks = 1 << header.chunk_level;
-        uint32_t n_chunks = 12 * nside_chunks * nside_chunks;
-        n_healpixels /= n_chunks;
-        for (auto& range : healpixel_ranges) {
-            range.start_id -= header.chunk_first_healpixel;
-            range.end_id -= header.chunk_first_healpixel;
-        }
-    }
-
-    size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
-    std::string full_url = base_url + "/" + filename;
-
-    // Function to read index entries via HTTP range request
-    auto read_index_entries = [&full_url](uint32_t start_healpixel, uint32_t end_healpixel)
-        -> std::pair<bool, std::vector<uint32_t>> {
-        size_t start_pos = HEADER_SIZE + start_healpixel * sizeof(uint32_t);
-        size_t length = (end_healpixel - start_healpixel + 1) * sizeof(uint32_t);
-
-        gsize response_length;
-        int error;
-        char* buffer = fetch_url_range(full_url.c_str(), start_pos, length,
-                                      &response_length, &error, FALSE);
-
-        if (error || !buffer) {
-            return {false, {}};
-        }
-
-        std::vector<uint32_t> indices(response_length / sizeof(uint32_t));
-        memcpy(indices.data(), buffer, response_length);
-        free(buffer);
-
-        return {true, indices};
-    };
-
-    // Process each range
-    for (const auto& range : healpixel_ranges) {
-        uint32_t start_healpixel = range.start_id;
-        uint32_t end_healpixel = range.end_id;
-
-        if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
-            siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
-            results.clear();
-            return results;
-        }
-
-        // Read the index entries
-        uint32_t index_start = (start_healpixel == 0) ? 0 : start_healpixel - 1;
-        auto [success, indices] = read_index_entries(index_start, end_healpixel);
-
-        if (!success) {
-            siril_log_color_message(_("Failed to read index entries via HTTP\n"), "red");
-            results.clear();
-            return results;
-        }
-
-        uint32_t start_offset = (start_healpixel == 0) ? 0 : indices[0];
-        uint32_t end_offset = indices[indices.size() - 1];
-
-        // Calculate position in the data section
-        size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
-        size_t num_records = end_offset - start_offset;
-        size_t data_length = num_records * sizeof(EntryType);
-
-        // Read the data entries via HTTP range request
-        gsize data_response_length;
-        int data_error;
-        char* data_buffer = fetch_url_range(full_url.c_str(), data_start_pos, data_length,
-                                           &data_response_length, &data_error, FALSE);
-
-        if (data_error || !data_buffer) {
-            siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
-            results.clear();
-            return results;
-        }
-
-        // Convert buffer to EntryType vector
-        std::vector<EntryType> buffer(num_records);
-        memcpy(buffer.data(), data_buffer, data_response_length);
-        free(data_buffer);
-
-        // Move entries to results vector
-        results.insert(results.end(), buffer.begin(), buffer.end());
-    }
-
-    return results;
 }
 
 // This function queries a catalogue of packed EntryType objects (the template allows
@@ -305,8 +205,10 @@ static bool header_compatible(HealpixCatHeader& a, HealpixCatHeader& b) {
     return same_version && same_chunk_level && same_index_level;
 }
 
+#ifdef HAVE_LIBCURL
+
 // Function to read header via HTTP range request using Siril's networking
-static HealpixCatHeader read_healpix_cat_header_http(const std::string& url, int* error_status) {
+static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const std::string& url, int* error_status) {
     HealpixCatHeader header = {
         "",
         static_cast<GaiaVersion>(0),
@@ -326,7 +228,7 @@ static HealpixCatHeader read_healpix_cat_header_http(const std::string& url, int
 
     gsize response_length;
     int error;
-    char* buffer = fetch_url_range(url.c_str(), 0, 128, &response_length, &error, FALSE);
+    char* buffer = fetch_url_range_with_curl(curl, url.c_str(), 0, 128, &response_length, &error, FALSE);
 
     if (error || !buffer || response_length < 128) {
         if (error_status) {
@@ -368,6 +270,124 @@ static HealpixCatHeader read_healpix_cat_header_http(const std::string& url, int
 
     return header;
 }
+
+template<typename EntryType>
+static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
+                                                  const std::string& base_url,
+                                                  const std::string& filename,
+                                                  std::vector<HealPixelRange>& healpixel_ranges,
+                                                  const HealpixCatHeader& header) {
+    constexpr size_t HEADER_SIZE = 128;
+    std::vector<EntryType> results;
+    uint32_t nside = 1 << header.healpix_level;
+    uint32_t n_healpixels = 12 * nside * nside;
+
+    if (header.chunked) {
+        uint32_t nside_chunks = 1 << header.chunk_level;
+        uint32_t n_chunks = 12 * nside_chunks * nside_chunks;
+        n_healpixels /= n_chunks;
+        for (auto& range : healpixel_ranges) {
+            range.start_id -= header.chunk_first_healpixel;
+            range.end_id -= header.chunk_first_healpixel;
+        }
+    }
+
+    size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
+    std::string full_url = base_url + "/" + filename;
+
+    // Function to read index entries via HTTP range request using provided CURL handle
+    auto read_index_entries = [curl, &full_url](uint32_t start_healpixel, uint32_t end_healpixel)
+        -> std::pair<bool, std::vector<uint32_t>> {
+        size_t start_pos = HEADER_SIZE + start_healpixel * sizeof(uint32_t);
+        size_t length = (end_healpixel - start_healpixel + 1) * sizeof(uint32_t);
+
+        gsize response_length;
+        int error;
+        char* buffer = fetch_url_range_with_curl(curl, full_url.c_str(), start_pos, length,
+                                      &response_length, &error, FALSE);
+
+        if (error || !buffer) {
+            return {false, {}};
+        }
+
+        std::vector<uint32_t> indices(response_length / sizeof(uint32_t));
+        memcpy(indices.data(), buffer, response_length);
+        free(buffer);
+
+        return {true, indices};
+    };
+
+    // Process each range
+    for (const auto& range : healpixel_ranges) {
+        uint32_t start_healpixel = range.start_id;
+        uint32_t end_healpixel = range.end_id;
+
+        if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
+            siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
+            results.clear();
+            return results;
+        }
+
+        // Read the index entries
+        uint32_t index_start = (start_healpixel == 0) ? 0 : start_healpixel - 1;
+        auto [success, indices] = read_index_entries(index_start, end_healpixel);
+
+        if (!success) {
+            siril_log_color_message(_("Failed to read index entries via HTTP\n"), "red");
+            results.clear();
+            return results;
+        }
+
+        uint32_t start_offset = (start_healpixel == 0) ? 0 : indices[0];
+        uint32_t end_offset = indices[indices.size() - 1];
+
+        // Calculate position in the data section
+        size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
+        size_t num_records = end_offset - start_offset;
+        size_t data_length = num_records * sizeof(EntryType);
+
+        // Read the data entries via HTTP range request using provided CURL handle
+        gsize data_response_length;
+        int data_error;
+        char* data_buffer = fetch_url_range_with_curl(curl, full_url.c_str(), data_start_pos, data_length,
+                                           &data_response_length, &data_error, FALSE);
+
+        if (data_error || !data_buffer) {
+            siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
+            results.clear();
+            return results;
+        }
+
+        // Convert buffer to EntryType vector
+        std::vector<EntryType> buffer(num_records);
+        memcpy(buffer.data(), data_buffer, data_response_length);
+        free(data_buffer);
+
+        // Move entries to results vector
+        results.insert(results.end(), buffer.begin(), buffer.end());
+    }
+
+    return results;
+}
+
+// Original template function now wraps the new one with a temporary CURL handle
+template<typename EntryType>
+static std::vector<EntryType> query_catalog_http(const std::string& base_url,
+                                                  const std::string& filename,
+                                                  std::vector<HealPixelRange>& healpixel_ranges,
+                                                  const HealpixCatHeader& header) {
+    CURL* curl = curl_easy_init();
+    if (!curl) {
+        siril_log_color_message(_("Error initialising CURL handle\n"), "red");
+        return std::vector<EntryType>();
+    }
+
+    std::vector<EntryType> results = query_catalog_http_with_curl<EntryType>(curl, base_url, filename, healpixel_ranges, header);
+    curl_easy_cleanup(curl);
+    return results;
+}
+
+#endif
 
 // Function to read the Healpix catalogue header
 static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
@@ -833,6 +853,7 @@ extern "C" {
         return 0;
     }
 
+#ifdef HAVE_LIBCURL
     int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
                                                            double limitmag, SourceEntryXPsamp **stars,
                                                            uint32_t *nb_stars) {
@@ -849,14 +870,23 @@ extern "C" {
         // Construct base URL
         std::string base_url(com.spcc_remote_catalogue);
 
+        // Initialize CURL handle for all requests
+        CURL* curl = curl_easy_init();
+        if (!curl) {
+            siril_log_color_message(_("Error initialising CURL handle\n"), "red");
+            *stars = nullptr;
+            *nb_stars = 0;
+            return 1;
+        }
+
         // Read header from first chunk to get catalog parameters
-        // Note: You may need to adjust this filename based on your actual first chunk
         std::string first_chunk_filename = "siril_cat1_healpix8_xpsamp_0.dat";
         std::string first_chunk_url = base_url + "/" + first_chunk_filename;
 
         int status = 0;
-        HealpixCatHeader header = read_healpix_cat_header_http(first_chunk_url, &status);
+        HealpixCatHeader header = read_healpix_cat_header_http_with_curl(curl, first_chunk_url, &status);
         if (status) {
+            curl_easy_cleanup(curl);
             *stars = nullptr;
             *nb_stars = 0;
             return 1;
@@ -897,7 +927,7 @@ extern "C" {
             std::string chunk_url = base_url + "/" + chunk_filename;
 
             int chunk_status = 0;
-            HealpixCatHeader this_header = read_healpix_cat_header_http(chunk_url, &chunk_status);
+            HealpixCatHeader this_header = read_healpix_cat_header_http_with_curl(curl, chunk_url, &chunk_status);
 
             if (chunk_status) {
                 siril_log_color_message(_("Failed to read header from: %s\n"), "red", chunk_url.c_str());
@@ -911,9 +941,12 @@ extern "C" {
                 break;
             }
 
-            results_in_chunks[i] = query_catalog_http<SourceEntryXPsamp>(base_url, chunk_filename,
+            results_in_chunks[i] = query_catalog_http_with_curl<SourceEntryXPsamp>(curl, base_url, chunk_filename,
                                                                          healpixel_ranges, this_header);
         }
+
+        // Clean up CURL handle
+        curl_easy_cleanup(curl);
 
         if (file_error) {
             *stars = nullptr;
@@ -967,5 +1000,14 @@ extern "C" {
 
         return 0;
     }
-
+#else
+    int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
+                                                           double limitmag, SourceEntryXPsamp **stars,
+                                                           uint32_t *nb_stars) {
+        siril_log_color_message(_("Error: Siril was compiled without libcurl support. Remote catalogue access is unavailable.\n"), "red");
+        *stars = nullptr;
+        *nb_stars = 0;
+        return 1;
+    }
+#endif
 }

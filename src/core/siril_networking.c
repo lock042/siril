@@ -176,6 +176,91 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	return result;
 }
 
+char* fetch_url_range_with_curl(CURL* curl, const gchar *url, size_t start, size_t length,
+                                gsize *response_length, int *error, gboolean quiet) {
+	*error = 0;
+	*response_length = 0;
+	struct ucontent content = {NULL, 0};
+
+	if (!curl) {
+		if (!quiet) {
+			siril_log_color_message(_("Error: NULL CURL handle provided.\n"), "red");
+		}
+		*error = 1;
+		return NULL;
+	}
+
+	// Construct the range header
+	gchar *range_header = g_strdup_printf("%zu-%zu", start, start + length - 1);
+
+	CURLcode retval;
+	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
+	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
+
+	g_free(range_header);
+
+	if (retval) {
+		if (!quiet) {
+			siril_log_color_message(_("Error in curl_easy_setopt() for range request\n"), "red");
+		}
+		*error = 1;
+		return NULL;
+	}
+
+	if (g_getenv("CURL_CA_BUNDLE")) {
+		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"))) {
+			if (!quiet) {
+				siril_log_color_message(_("Error configuring CURL with CA bundle.\n"), "red");
+			}
+		}
+	}
+
+	content.data = calloc(1, 1);
+	if (content.data == NULL) {
+		PRINT_ALLOC_ERR;
+		*error = 1;
+		return NULL;
+	}
+
+	CURLcode res = curl_easy_perform(curl);
+	char *result = NULL;
+
+	if (res == CURLE_OK) {
+		long code;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+
+		// Accept both 206 (Partial Content) and 200 (OK)
+		if (code == 206 || code == 200) {
+			result = content.data;
+			*response_length = content.len;
+#ifdef NETWORKING_DEBUG
+			siril_debug_print("Retrieved result from %s, length %lu\n", url, content.len);
+#endif
+		} else {
+			if (!quiet) {
+				siril_log_color_message(_("HTTP range request failed with code %ld for URL %s\n"),
+				                       "red", code, url);
+			}
+			free(content.data);
+			*error = 1;
+		}
+	} else {
+		if (!quiet) {
+			siril_log_color_message(_("URL range request failed. libcurl error: %s\n"),
+			                       "red", curl_easy_strerror(res));
+		}
+		free(content.data);
+		*error = 1;
+	}
+
+	return result;
+}
+
 char* fetch_url_range(const gchar *url, size_t start, size_t length,
                       gsize *response_length, int *error, gboolean quiet) {
 	*error = 0;
@@ -355,6 +440,18 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	*length = 0;
 	return NULL;
 }
+
+char* fetch_url_range_with_curl(void* curl, const gchar *url, size_t start, size_t length,
+                                gsize *response_length, int *error, gboolean quiet) {
+	if (!quiet) {
+		siril_log_color_message(_("Error: Siril was compiled without libcurl support. Cannot fetch URL range: %s\n"),
+		                       "red", url);
+	}
+	*error = 1;
+	*response_length = 0;
+	return NULL;
+}
+
 
 char* fetch_url_range(const gchar *url, size_t start, size_t length,
                       gsize *response_length, int *error, gboolean quiet) {
