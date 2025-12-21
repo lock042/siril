@@ -22,7 +22,6 @@
 #define _SEARCH_OBJECTS_H
 
 #include <glib.h>
-#include "core/siril.h"
 #include "core/siril_world_cs.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"

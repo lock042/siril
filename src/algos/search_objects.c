@@ -19,6 +19,7 @@
  */
 
 #include <math.h>
+#include "core/siril.h"
 #include "algos/search_objects.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
