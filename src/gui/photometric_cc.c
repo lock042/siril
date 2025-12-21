@@ -140,42 +140,52 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 }
 
 gpointer gaia_check(gpointer user_data) {
-	int best_mirror_index = -1;
-	int best_responsetime = INT32_MAX;
-	int num_mirrors = 0;
+    int best_mirror_index = -1;
+    int best_responsetime = INT32_MAX;
+    int num_mirrors = 0;
 
-	// Count mirrors
-	while (spcc_mirrors[num_mirrors]) num_mirrors++;
+    // Count mirrors
+    while (spcc_mirrors[num_mirrors]) num_mirrors++;
 
-	// Arrays to store results from parallel checks
-	int *response_times = g_new(int, num_mirrors);
+    // Arrays to store results from parallel checks
+    int *response_times = g_new(int, num_mirrors);
 
-	// Parallel loop to check all mirrors
-#pragma omp parallel for
-	for (int i = 0; i < num_mirrors; i++) {
-		gchar *mirror_url = g_strdup_printf("%s/siril_cat1_healpix8_xpsamp_0.dat", spcc_mirrors[i]);
-		response_times[i] = http_check(mirror_url);
-		g_free(mirror_url);
-	}
-#pragma omp barrier
+    // Parallel loop to check all mirrors
+    #pragma omp parallel for
+    for (int i = 0; i < num_mirrors; i++) {
+        gchar *mirror_url = g_strdup_printf("%s/siril_cat1_healpix8_xpsamp_0.dat",
+                                           spcc_mirrors[i]);
+        response_times[i] = http_check(mirror_url);
+        g_free(mirror_url);
+    }
+    #pragma omp barrier
 
-	// After barrier: find the best mirror sequentially
-	for (int i = 0; i < num_mirrors; i++) {
-		if (response_times[i] != -1 && response_times[i] < best_responsetime) {
-			best_mirror_index = i;
-			best_responsetime = response_times[i];
-		}
-	}
+    // Log results for all mirrors for transparency
+    int working_mirrors = 0;
+    for (int i = 0; i < num_mirrors; i++) {
+        if (response_times[i] != -1) {
+            working_mirrors++;
+            siril_log_message(_("Mirror %s: %d ms\n"), spcc_mirrors[i], response_times[i]);
+            if (response_times[i] < best_responsetime) {
+                best_mirror_index = i;
+                best_responsetime = response_times[i];
+            }
+        } else {
+            siril_log_color_message(_("Mirror %s: Not responding\n"), "salmon", spcc_mirrors[i]);
+        }
+    }
 
-	g_free(response_times);
+    g_free(response_times);
 
-	if (best_mirror_index != -1) {
-		g_free(com.spcc_remote_catalogue);
-		com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
-		siril_log_message(_("Fastest responsive SPCC catalogue: %s\n"), com.spcc_remote_catalogue);
-	}
-	execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));
-	return NULL;
+    if (best_mirror_index != -1) {
+        g_free(com.spcc_remote_catalogue);
+        com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
+        siril_log_color_message(_("Primary SPCC catalogue set to: %s (%d working mirrors available)\n"),
+                               "green", com.spcc_remote_catalogue, working_mirrors);
+    }
+
+    execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));
+    return NULL;
 }
 
 void check_gaia_archive_status() {

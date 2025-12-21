@@ -33,6 +33,8 @@
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
+extern const char* spcc_mirrors[];
+
 // Enum for Gaia version designator
 enum class GaiaVersion {
     DR1 = 0,
@@ -385,6 +387,105 @@ static std::vector<EntryType> query_catalog_http(const std::string& base_url,
     std::vector<EntryType> results = query_catalog_http_with_curl<EntryType>(curl, base_url, filename, healpixel_ranges, header);
     curl_easy_cleanup(curl);
     return results;
+}
+
+/**
+ * Try fetching from the current mirror, and if it fails, try other mirrors
+ * Updates com.spcc_remote_catalogue to the working mirror
+ * Returns true if a working mirror was found, false otherwise
+ */
+static bool try_mirrors_and_update(CURL* curl, const char* path_suffix,
+                                   HealpixCatHeader* header_out, int* error_status) {
+    extern const char* spcc_mirrors[];
+
+    // First try the current mirror
+    std::string current_url = std::string(com.spcc_remote_catalogue) + "/" + path_suffix;
+    *header_out = read_healpix_cat_header_http_with_curl(curl, current_url, error_status);
+
+    if (*error_status == 0) {
+        return true;  // Current mirror works
+    }
+
+    siril_log_color_message(_("Mirror %s failed, trying alternatives...\n"),
+                           "salmon", com.spcc_remote_catalogue);
+
+    // Try each mirror in sequence
+    for (int i = 0; spcc_mirrors[i] != NULL; i++) {
+        // Skip if this is the current mirror (already tried)
+        if (g_strcmp0(spcc_mirrors[i], com.spcc_remote_catalogue) == 0) {
+            continue;
+        }
+
+        std::string test_url = std::string(spcc_mirrors[i]) + "/" + path_suffix;
+        siril_log_message(_("Trying mirror: %s\n"), spcc_mirrors[i]);
+
+        *header_out = read_healpix_cat_header_http_with_curl(curl, test_url, error_status);
+
+        if (*error_status == 0) {
+            // This mirror works! Update the global setting
+            g_free(com.spcc_remote_catalogue);
+            com.spcc_remote_catalogue = g_strdup(spcc_mirrors[i]);
+            siril_log_color_message(_("Switched to working mirror: %s\n"),
+                                   "green", com.spcc_remote_catalogue);
+            return true;
+        }
+    }
+
+    // All mirrors failed
+    siril_log_color_message(_("All catalogue mirrors failed to respond.\n"), "red");
+    return false;
+}
+
+/**
+ * Wrapper for query_catalog_http_with_curl that implements mirror fallback
+ */
+template<typename EntryType>
+static std::vector<EntryType> query_catalog_http_with_fallback(
+                                    CURL* curl,
+                                    const std::string& filename,
+                                    std::vector<HealPixelRange>& healpixel_ranges,
+                                    const HealpixCatHeader& header) {
+    extern const char* spcc_mirrors[];
+    std::vector<EntryType> results;
+
+    // Try current mirror first
+    std::string base_url(com.spcc_remote_catalogue);
+    results = query_catalog_http_with_curl<EntryType>(curl, base_url, filename,
+                                                      healpixel_ranges, header);
+
+    if (!results.empty()) {
+        return results;  // Success with current mirror
+    }
+
+    // Current mirror failed, try alternatives
+    siril_log_color_message(_("Query failed on mirror %s, trying alternatives...\n"),
+                           "salmon", com.spcc_remote_catalogue);
+
+    for (int i = 0; spcc_mirrors[i] != NULL; i++) {
+        // Skip if this is the current mirror (already tried)
+        if (g_strcmp0(spcc_mirrors[i], com.spcc_remote_catalogue) == 0) {
+            continue;
+        }
+
+        siril_log_message(_("Trying mirror: %s\n"), spcc_mirrors[i]);
+        std::string test_base_url(spcc_mirrors[i]);
+
+        results = query_catalog_http_with_curl<EntryType>(curl, test_base_url, filename,
+                                                          healpixel_ranges, header);
+
+        if (!results.empty()) {
+            // This mirror works! Update the global setting
+            g_free(com.spcc_remote_catalogue);
+            com.spcc_remote_catalogue = g_strdup(spcc_mirrors[i]);
+            siril_log_color_message(_("Switched to working mirror: %s\n"),
+                                   "green", com.spcc_remote_catalogue);
+            return results;
+        }
+    }
+
+    // All mirrors failed
+    siril_log_color_message(_("All catalogue mirrors failed for query.\n"), "red");
+    return results;  // Return empty vector
 }
 
 #endif
@@ -867,9 +968,6 @@ extern "C" {
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
 
-        // Construct base URL
-        std::string base_url(com.spcc_remote_catalogue);
-
         // Initialize CURL handle for all requests
         CURL* curl = curl_easy_init();
         if (!curl) {
@@ -879,13 +977,12 @@ extern "C" {
             return 1;
         }
 
-        // Read header from first chunk to get catalog parameters
+        // Read header from first chunk with mirror fallback
         std::string first_chunk_filename = "siril_cat1_healpix8_xpsamp_0.dat";
-        std::string first_chunk_url = base_url + "/" + first_chunk_filename;
 
         int status = 0;
-        HealpixCatHeader header = read_healpix_cat_header_http_with_curl(curl, first_chunk_url, &status);
-        if (status) {
+        HealpixCatHeader header;
+        if (!try_mirrors_and_update(curl, first_chunk_filename.c_str(), &header, &status)) {
             curl_easy_cleanup(curl);
             *stars = nullptr;
             *nb_stars = 0;
@@ -924,25 +1021,38 @@ extern "C" {
             std::string chunk_filename(filename);
             g_free(filename);
 
-            std::string chunk_url = base_url + "/" + chunk_filename;
-
+            // Verify chunk header with fallback - this helps catch if a mirror
+            // has incomplete data
+            std::string chunk_url = std::string(com.spcc_remote_catalogue) + "/" + chunk_filename;
             int chunk_status = 0;
             HealpixCatHeader this_header = read_healpix_cat_header_http_with_curl(curl, chunk_url, &chunk_status);
 
-            if (chunk_status) {
-                siril_log_color_message(_("Failed to read header from: %s\n"), "red", chunk_url.c_str());
-                file_error = true;
-                break;
+            // If initial header read fails, try other mirrors
+            if (chunk_status != 0) {
+                if (!try_mirrors_and_update(curl, chunk_filename.c_str(), &this_header, &chunk_status)) {
+                    siril_log_color_message(_("Failed to read header for chunk %d from any mirror\n"),
+                                          "red", chunk_id);
+                    file_error = true;
+                    break;
+                }
             }
 
             if (!header_compatible(header, this_header)) {
-                siril_log_color_message(_("Error: catalog header values for chunk %d are incompatible\n"), "red", chunk_id);
+                siril_log_color_message(_("Error: catalog header values for chunk %d are incompatible\n"),
+                                       "red", chunk_id);
                 file_error = true;
                 break;
             }
 
-            results_in_chunks[i] = query_catalog_http_with_curl<SourceEntryXPsamp>(curl, base_url, chunk_filename,
-                                                                         healpixel_ranges, this_header);
+            // Query with automatic fallback
+            results_in_chunks[i] = query_catalog_http_with_fallback<SourceEntryXPsamp>(
+                curl, chunk_filename, healpixel_ranges, this_header);
+
+            if (results_in_chunks[i].empty() && !chunk_pixels.empty()) {
+                // Query returned nothing but we expected data - this might indicate failure
+                siril_log_color_message(_("Warning: No data retrieved for chunk %d\n"),
+                                       "salmon", chunk_id);
+            }
         }
 
         // Clean up CURL handle
