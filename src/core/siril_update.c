@@ -36,6 +36,7 @@
 #include "core/processing.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
@@ -43,7 +44,11 @@
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
+#define SPCC_MIRRORS "notifications/spcc_mirrors.json"
+
 #endif
+
+extern gchar** spcc_mirrors;
 
 // ============================================================================
 // UTILITY FUNCTIONS - Independent of libcurl
@@ -671,6 +676,122 @@ void siril_check_notifications(gboolean verbose) {
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-notifications", fetch_url_async, args);
+}
+
+// Parse SPCC mirrors JSON and populate the global string vector
+static int parseJsonSpccMirrors(const char *jsonString) {
+	// Free existing catalogues if any
+	if (spcc_mirrors) {
+		g_strfreev(spcc_mirrors);
+		spcc_mirrors = NULL;
+	}
+
+	// Parse JSON from string using yyjson
+	yyjson_doc *doc = yyjson_read(jsonString, strlen(jsonString), YYJSON_READ_NOFLAG);
+	if (!doc) {
+		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Failed to parse JSON\n"), "red");
+		return 1;
+	}
+
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	if (!yyjson_is_arr(root)) {
+		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Root is not an array\n"), "red");
+		yyjson_doc_free(doc);
+		return 1;
+	}
+
+	size_t length = yyjson_arr_size(root);
+	if (length == 0) {
+		siril_log_color_message(_("Error parsing SPCC mirrors JSON: Empty array\n"), "red");
+		yyjson_doc_free(doc);
+		return 1;
+	}
+
+	// Allocate string vector (NULL-terminated)
+	spcc_mirrors = g_new0(gchar *, length + 1);
+
+	// Iterate over mirror entries
+	size_t valid_count = 0;
+	for (size_t i = 0; i < length; i++) {
+		yyjson_val *mirror = yyjson_arr_get(root, i);
+		if (!yyjson_is_obj(mirror)) {
+			siril_log_color_message(_("Error parsing SPCC mirrors JSON: Entry is not a valid object\n"), "red");
+			continue;
+		}
+
+		// Get required fields
+		const char *url = yyjson_get_str(yyjson_obj_get(mirror, "url"));
+		const char *description = yyjson_get_str(yyjson_obj_get(mirror, "description"));
+
+		if (!url || !description) {
+			siril_log_color_message(_("Error parsing SPCC mirrors JSON: Required fields missing\n"), "red");
+			continue;
+		}
+
+		// Store the URL in the string vector
+		spcc_mirrors[valid_count] = g_strdup(url);
+		valid_count++;
+
+		siril_debug_print("SPCC mirror %zu: %s (%s)\n", valid_count, url, description);
+	}
+
+	// Clean up
+	yyjson_doc_free(doc);
+
+	if (valid_count == 0) {
+		g_strfreev(spcc_mirrors);
+		spcc_mirrors = NULL;
+		siril_log_color_message(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"), "red");
+		return 1;
+	}
+
+	siril_log_message(_("Successfully loaded %zu SPCC mirror(s)\n"), valid_count);
+	return 0;
+}
+
+static gboolean end_spcc_mirrors_idle(gpointer p) {
+	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	if (!args->content)
+		goto end_spcc_mirrors_error;
+
+	// Parse JSON file and populate spcc_mirrors
+	if (parseJsonSpccMirrors(args->content) != 0) {
+		siril_log_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
+		goto end_spcc_mirrors_error;
+	}
+	/* pre-check the Gaia archive status */
+	check_gaia_archive_status();
+
+
+end_spcc_mirrors_error:
+	set_cursor_waiting(FALSE);
+	/* free data */
+	free(args->content);
+	free(args);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	stop_processing_thread();
+	return FALSE;
+}
+
+void siril_check_spcc_mirrors(gboolean verbose) {
+	if (!is_online()) {
+		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
+		return;
+	}
+
+	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
+	GString *url = g_string_new(GITLAB_URL);
+	g_string_append_printf(url, "/%s/%s", BRANCH, SPCC_MIRRORS);
+	args->url = g_string_free(url, FALSE);
+	siril_debug_print("SPCC mirrors URL: %s\n", args->url);
+	args->content = NULL;
+	args->verbose = verbose;
+	args->idle_function = end_spcc_mirrors_idle;
+
+	siril_log_message(_("Checking SPCC mirrors...\n"));
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-spcc-mirrors", fetch_url_async, args);
 }
 
 #endif // HAVE_LIBCURL

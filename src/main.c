@@ -82,6 +82,8 @@
 #include "gui/callbacks.h"
 #include "gui/siril_css.h"
 
+// Forward decl to avoid including all of photometric_cc.h
+void initialize_spcc_mirrors();
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
@@ -428,6 +430,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		gui_function(load_main_window_state, NULL);
+		initialize_spcc_mirrors();
 #if defined(HAVE_LIBCURL)
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
@@ -436,6 +439,7 @@ static void siril_app_activate(GApplication *application) {
 				siril_check_updates(FALSE);
 			}
 			siril_check_notifications(FALSE);
+			siril_check_spcc_mirrors(FALSE);
 		}
 
 #else
