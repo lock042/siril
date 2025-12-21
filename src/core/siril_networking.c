@@ -176,19 +176,20 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	return result;
 }
 
-char* fetch_url_range_with_curl(CURL* curl, const gchar *url, size_t start, size_t length,
+char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, size_t length,
                                 gsize *response_length, int *error, gboolean quiet) {
 	*error = 0;
 	*response_length = 0;
 	struct ucontent content = {NULL, 0};
 
-	if (!curl) {
+	if (!curlp) {
 		if (!quiet) {
 			siril_log_color_message(_("Error: NULL CURL handle provided.\n"), "red");
 		}
 		*error = 1;
 		return NULL;
 	}
+	CURL *curl = (CURL *) curlp;
 
 	// Construct the range header
 	gchar *range_header = g_strdup_printf("%zu-%zu", start, start + length - 1);
@@ -441,7 +442,7 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	return NULL;
 }
 
-char* fetch_url_range_with_curl(void* curl, const gchar *url, size_t start, size_t length,
+char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, size_t length,
                                 gsize *response_length, int *error, gboolean quiet) {
 	if (!quiet) {
 		siril_log_color_message(_("Error: Siril was compiled without libcurl support. Cannot fetch URL range: %s\n"),
