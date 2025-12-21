@@ -38,6 +38,7 @@
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "registration/matching/degtorad.h"
+#include "siril_catalogues.h"
 #include "local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include <stdio.h>
