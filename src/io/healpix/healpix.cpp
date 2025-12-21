@@ -445,19 +445,25 @@ static bool try_mirrors_and_update(CURL* curl, const char* path_suffix,
 /**
  * Wrapper for query_catalog_http_with_curl that implements mirror fallback
  */
+/**
+ * Wrapper for query_catalog_http_with_curl that implements mirror fallback
+ * Note: Makes a copy of healpixel_ranges since query_catalog_http_with_curl
+ * modifies them in place based on chunk offsets
+ */
 template<typename EntryType>
 static std::vector<EntryType> query_catalog_http_with_fallback(
                                     CURL* curl,
                                     const std::string& filename,
-                                    std::vector<HealPixelRange>& healpixel_ranges,
+                                    const std::vector<HealPixelRange>& healpixel_ranges,
                                     const HealpixCatHeader& header) {
     extern const char* spcc_mirrors[];
     std::vector<EntryType> results;
 
-    // Try current mirror first
+    // Try current mirror first - make a copy since the function modifies ranges
+    std::vector<HealPixelRange> ranges_copy = healpixel_ranges;
     std::string base_url(com.spcc_remote_catalogue);
     results = query_catalog_http_with_curl<EntryType>(curl, base_url, filename,
-                                                      healpixel_ranges, header);
+                                                      ranges_copy, header);
 
     if (!results.empty()) {
         return results;  // Success with current mirror
@@ -476,8 +482,10 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
         siril_log_message(_("Trying mirror: %s\n"), spcc_mirrors[i]);
         std::string test_base_url(spcc_mirrors[i]);
 
+        // Make a fresh copy of the original ranges for each attempt
+        ranges_copy = healpixel_ranges;
         results = query_catalog_http_with_curl<EntryType>(curl, test_base_url, filename,
-                                                          healpixel_ranges, header);
+                                                          ranges_copy, header);
 
         if (!results.empty()) {
             // This mirror works! Update the global setting
