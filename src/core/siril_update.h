@@ -27,6 +27,7 @@ version_number get_current_version_number();
 #if ( defined(HAVE_LIBCURL)  || defined(HAVE_LIBGIT2) )
 
 void siril_check_updates(gboolean verbose);
+void siril_check_spcc_mirrors(gboolean verbose);
 void siril_check_notifications(gboolean verbose);
 
 #endif
