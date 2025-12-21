@@ -3,6 +3,9 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 #ifdef HAVE_LIBCURL
 #include <curl/curl.h> // needs to be included before siril.h for Windows
 #endif
