@@ -3,6 +3,9 @@
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#ifdef HAVE_LIBCURL
+#include <curl/curl.h> // needs to be included before siril.h for Windows
+#endif
 #include "core/siril_log.h"
 #include "core/siril.h"
 #include "core/siril_networking.h"
@@ -228,7 +231,7 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
 
     gsize response_length;
     int error;
-    char* buffer = fetch_url_range_with_curl(curl, url.c_str(), 0, 128, &response_length, &error, FALSE);
+    char* buffer = fetch_url_range_with_curl((void*)curl, url.c_str(), 0, 128, &response_length, &error, FALSE);
 
     if (error || !buffer || response_length < 128) {
         if (error_status) {
@@ -303,7 +306,7 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
 
         gsize response_length;
         int error;
-        char* buffer = fetch_url_range_with_curl(curl, full_url.c_str(), start_pos, length,
+        char* buffer = fetch_url_range_with_curl((void*)curl, full_url.c_str(), start_pos, length,
                                       &response_length, &error, FALSE);
 
         if (error || !buffer) {
@@ -349,7 +352,7 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
         // Read the data entries via HTTP range request using provided CURL handle
         gsize data_response_length;
         int data_error;
-        char* data_buffer = fetch_url_range_with_curl(curl, full_url.c_str(), data_start_pos, data_length,
+        char* data_buffer = fetch_url_range_with_curl((void*)curl, full_url.c_str(), data_start_pos, data_length,
                                            &data_response_length, &data_error, FALSE);
 
         if (data_error || !data_buffer) {
