@@ -469,6 +469,8 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEBMP;
 	if (bytes_read >= 9 && memcmp(magic, "SIMPLE  =", 9) == 0)
 		return TYPEFITS;
+	if (bytes_read >= 4 && magic[0] == 0xFC && magic[1] == 0x31 && magic[2] == 0x22 && magic[3] == 0x01)
+		return TYPEPIC;
 	if (bytes_read >= 3 && magic[0] == 0xFF && magic[1] == 0xD8 && magic[2] == 0xFF)
 		return TYPEJPG;
 	if (bytes_read >= 8 && memcmp(magic, "\x89PNG\r\n\x1A\n", 8) == 0)
