@@ -118,21 +118,21 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 	if (resptime == -1) {
 		// Failed to fetch status
-		text = g_strdup(_("The Gaia remote catalogue is not responding."));
+		text = g_strdup(_("The Gaia remote SPCC catalogue is not responding."));
 		colortext = "red";
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 	} else {
 		// Check if response contains "true" or "false"
 		if (resptime < 500) {
-			text = g_strdup_printf(_("Gaia remote catalogue available, response %d ms"), resptime);
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue available, response %d ms"), resptime);
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 		} else if (resptime < 1000) {
-			text = g_strdup_printf(_("Gaia remote catalogue slow, response %d ms"), resptime);
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue slow, response %d ms"), resptime);
 			colortext = "salmon";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 		} else {
-			text = g_strdup_printf(_("Gaia remote catalogue very slow, response %d ms"), resptime);
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue very slow, response %d ms"), resptime);
 			colortext = "red";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		}
@@ -170,7 +170,7 @@ gpointer gaia_check(gpointer user_data) {
     for (int i = 0; i < num_mirrors; i++) {
         if (response_times[i] != -1) {
             working_mirrors++;
-            siril_log_message(_("Mirror %s: %d ms\n"), spcc_mirrors[i], response_times[i]);
+            siril_debug_print("Mirror %s: %d ms\n", spcc_mirrors[i], response_times[i]);
             if (response_times[i] < best_responsetime) {
                 best_mirror_index = i;
                 best_responsetime = response_times[i];
@@ -185,8 +185,8 @@ gpointer gaia_check(gpointer user_data) {
     if (best_mirror_index != -1) {
         g_free(com.spcc_remote_catalogue);
         com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
-        siril_log_color_message(_("Primary SPCC catalogue set to: %s (%d working mirrors available)\n"),
-                               "green", com.spcc_remote_catalogue, working_mirrors);
+        siril_log_message(_("Primary SPCC catalogue set to: %s (%d working mirrors available)\n"),
+                               com.spcc_remote_catalogue, working_mirrors);
     }
 
     execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));

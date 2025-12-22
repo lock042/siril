@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
 #include "gui/utils.h"
 #include "core/siril_update.h"
 
@@ -745,7 +746,7 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 		return 1;
 	}
 
-	siril_log_message(_("Successfully loaded %zu SPCC mirror(s)\n"), valid_count);
+	// siril_log_message(_("Successfully loaded %zu SPCC mirror(s)\n"), valid_count);
 	return 0;
 }
 
@@ -753,6 +754,18 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	if (!args->content)
 		goto end_spcc_mirrors_error;
+
+	// Cache the JSON locally
+	gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(),"siril", "spcc_mirrors.json", NULL);
+	GError *error = NULL;
+
+	if (g_file_set_contents(spcc_mirror_path, args->content, -1, &error)) {
+		siril_debug_print("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
+	} else {
+		// Handle error
+		siril_debug_print("Failed to write spcc_mirrors.json file: %s\n", error->message);
+		g_error_free(error);
+	}
 
 	// Parse JSON file and populate spcc_mirrors
 	if (parseJsonSpccMirrors(args->content) != 0) {
@@ -774,6 +787,26 @@ end_spcc_mirrors_error:
 }
 
 void siril_check_spcc_mirrors(gboolean verbose) {
+	// Try to read the local cached version of the SPCC mirrors file
+	gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(), "siril", "spcc_mirrors.json", NULL);
+	if (g_file_test(spcc_mirror_path, G_FILE_TEST_EXISTS)) {
+		gchar *content = NULL;
+		gsize length;
+		GError *error = NULL;
+		if (g_file_get_contents(spcc_mirror_path, &content, &length, &error)) {
+			if (parseJsonSpccMirrors(content))
+				siril_debug_print("Failed to parse spcc_mirrors.json file\n");
+			else
+				siril_debug_print("Read spcc_mirrors.json file at %s\n", spcc_mirror_path);
+			g_free(content);
+		} else {
+			// Handle error
+			siril_debug_print("Failed to read spcc_mirrors.json: %s", error->message);
+			g_error_free(error);
+		}
+	}
+	g_free(spcc_mirror_path);
+
 	if (!is_online()) {
 		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
 		return;
