@@ -77,7 +77,7 @@
         "config-opts": [
             "--enable-shared",
             "--prefix=/app",
-            "--with-ensurepip=install"
+            "--with-ensurepip=install",
             "--with-tcltk-includes=-I/app/include",
             "--with-tcltk-libs=-L/app/lib -ltcl8.6 -ltk8.6"
         ],
