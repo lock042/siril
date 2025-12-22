@@ -55,12 +55,31 @@
         ]
         },
         {
+            "name": "tk",
+            "subdir": "unix",
+            "cleanup": [
+                "/bin",
+                "/man"
+            ],
+            "post-install": [
+                "chmod u+w ${FLATPAK_DEST}/lib/libtk*.so"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://prdownloads.sourceforge.net/tcl/tk8.6.16-src.tar.gz",
+                    "sha256": "64bb79e08bc4614ffbc4a64eb2ec18f32b27c7df4a744dc04d03ac22b45e20b2"
+                }
+            ]
+        },
+        {
         "name": "python3.13",
         "config-opts": [
             "--enable-shared",
             "--prefix=/app",
             "--with-ensurepip=install"
-
+            "--with-tcltk-includes=-I/app/include",
+            "--with-tcltk-libs=-L/app/lib -ltcl8.6 -ltk8.6"
         ],
         "post-install": [
         "ln -svf ${FLATPAK_DEST}/bin/python3 ${FLATPAK_DEST}/bin/python",
