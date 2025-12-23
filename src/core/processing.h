@@ -172,19 +172,19 @@ struct generic_img_args {
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
 	int (*image_hook)(struct generic_img_args *, fits *, int);
+	/** hook to update the mask, for example to crop the mask to match a crop operation
+	 * performed on the image. */
+	int (*mask_hook) (struct generic_img_args *);
 	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
 	 * provides the level of detail, with SUMMARY providing a concise (<= 70 characters)
 	 * version for the undo label and FITS HISTORY card. (If the full description isn't
 	 * very long then the log_hook may elect to ignore this parameter and return the same
 	 * string in both cases.) Note, the string produced by the log_hook should NOT be
-	 * newline-terminated.*/
+	 * newline-terminated. */
 	gchar* (*log_hook)(gpointer, log_hook_detail);
 	/** Mask hook to perform any required updates to the mask (e.g. if the image is cropped,
-	 * it is necessary to perform the same crop on the mask).*/
-	int (*mask_hook) (struct generic_img_args *);
-	/** idle function to register at the end, if not already_in_a_thread.
-	 *  If NULL, the default idle function that stops the thread is used.
-	 *  Return false for single execution. It should free its argument. */
+	 * it is necessary to perform the same crop on the mask). This is NULL for operations
+	 * that do not support masks. */
 	GSourceFunc idle_function;
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
@@ -210,8 +210,6 @@ struct generic_img_args {
 	gboolean for_preview;
 	/** if TRUE, operation is being applied to ROI only */
 	gboolean for_roi;
-	/** if TRUE, operation supports masks */
-	gboolean supports_mask;
 	/** if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue) */
 	gboolean custom_undo;
 };

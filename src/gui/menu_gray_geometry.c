@@ -8,14 +8,6 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "core/siril.h"
@@ -41,10 +33,36 @@
 /**
  *  ROTATION
  */
+
+/* Idle function for rotation completion */
+static gboolean rotation_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		// Reset selection to current image size and reset rotation
+		rectangle area = {0, 0, gfit->rx, gfit->ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		gtk_spin_button_set_value(
+			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
+		gui_function(new_selection_zone, NULL);
+
+		update_zoom_label();
+		redraw(REMAP_ALL);
+		gui_function(redraw_previews, NULL);
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 static void rotate_gui(fits *fit) {
 	if (!check_ok_if_cfa())
 		return;
 	if (com.selection.w == 0 || com.selection.h == 0) return;
+
 	static GtkToggleButton *crop_rotation = NULL;
 	double angle = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
@@ -58,47 +76,156 @@ static void rotate_gui(fits *fit) {
 	}
 	cropped = gtk_toggle_button_get_active(crop_rotation);
 	if ((!cropped) & (com.selection.w < gfit->rx || com.selection.h < gfit->ry)) {
-		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
+		cropped = siril_confirm_dialog(_("Crop confirmation"),
+			("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"),
+			_("Crop"));
 		if (cropped)
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
 	}
 	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
+
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%s)"), angle,
 			cropped ? "TRUE" : "FALSE", clamp ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped, clamp);
 
-	// the UI is still opened, need to reset selection
-	// to current image size and reset rotation
-	rectangle area = {0, 0, fit->rx, fit->ry};
-	memcpy(&com.selection, &area, sizeof(rectangle));
-	gtk_spin_button_set_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
-	gui_function(new_selection_zone, NULL);
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
 
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	params->area = com.selection;
+	params->angle = angle;
+	params->interpolation = interpolation;
+	params->cropped = cropped;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 2.0f;  // Rotation needs space for transformation
+	args->image_hook = rotation_image_hook;
+	args->idle_function = rotation_idle;
+	args->description = _("Rotation");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+		return;
+	}
 }
+
+/* Idle function for fast rotation */
+static gboolean fast_rotation_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		update_zoom_label();
+		redraw(REMAP_ALL);
+		gui_function(redraw_previews, NULL);
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 void siril_rotate90() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(gfit, _("Rotation (90 deg)"));
-	verbose_rotate_fast(gfit, 90); // fast rotation, no interpolation, no crop
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = 90.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->idle_function = fast_rotation_idle;
+	args->description = _("Rotation 90°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;  // Fast rotation doesn't benefit from threading
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void siril_rotate270() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(gfit, _("Rotation (-90 deg)"));
-	verbose_rotate_fast(gfit, -90); // fast rotation, no interpolation, no crop
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = -90.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->idle_function = fast_rotation_idle;
+	args->description = _("Rotation -90°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
@@ -133,13 +260,29 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 
 void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer user_data) {
 	gint idx = gtk_combo_box_get_active(combo_box);
-
-	gtk_widget_set_sensitive(lookup_widget("toggle_rot_clamp"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+	gtk_widget_set_sensitive(lookup_widget("toggle_rot_clamp"),
+	                         idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
 /******
  * MIRROR
  */
+
+/* Idle function for mirror operations */
+static gboolean mirror_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		redraw(REMAP_ALL);
+		gui_function(redraw_previews, NULL);
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
 
 void on_menuitem_mirrorx_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	mirrorx_gui(gfit);
@@ -160,41 +303,145 @@ void on_mirrory_button_clicked(GtkToolButton *button, gpointer user_data) {
 void mirrorx_gui(fits *fit) {
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Mirror X"));
-	mirrorx(fit, TRUE);
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->x_axis = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 1.0f;  // Mirror needs minimal extra memory
+	args->image_hook = mirrorx_image_hook;
+	args->idle_function = mirror_idle;
+	args->description = _("Mirror X");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void mirrory_gui(fits *fit) {
 	set_cursor_waiting(TRUE);
 	undo_save_state(fit, _("Mirror Y"));
-	mirrory(fit, TRUE);
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->x_axis = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = fit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrory_image_hook;
+	args->idle_function = mirror_idle;
+	args->description = _("Mirror Y");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 /*************
  * BINNING
  */
 
+/* Idle function for binning */
+static gboolean binning_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (confirm_delete_wcs_keywords(gfit)) {
-		/* Switch to console tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
+	if (!confirm_delete_wcs_keywords(gfit))
+		return;
 
-		gboolean mean = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_binning"))) == 0;
-		int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
+	/* Switch to console tab */
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
-		set_cursor_waiting(TRUE);
-		undo_save_state(gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
-		fits_binning(gfit, factor, mean);
+	gboolean mean = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_binning"))) == 0;
+	int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
 
-		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+	set_cursor_waiting(TRUE);
+	undo_save_state(gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
+
+	// Allocate parameters
+	struct binning_args *params = new_binning_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->factor = factor;
+	params->mean = mean;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_binning_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;  // Binning needs space for the new buffer
+	args->image_hook = binning_image_hook;
+	args->idle_function = binning_idle;
+	args->description = _("Binning");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
 	}
 }
 
@@ -210,27 +457,76 @@ gboolean binxy_hide_on_delete(GtkWidget *widget) {
 /*************
  * RESAMPLE
  */
+
+/* Idle function for resample */
+static gboolean resample_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		gui_function(update_MenuItem, NULL); // WCS not available anymore
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (confirm_delete_wcs_keywords(gfit)) {
-		/* Switch to console tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
+	if (!confirm_delete_wcs_keywords(gfit))
+		return;
 
-		double sample[2];
-		sample[0] = gtk_spin_button_get_value( GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-		sample[1] = gtk_spin_button_get_value( GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
-		int interpolation = gtk_combo_box_get_active( GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
-		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
+	/* Switch to console tab */
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
-		set_cursor_waiting(TRUE);
-		int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
-		int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
-		undo_save_state(gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
-		verbose_resize_gaussian(gfit, toX, toY, interpolation, clamp);
+	double sample[2];
+	sample[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
+	sample[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
+	int interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
+	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_scale_clamp")));
 
-		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+	set_cursor_waiting(TRUE);
+	int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
+	int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
+	undo_save_state(gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
+
+	// Allocate parameters
+	struct resample_args *params = new_resample_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	params->toX = toX;
+	params->toY = toY;
+	params->interpolation = interpolation;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_resample_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Resample needs space for transformation
+	args->image_hook = resample_image_hook;
+	args->idle_function = resample_idle;
+	args->description = _("Resample");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
 	}
 }
 
@@ -355,17 +651,33 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 
 void on_combo_interpolation_changed(GtkComboBox *combo_box, gpointer user_data) {
 	gint idx = gtk_combo_box_get_active(combo_box);
-
 	gtk_widget_set_sensitive(toggle_scale_clamp, idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
 /**************
  * CROP
  */
+
+/* Idle function for crop */
+static gboolean crop_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		delete_selected_area();
+		reset_display_offset();
+		update_zoom_label();
+		notify_gfit_modified();
+		redraw(REMAP_ALL);
+		gui_function(redraw_previews, NULL);
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 void siril_crop() {
-	undo_save_state(gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-			com.selection.x, com.selection.y, com.selection.w,
-			com.selection.h);
 	if (is_preview_active()) {
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Image backup is active"),
 				_("It is impossible to crop the image when the image backup is active. "
@@ -375,55 +687,40 @@ void siril_crop() {
 		return;
 	}
 	clear_stars_list(TRUE);
-	crop(gfit, &com.selection);
-
-	char log[90];
-	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"), com.selection.x,
-			com.selection.y, com.selection.w, com.selection.h);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-}
-
-void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-#ifdef HAVE_FFMS2
-	if (com.seq.type == SEQ_AVI) {
-		siril_log_message(_("Crop does not work with "
-				"avi film. Please, convert your file to SER first.\n"));
-		return;
-	}
-#endif
-	if (com.seq.type == SEQ_INTERNAL) {
-		siril_log_message(_("Not a valid sequence for cropping.\n"));
-	}
-
-	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
-
-	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
-
-	args->seq = &com.seq;
-	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	args->prefix = strdup(gtk_entry_get_text(cropped_entry));
 
 	set_cursor_waiting(TRUE);
-	crop_sequence(args);
-}
 
-void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("crop_dialog");
-}
+	// Allocate parameters
+	struct crop_args *params = new_crop_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
 
-gboolean crop_hide_on_delete(GtkWidget *widget) {
-	siril_close_dialog("crop_dialog");
-	return TRUE;
+	params->area = com.selection;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_crop_args(params);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Crop is in-place
+	args->image_hook = crop_image_hook_single;
+	args->idle_function = crop_idle;
+	args->description = _("Crop");
+	args->log_hook = crop_log_hook;
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;  // Crop doesn't benefit from threading
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+	}
 }

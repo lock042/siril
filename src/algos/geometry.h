@@ -3,6 +3,79 @@
 
 #include "core/siril.h"
 
+/* Parameter structs for single image geometry operations */
+
+struct binning_args {
+	destructor destroy_fn;  // Must be first member
+	int factor;
+	gboolean mean;
+};
+
+struct crop_args {
+	destructor destroy_fn;  // Must be first member
+	rectangle area;
+};
+
+struct mirror_args {
+	destructor destroy_fn;  // Must be first member
+	gboolean x_axis;  // TRUE for mirrorx, FALSE for mirrory
+};
+
+struct resample_args {
+	destructor destroy_fn;  // Must be first member
+	int toX;
+	int toY;
+	opencv_interpolation interpolation;
+	gboolean clamp;
+};
+
+struct rotation_args {
+	destructor destroy_fn;  // Must be first member
+	rectangle area;
+	double angle;
+	int interpolation;
+	int cropped;
+	gboolean clamp;
+};
+
+/* Allocator and destructor functions */
+struct binning_args *new_binning_args();
+void free_binning_args(void *args);
+
+struct crop_args *new_crop_args();
+void free_crop_args(void *args);
+
+struct mirror_args *new_mirror_args();
+void free_mirror_args(void *args);
+
+struct resample_args *new_resample_args();
+void free_resample_args(void *args);
+
+struct rotation_args *new_rotation_args();
+void free_rotation_args(void *args);
+
+/* Log hooks for generic_image_worker */
+gchar *crop_log_hook(gpointer p, log_hook_detail detail);
+gchar *resample_log_hook(gpointer p, log_hook_detail detail);
+
+/* Image processing hooks for generic_image_worker */
+int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads);
+int mirrorx_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+int mirrory_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+
+/* Legacy functions - still used for sequences */
+int fits_binning(fits *fit, int factor, gboolean mean);
+int crop(fits *fit, rectangle *bounds);
+void mirrorx(fits *fit, gboolean verbose);
+void mirrory(fits *fit, gboolean verbose);
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
+int verbose_rotate_fast(fits *image, int angle);
+int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation, int cropped, gboolean clamp);
+
+
 /* crop sequence data from GUI */
 struct crop_sequence_data {
 	sequence *seq;

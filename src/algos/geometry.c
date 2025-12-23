@@ -312,14 +312,9 @@ const char *interp_to_str(opencv_interpolation interpolation) {
  * Indeed, siril_log_message seems not working in a cpp file */
 int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
 	int retvalue;
-	struct timeval t_start, t_end;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
 
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
-			"green", interp_to_str(interpolation));
-
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
@@ -327,9 +322,6 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	free_wcs(image);
 	reset_wcsdata(image);
 	refresh_annotations(TRUE);
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
 
 	return retvalue;
 }
@@ -856,4 +848,147 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	}
 
 	return GINT_TO_POINTER(0);
+}
+
+/*****************************************************************************
+ *      G E O M E T R Y   A R G S   A L L O C A T O R S   A N D   D E S T R U C T O R S
+ ****************************************************************************/
+
+struct binning_args *new_binning_args() {
+	struct binning_args *args = calloc(1, sizeof(struct binning_args));
+	if (args) {
+		args->destroy_fn = free_binning_args;
+	}
+	return args;
+}
+
+void free_binning_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct crop_args *new_crop_args() {
+	struct crop_args *args = calloc(1, sizeof(struct crop_args));
+	if (args) {
+		args->destroy_fn = free_crop_args;
+	}
+	return args;
+}
+
+void free_crop_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct mirror_args *new_mirror_args() {
+	struct mirror_args *args = calloc(1, sizeof(struct mirror_args));
+	if (args) {
+		args->destroy_fn = free_mirror_args;
+	}
+	return args;
+}
+
+void free_mirror_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct resample_args *new_resample_args() {
+	struct resample_args *args = calloc(1, sizeof(struct resample_args));
+	if (args) {
+		args->destroy_fn = free_resample_args;
+	}
+	return args;
+}
+
+void free_resample_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct rotation_args *new_rotation_args() {
+	struct rotation_args *args = calloc(1, sizeof(struct rotation_args));
+	if (args) {
+		args->destroy_fn = free_rotation_args;
+	}
+	return args;
+}
+
+void free_rotation_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+/*****************************************************************************
+ *      G E O M E T R Y   I M A G E   H O O K S   F O R   W O R K E R
+ ****************************************************************************/
+
+int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct binning_args *params = (struct binning_args *)args->user;
+	if (!params)
+		return 1;
+
+	return fits_binning(fit, params->factor, params->mean);
+}
+
+gchar *crop_log_hook(gpointer p, log_hook_detail detail) {
+	struct crop_args *params = (struct crop_args*) p;
+	gchar *msg = g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
+			params->area.x, params->area.y, params->area.w,
+			params->area.h);
+	return msg;
+}
+
+gchar *resample_log_hook(gpointer p, log_hook_detail detail) {
+	struct resample_args *params = (struct resample_args *)p;
+
+	gchar *msg = g_strdup_printf(_("Resampling to %d x %d pixels with %s interpolation"),
+			params->toX, params->toY, interp_to_str(params->interpolation));
+	return msg;
+}
+
+
+int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct crop_args *params = (struct crop_args *)args->user;
+	if (!params)
+		return 1;
+
+	return crop(fit, &params->area);
+}
+
+int mirrorx_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	mirrorx(fit, args->verbose);
+	return 0;
+}
+
+int mirrory_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	mirrory(fit, args->verbose);
+	return 0;
+}
+
+int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct resample_args *params = (struct resample_args *)args->user;
+	if (!params)
+		return 1;
+
+	return verbose_resize_gaussian(fit, params->toX, params->toY,
+	                                params->interpolation, params->clamp);
+}
+
+int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct rotation_args *params = (struct rotation_args *)args->user;
+	if (!params)
+		return 1;
+
+	// Check for fast rotation (90 degree increments)
+	int angle_int = (int)params->angle;
+	if (params->angle == angle_int && angle_int % 90 == 0 &&
+	    params->area.x == 0 && params->area.y == 0 &&
+	    params->area.w == fit->rx && params->area.h == fit->ry) {
+		return verbose_rotate_fast(fit, angle_int);
+	}
+
+	return verbose_rotate_image(fit, params->area, params->angle,
+	                             params->interpolation, params->cropped,
+	                             params->clamp);
 }

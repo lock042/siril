@@ -3091,55 +3091,6 @@ int process_ccm(int nb) {
 	}
 }
 
-
-int process_crop(int nb) {
-	if (is_preview_active()) {
-		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
-						"Please consider to close the filter dialog first.\n"));
-		return CMD_GENERIC_ERROR;
-	}
-
-	rectangle area;
-	if (com.selection.h && com.selection.w) {
-		area = com.selection;
-	} else {
-		if (nb == 5) {
-			gchar *end1, *end2;
-			area.x = g_ascii_strtoull(word[1], &end1, 10);
-			area.y = g_ascii_strtoull(word[2], &end2, 10);
-			if (end1 == word[1] || area.x < 0 || end2 == word[2] || area.y < 0) {
-				siril_log_message(_("Crop: x and y must be positive values.\n"));
-				return CMD_ARG_ERROR;
-			}
-			area.w = g_ascii_strtoull(word[3], &end1, 10);
-			area.h = g_ascii_strtoull(word[4], &end2, 10);
-			if (end1 == word[3] || area.w < 0 || end2 == word[4] || area.h < 0) {
-				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
-				return CMD_ARG_ERROR;
-			}
-			if (area.x + area.w > gfit->rx || area.y + area.h > gfit->ry) {
-				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit->rx, gfit->ry);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else {
-			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	crop(gfit, &area);
-
-	char log[90];
-	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-					area.x, area.y, area.w, area.h);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	siril_add_idle(crop_command_idle, NULL);
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
 int process_cd(int nb) {
 	long maxpath = get_pathmax();
 	char filename[maxpath];
@@ -4537,6 +4488,8 @@ merge_clean_up:
 	return retval;
 }
 
+/* Geometry operation image commands (updated to use generic_image_worker) */
+
 int process_mirrorx_single(int nb){
 	image_type imagetype;
 	char *realname = NULL;
@@ -4598,13 +4551,78 @@ int process_mirrorx(int nb){
 		}
 		siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
 	}
-	mirrorx(gfit, TRUE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->x_axis = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrorx_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Mirror X");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;  // Don't add CMD_NOTIFY_GFIT_MODIFIED - handled by worker
 }
 
 int process_mirrory(int nb){
-	mirrory(gfit, TRUE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->x_axis = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrory_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Mirror Y");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_binxy(int nb) {
@@ -4620,9 +4638,42 @@ int process_binxy(int nb) {
 		mean = FALSE;
 	}
 	image_cfa_warning_check();
-	fits_binning(gfit, factor, mean);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate parameters
+	struct binning_args *params = new_binning_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->factor = factor;
+	params->mean = mean;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_binning_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = binning_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Binning");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_resample(int nb) {
@@ -4714,12 +4765,49 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
-			toX, toY, interp_to_str(interpolation));
 	int fromX = gfit->rx, fromY = gfit->ry;
 	image_cfa_warning_check();
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(gfit, toX, toY, interpolation, clamp);
+
+	// Allocate parameters
+	struct resample_args *params = new_resample_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->toX = toX;
+	params->toY = toY;
+	params->interpolation = interpolation;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_resample_args(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = resample_image_hook;
+	args->log_hook = resample_log_hook;
+	args->idle_function = NULL;
+	args->description = _("Resample");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+		return CMD_GENERIC_ERROR;
+	}
 
 	char log[90];
 	sprintf(log, "Resampled from %d x %d, %s interp%s", fromX, fromY, interp_to_str(interpolation),
@@ -4728,78 +4816,82 @@ int process_resample(int nb) {
 	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	gui_function(update_MenuItem, NULL);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
-int process_rgradient(int nb) {
-	if (gfit->orig_bitpix == BYTE_IMG) {
-		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
-		return CMD_INVALID_IMAGE;
+int process_crop(int nb) {
+	if (is_preview_active()) {
+		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
+						"Please consider to close the filter dialog first.\n"));
+		return CMD_GENERIC_ERROR;
 	}
 
-	// Parse arguments
-	gchar *endxc, *endyc, *enddR, *endda;
-	double xc = g_ascii_strtod(word[1], &endxc);
-	double yc = g_ascii_strtod(word[2], &endyc);
-	double dR = g_ascii_strtod(word[3], &enddR);
-	double da = g_ascii_strtod(word[4], &endda);
-
-	// Validate arguments
-	if (endxc == word[1] || endyc == word[2] || enddR == word[3] || endda == word[4]) {
-		siril_log_message(_("Invalid numeric arguments. Usage: rgradient xc yc dR da\n"));
-		return CMD_ARG_ERROR;
+	rectangle area;
+	if (com.selection.h && com.selection.w) {
+		area = com.selection;
+	} else {
+		if (nb == 5) {
+			gchar *end1, *end2;
+			area.x = g_ascii_strtoull(word[1], &end1, 10);
+			area.y = g_ascii_strtoull(word[2], &end2, 10);
+			if (end1 == word[1] || area.x < 0 || end2 == word[2] || area.y < 0) {
+				siril_log_message(_("Crop: x and y must be positive values.\n"));
+				return CMD_ARG_ERROR;
+			}
+			area.w = g_ascii_strtoull(word[3], &end1, 10);
+			area.h = g_ascii_strtoull(word[4], &end2, 10);
+			if (end1 == word[3] || area.w < 0 || end2 == word[4] || area.h < 0) {
+				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (area.x + area.w > gfit->rx || area.y + area.h > gfit->ry) {
+				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit->rx, gfit->ry);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
-
-	if (xc >= gfit->rx || yc >= gfit->ry) {
-		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
-			"Please change their values and retry.\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	image_cfa_warning_check();
 
 	// Allocate parameters
-	struct rgradient_data *params = new_rgradient_data();
+	struct crop_args *params = new_crop_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
 
-	// Set parameters
-	params->xc = xc;
-	params->yc = yc;
-	params->dR = dR;
-	params->da = da;
-	params->fit = gfit;
-	params->verbose = TRUE;
+	params->area = area;
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
-		free_rgradient_data(params);
-		free(params);
+		free_crop_args(params);
 		return CMD_ALLOC_ERROR;
 	}
 
-	// Set up generic_img_args
 	args->fit = gfit;
-	args->mem_ratio = 3.0f; // Need memory for two temporary images
-	args->image_hook = rgradient_image_hook;
-	args->log_hook = rgradient_log_hook;
-	args->idle_function = NULL; // Use default idle for commands
-	args->description = _("Rotational Gradient");
+	args->mem_ratio = 1.0f;
+	args->image_hook = crop_image_hook_single;
+	args->idle_function = NULL;
+	args->description = _("Crop");
 	args->verbose = TRUE;
 	args->user = params;
-	args->max_threads = com.max_thread;
-	args->for_preview = FALSE;
-	args->for_roi = FALSE;
-	args->command_updates_gfit = TRUE; // Important for command context
+	args->max_threads = 1;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
+	char log[90];
+	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+					area.x, area.y, area.w, area.h);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	return CMD_OK;
 }
@@ -4875,7 +4967,46 @@ int process_rotate(int nb) {
 	}
 	if (angle != 90.0 && angle != 180.0 && angle != 270.0)
 		image_cfa_warning_check();
-	verbose_rotate_image(gfit, area, angle, interpolation, crop, clamp);
+
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->area = area;
+	params->angle = angle;
+	params->interpolation = interpolation;
+	params->cropped = crop;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = rotation_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Rotation");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+		return CMD_GENERIC_ERROR;
+	}
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -4883,15 +5014,121 @@ int process_rotate(int nb) {
 		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_rotatepi(int nb){
-	if (verbose_rotate_fast(gfit, 180))
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = 180.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Rotation 180°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
+	}
 
 	update_zoom_label();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
+}
+int process_rgradient(int nb) {
+	if (gfit->orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		return CMD_INVALID_IMAGE;
+	}
+
+	// Parse arguments
+	gchar *endxc, *endyc, *enddR, *endda;
+	double xc = g_ascii_strtod(word[1], &endxc);
+	double yc = g_ascii_strtod(word[2], &endyc);
+	double dR = g_ascii_strtod(word[3], &enddR);
+	double da = g_ascii_strtod(word[4], &endda);
+
+	// Validate arguments
+	if (endxc == word[1] || endyc == word[2] || enddR == word[3] || endda == word[4]) {
+		siril_log_message(_("Invalid numeric arguments. Usage: rgradient xc yc dR da\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (xc >= gfit->rx || yc >= gfit->ry) {
+		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
+			"Please change their values and retry.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	image_cfa_warning_check();
+
+	// Allocate parameters
+	struct rgradient_data *params = new_rgradient_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set parameters
+	params->xc = xc;
+	params->yc = yc;
+	params->dR = dR;
+	params->da = da;
+	params->fit = gfit;
+	params->verbose = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rgradient_data(params);
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f; // Need memory for two temporary images
+	args->image_hook = rgradient_image_hook;
+	args->log_hook = rgradient_log_hook;
+	args->idle_function = NULL; // Use default idle for commands
+	args->description = _("Rotational Gradient");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command_updates_gfit = TRUE; // Important for command context
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_set(int nb) {

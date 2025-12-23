@@ -1550,8 +1550,8 @@ gpointer generic_image_worker(gpointer p) {
 
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
-	fits orig = { 0 };
-	if (copyfits(args->fit, &orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+	fits *orig = calloc(1, sizeof(fits));
+	if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 		siril_log_color_message(_("Failed to copy original image.\n"), "red");
 		args->retval = 1;
 		goto the_end_no_orig;
@@ -1581,49 +1581,59 @@ gpointer generic_image_worker(gpointer p) {
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
 		if (args->verbose)
-			siril_log_color_message(_("%s failed.\n"), "red", args->description);
+			siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
 		args->retval = 1;
 	} else {
-		// If there is a log_hook, set the HISTORY card and update the log as required
-		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
-		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		if (!args->for_preview)
-			siril_log_message("%s\n", history); // Log the full detailed description
+		// Check for a mask hook and call it if one exists
+		if (args->mask_hook && args->mask_hook(args)) { // TODO: add a gboolean to enable / disable the mask if it is supported
+			// There is a mask_hook but it failed
+			if (args->verbose)
+				siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
+			args->retval = 1;
+			// Put the image back how it was, as failing to update the mask could be catastrophic
+			fits *tmp = gfit;
+			gfit = orig;
+			clearfits(tmp);
+			free(tmp);
+		} else { // Either no mask_hook or the mask_hook returned 0 (success)
+
+			// If there is a log_hook, set the HISTORY card and update the log as required
+			// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
+			history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
+			if (!args->for_preview)
+				siril_log_message("%s\n", history); // Log the full detailed description
 
 			// If we are being run from the GUI and not just updating a preview, set the undo state
-		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
-			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
-			undo_save_state(&orig, summary); // We just use the short description here
-			g_free(summary); // free the message
-			g_free(history); // free the full description, we don't need it in this case
-		} else {
-			// Update the HISTORY card if it wasn't updated by undo_save_state'
-			if ((args->custom_undo)) {
-				// Do nothing, the custom undo will handle it
-				g_free(history);
-			} else if (args->command_updates_gfit) {
-				args->fit->history = g_slist_append(args->fit->history, history);
-				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
-				update_fits_header(args->fit); // update the header so the history is up to date and correctly ordered
+			if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
+				summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
+				undo_save_state(orig, summary); // We just use the short description here
+				g_free(summary); // free the message
+				g_free(history); // free the full description, we don't need it in this case
 			} else {
-				g_free(history);
+				// Update the HISTORY card if it wasn't updated by undo_save_state'
+				if ((args->custom_undo)) {
+					// Do nothing, the custom undo will handle it
+					g_free(history);
+				} else if (args->command_updates_gfit) {
+					args->fit->history = g_slist_append(args->fit->history, history);
+					// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
+					update_fits_header(args->fit); // update the header so the history is up to date and correctly ordered
+				} else {
+					g_free(history);
+				}
 			}
-		}
-
-		if (args->supports_mask) {
-			// TODO: once masks are implemented, combine orig with args->fit according to the mask
-			// For now, the processed result is in args->fit
-		}
-		if (verbose) {
-			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
-			gettimeofday(&t_end, NULL);
-			show_time(t_start, t_end);
+			if (verbose) {
+				siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+				gettimeofday(&t_end, NULL);
+				show_time(t_start, t_end);
+			}
 		}
 	}
 
 the_end:
 	// Always clean up orig
-	clearfits(&orig);
+	clearfits(orig);
+	free(orig);
 
 the_end_no_orig:
 	if (args->retval) {
