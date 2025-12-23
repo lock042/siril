@@ -35,6 +35,8 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "gui/callbacks.h"
+#include "gui/PSF_list.h"
+#include "gui/image_interactions.h"
 
 #include "geometry.h"
 
@@ -962,12 +964,21 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	return fits_binning(fit, params->factor, params->mean);
 }
 
+static gboolean crop_gui_updates(gpointer user) {
+	clear_stars_list(TRUE);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	return FALSE;
+}
+
 int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct crop_args *params = (struct crop_args *)args->user;
 	if (!params)
 		return 1;
-
-	return crop(fit, &params->area);
+	int retval = crop(fit, &params->area);
+	gui_function(crop_gui_updates, NULL);
+	return retval;
 }
 
 int mirrorx_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
@@ -985,8 +996,10 @@ int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	if (!params)
 		return 1;
 
-	return verbose_resize_gaussian(fit, params->toX, params->toY,
+	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
 	                                params->interpolation, params->clamp);
+	gui_function(update_MenuItem, NULL);
+	return retval;
 }
 
 int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
@@ -996,13 +1009,22 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 
 	// Check for fast rotation (90 degree increments)
 	int angle_int = (int)params->angle;
+	int retval;
 	if (params->angle == angle_int && angle_int % 90 == 0 &&
 	    params->area.x == 0 && params->area.y == 0 &&
 	    params->area.w == fit->rx && params->area.h == fit->ry) {
-		return verbose_rotate_fast(fit, angle_int);
-	}
-
-	return verbose_rotate_image(fit, params->area, params->angle,
+		retval = verbose_rotate_fast(fit, angle_int);
+	} else {
+		retval = verbose_rotate_image(fit, params->area, params->angle,
 	                             params->interpolation, params->cropped,
 	                             params->clamp);
+	}
+
+	// If a selection is set, we set it to the entire image
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
+		gui_function(new_selection_zone, NULL);
+	}
+	update_zoom_label();
+	return retval;
 }

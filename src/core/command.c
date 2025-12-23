@@ -4785,7 +4785,7 @@ int process_resample(int nb) {
 	}
 
 	args->fit = gfit;
-	args->mem_ratio = 2.0f;
+	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));
 	args->image_hook = resample_image_hook;
 	args->mask_hook = resample_mask_hook;
 	args->log_hook = resample_log_hook;
@@ -4802,21 +4802,8 @@ int process_resample(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
-	gui_function(update_MenuItem, NULL); // TODO should this be in an idle?
 	return CMD_OK;
 }
-
-// TODO: does this need to be incorporated into an end-of-crop idle?
-/*
-static gboolean crop_command_idle(gpointer arg) {
-	// operations that are not in the generic idle of notify_gfit_modified()
-	clear_stars_list(TRUE);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	return FALSE;
-}
-*/
 
 int process_crop(int nb) {
 	if (is_preview_active()) {
@@ -5003,14 +4990,6 @@ int process_rotate(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
-
-	// TODO: should this be in an idle?
-	// the new selection will match the current image
-	if (has_selection) {
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
-		gui_function(new_selection_zone, NULL);
-	}
-	update_zoom_label();
 	return CMD_OK;
 }
 
@@ -5053,8 +5032,6 @@ int process_rotatepi(int nb){
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
-
-	update_zoom_label();
 	return CMD_OK;
 }
 int process_rgradient(int nb) {
