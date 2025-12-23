@@ -264,11 +264,8 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
-	struct timeval t_start, t_end;
-
-	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+
 	if (fit->type == DATA_USHORT) {
 		fits_binning_ushort(fit, factor, mean);
 	} else if (fit->type == DATA_FLOAT) {
@@ -279,32 +276,34 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
 
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-
-	char log[90];
-	sprintf(log, "Binned x%d (%s)", factor, mean ? "mean" : "sum");
-	fit->history = g_slist_append(fit->history, strdup(log));
-
-	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
-
 	return 0;
 }
 
-const char *interp_to_str(opencv_interpolation interpolation) {
+const char* interp_to_str(int interpolation) {
+	const char *str_inter;
 	switch (interpolation) {
+		case -1:
+		case OPENCV_NONE:
+			str_inter = _("No");
+			break;
 		case OPENCV_NEAREST:
-			return _("Nearest-Neighbor");
+			str_inter = _("Nearest-Neighbor");
+			break;
 		default:
 		case OPENCV_LINEAR:
-			return _("Bilinear");
+			str_inter = _("Bilinear");
+			break;
 		case OPENCV_AREA:
-			return _("Pixel Area Relation");
+			str_inter = _("Pixel Area Relation");
+			break;
 		case OPENCV_CUBIC:
-			return _("Bicubic");
+			str_inter = _("Bicubic");
+			break;
 		case OPENCV_LANCZOS4:
-			return _("Lanczos4");
+			str_inter = _("Lanczos4");
+			break;
 	}
+	return str_inter;
 }
 
 /* These functions do not more than resize_gaussian and rotate_image
@@ -344,12 +343,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
-	siril_log_color_message(
-			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
-			_("No"), (double)angle);
 
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
@@ -359,8 +353,6 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 	if (cvRotateImage(image, angle)) return 1;
 
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, &H);
@@ -373,35 +365,6 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped, gboolean clamp) {
-	const char *str_inter;
-	struct timeval t_start, t_end;
-
-	switch (interpolation) {
-		case -1:
-			str_inter = _("No");
-			break;
-		case OPENCV_NEAREST:
-			str_inter = _("Nearest-Neighbor");
-			break;
-		default:
-		case OPENCV_LINEAR:
-			str_inter = _("Bilinear");
-			break;
-		case OPENCV_AREA:
-			str_inter = _("Pixel Area Relation");
-			break;
-		case OPENCV_CUBIC:
-			str_inter = _("Bicubic");
-			break;
-		case OPENCV_LANCZOS4:
-			str_inter = _("Lanczos4");
-			break;
-	}
-
-	siril_log_color_message(
-			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
-			str_inter, angle);
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 
 	int orig_ry = image->ry; // required to compute flips afterwards
@@ -414,9 +377,6 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	Hocv = H;
 	cvdisplay2ocv(&Hocv);
 	if (cvTransformImage(image, target_rx, target_ry, Hocv, 1.f, interpolation, clamp, NULL)) return 1;
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
 
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
@@ -919,17 +879,41 @@ void free_rotation_args(void *ptr) {
 	free(ptr);
 }
 
-/*****************************************************************************
- *      G E O M E T R Y   I M A G E   H O O K S   F O R   W O R K E R
- ****************************************************************************/
-
-int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	struct binning_args *params = (struct binning_args *)args->user;
-	if (!params)
-		return 1;
-
-	return fits_binning(fit, params->factor, params->mean);
+/************************************************************************
+ *      G E O M E T R Y   M A S K   H O O K S   F O R   W O R K E R
+ ************************************************************************/
+int binning_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
 }
+
+int crop_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
+}
+
+int resample_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
+}
+
+int rotation_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
+}
+
+int mirrorx_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
+}
+
+int mirrory_mask_hook(struct generic_img_args *args) {
+	siril_debug_print("Placeholder mask hook\n");
+	return 0;
+}
+/**********************************************************************
+ *      G E O M E T R Y   L O G   H O O K S   F O R   W O R K E R
+ **********************************************************************/
 
 gchar *crop_log_hook(gpointer p, log_hook_detail detail) {
 	struct crop_args *params = (struct crop_args*) p;
@@ -947,6 +931,36 @@ gchar *resample_log_hook(gpointer p, log_hook_detail detail) {
 	return msg;
 }
 
+gchar *binning_log_hook(gpointer p, log_hook_detail detail) {
+	struct binning_args *params = (struct binning_args *) p;
+	gchar *msg = g_strdup_printf(_("Binning x%d (%s)"), params->factor, params->mean ? _("average") : _("sum"));
+	return msg;
+}
+
+gchar *rotation_log_hook(gpointer p, log_hook_detail detail) {
+	struct rotation_args *params = (struct rotation_args *) p;
+	gchar *msg = NULL;
+	if (detail == SUMMARY) {
+		msg = g_strdup_printf(_("Rotation (%.1lfdeg)"), params->angle);
+	} else {
+		msg = g_strdup_printf(_("Rotation (%.1lfdeg, cropped=%s, clamped=%s, %s interpolation)"), params->angle,
+				params->cropped ? _("TRUE") : _("FALSE"), params->clamp ? _("TRUE") : _("FALSE"),
+				interp_to_str(params->interpolation));
+	}
+	return msg;
+}
+
+/*****************************************************************************
+ *      G E O M E T R Y   I M A G E   H O O K S   F O R   W O R K E R
+ ****************************************************************************/
+
+int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct binning_args *params = (struct binning_args *)args->user;
+	if (!params)
+		return 1;
+
+	return fits_binning(fit, params->factor, params->mean);
+}
 
 int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct crop_args *params = (struct crop_args *)args->user;
@@ -957,12 +971,12 @@ int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_thre
 }
 
 int mirrorx_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	mirrorx(fit, args->verbose);
+	mirrorx(fit, FALSE);
 	return 0;
 }
 
 int mirrory_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	mirrory(fit, args->verbose);
+	mirrory(fit, FALSE);
 	return 0;
 }
 

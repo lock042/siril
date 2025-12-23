@@ -85,8 +85,6 @@ static void rotate_gui(fits *fit) {
 	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%s)"), angle,
-			cropped ? "TRUE" : "FALSE", clamp ? "TRUE" : "FALSE");
 
 	// Allocate parameters
 	struct rotation_args *params = new_rotation_args();
@@ -114,6 +112,8 @@ static void rotate_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 2.0f;  // Rotation needs space for transformation
 	args->image_hook = rotation_image_hook;
+	args->mask_hook = rotation_mask_hook;
+	args->log_hook = rotation_log_hook;
 	args->idle_function = rotation_idle;
 	args->description = _("Rotation");
 	args->verbose = TRUE;
@@ -146,7 +146,6 @@ static gboolean fast_rotation_idle(gpointer p) {
 
 void siril_rotate90() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Rotation (90 deg)"));
 
 	// Allocate parameters
 	struct rotation_args *params = new_rotation_args();
@@ -174,6 +173,8 @@ void siril_rotate90() {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
+	args->mask_hook = rotation_mask_hook;
+	args->log_hook = rotation_log_hook;
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation 90°");
 	args->verbose = TRUE;
@@ -188,7 +189,6 @@ void siril_rotate90() {
 
 void siril_rotate270() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Rotation (-90 deg)"));
 
 	// Allocate parameters
 	struct rotation_args *params = new_rotation_args();
@@ -216,6 +216,8 @@ void siril_rotate270() {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
+	args->mask_hook = rotation_mask_hook;
+	args->log_hook = rotation_log_hook;
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation -90°");
 	args->verbose = TRUE;
@@ -302,7 +304,6 @@ void on_mirrory_button_clicked(GtkToolButton *button, gpointer user_data) {
 
 void mirrorx_gui(fits *fit) {
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Mirror X"));
 
 	// Allocate parameters
 	struct mirror_args *params = new_mirror_args();
@@ -326,6 +327,7 @@ void mirrorx_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 1.0f;  // Mirror needs minimal extra memory
 	args->image_hook = mirrorx_image_hook;
+	args->mask_hook = mirrorx_mask_hook;
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror X");
 	args->verbose = TRUE;
@@ -340,7 +342,6 @@ void mirrorx_gui(fits *fit) {
 
 void mirrory_gui(fits *fit) {
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Mirror Y"));
 
 	// Allocate parameters
 	struct mirror_args *params = new_mirror_args();
@@ -364,6 +365,7 @@ void mirrory_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrory_image_hook;
+	args->mask_hook = mirrory_mask_hook;
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror Y");
 	args->verbose = TRUE;
@@ -408,7 +410,6 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
 
 	// Allocate parameters
 	struct binning_args *params = new_binning_args();
@@ -433,6 +434,8 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;  // Binning needs space for the new buffer
 	args->image_hook = binning_image_hook;
+	args->mask_hook = binning_mask_hook;
+	args->log_hook = binning_log_hook;
 	args->idle_function = binning_idle;
 	args->description = _("Binning");
 	args->verbose = TRUE;
@@ -491,7 +494,6 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
 	int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
-	undo_save_state(gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
 
 	// Allocate parameters
 	struct resample_args *params = new_resample_args();
@@ -518,6 +520,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;  // Resample needs space for transformation
 	args->image_hook = resample_image_hook;
+	args->mask_hook = resample_mask_hook;
 	args->idle_function = resample_idle;
 	args->description = _("Resample");
 	args->verbose = TRUE;
@@ -712,6 +715,7 @@ void siril_crop() {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;  // Crop is in-place
 	args->image_hook = crop_image_hook_single;
+	args->mask_hook = crop_mask_hook;
 	args->idle_function = crop_idle;
 	args->description = _("Crop");
 	args->log_hook = crop_log_hook;

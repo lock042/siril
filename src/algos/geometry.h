@@ -54,9 +54,20 @@ void free_resample_args(void *args);
 struct rotation_args *new_rotation_args();
 void free_rotation_args(void *args);
 
+/* Mask hooks for generic_image_worker */
+int binning_mask_hook(struct generic_img_args *args);
+int crop_mask_hook(struct generic_img_args *args);
+int resample_mask_hook(struct generic_img_args *args);
+int rotation_mask_hook(struct generic_img_args *args);
+int mirrorx_mask_hook(struct generic_img_args *args);
+int mirrory_mask_hook(struct generic_img_args *args);
+
 /* Log hooks for generic_image_worker */
+gchar *binning_log_hook(gpointer p, log_hook_detail detail);
 gchar *crop_log_hook(gpointer p, log_hook_detail detail);
 gchar *resample_log_hook(gpointer p, log_hook_detail detail);
+gchar *rotation_log_hook(gpointer p, log_hook_detail detail);
+// No mirror_log_hook as the description provides all that's needed
 
 /* Image processing hooks for generic_image_worker */
 int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
@@ -109,6 +120,6 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
 
 gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
 
-const char *interp_to_str(opencv_interpolation interpolation);
+const char *interp_to_str(int interpolation);
 
 #endif /* SRC_ALGOS_GEOMETRY_H_ */

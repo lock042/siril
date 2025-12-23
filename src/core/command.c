@@ -2939,16 +2939,6 @@ int process_seq_update_key(int nb) {
 	return CMD_OK;
 }
 
-static gboolean crop_command_idle(gpointer arg) {
-	// operations that are not in the generic idle of notify_gfit_modified()
-	clear_stars_list(TRUE);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	return FALSE;
-}
-
-
 /* Command interpreter function for CCM using generic_image_worker */
 int process_ccm(int nb) {
 	sequence *seq = NULL;
@@ -4572,6 +4562,7 @@ int process_mirrorx(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrorx_image_hook;
+	args->mask_hook = mirrorx_mask_hook;
 	args->idle_function = NULL;  // Use default
 	args->description = _("Mirror X");
 	args->verbose = TRUE;
@@ -4609,6 +4600,7 @@ int process_mirrory(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrory_image_hook;
+	args->mask_hook = mirrory_mask_hook;
 	args->idle_function = NULL;
 	args->description = _("Mirror Y");
 	args->verbose = TRUE;
@@ -4660,6 +4652,8 @@ int process_binxy(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = binning_image_hook;
+	args->mask_hook = binning_mask_hook;
+	args->log_hook = binning_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Binning");
 	args->verbose = TRUE;
@@ -4765,7 +4759,6 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	int fromX = gfit->rx, fromY = gfit->ry;
 	image_cfa_warning_check();
 	set_cursor_waiting(TRUE);
 
@@ -4794,6 +4787,7 @@ int process_resample(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = resample_image_hook;
+	args->mask_hook = resample_mask_hook;
 	args->log_hook = resample_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Resample");
@@ -4808,16 +4802,21 @@ int process_resample(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
-
-	char log[90];
-	sprintf(log, "Resampled from %d x %d, %s interp%s", fromX, fromY, interp_to_str(interpolation),
-			((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) ?
-			", clamped" : "");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	gui_function(update_MenuItem, NULL);
+	gui_function(update_MenuItem, NULL); // TODO should this be in an idle?
 	return CMD_OK;
 }
+
+// TODO: does this need to be incorporated into an end-of-crop idle?
+/*
+static gboolean crop_command_idle(gpointer arg) {
+	// operations that are not in the generic idle of notify_gfit_modified()
+	clear_stars_list(TRUE);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	return FALSE;
+}
+*/
 
 int process_crop(int nb) {
 	if (is_preview_active()) {
@@ -4875,6 +4874,7 @@ int process_crop(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = crop_image_hook_single;
+	args->mask_hook = crop_mask_hook;
 	args->idle_function = NULL;
 	args->description = _("Crop");
 	args->verbose = TRUE;
@@ -4887,11 +4887,6 @@ int process_crop(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
-
-	char log[90];
-	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-					area.x, area.y, area.w, area.h);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
 
 	return CMD_OK;
 }
@@ -4959,7 +4954,6 @@ int process_rotate(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_debug_print("%f\n",angle);
 
 	if (angle == 0.0 || angle == 360.0) {
 		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
@@ -4994,6 +4988,8 @@ int process_rotate(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = rotation_image_hook;
+	args->mask_hook = rotation_mask_hook;
+	args->log_hook = rotation_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Rotation");
 	args->verbose = TRUE;
@@ -5008,6 +5004,7 @@ int process_rotate(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
+	// TODO: should this be in an idle?
 	// the new selection will match the current image
 	if (has_selection) {
 		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
@@ -5042,6 +5039,8 @@ int process_rotatepi(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
+	args->mask_hook = rotation_mask_hook;
+	args->log_hook = rotation_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Rotation 180°");
 	args->verbose = TRUE;
