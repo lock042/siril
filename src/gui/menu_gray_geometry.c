@@ -728,3 +728,41 @@ void siril_crop() {
 		set_cursor_waiting(FALSE);
 	}
 }
+
+void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return;
+	}
+
+#ifdef HAVE_FFMS2
+	if (com.seq.type == SEQ_AVI) {
+		siril_log_message(_("Crop does not work with "
+				"avi film. Please, convert your file to SER first.\n"));
+		return;
+	}
+#endif
+	if (com.seq.type == SEQ_INTERNAL) {
+		siril_log_message(_("Not a valid sequence for cropping.\n"));
+	}
+
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
+
+	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
+
+	args->seq = &com.seq;
+	memcpy(&args->area, &com.selection, sizeof(rectangle));
+	args->prefix = strdup(gtk_entry_get_text(cropped_entry));
+
+	set_cursor_waiting(TRUE);
+	crop_sequence(args);
+}
+
+void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("crop_dialog");
+}
+
+gboolean crop_hide_on_delete(GtkWidget *widget) {
+	siril_close_dialog("crop_dialog");
+	return TRUE;
+}
