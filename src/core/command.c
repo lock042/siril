@@ -327,6 +327,7 @@ int process_satu(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->log_hook = satu_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -732,6 +733,7 @@ int process_denoise(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
+	args->mask_aware = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
@@ -838,6 +840,7 @@ int process_starnet(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
+	args->mask_aware = TRUE;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
@@ -1318,6 +1321,7 @@ int process_imoper(int nb) {
 	args->log_hook = imoper_log_hook;
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
+	args->mask_aware = TRUE;
 	args->for_roi = FALSE;
 
 	// Start the worker thread
@@ -1390,6 +1394,7 @@ int process_addmax(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = addmax_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -1556,6 +1561,7 @@ int process_fmul(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = fmul_log_hook;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
@@ -1634,6 +1640,7 @@ int process_gauss(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = gauss_log_hook;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
@@ -1807,6 +1814,7 @@ int process_unpurple(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
+	args->mask_aware = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
 
@@ -1974,6 +1982,7 @@ int process_epf(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->log_hook = epf_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -2666,6 +2675,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data; // Dynamic estk_data managed by generic worker
+		args->mask_aware = TRUE;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;
@@ -2798,6 +2808,7 @@ int process_unsharp(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = unsharp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -3548,6 +3559,7 @@ int process_ghs(int nb, int stretchtype) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -3733,6 +3745,7 @@ int process_autoghs(int nb) {
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data;
+		args->mask_aware = TRUE;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;
@@ -3844,6 +3857,7 @@ int process_autostretch(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -3855,15 +3869,6 @@ int process_autostretch(int nb) {
 	if (retval != 0) {
 		return CMD_GENERIC_ERROR;
 	}
-
-//		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-//			params.shadows, params.midtones, params.highlights);
-
-	char log[90];
-	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
-			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
 	return CMD_OK;
 }
 
@@ -4127,6 +4132,7 @@ int process_clahe(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -6909,6 +6915,7 @@ int process_thresh(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = thresh_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -6962,6 +6969,7 @@ int process_neg(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
+	args->mask_aware = TRUE;
 	// No log_hook required here as the basic description is enough
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -7114,6 +7122,7 @@ int process_ddp(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = ddp_args;
+	args->mask_aware = TRUE;
 	args->log_hook = ddp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -7688,6 +7697,7 @@ int process_fmedian(int nb){
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->log_hook = median_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -7936,6 +7946,7 @@ int process_offset(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
+	args->mask_aware = TRUE;
 	args->log_hook = offset_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -7947,7 +7958,6 @@ int process_offset(int nb) {
 	}
 	return CMD_OK;
 }
-
 
 /* Command interpreter function for SCNR using generic_image_worker */
 int process_scnr(int nb) {
@@ -8014,6 +8024,7 @@ int process_scnr(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
+	args->mask_aware = TRUE;
 	args->command = TRUE;  // This is being called from a command
 	args->command_updates_gfit = TRUE;  // We need gfit to be updated
 
