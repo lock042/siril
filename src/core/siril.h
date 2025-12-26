@@ -448,6 +448,13 @@ struct sequ {
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve
 };
 
+typedef struct _mask {
+	uint8_t* data;
+	size_t rx;
+	size_t ry;
+	gboolean active;
+} mask_t;
+
 /* this struct is used to manage data associated with a single image loaded, outside a sequence */
 typedef struct {
 	char *filename;		// the name of the file
@@ -579,6 +586,7 @@ struct ffit {
 	/* ICC Color Management data */
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
+	mask_t mask; // Mask for image operations
 };
 
 typedef enum {

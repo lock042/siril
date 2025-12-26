@@ -135,6 +135,8 @@ siril_common_SOURCES = \
 	core/icc_profile.h \
 	core/initfile.c \
 	core/initfile.h \
+	core/masks.c \
+	core/masks.h \
 	core/OS_utils.c \
 	core/OS_utils.h \
 	core/pipe.c \

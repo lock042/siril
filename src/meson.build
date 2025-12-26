@@ -81,6 +81,7 @@ src_files = [
   'core/exif.cpp',
   'core/icc_profile.c',
   'core/initfile.c',
+  'core/masks.c',
   'core/OS_utils.c',
   'core/pipe.c',
   'core/preprocess.c',
