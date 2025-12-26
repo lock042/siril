@@ -213,18 +213,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkFileChooserButton" id="filechooser_lum">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="width-chars">16</property>
-                <signal name="file-set" handler="on_filechooser_file_set" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkCheckButton" id="composition_use_lum">
                 <property name="label" translatable="yes">Use Luminance</property>
                 <property name="visible">True</property>
@@ -298,6 +286,19 @@ Rotation is shown in degrees anticlockwise.</property>
               </object>
               <packing>
                 <property name="left-attach">7</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="filechooser_lum">
+                <property name="label" translatable="yes">(None)</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_chooser_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
                 <property name="top-attach">1</property>
               </packing>
             </child>
