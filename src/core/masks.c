@@ -30,7 +30,7 @@ int mask_create_ones_like(fits *fit) {
 
 	size_t npixels = fit->rx * fit->ry;
 	fit->mask = malloc(fit->rx * fit->ry * sizeof(uint8_t));
-	uint8_t *m = fit->mask;
+	mask_t m = fit->mask;
 	if (!fit->mask) {
 		PRINT_ALLOC_ERR;
 		return 1;
@@ -38,10 +38,10 @@ int mask_create_ones_like(fits *fit) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread)
 #endif
-	for (size_t i = 0 ; i < npixels ; i++)) {
+	for (size_t i = 0 ; i < npixels ; i++) {
 		m[i] = 255;
 	}
-	return m;
+	return 0;
 }
 
 // Create a mask with zeroes-like property. Any existing mask is freed

@@ -202,6 +202,7 @@ typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
+typedef uint8_t* mask_t; // A typedef for the mask
 
 typedef struct {
 	double x, y;
@@ -447,13 +448,6 @@ struct sequ {
 	double reference_mag;	// reference magnitude for the reference star
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve
 };
-
-typedef struct _mask {
-	uint8_t* data;
-	size_t rx;
-	size_t ry;
-	gboolean active;
-} mask_t;
 
 /* this struct is used to manage data associated with a single image loaded, outside a sequence */
 typedef struct {

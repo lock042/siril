@@ -1529,6 +1529,38 @@ void free_generic_img_args(struct generic_img_args *args) {
 	free(args);
 }
 
+static inline void blend_fits(fits* fit, fits* orig) {
+	size_t npixels = fit->rx * fit->ry;
+	mask_t mask = fit->mask;
+	if (fit->type == DATA_USHORT) {
+		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+			WORD *ocdata = orig->pdata[chan];
+			WORD *fcdata = fit->pdata[chan];
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+			for (size_t i = 0 ; i < npixels ; i++) {
+				uint32_t temp = fcdata[i] * mask[i] + ocdata[i] * (255 - mask[i]);
+				fcdata[i] = (temp * 257) >> 16;  // Exact /255 for 16-bit range
+			}
+		}
+	} else {
+		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+			float *ocdata = orig->fpdata[chan];
+			float *fcdata = fit->fpdata[chan];
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+			for (size_t i = 0 ; i < npixels ; i++) {
+				float alpha = mask[i] * (1.0f / 255.0f);
+				float orig = ocdata[i];
+				float blend = fcdata[i] - orig;
+				fcdata[i] = orig + alpha * blend;  // (pix1-pix2)*alpha + pix2
+			}
+		}
+	}
+}
+
 /** Main generic image worker function
  * Works with a single image, optionally using multiple threads for processing
  */
@@ -1548,13 +1580,23 @@ gpointer generic_image_worker(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
+	fits *orig = NULL;
+
+	gboolean using_mask = args->mask_aware;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
-	fits *orig = calloc(1, sizeof(fits));
-	if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-		siril_log_color_message(_("Failed to copy original image.\n"), "red");
-		args->retval = 1;
-		goto the_end_no_orig;
+	if (using_mask) {
+		orig = calloc(1, sizeof(fits));
+		if (!orig) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end_no_orig;
+		}
+		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+			siril_log_color_message(_("Failed to copy original image.\n"), "red");
+			args->retval = 1;
+			goto the_end_no_orig;
+		}
 	}
 
 	// Set default max_threads if not specified
@@ -1584,8 +1626,9 @@ gpointer generic_image_worker(gpointer p) {
 			siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
 		args->retval = 1;
 	} else {
-		// Check for a mask hook and call it if one exists
-		if (args->mask_hook && args->mask_hook(args)) { // TODO: add a gboolean to enable / disable the mask if it is supported
+		// Check for a mask hook and call it if one exists (we must do this even if not using the mask, to ensure
+		// it is properly updated)
+		if (args->fit->mask && args->mask_hook && args->mask_hook(args)) { // This hook updates the mask (eg to change geometry)
 			// There is a mask_hook but it failed
 			if (args->verbose)
 				siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
@@ -1596,7 +1639,10 @@ gpointer generic_image_worker(gpointer p) {
 			clearfits(tmp);
 			free(tmp);
 		} else { // Either no mask_hook or the mask_hook returned 0 (success)
-
+			// Blend according to the mask
+			if (args->mask_aware && args->fit->mask) {
+				blend_fits(args->fit, orig);
+			}
 			// If there is a log_hook, set the HISTORY card and update the log as required
 			// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 			history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory

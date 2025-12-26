@@ -212,6 +212,7 @@ struct generic_img_args {
 	gboolean for_roi;
 	/** if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue) */
 	gboolean custom_undo;
+	gboolean mask_aware; // Whether the operation is mask-aware or not
 };
 
 void free_generic_img_args(struct generic_img_args *args);
