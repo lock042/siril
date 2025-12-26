@@ -19,6 +19,8 @@
  */
 
 #include <math.h>
+
+#include "core/siril.h"
 #include "algos/search_objects.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -30,7 +32,6 @@
 #include "io/remote_catalogues.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
-
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
  * for QUERY_SERVER_EPHEMCC and QUERY_SERVER_SIMBAD_PHOTO) and stores the

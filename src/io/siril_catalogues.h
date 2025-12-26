@@ -65,6 +65,7 @@ typedef enum {
 	CAT_GAIADR3_DIRECT = 31, // For direct queries to Gaia rather than using Vizier
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
+	CAT_REMOTE_GAIA_XPSAMP = 41, // exact equivalent of 101 but using HTTP RANGE instead of local disk reads
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
 
@@ -89,7 +90,7 @@ typedef enum {
 	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
 	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
-	CAT_LOCAL_TRIX = 102, // for trixel query
+	CAT_LOCAL_TRIX = 103, // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -124,6 +125,30 @@ typedef enum {
 	CAT_PROJ_TAN,
 	CAT_PROJ_WCS
 } cat_proj;
+
+// the 16-byte struct
+// this is the struct we effectively use, units are the correct ones
+typedef struct {
+	int32_t RA;	// hours times 1000000
+	int32_t Dec;	// degrees times 100000
+	int16_t dRA;	// in mas per year
+	int16_t dDec;
+	int16_t B;	// B mag times 1000 (abused for Teff in offline_gaia catalogue)
+	int16_t V;	// mag times 1000
+} deepStarData;
+
+#pragma pack(push, 1) // Ensure no padding between members
+typedef struct _SourceEntryXPsamp {
+	int32_t ra_scaled;   // 4 bytes
+	int32_t dec_scaled;  // 4 bytes
+	int16_t dra_scaled;  // 2 bytes, mas per year
+	int16_t ddec_scaled; // 2 bytes, mas per year
+	int16_t mag_scaled;  // 2 bytes
+	// The remaining fields are only read for SPCC
+	uint8_t fexpo;       // 1 byte
+	int16_t flux[XPSAMPLED_LEN];   // 686 bytes: xp_sampled flux values
+} SourceEntryXPsamp;
+#pragma pack(pop)
 
 typedef struct {
 	// filled from catalogue
