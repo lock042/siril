@@ -2030,7 +2030,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
 		// Apply ICC transform (only for color managed images)
-		if (fit->color_managed && fit->icc_profile) {
+		if (fit->color_managed && fit->icc_profile && save_transform) {
 			cmsUInt32Number datasize = sizeof(WORD);
 			cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
 			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;
@@ -2042,7 +2042,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	} else {
 		data8 = convert_data8(fit);
 		// Apply ICC transform
-		if (fit->color_managed && fit->icc_profile) {
+		if (fit->color_managed && fit->icc_profile && save_transform) {
 			cmsUInt32Number datasize = sizeof(BYTE);
 			cmsUInt32Number bytesperline = fit->rx * datasize;
 			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;
