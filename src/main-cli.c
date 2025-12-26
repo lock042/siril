@@ -157,6 +157,7 @@ static void siril_app_activate(GApplication *application) {
 	com.headless = TRUE;
 	siril_initialize_rng();
 	global_initialization();
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
 
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);

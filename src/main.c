@@ -258,6 +258,7 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));

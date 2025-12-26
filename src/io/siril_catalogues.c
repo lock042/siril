@@ -203,19 +203,19 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 
 // This function returns the epoch of the catalog
 double siril_catalog_epoch(siril_cat_index cat) {
-	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
+	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP) || (cat == CAT_REMOTE_GAIA_XPSAMP))
 		return J2016;
 	return J2000;
 }
 
 double siril_catalog_ra_multiplier(siril_cat_index cat) {
-	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP || cat == CAT_REMOTE_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.000001;
 }
 
 double siril_catalog_dec_multiplier(siril_cat_index cat) {
-	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP || (cat == CAT_REMOTE_GAIA_XPSAMP))
 		return 360.0 / (double) INT32_MAX;
 	return 0.00001;
 }
@@ -290,6 +290,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_LOCAL_GAIA_ASTRO:
 			return _("Gaia DR3 astrometry");
 		case CAT_LOCAL_GAIA_XPSAMP:
+		case CAT_REMOTE_GAIA_XPSAMP:
 			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
@@ -335,6 +336,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
 		case CAT_LOCAL_GAIA_XPSAMP:
+		case CAT_REMOTE_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;

@@ -13,6 +13,7 @@ siril-1.4.1
 * Fixed too-strict condition and off-by-one error in sirilpy
 * Fixed sirilpy.FFit class data setter
 * Fixed 16-bit png export with "use image ICC profile" selected (#1895)
+* Fixed remote catalogue to avoid dependency on Gaia Archive (!969)
 
 siril-1.4.0
 12/05/25
