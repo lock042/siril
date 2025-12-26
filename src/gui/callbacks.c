@@ -1652,8 +1652,6 @@ gpointer initialize_scripts(gpointer user_data) {
 }
 
 void initialize_all_GUI(gchar *supported_files) {
-	/* pre-check the Gaia archive status */
-	check_gaia_archive_status();
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
