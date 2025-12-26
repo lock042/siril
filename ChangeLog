@@ -1,12 +1,5 @@
-siril-1.5.0
---/--/--
-
-**Improvements**
-Introduce generic_image_worker to standardize image operations (!965)
-
 siril-1.4.1
 --/--/--
-
 **Fixes**
 * Fixed build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
 * Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
