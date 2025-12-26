@@ -4057,6 +4057,7 @@ int process_asinh(int nb) {
 	args->user = params;
 	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
+	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 

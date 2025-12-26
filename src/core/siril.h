@@ -22,6 +22,12 @@
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
 
+#if defined(__GNUC__) || defined(__clang__)
+  #define WITH_FAST_MATH _Pragma("clang fp contract(fast)")
+#else
+  #define WITH_FAST_MATH
+#endif
+
 #ifdef SIRIL_OUTPUT_DEBUG
 #define DEBUG_TEST 1
 #else
@@ -174,6 +180,7 @@ typedef enum {
 #define CP_ALLOC	0x02	// reallocs data array
 #define CP_COPYA	0x04	// copy data array content
 #define CP_FORMAT	0x08	// copy metadata
+#define CP_COPYMASK	0x10	// copy the mask
 #define CP_EXPAND	0x20	// expands a one-channel to a three channels
 
 #define PREVIEW_NB 2

@@ -35,6 +35,7 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
@@ -1530,6 +1531,7 @@ void free_generic_img_args(struct generic_img_args *args) {
 }
 
 static inline void blend_fits(fits* fit, fits* orig) {
+WITH_FAST_MATH
 	size_t npixels = fit->rx * fit->ry;
 	mask_t mask = fit->mask;
 	if (fit->type == DATA_USHORT) {
@@ -1582,7 +1584,10 @@ gpointer generic_image_worker(gpointer p) {
 
 	fits *orig = NULL;
 
-	gboolean using_mask = args->mask_aware;
+	// For testing
+	mask_create_test(args->fit);
+
+	gboolean using_mask = args->mask_aware && args->fit->mask; // TODO: add a mask active condition here once implemented
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
 	if (using_mask) {
@@ -1622,8 +1627,7 @@ gpointer generic_image_worker(gpointer p) {
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
-		if (args->verbose)
-			siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
+		siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
 		args->retval = 1;
 	} else {
 		// Check for a mask hook and call it if one exists (we must do this even if not using the mask, to ensure
@@ -1677,8 +1681,8 @@ gpointer generic_image_worker(gpointer p) {
 	}
 
 the_end:
-	// Always clean up orig
-	clearfits(orig);
+	// Always clean up orig if it was allocated
+	if (orig) clearfits(orig);
 	free(orig);
 
 the_end_no_orig:

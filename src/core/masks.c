@@ -19,6 +19,34 @@
 */
 
 #include "core/siril.h"
+#include "siril.h"
+
+// Create a test mask : the left half of the image has mask value 255,
+// the right half has mask value 0. Any existing mask is
+// freed and remade. Return 0 on success.
+
+int mask_create_test(fits *fit) {
+WITH_FAST_MATH
+	if (fit->mask)
+		free(fit->mask);
+
+	fit->mask = malloc(fit->rx * fit->ry * sizeof(uint8_t));
+	mask_t m = fit->mask;
+	if (!fit->mask) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	size_t rx = fit->rx, ry = fit->ry, hrx = rx / 2;
+#ifdef _OPENMP
+#pragma omp parallel for simd collapse(2) num_threads(com.max_thread)
+#endif
+	for (size_t y = 0 ; y < ry ; y++) {
+		for (size_t x = 0 ; x < rx ; x++) {
+			m[y * rx + x] = x < hrx ? 255 : 0;
+		}
+	}
+	return 0;
+}
 
 // Create a mask with ones-like property (i.e. full applicability: we
 // use 8-bit masks so all values are set to 255). Any existing mask is

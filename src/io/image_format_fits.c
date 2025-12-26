@@ -1325,6 +1325,10 @@ void clearfits(fits *fit) {
 		free(fit->fdata);
 		fit->fdata = NULL;
 	}
+	if (fit->mask) {
+		free(fit->mask);
+		fit->mask = NULL;
+	}
 	clearfits_header(fit);
 }
 
@@ -2033,6 +2037,7 @@ int save_opened_fits(fits *f) {
  * - CP_COPYA: copies the actual data, from->data to to->data on all layers,
  *   but no other information from the source. Should not be used with CP_INIT
  * - CP_FORMAT: copy all metadata and leaves data to null
+ * - CP_COPYMASK: copy the image mask
  * - CP_EXPAND: forces the destination number of layers to be taken as 3, but
  *   the other operations have no modifications, meaning that if the source
  *   image has one layer, the output image will have only one actual layer
@@ -2071,6 +2076,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->fpdata[0] = NULL;
 		to->fpdata[1] = NULL;
 		to->fpdata[2] = NULL;
+		to->mask = NULL;
 		to->header = NULL;
 		to->unknown_keys = NULL;
 		to->history = NULL;
@@ -2170,6 +2176,15 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 			}
 		} else {
 			invalidate_stats_from_fit(to);
+		}
+	}
+
+	if (oper & CP_COPYMASK) {
+		if (from->mask) {
+			to->mask = malloc(nbdata * sizeof(uint8_t));
+			memcpy(to->mask, from->mask, nbdata * sizeof(uint8_t));
+		} else {
+			to->mask = NULL;
 		}
 	}
 

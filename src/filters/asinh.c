@@ -505,6 +505,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->user = params;
 	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
+	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->custom_undo = TRUE;
