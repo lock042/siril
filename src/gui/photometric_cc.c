@@ -53,6 +53,9 @@
 #define spcc_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST && DEBUG_SPCC) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
+// Array of primary + mirrors for the remote catalogue
+gchar **spcc_mirrors = NULL;
+
 static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
@@ -63,6 +66,15 @@ static int set_spcc_args(struct photometric_cc_data *args);
 gboolean populate_spcc_combos(gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
+
+void initialize_spcc_mirrors() {
+	if (spcc_mirrors)
+		g_strfreev(spcc_mirrors);
+
+	spcc_mirrors = g_new(gchar*, 2);
+	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
+	spcc_mirrors[1] = NULL;
+}
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -99,57 +111,98 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 static gboolean end_gaiacheck_idle(gpointer p) {
 	GtkWidget *image = lookup_widget("gaia_status_widget");
 	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
-	gtk_widget_set_tooltip_text(image, _("Checking Gaia archive status..."));
+	gtk_widget_set_tooltip_text(image, _("Checking SPCC remote catalogue status..."));
 	gtk_widget_show(image);
-	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	int resptime = GPOINTER_TO_INT(p);;
 	gchar *text = NULL, *colortext = NULL;
-	stop_processing_thread();
 
-	if (args->code != 200 || !args->content) {
+	if (resptime == -1) {
 		// Failed to fetch status
-		text = _("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
-		colortext = "salmon";
-		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
+		text = g_strdup(_("The Gaia remote SPCC catalogue is not responding."));
+		colortext = "red";
+		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 	} else {
 		// Check if response contains "true" or "false"
-		if (g_strstr_len(args->content, -1, "<available>true</available>")) {
-			text = _("Gaia archive available");
+		if (resptime < 500) {
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue available, response %d ms"), resptime);
 			colortext = "green";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-		} else if (g_strstr_len(args->content, -1, "<available>false</available>")
-				|| g_strstr_len(args->content, -1, "Maintenance ongoing")) {
-			text = _("Gaia archive unavailable");
-			colortext = "red";
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-		} else {
-			// Unexpected response format
-			text = _("Unknown Gaia archive status");
+		} else if (resptime < 1000) {
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue slow, response %d ms"), resptime);
 			colortext = "salmon";
 			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
+		} else {
+			text = g_strdup_printf(_("Gaia remote SPCC catalogue very slow, response %d ms"), resptime);
+			colortext = "red";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 		}
 	}
-
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
-	free(args->content);
-	free(args);
+	g_free(text);
 	return FALSE;
+}
+
+gpointer gaia_check(gpointer user_data) {
+    int best_mirror_index = -1;
+    int best_responsetime = INT32_MAX;
+    int num_mirrors = 0;
+
+    // Count mirrors
+    while (spcc_mirrors[num_mirrors]) num_mirrors++;
+
+    // Arrays to store results from parallel checks
+    int *response_times = g_new(int, num_mirrors);
+
+    // Parallel loop to check all mirrors
+    #pragma omp parallel for
+    for (int i = 0; i < num_mirrors; i++) {
+        gchar *mirror_url = g_strdup_printf("%s/siril_cat1_healpix8_xpsamp_0.dat",
+                                           spcc_mirrors[i]);
+        response_times[i] = http_check(mirror_url);
+        g_free(mirror_url);
+    }
+    #pragma omp barrier
+
+    // Log results for all mirrors for transparency
+    int working_mirrors = 0;
+    for (int i = 0; i < num_mirrors; i++) {
+        if (response_times[i] != -1) {
+            working_mirrors++;
+            siril_debug_print("Mirror %s: %d ms\n", spcc_mirrors[i], response_times[i]);
+            if (response_times[i] < best_responsetime) {
+                best_mirror_index = i;
+                best_responsetime = response_times[i];
+            }
+        } else {
+            siril_log_color_message(_("Mirror %s: Not responding\n"), "salmon", spcc_mirrors[i]);
+        }
+    }
+
+    g_free(response_times);
+
+    if (best_mirror_index != -1) {
+        g_free(com.spcc_remote_catalogue);
+        com.spcc_remote_catalogue = g_strdup(spcc_mirrors[best_mirror_index]);
+        siril_log_message(_("Primary SPCC catalogue set to: %s (%d working mirrors available)\n"),
+                               com.spcc_remote_catalogue, working_mirrors);
+    }
+
+    execute_idle_and_wait_for_it(end_gaiacheck_idle, GINT_TO_POINTER(best_responsetime));
+    return NULL;
 }
 
 void check_gaia_archive_status() {
 	if (!is_online()) {
 		GtkWidget *image = lookup_widget("gaia_status_widget");
 		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-		const gchar *text = N_("Siril is offline or built without networking. Gaia archive is unavailable.\n");
+		const gchar *text = N_("Siril is offline or built without networking. The remote Gaia catalogue is unavailable.\n");
 		gtk_widget_set_tooltip_text(image, text);
 		siril_log_color_message("%s", "red", text);
 		return;
 	}
-	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	args->url = g_strdup("https://gea.esac.esa.int/tap-server/tap/availability");
-	args->idle_function = end_gaiacheck_idle;
-	g_thread_unref(g_thread_new("gaia-status-check", fetch_url_async, args));
+	g_thread_unref(g_thread_new("gaia-status-check", gaia_check, NULL));
 }
 
 static void start_photometric_cc(gboolean spcc) {
@@ -414,7 +467,7 @@ int get_spcc_catalog_from_GUI() {
 	if (gtk_combo_box_get_active(box) == 1) {
 		return CAT_LOCAL_GAIA_XPSAMP;
 	} else {
-		return CAT_GAIADR3_DIRECT;
+		return CAT_REMOTE_GAIA_XPSAMP;
 	}
 }
 /*****

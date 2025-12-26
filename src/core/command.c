@@ -12287,12 +12287,12 @@ static int do_pcc(int nb, gboolean spectro) {
 			} else {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
-					cat = CAT_GAIADR3_DIRECT;
+					cat = CAT_REMOTE_GAIA_XPSAMP;
 				else if (!g_strcmp0(arg, "localgaia")) {
 					cat = CAT_LOCAL_GAIA_XPSAMP;
 					if (!local_gaia_xpsamp_available()) {
 						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"), "salmon");
-						cat = CAT_GAIADR3_DIRECT;
+						cat = CAT_REMOTE_GAIA_XPSAMP;
 				
 					}
 				} else {
@@ -12407,7 +12407,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	if (!spectro && cat == CAT_AUTO) {
 		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
-		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_REMOTE_GAIA_XPSAMP;
 	}
 	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),

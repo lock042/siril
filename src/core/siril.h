@@ -710,7 +710,8 @@ typedef struct {
 	/* widgets data */
 	GtkButton *remove_button;
 	GtkDrawingArea *color_w;		// the simulated color chooser
-	GtkFileChooserButton *chooser;	// the file choosers
+	GtkButton *chooser_button;		// the file choosers
+	gchar *selected_filename;		// selected filename
 	GtkLabel *label;				// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
@@ -946,6 +947,7 @@ struct cominf {
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
+	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
 };
 
 #ifndef MAIN
