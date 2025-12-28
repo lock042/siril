@@ -1732,7 +1732,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 						.do_green = do_channel[1],
 						.do_blue = do_channel[2]
 					},
-					.uparams = { 0 },
+					.uparams = {},
 					.seqEntry = NULL,
 					.auto_display_compensation = FALSE,
 					.is_preview = FALSE
