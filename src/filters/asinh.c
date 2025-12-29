@@ -100,6 +100,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->description = _("Asinh stretch");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;

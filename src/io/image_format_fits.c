@@ -36,6 +36,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
@@ -1326,7 +1327,7 @@ void clearfits(fits *fit) {
 		fit->fdata = NULL;
 	}
 	if (fit->mask) {
-		free(fit->mask);
+		free_mask(fit->mask);
 		fit->mask = NULL;
 	}
 	clearfits_header(fit);

@@ -21,28 +21,64 @@
 #include "core/siril.h"
 #include "siril.h"
 
+
+void free_mask(mask_t* mask) {
+	free(mask->data);
+	free(mask);
+}
+
 // Create a test mask : the left half of the image has mask value 255,
 // the right half has mask value 0. Any existing mask is
 // freed and remade. Return 0 on success.
 
-int mask_create_test(fits *fit) {
+int mask_create_test(fits *fit, uint8_t bitpix) {
 WITH_FAST_MATH
-	if (fit->mask)
-		free(fit->mask);
+	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32))
+		return 1;
 
-	fit->mask = malloc(fit->rx * fit->ry * sizeof(uint8_t));
-	mask_t m = fit->mask;
+	if (fit->mask)
+		free_mask(fit->mask);
+
+	fit->mask = calloc(1, sizeof(mask_t));
 	if (!fit->mask) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
+	fit->mask->bitpix = bitpix;
+	fit->mask->data = malloc(fit->rx * fit->ry * bitpix);
+	if (!fit->mask->data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
 	size_t rx = fit->rx, ry = fit->ry, hrx = rx / 2;
-#ifdef _OPENMP
-#pragma omp parallel for simd collapse(2) num_threads(com.max_thread)
-#endif
-	for (size_t y = 0 ; y < ry ; y++) {
-		for (size_t x = 0 ; x < rx ; x++) {
-			m[y * rx + x] = x < hrx ? 255 : 0;
+
+	switch (bitpix) {
+		case 8: {
+			uint8_t* restrict m = (uint8_t*) fit->mask->data;
+			for (size_t y = 0 ; y < ry ; y++) {
+				for (size_t x = 0 ; x < rx ; x++) {
+					m[y * rx + x] = x < hrx ? 255 : 0;
+				}
+			}
+			break;
+		}
+		case 16: {
+			uint16_t* restrict m = (uint16_t*) fit->mask->data;
+			for (size_t y = 0 ; y < ry ; y++) {
+				for (size_t x = 0 ; x < rx ; x++) {
+					m[y * rx + x] = x < hrx ? 65535 : 0;
+				}
+			}
+			break;
+		}
+		case 32: {
+			float* restrict m = (float*) fit->mask->data;
+			for (size_t y = 0 ; y < ry ; y++) {
+				for (size_t x = 0 ; x < rx ; x++) {
+					m[y * rx + x] = x < hrx ? 1.f : 0;
+				}
+			}
+			break;
 		}
 	}
 	return 0;
@@ -52,22 +88,50 @@ WITH_FAST_MATH
 // use 8-bit masks so all values are set to 255). Any existing mask is
 // freed and remade. Return 0 on success.
 
-int mask_create_ones_like(fits *fit) {
-	if (fit->mask)
-		free(fit->mask);
+int mask_create_ones_like(fits *fit, uint8_t bitpix) {
+WITH_FAST_MATH
+	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32))
+		return 1;
 
-	size_t npixels = fit->rx * fit->ry;
-	fit->mask = malloc(fit->rx * fit->ry * sizeof(uint8_t));
-	mask_t m = fit->mask;
+if (fit->mask)
+		free_mask(fit->mask);
+
+	fit->mask = calloc(1, sizeof(mask_t));
 	if (!fit->mask) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread)
-#endif
-	for (size_t i = 0 ; i < npixels ; i++) {
-		m[i] = 255;
+	fit->mask->bitpix = bitpix;
+	fit->mask->data = malloc(fit->rx * fit->ry * bitpix);
+	if (!fit->mask->data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	size_t rx = fit->rx, ry = fit->ry, hrx = rx / 2;
+
+	switch (bitpix) {
+		case 8: {
+			uint8_t* m = (uint8_t*) fit->mask->data;
+			memset(m, 255, rx * ry);
+			break;
+		}
+		case 16: {
+			uint16_t* m = (uint16_t*) fit->mask->data;
+			memset(m, 0xFF, rx * ry * sizeof(uint16_t));
+			break;
+		}
+		case 32: {
+			float* restrict m = (float*) fit->mask->data;
+			size_t n = rx * ry;
+			for (size_t i = 0; i < n; ++i)
+				m[i] = 1.0f;
+			break;
+		}
+		default:
+			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			return 1;
 	}
 	return 0;
 }
@@ -75,11 +139,21 @@ int mask_create_ones_like(fits *fit) {
 // Create a mask with zeroes-like property. Any existing mask is freed
 // and remade. Returns 0 on success.
 
-int mask_create_zeroes_like(fits *fit) {
+int mask_create_zeroes_like(fits *fit, uint8_t bitpix) {
+	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32))
+		return 1;
+
 	if (fit->mask)
-		free(fit->mask);
-	fit->mask = calloc(fit->rx * fit->ry, sizeof(uint8_t));
+		free_mask(fit->mask);
+
+	fit->mask = calloc(1, sizeof(mask_t));
 	if (!fit->mask) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fit->mask->bitpix = bitpix;
+	fit->mask->data = calloc(fit->rx * fit->ry, bitpix);
+	if (!fit->mask->data) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
@@ -89,14 +163,40 @@ int mask_create_zeroes_like(fits *fit) {
 // Invert the mask. Returns 0 on success.
 
 int mask_invert(fits *fit) {
-	if (!fit->mask)
+	if (!fit->mask || !fit->mask->data)
+		return 1;
+	uint8_t bitpix = fit->mask->bitpix;
+	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32))
 		return 1;
 	size_t npixels = fit->rx * fit->ry;
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread)
-#endif
-	for (size_t i = 0; i < npixels; i++) {
-		fit->mask[i] = ~fit->mask[i];
+	switch(bitpix) {
+		case 8: {
+			uint8_t* restrict m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = ~m[i];
+			}
+			break;
+		}
+		case 16: {
+			uint16_t* restrict m = (uint16_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = ~m[i];
+			}
+			break;
+		}
+		case 32: {
+			float* restrict m = (float*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float v = 1.f - m[i];
+				if (v < 0.f) v = 0.f;
+				if (v > 1.f) v = 1.f;
+				m[i] = v;
+			}
+			break;
+		}
+		default:
+			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			return 1;
 	}
 	return 0;
 }

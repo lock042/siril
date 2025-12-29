@@ -209,7 +209,11 @@ typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
-typedef uint8_t* mask_t; // A typedef for the mask
+
+typedef struct _mask_t {
+	uint8_t bitpix;
+	void *data;
+} mask_t; // A typedef for the mask
 
 typedef struct {
 	double x, y;
@@ -587,7 +591,7 @@ struct ffit {
 	/* ICC Color Management data */
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
-	mask_t mask; // Mask for image operations
+	mask_t* mask; // Mask for image operations
 };
 
 typedef enum {

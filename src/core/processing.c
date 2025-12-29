@@ -1530,34 +1530,126 @@ void free_generic_img_args(struct generic_img_args *args) {
 	free(args);
 }
 
-static inline void blend_fits(fits* fit, fits* orig) {
+static inline void blend_fits_with_mask(fits* fit, fits* orig) {
 WITH_FAST_MATH
 	size_t npixels = fit->rx * fit->ry;
-	mask_t mask = fit->mask;
+	mask_t *mask = fit->mask;
+
+	if (!mask || !mask->data)
+		return;
+
+	uint8_t bitpix = mask->bitpix;
+
 	if (fit->type == DATA_USHORT) {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
 			WORD *ocdata = orig->pdata[chan];
 			WORD *fcdata = fit->pdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread)
 #endif
-			for (size_t i = 0 ; i < npixels ; i++) {
-				uint32_t temp = fcdata[i] * mask[i] + ocdata[i] * (255 - mask[i]);
-				fcdata[i] = (temp * 257) >> 16;  // Exact /255 for 16-bit range
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t temp =
+						fcdata[i] * m[i] +
+						ocdata[i] * (255 - m[i]);
+					fcdata[i] = (temp * 257) >> 16;
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t alpha = m[i];          // 0..65535
+					uint32_t temp =
+						fcdata[i] * alpha +
+						ocdata[i] * (65535 - alpha);
+					fcdata[i] = temp >> 16;         // exact /65535
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					float blend = fcdata[i] - origv;
+					float out = origv + alpha * blend;
+					if (out < 0.f) out = 0.f;
+					if (out > 65535.f) out = 65535.f;
+					fcdata[i] = (WORD)(out + 0.5f);
+				}
+				break;
+			}
+
+			default:
+				return;
 			}
 		}
+
 	} else {
-		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
 			float *ocdata = orig->fpdata[chan];
 			float *fcdata = fit->fpdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
+				const float scale = 1.0f / 255.0f;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread)
 #endif
-			for (size_t i = 0 ; i < npixels ; i++) {
-				float alpha = mask[i] * (1.0f / 255.0f);
-				float orig = ocdata[i];
-				float blend = fcdata[i] - orig;
-				fcdata[i] = orig + alpha * blend;  // (pix1-pix2)*alpha + pix2
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+				const float scale = 1.0f / 65535.0f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			default:
+				return;
 			}
 		}
 	}
@@ -1585,7 +1677,9 @@ gpointer generic_image_worker(gpointer p) {
 	fits *orig = NULL;
 
 	// For testing
-	mask_create_test(args->fit);
+	// TODO: remove this for production!
+	if (!args->fit->mask)
+		mask_create_test(args->fit, 8);
 
 	gboolean using_mask = args->mask_aware && args->fit->mask; // TODO: add a mask active condition here once implemented
 	// Create a copy so we still have the original fit for combining with the result
@@ -1645,7 +1739,7 @@ gpointer generic_image_worker(gpointer p) {
 		} else { // Either no mask_hook or the mask_hook returned 0 (success)
 			// Blend according to the mask
 			if (args->mask_aware && args->fit->mask) {
-				blend_fits(args->fit, orig);
+				blend_fits_with_mask(args->fit, orig);
 			}
 			// If there is a log_hook, set the HISTORY card and update the log as required
 			// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
