@@ -187,13 +187,14 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	const gboolean do_channel[3] = { TRUE, TRUE, TRUE };
-	float m_CB = 1.f;
+	const float m_CB = 1.f;
 	float norm = get_normalized_value(fit);
 	float invnorm = 1.0f / norm;
 	float asinh_beta = asinh(beta);
-	float factor_red = human_luminance ? 0.2126f : 0.3333f;
-	float factor_green = human_luminance ? 0.7152f : 0.3333f;
-	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
+	const float third = 1.f / 3.f;
+	float factor_red = human_luminance ? 0.2126f : third;
+	float factor_green = human_luminance ? 0.7152f : third;
+	float factor_blue = human_luminance ? 0.0722f : third;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	float globalmax = -FLT_MAX;

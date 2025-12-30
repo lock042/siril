@@ -1,26 +1,31 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "siril.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#include <opencv2/imgproc/imgproc_c.h>
+#pragma GCC diagnostic pop
 
 void free_mask(mask_t* mask) {
 	free(mask->data);
@@ -107,7 +112,7 @@ if (fit->mask)
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	size_t rx = fit->rx, ry = fit->ry, hrx = rx / 2;
+	size_t rx = fit->rx, ry = fit->ry;
 
 	switch (bitpix) {
 		case 8: {
@@ -160,8 +165,285 @@ int mask_create_zeroes_like(fits *fit, uint8_t bitpix) {
 	return 0;
 }
 
-// Invert the mask. Returns 0 on success.
+int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
+	if (!fit) return 1; // no FITS struct
+	if (chan >= fit->naxes[2]) return 1; // channel out of range
 
+	if (fit->mask)
+		free_mask(fit->mask);
+
+	fit->mask = calloc(1, sizeof(mask_t));
+	if (!fit->mask) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fit->mask->bitpix = bitpix;
+	fit->mask->data = malloc(fit->rx * fit->ry * bitpix);
+	if (!fit->mask->data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	size_t rx = fit->rx, ry = fit->ry, npixels = rx * ry;
+
+	switch (bitpix) {
+		case 8: {
+			uint8_t* m = (uint8_t*) fit->mask->data;
+			if (fit->type == DATA_USHORT) {
+				WORD* c = fit->pdata[chan];
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i] = (uint8_t) ((c[i] * 255 + 32895) >> 16);
+				}
+			} else {
+				float *c = fit->fpdata[chan];
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i] = roundf_to_BYTE(c[i]);
+				}
+			}
+			break;
+		}
+		case 16: {
+			if (fit->type == DATA_USHORT) {
+				memcpy(fit->mask->data, fit->pdata[chan], npixels * sizeof(WORD));
+			} else {
+				uint16_t* m = (uint16_t*) fit->mask->data;
+				WORD* c = fit->pdata[chan];
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i] = roundf_to_WORD(c[i]);
+				}
+			}
+			break;
+		}
+		case 32: {
+			if (fit->type == DATA_FLOAT) {
+				memcpy(fit->mask->data, fit->fpdata[chan], npixels * sizeof(float));
+			} else {
+				float* m = (float*) fit->mask->data;
+				WORD* c = fit->pdata[chan];
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i] = c[i] * INV_USHRT_MAX_SINGLE;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t bitpix) {
+	if (!fit) return 1; // no FITS struct
+
+	// Handle mono
+	if (fit->naxes[2] == 1) {
+		siril_debug_print("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
+		return mask_create_from_channel(fit, 0, bitpix);
+	}
+
+	if (fit->mask)
+		free_mask(fit->mask);
+
+	fit->mask = calloc(1, sizeof(mask_t));
+	if (!fit->mask) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fit->mask->bitpix = bitpix;
+	fit->mask->data = malloc(fit->rx * fit->ry * bitpix);
+	if (!fit->mask->data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	size_t rx = fit->rx, ry = fit->ry, npixels = rx * ry;
+
+	switch (bitpix) {
+		case 8: {
+			uint8_t* m = (uint8_t*) fit->mask->data;
+			if (fit->type == DATA_USHORT) {
+				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+				for (size_t i = 0 ; i < npixels ;i++) {
+					float lum = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+					m[i] = roundf_to_BYTE(lum);
+				}
+			} else {
+				for (size_t i = 0 ; i < npixels ;i++) {
+					float lum = (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+					m[i] = roundf_to_BYTE(lum);
+				}
+			}
+			break;
+		}
+		case 16: {
+			uint16_t* m = (uint16_t*) fit->mask->data;
+			if (fit->type == DATA_USHORT) {
+				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+				for (size_t i = 0 ; i < npixels ;i++) {
+					float lum = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+					m[i] = roundf_to_WORD(lum);
+				}
+			} else {
+				for (size_t i = 0 ; i < npixels ;i++) {
+					float lum = (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+					m[i] = roundf_to_WORD(lum);
+				}
+			}
+			break;
+		}
+		case 32: {
+			float* m = (float*) fit->mask->data;
+			if (fit->type == DATA_USHORT) {
+				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i] = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+				}
+			} else {
+				for (size_t i = 0 ; i < npixels ;i++) {
+					m[i]= (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+int mask_create_from_luminance_even(fits *fit, uint8_t bitpix) {
+	float third = 1.f / 3.f;
+	return mask_create_from_luminance(fit, third, third, third, bitpix);
+}
+
+int mask_create_from_luminance_human(fits *fit, uint8_t bitpix) {
+	return mask_create_from_luminance(fit, 0.2126, 0.7152, 0.0722, bitpix);
+}
+
+// Apply Gaussian blur to the mask
+int mask_apply_gaussian_blur(fits *fit, float radius) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_apply_gaussian_blur: invalid mask\n");
+		return 1;
+	}
+
+	if (radius <= 0.f) {
+		siril_debug_print("mask_apply_gaussian_blur: radius must be positive\n");
+		return 1;
+	}
+
+	size_t rx = fit->rx, ry = fit->ry;
+	int cv_type;
+
+	// Determine OpenCV type based on bitpix
+	switch (fit->mask->bitpix) {
+		case 8:
+			cv_type = CV_8UC1;
+			break;
+		case 16:
+			cv_type = CV_16UC1;
+			break;
+		case 32:
+			cv_type = CV_32FC1;
+			break;
+		default:
+			siril_debug_print("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
+			return 1;
+	}
+
+	// Create OpenCV Mat headers for source and destination
+	CvMat *src = cvCreateMatHeader(ry, rx, cv_type);
+	CvMat *dst = cvCreateMatHeader(ry, rx, cv_type);
+
+	if (!src || !dst) {
+		if (src) cvReleaseMat(&src);
+		if (dst) cvReleaseMat(&dst);
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Allocate destination data
+	void *blur_data = malloc(rx * ry * fit->mask->bitpix);
+	if (!blur_data) {
+		cvReleaseMat(&src);
+		cvReleaseMat(&dst);
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Set data pointers
+	cvSetData(src, fit->mask->data, rx * (fit->mask->bitpix / 8));
+	cvSetData(dst, blur_data, rx * (fit->mask->bitpix / 8));
+
+	// Calculate kernel size from radius (should be odd)
+	// Using approximation: kernel_size = 2 * ceil(3 * sigma) + 1, where sigma = radius
+	int kernel_size = 2 * (int)ceilf(3.f * radius) + 1;
+
+	// Apply Gaussian blur
+	cvSmooth(src, dst, CV_GAUSSIAN, kernel_size, kernel_size, radius, radius);
+
+	// Replace original data with blurred data
+	free(fit->mask->data);
+	fit->mask->data = blur_data;
+
+	cvReleaseMat(&src);
+	cvReleaseMat(&dst);
+
+	return 0;
+}
+
+// Binarize the mask based on min-max range
+int mask_binarize(fits *fit, float min_val, float max_val) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_binarize: invalid mask\n");
+		return 1;
+	}
+
+	if (min_val > max_val) {
+		siril_debug_print("mask_binarize: min_val must be <= max_val\n");
+		return 1;
+	}
+
+	size_t npixels = fit->rx * fit->ry;
+	float actual_min = min_val;
+	float actual_max = max_val;
+
+	// Scale range values if they are normalized (< 1) but mask is 8 or 16 bit
+	if (min_val < 1.f && max_val < 1.f) {
+		if (fit->mask->bitpix == 8) {
+			actual_min = min_val * UCHAR_MAX;
+			actual_max = max_val * UCHAR_MAX;
+		} else if (fit->mask->bitpix == 16) {
+			actual_min = min_val * USHRT_MAX;
+			actual_max = max_val * USHRT_MAX;
+		}
+	}
+
+	switch (fit->mask->bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? UCHAR_MAX : 0;
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? USHRT_MAX : 0;
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? 1.f : 0.f;
+			}
+			break;
+		}
+		default:
+			siril_debug_print("mask_binarize: unsupported bitpix %d\n", fit->mask->bitpix);
+			return 1;
+	}
+
+	return 0;
+}
+
+// Invert the mask. Returns 0 on success.
 int mask_invert(fits *fit) {
 	if (!fit->mask || !fit->mask->data)
 		return 1;
