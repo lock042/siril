@@ -348,6 +348,7 @@ static void histo_recompute(gboolean for_preview) {
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
 		args->custom_undo = TRUE;
+		args->mask_aware = TRUE;
 		args->for_roi = gui.roi.active;
 
 	} else if (invocation == GHT_STRETCH) {
@@ -397,14 +398,12 @@ static void histo_recompute(gboolean for_preview) {
 		args->user = data;
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
+		args->mask_aware = TRUE;
 		args->for_roi = gui.roi.active;
 	}
 
 	if (args) {
-		if (for_preview)
-			generic_image_worker(args);
-		else
-			start_in_new_thread(generic_image_worker, args);
+		start_in_new_thread(generic_image_worker, args);
 	}
 }
 
@@ -1732,7 +1731,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 						.do_green = do_channel[1],
 						.do_blue = do_channel[2]
 					},
-					.uparams = { 0 },
+					.uparams = { },
 					.seqEntry = NULL,
 					.auto_display_compensation = FALSE,
 					.is_preview = FALSE
@@ -1868,6 +1867,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
+			args->mask_aware = TRUE;
 			args->for_roi = gui.roi.active;
 
 		} else if (invocation == GHT_STRETCH) {
@@ -1916,6 +1916,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;
+			args->mask_aware = TRUE;
 			args->for_preview = FALSE;
 			args->for_roi = gui.roi.active;
 		}
@@ -2071,7 +2072,7 @@ void updateGHTcontrols() {
 
 void toggle_histogram_window_visibility(int _invocation) {
 	siril_close_preview_dialogs();
-
+	init_toggles();
 	invocation = _invocation;
 	for (int i=0;i<3;i++) {
 		do_channel[i] = TRUE;
