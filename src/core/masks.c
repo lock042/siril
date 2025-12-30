@@ -165,9 +165,10 @@ int mask_create_zeroes_like(fits *fit, uint8_t bitpix) {
 	return 0;
 }
 
-int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
+int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) {
 	if (!fit) return 1; // no FITS struct
-	if (chan >= fit->naxes[2]) return 1; // channel out of range
+	if (!source) return 1; // no source FITS struct
+	if (chan >= source->naxes[2]) return 1; // channel out of range
 
 	if (fit->mask)
 		free_mask(fit->mask);
@@ -188,13 +189,13 @@ int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
 	switch (bitpix) {
 		case 8: {
 			uint8_t* m = (uint8_t*) fit->mask->data;
-			if (fit->type == DATA_USHORT) {
-				WORD* c = fit->pdata[chan];
+			if (source->type == DATA_USHORT) {
+				WORD* c = source->pdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
 					m[i] = (uint8_t) ((c[i] * 255 + 32895) >> 16);
 				}
 			} else {
-				float *c = fit->fpdata[chan];
+				float *c = source->fpdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
 					m[i] = roundf_to_BYTE(c[i]);
 				}
@@ -202,11 +203,11 @@ int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
 			break;
 		}
 		case 16: {
-			if (fit->type == DATA_USHORT) {
-				memcpy(fit->mask->data, fit->pdata[chan], npixels * sizeof(WORD));
+			if (source->type == DATA_USHORT) {
+				memcpy(fit->mask->data, source->pdata[chan], npixels * sizeof(WORD));
 			} else {
 				uint16_t* m = (uint16_t*) fit->mask->data;
-				WORD* c = fit->pdata[chan];
+				WORD* c = source->pdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
 					m[i] = roundf_to_WORD(c[i]);
 				}
@@ -214,11 +215,11 @@ int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
 			break;
 		}
 		case 32: {
-			if (fit->type == DATA_FLOAT) {
-				memcpy(fit->mask->data, fit->fpdata[chan], npixels * sizeof(float));
+			if (source->type == DATA_FLOAT) {
+				memcpy(fit->mask->data, source->fpdata[chan], npixels * sizeof(float));
 			} else {
 				float* m = (float*) fit->mask->data;
-				WORD* c = fit->pdata[chan];
+				WORD* c = source->pdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
 					m[i] = c[i] * INV_USHRT_MAX_SINGLE;
 				}
@@ -229,13 +230,14 @@ int mask_create_from_channel(fits *fit, int chan, uint8_t bitpix) {
 	return 0;
 }
 
-int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t bitpix) {
+int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, float bw, uint8_t bitpix) {
 	if (!fit) return 1; // no FITS struct
+	if (!source) return 1; // no source FITS struct
 
 	// Handle mono
-	if (fit->naxes[2] == 1) {
+	if (source->naxes[2] == 1) {
 		siril_debug_print("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
-		return mask_create_from_channel(fit, 0, bitpix);
+		return mask_create_from_channel(fit, source, 0, bitpix);
 	}
 
 	if (fit->mask)
@@ -257,15 +259,16 @@ int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t 
 	switch (bitpix) {
 		case 8: {
 			uint8_t* m = (uint8_t*) fit->mask->data;
-			if (fit->type == DATA_USHORT) {
-				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+			if (source->type == DATA_USHORT) {
+				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
 				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+					float lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) / factor;
 					m[i] = roundf_to_BYTE(lum);
 				}
 			} else {
+				float third = 1.f / 3.f;
 				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+					float lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
 					m[i] = roundf_to_BYTE(lum);
 				}
 			}
@@ -274,14 +277,15 @@ int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t 
 		case 16: {
 			uint16_t* m = (uint16_t*) fit->mask->data;
 			if (fit->type == DATA_USHORT) {
-				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
 				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+					float lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) * factor;
 					m[i] = roundf_to_WORD(lum);
 				}
 			} else {
+				float third = 1.f / 3.f;
 				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+					float lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
 					m[i] = roundf_to_WORD(lum);
 				}
 			}
@@ -290,13 +294,14 @@ int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t 
 		case 32: {
 			float* m = (float*) fit->mask->data;
 			if (fit->type == DATA_USHORT) {
-				float divisor = fit->naxes[2] * USHRT_MAX_SINGLE;
+				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
 				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i] = (fit->pdata[RLAYER][i] * rw + fit->pdata[GLAYER][i] * gw + fit->pdata[BLAYER][i] * bw) / divisor;
+					m[i] = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) * factor;
 				}
 			} else {
+				float third = 1.f / 3.f;
 				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i]= (fit->fpdata[RLAYER][i] * rw + fit->fpdata[GLAYER][i] * gw + fit->fpdata[BLAYER][i] * bw) / 3.f;
+					m[i]= (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
 				}
 			}
 			break;
@@ -305,13 +310,13 @@ int mask_create_from_luminance(fits *fit, float rw, float gw, float bw, uint8_t 
 	return 0;
 }
 
-int mask_create_from_luminance_even(fits *fit, uint8_t bitpix) {
+int mask_create_from_luminance_even(fits *fit, fits *source, uint8_t bitpix) {
 	float third = 1.f / 3.f;
-	return mask_create_from_luminance(fit, third, third, third, bitpix);
+	return mask_create_from_luminance(fit, source, third, third, third, bitpix);
 }
 
-int mask_create_from_luminance_human(fits *fit, uint8_t bitpix) {
-	return mask_create_from_luminance(fit, 0.2126, 0.7152, 0.0722, bitpix);
+int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix) {
+	return mask_create_from_luminance(fit, source, 0.2126, 0.7152, 0.0722, bitpix);
 }
 
 // Apply Gaussian blur to the mask
