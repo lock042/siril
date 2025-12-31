@@ -171,9 +171,11 @@ typedef enum {
 #define GREEN_VPORT 	1
 #define BLUE_VPORT 	2
 #define RGB_VPORT 	3
+#define MASK_VPORT 4
 #define MAXGRAYVPORT 	3	// 3 gray vports supported only (R, G, B)
 #define MAXCOLORVPORT	1	// 1 color vport supported only (RGB)
-#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT
+#define MAXMASKVPORT	1	// 1 vport supported for mask display
+#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
 /* defines for copyfits actions */
 #define CP_INIT		0x01	// initialize data array with 0s

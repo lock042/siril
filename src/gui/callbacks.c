@@ -948,11 +948,13 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 		return BLUE_VPORT;
 	else if (allow_rgb && drawing_area == gui.view[RGB_VPORT].drawarea)
 		return RGB_VPORT;
+	else if (drawing_area == gui.view[MASK_VPORT].drawarea)
+		return MASK_VPORT;
 	return -1;
 }
 
 void update_display_selection() {
-	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb", "labelselection_mask" };
 	static gchar selection_buffer[256] = { 0 };
 	if (com.selection.w && com.selection.h) {
 		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
@@ -986,6 +988,7 @@ void update_roi_config() {
 }
 
 void update_display_fwhm() {
+	if (gui.cvport == MASK_VPORT) return;
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
 
@@ -1657,6 +1660,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
+	gui.view[MASK_VPORT].drawarea = lookup_widget("drawingareamask");
 	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
@@ -2249,7 +2253,8 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 	gui.cvport = page_num;
 	redraw(REDRAW_OVERLAY);
 	update_display_selection();	// update the dimensions of the selection when switching page
-	update_display_fwhm();
+	if (page_num < MASK_VPORT)
+		update_display_fwhm();
 }
 
 struct checkSeq_filter_data {

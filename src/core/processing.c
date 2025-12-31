@@ -1679,7 +1679,8 @@ gpointer generic_image_worker(gpointer p) {
 	// For testing
 	// TODO: remove this for production!
 	if (!args->fit->mask) {
-		mask_create_test(args->fit, 8);
+//		mask_create_test(args->fit, 8);
+//		mask_create_from_luminance_even(args->fit, args->fit, 32);
 	}
 
 	gboolean using_mask = args->mask_aware && args->fit->mask; // TODO: add a mask active condition here once implemented

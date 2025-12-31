@@ -88,8 +88,8 @@ static int allocate_full_surface(struct image_view *view) {
 
 	// allocate the image surface if not already done or the same size
 	if (stride != view->full_surface_stride
-			|| gfit->ry != view->full_surface_height
-			|| !view->full_surface || !view->buf) {
+				|| gfit->ry != view->full_surface_height
+				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
 		view->full_surface_height = gfit->ry;
@@ -104,7 +104,7 @@ static int allocate_full_surface(struct image_view *view) {
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
-				CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
+					CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
 		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
@@ -190,8 +190,68 @@ static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
-// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
+static void remap_mask(mask_t *mask) {
+	// This function does not null-check mask or mask->data as this is done in the
+	// caller to avoid a jmp in the common case where there is no mask
 
+	// This function maps mask data with a linear mapping to the buffer to be displayed
+	BYTE *dst;
+	uint8_t *src8;
+	uint16_t *src16;
+	float *fsrc;
+
+	int vport = MASK_VPORT; // Mask viewport == 4
+
+	struct image_view *view = &gui.view[vport];
+	if (allocate_full_surface(view))
+		return;
+
+	dst = view->buf;
+	src8 = (uint8_t *)mask->data;
+	src16 = (uint16_t *)mask->data;
+	fsrc = (float *)mask->data;
+
+	siril_debug_print("mask remap");
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (guint y = 0; y < gfit->ry; y++) {
+		guint src_i = y * gfit->rx;
+		for (guint x = 0; x < gfit->rx; ++x, ++src_i) {
+			BYTE dst_pixel_value = 0;
+
+			// Linear mapping based on mask bitpix
+			switch (mask->bitpix) {
+				case 8:
+					dst_pixel_value = src8[src_i];
+					break;
+				case 16:
+					dst_pixel_value = src16[src_i] >> 8; // Simple 16-bit to 8-bit conversion
+					break;
+				case 32: // Float
+					dst_pixel_value = roundf_to_BYTE(fsrc[src_i] * UCHAR_MAX_SINGLE);
+					break;
+				default:
+					dst_pixel_value = 0;
+					break;
+			}
+
+			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
+			guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+			// Display as grayscale
+			*(guint32*)(dst + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+		}
+	}
+
+	// Flush to ensure all writing to the image was done and redraw the surface
+	cairo_surface_flush(view->full_surface);
+	cairo_surface_mark_dirty(view->full_surface);
+	invalidate_image_render_cache(vport);
+	test_and_allocate_reference_image(vport);
+}
+
+// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
@@ -2104,6 +2164,8 @@ void redraw(remap_type doremap) {
 			}
 			if (gfit->naxis == 3)
 				remaprgb();
+			if (gfit->mask && gfit->mask->data)
+				remap_mask(gfit->mask);
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
 			break;
