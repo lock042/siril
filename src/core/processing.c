@@ -1530,8 +1530,8 @@ void free_generic_img_args(struct generic_img_args *args) {
 	free(args);
 }
 
+FAST_MATH_PUSH
 static inline void blend_fits_with_mask(fits* fit, fits* orig) {
-WITH_FAST_MATH
 	size_t npixels = fit->rx * fit->ry;
 	mask_t *mask = fit->mask;
 
@@ -1654,6 +1654,7 @@ WITH_FAST_MATH
 		}
 	}
 }
+FAST_MATH_POP
 
 /** Main generic image worker function
  * Works with a single image, optionally using multiple threads for processing
@@ -1681,6 +1682,8 @@ gpointer generic_image_worker(gpointer p) {
 	if (!args->fit->mask) {
 //		mask_create_test(args->fit, 8);
 //		mask_create_from_luminance_even(args->fit, args->fit, 32);
+		mask_create_from_stars(args->fit, 4, 16);
+		mask_feather(args->fit, 8, FEATHER_OUTER);
 	}
 
 	gboolean using_mask = args->mask_aware && args->fit->mask; // TODO: add a mask active condition here once implemented

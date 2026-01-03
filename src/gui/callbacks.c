@@ -1298,6 +1298,23 @@ void set_output_filename_to_sequence_name() {
 	g_free(msg);
 }
 
+gboolean show_or_hide_mask_tab_idle(gpointer p) {
+	if (com.headless) return FALSE;
+	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
+	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
+	if (gfit->mask != NULL) {
+		gtk_widget_show(page);
+	} else {
+		gtk_widget_hide(page);
+	}
+	return FALSE;
+}
+
+void show_or_hide_mask_tab() {
+	siril_add_idle(show_or_hide_mask_tab_idle, NULL);
+	return;
+}
+
 gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
@@ -1321,6 +1338,7 @@ gboolean close_tab(gpointer user_data) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_show(page);
 	}
+	show_or_hide_mask_tab_idle(NULL);
 	return FALSE;
 }
 

@@ -22,10 +22,15 @@
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
 
-#if defined(__GNUC__) || defined(__clang__)
-  #define WITH_FAST_MATH _Pragma("clang fp contract(fast)")
+#if defined(__clang__)
+  #define FAST_MATH_PUSH _Pragma("clang fp contract(fast)")
+  #define FAST_MATH_POP  _Pragma("clang fp contract(off)")
+#elif defined(__GNUC__)
+  #define FAST_MATH_PUSH _Pragma("GCC optimize(\"fp-contract=fast\")")
+  #define FAST_MATH_POP  _Pragma("GCC optimize(\"fp-contract=off\")")
 #else
-  #define WITH_FAST_MATH
+  #define FAST_MATH_PUSH
+  #define FAST_MATH_POP
 #endif
 
 #ifdef SIRIL_OUTPUT_DEBUG
