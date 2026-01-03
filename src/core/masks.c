@@ -758,122 +758,138 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 	size_t npixels = rx * ry;
 	uint8_t bitpix = fit->mask->bitpix;
 
-	// Allocate distance maps
-	float *dist_inside = malloc(npixels * sizeof(float));  // Distance from inside to edge
-	float *dist_outside = malloc(npixels * sizeof(float)); // Distance from outside to edge
-	if (!dist_inside || !dist_outside) {
-		if (dist_inside) free(dist_inside);
-		if (dist_outside) free(dist_outside);
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	// Convert mask to binary float for processing
-	float *binary = malloc(npixels * sizeof(float));
+	// Convert mask to binary uint8 for OpenCV processing
+	uint8_t *binary = malloc(npixels * sizeof(uint8_t));
 	if (!binary) {
-		free(dist_inside);
-		free(dist_outside);
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 
-	// Convert mask to normalized binary float
+	// Convert mask to binary uint8
 	switch (bitpix) {
 		case 8: {
 			uint8_t *m = (uint8_t*)fit->mask->data;
 			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 127) ? 1.0f : 0.0f;
+				binary[i] = (m[i] > 127) ? 255 : 0;
 			}
 			break;
 		}
 		case 16: {
 			uint16_t *m = (uint16_t*)fit->mask->data;
 			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 32767) ? 1.0f : 0.0f;
+				binary[i] = (m[i] > 32767) ? 255 : 0;
 			}
 			break;
 		}
 		case 32: {
 			float *m = (float*)fit->mask->data;
 			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 0.5f) ? 1.0f : 0.0f;
+				binary[i] = (m[i] > 0.5f) ? 255 : 0;
 			}
 			break;
 		}
 	}
 
-	// Determine which distance maps we need to compute
+	// Determine which distance transforms we need
 	gboolean need_inside = (mode == FEATHER_INNER || mode == FEATHER_EDGE);
 	gboolean need_outside = (mode == FEATHER_OUTER || mode == FEATHER_EDGE);
 
 	// Adjust feather distance for EDGE mode
 	float effective_dist = (mode == FEATHER_EDGE) ? feather_dist / 2.0f : feather_dist;
 
-	// Compute distance transforms
-	#ifdef _OPENMP
-	#pragma omp parallel for schedule(dynamic) num_threads(com.max_thread) if(com.max_thread > 1)
-	#endif
-	for (size_t y = 0; y < ry; y++) {
-		for (size_t x = 0; x < rx; x++) {
-			size_t idx = y * rx + x;
-			int search_radius = (int)ceilf(feather_dist) + 1;
+	// Allocate distance maps
+	float *dist_inside = NULL;
+	float *dist_outside = NULL;
 
-			if (need_inside) {
-				if (binary[idx] > 0.5f) {
-					// Inside mask - find distance to nearest edge (0)
-					float min_dist = feather_dist + 1.0f;
-
-					for (int dy = -search_radius; dy <= search_radius; dy++) {
-						int yy = y + dy;
-						if (yy < 0 || yy >= ry) continue;
-
-						for (int dx = -search_radius; dx <= search_radius; dx++) {
-							int xx = x + dx;
-							if (xx < 0 || xx >= rx) continue;
-
-							size_t check_idx = yy * rx + xx;
-							if (binary[check_idx] < 0.5f) {
-								float dist = sqrtf(dx * dx + dy * dy);
-								if (dist < min_dist) {
-									min_dist = dist;
-								}
-							}
-						}
-					}
-					dist_inside[idx] = min_dist;
-				} else {
-					dist_inside[idx] = 0.0f;
-				}
-			}
-
-			if (need_outside) {
-				if (binary[idx] < 0.5f) {
-					// Outside mask - find distance to nearest edge (1)
-					float min_dist = feather_dist + 1.0f;
-
-					for (int dy = -search_radius; dy <= search_radius; dy++) {
-						int yy = y + dy;
-						if (yy < 0 || yy >= ry) continue;
-
-						for (int dx = -search_radius; dx <= search_radius; dx++) {
-							int xx = x + dx;
-							if (xx < 0 || xx >= rx) continue;
-
-							size_t check_idx = yy * rx + xx;
-							if (binary[check_idx] > 0.5f) {
-								float dist = sqrtf(dx * dx + dy * dy);
-								if (dist < min_dist) {
-									min_dist = dist;
-								}
-							}
-						}
-					}
-					dist_outside[idx] = min_dist;
-				} else {
-					dist_outside[idx] = 0.0f;
-				}
-			}
+	if (need_inside) {
+		dist_inside = malloc(npixels * sizeof(float));
+		if (!dist_inside) {
+			free(binary);
+			PRINT_ALLOC_ERR;
+			return 1;
 		}
+	}
+
+	if (need_outside) {
+		dist_outside = malloc(npixels * sizeof(float));
+		if (!dist_outside) {
+			free(binary);
+			if (dist_inside) free(dist_inside);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+	}
+
+	// Create OpenCV matrices
+	CvMat *src_inside = NULL, *dst_inside = NULL;
+	CvMat *src_outside = NULL, *dst_outside = NULL;
+
+	// Compute inside distance transform if needed
+	if (need_inside) {
+		src_inside = cvCreateMatHeader(ry, rx, CV_8UC1);
+		dst_inside = cvCreateMatHeader(ry, rx, CV_32FC1);
+
+		if (!src_inside || !dst_inside) {
+			if (src_inside) cvReleaseMat(&src_inside);
+			if (dst_inside) cvReleaseMat(&dst_inside);
+			free(binary);
+			if (dist_inside) free(dist_inside);
+			if (dist_outside) free(dist_outside);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		cvSetData(src_inside, binary, rx);
+		cvSetData(dst_inside, dist_inside, rx * sizeof(float));
+
+		// Distance transform on the mask (inside pixels)
+		// cvDistTransform signature: (src, dst, distance_type, mask_size, mask, labels, labelType)
+		cvDistTransform(src_inside, dst_inside, CV_DIST_L2, CV_DIST_MASK_PRECISE, NULL, NULL, CV_DIST_LABEL_CCOMP);
+
+		cvReleaseMat(&src_inside);
+		cvReleaseMat(&dst_inside);
+	}
+
+	// Compute outside distance transform if needed
+	if (need_outside) {
+		// Invert binary mask for outside distance
+		uint8_t *binary_inv = malloc(npixels * sizeof(uint8_t));
+		if (!binary_inv) {
+			free(binary);
+			if (dist_inside) free(dist_inside);
+			if (dist_outside) free(dist_outside);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		for (size_t i = 0; i < npixels; i++) {
+			binary_inv[i] = (binary[i] == 0) ? 255 : 0;
+		}
+
+		src_outside = cvCreateMatHeader(ry, rx, CV_8UC1);
+		dst_outside = cvCreateMatHeader(ry, rx, CV_32FC1);
+
+		if (!src_outside || !dst_outside) {
+			if (src_outside) cvReleaseMat(&src_outside);
+			if (dst_outside) cvReleaseMat(&dst_outside);
+			free(binary);
+			free(binary_inv);
+			if (dist_inside) free(dist_inside);
+			if (dist_outside) free(dist_outside);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		cvSetData(src_outside, binary_inv, rx);
+		cvSetData(dst_outside, dist_outside, rx * sizeof(float));
+
+		// Distance transform on inverted mask (outside pixels)
+		// cvDistTransform signature: (src, dst, distance_type, mask_size, mask, labels, labelType)
+		cvDistTransform(src_outside, dst_outside, CV_DIST_L2, CV_DIST_MASK_PRECISE, NULL, NULL, CV_DIST_LABEL_CCOMP);
+
+		cvReleaseMat(&src_outside);
+		cvReleaseMat(&dst_outside);
+		free(binary_inv);
 	}
 
 	// Apply feathering based on mode
@@ -889,7 +905,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = dist_inside[i] / feather_dist;
 					}
 				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						value = 1.0f;
 					} else if (dist_outside[i] >= feather_dist) {
 						value = 0.0f;
@@ -897,7 +913,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = 1.0f - (dist_outside[i] / feather_dist);
 					}
 				} else { // FEATHER_EDGE
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						// Inside: feather inward
 						if (dist_inside[i] >= effective_dist) {
 							value = 1.0f;
@@ -928,7 +944,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = dist_inside[i] / feather_dist;
 					}
 				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						value = 1.0f;
 					} else if (dist_outside[i] >= feather_dist) {
 						value = 0.0f;
@@ -936,7 +952,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = 1.0f - (dist_outside[i] / feather_dist);
 					}
 				} else { // FEATHER_EDGE
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						// Inside: feather inward
 						if (dist_inside[i] >= effective_dist) {
 							value = 1.0f;
@@ -967,7 +983,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = dist_inside[i] / feather_dist;
 					}
 				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						value = 1.0f;
 					} else if (dist_outside[i] >= feather_dist) {
 						value = 0.0f;
@@ -975,7 +991,7 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 						value = 1.0f - (dist_outside[i] / feather_dist);
 					}
 				} else { // FEATHER_EDGE
-					if (binary[i] > 0.5f) {
+					if (binary[i] > 127) {
 						// Inside: feather inward
 						if (dist_inside[i] >= effective_dist) {
 							value = 1.0f;
@@ -997,9 +1013,10 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 		}
 	}
 
-	free(dist_inside);
-	free(dist_outside);
+	// Cleanup
 	free(binary);
+	if (dist_inside) free(dist_inside);
+	if (dist_outside) free(dist_outside);
 
 	const char *mode_str = (mode == FEATHER_INNER) ? "inward" :
 	                       (mode == FEATHER_OUTER) ? "outward" : "on edge";
