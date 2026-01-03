@@ -599,6 +599,7 @@ struct ffit {
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
 	mask_t* mask; // Mask for image operations
+	gboolean mask_active; // Whether or not the mask is active
 };
 
 typedef enum {

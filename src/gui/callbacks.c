@@ -516,6 +516,47 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	}
 }
 
+void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	gfit->mask_active = state;
+}
+
+static void initialize_mask_tab_label() {
+	// Get the notebook
+	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("notebook1"));
+
+	// Find the mask tab (position 4 based on your XML)
+	int mask_tab_position = 4;
+
+	// Create the new tab label with checkbox
+	GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget *mask_checkbox = gtk_check_button_new();
+	GtkWidget *mask_label = gtk_label_new("Mask");
+
+	// Pack the checkbox and label into the box
+	gtk_box_pack_start(GTK_BOX(tab_label_box), mask_checkbox, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(tab_label_box), mask_label, FALSE, FALSE, 0);
+
+	// Show all widgets
+	gtk_widget_show(mask_checkbox);
+	gtk_widget_show(mask_label);
+	gtk_widget_show(tab_label_box);
+
+	// Expose widgets to the builder with IDs
+	gtk_builder_expose_object(gui.builder, "mask_tab_label_box", G_OBJECT(tab_label_box));
+	gtk_builder_expose_object(gui.builder, "mask_active_check", G_OBJECT(mask_checkbox));
+	gtk_builder_expose_object(gui.builder, "mask_tab_label", G_OBJECT(mask_label));
+
+	// Get the tab content (the vbox_mask)
+	GtkWidget *tab_content = gtk_notebook_get_nth_page(notebook, mask_tab_position);
+
+	// Replace the tab label
+	gtk_notebook_set_tab_label(notebook, tab_content, tab_label_box);
+
+	// Connect to the checkbox toggle signal if needed
+	g_signal_connect(mask_checkbox, "toggled", G_CALLBACK(on_mask_active_toggled), NULL);
+}
+
 void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	gui.use_hd_remap = gtk_check_menu_item_get_active(menuitem);
 	if (gui.rendering_mode == STF_DISPLAY) {
@@ -1714,6 +1755,12 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
+
+	/* initialize complex Mask tab label */
+	initialize_mask_tab_label();
+	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
+	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
+	gtk_widget_hide(page);
 
 	/* initialize scripts and SPCC in threads:
 	 * 1) initialize the scripts menu / SPCC widgets

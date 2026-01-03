@@ -1028,6 +1028,56 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_gray_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Mask</property>
+        <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="mask_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_image">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_image</property>
+                <property name="label" translatable="yes">Mask from image</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_from_stars">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_stars</property>
+                <property name="label" translatable="yes">Mask from stars</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_from_file">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_file</property>
+                <property name="label" translatable="yes">Mask from file</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_clear_mask">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.clear_mask</property>
+                <property name="label" translatable="yes">Clear mask</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="submenu_gray_roi">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -3681,10 +3731,10 @@ Output is a csv file compatible with NINA Exoplanet</property>
                       </packing>
                     </child>
                     <child type="tab">
-                      <object class="GtkLabel" id="label_mask">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Mask</property>
+                        <property name="label" translatable="yes">label</property>
                       </object>
                       <packing>
                         <property name="position">4</property>

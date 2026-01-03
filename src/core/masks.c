@@ -20,11 +20,13 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "gui/callbacks.h"
+#include "gui/utils.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
 
@@ -37,6 +39,21 @@ void free_mask(mask_t* mask) {
 	free(mask->data);
 	free(mask);
 	show_or_hide_mask_tab();
+}
+
+gboolean set_mask_active_idle(gpointer p) {
+	gboolean state = GPOINTER_TO_INT(p);
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("mask_active_check"));
+	g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(button), on_mask_active_toggled, NULL);
+	gtk_toggle_button_set_active(button, state);
+	g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(button), on_mask_active_toggled, NULL);
+	return FALSE;
+}
+
+void set_mask_active(fits *fit, gboolean state) {
+	fit->mask_active = state;
+	if (fit == gfit)
+		siril_add_idle(set_mask_active_idle, GINT_TO_POINTER(state));
 }
 
 // Create a test mask : the left half of the image has mask value 255,
@@ -93,6 +110,7 @@ int mask_create_test(fits *fit, uint8_t bitpix) {
 			break;
 		}
 	}
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	return 0;
 }
@@ -147,6 +165,7 @@ int mask_create_ones_like(fits *fit, uint8_t bitpix) {
 			fit->mask = NULL;
 			return 1;
 	}
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	return 0;
 }
@@ -173,6 +192,7 @@ int mask_create_zeroes_like(fits *fit, uint8_t bitpix) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	return 0;
 }
@@ -243,6 +263,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 			break;
 		}
 	}
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	return 0;
 }
@@ -324,6 +345,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 			break;
 		}
 	}
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	return 0;
 }
@@ -636,6 +658,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	if (stars_needs_freeing)
 		free_fitted_stars(stars);
 
+	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
 	siril_log_message(_("Star mask created successfully.\n"));
 	return 0;

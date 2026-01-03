@@ -114,4 +114,5 @@ void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
 
+void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data);
 #endif

@@ -1686,7 +1686,7 @@ gpointer generic_image_worker(gpointer p) {
 		mask_feather(args->fit, 8, FEATHER_OUTER);
 	}
 
-	gboolean using_mask = args->mask_aware && args->fit->mask; // TODO: add a mask active condition here once implemented
+	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
 	if (using_mask) {
@@ -1743,7 +1743,7 @@ gpointer generic_image_worker(gpointer p) {
 			free(tmp);
 		} else { // Either no mask_hook or the mask_hook returned 0 (success)
 			// Blend according to the mask
-			if (args->mask_aware && args->fit->mask) {
+			if (using_mask) {
 				blend_fits_with_mask(args->fit, orig);
 			}
 			// If there is a log_hook, set the HISTORY card and update the log as required
