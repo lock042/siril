@@ -206,6 +206,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 	if (!source) return 1; // no source FITS struct
 	if (chan >= source->naxes[2]) return 1; // channel out of range
 
+	set_mask_active(fit, FALSE);
 	if (fit->mask)
 		free_mask(fit->mask);
 
@@ -233,7 +234,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 			} else {
 				float *c = source->fpdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i] = roundf_to_BYTE(c[i]);
+					m[i] = roundf_to_BYTE(c[i] * UCHAR_MAX_SINGLE);
 				}
 			}
 			break;
@@ -243,9 +244,9 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 				memcpy(fit->mask->data, source->pdata[chan], npixels * sizeof(WORD));
 			} else {
 				uint16_t* m = (uint16_t*) fit->mask->data;
-				WORD* c = source->pdata[chan];
+				float* c = source->fpdata[chan];
 				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i] = roundf_to_WORD(c[i]);
+					m[i] = roundf_to_WORD(c[i] * USHRT_MAX_SINGLE);
 				}
 			}
 			break;
@@ -267,6 +268,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 	show_or_hide_mask_tab();
 	return 0;
 }
+
 FAST_MATH_POP
 int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, float bw, uint8_t bitpix) {
 	if (!fit) return 1; // no FITS struct
@@ -278,6 +280,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 		return mask_create_from_channel(fit, source, 0, bitpix);
 	}
 
+	set_mask_active(fit, FALSE);
 	if (fit->mask)
 		free_mask(fit->mask);
 
@@ -347,6 +350,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 	}
 	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
+
 	return 0;
 }
 
@@ -664,6 +668,11 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	return 0;
 }
 FAST_MATH_POP
+
+int mask_autostretch(fits *fit) {
+	siril_log_message("Not implemented yet\n");
+	return 0;
+}
 
 // Binarize the mask based on min-max range
 int mask_binarize(fits *fit, float min_val, float max_val) {

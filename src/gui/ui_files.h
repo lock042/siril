@@ -61,6 +61,8 @@ const char* ui_files[] = {
 	"/org/siril/ui/icc_gamut_dialog.ui",
 	"/org/siril/ui/linearmatch_dialog.ui",
 	"/org/siril/ui/livestacking_player.ui",
+	"/org/siril/ui/mask_from_image.ui",
+	"/org/siril/ui/mask_from_stars.ui",
 	"/org/siril/ui/Median_dialog.ui",
 	"/org/siril/ui/merge_cfa_dialog.ui",
 	"/org/siril/ui/mouse_actions.ui",

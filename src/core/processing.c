@@ -1677,15 +1677,6 @@ gpointer generic_image_worker(gpointer p) {
 
 	fits *orig = NULL;
 
-	// For testing
-	// TODO: remove this for production!
-	if (!args->fit->mask) {
-//		mask_create_test(args->fit, 8);
-//		mask_create_from_luminance_even(args->fit, args->fit, 32);
-		mask_create_from_stars(args->fit, 4, 16);
-		mask_feather(args->fit, 8, FEATHER_OUTER);
-	}
-
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask

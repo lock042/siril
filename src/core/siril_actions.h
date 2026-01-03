@@ -140,6 +140,10 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 gboolean chain_channels_idle_callback(gpointer user_data);
 

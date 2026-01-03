@@ -2194,6 +2194,16 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 	}
 }
 
+static gboolean redraw_mask_idle(gpointer p) {
+	if (gfit->mask && gfit->mask->data)
+		remap_mask(gfit->mask);
+	return FALSE;
+}
+
+void queue_redraw_mask() {
+	siril_add_idle(redraw_mask_idle, NULL);
+}
+
 void queue_redraw(remap_type doremap) {
 	// request a redraw from another thread
 	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));

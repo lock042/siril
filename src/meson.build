@@ -231,6 +231,7 @@ src_files = [
   'gui/image_display.c',
   'gui/image_interactions.c',
   'gui/linear_match.c',
+  'gui/masks_gui.c',
   'gui/menu_gray_geometry.c',
   'gui/menu_gray_selection.c',
   'gui/merge_cfa.c',

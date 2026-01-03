@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/masks.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -865,4 +866,30 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("ccm_dialog");
+}
+
+void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_from_image_dialog");
+}
+
+void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_from_stars_dialog");
+}
+
+void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+
+}
+
+void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (get_thread_run()) {
+		queue_error_message_dialog(_("Error"), _("Cannot clear the mask while the processing thread is running"));
+		return;
+	}
+	if (gfit && gfit->mask) {
+		set_mask_active(gfit, FALSE);
+		free_mask(gfit->mask);
+		gfit->mask = NULL;
+		show_or_hide_mask_tab();
+		siril_log_message(_("Mask cleared\n"));
+	}
 }

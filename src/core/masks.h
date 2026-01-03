@@ -8,6 +8,7 @@ typedef enum {
 	FEATHER_EDGE    // Feather equally inward and outward
 } feather_mode;
 
+void set_mask_active(fits *fit, gboolean state);
 void free_mask(mask_t* mask);
 
 int mask_create_test(fits *fit, uint8_t bitpix);
@@ -20,6 +21,7 @@ int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix);
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix);
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix);
 
+int mask_autostretch(fits *fit);
 int mask_apply_gaussian_blur(fits *fit, float radius);
 int mask_binarize(fits *fit, float min_val, float max_val);
 int mask_invert(fits *fit);

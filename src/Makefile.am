@@ -297,6 +297,8 @@ siril_common_SOURCES = \
 	gui/image_interactions.c \
 	gui/image_interactions.h \
 	gui/linear_match.c \
+	gui/masks_gui.c \
+	gui/masks_gui.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_selection.c \
