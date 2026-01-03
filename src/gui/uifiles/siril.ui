@@ -1042,7 +1042,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="action-name">win.mask_from_image</property>
-                <property name="label" translatable="yes">Mask from image</property>
+                <property name="label" translatable="yes">Mask from current image</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
@@ -1060,7 +1060,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="action-name">win.mask_from_file</property>
-                <property name="label" translatable="yes">Mask from file</property>
+                <property name="label" translatable="yes">Mask from image file</property>
                 <property name="use-underline">True</property>
               </object>
             </child>

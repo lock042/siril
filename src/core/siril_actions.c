@@ -869,6 +869,7 @@ void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	mask_from_image_dialog_set_file_mode(FALSE);
 	siril_open_dialog("mask_from_image_dialog");
 }
 
@@ -877,7 +878,8 @@ void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-
+	mask_from_image_dialog_set_file_mode(TRUE);
+	siril_open_dialog("mask_from_image_dialog");
 }
 
 void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

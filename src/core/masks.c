@@ -435,31 +435,65 @@ int mask_apply_gaussian_blur(fits *fit, float radius) {
 	return 0;
 }
 
-// Create a mask from an external image file
-// filename: path to the image file to load
-// chan: channel to use (0, 1, 2 for R, G, B or mono; -1 for luminance)
-// bitpix: 8, 16, or 32 for mask bit depth
-int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix) {
+/**
+* mask_create_from_image:
+* @fit: The target fits structure where the mask will be stored
+* @filename: Path to the source image file
+* @chan: Channel to use (-1 for luminance, 0 for R, 1 for G, 2 for B)
+* @bitpix: Output bit depth (8, 16, or 32)
+* @weight_r: Red channel weight for luminance calculation (ignored if chan != -1)
+* @weight_g: Green channel weight for luminance calculation (ignored if chan != -1)
+* @weight_b: Blue channel weight for luminance calculation (ignored if chan != -1)
+*
+* Creates a mask from an external image file. If chan is -1, uses luminance
+* with the specified weights. Otherwise, uses the specified channel.
+*
+* Returns: 0 on success, 1 on error
+*/
+int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
+                           double weight_r, double weight_g, double weight_b) {
 	if (!fit || !filename) {
 		siril_debug_print("mask_create_from_image: invalid parameters\n");
 		return 1;
 	}
-
 	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) {
 		siril_debug_print("mask_create_from_image: bitpix must be 8, 16, or 32\n");
 		return 1;
 	}
-
 	if (chan < -1 || chan > 2) {
 		siril_debug_print("mask_create_from_image: chan must be -1 (luminance), 0 (R), 1 (G), or 2 (B)\n");
 		return 1;
 	}
 
+	// Validate luminance weights if using luminance mode
+	if (chan == -1) {
+		double weight_sum = weight_r + weight_g + weight_b;
+		if (weight_sum < 0.99 || weight_sum > 1.01) {
+			siril_log_color_message(_("Warning: luminance weights sum to %.3f (should be 1.0), normalizing\n"),
+				"salmon", weight_sum);
+			// Normalize weights
+			if (weight_sum > 0.0) {
+				weight_r /= weight_sum;
+				weight_g /= weight_sum;
+				weight_b /= weight_sum;
+			} else {
+				// Use even weights as fallback
+				weight_r = weight_g = weight_b = 0.333;
+			}
+		}
+	}
+
 	// Load the source image
-	fits *source = NULL;
+	fits *source = calloc(1, sizeof(fits));
+	if (!source) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
 	int retval = readfits(filename, source, FALSE, FALSE);
 	if (retval) {
 		siril_log_color_message(_("Failed to load mask image: %s\n"), "red", filename);
+		free(source);
 		return 1;
 	}
 
@@ -482,9 +516,10 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix)
 	}
 
 	if (chan == -1) {
-		// Use luminance
-		siril_log_message(_("Creating mask from luminance of %s\n"), filename);
-		retval = mask_create_from_luminance_human(fit, source, bitpix);
+		// Use luminance with specified weights
+		siril_log_message(_("Creating mask from luminance of %s (weights: R=%.3f, G=%.3f, B=%.3f)\n"),
+			filename, weight_r, weight_g, weight_b);
+		retval = mask_create_from_luminance(fit, source, weight_r, weight_g, weight_b, bitpix);
 	} else {
 		// Use specific channel
 		const char *chan_names[] = {"red", "green", "blue"};

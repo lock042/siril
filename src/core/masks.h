@@ -8,6 +8,8 @@ typedef enum {
 	FEATHER_EDGE    // Feather equally inward and outward
 } feather_mode;
 
+void mask_from_image_dialog_set_file_mode(gboolean file_mode);
+
 void set_mask_active(fits *fit, gboolean state);
 void free_mask(mask_t* mask);
 
@@ -18,7 +20,8 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix);
 int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, float bw, uint8_t bitpix);
 int mask_create_from_luminance_even(fits *fit, fits *source, uint8_t bitpix);
 int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix);
-int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix);
+int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
+                           double weight_r, double weight_g, double weight_b);
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix);
 
 int mask_autostretch(fits *fit);
