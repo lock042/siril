@@ -1,5 +1,5 @@
 siril-1.4.1
-xx/xx/xx
+01/05/26
 
 **Fixes**
 * Fixed build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
