@@ -13,6 +13,9 @@ void mask_from_image_dialog_set_file_mode(gboolean file_mode);
 void set_mask_active(fits *fit, gboolean state);
 void free_mask(mask_t* mask);
 
+mask_t *fits_to_mask(fits *mfit);
+fits *mask_to_fits(fits *fit);
+
 int mask_create_test(fits *fit, uint8_t bitpix);
 int mask_create_ones_like(fits *fit, uint8_t bitpix);
 int mask_create_zeroes_like(fits *fit, uint8_t bitpix);

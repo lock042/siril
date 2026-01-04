@@ -759,8 +759,7 @@ fits *mask_to_fits(fits *fit) {
 	return mfit;
 }
 
-mask_t *fits_to_mask(fits *mfit)
-{
+mask_t *fits_to_mask(fits *mfit) {
 	if (!mfit || (!mfit->data && !mfit->fdata))
 		return NULL;
 
