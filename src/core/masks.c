@@ -709,6 +709,122 @@ int mask_autostretch(fits *fit) {
 	return 0;
 }
 
+
+// Creates a fits struct representing the mask in fit. This allows for masks to be
+// processed with the generic_image_worker (using a special idle to re-update the
+// mask with the result)
+// 8-bit masks are scaled to 16-bit range for better interoperability with processing
+// functions, 16-bit and 32-bit masks are converted directly into data or fdata
+// These fits structs are always mono (because masks are always mono)
+
+fits *mask_to_fits(fits *fit) {
+	if (!fit || !fit->mask || !fit->mask->data)
+		return NULL;
+
+	size_t npixels = fit->rx * fit->ry;
+	fits *mfit = calloc(1, sizeof(fits));
+	copyfits(fit, mfit, CP_FORMAT, -1);
+	mfit->naxes[2] = 1;
+	mfit->data = NULL;
+	mfit->fdata = NULL;
+	switch (fit->mask->bitpix) {
+		case 8: {
+			mfit->data = malloc(fit->rx * fit->ry * sizeof(WORD));
+			uint8_t *m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0 ; i < npixels ; i++) {
+				mfit->data[i] = ((uint16_t) m[i] << 8) | m[i]; // exact scaling to WORD range
+			}
+			mfit->orig_bitpix = BYTE_IMG; // We set this so we can revert it when converting back
+			break;
+		}
+		case 16: {
+			mfit->data = malloc(fit->rx * fit->ry * sizeof(WORD));
+			memcpy(mfit->data, fit->mask->data, npixels * sizeof(WORD));
+			mfit->orig_bitpix = USHORT_IMG; // So we know this was always 16-bit when converting back
+			break;
+		}
+		case 32: {
+			mfit->fdata = malloc(fit->rx * fit->ry * sizeof(float));
+			memcpy(mfit->fdata, fit->mask->data, npixels * sizeof(float));
+			break;
+		}
+		default: {
+			free(mfit);
+			return NULL;
+		}
+	}
+	mfit->pdata[0] = mfit->pdata[1] = mfit->pdata[2] = mfit->data;
+	mfit->fpdata[0] = mfit->fpdata[1] = mfit->fpdata[2] = mfit->fdata;
+
+	return mfit;
+}
+
+mask_t *fits_to_mask(fits *mfit)
+{
+	if (!mfit || (!mfit->data && !mfit->fdata))
+		return NULL;
+
+	size_t npixels = mfit->rx * mfit->ry;
+
+	mask_t *mask = calloc(1, sizeof(mask_t));
+	if (!mask)
+		return NULL;
+
+	switch (mfit->orig_bitpix) {
+
+		/* Was originally 8-bit, expanded to 16-bit */
+		case BYTE_IMG: {
+			mask->bitpix = 8;
+			mask->data = malloc(npixels * sizeof(uint8_t));
+			if (!mask->data) {
+				free(mask);
+				return NULL;
+			}
+
+			uint8_t  *dst = (uint8_t *)mask->data;
+			uint16_t *src = (uint16_t *)mfit->data;
+
+			for (size_t i = 0; i < npixels; i++) {
+				/* Exact inverse of x * 257 */
+				dst[i] = (uint8_t)(src[i] / 257);
+			}
+			break;
+		}
+
+		/* Was originally 16-bit */
+		case USHORT_IMG: {
+			mask->bitpix = 16;
+			mask->data = malloc(npixels * sizeof(uint16_t));
+			if (!mask->data) {
+				free(mask);
+				return NULL;
+			}
+
+			memcpy(mask->data, mfit->data, npixels * sizeof(uint16_t));
+			break;
+		}
+
+		/* Was originally 32-bit float */
+		case FLOAT_IMG: {
+			mask->bitpix = 32;
+			mask->data = malloc(npixels * sizeof(float));
+			if (!mask->data) {
+				free(mask);
+				return NULL;
+			}
+
+			memcpy(mask->data, mfit->fdata, npixels * sizeof(float));
+			break;
+		}
+
+		default:
+			free(mask);
+			return NULL;
+	}
+
+	return mask;
+}
+
 // Binarize the mask based on min-max range
 int mask_binarize(fits *fit, float min_val, float max_val) {
 	if (!fit || !fit->mask || !fit->mask->data) {
