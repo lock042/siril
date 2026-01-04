@@ -885,10 +885,13 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
             g_free(l->selected_filename);
             l->selected_filename = filename;  // Don't free this, we're storing it
 
-            // Update button label to show filename
+            // Update button tooltip to show filename
             gchar *basename = g_path_get_basename(l->selected_filename);
-            gtk_button_set_label(l->chooser_button, basename);
+			gtk_widget_set_tooltip_text(GTK_WIDGET(l->chooser_button), basename);
+			gchar *ellipsized_basename = ellipsize(basename, 16, ELLIPSIZE_MIDDLE);
+            gtk_button_set_label(l->chooser_button, ellipsized_basename);
             g_free(basename);
+			g_free(ellipsized_basename);
 
             // Call the existing file-set handler
             on_filechooser_file_set_internal(dialog, l);
