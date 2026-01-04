@@ -1852,3 +1852,63 @@ gchar *posix_path_separators(const gchar *path) {
 	}
 	return normalized;
 }
+
+#define ELLIPSIS "…"
+
+gchar *
+ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
+	gsize len_chars;
+
+	g_return_val_if_fail (str != NULL, NULL);
+	g_return_val_if_fail (n_chars > 0, g_strdup (""));
+
+	len_chars = g_utf8_strlen (str, -1);
+
+	/* No ellipsizing needed */
+	if ((int) len_chars <= n_chars)
+		return g_strdup (str);
+
+	/* Only room for the ellipsis itself */
+	if (n_chars == 1)
+		return g_strdup (ELLIPSIS);
+
+	switch (position) {
+		case ELLIPSIZE_START: {
+			/* … + last (n_chars - 1) chars */
+			const gchar *start =
+				g_utf8_offset_to_pointer (str, len_chars - (n_chars - 1));
+			return g_strconcat (ELLIPSIS, start, NULL);
+		}
+
+		case ELLIPSIZE_MIDDLE: {
+			/* first k chars + … + last m chars */
+			int left = (n_chars - 1) / 2;
+			int right = (n_chars - 1) - left;
+
+			const gchar *left_cut =
+				g_utf8_offset_to_pointer (str, left);
+			const gchar *right_start =
+				g_utf8_offset_to_pointer (str, len_chars - right);
+
+			return g_strconcat (
+				g_strndup (str, left_cut - str),
+				ELLIPSIS,
+				right_start,
+				NULL
+			);
+		}
+
+		case ELLIPSIZE_END:
+		default: {
+			/* first (n_chars - 1) chars + … */
+			const gchar *cut =
+				g_utf8_offset_to_pointer (str, n_chars - 1);
+
+			return g_strconcat (
+				g_strndup (str, cut - str),
+				ELLIPSIS,
+				NULL
+			);
+		}
+	}
+}

@@ -16,6 +16,12 @@
 extern "C" {
 #endif
 
+typedef enum {
+    ELLIPSIZE_START,
+    ELLIPSIZE_MIDDLE,
+    ELLIPSIZE_END
+} EllipsizePosition;
+
 /****************** image_formats_internal.h ******************/
 /* BMP */
 int readbmp(const char*, fits*);
@@ -152,6 +158,7 @@ char *strdupnullok(char *data);
 gchar* remove_extension_from_path(const gchar* filepath);
 gboolean delete_directory(const gchar *dir_path, GError **error);
 gchar *posix_path_separators(const gchar *path);
+gchar* ellipsize (const gchar *str, int n_chars, EllipsizePosition position);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny,
