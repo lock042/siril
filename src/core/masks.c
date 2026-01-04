@@ -26,6 +26,8 @@
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "gui/callbacks.h"
+#include "gui/histogram.h"
+#include "gui/image_display.h"
 #include "gui/utils.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
@@ -705,7 +707,49 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 FAST_MATH_POP
 
 int mask_autostretch(fits *fit) {
-	siril_log_message("Not implemented yet\n");
+	struct mtf_data *data = create_mtf_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fits *mfit = mask_to_fits(fit);
+
+	data->fit = mfit;
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+	data->linked = TRUE;
+
+	// Create generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_mtf_data(data);
+		return 1;
+	}
+	// Compute the autostretch parameters
+	find_linked_midtones_balance(mfit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &data->params);
+	data->params.do_red = data->params.do_green = data->params.do_blue = TRUE;
+
+	args->fit = mfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mtf_single_image_hook;
+	args->log_hook = NULL;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = _("Autostretch mask");
+	args->updates_mask = TRUE;
+	args->command = FALSE; // calling as command, not from GUI
+	args->verbose = FALSE;
+	args->user = data;
+	args->mask_aware = FALSE;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run worker synchronously - cleanup happens via destructor
+	gpointer result = generic_image_worker(args);
+	int retval = GPOINTER_TO_INT(result);
+	if (!retval)
+		queue_redraw_mask();
+
 	return 0;
 }
 
@@ -735,17 +779,24 @@ fits *mask_to_fits(fits *fit) {
 				mfit->data[i] = ((uint16_t) m[i] << 8) | m[i]; // exact scaling to WORD range
 			}
 			mfit->orig_bitpix = BYTE_IMG; // We set this so we can revert it when converting back
+			mfit->bitpix = USHORT_IMG;
+			mfit->type = DATA_USHORT;
 			break;
 		}
 		case 16: {
 			mfit->data = malloc(fit->rx * fit->ry * sizeof(WORD));
 			memcpy(mfit->data, fit->mask->data, npixels * sizeof(WORD));
 			mfit->orig_bitpix = USHORT_IMG; // So we know this was always 16-bit when converting back
+			mfit->bitpix = USHORT_IMG;
+			mfit->type = DATA_USHORT;
 			break;
 		}
 		case 32: {
 			mfit->fdata = malloc(fit->rx * fit->ry * sizeof(float));
 			memcpy(mfit->fdata, fit->mask->data, npixels * sizeof(float));
+			mfit->orig_bitpix = FLOAT_IMG;
+			mfit->bitpix = FLOAT_IMG;
+			mfit->type = DATA_FLOAT;
 			break;
 		}
 		default: {
