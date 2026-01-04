@@ -1506,7 +1506,7 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 }
 
 /** Default idle function to end generic image processing */
-static gboolean end_generic_image(gpointer p) {
+gboolean end_generic_image(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	free_generic_img_args(args);

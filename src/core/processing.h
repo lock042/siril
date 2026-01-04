@@ -287,6 +287,7 @@ void child_mutex_lock();
 void child_mutex_unlock();
 
 /* Single image processing worker and hooks */
+gboolean end_generic_image(gpointer p);
 gpointer generic_image_worker(gpointer p);
 
 #ifdef __cplusplus

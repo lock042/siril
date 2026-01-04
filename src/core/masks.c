@@ -23,6 +23,7 @@
 #include "core/processing.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
+#include "algos/statistics.h"
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "gui/callbacks.h"
@@ -230,8 +231,14 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 			uint8_t* m = (uint8_t*) fit->mask->data;
 			if (source->type == DATA_USHORT) {
 				WORD* c = source->pdata[chan];
-				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i] = (uint8_t) ((c[i] * 255 + 32895) >> 16);
+				if (source->orig_bitpix == BYTE_IMG) {
+					for (size_t i = 0 ; i < npixels ;i++) {
+						m[i] = (uint8_t) c[i];
+					}
+				} else {
+					for (size_t i = 0 ; i < npixels ;i++) {
+						m[i] = (uint8_t) ((c[i] * 255 + 32895) >> 16);
+					}
 				}
 			} else {
 				float *c = source->fpdata[chan];
@@ -242,12 +249,19 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 			break;
 		}
 		case 16: {
+			uint16_t* m = (uint16_t*) fit->mask->data;
 			if (source->type == DATA_USHORT) {
-				memcpy(fit->mask->data, source->pdata[chan], npixels * sizeof(WORD));
+				uint16_t* c =source->pdata[chan];
+				if (source->orig_bitpix == BYTE_IMG) {
+					for (size_t i = 0 ; i < npixels ;i++) {
+						m[i] = (c[i] << 8) | c[i];
+					}
+				} else {
+					memcpy(fit->mask->data, source->pdata[chan], npixels * sizeof(WORD));
+				}
 			} else {
-				uint16_t* m = (uint16_t*) fit->mask->data;
 				float* c = source->fpdata[chan];
-				for (size_t i = 0 ; i < npixels ;i++) {
+				for (size_t i = 0 ; i < npixels ; i++) {
 					m[i] = roundf_to_WORD(c[i] * USHRT_MAX_SINGLE);
 				}
 			}
@@ -732,17 +746,10 @@ int mask_autostretch(fits *fit) {
 	args->fit = mfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mtf_single_image_hook;
-	args->log_hook = NULL;
-	args->idle_function = NULL;  // No idle in command mode
 	args->description = _("Autostretch mask");
 	args->updates_mask = TRUE;
-	args->command = FALSE; // calling as command, not from GUI
-	args->verbose = FALSE;
 	args->user = data;
-	args->mask_aware = FALSE;
 	args->max_threads = com.max_thread;
-	args->for_preview = FALSE;
-	args->for_roi = FALSE;
 
 	// Run worker synchronously - cleanup happens via destructor
 	gpointer result = generic_image_worker(args);
@@ -806,7 +813,7 @@ fits *mask_to_fits(fits *fit) {
 	}
 	mfit->pdata[0] = mfit->pdata[1] = mfit->pdata[2] = mfit->data;
 	mfit->fpdata[0] = mfit->fpdata[1] = mfit->fpdata[2] = mfit->fdata;
-
+	invalidate_stats_from_fit(mfit);
 	return mfit;
 }
 
@@ -835,8 +842,7 @@ mask_t *fits_to_mask(fits *mfit) {
 			uint16_t *src = (uint16_t *)mfit->data;
 
 			for (size_t i = 0; i < npixels; i++) {
-				/* Exact inverse of x * 257 */
-				dst[i] = (uint8_t)(src[i] / 257);
+				dst[i] = (uint8_t)((uint32_t) src[i] * 255 + 32895) >> 16;
 			}
 			break;
 		}

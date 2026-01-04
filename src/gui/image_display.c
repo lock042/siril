@@ -191,60 +191,95 @@ static int make_hd_index_for_current_display(int vport);
 static int make_index_for_rainbow(BYTE index[][3]);
 
 static void remap_mask(mask_t *mask) {
-	// This function does not null-check mask or mask->data as this is done in the
-	// caller to avoid a jmp in the common case where there is no mask
-
-	// This function maps mask data with a linear mapping to the buffer to be displayed
-	BYTE *dst;
-	uint8_t *src8;
-	uint16_t *src16;
-	float *fsrc;
-
-	int vport = MASK_VPORT; // Mask viewport == 4
-
+	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
 	if (allocate_full_surface(view))
 		return;
 
-	dst = view->buf;
-	src8 = (uint8_t *)mask->data;
-	src16 = (uint16_t *)mask->data;
-	fsrc = (float *)mask->data;
+	// Cairo setup
+	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
+	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
+
+	// Mask setup
+	void *src_data = mask->data;
+	guint rx = gfit->rx;
+	guint ry = gfit->ry;
+	int bitpix = mask->bitpix;
 
 	siril_debug_print("mask remap");
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-	for (guint y = 0; y < gfit->ry; y++) {
-		guint src_i = y * gfit->rx;
-		for (guint x = 0; x < gfit->rx; ++x, ++src_i) {
-			BYTE dst_pixel_value = 0;
+	// We switch ONCE. This requires duplicating the loop code,
+	// but ensures the tightest possible inner loops for the compiler to vectorize.
+	switch (bitpix) {
+		case 8: {
+			uint8_t *s8 = (uint8_t *)src_data;
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				// Pre-calculate pointers for this row
+				uint8_t *src_row = s8 + (y * rx);
+				// Vertical flip logic
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
 
-			// Linear mapping based on mask bitpix
-			switch (mask->bitpix) {
-				case 8:
-					dst_pixel_value = src8[src_i];
-					break;
-				case 16:
-					dst_pixel_value = src16[src_i] >> 8; // Simple 16-bit to 8-bit conversion
-					break;
-				case 32: // Float
-					dst_pixel_value = roundf_to_BYTE(fsrc[src_i] * UCHAR_MAX_SINGLE);
-					break;
-				default:
-					dst_pixel_value = 0;
-					break;
+				for (guint x = 0; x < rx; x++) {
+					uint8_t val = src_row[x];
+					// Alpha is unused/ignored in Cairo RGB24 (upper 8 bits)
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
 			}
+			break;
+		}
 
-			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-			guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
-			// Display as grayscale
-			*(guint32*)(dst + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+		case 16: {
+			uint16_t *s16 = (uint16_t *)src_data;
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				uint16_t *src_row = s16 + (y * rx);
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
+
+				for (guint x = 0; x < rx; x++) {
+					uint32_t val = ((uint32_t)src_row[x] * 255 + 32895) >> 16;
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
+			}
+			break;
+		}
+
+		case 32: {
+			float *sf = (float *)src_data;
+
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				float *src_row = sf + (y * rx);
+
+				// Destination pointer calculation (Vertical Flip)
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
+
+				for (guint x = 0; x < rx; x++) {
+					// Scale
+					float v = src_row[x] * UCHAR_MAX_SINGLE;
+
+					// Round & Clamp
+					uint8_t val = roundf_to_BYTE(v);
+
+					// 3. Pack to ARGB (Alpha unused)
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
+			}
+			break;
+		}
+
+		default: {
+			siril_debug_print("Error: invalid mask bitpix\n");
+			break;
 		}
 	}
 
-	// Flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
 	invalidate_image_render_cache(vport);
