@@ -29,6 +29,7 @@ static gboolean splash_is_active = FALSE;
 
 /* Create and show the splash screen */
 void show_splash_screen() {
+	GtkWidget *overlay;
 	GtkWidget *vbox;
 	GtkWidget *image;
 	GdkPixbuf *pixbuf;
@@ -46,10 +47,6 @@ void show_splash_screen() {
 	gtk_window_set_skip_pager_hint(GTK_WINDOW(splash_window), TRUE);
 	gtk_widget_set_app_paintable(splash_window, TRUE);
 
-	/* Create a vertical box */
-	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_container_add(GTK_CONTAINER(splash_window), vbox);
-
 	/* Try to load the splash image from resources */
 	pixbuf = gdk_pixbuf_new_from_resource("/org/siril/ui/pixmaps/splash.png", &error);
 	if (!pixbuf) {
@@ -63,24 +60,67 @@ void show_splash_screen() {
 		}
 	}
 
+	/* Create the base image */
 	image = gtk_image_new_from_pixbuf(pixbuf);
-	gtk_box_pack_start(GTK_BOX(vbox), image, FALSE, FALSE, 0);
+
+	/* Get image dimensions to size the window correctly */
+	int img_width = gdk_pixbuf_get_width(pixbuf);
 	g_object_unref(pixbuf);
 
-	/* Create a frame for the progress section */
-	GtkWidget *progress_frame = gtk_frame_new(NULL);
-	gtk_frame_set_shadow_type(GTK_FRAME(progress_frame), GTK_SHADOW_NONE);
-	gtk_box_pack_start(GTK_BOX(vbox), progress_frame, FALSE, FALSE, 0);
+	/* Create an overlay to put text and progress bar over the image */
+	overlay = gtk_overlay_new();
+	gtk_container_add(GTK_CONTAINER(splash_window), overlay);
+	gtk_container_add(GTK_CONTAINER(overlay), image);
 
-	/* Create a vertical box for progress elements */
+	/* Create a vbox for all overlay elements */
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_halign(vbox, GTK_ALIGN_FILL);
+	gtk_widget_set_valign(vbox, GTK_ALIGN_FILL);
+	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), vbox);
+
+	/* Add spacer to push title towards center/top */
+	GtkWidget *top_spacer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_vexpand(top_spacer, TRUE);
+	gtk_box_pack_start(GTK_BOX(vbox), top_spacer, TRUE, TRUE, 0);
+
+	/* Add title and subtitle labels */
+	GtkWidget *title_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+	gtk_widget_set_halign(title_vbox, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(title_vbox, 20);
+	gtk_widget_set_margin_start(title_vbox, 20);
+	gtk_box_pack_start(GTK_BOX(vbox), title_vbox, FALSE, FALSE, 0);
+
+	/* Title label with version */
+	GtkWidget *title_label = gtk_label_new(NULL);
+	gchar *title_markup = g_strdup_printf("<span size='30000' weight='bold' foreground='white'>%s</span>", PACKAGE_STRING);
+	gtk_label_set_markup(GTK_LABEL(title_label), title_markup);
+	g_free(title_markup);
+	gtk_label_set_xalign(GTK_LABEL(title_label), 0.0);
+	gtk_box_pack_start(GTK_BOX(title_vbox), title_label, FALSE, FALSE, 0);
+
+	/* Subtitle label */
+	GtkWidget *subtitle_label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(subtitle_label),
+		"<span style='italic' size='large' foreground='white'>Astronomical Image Processing</span>");
+	gtk_label_set_xalign(GTK_LABEL(subtitle_label), 0.0);
+	gtk_box_pack_start(GTK_BOX(title_vbox), subtitle_label, FALSE, FALSE, 0);
+
+	/* Add spacer to push progress bar to bottom */
+	GtkWidget *middle_spacer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_vexpand(middle_spacer, TRUE);
+	gtk_box_pack_start(GTK_BOX(vbox), middle_spacer, TRUE, TRUE, 0);
+
+	/* Create a vertical box for progress elements at the bottom */
 	GtkWidget *progress_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-	gtk_container_set_border_width(GTK_CONTAINER(progress_vbox), 10);
-	gtk_container_add(GTK_CONTAINER(progress_frame), progress_vbox);
+	gtk_widget_set_margin_start(progress_vbox, 10);
+	gtk_widget_set_margin_end(progress_vbox, 10);
+	gtk_widget_set_margin_bottom(progress_vbox, 10);
+	gtk_box_pack_start(GTK_BOX(vbox), progress_vbox, FALSE, FALSE, 0);
 
 	/* Create the progress bar */
 	splash_progress = gtk_progress_bar_new();
 	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(splash_progress), FALSE);
-	gtk_widget_set_size_request(splash_progress, 580, 10);
+	gtk_widget_set_size_request(splash_progress, img_width - 20, 10);
 	gtk_box_pack_start(GTK_BOX(progress_vbox), splash_progress, FALSE, FALSE, 0);
 
 	/* Create the label for status messages */
@@ -95,9 +135,9 @@ void show_splash_screen() {
 	const gchar *css_data =
 		"window.splash-screen { background-color: #1a1a1a; border: 1px solid #333333; }"
 		"window.splash-screen progressbar { min-height: 10px; }"
-		"window.splash-screen progressbar trough { background-color: #2a2a2a; border-radius: 5px; }"
+		"window.splash-screen progressbar trough { background-color: rgba(42, 42, 42, 0.8); border-radius: 5px; }"
 		"window.splash-screen progressbar progress { background-color: #4a9eff; border-radius: 5px; }"
-		"window.splash-screen label { color: #cccccc; font-size: 11px; }";
+		"window.splash-screen label { color: #ffffff; font-size: 11px; }";
 
 	gtk_css_provider_load_from_data(css_provider, css_data, -1, NULL);
 
