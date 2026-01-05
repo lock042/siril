@@ -257,6 +257,7 @@ src_files = [
   'gui/siril_preview.c',
   'gui/siril_plot.c',
   'gui/siril-window.c',
+  'gui/splashscreen.c',
   'gui/split_cfa.c',
   'gui/stacking.c',
   'gui/star_finder.c',
