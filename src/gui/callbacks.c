@@ -1720,7 +1720,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_FITS_name_entries();
 
-	initialize_log_tags();
+	initialize_log_tags();  // Can be called multiple times safely (idempotent)
 
 	/* Initialize ROI settings */
 	update_roi_config();

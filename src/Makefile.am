@@ -344,6 +344,8 @@ siril_common_SOURCES = \
 	gui/siril_plot.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/splashscreen.c \
+	gui/splashscreen.h \
 	gui/split_cfa.c \
 	gui/stacking.c \
 	gui/stacking.h \
