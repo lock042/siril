@@ -111,6 +111,32 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 }
 
+/* Mask popup menu */
+static void do_popup_maskmenu(GtkWidget *my_widget, GdkEventButton *event) {
+	static GtkMenu *menu = NULL;
+
+	if (!menu) {
+		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menumask_rmb"));
+		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+	}
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+#else
+	int button, event_time;
+
+	if (event) {
+		button = event->button;
+		event_time = event->time;
+	} else {
+		button = 0;
+		event_time = gtk_get_current_event_time();
+	}
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button, event_time);
+#endif
+}
+
 void cache_widgets() {
 	if (!rotation_dlg) {
 		rotation_dlg = lookup_widget("rotation_dialog");
@@ -306,8 +332,10 @@ static gboolean draw_poly_release(mouse_data *data) {
 }
 
 static gboolean show_popup_menu(mouse_data *data) {
-	if (*data->mouse_status != MOUSE_ACTION_DRAW_SAMPLES && *data->mouse_status != MOUSE_ACTION_PHOTOMETRY) {
-			do_popup_graymenu(data->widget, NULL);
+	if (gui.cvport == MASK_VPORT) {
+		do_popup_maskmenu(data->widget, NULL);
+	} else if (*data->mouse_status != MOUSE_ACTION_DRAW_SAMPLES && *data->mouse_status != MOUSE_ACTION_PHOTOMETRY) {
+		do_popup_graymenu(data->widget, NULL);
 	}
 	return TRUE;
 }

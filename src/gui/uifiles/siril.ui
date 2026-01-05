@@ -1164,6 +1164,66 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
+  <object class="GtkMenu" id="menumask_rmb">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_autostretch_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.autostretch_mask</property>
+        <property name="label" translatable="yes">Autostretch Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_binarize_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.binarize_mask</property>
+        <property name="label" translatable="yes">Binarize Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_blur_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.blur_mask</property>
+        <property name="label" translatable="yes">Blur Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_feather_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.feather_mask</property>
+        <property name="label" translatable="yes">Feather Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_invert_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.invert_mask</property>
+        <property name="label" translatable="yes">Invert Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_clear_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clear_mask</property>
+        <property name="label" translatable="yes">Clear Mask</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkPopover" id="output_plot_menu">
     <property name="can-focus">False</property>
     <child>
