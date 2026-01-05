@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-05 22:16+0100\n"
+"POT-Creation-Date: 2026-01-05 22:28+0100\n"
 "PO-Revision-Date: 2025-04-29 22:01+0000\n"
 "Last-Translator: Victor Gandia <victorix@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.siril.org/projects/siril/software/"
@@ -13080,12 +13080,13 @@ msgid "sum"
 msgstr "suma"
 
 #: src/algos/geometry.c:946
-#, fuzzy
-msgid "Rotation (%.1lfdeg)"
+#, fuzzy, c-format
+msgid "Rotation (%.1fdeg)"
 msgstr "Rotació (90.0graus)"
 
 #: src/algos/geometry.c:948
-msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s, %s interpolation)"
+#, c-format
+msgid "Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"
 msgstr ""
 
 #: src/algos/geometry.c:949
@@ -21944,16 +21945,23 @@ msgstr ""
 msgid "scale:          %f\n"
 msgstr ""
 
-#: src/filters/asinh.c:140 src/filters/asinh.c:169
+#: src/filters/asinh.c:140
+#, fuzzy, c-format
+msgid "Asinh Transformation: (stretch=%6.1f, bp=%7.5f)"
+msgstr "Transformació Asinh..."
+
+#: src/filters/asinh.c:169
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 msgstr ""
 
 #: src/filters/banding.c:129
-msgid "Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)"
-msgstr ""
+#, fuzzy, c-format
+msgid "Canon Banding Reduction (amount=%.2f, invsigma=%.2f)"
+msgstr "Reducció de Bandes"
 
 #: src/filters/banding.c:131
-msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
+#, c-format
+msgid "Canon Banding Reduction (amount=%.2f, Protect=TRUE, invsigma=%.2f)"
 msgstr ""
 
 #: src/filters/clahe.c:52
@@ -21967,20 +21975,19 @@ msgid "Image %d: %ld pixels corrected (%ld + %ld)\n"
 msgstr ""
 
 #: src/filters/cosmetic_correction.c:465
-#, fuzzy
+#, fuzzy, c-format
 msgid ""
-"Cosmetic Correction applied (hot sigma %.2lf, cold sigma %.2lf, amount "
-"%.2lf)..."
+"Cosmetic Correction applied (hot sigma %.2f, cold sigma %.2f, amount %.2f)..."
 msgstr "Correcció Cosmètica: processant...\n"
 
 #: src/filters/cosmetic_correction.c:467
-#, fuzzy
-msgid "Cosmetic Correction applied (cold sigma %.2lf, amount %.2lf)..."
+#, fuzzy, c-format
+msgid "Cosmetic Correction applied (cold sigma %.2f, amount %.2f)..."
 msgstr "Correcció Cosmètica: processant...\n"
 
 #: src/filters/cosmetic_correction.c:469
-#, fuzzy
-msgid "Cosmetic Correction applied (hot sigma %.2lf, amount %.2lf)..."
+#, fuzzy, c-format
+msgid "Cosmetic Correction applied (hot sigma %.2f, amount %.2f)..."
 msgstr "Correcció Cosmètica: processant...\n"
 
 #. Can't apply unless at least one of hot sigma and cold sigma are selected
@@ -22136,9 +22143,10 @@ msgid "NL-Bayes output: measured background noise level is %.3e\n"
 msgstr ""
 
 #: src/filters/rgradient.c:81
+#, c-format
 msgid ""
-"Rotational gradient radial shift: %.3lf, rotational shift: %.3lf, centre "
-"(%.1lf, %.1lf)"
+"Rotational gradient radial shift: %.3f, rotational shift: %.3f, centre "
+"(%.1f, %.1f)"
 msgstr ""
 
 #: src/filters/rgradient.c:244
@@ -30999,10 +31007,6 @@ msgstr ""
 #, c-format
 #~ msgid "Binning x%d: processing...\n"
 #~ msgstr "Binning x%d: processant...\n"
-
-#, fuzzy
-#~ msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)\n"
-#~ msgstr "Transformació Asinh..."
 
 #, fuzzy
 #~ msgid "Bilateral filter: processing...\n"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-05 22:16+0100\n"
+"POT-Creation-Date: 2026-01-05 22:28+0100\n"
 "PO-Revision-Date: 2016-07-08 16:10+0800\n"
 "Last-Translator: Bamm Gabriana <bamm@distroastro.org>\n"
 "Language-Team: \n"
@@ -12166,11 +12166,13 @@ msgid "sum"
 msgstr ""
 
 #: src/algos/geometry.c:946
-msgid "Rotation (%.1lfdeg)"
-msgstr ""
+#, fuzzy, c-format
+msgid "Rotation (%.1fdeg)"
+msgstr "Bilang ng Iterasyon:"
 
 #: src/algos/geometry.c:948
-msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s, %s interpolation)"
+#, c-format
+msgid "Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"
 msgstr ""
 
 #: src/algos/geometry.c:949
@@ -20843,16 +20845,23 @@ msgstr ""
 msgid "scale:          %f\n"
 msgstr ""
 
-#: src/filters/asinh.c:140 src/filters/asinh.c:169
+#: src/filters/asinh.c:140
+#, c-format
+msgid "Asinh Transformation: (stretch=%6.1f, bp=%7.5f)"
+msgstr ""
+
+#: src/filters/asinh.c:169
 msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 msgstr ""
 
 #: src/filters/banding.c:129
-msgid "Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)"
+#, c-format
+msgid "Canon Banding Reduction (amount=%.2f, invsigma=%.2f)"
 msgstr ""
 
 #: src/filters/banding.c:131
-msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
+#, c-format
+msgid "Canon Banding Reduction (amount=%.2f, Protect=TRUE, invsigma=%.2f)"
 msgstr ""
 
 #: src/filters/clahe.c:52
@@ -20866,17 +20875,19 @@ msgid "Image %d: %ld pixels corrected (%ld + %ld)\n"
 msgstr ""
 
 #: src/filters/cosmetic_correction.c:465
+#, c-format
 msgid ""
-"Cosmetic Correction applied (hot sigma %.2lf, cold sigma %.2lf, amount "
-"%.2lf)..."
+"Cosmetic Correction applied (hot sigma %.2f, cold sigma %.2f, amount %.2f)..."
 msgstr ""
 
 #: src/filters/cosmetic_correction.c:467
-msgid "Cosmetic Correction applied (cold sigma %.2lf, amount %.2lf)..."
+#, c-format
+msgid "Cosmetic Correction applied (cold sigma %.2f, amount %.2f)..."
 msgstr ""
 
 #: src/filters/cosmetic_correction.c:469
-msgid "Cosmetic Correction applied (hot sigma %.2lf, amount %.2lf)..."
+#, c-format
+msgid "Cosmetic Correction applied (hot sigma %.2f, amount %.2f)..."
 msgstr ""
 
 #. Can't apply unless at least one of hot sigma and cold sigma are selected
@@ -21030,9 +21041,10 @@ msgid "NL-Bayes output: measured background noise level is %.3e\n"
 msgstr ""
 
 #: src/filters/rgradient.c:81
+#, c-format
 msgid ""
-"Rotational gradient radial shift: %.3lf, rotational shift: %.3lf, centre "
-"(%.1lf, %.1lf)"
+"Rotational gradient radial shift: %.3f, rotational shift: %.3f, centre "
+"(%.1f, %.1f)"
 msgstr ""
 
 #: src/filters/rgradient.c:244
