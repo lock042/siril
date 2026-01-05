@@ -92,9 +92,14 @@ void show_splash_screen() {
 
 	/* Title label with version */
 	GtkWidget *title_label = gtk_label_new(NULL);
-	gchar *title_markup = g_strdup_printf("<span size='30000' weight='bold' foreground='white'>%s</span>", PACKAGE_STRING);
+	gchar *package_str = g_strdup(PACKAGE_STRING);
+	if (package_str && package_str[0]) {
+		package_str[0] = g_ascii_toupper(package_str[0]);
+	}
+	gchar *title_markup = g_strdup_printf("<span size='30000' weight='bold' foreground='white'>%s</span>", package_str);
 	gtk_label_set_markup(GTK_LABEL(title_label), title_markup);
 	g_free(title_markup);
+	g_free(package_str);
 	gtk_label_set_xalign(GTK_LABEL(title_label), 0.0);
 	gtk_box_pack_start(GTK_BOX(title_vbox), title_label, FALSE, FALSE, 0);
 
