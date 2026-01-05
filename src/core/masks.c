@@ -55,8 +55,9 @@ gboolean set_mask_active_idle(gpointer p) {
 
 void set_mask_active(fits *fit, gboolean state) {
 	fit->mask_active = state;
-	if (fit == gfit)
-		siril_add_idle(set_mask_active_idle, GINT_TO_POINTER(state));
+	if (fit == gfit && !com.headless) {
+		execute_idle_and_wait_for_it(set_mask_active_idle, GINT_TO_POINTER(state));
+	}
 }
 
 // Create a test mask : the left half of the image has mask value 255,
@@ -635,8 +636,10 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	siril_log_message(_("Creating mask from %d stars (n_fwhm = %.2f)...\n"), nb_stars, n_fwhm);
 
 	// Free existing mask if present
-	if (fit->mask)
+	if (fit->mask) {
+		set_mask_active(fit, FALSE);
 		free_mask(fit->mask);
+	}
 
 	// Create new mask
 	fit->mask = calloc(1, sizeof(mask_t));
@@ -754,8 +757,6 @@ int mask_autostretch(fits *fit) {
 	// Run worker synchronously - cleanup happens via destructor
 	gpointer result = generic_image_worker(args);
 	int retval = GPOINTER_TO_INT(result);
-	if (!retval)
-		queue_redraw_mask();
 
 	return 0;
 }

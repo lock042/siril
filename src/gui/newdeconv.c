@@ -830,6 +830,7 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->idle_function = deconvolve_img_idle;
 		worker_args->description = _("Deconvolution Preview");
 		worker_args->verbose = TRUE;
+		// worker_args->mask_aware = TRUE; // TODO: Need to implement mask setup in gui.roi.fit
 		worker_args->user = args; // Passed to deconvolve
 		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
@@ -885,6 +886,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->idle_function = deconvolve_img_idle;
 		worker_args->description = _("Deconvolution");
 		worker_args->verbose = TRUE;
+		worker_args->mask_aware = TRUE;
 		worker_args->user = args;
 		worker_args->log_hook = deconvolve_log_hook;
 		worker_args->max_threads = com.max_thread;
@@ -929,10 +931,9 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->description = _("PSF Estimation");
 		worker_args->verbose = TRUE;
 		worker_args->user = args;
+		worker_args->for_preview = TRUE; // not really for preview but it prevents undo_save_state being called
 		worker_args->log_hook = makepsf_log_hook;
 		worker_args->max_threads = com.max_thread;
-		worker_args->for_preview = FALSE;
-		worker_args->for_roi = FALSE;
 
 		start_in_new_thread(generic_image_worker, worker_args);
 	} else {

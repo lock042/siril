@@ -191,6 +191,8 @@ static int make_hd_index_for_current_display(int vport);
 static int make_index_for_rainbow(BYTE index[][3]);
 
 static void remap_mask(mask_t *mask) {
+	siril_debug_print("mask remap");
+
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
 	if (allocate_full_surface(view))
@@ -205,8 +207,6 @@ static void remap_mask(mask_t *mask) {
 	guint rx = gfit->rx;
 	guint ry = gfit->ry;
 	int bitpix = mask->bitpix;
-
-	siril_debug_print("mask remap");
 
 	// We switch ONCE. This requires duplicating the loop code,
 	// but ensures the tightest possible inner loops for the compiler to vectorize.
@@ -2199,8 +2199,6 @@ void redraw(remap_type doremap) {
 			}
 			if (gfit->naxis == 3)
 				remaprgb();
-			if (gfit->mask && gfit->mask->data)
-				remap_mask(gfit->mask);
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
 			break;

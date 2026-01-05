@@ -1690,7 +1690,7 @@ gpointer generic_image_worker(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
-	fits *orig = NULL;
+	fits *orig = NULL; // reference in case we need it for the undo state
 
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
@@ -1761,7 +1761,8 @@ gpointer generic_image_worker(gpointer p) {
 			// If we are being run from the GUI and not just updating a preview, set the undo state
 			if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
 				summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
-				undo_save_state(orig, summary); // We just use the short description here
+				fits *ref = orig ? orig : gfit;
+				undo_save_state(ref, summary); // We just use the short description here
 				g_free(summary); // free the message
 				g_free(history); // free the full description, we don't need it in this case
 			} else {
