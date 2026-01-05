@@ -38,13 +38,10 @@ void show_splash_screen() {
 	splash_is_active = TRUE;
 
 	/* Create a window without decorations */
-	splash_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_decorated(GTK_WINDOW(splash_window), FALSE);
+	splash_window = gtk_window_new(GTK_WINDOW_POPUP);
 	gtk_window_set_position(GTK_WINDOW(splash_window), GTK_WIN_POS_CENTER);
 	gtk_window_set_resizable(GTK_WINDOW(splash_window), FALSE);
-	gtk_window_set_type_hint(GTK_WINDOW(splash_window), GDK_WINDOW_TYPE_HINT_SPLASHSCREEN);
-	gtk_window_set_skip_taskbar_hint(GTK_WINDOW(splash_window), TRUE);
-	gtk_window_set_skip_pager_hint(GTK_WINDOW(splash_window), TRUE);
+	gtk_window_set_keep_above(GTK_WINDOW(splash_window), TRUE);
 	gtk_widget_set_app_paintable(splash_window, TRUE);
 
 	/* Try to load the splash image from resources */
@@ -181,6 +178,9 @@ void update_splash_progress(const gchar *message, gdouble fraction) {
 	if (message && *message) {
 		gtk_label_set_text(GTK_LABEL(splash_label), message);
 	}
+
+	/* Force the splash screen to stay on top */
+	gtk_window_present(GTK_WINDOW(splash_window));
 
 	/* Process events to update the display */
 	while (gtk_events_pending())
