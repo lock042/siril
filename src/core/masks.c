@@ -288,86 +288,86 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 
 FAST_MATH_POP
 int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, float bw, uint8_t bitpix) {
-	if (!fit) return 1; // no FITS struct
-	if (!source) return 1; // no source FITS struct
+	if (!fit || !source) return 1;
 
-	// Handle mono
 	if (source->naxes[2] == 1) {
 		siril_debug_print("mask_create_from_luminance called on mono image, using mono channel as luminance\n");
 		return mask_create_from_channel(fit, source, 0, bitpix);
 	}
 
 	set_mask_active(fit, FALSE);
-	if (fit->mask)
-		free_mask(fit->mask);
+	if (fit->mask) free_mask(fit->mask);
 
 	fit->mask = calloc(1, sizeof(mask_t));
-	if (!fit->mask) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
+	if (!fit->mask) return 1;
+
 	fit->mask->bitpix = bitpix;
-	fit->mask->data = malloc(fit->rx * fit->ry * bitpix);
+	size_t npixels = (size_t)fit->rx * fit->ry;
+
+	// Correct byte allocation: bitpix / 8 gives bytes per pixel
+	size_t bytes_per_pixel = bitpix / 8;
+	fit->mask->data = malloc(npixels * bytes_per_pixel);
+
 	if (!fit->mask->data) {
+		free(fit->mask);
+		fit->mask = NULL;
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	size_t rx = fit->rx, ry = fit->ry, npixels = rx * ry;
+
+	// Pre-calculate scaling factors
+	// If weights rw+gw+bw = 1.0, no extra division is needed for float.
+	// For USHORT (0-65535) to Float (0-1.0), factor is 1/65535.
+	float ushort_to_float = 1.0f / 65535.0f;
 
 	switch (bitpix) {
 		case 8: {
 			uint8_t* m = (uint8_t*) fit->mask->data;
-			if (source->type == DATA_USHORT) {
-				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
-				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) / factor;
-					m[i] = roundf_to_BYTE(lum);
+			for (size_t i = 0; i < npixels; i++) {
+				float lum;
+				if (source->type == DATA_USHORT) {
+					// Convert USHORT sum to 0.0-255.0 range
+					lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) / 257.0f;
+				} else {
+					// Float (0.0-1.0) to 0.0-255.0 range
+					lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * 255.0f;
 				}
-			} else {
-				float third = 1.f / 3.f;
-				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
-					m[i] = roundf_to_BYTE(lum);
-				}
+				m[i] = roundf_to_BYTE(lum);
 			}
 			break;
 		}
 		case 16: {
 			uint16_t* m = (uint16_t*) fit->mask->data;
-			if (fit->type == DATA_USHORT) {
-				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
-				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) * factor;
-					m[i] = roundf_to_WORD(lum);
+			for (size_t i = 0; i < npixels; i++) {
+				float lum;
+				if (source->type == DATA_USHORT) {
+					// Source is already 0-65535, just apply weights
+					lum = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw);
+				} else {
+					// Float 0.0-1.0 to 0-65535
+					lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * 65535.0f;
 				}
-			} else {
-				float third = 1.f / 3.f;
-				for (size_t i = 0 ; i < npixels ;i++) {
-					float lum = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
-					m[i] = roundf_to_WORD(lum);
-				}
+				m[i] = roundf_to_WORD(lum);
 			}
 			break;
 		}
 		case 32: {
 			float* m = (float*) fit->mask->data;
-			if (fit->type == DATA_USHORT) {
-				float factor = 1.f / (source->naxes[2] * USHRT_MAX_SINGLE);
-				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i] = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) * factor;
-				}
-			} else {
-				float third = 1.f / 3.f;
-				for (size_t i = 0 ; i < npixels ;i++) {
-					m[i]= (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw) * third;
+			for (size_t i = 0; i < npixels; i++) {
+				if (source->type == DATA_USHORT) {
+					// USHORT to 0.0-1.0
+					m[i] = (source->pdata[RLAYER][i] * rw + source->pdata[GLAYER][i] * gw + source->pdata[BLAYER][i] * bw) * ushort_to_float;
+				} else {
+					// Float to Float
+					m[i] = (source->fpdata[RLAYER][i] * rw + source->fpdata[GLAYER][i] * gw + source->fpdata[BLAYER][i] * bw);
 				}
 			}
 			break;
 		}
 	}
+
 	set_mask_active(fit, TRUE);
 	show_or_hide_mask_tab();
-
 	return 0;
 }
 
