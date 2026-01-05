@@ -462,11 +462,11 @@ gchar* cosmetic_log_hook(gpointer p, log_hook_detail detail) {
 	struct cosmetic_data *args = (struct cosmetic_data*) p;
 	gchar *message = NULL;
 	if (args->sigma[0] >= 0.0 && args->sigma[1] >= 0.0) {
-		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2lf, cold sigma %.2lf, amount %.2lf)..."), args->sigma[1], args->sigma[0], args->amount);
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, cold sigma %.2f, amount %.2f)..."), args->sigma[1], args->sigma[0], args->amount);
 	} else if (args->sigma[0] >= 0.0) {
-		message = g_strdup_printf(_("Cosmetic Correction applied (cold sigma %.2lf, amount %.2lf)..."), args->sigma[0], args->amount);
+		message = g_strdup_printf(_("Cosmetic Correction applied (cold sigma %.2f, amount %.2f)..."), args->sigma[0], args->amount);
 	} else if (args->sigma[1] >= 0.0) {
-		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2lf, amount %.2lf)..."), args->sigma[1], args->amount);
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, amount %.2f)..."), args->sigma[1], args->amount);
 	} else {
 		// Can't apply unless at least one of hot sigma and cold sigma are selected
 		message=g_strdup(_("Error, at least one of hot sigma and cold sigma must be provided"));

@@ -126,9 +126,9 @@ gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
 	struct banding_data *params = (struct banding_data*) p;
 	gchar *message = NULL;
 	if (!params->protect_highlights) {
-		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)"), params->amount, params->sigma);
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, invsigma=%.2f)"), params->amount, params->sigma);
 	} else {
-		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, Protect=TRUE, invsigma=%.2f)"),
 				params->amount, params->sigma);
 	}
 	return message;
