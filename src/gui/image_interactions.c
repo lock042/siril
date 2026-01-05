@@ -558,8 +558,13 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					val_width = 5;
 				g_sprintf(format, format_base_ushort,
 						coords_width, coords_width, val_width);
-				uint8_t* m = (uint8_t*) gfit->mask->data;
-				g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				if (gfit->mask->bitpix < 16) {
+					uint8_t* m = (uint8_t*) gfit->mask->data;
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				} else {
+					uint16_t* m = (uint16_t*) gfit->mask->data;
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				}
 			} else if (gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
 				char *format_base_float;
 				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
