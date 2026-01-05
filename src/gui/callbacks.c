@@ -1099,6 +1099,14 @@ void display_filename() {
 		}
 		g_free(c);
 	}
+	GtkLabel *mask_label = GTK_LABEL(lookup_widget("labelfilename_mask"));
+	if (orig_base_name) {
+		gtk_label_set_text(mask_label, concat_base_name->str);
+		gtk_label_set_ellipsize(mask_label, PANGO_ELLIPSIZE_START);
+	} else {
+		gtk_label_set_text(mask_label, base_name);
+		gtk_label_set_ellipsize(mask_label, PANGO_ELLIPSIZE_NONE);
+	}
 
 	if (local_filename)
 		free(filename);
