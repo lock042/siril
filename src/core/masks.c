@@ -44,6 +44,48 @@ void free_mask(mask_t* mask) {
 	show_or_hide_mask_tab();
 }
 
+gpointer clear_mask_worker(gpointer p) {
+	if (gfit && gfit->mask) {
+		set_mask_active(gfit, FALSE);
+		free_mask(gfit->mask);
+		gfit->mask = NULL;
+		show_or_hide_mask_tab();
+		siril_log_message(_("Mask cleared\n"));
+	}
+	siril_add_idle(end_generic, NULL);
+	return FALSE;
+}
+
+gpointer autostretch_mask_worker(gpointer p) {
+	if (gfit && gfit->mask) {
+		mask_autostretch(gfit);
+		queue_redraw_mask();
+	}
+	siril_add_idle(end_generic, NULL);
+	return FALSE;
+}
+
+gpointer binarize_mask_from_gui_worker(gpointer p) {
+	if (gfit && gfit->mask) {
+		siril_debug_print("%f %f\n", gui.lo, gui.hi);
+		mask_binarize(gfit, (float) gui.lo, (float) gui.hi);
+		queue_redraw_mask();
+		siril_log_message(_("Mask binarized (TRUE between %f and %f)\n"), (float) gui.lo, (float) gui.hi);
+	}
+	siril_add_idle(end_generic, NULL);
+	return FALSE;
+}
+
+gpointer invert_mask_worker(gpointer p) {
+	if (gfit && gfit->mask) {
+		mask_invert(gfit);
+		queue_redraw_mask();
+		siril_log_message(_("Mask inverted\n"));
+	}
+	siril_add_idle(end_generic, NULL);
+	return FALSE;
+}
+
 gboolean set_mask_active_idle(gpointer p) {
 	gboolean state = GPOINTER_TO_INT(p);
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("mask_active_check"));
@@ -756,8 +798,8 @@ int mask_autostretch(fits *fit) {
 
 	// Run worker synchronously - cleanup happens via destructor
 	gpointer result = generic_image_worker(args);
-	int retval = GPOINTER_TO_INT(result);
-
+	if (result)
+		siril_log_color_message(_("Warning: mask autostretch encountered a problem.\n"), "salmon");
 	return 0;
 }
 

@@ -144,6 +144,11 @@ void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void blur_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void binarize_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void feather_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 gboolean chain_channels_idle_callback(gpointer user_data);
 

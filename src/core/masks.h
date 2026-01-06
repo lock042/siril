@@ -13,6 +13,11 @@ void mask_from_image_dialog_set_file_mode(gboolean file_mode);
 void set_mask_active(fits *fit, gboolean state);
 void free_mask(mask_t* mask);
 
+gpointer clear_mask_worker(gpointer p);
+gpointer autostretch_mask_worker(gpointer p);
+gpointer binarize_mask_from_gui_worker(gpointer p);
+gpointer invert_mask_worker(gpointer p);
+
 mask_t *fits_to_mask(fits *mfit);
 fits *mask_to_fits(fits *fit);
 

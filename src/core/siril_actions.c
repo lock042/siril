@@ -883,15 +883,26 @@ void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (get_thread_run()) {
-		queue_error_message_dialog(_("Error"), _("Cannot clear the mask while the processing thread is running"));
-		return;
-	}
-	if (gfit && gfit->mask) {
-		set_mask_active(gfit, FALSE);
-		free_mask(gfit->mask);
-		gfit->mask = NULL;
-		show_or_hide_mask_tab();
-		siril_log_message(_("Mask cleared\n"));
-	}
+	start_in_new_thread(clear_mask_worker, NULL);
 }
+
+void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	start_in_new_thread(autostretch_mask_worker, NULL);
+}
+
+void blur_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+//	siril_open_dialog("mask_blur_dialog");
+}
+
+void binarize_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	start_in_new_thread(binarize_mask_from_gui_worker, NULL);
+}
+
+void feather_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+//	siril_open_dialog("mask_feather_dialog");
+}
+
+void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	start_in_new_thread(invert_mask_worker, NULL);
+}
+

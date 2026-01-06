@@ -116,7 +116,12 @@ static GActionEntry any_processing_entries[] = {
 	{ "mask_from_image", mask_from_image_activate },
 	{ "mask_from_stars", mask_from_stars_activate },
 	{ "mask_from_file", mask_from_file_activate },
-	{ "clear_mask", clear_mask_activate }
+	{ "clear_mask", clear_mask_activate },
+	{ "autostretch_mask", autostretch_mask_activate },
+	{ "blur_mask", blur_mask_activate },
+	{ "binarize_mask", binarize_mask_activate },
+	{ "feather_mask", feather_mask_activate },
+	{ "invert_mask", invert_mask_activate }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
