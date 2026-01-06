@@ -1645,7 +1645,7 @@ static inline void blend_fits_with_mask(fits* fit, fits* orig) {
 				for (size_t i = 0; i < npixels; i++) {
 					float alpha = m[i] * scale;
 					float origv = ocdata[i];
-					fcdata[i] = alpha * fcdata[i] + (1.f - alpha) * origv;
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
 				}
 				break;
 			}
