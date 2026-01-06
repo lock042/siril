@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -943,9 +943,9 @@ gchar *rotation_log_hook(gpointer p, log_hook_detail detail) {
 	struct rotation_args *params = (struct rotation_args *) p;
 	gchar *msg = NULL;
 	if (detail == SUMMARY) {
-		msg = g_strdup_printf(_("Rotation (%.1lfdeg)"), params->angle);
+		msg = g_strdup_printf(_("Rotation (%.1fdeg)"), params->angle);
 	} else {
-		msg = g_strdup_printf(_("Rotation (%.1lfdeg, cropped=%s, clamped=%s, %s interpolation)"), params->angle,
+		msg = g_strdup_printf(_("Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"), params->angle,
 				params->cropped ? _("TRUE") : _("FALSE"), params->clamp ? _("TRUE") : _("FALSE"),
 				interp_to_str(params->interpolation));
 	}

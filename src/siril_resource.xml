@@ -134,6 +134,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-cw.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-cw_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/siril.svg</file>
+    <file>pixmaps/splash.png</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/status_green.svg</file>

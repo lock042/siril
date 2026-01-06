@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1797,7 +1797,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_FITS_name_entries();
 
-	initialize_log_tags();
+	initialize_log_tags();  // Can be called multiple times safely (idempotent)
 
 	/* Initialize ROI settings */
 	update_roi_config();

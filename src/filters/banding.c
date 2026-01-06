@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -126,9 +126,9 @@ gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
 	struct banding_data *params = (struct banding_data*) p;
 	gchar *message = NULL;
 	if (!params->protect_highlights) {
-		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, invsigma=%.2lf)"), params->amount, params->sigma);
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, invsigma=%.2f)"), params->amount, params->sigma);
 	} else {
-		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, Protect=TRUE, invsigma=%.2f)"),
 				params->amount, params->sigma);
 	}
 	return message;

@@ -138,7 +138,7 @@ static void asinh_startup() {
 
 gchar *asinh_log_hook(gpointer p, log_hook_detail detail) {
 	asinh_params *params = (asinh_params*) p;
-	gchar *message = g_strdup_printf(_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
+	gchar *message = g_strdup_printf(_("Asinh Transformation: (stretch=%6.1f, bp=%7.5f)"),
 				params->beta, params->offset);
 	return message;
 }

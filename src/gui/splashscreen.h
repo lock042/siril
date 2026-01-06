@@ -18,33 +18,14 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "siril_fit_linear.h"
+#ifndef _SPLASHSCREEN_H_
+#define _SPLASHSCREEN_H_
 
-/* code from gsl */
-/* changed for siril */
-int siril_fit_linear(const float *x, const float *y, const float m_x,
-		const float m_dx2, const size_t n, float *c0, float *c1) {
+#include <gtk/gtk.h>
 
-	float m_y = y[0];
-	for (size_t i = 1; i < n; i++) {
-		m_y += (y[i] - m_y) * x[i];
-	}
+/* Splash screen management */
+void show_splash_screen();
+void update_splash_progress(const gchar *message, gdouble fraction);
+void close_splash_screen();
 
-	float m_dxdy = 0.f;
-	float dx = -m_x;
-	for (size_t i = 0; i < n; i++, dx += 1.f) {
-		const float dy = y[i] - m_y;
-
-		m_dxdy += (dx * dy - m_dxdy) * x[i];
-	}
-
-	/* In terms of y = a + b x */
-
-	const float b = m_dxdy * m_dx2;
-	const float a = m_y - m_x * b;
-
-	*c0 = a;
-	*c1 = b;
-
-	return 0;
-}
+#endif /* _SPLASHSCREEN_H_ */

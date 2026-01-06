@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1731,7 +1731,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 						.do_green = do_channel[1],
 						.do_blue = do_channel[2]
 					},
-					.uparams = { },
+					.uparams = {},
 					.seqEntry = NULL,
 					.auto_display_compensation = FALSE,
 					.is_preview = FALSE

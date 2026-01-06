@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ static void to_cartesian(double r, double theta, point center, point *p) {
 gchar *rgradient_log_hook(gpointer p, log_hook_detail detail) {
 	struct generic_img_args *ga = (struct generic_img_args *) p;
 	struct rgradient_data *args = (struct rgradient_data *) ga->user;
-	gchar *message = g_strdup_printf(_("Rotational gradient radial shift: %.3lf, rotational shift: %.3lf, centre (%.1lf, %.1lf)"),
+	gchar *message = g_strdup_printf(_("Rotational gradient radial shift: %.3f, rotational shift: %.3f, centre (%.1f, %.1f)"),
 			args->dR, args->da, args->xc, args->yc);
 	return message;
 }
