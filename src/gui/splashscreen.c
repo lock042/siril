@@ -126,7 +126,8 @@ void show_splash_screen() {
 	gtk_box_pack_start(GTK_BOX(progress_vbox), splash_progress, FALSE, FALSE, 0);
 
 	/* Create the label for status messages */
-	splash_label = gtk_label_new(_("Starting Siril..."));
+	splash_label = gtk_label_new(NULL);
+	gtk_label_set_markup(GTK_LABEL(splash_label), "<span foreground='white'>Starting Siril...</span>");
 	gtk_label_set_xalign(GTK_LABEL(splash_label), 0.0);
 	gtk_widget_set_margin_start(splash_label, 5);
 	gtk_widget_set_margin_end(splash_label, 5);
@@ -176,7 +177,9 @@ void update_splash_progress(const gchar *message, gdouble fraction) {
 
 	/* Update the message if provided */
 	if (message && *message) {
-		gtk_label_set_text(GTK_LABEL(splash_label), message);
+		gchar *markup = g_strdup_printf("<span foreground='white'>%s</span>", message);
+		gtk_label_set_markup(GTK_LABEL(splash_label), markup);
+		g_free(markup);
 	}
 
 	/* Force the splash screen to stay on top */
