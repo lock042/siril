@@ -28,6 +28,7 @@
 #include "filters/synthstar.h"
 #include "gui/callbacks.h"
 #include "gui/histogram.h"
+#include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "io/image_format_fits.h"
@@ -67,10 +68,12 @@ gpointer autostretch_mask_worker(gpointer p) {
 
 gpointer binarize_mask_from_gui_worker(gpointer p) {
 	if (gfit && gfit->mask) {
-		siril_debug_print("%f %f\n", gui.lo, gui.hi);
-		mask_binarize(gfit, (float) gui.lo, (float) gui.hi);
-		queue_redraw_mask();
-		siril_log_message(_("Mask binarized (TRUE between %f and %f)\n"), (float) gui.lo, (float) gui.hi);
+		gchar *msg = g_strdup_printf(_("This will binarize the mask based on the range slider values. Values between %f and %f will be masked TRUE, other values will be masked FALSE"), (float) gui.lo, (float) gui.hi);
+		if (siril_confirm_dialog(_("Binarize mask"), msg, _("Proceed"))) {
+			mask_binarize(gfit, (float) gui.lo, (float) gui.hi);
+			queue_redraw_mask();
+			siril_log_message(_("Mask binarized (TRUE between %f and %f)\n"), (float) gui.lo, (float) gui.hi);
+		}
 	}
 	siril_add_idle(end_generic, NULL);
 	return FALSE;

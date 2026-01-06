@@ -1645,7 +1645,7 @@ static inline void blend_fits_with_mask(fits* fit, fits* orig) {
 				for (size_t i = 0; i < npixels; i++) {
 					float alpha = m[i] * scale;
 					float origv = ocdata[i];
-					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+					fcdata[i] = alpha * fcdata[i] + (1.f - alpha) * origv;
 				}
 				break;
 			}
@@ -1723,7 +1723,7 @@ gpointer generic_image_worker(gpointer p) {
 
 	// Output print of operation description
 	if (args->description && verbose) {
-		gchar *desc = g_strdup_printf(_("%s: processing...\n"), args->description);
+		gchar *desc = g_strdup_printf(_("%s: processing%s...\n"), args->description, using_mask ? _(" (mask active)"): "");
 		siril_log_color_message(desc, "green");
 		g_free(desc);
 	}
@@ -1750,6 +1750,7 @@ gpointer generic_image_worker(gpointer p) {
 		} else { // Either no mask_hook or the mask_hook returned 0 (success)
 			// Blend according to the mask
 			if (using_mask) {
+				siril_debug_print("Applying mask blend...\n");
 				blend_fits_with_mask(args->fit, orig);
 			}
 			// If there is a log_hook, set the HISTORY card and update the log as required

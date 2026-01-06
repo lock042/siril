@@ -2265,6 +2265,9 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	color_manage(to, FALSE);
 	to->icc_profile = NULL;
 	to->keywords.wcslib = NULL;
+	to->mask = NULL; // since this is not a deep copy we must clear this to avoid problems when
+	// this shallow copy is cleared
+	to->mask_active = FALSE;
 
 	if (from->type == DATA_USHORT)
 		if (to_float) {
