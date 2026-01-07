@@ -112,7 +112,6 @@ static void rotate_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 2.0f;  // Rotation needs space for transformation
 	args->image_hook = rotation_image_hook;
-	args->mask_hook = rotation_mask_hook;
 	args->log_hook = rotation_log_hook;
 	args->idle_function = rotation_idle;
 	args->description = _("Rotation");
@@ -173,7 +172,6 @@ void siril_rotate90() {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
-	args->mask_hook = rotation_mask_hook;
 	args->log_hook = rotation_log_hook;
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation 90°");
@@ -216,7 +214,6 @@ void siril_rotate270() {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
-	args->mask_hook = rotation_mask_hook;
 	args->log_hook = rotation_log_hook;
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation -90°");
@@ -327,7 +324,6 @@ void mirrorx_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 1.0f;  // Mirror needs minimal extra memory
 	args->image_hook = mirrorx_image_hook;
-	args->mask_hook = mirrorx_mask_hook;
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror X");
 	args->verbose = TRUE;
@@ -365,7 +361,6 @@ void mirrory_gui(fits *fit) {
 	args->fit = fit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrory_image_hook;
-	args->mask_hook = mirrory_mask_hook;
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror Y");
 	args->verbose = TRUE;
@@ -434,7 +429,6 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;  // Binning needs space for the new buffer
 	args->image_hook = binning_image_hook;
-	args->mask_hook = binning_mask_hook;
 	args->log_hook = binning_log_hook;
 	args->idle_function = binning_idle;
 	args->description = _("Binning");
@@ -520,7 +514,6 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;  // Resample needs space for transformation
 	args->image_hook = resample_image_hook;
-	args->mask_hook = resample_mask_hook;
 	args->idle_function = resample_idle;
 	args->description = _("Resample");
 	args->verbose = TRUE;
@@ -674,6 +667,8 @@ static gboolean crop_idle(gpointer p) {
 		notify_gfit_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
+		if (args->fit == gfit && gfit->mask_active)
+			queue_redraw_mask(gfit->mask);
 	}
 
 	free_generic_img_args(args);
@@ -715,7 +710,6 @@ void siril_crop() {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;  // Crop is in-place
 	args->image_hook = crop_image_hook_single;
-	args->mask_hook = crop_mask_hook;
 	args->idle_function = crop_idle;
 	args->description = _("Crop");
 	args->log_hook = crop_log_hook;

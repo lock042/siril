@@ -42,7 +42,6 @@
 void free_mask(mask_t* mask) {
 	free(mask->data);
 	free(mask);
-	show_or_hide_mask_tab();
 }
 
 gpointer clear_mask_worker(gpointer p) {

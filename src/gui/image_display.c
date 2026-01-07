@@ -191,7 +191,7 @@ static int make_hd_index_for_current_display(int vport);
 static int make_index_for_rainbow(BYTE index[][3]);
 
 static void remap_mask(mask_t *mask) {
-	siril_debug_print("mask remap");
+	siril_debug_print("mask remap\n");
 
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];

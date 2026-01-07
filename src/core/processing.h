@@ -172,9 +172,6 @@ struct generic_img_args {
 	/** function called to process the image
 	 *  Returns 0 on success, non-zero on error */
 	int (*image_hook)(struct generic_img_args *, fits *, int);
-	/** hook to update the mask, for example to crop the mask to match a crop operation
-	 * performed on the image. */
-	int (*mask_hook) (struct generic_img_args *);
 	/** hook to produce a description for HISTORY / logs or undo_save_state. log_hook_detail
 	 * provides the level of detail, with SUMMARY providing a concise (<= 70 characters)
 	 * version for the undo label and FITS HISTORY card. (If the full description isn't

@@ -4569,7 +4569,6 @@ int process_mirrorx(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrorx_image_hook;
-	args->mask_hook = mirrorx_mask_hook;
 	args->idle_function = NULL;  // Use default
 	args->description = _("Mirror X");
 	args->verbose = TRUE;
@@ -4607,7 +4606,6 @@ int process_mirrory(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = mirrory_image_hook;
-	args->mask_hook = mirrory_mask_hook;
 	args->idle_function = NULL;
 	args->description = _("Mirror Y");
 	args->verbose = TRUE;
@@ -4659,7 +4657,6 @@ int process_binxy(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = binning_image_hook;
-	args->mask_hook = binning_mask_hook;
 	args->log_hook = binning_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Binning");
@@ -4794,7 +4791,6 @@ int process_resample(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));
 	args->image_hook = resample_image_hook;
-	args->mask_hook = resample_mask_hook;
 	args->log_hook = resample_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Resample");
@@ -4868,7 +4864,6 @@ int process_crop(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = crop_image_hook_single;
-	args->mask_hook = crop_mask_hook;
 	args->idle_function = NULL;
 	args->description = _("Crop");
 	args->verbose = TRUE;
@@ -4982,7 +4977,6 @@ int process_rotate(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = rotation_image_hook;
-	args->mask_hook = rotation_mask_hook;
 	args->log_hook = rotation_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Rotation");
@@ -5025,7 +5019,6 @@ int process_rotatepi(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = rotation_image_hook;
-	args->mask_hook = rotation_mask_hook;
 	args->log_hook = rotation_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Rotation 180°");

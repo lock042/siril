@@ -26,6 +26,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
+#include "core/masks.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
 #include "algos/statistics.h"
@@ -36,6 +37,7 @@
 #include "io/image_format_fits.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
+#include "gui/image_display.h"
 #include "gui/image_interactions.h"
 
 #include "geometry.h"
@@ -514,73 +516,208 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 }
 
-/* inplace cropping of the image in fit
- * fit->data is not realloc, only fit->pdata points to a different area and
- * data is correctly written to this new area, which makes this function
- * quite dangerous to use when fit is used for something else afterwards.
- */
-static int crop_ushort(fits *fit, rectangle *bounds) {
-	int i, j, layer;
-	int newnbdata;
-	rectangle bounds_cpy = { 0 };
+static int crop_mask(mask_t *mask, rectangle *bounds, int rx, int ry)
+{
+	if (!mask || !mask->data || !bounds) {
+		return 0; // No mask to crop, not an error
+	}
 
+	// Determine element size based on bitpix
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1; // Invalid bitpix value
+	}
+
+	// Clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > rx) ? rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > ry) ? ry - bounds->y : bounds->h;
+
+	// Validate resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= rx || bounds_cpy.y >= ry) {
+		return -1;
+	}
+
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+
+	// Allocate new buffer for cropped mask
+	void *newdata = malloc((size_t)newnbdata * elem_size);
+	if (!newdata) {
+		return -1;
+	}
+
+	// Source pointer: bottom-left origin (FITS coordinate system)
+	uint8_t *from = (uint8_t *)mask->data +
+	                (ry - bounds_cpy.y - bounds_cpy.h) * rx * elem_size +
+	                bounds_cpy.x * elem_size;
+
+	// Destination pointer
+	uint8_t *to = (uint8_t *)newdata;
+
+	size_t row_bytes = bounds_cpy.w * elem_size;
+	size_t stride_bytes = rx * elem_size;
+
+	// Copy row by row
+	for (int i = 0; i < bounds_cpy.h; ++i) {
+		memcpy(to, from, row_bytes);
+		to += row_bytes;
+		from += stride_bytes;
+	}
+
+	// Replace old mask data
+	void *tmp = mask->data;
+	mask->data = newdata;
+	free(tmp);
+
+	return 0;
+}
+
+static int crop_ushort(fits *fit, rectangle *bounds) {
+	if (!fit || !bounds) {
+		return -1;
+	}
+
+	// Validate and clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
-	newnbdata = bounds_cpy.w * bounds_cpy.h;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		WORD *from = fit->pdata[layer]
-			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
-		fit->pdata[layer] = fit->data + layer * newnbdata;
-		WORD *to = fit->pdata[layer];
-		int stridefrom = fit->rx - bounds_cpy.w;
+	// Validate the resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= fit->rx || bounds_cpy.y >= fit->ry) {
+		return -1;
+	}
 
-		for (i = 0; i < bounds_cpy.h; ++i) {
-			for (j = 0; j < bounds_cpy.w; ++j) {
-				*to++ = *from++;
-			}
-			from += stridefrom;
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+	int nlayers = fit->naxes[2];
+
+	// Allocate new buffer for cropped data
+	WORD *newdata = malloc(newnbdata * nlayers * sizeof(WORD));
+	if (!newdata) {
+		return -1;
+	}
+
+	// Copy cropped data from each layer
+	for (int layer = 0; layer < nlayers; ++layer) {
+		// Source pointer: start at bottom-left of crop region (FITS coordinate system)
+		WORD *from = fit->pdata[layer] +
+		             (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
+
+		// Destination pointer in new buffer
+		WORD *to = newdata + layer * newnbdata;
+
+		// Copy row by row
+		for (int i = 0; i < bounds_cpy.h; ++i) {
+			memcpy(to, from, bounds_cpy.w * sizeof(WORD));
+			to += bounds_cpy.w;
+			from += fit->rx;
 		}
 	}
+
+	// Free old data and update pointers
+	free(fit->data);
+	fit->data = newdata;
+
+	// Update layer pointers
+	for (int layer = 0; layer < nlayers; ++layer) {
+		fit->pdata[layer] = fit->data + layer * newnbdata;
+	}
+
+	// For single-layer images, set all pointers to the same data
+	if (nlayers == 1) {
+		fit->pdata[1] = fit->data;
+		fit->pdata[2] = fit->data;
+	}
+
+	// Update dimensions
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
+
 	return 0;
 }
 
 static int crop_float(fits *fit, rectangle *bounds) {
-	int i, j, layer;
-	int newnbdata;
-	rectangle bounds_cpy = { 0 };
+	if (!fit || !bounds) {
+		return -1;
+	}
 
+	// Validate and clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
-	newnbdata = bounds_cpy.w * bounds_cpy.h;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		float *from = fit->fpdata[layer]
-			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
-		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
-		float *to = fit->fpdata[layer];
-		int stridefrom = fit->rx - bounds_cpy.w;
+	// Validate the resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= fit->rx || bounds_cpy.y >= fit->ry) {
+		return -1;
+	}
 
-		for (i = 0; i < bounds_cpy.h; ++i) {
-			for (j = 0; j < bounds_cpy.w; ++j) {
-				*to++ = *from++;
-			}
-			from += stridefrom;
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+	int nlayers = fit->naxes[2];
+
+	// Allocate new buffer for cropped data
+	float *newfdata = malloc(newnbdata * nlayers * sizeof(float));
+	if (!newfdata) {
+		return -1;
+	}
+
+	// Copy cropped data from each layer
+	for (int layer = 0; layer < nlayers; ++layer) {
+		// Source pointer: start at bottom-left of crop region (FITS coordinate system)
+		float *from = fit->fpdata[layer] +
+		              (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
+
+		// Destination pointer in new buffer
+		float *to = newfdata + layer * newnbdata;
+
+		// Copy row by row
+		for (int i = 0; i < bounds_cpy.h; ++i) {
+			memcpy(to, from, bounds_cpy.w * sizeof(float));
+			to += bounds_cpy.w;
+			from += fit->rx;
 		}
 	}
+
+	// Free old data and update pointers
+	free(fit->fdata);
+	fit->fdata = newfdata;
+
+	// Update layer pointers
+	for (int layer = 0; layer < nlayers; ++layer) {
+		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
+	}
+
+	// For single-layer images, set all pointers to the same data
+	if (nlayers == 1) {
+		fit->fpdata[1] = fit->fdata;
+		fit->fpdata[2] = fit->fdata;
+	}
+
+	// Update dimensions
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
+
 	return 0;
 }
 
 int crop(fits *fit, rectangle *bounds) {
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
@@ -613,6 +750,7 @@ int crop(fits *fit, rectangle *bounds) {
 				bounds->h = 2;
 			siril_log_message(_("Rounding selection to match CFA pattern\n"));
 	}
+	int orig_rx = fit->rx; // required to compute flips afterwards
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
@@ -621,11 +759,23 @@ int crop(fits *fit, rectangle *bounds) {
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 
 	if (fit->type == DATA_USHORT) {
-		crop_ushort(fit, bounds);
+		if (crop_ushort(fit, bounds)) return -1;
 	} else if (fit->type == DATA_FLOAT) {
-		crop_float(fit, bounds);
+		if (crop_float(fit, bounds)) return -1;
 	} else {
 		return -1;
+	}
+
+	if (fit->mask) {
+		if (crop_mask(fit->mask, bounds, orig_rx, orig_ry)) {
+			siril_log_color_message(_("Error cropping mask\n"), "red");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			show_or_hide_mask_tab();
+			return -1;
+		} else {
+			set_mask_active(fit, tmp_mask_active);
+		}
 	}
 
 	invalidate_stats_from_fit(fit);
@@ -881,38 +1031,6 @@ void free_rotation_args(void *ptr) {
 	free(ptr);
 }
 
-/************************************************************************
- *      G E O M E T R Y   M A S K   H O O K S   F O R   W O R K E R
- ************************************************************************/
-int binning_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
-
-int crop_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
-
-int resample_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
-
-int rotation_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
-
-int mirrorx_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
-
-int mirrory_mask_hook(struct generic_img_args *args) {
-	siril_debug_print("Placeholder mask hook\n");
-	return 0;
-}
 /**********************************************************************
  *      G E O M E T R Y   L O G   H O O K S   F O R   W O R K E R
  **********************************************************************/
