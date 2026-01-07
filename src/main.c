@@ -85,6 +85,26 @@
 
 // Forward decl to avoid including all of photometric_cc.h
 void initialize_spcc_mirrors();
+void force_paned_restore();
+
+/* Callback to close splash screen and show main window after delay */
+static gboolean close_splash_and_show_window_cb(gpointer user_data) {
+	close_splash_screen();
+
+	/* Make window visible */
+	GtkWidget *control_window = lookup_widget("control_window");
+	gtk_widget_set_opacity(control_window, 1.0);
+
+#ifdef OS_OSX
+	/* macOS requires a delay for layout calculations before restoring paned position */
+	g_timeout_add(100, (GSourceFunc)force_paned_restore, NULL);
+#else
+	/* On Linux/Windows, layouts are ready immediately */
+	force_paned_restore();
+#endif
+
+	return FALSE; // run once
+}
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
@@ -466,8 +486,6 @@ static void siril_app_activate(GApplication *application) {
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
 		GtkWidget *control_window = lookup_widget("control_window");
-		/* Transparent window instead of hidden: allows GTK to calculate layouts
-		 * (especially GtkPaned position) while keeping splash screen visible on top */
 		gtk_widget_set_opacity(control_window, 0.0);
 
 		/* Passing GApplication to the control center */
@@ -502,15 +520,9 @@ static void siril_app_activate(GApplication *application) {
 		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
 
-		/* Close splash screen */
+		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);
-		/* Small delay to show "Ready!" message */
-		g_usleep(200000); // 200ms
-		close_splash_screen();
-
-		/* Make window visible */
-		GtkWidget *control_window = lookup_widget("control_window");
-		gtk_widget_set_opacity(control_window, 1.0);
+		g_timeout_add(200, close_splash_and_show_window_cb, NULL);
 	}
 
 	g_free(supported_files);

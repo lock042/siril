@@ -182,6 +182,9 @@ void update_splash_progress(const gchar *message, gdouble fraction) {
 		g_free(markup);
 	}
 
+	/* Force the splash screen to stay on top */
+//	gtk_window_present(GTK_WINDOW(splash_window));
+
 	/* Process events to update the display */
 	while (gtk_events_pending())
 		gtk_main_iteration();
