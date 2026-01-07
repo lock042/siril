@@ -464,8 +464,14 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
 
+		/* Make window transparent to keep splash on top but allow GTK calculations */
+		GtkWidget *control_window = lookup_widget("control_window");
+		/* Transparent window instead of hidden: allows GTK to calculate layouts
+		 * (especially GtkPaned position) while keeping splash screen visible on top */
+		gtk_widget_set_opacity(control_window, 0.0);
+
 		/* Passing GApplication to the control center */
-		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
+		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
 
 		/* Load state of the main windows (position and maximized) */
 		update_splash_progress(_("Restoring window state..."), 0.75);
@@ -501,6 +507,10 @@ static void siril_app_activate(GApplication *application) {
 		/* Small delay to show "Ready!" message */
 		g_usleep(200000); // 200ms
 		close_splash_screen();
+
+		/* Make window visible */
+		GtkWidget *control_window = lookup_widget("control_window");
+		gtk_widget_set_opacity(control_window, 1.0);
 	}
 
 	g_free(supported_files);

@@ -1530,13 +1530,22 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
+static gboolean paned_first_resize = TRUE;
+
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
-	static gboolean first_resize = TRUE;
-	if (first_resize) {
+	if (paned_first_resize) {
 		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
-		first_resize = FALSE;
+		paned_first_resize = FALSE;
+	}
+}
+
+/* Force paned position restore (called after window is shown) */
+void force_paned_restore() {
+	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		gtk_paned_set_position(paned, com.pref.gui.pan_position);
 	}
 }
 
@@ -2031,6 +2040,15 @@ gboolean load_main_window_state(gpointer user_data) {
 		} else {
 			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 		}
+	}
+	return FALSE;
+}
+
+/* Restore paned position after window is visible */
+gboolean restore_paned_position(gpointer user_data) {
+	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		gtk_paned_set_position(paned, com.pref.gui.pan_position);
 	}
 	return FALSE;
 }
