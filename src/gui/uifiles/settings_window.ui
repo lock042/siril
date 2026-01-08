@@ -5177,6 +5177,8 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="is-focus">True</property>
                                             <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                                             <property name="tooltip-text" translatable="yes">Type here to filter the list of scripts. The search matches any part of the script name. Filtering is case-insensitive and updates instantly as you type.</property>
+                                            <property name="margin-start">10</property>
+                                            <property name="margin-end">10</property>
                                             <property name="width-chars">30</property>
                                             <property name="primary-icon-name">edit-find-symbolic</property>
                                             <property name="primary-icon-activatable">False</property>
@@ -5193,6 +5195,8 @@ Activating the repository will take place immediately, so that you can select sc
                                           <object class="GtkScrolledWindow">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="margin-start">10</property>
+                                            <property name="margin-end">10</property>
                                             <property name="shadow-type">in</property>
                                             <property name="min-content-height">200</property>
                                             <property name="max-content-height">350</property>
