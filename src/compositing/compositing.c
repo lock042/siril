@@ -179,9 +179,13 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 gboolean on_color_button_motion_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data);
 gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data);
 void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data); // Keep for glade compatibility
+static void load_layer_image(layer *target_layer, const char *filename);
 static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer);
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data);
 void on_centerbutton_toggled(GtkToggleButton *button, gpointer user_data);
+static void setup_drag_and_drop(GtkButton *button, layer *l);
+static void on_drag_data_received(GtkWidget *widget, GdkDragContext *context, gint x, gint y, GtkSelectionData *selection_data, guint info, guint time, gpointer user_data);
+static gboolean on_drag_motion(GtkWidget *widget, GdkDragContext *context, gint x, gint y, guint time, gpointer user_data);
 
 /********************************************************/
 
@@ -227,6 +231,81 @@ static void compute_compositor_mem_limits(fits* fit) {
 
 /* the compositing menu callback */
 
+/* Drag and drop callbacks */
+static void on_drag_data_received(GtkWidget *widget, GdkDragContext *context,
+								   gint x, gint y, GtkSelectionData *selection_data,
+								   guint info, guint time, gpointer user_data) {
+	layer *l = (layer *)user_data;
+	gchar **uris;
+	gchar *filename = NULL;
+
+	uris = gtk_selection_data_get_uris(selection_data);
+	if (uris && uris[0]) {
+		filename = g_filename_from_uri(uris[0], NULL, NULL);
+		g_strfreev(uris);
+	}
+
+	if (filename) {
+		/* Check if the file type is supported */
+		gchar *filename_lower = g_ascii_strdown(filename, -1);
+		gboolean valid = (g_str_has_suffix(filename_lower, ".fit") ||
+						 g_str_has_suffix(filename_lower, ".fits") ||
+						 g_str_has_suffix(filename_lower, ".fts") ||
+						 g_str_has_suffix(filename_lower, ".fit.fz") ||
+						 g_str_has_suffix(filename_lower, ".fits.fz") ||
+						 g_str_has_suffix(filename_lower, ".tif") ||
+						 g_str_has_suffix(filename_lower, ".tiff"));
+		g_free(filename_lower);
+
+		if (valid) {
+			/* Update stored filename */
+			g_free(l->selected_filename);
+			l->selected_filename = g_strdup(filename);
+
+			/* Update button label and tooltip */
+			gchar *basename = g_path_get_basename(filename);
+			gtk_widget_set_tooltip_text(GTK_WIDGET(l->chooser_button), basename);
+			gchar *ellipsized_basename = ellipsize(basename, 16, ELLIPSIZE_MIDDLE);
+			gtk_button_set_label(l->chooser_button, ellipsized_basename);
+			g_free(basename);
+			g_free(ellipsized_basename);
+
+			/* Load the image directly */
+			load_layer_image(l, filename);
+
+			gtk_drag_finish(context, TRUE, FALSE, time);
+		} else {
+			siril_log_color_message(_("Invalid file type for compositing\n"), "red");
+			gtk_drag_finish(context, FALSE, FALSE, time);
+		}
+		g_free(filename);
+	} else {
+		gtk_drag_finish(context, FALSE, FALSE, time);
+	}
+}
+
+static gboolean on_drag_motion(GtkWidget *widget, GdkDragContext *context, gint x, gint y, guint time, gpointer user_data) {
+	GdkAtom target = gtk_drag_dest_find_target(widget, context, NULL);
+	if (target == GDK_NONE) {
+		gdk_drag_status(context, 0, time);
+	} else {
+		gdk_drag_status(context, GDK_ACTION_COPY, time);
+	}
+	return TRUE;
+}
+
+static void setup_drag_and_drop(GtkButton *button, layer *l) {
+	gtk_drag_dest_set(GTK_WIDGET(button),
+					  GTK_DEST_DEFAULT_ALL,
+					  NULL, 0,
+					  GDK_ACTION_COPY);
+
+	gtk_drag_dest_add_uri_targets(GTK_WIDGET(button));
+
+	g_signal_connect(button, "drag-data-received", G_CALLBACK(on_drag_data_received), l);
+	g_signal_connect(button, "drag-motion", G_CALLBACK(on_drag_motion), l);
+}
+
 /* creates a new row with all widgets and bindings at the row index in the
  * layers grid. Indices start at 0, but row 0 holds only one label, and row 1 is
  * reserved to the luminance layer. */
@@ -254,6 +333,9 @@ layer *create_layer(int index) {
 	ret->selected_filename = NULL;
 	g_signal_connect(ret->chooser_button, "clicked", G_CALLBACK(on_chooser_button_clicked), ret);
 	g_object_ref(G_OBJECT(ret->chooser_button));	// don't destroy it on removal from grid
+
+	/* Enable drag and drop on the button */
+	setup_drag_and_drop(ret->chooser_button, ret);
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
@@ -484,6 +566,9 @@ void open_compositing_window() {
 		g_signal_connect(layers[0]->chooser_button, "clicked",
 		                 G_CALLBACK(on_chooser_button_clicked), layers[0]);
 
+		/* Enable drag and drop on the luminance button */
+		setup_drag_and_drop(layers[0]->chooser_button, layers[0]);
+
 		layers[0]->label = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_lum"));
 		layers[0]->spinbutton_x = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_x"));
 		layers[0]->spinbutton_y = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_lum_y"));
@@ -682,10 +767,10 @@ static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	free(f);
 }
 
-/* Internal version that works with GtkFileChooser (GtkFileChooserNative) */
-static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer) {
+/* Internal function to load an image into a layer from a filename */
+static void load_layer_image(layer *target_layer, const char *filename) {
 	int layer, retval;
-	char buf[48], *filename;
+	char buf[48];
 
 	if (!number_of_images_loaded()
 			&& (single_image_is_loaded() || (sequence_is_loaded()))) {
@@ -693,12 +778,7 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 	}
 	check_gfit_is_ours();
 
-	// Find the layer - use target_layer if provided (always provided now)
-	if (!target_layer) {
-		siril_log_message(_("Error: target_layer not specified\n"));
-		return;
-	}
-
+	/* Find the layer */
 	for (layer = 0; layers[layer]; layer++)
 		if (layers[layer] == target_layer)
 			break;
@@ -708,17 +788,12 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 		return;
 	}
 
-	// If this layer doesn't already have a fit loaded, and
-	// we already have the maximum number of images loaded,
-	// error message and return.
+	/* Check memory limits */
 	if (layers[layer]->the_fit.rx == 0 && number_of_images_loaded() == maximum_layers) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("The maximum number of images of this size has been reached based on available memory limits."));
 		return;
 	}
-
-	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
-	if (!filename) return;
 
 	if (layers[layer]->the_fit.rx != 0) {	// already loaded image
 		clearfits(&layers[layer]->the_fit);
@@ -730,7 +805,7 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 		gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label),
 			_("Cannot load the file, See the log for more information."));
 	} else {
-		/* first we want test that we load a single-channel image */
+		/* First we test that we load a single-channel image */
 		if (layers[layer]->the_fit.naxes[2] > 1) {
 			gtk_label_set_markup(layers[layer]->label, _("<span foreground=\"red\">ERROR</span>"));
 			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label),
@@ -802,9 +877,8 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 			}
 		}
 	}
-	g_free(filename);
 
-	/* special case of luminance selected */
+	/* Special case of luminance selected */
 	if (layer == 0) {
 		GtkToggleButton *lum_button = GTK_TOGGLE_BUTTON(
 			gtk_builder_get_object(gui.builder, "composition_use_lum"));
@@ -836,74 +910,92 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 	gui_function(update_MenuItem, NULL);
 }
 
+/* Internal version that works with GtkFileChooser (GtkFileChooserNative) */
+static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer) {
+	char *filename;
+
+	if (!target_layer) {
+		siril_log_message(_("Error: target_layer not specified\n"));
+		return;
+	}
+
+	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
+	if (!filename) return;
+
+	/* Call the common loading function */
+	load_layer_image(target_layer, filename);
+
+	g_free(filename);
+}
+
 /* Handler for the file chooser button click - using siril_file_chooser_open() */
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
-    layer *l = (layer *)user_data;
+	layer *l = (layer *)user_data;
 
-    // Get the parent window
-    GtkWindow *parent = GTK_WINDOW(lookup_widget("composition_dialog"));
-    if (!parent) {
-        parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-    }
+	// Get the parent window
+	GtkWindow *parent = GTK_WINDOW(lookup_widget("composition_dialog"));
+	if (!parent) {
+		parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	}
 
-    // Use siril_file_chooser_open like in open_dialog.c
-    SirilWidget *widgetdialog = siril_file_chooser_open(parent, GTK_FILE_CHOOSER_ACTION_OPEN);
-    GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
+	// Use siril_file_chooser_open like in open_dialog.c
+	SirilWidget *widgetdialog = siril_file_chooser_open(parent, GTK_FILE_CHOOSER_ACTION_OPEN);
+	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
 
-    if (!dialog) {
-        siril_log_color_message(_("Error: Could not create file chooser dialog\n"), "red");
-        return;
-    }
+	if (!dialog) {
+		siril_log_color_message(_("Error: Could not create file chooser dialog\n"), "red");
+		return;
+	}
 
-    // Set up filters using the custom filter function
-    GtkFileFilter *filter = create_compositing_file_filter();
-    gtk_file_chooser_add_filter(dialog, filter);
-    gtk_file_chooser_set_filter(dialog, filter);
+	// Set up filters using the custom filter function
+	GtkFileFilter *filter = create_compositing_file_filter();
+	gtk_file_chooser_add_filter(dialog, filter);
+	gtk_file_chooser_set_filter(dialog, filter);
 
-    // Set current folder
-    if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
-        gtk_file_chooser_set_current_folder(dialog, com.wd);
-    }
+	// Set current folder
+	if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
+		gtk_file_chooser_set_current_folder(dialog, com.wd);
+	}
 
-    // Set to not allow multiple selection
-    gtk_file_chooser_set_select_multiple(dialog, FALSE);
-    gtk_file_chooser_set_local_only(dialog, FALSE);
+	// Set to not allow multiple selection
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 
-    // If we already have a file selected, show it
-    if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
-        gtk_file_chooser_set_filename(dialog, l->selected_filename);
-    }
+	// If we already have a file selected, show it
+	if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
+		gtk_file_chooser_set_filename(dialog, l->selected_filename);
+	}
 
-    // Show the dialog and wait for response - use siril_dialog_run
-    gint response = siril_dialog_run(widgetdialog);
+	// Show the dialog and wait for response - use siril_dialog_run
+	gint response = siril_dialog_run(widgetdialog);
 
-    if (response == GTK_RESPONSE_ACCEPT) {
-        gchar *filename = siril_file_chooser_get_filename(dialog);
+	if (response == GTK_RESPONSE_ACCEPT) {
+		gchar *filename = siril_file_chooser_get_filename(dialog);
 
-        if (filename) {
+		if (filename) {
 
-            g_free(l->selected_filename);
-            l->selected_filename = filename;  // Don't free this, we're storing it
+			g_free(l->selected_filename);
+			l->selected_filename = filename;  // Don't free this, we're storing it
 
-            // Update button tooltip to show filename
-            gchar *basename = g_path_get_basename(l->selected_filename);
+			// Update button tooltip to show filename
+			gchar *basename = g_path_get_basename(l->selected_filename);
 			gtk_widget_set_tooltip_text(GTK_WIDGET(l->chooser_button), basename);
 			gchar *ellipsized_basename = ellipsize(basename, 16, ELLIPSIZE_MIDDLE);
-            gtk_button_set_label(l->chooser_button, ellipsized_basename);
-            g_free(basename);
+			gtk_button_set_label(l->chooser_button, ellipsized_basename);
+			g_free(basename);
 			g_free(ellipsized_basename);
 
-            // Call the existing file-set handler
-            on_filechooser_file_set_internal(dialog, l);
-        } else {
-            siril_log_message("Warning: File selected but filename is NULL\n");
-        }
-    } else if (response == GTK_RESPONSE_CANCEL) {
-        siril_debug_print("User cancelled file selection\n");
-    } else {
-        siril_debug_print("Dialog closed with response: %d\n", response);
-    }
-    siril_widget_destroy(widgetdialog);
+			// Call the existing file-set handler
+			on_filechooser_file_set_internal(dialog, l);
+		} else {
+			siril_log_message("Warning: File selected but filename is NULL\n");
+		}
+	} else if (response == GTK_RESPONSE_CANCEL) {
+		siril_debug_print("User cancelled file selection\n");
+	} else {
+		siril_debug_print("Dialog closed with response: %d\n", response);
+	}
+	siril_widget_destroy(widgetdialog);
 }
 
 gboolean valid_rgbcomp_seq() {
@@ -1856,34 +1948,16 @@ static void reload_all() {
 		return;
 	}
 
-	// Reload files by simulating the file chooser callback
+	// Reload files by directly calling load_layer_image
 	// Start with the biggest layer
 	if (layers[biggest_layer]->selected_filename) {
-		GtkFileChooserNative *native = gtk_file_chooser_native_new(
-			_("Reloading image"),
-			GTK_WINDOW(lookup_widget("composition_dialog")),
-			GTK_FILE_CHOOSER_ACTION_OPEN,
-			NULL, NULL);
-
-		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(native),
-			layers[biggest_layer]->selected_filename);
-		on_filechooser_file_set_internal(GTK_FILE_CHOOSER(native), layers[biggest_layer]);
-		g_object_unref(native);
+		load_layer_image(layers[biggest_layer], layers[biggest_layer]->selected_filename);
 	}
 
 	// Then reload all other layers
 	for (int layer = 0 ; layer < maximum_layers ; layer++) {
 		if (layers[layer] && layers[layer]->selected_filename && layer != biggest_layer) {
-			GtkFileChooserNative *native = gtk_file_chooser_native_new(
-				_("Reloading image"),
-				GTK_WINDOW(lookup_widget("composition_dialog")),
-				GTK_FILE_CHOOSER_ACTION_OPEN,
-				NULL, NULL);
-
-			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(native),
-				layers[layer]->selected_filename);
-			on_filechooser_file_set_internal(GTK_FILE_CHOOSER(native), layers[layer]);
-			g_object_unref(native);
+			load_layer_image(layers[layer], layers[layer]->selected_filename);
 		}
 	}
 
