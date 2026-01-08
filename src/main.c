@@ -95,13 +95,7 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	GtkWidget *control_window = lookup_widget("control_window");
 	gtk_widget_set_opacity(control_window, 1.0);
 
-//#ifdef OS_OSX
-	/* macOS requires a delay for layout calculations before restoring paned position */
-//	g_timeout_add(100, (GSourceFunc)force_paned_restore, NULL);
-//#else
-	/* On Linux/Windows, layouts are ready immediately */
 	force_paned_restore();
-//#endif
 
 	return FALSE; // run once
 }
