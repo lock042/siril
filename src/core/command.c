@@ -46,6 +46,7 @@
 #include "core/arithm.h"
 #include "core/initfile.h"
 #include "core/siril_app_dirs.h"
+#include "core/masks.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
@@ -13984,4 +13985,480 @@ int process_pyscript(int nb) {
 	} else {
 		return CMD_FILE_NOT_FOUND;
 	}
+}
+
+static gboolean end_mask_command(gpointer user_data) {
+	redraw_mask_idle(NULL);
+	return FALSE;
+}
+
+int process_mask_from_stars(int nb) {
+	int argidx = 1;
+	float r = 0.f, feather = 0.f;
+	gboolean invert = FALSE;
+	int bitdepth = 8;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-r=")) {
+			char *arg = word[argidx] + 3;
+			r = g_ascii_strtod(arg, &end);
+			if (arg == end || r <= 0.0f || r > 100.f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-feather=")) {
+			char *arg = word[argidx] + 9;
+			feather = g_ascii_strtod(arg, &end);
+			if (arg == end || feather < 0.0f || feather > 2000.f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+	int retval = mask_create_from_stars(gfit, r, bitdepth);
+	if (!retval && feather > 0.f) {
+		retval = mask_feather(gfit, feather, FEATHER_OUTER);
+	}
+	if (!retval && invert) {
+		retval = mask_invert(gfit);
+	}
+	if (retval)
+		return CMD_GENERIC_ERROR;
+
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+
+	return CMD_OK;
+}
+
+int process_mask_from_channel(int nb) {
+	int argidx = 1;
+	int channel = -1;
+	gboolean autostretch = FALSE;
+	gboolean invert = FALSE;
+	int bitdepth = 8;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-autostretch")) {
+			autostretch = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-channel=")) {
+			char *arg = word[argidx] + 9;
+			char *end;
+			channel = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || channel < 0 || channel > gfit->naxes[2]) {
+				siril_log_message(_("Invalid argument %s, channel must be 0-2, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			char *end;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Channel parameter is required
+	if (channel == -1) {
+		siril_log_message(_("Channel parameter (-channel=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Create mask from channel
+	int retval = mask_create_from_channel(gfit, gfit, channel, (uint8_t) bitdepth);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Apply autostretch if requested
+	if (autostretch) {
+		retval = mask_autostretch(gfit);
+		if (retval) {
+			return CMD_GENERIC_ERROR;
+		}
+	}
+
+	// Apply invert if requested
+	if (invert) {
+		retval = mask_invert(gfit);
+		if (retval) {
+			return CMD_GENERIC_ERROR;
+		}
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_mask_from_lum(int nb) {
+	int argidx = 1;
+	float rw = -1.f, gw = -1.f, bw = -1.f;
+	gboolean autostretch = FALSE;
+	gboolean invert = FALSE;
+	gboolean use_human = FALSE;
+	gboolean use_even = FALSE;
+	int bitdepth = 8;
+	uint8_t bitpix;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-autostretch")) {
+			autostretch = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-human")) {
+			use_human = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-even")) {
+			use_even = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-rw=")) {
+			char *arg = word[argidx] + 4;
+			rw = g_ascii_strtod(arg, &end);
+			if (arg == end || rw < 0.0f || rw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, red weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-gw=")) {
+			char *arg = word[argidx] + 4;
+			gw = g_ascii_strtod(arg, &end);
+			if (arg == end || gw < 0.0f || gw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, green weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bw=")) {
+			char *arg = word[argidx] + 4;
+			bw = g_ascii_strtod(arg, &end);
+			if (arg == end || bw < 0.0f || bw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, blue weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Check for conflicting options
+	if (use_human && use_even) {
+		siril_log_message(_("Cannot specify both -human and -even options, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Check if custom weights are provided with preset options
+	if ((use_human || use_even) && (rw >= 0.f || gw >= 0.f || bw >= 0.f)) {
+		siril_log_message(_("Cannot specify custom weights with -human or -even options, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// If custom weights are provided, all three must be specified
+	gboolean has_custom_weights = (rw >= 0.f || gw >= 0.f || bw >= 0.f);
+	if (has_custom_weights && !(rw >= 0.f && gw >= 0.f && bw >= 0.f)) {
+		siril_log_message(_("All three weights (-rw, -gw, -bw) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+	bitpix = (uint8_t) bitdepth;
+	// Create mask from luminance
+	int retval;
+	if (use_human) {
+		retval = mask_create_from_luminance_human(gfit, gfit, (bitpix));
+	}
+	else if (use_even) {
+		retval = mask_create_from_luminance_even(gfit, gfit, bitpix);
+	}
+	else if (has_custom_weights) {
+		retval = mask_create_from_luminance(gfit, gfit, rw, gw, bw, bitpix);
+	}
+	else {
+		// Default to human vision weights if no option specified
+		retval = mask_create_from_luminance_human(gfit, gfit, bitpix);
+	}
+
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Apply autostretch if requested
+	if (autostretch) {
+		retval = mask_autostretch(gfit);
+		if (retval) {
+			return CMD_GENERIC_ERROR;
+		}
+	}
+
+	// Apply invert if requested
+	if (invert) {
+		retval = mask_invert(gfit);
+		if (retval) {
+			return CMD_GENERIC_ERROR;
+		}
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_clear_mask(int nb) {
+	if (gfit && gfit->mask) {
+		set_mask_active(gfit, FALSE);
+		free_mask(gfit->mask);
+		gfit->mask = NULL;
+		show_or_hide_mask_tab();
+		siril_log_message(_("Mask cleared\n"));
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_binarize_mask(int nb) {
+	// Check if mask exists
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	int argidx = 1;
+	float lo = 0.f, hi;
+	switch (gfit->mask->bitpix) {
+		case 8:
+			hi = 255.f;
+			break;
+		case 16:
+			hi = 65535.f;
+			break;
+		case 32:
+			hi = 1.f;
+			break;
+		default:
+			siril_log_message(_("Unknown mask bit depth, aborting.\n"));
+			return CMD_GENERIC_ERROR;
+	}
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-lo=")) {
+			char *arg = word[argidx] + 4;
+			lo = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-hi=")) {
+			char *arg = word[argidx] + 4;
+			hi = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Validate that lo < hi
+	if (lo >= hi) {
+		siril_log_message(_("Low value must be less than high value, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Binarize the mask
+	int retval = mask_binarize(gfit, lo, hi);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_blur_mask(int nb) {
+	int argidx = 1;
+	float radius = -1.f;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-r=")) {
+			char *arg = word[argidx] + 3;
+			radius = g_ascii_strtod(arg, &end);
+			if (arg == end || radius <= 0.0f || radius > 1000.f) {
+				siril_log_message(_("Invalid argument %s, radius must be > 0 and <= 1000, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Radius parameter is required
+	if (radius < 0.f) {
+		siril_log_message(_("Radius parameter (-radius=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Check if mask exists
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Apply Gaussian blur to the mask
+	int retval = mask_apply_gaussian_blur(gfit, radius);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_feather_mask(int nb) {
+	int argidx = 1;
+	float distance = -1.f;
+	feather_mode mode = FEATHER_OUTER; // Default to outer feathering
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-dist=")) {
+			char *arg = word[argidx] + 6;
+			distance = g_ascii_strtod(arg, &end);
+			if (arg == end || distance <= 0.0f || distance > 2000.f) {
+				siril_log_message(_("Invalid argument %s, distance must be > 0 and <= 2000, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-mode=")) {
+			char *arg = word[argidx] + 6;
+			if (g_ascii_strcasecmp(arg, "inner") == 0) {
+				mode = FEATHER_INNER;
+			}
+			else if (g_ascii_strcasecmp(arg, "outer") == 0) {
+				mode = FEATHER_OUTER;
+			}
+			else if (g_ascii_strcasecmp(arg, "edge") == 0) {
+				mode = FEATHER_EDGE;
+			}
+			else {
+				siril_log_message(_("Invalid argument %s, mode must be 'inner', 'outer', or 'edge', aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Distance parameter is required
+	if (distance < 0.f) {
+		siril_log_message(_("Distance parameter (-distance=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Check if mask exists
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Apply feathering to the mask
+	int retval = mask_feather(gfit, distance, mode);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_mask_fmul(int nb) {
+	int argidx = 1;
+	float factor = -1.f;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-factor=")) {
+			char *arg = word[argidx] + 8;
+			factor = g_ascii_strtod(arg, &end);
+			if (arg == end || factor < 0.0f) {
+				siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	// Factor parameter is required
+	if (factor < 0.f) {
+		siril_log_message(_("Factor parameter (-factor=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Check if mask exists
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Scale the mask
+	int retval = mask_scale(gfit, factor);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_invert_mask(int nb) {
+	if (mask_invert(gfit))
+		return CMD_GENERIC_ERROR;
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_autostretch_mask(int nb) {
+	if (mask_autostretch(gfit))
+		return CMD_GENERIC_ERROR;
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
 }
