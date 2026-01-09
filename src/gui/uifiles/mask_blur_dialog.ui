@@ -96,7 +96,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="spin_gaussian_blur_radius">
+                  <object class="GtkSpinButton" id="spin_mask_blur_radius">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Gaussian blur radius in pixels</property>
