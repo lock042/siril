@@ -440,7 +440,7 @@ static void remap_all_vports() {
 		make_index_for_rainbow(rainbow_index);
 
 	// Check if mask overlay is active
-	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active);
+	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active && com.pref.gui.mask_tints_vports);
 	uint8_t *mask_u8 = NULL;
 	uint16_t *mask_u16 = NULL;
 	float *mask_f32 = NULL;
@@ -2311,9 +2311,11 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 	}
 }
 
-static gboolean redraw_mask_idle(gpointer p) {
+gboolean redraw_mask_idle(gpointer p) {
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
+	if (com.pref.gui.mask_tints_vports)
+		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	return FALSE;
 }
 

@@ -21,6 +21,7 @@ void copy_roi_into_gfit();
 void redraw(remap_type doremap);	// redraw the image, possibly with a remap
 void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
+gboolean redraw_mask_idle(gpointer p);
 void queue_redraw_mask(); // queue a redraw of the mask only
 
 double get_zoom_val();	// for image_interactions

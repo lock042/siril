@@ -9,6 +9,7 @@ typedef enum {
 } feather_mode;
 
 void mask_from_image_dialog_set_file_mode(gboolean file_mode);
+int get_default_mask_bitpix();
 
 void set_mask_active(fits *fit, gboolean state);
 void free_mask(mask_t* mask);
@@ -38,5 +39,6 @@ int mask_apply_gaussian_blur(fits *fit, float radius);
 int mask_binarize(fits *fit, float min_val, float max_val);
 int mask_invert(fits *fit);
 int mask_feather(fits *fit, float feather_dist, feather_mode mode);
+int mask_scale(fits *fit, float f);
 
 #endif

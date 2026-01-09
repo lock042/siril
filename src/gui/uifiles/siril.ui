@@ -1065,15 +1065,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menu_clear_mask">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="action-name">win.clear_mask</property>
-                <property name="label" translatable="yes">Clear mask</property>
-                <property name="use-underline">True</property>
-              </object>
-            </child>
-            <child>
               <object class="GtkMenuItem" id="menu_mask_add_from_poly">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -1087,6 +1078,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can-focus">False</property>
                 <property name="action-name">win.mask_clear_from_poly</property>
                 <property name="label" translatable="yes">Subtract freehand from mask</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_clear_mask">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.clear_mask</property>
+                <property name="label" translatable="yes">Clear mask</property>
+                <property name="use-underline">True</property>
               </object>
             </child>
           </object>
@@ -1223,6 +1223,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="can-focus">False</property>
         <property name="action-name">win.invert_mask</property>
         <property name="label" translatable="yes">Invert Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_scale_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.scale_mask</property>
+        <property name="label" translatable="yes">Multiply mask</property>
       </object>
     </child>
     <child>

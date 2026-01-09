@@ -338,7 +338,7 @@ static gboolean mask_add_poly_release(mouse_data *data) {
 	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
 	if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
-		mask_create_zeroes_like(gfit, 8); // TODO: change 8 to preference for default mask bitpix
+		mask_create_zeroes_like(gfit, get_default_mask_bitpix());
 	}
 	set_poly_in_mask(poly, gfit, TRUE);
 	// Free and NULL gui.drawing_polypoints
@@ -354,7 +354,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
 	if (!gfit->mask) { // we need somthing to subtract the polygon from, so create a ones-like mask
-		mask_create_ones_like(gfit, 8); // TODO: change 8 to preference for default mask bitpix
+		mask_create_ones_like(gfit, get_default_mask_bitpix());
 	}
 	set_poly_in_mask(poly, gfit, FALSE);
 	// Free and NULL gui.drawing_polypoints
@@ -363,6 +363,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	queue_redraw_mask();
 	return TRUE;
 }
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (gui.cvport == MASK_VPORT) {
 		do_popup_maskmenu(data->widget, NULL);

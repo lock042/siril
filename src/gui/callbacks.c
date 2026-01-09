@@ -519,6 +519,8 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	gfit->mask_active = state;
+	if (com.pref.gui.mask_tints_vports)
+		redraw(REMAP_ALL); // draw or remove the red tint from the image
 }
 
 static void initialize_mask_tab_label() {

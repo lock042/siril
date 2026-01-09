@@ -64,6 +64,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="livestacking_player.ui">gui/uifiles/livestacking_player.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_from_image.ui">gui/uifiles/mask_from_image.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_from_stars.ui">gui/uifiles/mask_from_stars.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mask_blur_dialog.ui">gui/uifiles/mask_blur_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mask_feather_dialog.ui">gui/uifiles/mask_feather_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mask_fmul_dialog.ui">gui/uifiles/mask_fmul_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui/uifiles/Median_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui/uifiles/merge_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui/uifiles/mouse_actions.ui</file>

@@ -892,7 +892,7 @@ void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpoin
 }
 
 void blur_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-//	siril_open_dialog("mask_blur_dialog");
+	siril_open_dialog("mask_blur_dialog");
 }
 
 void binarize_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -900,7 +900,11 @@ void binarize_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void feather_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-//	siril_open_dialog("mask_feather_dialog");
+	siril_open_dialog("mask_feather_dialog");
+}
+
+void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_scale_dialog");
 }
 
 void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

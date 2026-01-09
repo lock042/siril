@@ -27,6 +27,7 @@
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
@@ -806,6 +807,9 @@ int mask_autostretch(fits *fit) {
 	return 0;
 }
 
+int get_default_mask_bitpix() {
+	return com.pref.default_mask_bitpix > 0 ? com.pref.default_mask_bitpix : gfit->type == DATA_FLOAT ? 32 : gfit->orig_bitpix == BYTE_IMG ? 8 : 16;
+}
 
 // Creates a fits struct representing the mask in fit. This allows for masks to be
 // processed with the generic_image_worker (using a special idle to re-update the
@@ -1019,6 +1023,48 @@ int mask_invert(fits *fit) {
 		}
 		default:
 			siril_debug_print("Error! Unhandled bitpix in mask_create_ones_like\n");
+			return 1;
+	}
+	return 0;
+}
+
+// Scale the mask by factor f. Returns 0 on success.
+int mask_scale(fits *fit, float f) {
+	if (!fit->mask || !fit->mask->data)
+		return 1;
+	uint8_t bitpix = fit->mask->bitpix;
+	if (!(bitpix == 8 || bitpix == 16 || bitpix == 32))
+		return 1;
+	size_t npixels = fit->rx * fit->ry;
+	switch(bitpix) {
+		case 8: {
+			uint8_t* restrict m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float v = m[i] * f;
+				m[i] = roundf_to_BYTE(v);
+			}
+			break;
+		}
+		case 16: {
+			uint16_t* restrict m = (uint16_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float v = m[i] * f;
+				m[i] = roundf_to_WORD(v);
+			}
+			break;
+		}
+		case 32: {
+			float* restrict m = (float*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float v = m[i] * f;
+				if (v < 0.f) v = 0.f;
+				if (v > 1.f) v = 1.f;
+				m[i] = v;
+			}
+			break;
+		}
+		default:
+			siril_debug_print("Error! Unhandled bitpix in mask_scale\n");
 			return 1;
 	}
 	return 0;
@@ -1346,4 +1392,39 @@ void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
 	cvFillPoly(&mat_header, part_pts, n_pts, 1, color, 8, 0);
 
 	free(pts);
+}
+
+void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_blur_radius"));
+	float radius = gtk_spin_button_get_value(spin);
+	mask_apply_gaussian_blur(gfit, radius);
+	redraw_mask_idle(NULL);
+}
+
+void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_feather_distance"));
+	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combo_mask_feather_type"));
+	float distance = gtk_spin_button_get_value(spin);
+	feather_mode mode = (feather_mode) gtk_combo_box_get_active(combo);
+	mask_feather(gfit, distance, mode);
+	redraw_mask_idle(NULL);
+}
+
+void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_multiply_factor"));
+	float factor = gtk_spin_button_get_value(spin);
+	mask_scale(gfit, factor);
+	redraw_mask_idle(NULL);
+}
+
+void on_blur_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_blur_dialog");
+}
+
+void on_feather_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_feather_dialog");
+}
+
+void on_multiply_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_fmul_dialog");
 }
