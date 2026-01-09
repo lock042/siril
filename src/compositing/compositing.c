@@ -921,7 +921,7 @@ static void update_metadata(gboolean do_sum) {
 
 // Called after alignment
 static void update_comp_metadata(fits *fit, gboolean do_sum) {
-	int nb = number_of_images_loaded();
+	int nb = seq->number;
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < nb; i++)
