@@ -31,6 +31,7 @@
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
+#include "gui/user_polygons.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
 
@@ -512,7 +513,7 @@ int mask_apply_gaussian_blur(fits *fit, float radius) {
 * Returns: 0 on success, 1 on error
 */
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
-                           double weight_r, double weight_g, double weight_b) {
+						double weight_r, double weight_g, double weight_b) {
 	if (!fit || !filename) {
 		siril_debug_print("mask_create_from_image: invalid parameters\n");
 		return 1;
@@ -604,15 +605,15 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 
 #undef max
 #define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
+({ __typeof__ (a) _a = (a); \
+	__typeof__ (b) _b = (b); \
+	_a > _b ? _a : _b; })
 
 #undef min
 #define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
+({ __typeof__ (a) _a = (a); \
+	__typeof__ (b) _b = (b); \
+	_a < _b ? _a : _b; })
 
 FAST_MATH_PUSH
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
@@ -1303,7 +1304,46 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 	if (dist_outside) free(dist_outside);
 
 	const char *mode_str = (mode == FEATHER_INNER) ? "inward" :
-	                       (mode == FEATHER_OUTER) ? "outward" : "on edge";
+						(mode == FEATHER_OUTER) ? "outward" : "on edge";
 	siril_log_message(_("Mask feathered %s with distance %.1f pixels\n"), mode_str, feather_dist);
 	return 0;
+}
+
+void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
+	if (!poly || !fit || !fit->mask || !fit->mask->data) return;
+
+	int width = fit->rx;
+	int height = fit->ry;
+	mask_t *m = fit->mask;
+
+	// Prepare OpenCV points array
+	CvPoint* pts = (CvPoint*)malloc(poly->n_points * sizeof(CvPoint));
+	for (int i = 0; i < poly->n_points; i++) {
+		pts[i].x = round_to_int(poly->points[i].x);
+		pts[i].y = round_to_int(fit->ry - 1 - poly->points[i].y);
+	}
+
+	// Define the fill value based on bitpix and state
+	CvScalar color;
+	if (state) {
+		if (m->bitpix == 8) color = cvScalarAll(255);
+		else if (m->bitpix == 16) color = cvScalarAll(65535);
+		else color = cvScalarAll(1.0);
+	} else {
+		color = cvScalarAll(0);
+	}
+
+	// Create a header for the existing raw data (No copy)
+	CvMat mat_header;
+	int type = (m->bitpix == 8) ? CV_8UC1 : (m->bitpix == 16 ? CV_16UC1 : CV_32FC1);
+
+	cvInitMatHeader(&mat_header, height, width, type, m->data, CV_AUTOSTEP);
+
+	// Perform the scanline fill
+	CvPoint* part_pts[1] = { pts };
+	int n_pts[1] = { poly->n_points };
+
+	cvFillPoly(&mat_header, part_pts, n_pts, 1, color, 8, 0);
+
+	free(pts);
 }

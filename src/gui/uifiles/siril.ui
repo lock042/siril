@@ -1073,6 +1073,22 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="use-underline">True</property>
               </object>
             </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_poly">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_add_from_poly</property>
+                <property name="label" translatable="yes">Add freehand to mask</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_clear_from_poly">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_clear_from_poly</property>
+                <property name="label" translatable="yes">Subtract freehand from mask</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

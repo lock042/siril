@@ -1,15 +1,6 @@
 #ifndef GUI_USER_POLYGONS_H
 #define GUI_USER_POLYGONS_H
 
-typedef struct {
-	int id;
-	int n_points;
-	point *points;
-	GdkRGBA color;
-	gboolean fill;
-	gchar *legend;
-} __attribute__((packed)) UserPolygon;
-
 // Very liberal limit, purely to avoid unlimited g_malloc0 calls
 #define MAX_POLYGON_POINTS 1e6
 

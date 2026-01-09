@@ -328,6 +328,20 @@ void init_draw_poly() {
 	mouse_status = MOUSE_ACTION_DRAW_POLY;
 }
 
+void init_add_poly_to_mask() {
+	uint32_t color = 0x00FF0040;
+	gui.poly_fill = FALSE;
+	gui.poly_ink = uint32_to_gdk_rgba(color);
+	mouse_status = MOUSE_ACTION_ADD_POLY_TO_MASK;
+}
+
+void init_clear_poly_from_mask() {
+	uint32_t color = 0xFF000040;
+	gui.poly_fill = FALSE;
+	gui.poly_ink = uint32_to_gdk_rgba(color);
+	mouse_status = MOUSE_ACTION_CLEAR_POLY_FROM_MASK;
+}
+
 GdkModifierType get_primary() {
 	return gdk_keymap_get_modifier_mask(
 			gdk_keymap_get_for_display(gdk_display_get_default()),

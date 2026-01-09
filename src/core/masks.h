@@ -20,6 +20,7 @@ gpointer invert_mask_worker(gpointer p);
 
 mask_t *fits_to_mask(fits *mfit);
 fits *mask_to_fits(fits *fit);
+void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state);
 
 int mask_create_test(fits *fit, uint8_t bitpix);
 int mask_create_ones_like(fits *fit, uint8_t bitpix);

@@ -439,6 +439,31 @@ static void remap_all_vports() {
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
 
+	// Check if mask overlay is active
+	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active);
+	uint8_t *mask_u8 = NULL;
+	uint16_t *mask_u16 = NULL;
+	float *mask_f32 = NULL;
+	int mask_bitpix = 0;
+
+	if (apply_mask) {
+		mask_bitpix = gfit->mask->bitpix;
+		switch (mask_bitpix) {
+			case 8:
+				mask_u8 = (uint8_t *)gfit->mask->data;
+				break;
+			case 16:
+				mask_u16 = (uint16_t *)gfit->mask->data;
+				break;
+			case 32:
+				mask_f32 = (float *)gfit->mask->data;
+				break;
+			default:
+				apply_mask = FALSE; // Invalid bitpix, disable mask
+				break;
+		}
+	}
+
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
 	guint y;
@@ -511,6 +536,13 @@ static void remap_all_vports() {
 			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit->rx) , (pixelbuf + 2 * gfit->rx) };
 			BYTE *pixelbuf_byte = malloc(gfit->rx * 3);
 			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit->rx) , (pixelbuf_byte + 2 * gfit->rx) };
+
+			// Allocate mask buffer for current row if mask is active
+			BYTE *mask_row = NULL;
+			if (apply_mask) {
+				mask_row = malloc(gfit->rx * sizeof(BYTE));
+			}
+
 			if (gfit->type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
@@ -557,15 +589,65 @@ static void remap_all_vports() {
 			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
 				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit->rx, 1, gfit->rx * 3, gfit->rx * 3, gfit->rx, gfit->rx);
 			}
+
+			// Convert mask to normalized BYTE values if mask is active
+			if (apply_mask) {
+				switch (mask_bitpix) {
+					case 8:
+#pragma omp simd
+						for (x = 0; x < gfit->rx; ++x) {
+							mask_row[x] = mask_u8[src_i + x];
+						}
+						break;
+					case 16:
+#pragma omp simd
+						for (x = 0; x < gfit->rx; ++x) {
+							mask_row[x] = mask_u16[src_i + x] >> 8;
+						}
+						break;
+					case 32:
+#pragma omp simd
+						for (x = 0; x < gfit->rx; ++x) {
+							mask_row[x] = (BYTE)(mask_f32[src_i + x] * UCHAR_MAX);
+						}
+						break;
+				}
+			}
+
 			switch (color) {
 				case NORMAL_COLOR:
+					if (apply_mask) {
+						// Apply mask overlay: red = inv_mask + pixel, with clipping
 #pragma omp simd collapse(2)
-					for (int c = 0 ; c < 3 ; c++) {
-						for (x = 0 ; x < gfit->rx ; x++) {
-							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-							guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
-							BYTE dst_pixel_value = linebuf_byte[c][x];
-							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+						for (int c = 0 ; c < 3 ; c++) {
+							for (x = 0 ; x < gfit->rx ; x++) {
+								guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+								BYTE pixel_val = linebuf_byte[c][x];
+
+								// mask_row[x] ranges from 0 (unmasked, show red) to 255 (masked, show grayscale)
+								// Invert mask: inv_mask is high where mask is low (unmasked areas)
+								uint16_t inv_mask = UCHAR_MAX - mask_row[x];
+
+								// Red channel = inverse mask + pixel value, clipped to UCHAR_MAX
+								uint16_t r_sum = inv_mask + pixel_val;
+								BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
+
+								// Attenuate green and blue in unmasked areas
+								BYTE g_val = (pixel_val * mask_row[x]) >> 8;
+								BYTE b_val = (pixel_val * mask_row[x]) >> 8;
+
+								*(guint32*)(dst[c] + dst_index) = r_val << 16 | g_val << 8 | b_val;
+							}
+						}
+					} else {
+						// Original behavior without mask
+#pragma omp simd collapse(2)
+						for (int c = 0 ; c < 3 ; c++) {
+							for (x = 0 ; x < gfit->rx ; x++) {
+								guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
+								BYTE dst_pixel_value = linebuf_byte[c][x];
+								*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+							}
 						}
 					}
 					break;
@@ -583,6 +665,8 @@ static void remap_all_vports() {
 			}
 			free(pixelbuf);
 			free(pixelbuf_byte);
+			if (mask_row)
+				free(mask_row);
 		}
 		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
 			unlock_display_transform();

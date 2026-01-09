@@ -234,6 +234,15 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef struct _UserPolygon {
+	int id;
+	int n_points;
+	point *points;
+	GdkRGBA color;
+	gboolean fill;
+	gchar *legend;
+} __attribute__((packed)) UserPolygon;
+
 /* global structures */
 
 typedef enum {

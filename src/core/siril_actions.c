@@ -46,6 +46,7 @@
 #include "gui/documentation.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
+#include "gui/image_interactions.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
@@ -906,3 +907,10 @@ void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 	start_in_new_thread(invert_mask_worker, NULL);
 }
 
+void mask_add_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	init_add_poly_to_mask();
+}
+
+void mask_clear_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	init_clear_poly_from_mask();
+}
