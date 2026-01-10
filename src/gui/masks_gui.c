@@ -393,9 +393,9 @@ void on_combo_mask_luminance_type_changed(GtkComboBox *combo, gpointer user_data
 			if (spin_mask_lb) gtk_spin_button_set_value(spin_mask_lb, 0.333);
 			break;
 		case 1: /* Human-weighted */
-			if (spin_mask_lr) gtk_spin_button_set_value(spin_mask_lr, 0.299);
-			if (spin_mask_lg) gtk_spin_button_set_value(spin_mask_lg, 0.587);
-			if (spin_mask_lb) gtk_spin_button_set_value(spin_mask_lb, 0.114);
+			if (spin_mask_lr) gtk_spin_button_set_value(spin_mask_lr, 0.2126);
+			if (spin_mask_lg) gtk_spin_button_set_value(spin_mask_lg, 0.7152);
+			if (spin_mask_lb) gtk_spin_button_set_value(spin_mask_lb, 0.0722);
 			break;
 		case 2: /* Custom */
 			/* Leave values as-is, user will set them */
@@ -486,4 +486,39 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	queue_redraw_mask();
+}
+
+void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_blur_radius"));
+	float radius = gtk_spin_button_get_value(spin);
+	mask_apply_gaussian_blur(gfit, radius);
+	redraw_mask_idle(NULL);
+}
+
+void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_feather_distance"));
+	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combo_mask_feather_type"));
+	float distance = gtk_spin_button_get_value(spin);
+	feather_mode mode = (feather_mode) gtk_combo_box_get_active(combo);
+	mask_feather(gfit, distance, mode);
+	redraw_mask_idle(NULL);
+}
+
+void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_multiply_factor"));
+	float factor = gtk_spin_button_get_value(spin);
+	mask_scale(gfit, factor);
+	redraw_mask_idle(NULL);
+}
+
+void on_blur_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_blur_dialog");
+}
+
+void on_feather_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_feather_dialog");
+}
+
+void on_multiply_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_fmul_dialog");
 }
