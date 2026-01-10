@@ -38,11 +38,6 @@
 #include "opencv/opencv.h" // for mask functions that use OpenCV
 // (feathering, Gaussian blur and set_poly_in_mask())
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#include <opencv2/imgproc/imgproc_c.h>
-#pragma GCC diagnostic pop
-
 void free_mask(mask_t* mask) {
 	free(mask->data);
 	free(mask);
