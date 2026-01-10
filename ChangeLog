@@ -5,6 +5,15 @@ siril-1.5.0
 * Introduce generic_image_worker to standardize image operations (!965)
 * Adding splashscreen at startup (!975)
 
+siril-1.4.2
+--/--/--
+
+**Fixes**
+* Fixed crash in RGB composition when trying to align RGN while L is loaded but not checked
+
+**Improvements**
+* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop
+
 siril-1.4.1
 01/05/26
 
@@ -18,6 +27,7 @@ siril-1.4.1
 
 siril-1.4.0
 12/05/25
+
 **Improvements**
 * SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
