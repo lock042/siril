@@ -1,13 +1,6 @@
 #ifndef SIRIL_MASKS_H
 #define SIRIL_MASKS_H
 
-// Feather mode enum
-typedef enum {
-	FEATHER_INNER,  // Feather inward from the edge
-	FEATHER_OUTER,  // Feather outward from the edge
-	FEATHER_EDGE    // Feather equally inward and outward
-} feather_mode;
-
 void mask_from_image_dialog_set_file_mode(gboolean file_mode);
 int get_default_mask_bitpix();
 
@@ -40,5 +33,6 @@ int mask_binarize(fits *fit, float min_val, float max_val);
 int mask_invert(fits *fit);
 int mask_feather(fits *fit, float feather_dist, feather_mode mode);
 int mask_scale(fits *fit, float f);
+int mask_change_bitpix(fits* fit, uint8_t new_bitpix);
 
 #endif

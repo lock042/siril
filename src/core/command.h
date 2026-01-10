@@ -122,6 +122,7 @@ int	process_log(int nb);
 int	process_ls(int nb);
 
 int	process_makepsf(int nb);
+int process_mask_bitpix(int nb);
 int	process_mask_fmul(int nb);
 int	process_mask_from_channel(int nb);
 int	process_mask_from_lum(int nb);

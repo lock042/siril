@@ -1206,3 +1206,295 @@ int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_
 	convert_MatH_to_H(std::move(H), Hom);
 	return 0;
 }
+
+/******************************************
+ * Mask functions that make use of OpenCV *
+ * ***************************************/
+
+// Apply Gaussian blur to the mask
+int mask_apply_gaussian_blur(fits *fit, float radius) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_apply_gaussian_blur: invalid mask\n");
+		return 1;
+	}
+	if (radius <= 0.f) {
+		siril_debug_print("mask_apply_gaussian_blur: radius must be positive\n");
+		return 1;
+	}
+
+	size_t rx = fit->rx, ry = fit->ry;
+	int cv_type;
+
+	// Determine OpenCV type based on bitpix
+	switch (fit->mask->bitpix) {
+		case 8:
+			cv_type = CV_8UC1;
+			break;
+		case 16:
+			cv_type = CV_16UC1;
+			break;
+		case 32:
+			cv_type = CV_32FC1;
+			break;
+		default:
+			siril_debug_print("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
+			return 1;
+	}
+
+	// Create OpenCV Mat using existing data (no copy)
+	cv::Mat src(ry, rx, cv_type, fit->mask->data);
+	cv::Mat dst;
+
+	// Calculate kernel size from radius (should be odd)
+	// Using approximation: kernel_size = 2 * ceil(3 * sigma) + 1, where sigma = radius
+	int kernel_size = 2 * (int)ceilf(3.f * radius) + 1;
+
+	// Apply Gaussian blur
+	cv::GaussianBlur(src, dst, cv::Size(kernel_size, kernel_size), radius, radius);
+
+	// Allocate new data and copy result
+	size_t data_size = rx * ry * (fit->mask->bitpix / 8);
+	void *blur_data = malloc(data_size);
+	if (!blur_data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	memcpy(blur_data, dst.data, data_size);
+
+	// Replace original data with blurred data
+	free(fit->mask->data);
+	fit->mask->data = blur_data;
+
+	return 0;
+}
+
+void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
+	if (!poly || !fit || !fit->mask || !fit->mask->data) return;
+
+	int width = fit->rx;
+	int height = fit->ry;
+	mask_t *m = fit->mask;
+
+	// Prepare OpenCV points array
+	std::vector<cv::Point> pts;
+	pts.reserve(poly->n_points);
+	for (int i = 0; i < poly->n_points; i++) {
+		pts.push_back(cv::Point(
+			round_to_int(poly->points[i].x),
+			round_to_int(fit->ry - 1 - poly->points[i].y)
+		));
+	}
+
+	// Define the fill value based on bitpix and state
+	cv::Scalar color;
+	if (state) {
+		if (m->bitpix == 8) color = cv::Scalar(255);
+		else if (m->bitpix == 16) color = cv::Scalar(65535);
+		else color = cv::Scalar(1.0);
+	} else {
+		color = cv::Scalar(0);
+	}
+
+	// Create a Mat using the existing raw data (no copy)
+	int type = (m->bitpix == 8) ? CV_8UC1 : (m->bitpix == 16 ? CV_16UC1 : CV_32FC1);
+	cv::Mat mat(height, width, type, m->data);
+
+	// Perform the polygon fill
+	std::vector<std::vector<cv::Point>> contours = { pts };
+	cv::fillPoly(mat, contours, color, cv::LINE_8);
+}
+
+int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_feather: invalid mask\n");
+		return 1;
+	}
+
+	if (feather_dist <= 0.f) {
+		siril_debug_print("mask_feather: feather_dist must be positive\n");
+		return 1;
+	}
+
+	size_t rx = fit->rx, ry = fit->ry;
+	size_t npixels = rx * ry;
+	uint8_t bitpix = fit->mask->bitpix;
+
+	// Convert mask to binary uint8 for OpenCV processing
+	cv::Mat binary(ry, rx, CV_8UC1);
+	uint8_t *binary_data = binary.data;
+
+	// Convert mask to binary uint8
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 127) ? 255 : 0;
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 32767) ? 255 : 0;
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 0.5f) ? 255 : 0;
+			}
+			break;
+		}
+	}
+
+	// Determine which distance transforms we need
+	gboolean need_inside = (mode == FEATHER_INNER || mode == FEATHER_EDGE);
+	gboolean need_outside = (mode == FEATHER_OUTER || mode == FEATHER_EDGE);
+
+	// Adjust feather distance for EDGE mode
+	float effective_dist = (mode == FEATHER_EDGE) ? feather_dist / 2.0f : feather_dist;
+
+	// Distance maps
+	cv::Mat dist_inside, dist_outside;
+
+	// Compute inside distance transform if needed
+	if (need_inside) {
+		cv::distanceTransform(binary, dist_inside, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+	}
+
+	// Compute outside distance transform if needed
+	if (need_outside) {
+		// Invert binary mask for outside distance
+		cv::Mat binary_inv;
+		cv::bitwise_not(binary, binary_inv);
+		cv::distanceTransform(binary_inv, dist_outside, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+	}
+
+	// Apply feathering based on mode
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = (uint8_t)roundf(value * 255.0f);
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = (uint16_t)roundf(value * 65535.0f);
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = value;
+			}
+			break;
+		}
+	}
+
+	const char *mode_str = (mode == FEATHER_INNER) ? "inward" :
+						(mode == FEATHER_OUTER) ? "outward" : "on edge";
+	siril_log_message(_("Mask feathered %s with distance %.1f pixels\n"), mode_str, feather_dist);
+	return 0;
+}

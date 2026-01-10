@@ -35,6 +35,8 @@
 #include "gui/user_polygons.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
+#include "opencv/opencv.h" // for mask functions that use OpenCV
+// (feathering, Gaussian blur and set_poly_in_mask())
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -424,78 +426,6 @@ int mask_create_from_luminance_even(fits *fit, fits *source, uint8_t bitpix) {
 
 int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix) {
 	return mask_create_from_luminance(fit, source, 0.2126, 0.7152, 0.0722, bitpix);
-}
-
-// Apply Gaussian blur to the mask
-int mask_apply_gaussian_blur(fits *fit, float radius) {
-	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_apply_gaussian_blur: invalid mask\n");
-		return 1;
-	}
-
-	if (radius <= 0.f) {
-		siril_debug_print("mask_apply_gaussian_blur: radius must be positive\n");
-		return 1;
-	}
-
-	size_t rx = fit->rx, ry = fit->ry;
-	int cv_type;
-
-	// Determine OpenCV type based on bitpix
-	switch (fit->mask->bitpix) {
-		case 8:
-			cv_type = CV_8UC1;
-			break;
-		case 16:
-			cv_type = CV_16UC1;
-			break;
-		case 32:
-			cv_type = CV_32FC1;
-			break;
-		default:
-			siril_debug_print("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
-			return 1;
-	}
-
-	// Create OpenCV Mat headers for source and destination
-	CvMat *src = cvCreateMatHeader(ry, rx, cv_type);
-	CvMat *dst = cvCreateMatHeader(ry, rx, cv_type);
-
-	if (!src || !dst) {
-		if (src) cvReleaseMat(&src);
-		if (dst) cvReleaseMat(&dst);
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	// Allocate destination data
-	void *blur_data = malloc(rx * ry * fit->mask->bitpix);
-	if (!blur_data) {
-		cvReleaseMat(&src);
-		cvReleaseMat(&dst);
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	// Set data pointers
-	cvSetData(src, fit->mask->data, rx * (fit->mask->bitpix / 8));
-	cvSetData(dst, blur_data, rx * (fit->mask->bitpix / 8));
-
-	// Calculate kernel size from radius (should be odd)
-	// Using approximation: kernel_size = 2 * ceil(3 * sigma) + 1, where sigma = radius
-	int kernel_size = 2 * (int)ceilf(3.f * radius) + 1;
-
-	// Apply Gaussian blur
-	cvSmooth(src, dst, CV_GAUSSIAN, kernel_size, kernel_size, radius, radius);
-
-	// Replace original data with blurred data
-	free(fit->mask->data);
-	fit->mask->data = blur_data;
-
-	cvReleaseMat(&src);
-	cvReleaseMat(&dst);
-
-	return 0;
 }
 
 /**
@@ -1070,326 +1000,125 @@ int mask_scale(fits *fit, float f) {
 	return 0;
 }
 
-// Feather (soften edges) of a mask using distance transform
-// feather_dist: distance in pixels over which to feather from the edge
-// mode: FEATHER_INNER, FEATHER_OUTER, or FEATHER_EDGE
-// Returns 0 on success
-int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
-	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_feather: invalid mask\n");
-		return 1;
-	}
+int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
+	if (!fit->mask || !fit->mask->data) return 1;
 
-	if (feather_dist <= 0.f) {
-		siril_debug_print("mask_feather: feather_dist must be positive\n");
-		return 1;
-	}
+	uint8_t old_bitpix = fit->mask->bitpix;
+	size_t npixels = fit->rx * fit->ry;
+	if (new_bitpix == old_bitpix) return 0; // nothing to do, but not an error
 
-	size_t rx = fit->rx, ry = fit->ry;
-	size_t npixels = rx * ry;
-	uint8_t bitpix = fit->mask->bitpix;
-
-	// Convert mask to binary uint8 for OpenCV processing
-	uint8_t *binary = malloc(npixels * sizeof(uint8_t));
-	if (!binary) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	// Convert mask to binary uint8
-	switch (bitpix) {
+	switch (old_bitpix) {
 		case 8: {
-			uint8_t *m = (uint8_t*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 127) ? 255 : 0;
+			uint8_t* old_data = (uint8_t*) fit->mask->data;
+			switch (new_bitpix) {
+				case 16: {
+					uint16_t *new_data = malloc(npixels * sizeof(uint16_t));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
+					}
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (uint16_t) (old_data[i] << 8) | old_data[i];
+					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 16;
+					break;
+				}
+				case 32: {
+					float *new_data = malloc(npixels * sizeof(float));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
+					}
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (float) old_data[i] * INV_UCHAR_MAX_SINGLE;
+					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 32;
+					break;
+				}
+				default: {
+					return 1;
+				}
 			}
-			break;
 		}
 		case 16: {
-			uint16_t *m = (uint16_t*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 32767) ? 255 : 0;
+			uint16_t* old_data = (uint16_t*) fit->mask->data;
+			switch (new_bitpix) {
+				case 8: {
+					uint8_t *new_data = malloc(npixels * sizeof(uint8_t));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
+					}
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (uint8_t)((uint32_t) old_data[i] * 255 + 32895) >> 16;
+					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 8;
+					break;
+				}
+				case 32: {
+					float *new_data = malloc(npixels * sizeof(float));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
+					}
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (float) old_data[i] * INV_USHRT_MAX_SINGLE;
+					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 32;
+					break;
+				}
+				default: {
+					return 1;
+				}
 			}
-			break;
 		}
 		case 32: {
-			float *m = (float*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				binary[i] = (m[i] > 0.5f) ? 255 : 0;
-			}
-			break;
-		}
-	}
-
-	// Determine which distance transforms we need
-	gboolean need_inside = (mode == FEATHER_INNER || mode == FEATHER_EDGE);
-	gboolean need_outside = (mode == FEATHER_OUTER || mode == FEATHER_EDGE);
-
-	// Adjust feather distance for EDGE mode
-	float effective_dist = (mode == FEATHER_EDGE) ? feather_dist / 2.0f : feather_dist;
-
-	// Allocate distance maps
-	float *dist_inside = NULL;
-	float *dist_outside = NULL;
-
-	if (need_inside) {
-		dist_inside = malloc(npixels * sizeof(float));
-		if (!dist_inside) {
-			free(binary);
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-	}
-
-	if (need_outside) {
-		dist_outside = malloc(npixels * sizeof(float));
-		if (!dist_outside) {
-			free(binary);
-			if (dist_inside) free(dist_inside);
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-	}
-
-	// Create OpenCV matrices
-	CvMat *src_inside = NULL, *dst_inside = NULL;
-	CvMat *src_outside = NULL, *dst_outside = NULL;
-
-	// Compute inside distance transform if needed
-	if (need_inside) {
-		src_inside = cvCreateMatHeader(ry, rx, CV_8UC1);
-		dst_inside = cvCreateMatHeader(ry, rx, CV_32FC1);
-
-		if (!src_inside || !dst_inside) {
-			if (src_inside) cvReleaseMat(&src_inside);
-			if (dst_inside) cvReleaseMat(&dst_inside);
-			free(binary);
-			if (dist_inside) free(dist_inside);
-			if (dist_outside) free(dist_outside);
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-
-		cvSetData(src_inside, binary, rx);
-		cvSetData(dst_inside, dist_inside, rx * sizeof(float));
-
-		// Distance transform on the mask (inside pixels)
-		// cvDistTransform signature: (src, dst, distance_type, mask_size, mask, labels, labelType)
-		cvDistTransform(src_inside, dst_inside, CV_DIST_L2, CV_DIST_MASK_PRECISE, NULL, NULL, CV_DIST_LABEL_CCOMP);
-
-		cvReleaseMat(&src_inside);
-		cvReleaseMat(&dst_inside);
-	}
-
-	// Compute outside distance transform if needed
-	if (need_outside) {
-		// Invert binary mask for outside distance
-		uint8_t *binary_inv = malloc(npixels * sizeof(uint8_t));
-		if (!binary_inv) {
-			free(binary);
-			if (dist_inside) free(dist_inside);
-			if (dist_outside) free(dist_outside);
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-
-		for (size_t i = 0; i < npixels; i++) {
-			binary_inv[i] = (binary[i] == 0) ? 255 : 0;
-		}
-
-		src_outside = cvCreateMatHeader(ry, rx, CV_8UC1);
-		dst_outside = cvCreateMatHeader(ry, rx, CV_32FC1);
-
-		if (!src_outside || !dst_outside) {
-			if (src_outside) cvReleaseMat(&src_outside);
-			if (dst_outside) cvReleaseMat(&dst_outside);
-			free(binary);
-			free(binary_inv);
-			if (dist_inside) free(dist_inside);
-			if (dist_outside) free(dist_outside);
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-
-		cvSetData(src_outside, binary_inv, rx);
-		cvSetData(dst_outside, dist_outside, rx * sizeof(float));
-
-		// Distance transform on inverted mask (outside pixels)
-		// cvDistTransform signature: (src, dst, distance_type, mask_size, mask, labels, labelType)
-		cvDistTransform(src_outside, dst_outside, CV_DIST_L2, CV_DIST_MASK_PRECISE, NULL, NULL, CV_DIST_LABEL_CCOMP);
-
-		cvReleaseMat(&src_outside);
-		cvReleaseMat(&dst_outside);
-		free(binary_inv);
-	}
-
-	// Apply feathering based on mode
-	switch (bitpix) {
-		case 8: {
-			uint8_t *m = (uint8_t*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				float value;
-				if (mode == FEATHER_INNER) {
-					if (dist_inside[i] >= feather_dist) {
-						value = 1.0f;
-					} else {
-						value = dist_inside[i] / feather_dist;
+			float* old_data = (float*) fit->mask->data;
+			switch (new_bitpix) {
+				case 8: {
+					uint8_t *new_data = malloc(npixels * sizeof(uint16_t));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
 					}
-				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 127) {
-						value = 1.0f;
-					} else if (dist_outside[i] >= feather_dist) {
-						value = 0.0f;
-					} else {
-						value = 1.0f - (dist_outside[i] / feather_dist);
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (uint8_t) roundf_to_BYTE(old_data[i] * UCHAR_MAX_SINGLE);
 					}
-				} else { // FEATHER_EDGE
-					if (binary[i] > 127) {
-						// Inside: feather inward
-						if (dist_inside[i] >= effective_dist) {
-							value = 1.0f;
-						} else {
-							value = 0.5f + (dist_inside[i] / feather_dist);
-						}
-					} else {
-						// Outside: feather outward
-						if (dist_outside[i] >= effective_dist) {
-							value = 0.0f;
-						} else {
-							value = 0.5f - (dist_outside[i] / feather_dist);
-						}
-					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 8;
+					break;
 				}
-				m[i] = (uint8_t)roundf(value * 255.0f);
-			}
-			break;
-		}
-		case 16: {
-			uint16_t *m = (uint16_t*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				float value;
-				if (mode == FEATHER_INNER) {
-					if (dist_inside[i] >= feather_dist) {
-						value = 1.0f;
-					} else {
-						value = dist_inside[i] / feather_dist;
+				case 16: {
+					float *new_data = malloc(npixels * sizeof(float));
+					if (!new_data) {
+						PRINT_ALLOC_ERR;
+						return 1;
 					}
-				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 127) {
-						value = 1.0f;
-					} else if (dist_outside[i] >= feather_dist) {
-						value = 0.0f;
-					} else {
-						value = 1.0f - (dist_outside[i] / feather_dist);
+					for (size_t i = 0 ; i < npixels ; i++) {
+						new_data[i] = (uint16_t) roundf_to_WORD(old_data[i] * USHRT_MAX_SINGLE);
 					}
-				} else { // FEATHER_EDGE
-					if (binary[i] > 127) {
-						// Inside: feather inward
-						if (dist_inside[i] >= effective_dist) {
-							value = 1.0f;
-						} else {
-							value = 0.5f + (dist_inside[i] / feather_dist);
-						}
-					} else {
-						// Outside: feather outward
-						if (dist_outside[i] >= effective_dist) {
-							value = 0.0f;
-						} else {
-							value = 0.5f - (dist_outside[i] / feather_dist);
-						}
-					}
+					free(old_data);
+					fit->mask->data = (void*) new_data;
+					fit->mask->bitpix = 16;
+					break;
 				}
-				m[i] = (uint16_t)roundf(value * 65535.0f);
-			}
-			break;
-		}
-		case 32: {
-			float *m = (float*)fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				float value;
-				if (mode == FEATHER_INNER) {
-					if (dist_inside[i] >= feather_dist) {
-						value = 1.0f;
-					} else {
-						value = dist_inside[i] / feather_dist;
-					}
-				} else if (mode == FEATHER_OUTER) {
-					if (binary[i] > 127) {
-						value = 1.0f;
-					} else if (dist_outside[i] >= feather_dist) {
-						value = 0.0f;
-					} else {
-						value = 1.0f - (dist_outside[i] / feather_dist);
-					}
-				} else { // FEATHER_EDGE
-					if (binary[i] > 127) {
-						// Inside: feather inward
-						if (dist_inside[i] >= effective_dist) {
-							value = 1.0f;
-						} else {
-							value = 0.5f + (dist_inside[i] / feather_dist);
-						}
-					} else {
-						// Outside: feather outward
-						if (dist_outside[i] >= effective_dist) {
-							value = 0.0f;
-						} else {
-							value = 0.5f - (dist_outside[i] / feather_dist);
-						}
-					}
+				default: {
+					return 1;
 				}
-				m[i] = value;
 			}
-			break;
+		}
+		default: {
+			return 1;
 		}
 	}
-
-	// Cleanup
-	free(binary);
-	if (dist_inside) free(dist_inside);
-	if (dist_outside) free(dist_outside);
-
-	const char *mode_str = (mode == FEATHER_INNER) ? "inward" :
-						(mode == FEATHER_OUTER) ? "outward" : "on edge";
-	siril_log_message(_("Mask feathered %s with distance %.1f pixels\n"), mode_str, feather_dist);
 	return 0;
-}
-
-void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
-	if (!poly || !fit || !fit->mask || !fit->mask->data) return;
-
-	int width = fit->rx;
-	int height = fit->ry;
-	mask_t *m = fit->mask;
-
-	// Prepare OpenCV points array
-	CvPoint* pts = (CvPoint*)malloc(poly->n_points * sizeof(CvPoint));
-	for (int i = 0; i < poly->n_points; i++) {
-		pts[i].x = round_to_int(poly->points[i].x);
-		pts[i].y = round_to_int(fit->ry - 1 - poly->points[i].y);
-	}
-
-	// Define the fill value based on bitpix and state
-	CvScalar color;
-	if (state) {
-		if (m->bitpix == 8) color = cvScalarAll(255);
-		else if (m->bitpix == 16) color = cvScalarAll(65535);
-		else color = cvScalarAll(1.0);
-	} else {
-		color = cvScalarAll(0);
-	}
-
-	// Create a header for the existing raw data (No copy)
-	CvMat mat_header;
-	int type = (m->bitpix == 8) ? CV_8UC1 : (m->bitpix == 16 ? CV_16UC1 : CV_32FC1);
-
-	cvInitMatHeader(&mat_header, height, width, type, m->data, CV_AUTOSTEP);
-
-	// Perform the scanline fill
-	CvPoint* part_pts[1] = { pts };
-	int n_pts[1] = { poly->n_points };
-
-	cvFillPoly(&mat_header, part_pts, n_pts, 1, color, 8, 0);
-
-	free(pts);
 }

@@ -14497,3 +14497,32 @@ int process_autostretch_mask(int nb) {
 	}
 	return CMD_OK;
 }
+
+int process_mask_bitpix(int nb) {
+	uint8_t bitpix;
+	char* end;
+	char* arg = word[1];
+
+	size_t bitdepth = g_ascii_strtoull(arg, &end, 10);
+	if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+		siril_log_message(_("Invalid argument %s, bitdepth must be 8, 16 or 32, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	bitpix = (uint8_t) bitdepth;
+
+	// Check if mask exists
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Convert the bitdepth
+	int retval = mask_change_bitpix(gfit, bitpix);
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(end_mask_command, NULL);
+	}
+	return CMD_OK;
+}

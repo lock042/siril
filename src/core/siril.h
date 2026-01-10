@@ -307,6 +307,12 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
+// Feather mode enum
+typedef enum {
+	FEATHER_INNER,  // Feather inward from the edge
+	FEATHER_OUTER,  // Feather outward from the edge
+	FEATHER_EDGE    // Feather equally inward and outward
+} feather_mode;
 
 typedef enum {
 	SEQ_REGULAR = 0,
