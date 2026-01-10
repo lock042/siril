@@ -691,6 +691,7 @@ typedef struct {
 	GtkDrawingArea *color_w;		// the simulated color chooser
 	GtkButton *chooser_button;		// the file choosers
 	gchar *selected_filename;		// selected filename
+	GtkLabel *chooser_button_label;
 	GtkLabel *label;				// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
