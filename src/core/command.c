@@ -13996,7 +13996,7 @@ int process_mask_from_stars(int nb) {
 	int argidx = 1;
 	float r = 0.f, feather = 0.f;
 	gboolean invert = FALSE;
-	int bitdepth = 8;
+	int bitdepth = com.pref.default_mask_bitpix;
 	char *end;
 
 	while (argidx < nb) {
@@ -14050,7 +14050,10 @@ int process_mask_from_channel(int nb) {
 	int channel = -1;
 	gboolean autostretch = FALSE;
 	gboolean invert = FALSE;
-	int bitdepth = 8;
+	int bitdepth = com.pref.default_mask_bitpix;
+	uint8_t bitpix;
+	gchar *filename = NULL;
+	char *end;
 
 	while (argidx < nb) {
 		if (g_str_has_prefix(word[argidx], "-autostretch")) {
@@ -14061,25 +14064,27 @@ int process_mask_from_channel(int nb) {
 		}
 		else if (g_str_has_prefix(word[argidx], "-channel=")) {
 			char *arg = word[argidx] + 9;
-			char *end;
 			channel = (int) g_ascii_strtoull(arg, &end, 10);
-			if (arg == end || channel < 0 || channel > gfit->naxes[2]) {
+			if (arg == end || channel < 0 || channel > 2) {
 				siril_log_message(_("Invalid argument %s, channel must be 0-2, aborting.\n"), word[argidx]);
 				return CMD_ARG_ERROR;
 			}
 		}
 		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
 			char *arg = word[argidx] + 10;
-			char *end;
 			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
 			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 				return CMD_ARG_ERROR;
 			}
 		}
+		else if (g_str_has_prefix(word[argidx], "-filename=")) {
+			filename = word[argidx] + 10;
+		}
 		argidx++;
 	}
 
+	bitpix = (uint8_t) bitdepth;
 	// Channel parameter is required
 	if (channel == -1) {
 		siril_log_message(_("Channel parameter (-channel=) is required, aborting.\n"));
@@ -14087,7 +14092,15 @@ int process_mask_from_channel(int nb) {
 	}
 
 	// Create mask from channel
-	int retval = mask_create_from_channel(gfit, gfit, channel, (uint8_t) bitdepth);
+	int retval;
+	if (filename) {
+		// Use mask_create_from_image with specified file
+		retval = mask_create_from_image(gfit, filename, channel, bitpix, 0.0, 0.0, 0.0);
+	} else {
+		// Use mask_create_from_channel with current image
+		retval = mask_create_from_channel(gfit, gfit, channel, bitpix);
+	}
+
 	if (retval) {
 		return CMD_GENERIC_ERROR;
 	}
@@ -14107,9 +14120,7 @@ int process_mask_from_channel(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+
 	return CMD_OK;
 }
 
@@ -14120,8 +14131,9 @@ int process_mask_from_lum(int nb) {
 	gboolean invert = FALSE;
 	gboolean use_human = FALSE;
 	gboolean use_even = FALSE;
-	int bitdepth = 8;
+	int bitdepth = com.pref.default_mask_bitpix;
 	uint8_t bitpix;
+	gchar *filename = NULL;
 	char *end;
 
 	while (argidx < nb) {
@@ -14169,9 +14181,13 @@ int process_mask_from_lum(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
+		else if (g_str_has_prefix(word[argidx], "-filename=")) {
+			filename = word[argidx] + 10;
+		}
 		argidx++;
 	}
 
+	bitpix = (uint8_t) bitdepth;
 	// Check for conflicting options
 	if (use_human && use_even) {
 		siril_log_message(_("Cannot specify both -human and -even options, aborting.\n"));
@@ -14190,21 +14206,42 @@ int process_mask_from_lum(int nb) {
 		siril_log_message(_("All three weights (-rw, -gw, -bw) must be specified, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
-	bitpix = (uint8_t) bitdepth;
-	// Create mask from luminance
-	int retval;
+
+	// Determine weights to use
 	if (use_human) {
-		retval = mask_create_from_luminance_human(gfit, gfit, (bitpix));
+		rw = 0.2126f;
+		gw = 0.7152f;
+		bw = 0.0722f;
 	}
 	else if (use_even) {
-		retval = mask_create_from_luminance_even(gfit, gfit, bitpix);
+		rw = 0.3333f;
+		gw = 0.3333f;
+		bw = 0.3334f;
 	}
-	else if (has_custom_weights) {
-		retval = mask_create_from_luminance(gfit, gfit, rw, gw, bw, bitpix);
+	else if (!has_custom_weights) {
+		// Default to human vision weights if no option specified
+		rw = 0.2126f;
+		gw = 0.7152f;
+		bw = 0.0722f;
+	}
+
+	// Create mask from luminance
+	int retval;
+	if (filename) {
+		// Use mask_create_from_image with specified file and chan = -1 for luminance
+		retval = mask_create_from_image(gfit, filename, -1, bitpix, rw, gw, bw);
 	}
 	else {
-		// Default to human vision weights if no option specified
-		retval = mask_create_from_luminance_human(gfit, gfit, bitpix);
+		// Use the appropriate luminance function based on weights
+		if (use_human || (!use_even && !has_custom_weights)) {
+			retval = mask_create_from_luminance_human(gfit, gfit, bitpix);
+		}
+		else if (use_even) {
+			retval = mask_create_from_luminance_even(gfit, gfit, bitpix);
+		}
+		else {
+			retval = mask_create_from_luminance(gfit, gfit, rw, gw, bw, bitpix);
+		}
 	}
 
 	if (retval) {
@@ -14226,9 +14263,7 @@ int process_mask_from_lum(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+
 	return CMD_OK;
 }
 
