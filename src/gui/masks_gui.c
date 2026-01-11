@@ -490,7 +490,7 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	queue_redraw_mask();
-	siril_close_dialog("mask_from_image_dialog");
+	siril_close_dialog("mask_from_stars_dialog");
 }
 
 void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
