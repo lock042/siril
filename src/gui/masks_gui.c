@@ -291,6 +291,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			// Create generic_img_args
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			if (!args) {
+				PRINT_ALLOC_ERR;
 				destroy_mtf_data(data);
 				clearfits(fit);
 				free(fit);
@@ -312,6 +313,8 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			gpointer result = generic_image_worker(args);
 
 			if (result) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+									_("Failed to create mask."));
 				destroy_mtf_data(data);
 				clearfits(fit);
 				free(fit);
@@ -340,6 +343,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 		mask_invert(gfit);
 	}
 	queue_redraw_mask();
+	siril_close_dialog("mask_from_image_dialog");
 }
 
 /**
@@ -486,6 +490,7 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	queue_redraw_mask();
+	siril_close_dialog("mask_from_image_dialog");
 }
 
 void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {

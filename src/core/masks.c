@@ -1038,6 +1038,7 @@ int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
 					return 1;
 				}
 			}
+			break;
 		}
 		case 16: {
 			uint16_t* old_data = (uint16_t*) fit->mask->data;
@@ -1074,6 +1075,7 @@ int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
 					return 1;
 				}
 			}
+			break;
 		}
 		case 32: {
 			float* old_data = (float*) fit->mask->data;
@@ -1110,6 +1112,7 @@ int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
 					return 1;
 				}
 			}
+			break;
 		}
 		default: {
 			return 1;
