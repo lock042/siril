@@ -1047,6 +1047,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
             </child>
             <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_color">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_color</property>
+                <property name="label" translatable="yes">Mask from color</property>
+              </object>
+            </child>
+            <child>
               <object class="GtkMenuItem" id="menu_mask_from_stars">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>

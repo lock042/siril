@@ -878,6 +878,10 @@ void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	siril_open_dialog("mask_from_stars_dialog");
 }
 
+void mask_from_color_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_from_color_dialog");
+}
+
 void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	mask_from_image_dialog_set_file_mode(TRUE);
 	siril_open_dialog("mask_from_image_dialog");

@@ -113,6 +113,7 @@ static GActionEntry any_processing_entries[] = {
 	{ "background-extr-processing", background_extr_activate },
 	{ "icc-tool", icc_activate },
 	{ "clear_roi", clear_roi },
+	{ "mask_from_color", mask_from_color_activate },
 	{ "mask_from_image", mask_from_image_activate },
 	{ "mask_from_stars", mask_from_stars_activate },
 	{ "mask_from_file", mask_from_file_activate },

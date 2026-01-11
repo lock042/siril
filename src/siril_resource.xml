@@ -62,6 +62,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="icc_gamut_dialog.ui">gui/uifiles/icc_gamut_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="linearmatch_dialog.ui">gui/uifiles/linearmatch_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="livestacking_player.ui">gui/uifiles/livestacking_player.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mask_from_chromaticity.ui">gui/uifiles/mask_from_chromaticity.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_from_image.ui">gui/uifiles/mask_from_image.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_from_stars.ui">gui/uifiles/mask_from_stars.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mask_blur_dialog.ui">gui/uifiles/mask_blur_dialog.ui</file>

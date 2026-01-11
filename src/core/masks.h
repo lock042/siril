@@ -26,6 +26,18 @@ int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix);
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
                            double weight_r, double weight_g, double weight_b);
 int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix);
+int mask_create_from_chromaticity_luminance(fits *fit, fits *source,
+                                            float chrom_center_r, float chrom_center_g, float chrom_center_b,
+                                            float chrom_tolerance,
+                                            float lum_min, float lum_max,
+                                            int feather_radius, gboolean invert,
+                                            uint8_t bitpix);
+int mask_create_from_color_hsv(fits *fit, fits *source,
+                                float h_min, float h_max,
+                                float s_min, float s_max,
+                                float v_min, float v_max,
+                                int feather_radius, gboolean invert,
+                                uint8_t bitpix);
 
 int mask_autostretch(fits *fit);
 int mask_apply_gaussian_blur(fits *fit, float radius);

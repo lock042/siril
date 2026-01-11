@@ -328,8 +328,9 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 	show_or_hide_mask_tab();
 	return 0;
 }
-
 FAST_MATH_POP
+
+FAST_MATH_PUSH
 int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, float bw, uint8_t bitpix) {
 	if (!fit || !source) return 1;
 
@@ -413,6 +414,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 	show_or_hide_mask_tab();
 	return 0;
 }
+FAST_MATH_POP
 
 int mask_create_from_luminance_even(fits *fit, fits *source, uint8_t bitpix) {
 	float third = 1.f / 3.f;
@@ -422,6 +424,415 @@ int mask_create_from_luminance_even(fits *fit, fits *source, uint8_t bitpix) {
 int mask_create_from_luminance_human(fits *fit, fits *source, uint8_t bitpix) {
 	return mask_create_from_luminance(fit, source, 0.2126, 0.7152, 0.0722, bitpix);
 }
+
+
+/**
+ * Creates a mask based on chromaticity (pure color) and luminance (brightness) ranges
+ * This separates color selection from brightness, allowing you to select colors
+ * across all brightness levels independently.
+ *
+ * Chromaticity represents the pure color ratios (r/(r+g+b), g/(r+g+b), b/(r+g+b))
+ * Luminance is calculated using standard photometric weights
+ *
+ * @param fit Output mask structure
+ * @param source Source image to analyze
+ * @param chrom_center_r Red component of target chromaticity (0.0 - 1.0)
+ * @param chrom_center_g Green component of target chromaticity (0.0 - 1.0)
+ * @param chrom_center_b Blue component of target chromaticity (0.0 - 1.0)
+ *                       Note: these should sum to 1.0 for a valid chromaticity
+ * @param chrom_tolerance Maximum distance in chromaticity space to accept (0.0 - 1.0)
+ *                        Smaller = more selective, larger = broader color range
+ * @param lum_min Minimum luminance (0.0 - 1.0)
+ * @param lum_max Maximum luminance (0.0 - 1.0)
+ * @param feather_radius Feathering radius in pixels (0 = no feathering)
+ * @param invert If TRUE, inverts the mask
+ * @param bitpix Output bit depth (8, 16, or 32)
+ * @return 0 on success, 1 on failure
+ *
+ * Example use cases:
+ * - Select all red stars regardless of magnitude:
+ *   chrom_center=(0.6, 0.2, 0.2), tolerance=0.15, lum_min=0.01, lum_max=1.0
+ * - Select bright blue nebula regions:
+ *   chrom_center=(0.2, 0.3, 0.5), tolerance=0.2, lum_min=0.3, lum_max=1.0
+ * - Select faint H-alpha emission:
+ *   chrom_center=(0.7, 0.2, 0.1), tolerance=0.1, lum_min=0.0, lum_max=0.2
+ */
+FAST_MATH_PUSH
+int mask_create_from_chromaticity_luminance(fits *fit, fits *source,
+                                            float chrom_center_r, float chrom_center_g, float chrom_center_b,
+                                            float chrom_tolerance,
+                                            float lum_min, float lum_max,
+                                            int feather_radius, gboolean invert,
+                                            uint8_t bitpix) {
+	if (!fit || !source) return 1;
+	if (source->naxes[2] == 1) {
+		siril_log_color_message(_("Color mask requires RGB image\n"), "red");
+		return 1;
+	}
+
+	// Normalize chromaticity center (in case user didn't)
+	float chrom_sum = chrom_center_r + chrom_center_g + chrom_center_b;
+	if (chrom_sum < 0.001f) {
+		siril_log_color_message(_("Invalid chromaticity center (sum near zero)\n"), "red");
+		return 1;
+	}
+	chrom_center_r /= chrom_sum;
+	chrom_center_g /= chrom_sum;
+	chrom_center_b /= chrom_sum;
+
+	set_mask_active(fit, FALSE);
+	if (fit->mask) free_mask(fit->mask);
+	fit->mask = calloc(1, sizeof(mask_t));
+	if (!fit->mask) return 1;
+	fit->mask->bitpix = bitpix;
+
+	size_t npixels = (size_t)fit->rx * fit->ry;
+	size_t bytes_per_pixel = bitpix / 8;
+	fit->mask->data = malloc(npixels * bytes_per_pixel);
+	if (!fit->mask->data) {
+		free(fit->mask);
+		fit->mask = NULL;
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	float *temp_mask = malloc(npixels * sizeof(float));
+	if (!temp_mask) {
+		free(fit->mask->data);
+		free(fit->mask);
+		fit->mask = NULL;
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Standard photometric luminance weights (ITU-R BT.709)
+	const float lum_r = 0.2126f;
+	const float lum_g = 0.7152f;
+	const float lum_b = 0.0722f;
+
+	// Create initial mask based on chromaticity and luminance ranges
+	for (size_t i = 0; i < npixels; i++) {
+		float r, g, b;
+
+		// Normalize RGB to 0.0-1.0
+		if (source->type == DATA_USHORT) {
+			r = source->pdata[RLAYER][i] / 65535.0f;
+			g = source->pdata[GLAYER][i] / 65535.0f;
+			b = source->pdata[BLAYER][i] / 65535.0f;
+		} else {
+			r = source->fpdata[RLAYER][i];
+			g = source->fpdata[GLAYER][i];
+			b = source->fpdata[BLAYER][i];
+		}
+
+		// Calculate luminance (brightness independent of color)
+		float luminance = lum_r * r + lum_g * g + lum_b * b;
+
+		// Calculate chromaticity (color independent of brightness)
+		float rgb_sum = r + g + b;
+		float chrom_r, chrom_g, chrom_b;
+
+		if (rgb_sum > 0.0001f) {
+			// Normal case: pixel has some brightness
+			chrom_r = r / rgb_sum;
+			chrom_g = g / rgb_sum;
+			chrom_b = b / rgb_sum;
+		} else {
+			// Very dark pixel: chromaticity is undefined
+			// Set to neutral gray to avoid matching
+			chrom_r = 1.0f / 3.0f;
+			chrom_g = 1.0f / 3.0f;
+			chrom_b = 1.0f / 3.0f;
+		}
+
+		// Calculate chromaticity distance (Euclidean distance in RGB chromaticity space)
+		float dr = chrom_r - chrom_center_r;
+		float dg = chrom_g - chrom_center_g;
+		float db = chrom_b - chrom_center_b;
+		float chrom_distance = sqrtf(dr*dr + dg*dg + db*db);
+
+		// Check if pixel is within chromaticity tolerance and luminance range
+		gboolean in_chrom_range = (chrom_distance <= chrom_tolerance);
+		gboolean in_lum_range = (luminance >= lum_min && luminance <= lum_max);
+
+		// For very dark pixels, we can optionally be more lenient
+		// since chromaticity is unreliable near black
+		if (rgb_sum < 0.001f && in_lum_range) {
+			// Pixel is essentially black - exclude it regardless of "chromaticity"
+			temp_mask[i] = 0.0f;
+		} else {
+			temp_mask[i] = (in_chrom_range && in_lum_range) ? 1.0f : 0.0f;
+		}
+	}
+
+	// Apply feathering if requested
+	if (feather_radius > 0) {
+		float *feathered = malloc(npixels * sizeof(float));
+		if (!feathered) {
+			free(temp_mask);
+			free(fit->mask->data);
+			free(fit->mask);
+			fit->mask = NULL;
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		int passes = (feather_radius + 1) / 2;
+
+		for (int pass = 0; pass < passes; pass++) {
+			memcpy(feathered, temp_mask, npixels * sizeof(float));
+
+			for (int y = 0; y < fit->ry; y++) {
+				for (int x = 0; x < fit->rx; x++) {
+					float sum = 0.0f;
+					int count = 0;
+
+					for (int ky = -passes; ky <= passes; ky++) {
+						for (int kx = -passes; kx <= passes; kx++) {
+							int nx = x + kx;
+							int ny = y + ky;
+
+							if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
+								sum += feathered[ny * fit->rx + nx];
+								count++;
+							}
+						}
+					}
+
+					temp_mask[y * fit->rx + x] = sum / count;
+				}
+			}
+		}
+
+		free(feathered);
+	}
+
+	// Convert to output format with optional inversion
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float val = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+				m[i] = roundf_to_BYTE(val * 255.0f);
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float val = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+				m[i] = roundf_to_WORD(val * 65535.0f);
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+			}
+			break;
+		}
+	}
+
+	free(temp_mask);
+	set_mask_active(fit, TRUE);
+	show_or_hide_mask_tab();
+	return 0;
+}
+FAST_MATH_POP
+
+/**
+ * Creates a mask based on HSV color range selection
+ * @param fit Output mask structure
+ * @param source Source image to analyze
+ * @param h_min Minimum hue (0.0 - 360.0 degrees)
+ * @param h_max Maximum hue (0.0 - 360.0 degrees)
+ * @param s_min Minimum saturation (0.0 - 1.0)
+ * @param s_max Maximum saturation (0.0 - 1.0)
+ * @param v_min Minimum value/brightness (0.0 - 1.0)
+ * @param v_max Maximum value/brightness (0.0 - 1.0)
+ * @param feather_radius Feathering radius in pixels (0 = no feathering)
+ * @param invert If TRUE, inverts the mask
+ * @param bitpix Output bit depth (8, 16, or 32)
+ * @return 0 on success, 1 on failure
+ */
+FAST_MATH_PUSH
+int mask_create_from_color_hsv(fits *fit, fits *source,
+                                float h_min, float h_max,
+                                float s_min, float s_max,
+                                float v_min, float v_max,
+                                int feather_radius, gboolean invert,
+                                uint8_t bitpix) {
+	if (!fit || !source) return 1;
+	if (source->naxes[2] == 1) {
+		siril_log_color_message(_("Color mask requires RGB image\n"), "red");
+		return 1;
+	}
+
+	set_mask_active(fit, FALSE);
+	if (fit->mask) free_mask(fit->mask);
+	fit->mask = calloc(1, sizeof(mask_t));
+	if (!fit->mask) return 1;
+	fit->mask->bitpix = bitpix;
+
+	size_t npixels = (size_t)fit->rx * fit->ry;
+	size_t bytes_per_pixel = bitpix / 8;
+	fit->mask->data = malloc(npixels * bytes_per_pixel);
+	if (!fit->mask->data) {
+		free(fit->mask);
+		fit->mask = NULL;
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Temporary float buffer for mask values before feathering
+	float *temp_mask = malloc(npixels * sizeof(float));
+	if (!temp_mask) {
+		free(fit->mask->data);
+		free(fit->mask);
+		fit->mask = NULL;
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Handle hue wraparound (e.g., 350° to 10° for reds)
+	gboolean hue_wraps = (h_max < h_min);
+
+	// Convert RGB to HSV and create initial mask
+	for (size_t i = 0; i < npixels; i++) {
+		float r, g, b;
+
+		// Normalize RGB to 0.0-1.0
+		if (source->type == DATA_USHORT) {
+			r = source->pdata[RLAYER][i] / 65535.0f;
+			g = source->pdata[GLAYER][i] / 65535.0f;
+			b = source->pdata[BLAYER][i] / 65535.0f;
+		} else {
+			r = source->fpdata[RLAYER][i];
+			g = source->fpdata[GLAYER][i];
+			b = source->fpdata[BLAYER][i];
+		}
+
+		// RGB to HSV conversion
+		float max_c = fmaxf(r, fmaxf(g, b));
+		float min_c = fminf(r, fminf(g, b));
+		float delta = max_c - min_c;
+
+		float h = 0.0f, s = 0.0f, v = max_c;
+
+		// Calculate saturation
+		if (max_c > 0.0f) {
+			s = delta / max_c;
+		}
+
+		// Calculate hue
+		if (delta > 0.0f) {
+			if (max_c == r) {
+				h = 60.0f * fmodf((g - b) / delta, 6.0f);
+			} else if (max_c == g) {
+				h = 60.0f * ((b - r) / delta + 2.0f);
+			} else {
+				h = 60.0f * ((r - g) / delta + 4.0f);
+			}
+			if (h < 0.0f) h += 360.0f;
+		}
+
+		// Check if pixel falls within color range
+		gboolean in_range = TRUE;
+
+		// Check hue (handle wraparound)
+		if (delta > 0.0001f) { // Only check hue if pixel has color
+			if (hue_wraps) {
+				in_range = (h >= h_min || h <= h_max);
+			} else {
+				in_range = (h >= h_min && h <= h_max);
+			}
+		}
+
+		// Check saturation and value
+		in_range = in_range && (s >= s_min && s <= s_max);
+		in_range = in_range && (v >= v_min && v <= v_max);
+
+		temp_mask[i] = in_range ? 1.0f : 0.0f;
+	}
+
+	// Apply feathering if requested
+	if (feather_radius > 0) {
+		float *feathered = malloc(npixels * sizeof(float));
+		if (!feathered) {
+			free(temp_mask);
+			free(fit->mask->data);
+			free(fit->mask);
+			fit->mask = NULL;
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		// Simple box blur for feathering (multiple passes for smoother result)
+		int passes = (feather_radius + 1) / 2;
+		int kernel_size = 2 * passes + 1;
+
+		for (int pass = 0; pass < passes; pass++) {
+			memcpy(feathered, temp_mask, npixels * sizeof(float));
+
+			for (int y = 0; y < fit->ry; y++) {
+				for (int x = 0; x < fit->rx; x++) {
+					float sum = 0.0f;
+					int count = 0;
+
+					for (int ky = -passes; ky <= passes; ky++) {
+						for (int kx = -passes; kx <= passes; kx++) {
+							int nx = x + kx;
+							int ny = y + ky;
+
+							if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
+								sum += feathered[ny * fit->rx + nx];
+								count++;
+							}
+						}
+					}
+
+					temp_mask[y * fit->rx + x] = sum / count;
+				}
+			}
+		}
+
+		free(feathered);
+	}
+
+	// Apply inversion if requested and convert to output format
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float val = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+				m[i] = roundf_to_BYTE(val * 255.0f);
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float val = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+				m[i] = roundf_to_WORD(val * 65535.0f);
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*) fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				m[i] = invert ? (1.0f - temp_mask[i]) : temp_mask[i];
+			}
+			break;
+		}
+	}
+
+	free(temp_mask);
+	set_mask_active(fit, TRUE);
+	show_or_hide_mask_tab();
+	return 0;
+}
+FAST_MATH_POP
 
 /**
 * mask_create_from_image:
