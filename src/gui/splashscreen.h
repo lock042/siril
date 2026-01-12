@@ -1,5 +1,5 @@
 /*
- * This file is part of Siril, an astronomy image processor.
+* This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org

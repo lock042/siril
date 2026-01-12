@@ -476,7 +476,7 @@ gboolean siril_compiled_with_networking() {
 }
 
 int http_check(const gchar *url) {
-	retutn -1;
+	return -1;
 }
 
 #endif

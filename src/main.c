@@ -85,6 +85,20 @@
 
 // Forward decl to avoid including all of photometric_cc.h
 void initialize_spcc_mirrors();
+void force_paned_restore();
+
+/* Callback to close splash screen and show main window after delay */
+static gboolean close_splash_and_show_window_cb(gpointer user_data) {
+	close_splash_screen();
+
+	/* Make window visible */
+	GtkWidget *control_window = lookup_widget("control_window");
+	gtk_widget_set_opacity(control_window, 1.0);
+
+	force_paned_restore();
+
+	return FALSE; // run once
+}
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
@@ -464,8 +478,12 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
 
+		/* Make window transparent to keep splash on top but allow GTK calculations */
+		GtkWidget *control_window = lookup_widget("control_window");
+		gtk_widget_set_opacity(control_window, 0.0);
+
 		/* Passing GApplication to the control center */
-		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
+		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
 
 		/* Load state of the main windows (position and maximized) */
 		update_splash_progress(_("Restoring window state..."), 0.75);
@@ -496,11 +514,9 @@ static void siril_app_activate(GApplication *application) {
 		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
 
-		/* Close splash screen */
+		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);
-		/* Small delay to show "Ready!" message */
-		g_usleep(200000); // 200ms
-		close_splash_screen();
+		g_timeout_add(200, close_splash_and_show_window_cb, NULL);
 	}
 
 	g_free(supported_files);
