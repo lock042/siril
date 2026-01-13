@@ -1498,3 +1498,123 @@ int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
 	siril_log_message(_("Mask feathered %s with distance %.1f pixels\n"), mode_str, feather_dist);
 	return 0;
 }
+
+/**
+ * mask_cleanup_morphological:
+ * @fit: The fits image containing the mask to clean up
+ * @close_size: Size of closing kernel to remove small holes (0 to skip)
+ * @open_size: Size of opening kernel to remove small noise (0 to skip)
+ * @denoise_threshold: Threshold for area-based denoising (0 to skip)
+ *
+ * Cleans up a noisy mask using morphological operations and connected component analysis.
+ * This is particularly useful for color masks where hue is poorly defined in dark areas.
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int mask_cleanup_morphological(fits *fit, int close_size, int open_size, int denoise_threshold) {
+	if (!fit || !fit->mask) {
+		siril_log_message(_("No mask to clean up\n"));
+		return -1;
+	}
+
+	int width = fit->rx;
+	int height = fit->ry;
+	int ndata = width * height;
+
+	// Convert mask to OpenCV Mat
+	cv::Mat mask_mat(height, width, CV_8UC1);
+	uint8_t *data8 = NULL;
+	uint16_t *data16 = NULL;
+	float *data32 = NULL;
+
+	switch (fit->mask->bitpix) {
+		case 8:  // 8-bit
+			data8 = (uint8_t *)fit->mask->data;
+			memcpy(mask_mat.data, data8, ndata);
+			break;
+		case 16:  // 16-bit
+			data16 = (uint16_t *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				mask_mat.data[i] = data16[i] >> 8;
+			}
+			break;
+		case 32:  // 32-bit float
+			data32 = (float *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				mask_mat.data[i] = (uint8_t)(data32[i] * 255.0f);
+			}
+			break;
+		default:
+			siril_log_message(_("Unknown mask bitpix: %d\n"), fit->mask->bitpix);
+			return -1;
+	}
+
+	cv::Mat processed = mask_mat.clone();
+
+	// Step 1: Morphological closing - fills small holes
+	if (close_size > 0) {
+		cv::Mat element_close = cv::getStructuringElement(
+			cv::MORPH_ELLIPSE,
+			cv::Size(2 * close_size + 1, 2 * close_size + 1),
+			cv::Point(close_size, close_size)
+		);
+		cv::morphologyEx(processed, processed, cv::MORPH_CLOSE, element_close);
+	}
+
+	// Step 2: Morphological opening - removes small noise
+	if (open_size > 0) {
+		cv::Mat element_open = cv::getStructuringElement(
+			cv::MORPH_ELLIPSE,
+			cv::Size(2 * open_size + 1, 2 * open_size + 1),
+			cv::Point(open_size, open_size)
+		);
+		cv::morphologyEx(processed, processed, cv::MORPH_OPEN, element_open);
+	}
+
+	// Step 3: Connected component analysis to remove small isolated regions
+	if (denoise_threshold > 0) {
+		cv::Mat labels, stats, centroids;
+		int num_labels = cv::connectedComponentsWithStats(
+			processed, labels, stats, centroids, 8, CV_32S
+		);
+
+		// Create output mask - start with all zeros
+		cv::Mat filtered = cv::Mat::zeros(height, width, CV_8UC1);
+
+		// Keep only components larger than threshold
+		// Label 0 is background, so start from 1
+		for (int label = 1; label < num_labels; label++) {
+			int area = stats.at<int>(label, cv::CC_STAT_AREA);
+
+			if (area >= denoise_threshold) {
+				// Keep this component
+				cv::Mat component_mask = (labels == label);
+				filtered.setTo(255, component_mask);
+			}
+		}
+
+		processed = filtered;
+	}
+
+	// Convert back to original mask format
+	switch (fit->mask->bitpix) {
+		case 8:  // 8-bit
+			data8 = (uint8_t *)fit->mask->data;
+			memcpy(data8, processed.data, ndata);
+			break;
+		case 16:  // 16-bit
+			data16 = (uint16_t *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				data16[i] = ((uint16_t)processed.data[i]) << 8;
+			}
+			break;
+		case 32:  // 32-bit float
+			data32 = (float *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				data32[i] = processed.data[i] / 255.0f;
+			}
+			break;
+	}
+
+	return 0;
+}

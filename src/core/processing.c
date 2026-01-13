@@ -44,6 +44,7 @@
 #include "io/single_image.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
+#include "gui/siril_preview.h"
 #include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
@@ -1698,7 +1699,10 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
-	if (using_mask) {
+	if (using_mask || !args->for_preview) {
+		// we want the original image both for use with a mask and for saving the undo state, so
+		// the copy is created if using_mask (for the mask) or !args->for_preview (no need to save
+		// an undo state if we are previewing)
 		orig = calloc(1, sizeof(fits));
 		if (!orig) {
 			PRINT_ALLOC_ERR;
@@ -1752,8 +1756,8 @@ gpointer generic_image_worker(gpointer p) {
 		// If we are being run from the GUI and not just updating a preview, set the undo state
 		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
-			fits *ref = orig ? orig : gfit;
-			undo_save_state(ref, summary); // We just use the short description here
+			if (orig)
+				undo_save_state(orig, summary); // We just use the short description for the undo state
 			g_free(summary); // free the message
 			g_free(history); // free the full description, we don't need it in this case
 		} else {

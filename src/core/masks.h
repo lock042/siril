@@ -1,6 +1,10 @@
 #ifndef SIRIL_MASKS_H
 #define SIRIL_MASKS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void mask_from_image_dialog_set_file_mode(gboolean file_mode);
 int get_default_mask_bitpix();
 
@@ -46,5 +50,9 @@ int mask_invert(fits *fit);
 int mask_feather(fits *fit, float feather_dist, feather_mode mode);
 int mask_scale(fits *fit, float f);
 int mask_change_bitpix(fits* fit, uint8_t new_bitpix);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

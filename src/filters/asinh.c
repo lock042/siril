@@ -50,10 +50,9 @@ static gboolean asinh_preview_idle(gpointer p) {
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-
+	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
-		populate_roi();
 		notify_gfit_modified();
 	}
 	free_generic_img_args(args);
@@ -123,7 +122,6 @@ static int asinh_update_preview() {
 
 void asinh_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
-	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));

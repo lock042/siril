@@ -24,10 +24,12 @@
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/histogram.h"
+#include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/image_format_fits.h"
 #include "masks_gui.h"
+#include "opencv/opencv.h"
 
 /* Static widget pointers */
 static GtkWidget *combo_mask_from_image_type = NULL;
@@ -56,22 +58,14 @@ static gboolean mask_from_file_mode = FALSE;
 static gchar *selected_mask_filename = NULL;
 
 /* Static widget pointers for color mask dialog */
-static GtkWidget *combo_color_mask_method = NULL;
 static GtkWidget *combo_color_mask_bitdepth = NULL;
-static GtkWidget *box_chromaticity_mode = NULL;
-static GtkWidget *box_hsv_mode = NULL;
 static GtkColorChooser *color_chooser_chromaticity = NULL;
 static GtkScale *scale_color_tolerance = NULL;
 static GtkScale *scale_lum_min = NULL;
 static GtkScale *scale_lum_max = NULL;
-static GtkScale *scale_hue_min = NULL;
-static GtkScale *scale_hue_max = NULL;
-static GtkScale *scale_sat_min = NULL;
-static GtkScale *scale_sat_max = NULL;
-static GtkScale *scale_val_min = NULL;
-static GtkScale *scale_val_max = NULL;
 static GtkSpinButton *spin_color_feather = NULL;
 static GtkWidget *toggle_color_mask_invert = NULL;
+static GtkWidget *toggle_color_mask_cleanup = NULL;
 static gboolean color_picking_mode = FALSE;
 
 /**
@@ -547,83 +541,62 @@ void on_multiply_mask_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("mask_fmul_dialog");
 }
 
+void on_button_pick_from_image_clicked(GtkButton *button, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_SAMPLE_MASK_COLOR;
+//	siril_message_dialog(GTK_MESSAGE_INFO, _("Pick a color"),
+//	                     _("Click on the image to select a color. The chromaticity will be extracted from the pixel you click."));
+}
+static void kill_the_eyedropper(GtkWidget *widget, gpointer data) {
+    const gchar *type_name = G_OBJECT_TYPE_NAME(widget);
+
+    /* The eyedropper lives inside a GtkColorEditor */
+    if (g_strcmp0(type_name, "GtkColorEditor") == 0) {
+        /* This is the container holding the eyedropper */
+        gtk_widget_set_visible(widget, TRUE);
+    }
+
+    /* Check if this is the specific button */
+    if (GTK_IS_BUTTON(widget)) {
+        GtkWidget *image = gtk_button_get_image(GTK_BUTTON(widget));
+        if (GTK_IS_IMAGE(image)) {
+            const gchar *icon_name;
+            gtk_image_get_icon_name(GTK_IMAGE(image), &icon_name, NULL);
+            if (g_strcmp0(icon_name, "color-picker-symbolic") == 0) {
+                // Destroying it is safer than hiding if it keeps coming back
+                gtk_widget_destroy(widget);
+                return;
+            }
+        }
+    }
+
+    if (GTK_IS_CONTAINER(widget)) {
+        // We use find_all to ensure we hit internal/composite children
+        gtk_container_forall(GTK_CONTAINER(widget), kill_the_eyedropper, NULL);
+    }
+}
 void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
 	static gboolean widgets_initialized = FALSE;
 
 	if (!widgets_initialized) {
-		combo_color_mask_method = lookup_widget("combo_color_mask_method");
 		combo_color_mask_bitdepth = lookup_widget("combo_color_mask_bitdepth");
-		box_chromaticity_mode = lookup_widget("box_chromaticity_mode");
-		box_hsv_mode = lookup_widget("box_hsv_mode");
-		color_chooser_chromaticity = GTK_COLOR_CHOOSER(lookup_widget("color_chooser_chromaticity"));
 		scale_color_tolerance = GTK_SCALE(lookup_widget("scale_color_tolerance"));
 		scale_lum_min = GTK_SCALE(lookup_widget("scale_lum_min"));
 		scale_lum_max = GTK_SCALE(lookup_widget("scale_lum_max"));
-		scale_hue_min = GTK_SCALE(lookup_widget("scale_hue_min"));
-		scale_hue_max = GTK_SCALE(lookup_widget("scale_hue_max"));
-		scale_sat_min = GTK_SCALE(lookup_widget("scale_sat_min"));
-		scale_sat_max = GTK_SCALE(lookup_widget("scale_sat_max"));
-		scale_val_min = GTK_SCALE(lookup_widget("scale_val_min"));
-		scale_val_max = GTK_SCALE(lookup_widget("scale_val_max"));
 		spin_color_feather = GTK_SPIN_BUTTON(lookup_widget("spin_color_feather"));
 		toggle_color_mask_invert = lookup_widget("toggle_color_mask_invert");
+		toggle_color_mask_cleanup = lookup_widget("toggle_color_mask_cleanup");
+
+		color_chooser_chromaticity = GTK_COLOR_CHOOSER(lookup_widget("color_chooser_chromaticity"));
+		gtk_container_forall(GTK_CONTAINER(color_chooser_chromaticity), kill_the_eyedropper, NULL);
 
 		widgets_initialized = TRUE;
-	}
-
-	/* Set initial mode visibility - default to Chromaticity mode */
-	if (combo_color_mask_method) {
-		gint active = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_color_mask_method));
-		if (active == 0 || active == -1) {
-			/* Chromaticity + Luminance mode (or not yet set) */
-			if (box_chromaticity_mode) gtk_widget_show(box_chromaticity_mode);
-			if (box_hsv_mode) gtk_widget_hide(box_hsv_mode);
-		} else {
-			/* HSV Range mode */
-			if (box_chromaticity_mode) gtk_widget_hide(box_chromaticity_mode);
-			if (box_hsv_mode) gtk_widget_show(box_hsv_mode);
-		}
 	}
 
 	/* Reset color picking mode */
 	color_picking_mode = FALSE;
 }
 
-void on_combo_color_mask_method_changed(GtkComboBox *combo, gpointer user_data) {
-	gint active = gtk_combo_box_get_active(combo);
-
-	switch (active) {
-		case 0: /* Chromaticity + Luminance */
-			if (box_chromaticity_mode) {
-				gtk_widget_show(box_chromaticity_mode);
-				gtk_widget_set_no_show_all(box_chromaticity_mode, FALSE);
-			}
-			if (box_hsv_mode) {
-				gtk_widget_hide(box_hsv_mode);
-				gtk_widget_set_no_show_all(box_hsv_mode, TRUE);
-			}
-			break;
-		case 1: /* HSV Range */
-			if (box_chromaticity_mode) {
-				gtk_widget_hide(box_chromaticity_mode);
-				gtk_widget_set_no_show_all(box_chromaticity_mode, TRUE);
-			}
-			if (box_hsv_mode) {
-				gtk_widget_show(box_hsv_mode);
-				gtk_widget_set_no_show_all(box_hsv_mode, FALSE);
-			}
-			break;
-	}
-}
-
-void on_button_pick_from_image_clicked(GtkButton *button, gpointer user_data) {
-	color_picking_mode = TRUE;
-	siril_message_dialog(GTK_MESSAGE_INFO, _("Pick a color"),
-	                     _("Click on the image to select a color. The chromaticity will be extracted from the pixel you click."));
-}
-
 void mask_color_handle_image_click(int x, int y) {
-	if (!color_picking_mode) return;
 	if (!gfit) return;
 
 	if (x < 0 || x >= gfit->rx || y < 0 || y >= gfit->ry) return;
@@ -665,88 +638,54 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!gfit) return;
 
 	/* Check that widgets are initialized */
-	if (!combo_color_mask_method || !combo_color_mask_bitdepth ||
+	if (!combo_color_mask_bitdepth || !color_chooser_chromaticity ||
+	    !scale_color_tolerance || !scale_lum_min || !scale_lum_max ||
 	    !spin_color_feather || !toggle_color_mask_invert) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Initialization error"),
 		                     _("Color mask dialog widgets not properly initialized."));
 		return;
 	}
 
-	gint method = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_color_mask_method));
 	gint bitdepth_index = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_color_mask_bitdepth));
 	uint8_t bitdepth = (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
 	gint feather_radius = gtk_spin_button_get_value_as_int(spin_color_feather);
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_invert));
 
-	int result = 0;
+	GdkRGBA rgba;
+	gtk_color_chooser_get_rgba(color_chooser_chromaticity, &rgba);
 
-	if (method == 0) {
-		/* Chromaticity + Luminance method */
-		if (!color_chooser_chromaticity || !scale_color_tolerance ||
-		    !scale_lum_min || !scale_lum_max) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Initialization error"),
-			                     _("Chromaticity mode widgets not properly initialized."));
-			return;
-		}
+	float r = (float)rgba.red;
+	float g = (float)rgba.green;
+	float b = (float)rgba.blue;
 
-		GdkRGBA rgba;
-		gtk_color_chooser_get_rgba(color_chooser_chromaticity, &rgba);
+	/* Ensure we have non-zero values */
+	if (r < 0.0001f) r = 0.0001f;
+	if (g < 0.0001f) g = 0.0001f;
+	if (b < 0.0001f) b = 0.0001f;
 
-		float r = (float)rgba.red;
-		float g = (float)rgba.green;
-		float b = (float)rgba.blue;
+	float sum = r + g + b;
 
-		/* Ensure we have non-zero values */
-		if (r < 0.0001f) r = 0.0001f;
-		if (g < 0.0001f) g = 0.0001f;
-		if (b < 0.0001f) b = 0.0001f;
-
-		float sum = r + g + b;
-
-		/* This check should now be much more lenient */
-		if (sum < 0.0003f) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid color"),
-			                     _("Selected color is too close to black. Please choose a color with some brightness."));
-			return;
-		}
-
-		float chrom_r = r / sum;
-		float chrom_g = g / sum;
-		float chrom_b = b / sum;
-
-		float tolerance = gtk_range_get_value(GTK_RANGE(scale_color_tolerance));
-		float lum_min = gtk_range_get_value(GTK_RANGE(scale_lum_min));
-		float lum_max = gtk_range_get_value(GTK_RANGE(scale_lum_max));
-
-		result = mask_create_from_chromaticity_luminance(gfit, gfit,
-		                                                  chrom_r, chrom_g, chrom_b,
-		                                                  tolerance,
-		                                                  lum_min, lum_max,
-		                                                  feather_radius, invert,
-		                                                  bitdepth);
-	} else {
-		/* HSV Range method */
-		if (!scale_hue_min || !scale_hue_max || !scale_sat_min ||
-		    !scale_sat_max || !scale_val_min || !scale_val_max) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Initialization error"),
-			                     _("HSV mode widgets not properly initialized."));
-			return;
-		}
-
-		float h_min = gtk_range_get_value(GTK_RANGE(scale_hue_min));
-		float h_max = gtk_range_get_value(GTK_RANGE(scale_hue_max));
-		float s_min = gtk_range_get_value(GTK_RANGE(scale_sat_min));
-		float s_max = gtk_range_get_value(GTK_RANGE(scale_sat_max));
-		float v_min = gtk_range_get_value(GTK_RANGE(scale_val_min));
-		float v_max = gtk_range_get_value(GTK_RANGE(scale_val_max));
-
-		result = mask_create_from_color_hsv(gfit, gfit,
-		                                    h_min, h_max,
-		                                    s_min, s_max,
-		                                    v_min, v_max,
-		                                    feather_radius, invert,
-		                                    bitdepth);
+	/* This check should now be much more lenient */
+	if (sum < 0.0003f) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Invalid color"),
+		                     _("Selected color is too close to black. Please choose a color with some brightness."));
+		return;
 	}
+
+	float chrom_r = r / sum;
+	float chrom_g = g / sum;
+	float chrom_b = b / sum;
+
+	float tolerance = gtk_range_get_value(GTK_RANGE(scale_color_tolerance));
+	float lum_min = gtk_range_get_value(GTK_RANGE(scale_lum_min));
+	float lum_max = gtk_range_get_value(GTK_RANGE(scale_lum_max));
+
+	int result = mask_create_from_chromaticity_luminance(gfit, gfit,
+	                                                      chrom_r, chrom_g, chrom_b,
+	                                                      tolerance,
+	                                                      lum_min, lum_max,
+	                                                      feather_radius, invert,
+	                                                      bitdepth);
 
 	if (result != 0) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
@@ -754,6 +693,12 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
+	// Clean the mask up a bit
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_cleanup)))
+		mask_cleanup_morphological(gfit, 2, 2, 100);
+
 	queue_redraw_mask();
+	// For now, don't close the dialog as this mask typically takes a bit of refinement.
+	// Good argument for a mask operation preview (and a generic_mask_worker, I guess)
 //	siril_close_dialog("mask_from_color_dialog");
 }

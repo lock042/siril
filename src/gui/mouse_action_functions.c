@@ -39,6 +39,7 @@
 #include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
+#include "gui/masks_gui.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
 #include "gui/save_dialog.h"
@@ -364,6 +365,11 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean sample_mask_color_release(mouse_data *data) {
+	mask_color_handle_image_click(data->zoomed.x, data->zoomed.y);
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (gui.cvport == MASK_VPORT) {
 		do_popup_maskmenu(data->widget, NULL);
@@ -643,6 +649,10 @@ gboolean main_action_click(mouse_data *data) {
 				gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);
 				register_release_callback(mask_clear_poly_release, data->event->button);
 				gui.drawing_polygon = TRUE;
+				break;
+			}
+			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
+				register_release_callback(sample_mask_color_release, data->event->button);
 				break;
 			}
 			default: {

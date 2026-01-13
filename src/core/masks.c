@@ -770,7 +770,6 @@ int mask_create_from_color_hsv(fits *fit, fits *source,
 
 		// Simple box blur for feathering (multiple passes for smoother result)
 		int passes = (feather_radius + 1) / 2;
-		int kernel_size = 2 * passes + 1;
 
 		for (int pass = 0; pass < passes; pass++) {
 			memcpy(feathered, temp_mask, npixels * sizeof(float));
