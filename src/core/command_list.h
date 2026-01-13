@@ -122,6 +122,7 @@ static command commands[] = {
 	{"mask_bitpix", 1, "mask_bitpix", process_mask_bitpix, STR_MASK_BITPIX, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_fmul", 1, "mask_fmul", process_mask_fmul, STR_FMUL_MASK, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_from_channel", 1, "mask_from_channel -channel= {-bitdepth} {-invert} {-autostretch} {\"-filename=\"}", process_mask_from_channel, STR_MASK_FROM_CHANNEL, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mask_from_color", 4, "mask_from_color -cr= -cg= -cb= -tol=  {-lum_min} {-lum_max} {-fr} {-invert} {-bitdepth=}", process_mask_from_color, STR_MASK_FROM_COLOR, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_from_lum", 1, "mask_from_lum {-even} {-human} {-rw=} {-gw=} {-bw=} {-invert} {-autostretch} {\"-filename=\"}", process_mask_from_channel, STR_MASK_FROM_LUM, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_from_stars", 1, "mask_from_stars channel {-invert} {-autostretch}", process_mask_from_stars, STR_MASK_FROM_STARS, TRUE, REQ_CMD_SINGLE_IMAGE},
 

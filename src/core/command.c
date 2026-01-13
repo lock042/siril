@@ -14526,3 +14526,120 @@ int process_mask_bitpix(int nb) {
 	}
 	return CMD_OK;
 }
+
+int process_mask_from_color(int nb) {
+	int argidx = 1;
+	float chrom_center_r = -1.f, chrom_center_g = -1.f, chrom_center_b = -1.f;
+	float chrom_tolerance = -1.f;
+	float lum_min = 0.f, lum_max = 1.f;
+	int feather_radius = 0;
+	gboolean invert = FALSE;
+	int bitdepth = com.pref.default_mask_bitpix;
+	uint8_t bitpix;
+	gchar *filename = NULL;
+	char *end;
+
+	while (argidx < nb) {
+		else if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-cr=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_r = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_r < 0.0f || chrom_center_r > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center red must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-cg=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_g = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_g < 0.0f || chrom_center_g > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center green must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-cb=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_b = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_b < 0.0f || chrom_center_b > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center blue must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-tol=")) {
+			char *arg = word[argidx] + 5;
+			chrom_tolerance = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_tolerance < 0.0f || chrom_tolerance > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma tolerance must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lum_min=")) {
+			char *arg = word[argidx] + 9;
+			lum_min = g_ascii_strtod(arg, &end);
+			if (arg == end || lum_min < 0.0f || lum_min > 1.0f) {
+				siril_log_message(_("Invalid argument %s, luminance minimum must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lum_max=")) {
+			char *arg = word[argidx] + 9;
+			lum_max = g_ascii_strtod(arg, &end);
+			if (arg == end || lum_max < 0.0f || lum_max > 1.0f) {
+				siril_log_message(_("Invalid argument %s, luminance maximum must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-fr=")) {
+			char *arg = word[argidx] + 4;
+			feather_radius = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || feather_radius < 0) {
+				siril_log_message(_("Invalid argument %s, feather radius must be >= 0, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	bitpix = (uint8_t) bitdepth;
+
+	// Validate required chroma center parameters
+	if (chrom_center_r < 0.f || chrom_center_g < 0.f || chrom_center_b < 0.f) {
+		siril_log_message(_("All three chroma center values (-cr, -cg, -cb) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Validate required tolerance parameter
+	if (chrom_tolerance < 0.f) {
+		siril_log_message(_("Chroma tolerance (-tolerance) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Validate luminance range
+	if (lum_min > lum_max) {
+		siril_log_message(_("Luminance minimum cannot be greater than luminance maximum, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	int retval = mask_create_from_chromaticity_luminance(gfit, gfit,
+	                                                     chrom_center_r, chrom_center_g, chrom_center_b,
+	                                                     chrom_tolerance,
+	                                                     lum_min, lum_max,
+	                                                     feather_radius, invert,
+	                                                     bitpix);
+
+	if (retval) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
+}

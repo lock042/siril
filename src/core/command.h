@@ -125,6 +125,7 @@ int	process_makepsf(int nb);
 int process_mask_bitpix(int nb);
 int	process_mask_fmul(int nb);
 int	process_mask_from_channel(int nb);
+int process_mask_from_color(int nb);
 int	process_mask_from_lum(int nb);
 int	process_mask_from_stars(int nb);
 int	process_merge(int nb);
