@@ -14536,11 +14536,10 @@ int process_mask_from_color(int nb) {
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
 	uint8_t bitpix;
-	gchar *filename = NULL;
 	char *end;
 
 	while (argidx < nb) {
-		else if (g_str_has_prefix(word[argidx], "-invert")) {
+		if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
 		}
 		else if (g_str_has_prefix(word[argidx], "-cr=")) {

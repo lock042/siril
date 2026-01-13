@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2024
 
@@ -52,8 +52,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="siril_hide_on_delete" swapped="no"/>
-    <signal name="destroy" handler="siril_hide_widget_on_delete" swapped="no"/>
+    <signal name="destroy" handler="siril_widget_hide_on_delete" swapped="no"/>
     <signal name="hide" handler="on_mask_color_close_clicked" swapped="no"/>
     <signal name="show" handler="on_mask_from_color_dialog_show" swapped="no"/>
     <child internal-child="vbox">
@@ -179,10 +178,10 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="label-xalign">0</property>
                     <child>
                       <object class="GtkDrawingArea" id="drawing_area_color_display">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
                         <property name="width-request">100</property>
                         <property name="height-request">100</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Selected color preview</property>
                         <signal name="draw" handler="on_color_display_draw" swapped="no"/>
                       </object>
