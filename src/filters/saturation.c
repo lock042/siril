@@ -243,6 +243,7 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	args->mask_aware = TRUE;
 	if (!for_preview)
 		args->log_hook = satu_log_hook;
 
