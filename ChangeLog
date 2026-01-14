@@ -2,10 +2,11 @@ siril-1.4.2
 --/--/--
 
 **Fixes**
-* Fixed crash in RGB composition when trying to align RGN while L is loaded but not checked
+* Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
 
 **Improvements**
-* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop
+* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
+* Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
 
 siril-1.4.1
 01/05/26
@@ -16,15 +17,13 @@ siril-1.4.1
 * Fixed too-strict condition and off-by-one error in sirilpy
 * Fixed sirilpy.FFit class data setter
 * Fixed remote catalogue to avoid dependency on Gaia Archive (!969)
+* Fixed hang in RGB composition (specific to flatpak) (!967)
 
 siril-1.4.0
 12/05/25
-<<<<<<< HEAD
-=======
 
 **Improvements**
 * SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
->>>>>>> a7c62e3f7 (Restore gtkfilechooserbutton ui)
 
 **Fixes**
 * Fixed get_image_history(): now correctly updates history with operations done since loading
