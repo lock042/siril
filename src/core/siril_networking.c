@@ -35,6 +35,10 @@
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
 
+#define STR_INDIR(x) #x 
+#define STR(x) STR_INDIR(x)
+#define SIRIL_USER_AGENT "siril/" STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) " (https://gitlab.com/free-astro/siril/)"
+
 // Uncomment the next line for some additional debug printing
 // #define NETWORKING_DEBUG
 
@@ -68,7 +72,7 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	if (request_type == HTTP_POST) {
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
@@ -199,7 +203,7 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
 
@@ -285,7 +289,7 @@ char* fetch_url_range(const gchar *url, size_t start, size_t length,
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
 
