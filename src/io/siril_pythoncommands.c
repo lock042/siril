@@ -3459,6 +3459,28 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_GET_IMAGE_MASK_STATE: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			if (!gfit->mask || !gfit->mask->data) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+
+			}
+			// Convert the integers to BE format for consistency across the UNIX socket
+			gboolean linked = gfit->mask_active;
+			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");

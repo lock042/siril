@@ -5697,3 +5697,26 @@ class SirilInterface:
             return True
         except Exception as e:
             raise SirilError(f"Error in set_image_mask_state(): {e}") from e
+
+    def get_image_mask_state(self) -> Optional[bool]:
+
+        """
+        Request the Screen Transfer Function in use in Siril.
+
+        Returns:
+            bool: True if the image mask is active, False if the image mask is not
+                  active. None is returned if the image has no mask.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_IMAGE_MASK_STATE)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return bool(mode[0])
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_image_mask_state(): {}").format(e)) from e
