@@ -9,10 +9,11 @@ siril-1.4.2
 --/--/--
 
 **Fixes**
-* Fixed crash in RGB composition when trying to align RGN while L is loaded but not checked
+* Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
 
 **Improvements**
-* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop
+* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
+* Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
 
 siril-1.4.1
 01/05/26
@@ -22,8 +23,8 @@ siril-1.4.1
 * Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
 * Fixed too-strict condition and off-by-one error in sirilpy
 * Fixed sirilpy.FFit class data setter
-* Fixed 16-bit png export with "use image ICC profile" selected (#1895)
 * Fixed remote catalogue to avoid dependency on Gaia Archive (!969)
+* Fixed hang in RGB composition (specific to flatpak) (!967)
 
 siril-1.4.0
 12/05/25
@@ -35,9 +36,13 @@ siril-1.4.0
 * Fixed get_image_history(): now correctly updates history with operations done since loading
 * Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
 * Fixed Gaia online catalogue status indicator (!963)
+* Enabled the use of the bad pixel map without having a master dark (#1876)
 * Fixed catsearch function for solar system objects (#1882)
 * Fixed cleaning python related environment variables within Siril app for Windows (#1880)
 * Fixed empty csv file exported by conesearch command when called from script (#1885)
+
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
 
 siril 1.4.0-RC2
 11/20/25
