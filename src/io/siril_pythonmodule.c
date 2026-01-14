@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -727,6 +728,157 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		munmap(shm_ptr, info->size);
 		close(fd);
 	#endif
+
+	// In all cases we have now finished with the shm and closed and unlinked it.
+	// On receipt of the response, python will also close and unlink the shm in its
+	// finally: block.
+	return send_response(conn, STATUS_OK, NULL, 0);
+}
+
+gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_image_info_t* info) {
+	if (fit == gfit && !conn->thread_claimed) {
+		const char* error_msg = _("Processing thread is not claimed: unable to update the current image mask. "
+								"This is a script error: claim_thread() has either not been called or has failed, or "
+								"the thread has been released too early.");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		return FALSE;
+	}
+
+	if (!single_image_is_loaded()) {
+		const char* error_msg = _("No image loaded: set_image_mask() can only be used to create or update the mask of a loaded single image");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		return FALSE;
+	}
+
+	// Convert from network byte order to host byte order
+	info->width = GUINT32_FROM_BE(info->width);
+	info->height = GUINT32_FROM_BE(info->height);
+	// info->size already converted in the switch case, so skip here
+
+	if (info->size > get_available_memory() / 2) {
+		const char* error_msg = _("Invalid mask size: exceeds memory limit");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		return FALSE;
+	}
+	info->data_type = GUINT32_FROM_BE(info->data_type);
+	uint8_t bitpix = (uint8_t) info->data_type;
+	// Validate image dimensions and format
+	if (info->width != fit->rx || info->height != fit->ry || info->size == 0 ||
+	(bitpix != 8 && bitpix != 16 && bitpix != 32)) {
+		gchar size_str[32];
+		g_snprintf(size_str, sizeof(size_str), "%" G_GUINT64_FORMAT, info->size);
+		gchar *error_msg = g_strdup_printf(_("Invalid mask dimensions or format: w = %u, h = %u, bitpix = %u, size = %s"), info->width, info->height, info->data_type, size_str);
+
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		g_free(error_msg);
+		return FALSE;
+	}
+	// Compute and sanitize ncpixels
+	size_t npixels = info->width * info->height;
+	siril_debug_print("received w x h: %d x %d\n", info->width, info->height);
+	size_t expected_size = npixels * (bitpix >> 3); // divide by 8
+	if (info->size != expected_size) {
+		const char* error_msg = _("Error: mask buffer does not match expected size");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message(_("Error in send_response: size mismatch\n"));
+		return FALSE;
+	}
+	if (expected_size > get_available_memory() / 2) {
+		const char* error_msg = _("Error: mask exceeds available memory");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message(_("Error in send_response: mask exceeds available memory\n"));
+		return FALSE;
+	}
+
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+		win_shm_handle_t win_handle = {NULL, NULL};
+		HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+		if (mapping == NULL) {
+			const char* error_msg = "Failed to open shared memory mapping";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
+			return FALSE;
+		}
+		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+		if (shm_ptr == NULL) {
+			CloseHandle(mapping);
+			const char* error_msg = "Failed to map shared memory view";
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
+			return FALSE;
+		}
+		win_handle.mapping = mapping;
+		win_handle.ptr = shm_ptr;
+	#else
+		int fd = shm_open(info->shm_name, O_RDONLY, 0);
+		if (fd == -1) {
+			const char* error_msg = _("Failed to open shared memory");
+			siril_debug_print("SHM ERROR: %s\n", error_msg);
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
+			return FALSE;
+		}
+		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+		if (shm_ptr == MAP_FAILED) {
+			close(fd);
+			const char* error_msg = _("Failed to map shared memory");
+			if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+				siril_log_message("Error in send_response\n");
+			return FALSE;
+		}
+	#endif
+
+	gboolean alloc_err = FALSE;
+	// Allocate new image buffer
+	if (!fit->mask) {
+		fit->mask = calloc(1, sizeof(mask_t));
+		if (!fit->mask) {
+			PRINT_ALLOC_ERR;
+			alloc_err = TRUE;
+		}
+	}
+	free(fit->mask->data);
+	fit->mask->data = malloc(fit->rx * fit->ry * (bitpix >> 3));
+	if (!fit->mask->data) {
+		PRINT_ALLOC_ERR;
+		alloc_err = TRUE;
+	}
+	if (alloc_err) {
+		#ifdef _WIN32
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(win_handle.mapping);
+		#else
+			munmap(shm_ptr, info->size);
+			close(fd);
+		#endif
+		const char* error_msg = _("Failed to allocate image buffer");
+		if (!send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg)))
+			siril_log_message("Error in send_response\n");
+		return FALSE;
+	}
+
+	// Copy data from shared memory to gfit
+	size_t total_bytes = expected_size;
+
+	memcpy(fit->mask->data, (char*) shm_ptr, total_bytes);
+	fit->mask->bitpix = bitpix;
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+		UnmapViewOfFile(shm_ptr);
+		CloseHandle(win_handle.mapping);
+	#else
+		munmap(shm_ptr, info->size);
+		close(fd);
+	#endif
+
+	set_mask_active(fit, TRUE);
 
 	// In all cases we have now finished with the shm and closed and unlinked it.
 	// On receipt of the response, python will also close and unlink the shm in its

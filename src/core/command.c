@@ -14276,7 +14276,7 @@ int process_clear_mask(int nb) {
 		siril_log_message(_("Mask cleared\n"));
 	}
 	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
+		execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
 	}
 	return CMD_OK;
 }

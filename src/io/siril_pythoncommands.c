@@ -11,6 +11,7 @@
 #include "algos/photometry.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
@@ -3394,6 +3395,66 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				success = handle_save_image_file_request(conn, payload, payload_length);
+			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_MASK: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = _("No image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (gfit->mask == NULL || gfit->mask->data == NULL) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 profile_size = gfit->rx * gfit->ry * (gfit->mask->bitpix / 8);
+
+			shared_memory_info_t *info = handle_rawdata_request(conn, gfit->mask->data, profile_size);
+			info->width = (guint32) gfit->rx;
+			info->height = (guint32) gfit->ry;
+			info->data_type = (guint32) gfit->mask->bitpix; // "misuse" the data_type field for bitpix, this is a bit different to its use for image data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_image_mask_request(conn, gfit, info);
+				show_or_hide_mask_tab();
+				if (!com.script) {
+					execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+				}
+			}
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK_STATE: {
+			if (single_image_is_loaded() && gfit->mask && gfit->mask->data) {
+				if (payload_length == 1) {
+					uint8_t statebyte = payload[0];
+					gboolean state = (statebyte);
+					set_mask_active(gfit, state);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set mask state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				const char* error_msg = _("Failed to set mask state - no image loaded or image has no mask");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
 		}

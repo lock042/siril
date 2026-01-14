@@ -1362,7 +1362,7 @@ gboolean show_or_hide_mask_tab_idle(gpointer p) {
 }
 
 void show_or_hide_mask_tab() {
-	siril_add_idle(show_or_hide_mask_tab_idle, NULL);
+	siril_add_pythonsafe_idle(show_or_hide_mask_tab_idle, NULL);
 	return;
 }
 

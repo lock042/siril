@@ -170,6 +170,9 @@ class _Command(IntEnum):
     SET_IMAGE_FILENAME = 84
     GET_SIRIL_LOG = 85
     SAVE_IMAGE_FILE = 86
+    GET_IMAGE_MASK = 87
+    SET_IMAGE_MASK = 88
+    SET_IMAGE_MASK_STATE = 89
     ERROR = 0xFF
 
 @unique

@@ -101,6 +101,9 @@ typedef enum {
 	CMD_SET_IMAGE_FILENAME = 84,
 	CMD_GET_SIRIL_LOG = 85,
 	CMD_SAVE_IMAGE_FILE = 86,
+	CMD_GET_IMAGE_MASK = 87,
+	CMD_SET_IMAGE_MASK = 88,
+	CMD_SET_IMAGE_MASK_STATE = 89,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -217,6 +220,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 shared_memory_info_t* handle_pixeldata_request(Connection *conn, fits *fit, rectangle region, gboolean as_preview, gboolean linked);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
+gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_image_info_t* info);
 siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
 gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);

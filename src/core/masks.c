@@ -99,7 +99,7 @@ gboolean set_mask_active_idle(gpointer p) {
 void set_mask_active(fits *fit, gboolean state) {
 	fit->mask_active = state;
 	if (fit == gfit && !com.headless) {
-		execute_idle_and_wait_for_it(set_mask_active_idle, GINT_TO_POINTER(state));
+		gui_function(set_mask_active_idle, GINT_TO_POINTER(state));
 	}
 }
 
