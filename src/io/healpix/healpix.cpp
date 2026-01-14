@@ -35,6 +35,10 @@
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
+extern "C" {
+#include "core/siril_app_dirs.h"
+}
+
 #define HEALPIX_DEBUG
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
@@ -279,7 +283,26 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
     return header;
 }
 
+// Get Siril data directory and ensure the relevant subdir exists
+static std::filesystem::path get_or_create_cache_dir() {
+	std::filesystem::path target_path;
+
+    const char *uddir = siril_get_user_data_dir();
+    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "siril_cat1_healpix8_xpsamp";
+    try {
+        if (!std::filesystem::exists(siril_subdir)) {
+		std::filesystem::create_directories(siril_subdir);
+        }
+        return siril_subdir;
+    } catch (const std::filesystem::filesystem_error& e) {
+        siril_debug_print(_("Can't create directory %s, falling back to system temp\n"), 
+			siril_subdir.string().c_str() );
+        return std::filesystem::temp_directory_path();
+    }
+}
+
 template<typename EntryType>
+
 static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
                                                   const std::string& base_url,
                                                   const std::string& filename,
@@ -294,6 +317,7 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
         uint32_t nside_chunks = 1 << header.chunk_level;
         uint32_t n_chunks = 12 * nside_chunks * nside_chunks;
         n_healpixels /= n_chunks;
+
         for (auto& range : healpixel_ranges) {
             range.start_id -= header.chunk_first_healpixel;
             range.end_id -= header.chunk_first_healpixel;
@@ -303,29 +327,67 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
     size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
     std::string full_url = base_url + "/" + filename;
 
-    // Function to read index entries via HTTP range request using provided CURL handle
-    auto read_index_entries = [curl, &full_url](uint32_t start_healpixel, uint32_t end_healpixel)
-        -> std::pair<bool, std::vector<uint32_t>> {
-        size_t start_pos = HEADER_SIZE + start_healpixel * sizeof(uint32_t);
-        size_t length = (end_healpixel - start_healpixel + 1) * sizeof(uint32_t);
+    auto tempdir = get_or_create_cache_dir();
+    std::string cache_path = (tempdir / (filename + ".cache")).string();
+
+    // Load or download index
+    std::vector<uint32_t> full_index(n_healpixels);
+
+    bool cache_exists = false;
+    {
+        std::ifstream f(cache_path, std::ios::binary);
+        cache_exists = f.good();
+    }
+
+    // Ensure cache exists; if not, fetch and create it
+    if (!cache_exists) {
+        siril_debug_print(_("Fetching index to cache\n"));
 
         gsize response_length;
         int error;
-        char* buffer = fetch_url_range_with_curl((void*)curl, full_url.c_str(), start_pos, length,
-                                      &response_length, &error, FALSE);
 
-        if (error || !buffer) {
-            return {false, {}};
+        char* buffer = fetch_url_range_with_curl(
+            (void*)curl,
+            full_url.c_str(),
+            HEADER_SIZE,          // offset
+            INDEX_SIZE,           // length
+            &response_length,
+            &error,
+            FALSE
+        );
+
+        if (error || !buffer || response_length != INDEX_SIZE) {
+            siril_log_color_message(_("Failed to download index via HTTP\n"), "red");
+            return results;
         }
 
-        std::vector<uint32_t> indices(response_length / sizeof(uint32_t));
-        memcpy(indices.data(), buffer, response_length);
+        // Write buffer to cache file
+        std::ofstream out(cache_path, std::ios::binary);
+        if (!out.good()) {
+            siril_log_color_message(_("Failed to write index cache file\n"), "red");
+            free(buffer);
+            return results;
+        }
+
+        out.write(buffer, INDEX_SIZE);
+        out.close();
         free(buffer);
+    }
 
-        return {true, indices};
-    };
+    // At this point, the cache file is guaranteed to exist.
+    siril_debug_print(_("Loading index from cache\n"));
 
-    // Process each range
+    std::ifstream in(cache_path, std::ios::binary);
+    if (!in.good()) {
+        siril_log_color_message(_("Failed to read index cache file\n"), "red");
+        return results;
+    }
+
+    in.read(reinterpret_cast<char*>(full_index.data()), INDEX_SIZE);
+    in.close();
+
+    // Process each healpixel range
+    siril_debug_print(_("Fetching data\n"));
     for (const auto& range : healpixel_ranges) {
         uint32_t start_healpixel = range.start_id;
         uint32_t end_healpixel = range.end_id;
@@ -336,29 +398,31 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
             return results;
         }
 
-        // Read the index entries
-        uint32_t index_start = (start_healpixel == 0) ? 0 : start_healpixel - 1;
-        auto [success, indices] = read_index_entries(index_start, end_healpixel);
+        // Index lookup from cached index
+        uint32_t index_start = (start_healpixel == 0) ? 0 : full_index[start_healpixel - 1];
+        uint32_t index_end   = full_index[end_healpixel];
 
-        if (!success) {
-            siril_log_color_message(_("Failed to read index entries via HTTP\n"), "red");
-            results.clear();
-            return results;
-        }
+        size_t num_records = index_end - index_start;
 
-        uint32_t start_offset = (start_healpixel == 0) ? 0 : indices[0];
-        uint32_t end_offset = indices[indices.size() - 1];
+        size_t data_start_pos =
+            HEADER_SIZE + INDEX_SIZE + index_start * sizeof(EntryType);
 
-        // Calculate position in the data section
-        size_t data_start_pos = HEADER_SIZE + INDEX_SIZE + start_offset * sizeof(EntryType);
-        size_t num_records = end_offset - start_offset;
         size_t data_length = num_records * sizeof(EntryType);
 
-        // Read the data entries via HTTP range request using provided CURL handle
+        // Fetch data entries via HTTP
         gsize data_response_length;
         int data_error;
-        char* data_buffer = fetch_url_range_with_curl((void*)curl, full_url.c_str(), data_start_pos, data_length,
-                                           &data_response_length, &data_error, FALSE);
+
+        siril_debug_print(_("Fetching range %zu - %zu\n"), data_start_pos, data_length);
+        char* data_buffer = fetch_url_range_with_curl(
+            (void*)curl,
+            full_url.c_str(),
+            data_start_pos,
+            data_length,
+            &data_response_length,
+            &data_error,
+            FALSE
+        );
 
         if (data_error || !data_buffer) {
             siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
@@ -366,17 +430,16 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
             return results;
         }
 
-        // Convert buffer to EntryType vector
         std::vector<EntryType> buffer(num_records);
         memcpy(buffer.data(), data_buffer, data_response_length);
         free(data_buffer);
 
-        // Move entries to results vector
         results.insert(results.end(), buffer.begin(), buffer.end());
     }
 
     return results;
 }
+
 
 // Original template function now wraps the new one with a temporary CURL handle
 template<typename EntryType>
