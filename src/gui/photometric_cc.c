@@ -168,7 +168,7 @@ gpointer gaia_check(gpointer user_data) {
     // Log results for all mirrors for transparency
     int working_mirrors = 0;
     for (int i = 0; i < num_mirrors; i++) {
-        if (response_times[i] != -1) {
+        if (response_times[i] > -1) {
             working_mirrors++;
             siril_debug_print("Mirror %s: %d ms\n", spcc_mirrors[i], response_times[i]);
             if (response_times[i] < best_responsetime) {
