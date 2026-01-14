@@ -275,32 +275,56 @@ int process_seq_clean(int nb) {
 }
 
 int process_satu(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[3] = { NULL, NULL, NULL };
+	int num_index = 0;
 	gchar *end;
-	double coeff = g_ascii_strtod(word[1], &end);
-	if (end == word[1]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 3) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* coeff (required) */
+	if (num_index < 1) {
+		siril_log_message(_("Missing saturation coefficient\n"));
 		return CMD_ARG_ERROR;
 	}
 
+	double coeff = g_ascii_strtod(num_args[0], &end);
+	if (end == num_args[0]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), num_args[0]);
+		return CMD_ARG_ERROR;
+	}
+
+	/* background_factor (optional) */
 	double background_factor = 1.0;
-	if (nb > 2) {
-		background_factor = g_ascii_strtod(word[2], &end);
-		if (end == word[2] || background_factor < 0.0) {
+	if (num_index > 1) {
+		background_factor = g_ascii_strtod(num_args[1], &end);
+		if (end == num_args[1] || background_factor < 0.0) {
 			siril_log_message(_("Background factor must be positive\n"));
 			return CMD_ARG_ERROR;
 		}
 	}
 
+	/* satu_hue_type (optional) */
 	int satu_hue_type = 6;
-	if (nb > 3) {
-		satu_hue_type = g_ascii_strtoull(word[3], &end, 10);
-		if (end == word[3] || satu_hue_type > 6) {
+	if (num_index > 2) {
+		satu_hue_type = g_ascii_strtoull(num_args[2], &end, 10);
+		if (end == num_args[2] || satu_hue_type > 6) {
 			siril_log_message(_("Hue range must be [0, 6]\n"));
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	// Allocate parameters
+	/* Allocate parameters */
 	saturation_params *params = calloc(1, sizeof(saturation_params));
 	if (!params) {
 		PRINT_ALLOC_ERR;
@@ -324,17 +348,17 @@ int process_satu(int nb) {
 	args->image_hook = saturation_image_hook;
 	args->idle_function = NULL; // Synchronous execution
 	args->description = _("Saturation");
-	args->command_updates_gfit = TRUE; // Ensure gfit is notified
+	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = FALSE;
 	args->user = params;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = satu_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 
-	// Run synchronously
+	/* Run synchronously */
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -342,13 +366,6 @@ int process_satu(int nb) {
 	}
 
 	int retval = args->retval;
-
-	// args is freed by generic_image_worker at end_generic_image_update_gfit
-	// or manually if we were running in thread, but generic_image_worker
-	// handles cleanup if it completes, though for synchronous calls
-	// we usually rely on it returning.
-	// NOTE: generic_image_worker calls execute_idle_and_wait_for_it
-	// which will clean up args.
 
 	if (retval != 0) {
 		siril_log_color_message(_("Saturation enhancement failed\n"), "red");
@@ -622,8 +639,9 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
  ****************************************************************************/
 
 int process_denoise(int nb) {
-	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
+
+	gboolean mask_aware = FALSE;
 
 	// Allocate parameters
 	struct denoise_args *params = new_denoise_args();
@@ -633,24 +651,31 @@ int process_denoise(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	// Parse command line arguments
+	// Scan arguments (order-independent)
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
-		if (!word[i])
-			break;
+		if (!arg)
+			continue;
 
-		if (g_str_has_prefix(arg, "-vst")) {
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-vst")) {
 			params->do_anscombe = TRUE;
-		} else if (g_str_has_prefix(arg, "-da3d")) {
+		}
+		else if (g_str_has_prefix(arg, "-da3d")) {
 			params->da3d = 1;
-		} else if (g_str_has_prefix(arg, "-indep")) {
+		}
+		else if (g_str_has_prefix(arg, "-indep")) {
 			params->suppress_artefacts = TRUE;
-		} else if (g_str_has_prefix(arg, "-nocosmetic")) {
+		}
+		else if (g_str_has_prefix(arg, "-nocosmetic")) {
 			params->do_cosme = FALSE;
-		} else if (g_str_has_prefix(arg, "-mod=")) {
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
 			float mod = (float) g_ascii_strtod(arg, &end);
-			if (mod <= 0.f || mod > 1.f) {
+			if (end == arg || mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free_denoise_args(params);
 				free(params);
@@ -658,41 +683,51 @@ int process_denoise(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			params->modulation = mod;
-		} else if (g_str_has_prefix(arg, "-rho=")) {
+		}
+		else if (g_str_has_prefix(arg, "-rho=")) {
 			arg += 5;
 			float rho = g_ascii_strtod(arg, &end);
-			if (arg == end) {
-				error = TRUE;
-			} else if ((rho <= 0.f) || (rho >= 1.f)) {
+			if (end == arg || rho <= 0.f || rho >= 1.f) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
 				free_denoise_args(params);
 				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
-			if (!error) {
-				params->rho = rho;
-			}
-		} else if (g_str_has_prefix(arg, "-sos=")) {
+			params->rho = rho;
+		}
+		else if (g_str_has_prefix(arg, "-sos=")) {
 			arg += 5;
-			unsigned sos = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) {
-				error = TRUE;
+			unsigned sos = (unsigned) g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Error parsing SOS iterations.\n"));
+				free_denoise_args(params);
+				free(params);
+				set_cursor_waiting(FALSE);
+				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
-				siril_log_message(_("Error: SOS iterations must be >= 1. Defaulting to 1.\n"));
+				siril_log_message(_("Note: SOS iterations < 1. Defaulting to 1.\n"));
 				sos = 1;
 			} else if (sos > 10) {
 				siril_log_message(_("Note: high number of SOS iterations. Processing time may be lengthy...\n"));
 			}
-			if (!error) {
-				params->sos = sos;
-			}
+			params->sos = sos;
+		}
+		else {
+			siril_log_message(_("Unknown argument %s\n"), arg);
+			free_denoise_args(params);
+			free(params);
+			set_cursor_waiting(FALSE);
+			return CMD_ARG_ERROR;
 		}
 	}
 
 	// Validate parameter combinations
 	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
-		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
+		siril_log_color_message(
+			_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. Aborting.\n"),
+			"red"
+		);
 		free_denoise_args(params);
 		free(params);
 		set_cursor_waiting(FALSE);
@@ -724,7 +759,7 @@ int process_denoise(int nb) {
 
 	// Set up generic_img_args
 	args->fit = gfit;
-	args->mem_ratio = 3.0f; // Denoising needs extra memory for processing
+	args->mem_ratio = 3.0f; // Denoising needs extra memory
 	args->image_hook = denoise_image_hook;
 	args->idle_function = denoise_apply_idle;
 	args->description = _("NL-Bayes Denoising");
@@ -734,7 +769,7 @@ int process_denoise(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
@@ -760,7 +795,7 @@ int process_starnet(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Allocate StarNet parameters using the allocator
+	// Allocate StarNet parameters
 	starnet_data *starnet_params = new_starnet_args();
 	if (!starnet_params) {
 		PRINT_ALLOC_ERR;
@@ -775,43 +810,38 @@ int process_starnet(int nb) {
 	starnet_params->follow_on = FALSE;
 	starnet_params->starnet_fit = gfit;
 
-	// Parse arguments
-	gboolean error = FALSE;
+	/* Scan arguments (order-independent for -mask) */
+	gboolean mask_aware = FALSE;
 	for (int i = 1; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-stretch")) {
+		char *arg = word[i];
+		char *end;
+
+		if (!arg) continue;
+
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		} else if (g_str_has_prefix(arg, "-stretch")) {
 			starnet_params->linear = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-upscale")) {
+		} else if (g_str_has_prefix(arg, "-upscale")) {
 			starnet_params->upscale = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-nostarmask")) {
+		} else if (g_str_has_prefix(arg, "-nostarmask")) {
 			starnet_params->starmask = FALSE;
-		}
-		else if (g_str_has_prefix(arg, "-stride=")) {
+		} else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
 			int stride = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) {
-				error = TRUE;
+				siril_log_message(_("Error parsing stride argument, aborting.\n"));
+				free_starnet_args(starnet_params);
+				return CMD_ARG_ERROR;
 			} else if ((stride < 2) || (stride > 512) || (stride % 2)) {
-				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
+				siril_log_message(_("Stride must be an even integer in [2, 512], aborting.\n"));
 				free_starnet_args(starnet_params);
 				return CMD_ARG_ERROR;
 			}
-			if (!error) {
-				starnet_params->stride = g_strdup_printf("%d", stride);
-				starnet_params->customstride = TRUE;
-			}
-		}
-		else {
+			starnet_params->stride = g_strdup_printf("%d", stride);
+			starnet_params->customstride = TRUE;
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free_starnet_args(starnet_params);
-			return CMD_ARG_ERROR;
-		}
-		if (error) {
-			siril_log_message(_("Error parsing arguments, aborting.\n"));
 			free_starnet_args(starnet_params);
 			return CMD_ARG_ERROR;
 		}
@@ -841,7 +871,7 @@ int process_starnet(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
@@ -1255,6 +1285,26 @@ static gchar* imoper_log_hook(gpointer p, log_hook_detail detail) {
 
 // Main command function
 int process_imoper(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *filename = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else {
+			siril_log_color_message(_("Invalid argument %s\n"), "red", word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename) {
+		siril_log_color_message(_("Missing operand image filename\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
 	image_operator oper;
 	switch (word[0][1]) {
 		case 'a':
@@ -1278,7 +1328,7 @@ int process_imoper(int nb) {
 			return CMD_ARG_ERROR;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct imoper_data *imoper = calloc(1, sizeof(struct imoper_data));
 	if (!imoper) {
 		PRINT_ALLOC_ERR;
@@ -1287,10 +1337,10 @@ int process_imoper(int nb) {
 
 	imoper->destructor = free_imoper_data;
 	imoper->oper = oper;
-	imoper->filename = strdup(word[1]);
+	imoper->filename = strdup(filename);
 	imoper->force_to_float = !com.pref.force_16bit;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free_imoper_data(imoper);
@@ -1322,13 +1372,13 @@ int process_imoper(int nb) {
 	args->log_hook = imoper_log_hook;
 	args->max_threads = 1;  // imoper likely doesn't need multi-threading
 	args->for_preview = FALSE;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->for_roi = FALSE;
 
-	// Start the worker thread
+	/* Start the worker thread */
 	start_in_new_thread(generic_image_worker, args);
 
-	return CMD_OK;  // No longer need to return CMD_NOTIFY_GFIT_MODIFIED
+	return CMD_OK;
 }
 
 struct addmax_data {
@@ -1356,19 +1406,44 @@ static gchar *addmax_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 int process_addmax(int nb) {
-	// Allocate and read operand fits
+	if (nb < 2) {
+		siril_log_message(_("Missing operand filename\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean mask_aware = FALSE;
+	char *filename = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename) {
+		siril_log_message(_("Operand filename not specified\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and read operand fits */
 	fits *operand_fit = calloc(1, sizeof(fits));
 	if (!operand_fit) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
 
-	if (readfits(word[1], operand_fit, NULL, gfit->type == DATA_FLOAT)) {
+	if (readfits(filename, operand_fit, NULL, gfit->type == DATA_FLOAT)) {
 		free(operand_fit);
 		return CMD_INVALID_IMAGE;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct addmax_data *data = calloc(1, sizeof(struct addmax_data));
 	if (!data) {
 		clearfits(operand_fit);
@@ -1379,13 +1454,14 @@ int process_addmax(int nb) {
 	data->destructor = addmax_destructor;
 	data->operand_fit = operand_fit;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		addmax_destructor(data);
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
+
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = addmax_image_hook;
@@ -1395,7 +1471,7 @@ int process_addmax(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = addmax_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -1405,6 +1481,7 @@ int process_addmax(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
@@ -1435,26 +1512,55 @@ static gchar *fdiv_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 int process_fdiv(int nb) {
-	gchar *end;
-	float norm = g_ascii_strtod(word[2], &end);
-	if (end == word[2]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+	if (nb < 3) {
+		siril_log_message(_("Missing arguments: <operand> <norm>\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Allocate and read operand fits
+	gboolean mask_aware = FALSE;
+	char *filename = NULL;
+	char *norm_arg = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else if (!norm_arg) {
+			norm_arg = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename || !norm_arg) {
+		siril_log_message(_("Missing operand filename or normalization factor.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse norm */
+	gchar *end;
+	float norm = g_ascii_strtod(norm_arg, &end);
+	if (end == norm_arg) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), norm_arg);
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and read operand fits */
 	fits *operand_fit = calloc(1, sizeof(fits));
 	if (!operand_fit) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
 
-	if (readfits(word[1], operand_fit, NULL, !com.pref.force_16bit)) {
+	if (readfits(filename, operand_fit, NULL, !com.pref.force_16bit)) {
 		free(operand_fit);
 		return CMD_INVALID_IMAGE;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct fdiv_data *data = calloc(1, sizeof(struct fdiv_data));
 	if (!data) {
 		clearfits(operand_fit);
@@ -1466,7 +1572,7 @@ int process_fdiv(int nb) {
 	data->operand_fit = operand_fit;
 	data->norm = norm;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		fdiv_destructor(data);
@@ -1482,6 +1588,7 @@ int process_fdiv(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
+	args->mask_aware = mask_aware;
 	args->log_hook = fdiv_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -1491,6 +1598,7 @@ int process_fdiv(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
@@ -1528,12 +1636,17 @@ static gchar *fmul_log_hook(gpointer p, log_hook_detail detail) {
 // Main command function for fmul
 int process_fmul(int nb) {
 	gchar *end;
+	gboolean mask_aware = FALSE;
+
 	float coeff = g_ascii_strtod(word[1], &end);
 	if (end == word[1] || coeff <= 0.f) {
 		siril_log_message(_("Multiplying by a coefficient less than or equal to 0 is not possible.\n"));
 		return CMD_ARG_ERROR;
 	}
 
+	if (word[2] && !g_strcmp0(word[2], "-mask")) {
+		mask_aware = TRUE;
+	}
 	// Allocate and initialize user data
 	struct fmul_data *data = calloc(1, sizeof(struct fmul_data));
 	if (!data) {
@@ -1562,7 +1675,7 @@ int process_fmul(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = fmul_log_hook;
 	args->max_threads = 1;  // soper doesn't need multi-threading
 	args->for_preview = FALSE;
@@ -1606,10 +1719,14 @@ static gchar *gauss_log_hook(gpointer p, log_hook_detail detail) {
 // Main command function for gauss
 int process_gauss(int nb) {
 	gchar *end;
+	gboolean mask_aware = FALSE;
 	double sigma = g_ascii_strtod(word[1], &end);
 	if (end == word[1] || sigma <= 0.0) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
+	}
+	if (word[2] && !g_strcmp0(word[2], "-mask")) {
+		mask_aware = TRUE;
 	}
 
 	image_cfa_warning_check();
@@ -1641,7 +1758,7 @@ int process_gauss(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = gauss_log_hook;
 	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
 	args->for_preview = FALSE;
@@ -1733,18 +1850,23 @@ int process_entropy(int nb) {
 }
 
 int process_unpurple(int nb) {
-	gchar *end;
-	double mod = 1.0, thresh = 0.0;
+	gboolean mask_aware = FALSE;
 	gboolean withstarmask = FALSE;
+	double mod = 1.0, thresh = 0.0;
 
-	// Extract parameters
+	/* Scan arguments (order-independent) */
 	for (int i = 1; i < nb; i++) {
 		gchar *arg = word[i];
-		if (!g_strcmp0(arg, "-starmask")) {
+
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		}
+		else if (!g_strcmp0(arg, "-starmask")) {
 			withstarmask = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			gchar *val = arg + 5;
+			gchar *end;
 			mod = g_ascii_strtod(val, &end);
 			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
@@ -1753,22 +1875,26 @@ int process_unpurple(int nb) {
 		}
 		else if (g_str_has_prefix(arg, "-thresh=")) {
 			gchar *val = arg + 8;
+			gchar *end;
 			thresh = g_ascii_strtod(val, &end);
 			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				return CMD_ARG_ERROR;
 			}
 		}
+		else {
+			siril_log_color_message(_("Unknown argument %s\n"), "red", arg);
+			return CMD_ARG_ERROR;
+		}
 	}
 
-	// Allocate parameters
+	/* Allocate parameters */
 	struct unpurpleargs *params = new_unpurple_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Set parameters
 	params->mod_b = mod;
 	params->thresh = thresh;
 	params->withstarmask = withstarmask;
@@ -1776,7 +1902,7 @@ int process_unpurple(int nb) {
 	params->verbose = TRUE;
 	params->applying = TRUE;
 
-	// Set up starmask if needed
+	/* Set up starmask if needed */
 	params->starmask_needs_freeing = FALSE;
 	if (withstarmask) {
 		params->starmask = calloc(1, sizeof(fits));
@@ -1795,7 +1921,7 @@ int process_unpurple(int nb) {
 		params->starmask = NULL;
 	}
 
-	// Allocate worker args
+	/* Allocate worker args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -1803,11 +1929,10 @@ int process_unpurple(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Set up generic_img_args
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = unpurple_image_hook;
-	args->idle_function = NULL; // Use default
+	args->idle_function = NULL;
 	args->description = _("Unpurple Filter");
 	args->verbose = TRUE;
 	args->user = params;
@@ -1815,7 +1940,7 @@ int process_unpurple(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
 
@@ -1824,7 +1949,9 @@ int process_unpurple(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d\n"), mod, thresh, withstarmask);
+	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d, mask_aware: %d\n"),
+		mod, thresh, withstarmask, mask_aware);
+
 	return CMD_OK;
 }
 
@@ -1837,11 +1964,15 @@ int process_epf(int nb) {
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
 	gboolean guide_needs_freeing = FALSE;
+	gboolean mask_aware = FALSE;
 
 	for (int i = 1 ; i < nb ; i++) {
 		gchar *arg = word[i];
 		if (!g_strcmp0(arg, "-guided")) {
 			filter = EP_GUIDED;
+		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-guideimage=")) {
 			gchar *val = arg + 12;
@@ -1983,7 +2114,7 @@ int process_epf(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = params;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = epf_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -2555,6 +2686,9 @@ int parse_deconvolve(int first_arg, int nb, estk_data* data, nonblind_t type) {
 			}
 			kernel_loaded = TRUE;
 		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			data->mask_aware = TRUE;
+		}
 		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
 			float alpha = (float) g_ascii_strtod(arg, &end);
@@ -2676,7 +2810,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data; // Dynamic estk_data managed by generic worker
-		args->mask_aware = TRUE;
+		args->mask_aware = data->mask_aware;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;
@@ -2780,7 +2914,10 @@ int process_unsharp(int nb) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
-
+	gboolean mask_aware = FALSE;
+	if (word[3] && !g_strcmp0(word[3], "-mask")) {
+		mask_aware = TRUE;
+	}
 	// Allocate and initialize user data
 	struct unsharp_data *data = calloc(1, sizeof(struct unsharp_data));
 	if (!data) {
@@ -2809,7 +2946,7 @@ int process_unsharp(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = unsharp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -3063,8 +3200,6 @@ int process_ccm(int nb) {
 		worker_args->user = args;
 		worker_args->log_hook = ccm_log_hook;
 		worker_args->max_threads = com.max_thread;
-		worker_args->for_preview = FALSE;
-		worker_args->for_roi = FALSE;
 		worker_args->command = TRUE;  // This is being called from a command
 		worker_args->command_updates_gfit = TRUE;  // We need gfit to be updated
 
@@ -3159,12 +3294,13 @@ int process_wrecons(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *params, struct ght_data *seqdata) {
+int process_ght_args(int nb, gboolean ght_seq, gboolean *mask_aware, int stretchtype, ght_params *params, struct ght_data *seqdata) {
 	int stretch_colourmodel = COL_INDEP;
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
 	clip_mode_t clip_mode = RGBBLEND;
+	*mask_aware = FALSE;
 	double D = NAN, B = 0.0 , LP = 0.0, SP = 0.0, HP = 1.0, BP = NAN;
 
 	for (int i = (ght_seq ? 2 : 1) ; i < nb ; i++) {
@@ -3191,6 +3327,9 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 		}
 		else if (!strcmp(arg, "GB")) {
 			do_red = FALSE;
+		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			*mask_aware = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-clipmode=")) {
 			char *argument = word[i] + 10;
@@ -3365,7 +3504,8 @@ int process_seq_ghs(int nb, int stretchtype) {
 		seqdata->params_ght = params;
 	}
 
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	gboolean mask_aware; // we don't use it for the sequence processing but need to provide it to process_ght_args
+	int retval = process_ght_args(nb, TRUE, &mask_aware, stretchtype, params, seqdata);
 	if (retval) {
 		free(params);
 		free(seqdata->seqEntry);
@@ -3411,6 +3551,7 @@ int process_seq_linstretch(int nb) {
 int process_mtf(int nb) {
 	struct mtf_params params;
 	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
+	gboolean mask_aware = FALSE;
 	gchar *end1, *end2, *end3;
 	params.shadows = g_ascii_strtod(word[1], &end1);
 	params.midtones = g_ascii_strtod(word[2], &end2);
@@ -3426,26 +3567,24 @@ int process_mtf(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	if (word[4]) {
-		if (!strcmp(word[4], "R")) {
+	// Parse optional arguments (channel and/or -mask flag)
+	for (int i = 4; word[i]; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!strcmp(word[i], "R")) {
 			params.do_green = FALSE;
 			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "G")) {
+		} else if (!strcmp(word[i], "G")) {
 			params.do_red = FALSE;
 			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "B")) {
+		} else if (!strcmp(word[i], "B")) {
 			params.do_green = FALSE;
 			params.do_red = FALSE;
-		}
-		if (!strcmp(word[4], "RG")) {
+		} else if (!strcmp(word[i], "RG")) {
 			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "RB")) {
+		} else if (!strcmp(word[i], "RB")) {
 			params.do_green = FALSE;
-		}
-		if (!strcmp(word[4], "GB")) {
+		} else if (!strcmp(word[i], "GB")) {
 			params.do_red = FALSE;
 		}
 	}
@@ -3485,6 +3624,7 @@ int process_mtf(int nb) {
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data;
+		args->mask_aware = mask_aware;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;
@@ -3517,7 +3657,8 @@ int process_ghs(int nb, int stretchtype) {
 		return CMD_ALLOC_ERROR;
 
 	struct ght_data *seqdata = NULL;
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	gboolean mask_aware;
+	int retval = process_ght_args(nb, FALSE, &mask_aware, stretchtype, params, seqdata);
 	if (retval) {
 		free(params);
 		return CMD_ARG_ERROR;
@@ -3560,7 +3701,7 @@ int process_ghs(int nb, int stretchtype) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
@@ -3606,7 +3747,7 @@ int process_ghs(int nb, int stretchtype) {
 
 int process_autoghs(int nb) {
 	int argidx = 1;
-	gboolean linked = FALSE;
+	gboolean linked = FALSE, mask_aware = FALSE;
 	clip_mode_t clip_mode = RGBBLEND;
 	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
 
@@ -3671,6 +3812,9 @@ int process_autoghs(int nb) {
 				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
 				return CMD_ARG_ERROR;
 			}
+		}
+		else if (!g_strcmp0(word[argidx], "-mask")) {
+			mask_aware = TRUE;
 		}
 		argidx++;
 	}
@@ -3746,7 +3890,7 @@ int process_autoghs(int nb) {
 		args->command = TRUE; // calling as command, not from GUI
 		args->verbose = TRUE;
 		args->user = data;
-		args->mask_aware = TRUE;
+		args->mask_aware = mask_aware;
 		args->max_threads = com.max_thread;
 		args->for_preview = FALSE;
 		args->for_roi = FALSE;
@@ -3791,9 +3935,19 @@ int process_autoghs(int nb) {
 int process_autostretch(int nb) {
 	int arg_index = 1;
 	gboolean linked = FALSE;
-	if (nb > 1 && !strcmp(word[1], "-linked")) {
-		linked = TRUE;
-		arg_index++;
+	gboolean mask_aware = FALSE;
+
+	/* Parse optional flags (order-independent) */
+	while (arg_index < nb) {
+		if (!strcmp(word[arg_index], "-linked")) {
+			linked = TRUE;
+			arg_index++;
+		} else if (!strcmp(word[arg_index], "-mask")) {
+			mask_aware = TRUE;
+			arg_index++;
+		} else {
+			break; /* first non-flag argument */
+		}
 	}
 
 	gchar *end = NULL;
@@ -3818,26 +3972,27 @@ int process_autostretch(int nb) {
 
 	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
 			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+
 	image_cfa_warning_check();
 
-	// Create data structure
+	/* Create data structure */
 	struct mtf_data *data = create_mtf_data();
 	if (!data) {
 		return CMD_ALLOC_ERROR;
 	}
-
 	data->fit = gfit;
 	data->auto_display_compensation = FALSE;
 	data->is_preview = FALSE;
 	data->linked = linked;
 
-	// Create generic_img_args
+	/* Create generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		destroy_mtf_data(data);
 		return CMD_ALLOC_ERROR;
 	}
-	// Compute the autostretch parameters
+
+	/* Compute the autostretch parameters */
 	if (linked) {
 		find_linked_midtones_balance(gfit, shadows_clipping, target_bg, &data->params);
 		data->params.do_red = data->params.do_green = data->params.do_blue = TRUE;
@@ -3858,15 +4013,14 @@ int process_autostretch(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 
-	// Run worker synchronously - cleanup happens via destructor
+	/* Run worker synchronously - cleanup happens via destructor */
 	gpointer result = generic_image_worker(args);
 	int retval = GPOINTER_TO_INT(result);
-
 	if (retval != 0) {
 		return CMD_GENERIC_ERROR;
 	}
@@ -4004,6 +4158,7 @@ int process_asinh(int nb) {
 	arg_offset++;
 
 	double offset = 0.0;
+	gboolean use_mask = FALSE;
 	while (arg_offset < nb) {
 		if (g_str_has_prefix(word[arg_offset], "-clipmode=")) {
 			char *argument = word[arg_offset] + 10;
@@ -4019,6 +4174,8 @@ int process_asinh(int nb) {
 				siril_log_color_message(_("Invalid clip mode %s, aborting.\n"), "red", argument);
 				return CMD_ARG_ERROR;
 			}
+		} else if (g_str_has_prefix(word[arg_offset], "-mask")) {
+			use_mask = TRUE;
 		} else {
 			offset = g_ascii_strtod(word[arg_offset], &end);
 			if (end == word[arg_offset]) {
@@ -4063,7 +4220,7 @@ int process_asinh(int nb) {
 	args->user = params;
 	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
-	args->mask_aware = TRUE;
+	args->mask_aware = use_mask;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 
@@ -4133,7 +4290,7 @@ int process_clahe(int nb) {
 	args->command = TRUE; // calling as command, not from GUI
 	args->verbose = TRUE;
 	args->user = params;
-	args->mask_aware = TRUE;
+	args->mask_aware = word[3] && g_strcmp0(word[3], "-mask") == 0; // handle the -mask flag to set mask_aware state
 	args->log_hook = clahe_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -6840,47 +6997,80 @@ static gchar *thresh_log_hook(gpointer p, log_hook_detail detail) {
 
 // Unified threshold processing function
 int process_thresh(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
 	gchar *end1, *end2;
+
 	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
 	thresh_type type;
 	int lo = 0, hi = maxlevel;
 
-	// Determine operation type by examining word[0]
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* Determine operation type by command name */
 	if (strcmp(word[0], "thresh") == 0) {
+		if (num_index != 2)
+			return CMD_ARG_ERROR;
+
 		type = THRESH_BOTH;
-		lo = g_ascii_strtoull(word[1], &end1, 10);
-		if (end1 == word[1] || lo < 0 || lo > maxlevel) {
+
+		lo = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || lo < 0 || lo > maxlevel) {
 			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 			return CMD_ARG_ERROR;
 		}
-		hi = g_ascii_strtoull(word[2], &end2, 10);
-		if (end2 == word[2] || hi < 0 || hi > maxlevel) {
+
+		hi = g_ascii_strtoull(num_args[1], &end2, 10);
+		if (end2 == num_args[1] || hi < 0 || hi > maxlevel) {
 			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 			return CMD_ARG_ERROR;
 		}
+
 		if (lo >= hi) {
 			siril_log_message(_("lo must be strictly smaller than hi\n"));
 			return CMD_ARG_ERROR;
 		}
+
 	} else if (strcmp(word[0], "threshlo") == 0) {
+		if (num_index != 1)
+			return CMD_ARG_ERROR;
+
 		type = THRESH_LO;
-		lo = g_ascii_strtoull(word[1], &end1, 10);
-		if (end1 == word[1] || lo < 0 || lo > maxlevel) {
+
+		lo = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || lo < 0 || lo > maxlevel) {
 			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 			return CMD_ARG_ERROR;
 		}
+
 	} else if (strcmp(word[0], "threshhi") == 0) {
+		if (num_index != 1)
+			return CMD_ARG_ERROR;
+
 		type = THRESH_HI;
-		hi = g_ascii_strtoull(word[1], &end1, 10);
-		if (end1 == word[1] || hi < 0 || hi > maxlevel) {
+
+		hi = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || hi < 0 || hi > maxlevel) {
 			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 			return CMD_ARG_ERROR;
 		}
+
 	} else {
 		return CMD_ARG_ERROR;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct thresh_data *data = calloc(1, sizeof(struct thresh_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -6892,7 +7082,7 @@ int process_thresh(int nb) {
 	data->lo = lo;
 	data->hi = hi;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free(data);
@@ -6909,13 +7099,13 @@ int process_thresh(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = thresh_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 
-	// Start the worker thread
+	/* Start the worker thread */
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -6923,6 +7113,7 @@ int process_thresh(int nb) {
 
 	return CMD_OK;
 }
+
 
 // Structure for neg operation (simple, no extra data needed)
 struct neg_data {
@@ -6944,6 +7135,10 @@ int process_neg(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
+	gboolean use_mask = FALSE;
+	if (!g_strcmp0(word[1], "-mask")) {
+		use_mask = TRUE;
+	}
 	data->destructor = NULL;
 
 	// Allocate and initialize generic_img_args
@@ -6963,7 +7158,7 @@ int process_neg(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = use_mask;
 	// No log_hook required here as the basic description is enough
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -7068,26 +7263,49 @@ static gchar *ddp_log_hook(gpointer p, log_hook_detail detail) {
 
 // Main command function
 int process_ddp(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[3] = { NULL, NULL, NULL };
+	int num_index = 0;
 	gchar *end;
-	float level = (float) g_ascii_strtod(word[1], &end);
-	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 3) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (num_index != 3) {
+		siril_log_message(_("DDP requires 3 numeric arguments: level coeff sigma\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	float level = (float) g_ascii_strtod(num_args[0], &end);
+	if (end == num_args[0] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
-	float coeff = g_ascii_strtod(word[2], &end);
-	if (end == word[2] || coeff < 0) {
+
+	float coeff = g_ascii_strtod(num_args[1], &end);
+	if (end == num_args[1] || coeff < 0) {
 		siril_log_message(_("Coeff value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
-	float sigma = g_ascii_strtod(word[3], &end);
-	if (end == word[3] || sigma < 0) {
+
+	float sigma = g_ascii_strtod(num_args[2], &end);
+	if (end == num_args[2] || sigma < 0) {
 		siril_log_message(_("Sigma value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	image_cfa_warning_check();
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct ddp_data *ddp_args = calloc(1, sizeof(struct ddp_data));
 	if (!ddp_args) {
 		PRINT_ALLOC_ERR;
@@ -7099,7 +7317,7 @@ int process_ddp(int nb) {
 	ddp_args->coeff = coeff;
 	ddp_args->sigma = sigma;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free(ddp_args);
@@ -7116,13 +7334,13 @@ int process_ddp(int nb) {
 	args->command_updates_gfit = TRUE;  // This command modifies gfit
 	args->command = TRUE; // calling as command, not from GUI
 	args->user = ddp_args;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = ddp_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 
-	// Start the worker thread
+	/* Start the worker thread */
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -7130,6 +7348,7 @@ int process_ddp(int nb) {
 
 	return CMD_OK;
 }
+
 
 int process_new(int nb){
 	int width, height, layers;
@@ -7217,14 +7436,44 @@ static gchar *ffill_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 int process_ffill(int nb) {
-	gchar *end;
+	if (nb < 2) {
+		siril_log_message(_("Missing fill level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean mask_aware = FALSE;
+	char *level_arg = NULL;
 	rectangle area;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+	gchar *end;
+
+	/* Scan arguments to find level and optional -mask */
+	for (int i = 1; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else if (i >= 2 && nb >= 6) {
+			// Assume rectangle coordinates if provided
+			continue;
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Missing fill level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse fill level */
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg || level < 0 || level > USHRT_MAX) {
 		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
 
+	/* Determine area */
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
 			gchar *endx, *endy, *endw, *endh;
@@ -7233,8 +7482,8 @@ int process_ffill(int nb) {
 			area.w = g_ascii_strtoull(word[4], &endw, 10);
 			area.h = g_ascii_strtoull(word[5], &endh, 10);
 			if (endx == word[2] || endy == word[3] || endw == word[4]
-					|| endh == word[5] || (area.w + area.x > gfit->rx)
-					|| (area.h + area.y > gfit->ry)) {
+				|| endh == word[5] || (area.w + area.x > gfit->rx)
+				|| (area.h + area.y > gfit->ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -7246,7 +7495,7 @@ int process_ffill(int nb) {
 		area = com.selection;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct ffill_data *data = calloc(1, sizeof(struct ffill_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -7256,7 +7505,7 @@ int process_ffill(int nb) {
 	data->level = level;
 	data->area = area;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free(data);
@@ -7272,6 +7521,7 @@ int process_ffill(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
+	args->mask_aware = mask_aware;
 	args->log_hook = ffill_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -7281,6 +7531,7 @@ int process_ffill(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
@@ -7656,25 +7907,55 @@ int process_seq_cosme(int nb) {
 	return CMD_OK;
 }
 
-int process_fmedian(int nb){
-	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
+int process_fmedian(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
 	gchar *end1, *end2;
-	params->ksize = g_ascii_strtoull(word[1], &end1, 10);
-	params->amount = g_ascii_strtod(word[2], &end2);
-	params->iterations = 1;
-	if (end1 == word[1] || !(params->ksize & 1) || params->ksize < 2 || params->ksize > 15) {
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (num_index != 2) {
+		siril_log_message(_("Median filter requires 2 arguments: ksize amount\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and initialize parameters */
+	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->ksize = g_ascii_strtoull(num_args[0], &end1, 10);
+	if (end1 == num_args[0] || !(params->ksize & 1) ||
+	    params->ksize < 3 || params->ksize > 15) {
 		siril_log_message(_("The size of the kernel MUST be odd and in the range [3, 15].\n"));
 		free(params);
 		return CMD_ARG_ERROR;
 	}
-	if (end2 == word[2] || params->amount < 0.0 || params->amount > 1.0) {
+
+	params->amount = g_ascii_strtod(num_args[1], &end2);
+	if (end2 == num_args[1] || params->amount < 0.0 || params->amount > 1.0) {
 		siril_log_message(_("Modulation value MUST be between 0 and 1\n"));
 		free(params);
 		return CMD_ARG_ERROR;
 	}
+
+	params->iterations = 1;
 	params->fit = gfit;
 
-	// Allocate worker args
+	/* Allocate worker args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -7685,13 +7966,13 @@ int process_fmedian(int nb){
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = median_image_hook;
-	args->idle_function = NULL; // No idle function for command execution
+	args->idle_function = NULL;
 	args->description = _("Median filter");
 	args->command_updates_gfit = TRUE;
-	args->command = TRUE; // calling as command, not from GUI
+	args->command = TRUE;
 	args->verbose = FALSE;
 	args->user = params;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = median_log_hook;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
@@ -7700,7 +7981,7 @@ int process_fmedian(int nb){
 	image_cfa_warning_check();
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
-		free(params);
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -7823,17 +8104,19 @@ static gchar *fill_log_hook(gpointer p, log_hook_detail detail) {
 int process_fill(int nb) {
 	rectangle area;
 	gchar *end;
+	gboolean mask_aware = FALSE;
 
+	/* Determine area */
 	if ((!com.selection.h) || (!com.selection.w)) {
-		if (nb == 6) {
+		if (nb >= 6) {
 			gchar *endx, *endy, *endw, *endh;
 			area.x = g_ascii_strtoull(word[2], &endx, 10);
 			area.y = g_ascii_strtoull(word[3], &endy, 10);
 			area.w = g_ascii_strtoull(word[4], &endw, 10);
 			area.h = g_ascii_strtoull(word[5], &endh, 10);
 			if (endx == word[2] || endy == word[3] || endw == word[4]
-					|| endh == word[5] || (area.w + area.x > gfit->rx)
-					|| (area.h + area.y > gfit->ry)) {
+				|| endh == word[5] || (area.w + area.x > gfit->rx)
+				|| (area.h + area.y > gfit->ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -7847,13 +8130,35 @@ int process_fill(int nb) {
 		area = com.selection;
 	}
 
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+	/* Scan arguments to find level and optional -mask */
+	char *level_arg = NULL;
+	for (int i = 1; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else if (i >= 2 && nb >= 6) {
+			// Skip rectangle arguments if present
+			continue;
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Missing fill value argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse fill level */
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg || level < 0 || level > USHRT_MAX) {
 		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
 
-	// Allocate and initialize user data
+	/* Allocate and initialize user data */
 	struct fill_data *data = calloc(1, sizeof(struct fill_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -7863,7 +8168,7 @@ int process_fill(int nb) {
 	data->level = level;
 	data->area = area;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free(data);
@@ -7879,6 +8184,7 @@ int process_fill(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
+	args->mask_aware = mask_aware;
 	args->log_hook = fill_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -7888,6 +8194,7 @@ int process_fill(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
@@ -7908,14 +8215,40 @@ static gchar *offset_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 int process_offset(int nb) {
-	gchar *end;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1]) {
-		siril_log_message(_("Wrong parameters.\n"));
+	if (nb < 2) {
+		siril_log_message(_("Missing offset level argument.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Allocate and initialize user data
+	gboolean mask_aware = FALSE;
+	char *level_arg = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Offset level argument not specified.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse level */
+	gchar *end;
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg) {
+		siril_log_message(_("Invalid offset level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and initialize user data */
 	struct offset_data *data = calloc(1, sizeof(struct offset_data));
 	if (!data) {
 		PRINT_ALLOC_ERR;
@@ -7924,13 +8257,14 @@ int process_offset(int nb) {
 	data->destructor = NULL;
 	data->level = (float)level;
 
-	// Allocate and initialize generic_img_args
+	/* Allocate and initialize generic_img_args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		free(data);
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
+
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = offset_image_hook;
@@ -7940,7 +8274,7 @@ int process_offset(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 	args->user = data;
-	args->mask_aware = TRUE;
+	args->mask_aware = mask_aware;
 	args->log_hook = offset_log_hook;
 	args->max_threads = 1;
 	args->for_preview = FALSE;
@@ -7950,42 +8284,67 @@ int process_offset(int nb) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
 /* Command interpreter function for SCNR using generic_image_worker */
 int process_scnr(int nb) {
-	// Parse command arguments
-	scnr_type type = SCNR_AVERAGE_NEUTRAL;
-	double amount = 0.0;
+	gboolean mask_aware = FALSE;
 	gboolean preserve = TRUE;
-	int argidx = 1;
 
-	if (argidx < nb && !g_strcmp0(word[argidx], "-nopreserve")) {
-		preserve = FALSE;
-		argidx++;
-	}
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
 
-	if (argidx < nb) {
-		gchar *end;
-		type = g_ascii_strtoull(word[argidx], &end, 10);
-		if (end == word[argidx] || type > 3) {
-			siril_log_message(_("Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
+	/* Scan arguments (order-independent flags) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!strcmp(word[i], "-nopreserve")) {
+			preserve = FALSE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
 			return CMD_ARG_ERROR;
 		}
-		argidx++;
 	}
 
-	if (argidx < nb && (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK)) {
+	scnr_type type = SCNR_AVERAGE_NEUTRAL;
+	double amount = 0.0;
+
+	/* Parse type (optional) */
+	if (num_index >= 1) {
 		gchar *end;
-		amount = g_ascii_strtod(word[argidx], &end);
-		if (end == word[argidx] || amount < 0.0 || amount > 1.0) {
+		type = g_ascii_strtoull(num_args[0], &end, 10);
+		if (end == num_args[0] || type > 3) {
+			siril_log_message(
+				_("Type can either be 0 (average neutral), "
+				  "1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* Parse amount (required only for mask types) */
+	if (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK) {
+		if (num_index < 2) {
+			siril_log_message(_("Amount argument is required for mask modes\n"));
+			return CMD_ARG_ERROR;
+		}
+
+		gchar *end;
+		amount = g_ascii_strtod(num_args[1], &end);
+		if (end == num_args[1] || amount < 0.0 || amount > 1.0) {
 			siril_log_message(_("Amount can only be [0, 1]\n"));
 			return CMD_ARG_ERROR;
 		}
+	} else if (num_index > 1) {
+		/* Too many numeric arguments */
+		siril_log_message(_("Too many arguments\n"));
+		return CMD_ARG_ERROR;
 	}
 
-	// Allocate parameters
+	/* Allocate parameters */
 	struct scnr_data *params = new_scnr_data();
 	if (!params) {
 		PRINT_ALLOC_ERR;
@@ -7998,7 +8357,7 @@ int process_scnr(int nb) {
 	params->verbose = TRUE;
 	params->applying = TRUE;
 
-	// Allocate worker args
+	/* Allocate worker args */
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -8010,7 +8369,7 @@ int process_scnr(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.5f;
 	args->image_hook = scnr_image_hook;
-	args->idle_function = NULL; // Use default idle for commands
+	args->idle_function = NULL;
 	args->description = _("SCNR");
 	args->verbose = TRUE;
 	args->user = params;
@@ -8018,14 +8377,15 @@ int process_scnr(int nb) {
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->mask_aware = TRUE;
-	args->command = TRUE;  // This is being called from a command
-	args->command_updates_gfit = TRUE;  // We need gfit to be updated
+	args->mask_aware = mask_aware;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 

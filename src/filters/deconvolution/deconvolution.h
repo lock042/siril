@@ -99,6 +99,7 @@ EXTERNC typedef struct estk_data {
     gboolean recalc_ks; // for the makepsf stars option
     gboolean stars_need_clearing; // for the makepsf stars option
     gboolean previewing; // Added field
+    gboolean mask_aware; // Added for mask operations
 } estk_data;
 
 EXTERNC void free_estk_data(void *p);
