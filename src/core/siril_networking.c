@@ -35,6 +35,10 @@
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
 
+#define STR_INDIR(x) #x 
+#define STR(x) STR_INDIR(x)
+#define SIRIL_USER_AGENT "siril/" STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) " (https://gitlab.com/free-astro/siril/)"
+
 // Uncomment the next line for some additional debug printing
 // #define NETWORKING_DEBUG
 
@@ -68,7 +72,7 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	if (request_type == HTTP_POST) {
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
@@ -199,7 +203,7 @@ char* fetch_url_range_with_curl(void* curlp, const gchar *url, size_t start, siz
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
 
@@ -285,7 +289,7 @@ char* fetch_url_range(const gchar *url, size_t start, size_t length,
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, &content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, range_header);
 
@@ -369,25 +373,43 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 	return (res != CURLE_OK ? 1 : 0);
 }
 
+// null callback
+static size_t cbk_null(void *ptr, size_t size, size_t nmemb, void *data) {
+    return size * nmemb;
+}
+
+/**
+ * Checks if a URL is up and supports Range requests.
+ * Returns:
+ * - >0 (ms) if UP and supports Range (206)
+ * - -2      if UP but NO Range support (200)
+ * - -1      if DOWN or Error
+ */
 int http_check(const gchar *url) {
 	CURL *curl;
 	CURLcode res;
-	int time_ms = -1;
+	int result_val = -1;
 
-	if (!url) {
-		return -1;
-	}
+	if (!url) return -1;
 
 	curl = curl_easy_init();
-	if (!curl) {
+	if (!curl) return -1;
+
+	CURLcode retval;
+	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
+	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_null);
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
+	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
+	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	retval |= curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+	retval |= curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+	if (retval) {
+		siril_debug_print("Error in curl_easy_setopt()\n");
+		curl_easy_cleanup(curl);
 		return -1;
 	}
-
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);        // HEAD request
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);       // 5 second timeout
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);      // Thread-safe
 
 	res = curl_easy_perform(curl);
 
@@ -395,16 +417,20 @@ int http_check(const gchar *url) {
 		long response_code;
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-		// Consider 2xx and 3xx status codes as "up"
-		if (response_code >= 200 && response_code < 400) {
+		if (response_code == 206) {
+			// Success: Server is up and handled the range request
 			double total_time;
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
-			time_ms = (int)(total_time * 1000.0);
+			result_val = (int)(total_time * 1000.0);
+		}
+		else if (response_code == 200) {
+			// Server is up, but ignored the Range header
+			result_val = -2;
 		}
 	}
 
 	curl_easy_cleanup(curl);
-	return time_ms;
+	return result_val;
 }
 
 gboolean siril_compiled_with_networking() {
