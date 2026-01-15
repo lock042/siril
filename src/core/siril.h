@@ -721,9 +721,11 @@ typedef struct _child_info {
 
 struct historic_struct {
 	char *filename;
+	char *mask_filename;
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
+	uint8_t mask_bitpix;
 	wcs_info wcsdata;
 	struct wcsprm *wcslib;
 	double focal_length;

@@ -1709,7 +1709,7 @@ gpointer generic_image_worker(gpointer p) {
 			args->retval = 1;
 			goto the_end_no_orig;
 		}
-		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
 			siril_log_color_message(_("Failed to copy original image.\n"), "red");
 			args->retval = 1;
 			goto the_end_no_orig;

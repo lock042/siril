@@ -2182,8 +2182,22 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 	if (oper & CP_COPYMASK) {
 		if (from->mask) {
-			to->mask = malloc(nbdata * sizeof(uint8_t));
-			memcpy(to->mask, from->mask, nbdata * sizeof(uint8_t));
+			to->mask = calloc(1, sizeof(mask_t));
+			if (!to->mask) {
+				PRINT_ALLOC_ERR;
+			} else {
+				to->mask->bitpix = from->mask->bitpix;
+				to->mask_active = from->mask_active;
+				int elem_size = to->mask->bitpix >> 3;
+				to->mask->data = malloc(nbdata * elem_size);
+				if (to->mask->data) {
+					memcpy(to->mask->data, from->mask->data, nbdata * elem_size);
+				} else {
+					PRINT_ALLOC_ERR;
+					free(to->mask);
+					to->mask = NULL;
+				}
+			}
 		} else {
 			to->mask = NULL;
 		}

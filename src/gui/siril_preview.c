@@ -111,7 +111,8 @@ void copy_gfit_to_backup() {
 		siril_log_color_message(_("Warning: insufficient memory available to create a preview.\n"), "salmon");
 		return;
 	}
-	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+	// We need the backup to have the mask state copied to it, because image operations start from the backup if a preview is active
+	if (copyfits(gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_COPYMASK | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
@@ -130,7 +131,8 @@ int copy_backup_to_gfit() {
 	if (!gfit->data && !gfit->fdata)
 		retval = 1;
 	else {
-		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA, -1)) {
+		// Restore the mask state too
+		if (copyfits(&preview_gfit_backup, gfit, CP_COPYA | CP_COPYMASK, -1)) {
 			siril_debug_print("Image copy error in previews\n");
 			retval = 1;
 		} else if (!com.script) {

@@ -20,6 +20,7 @@
 #include "core/siril.h"
 #include "core/masks.h"
 #include "core/processing.h"
+#include "core/undo.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -489,6 +490,8 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* Get invert option */
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_mask_stars_invert));
 
+
+	undo_save_state(gfit, _("Create mask from stars"));
 	/* Create mask from stars */
 	int result = mask_create_from_stars(gfit, star_radius, bitdepth);
 
