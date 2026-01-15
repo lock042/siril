@@ -18,6 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* TODO: is there an opportunity to make this more efficient so that
+ * either an image-only undo state, a mask-only undo state or a "both"
+ * undo state can be saved, to reduce the size of undo states in storage?
+ * The "both" state would apply to geometry changing operations. */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>

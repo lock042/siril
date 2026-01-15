@@ -91,7 +91,7 @@ static void clear_backup_icc() {
 
 int backup_roi() {
 	int retval;
-	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
+	if ((retval = copyfits(&gui.roi.fit, &preview_roi_backup, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
 		siril_debug_print("Image copy error in ROI\n");
 
 	return retval;
@@ -99,7 +99,7 @@ int backup_roi() {
 
 int restore_roi() {
 	int retval;
-	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)))
+	if ((retval = copyfits(&preview_roi_backup, &gui.roi.fit, CP_ALLOC | CP_COPYA | CP_FORMAT | CP_COPYMASK, -1)))
 		siril_debug_print("Image copy error in ROI\n");
 
 	return retval;
