@@ -5463,7 +5463,7 @@ class SirilInterface:
 
         Note that as the mask is retrieved separately from the image, no checking
         is done to ensure that the dimensions are the same as that of a FFit class:
-        the script writer must do this for themselves.
+        the script writer must do this for themselves. Added: v1.1.0
 
         Args:
         none.
@@ -5572,7 +5572,7 @@ class SirilInterface:
 
     def set_image_mask(self, mask_data: np.ndarray) -> bool:
         """
-        Send image mask data to Siril using shared memory.
+        Send image mask data to Siril using shared memory. Added: v1.1.0
 
         Args:
             mask_data: numpy.ndarray containing the image data.
@@ -5671,7 +5671,9 @@ class SirilInterface:
 
     def set_image_mask_state(self, state: bool) -> bool:
         """
-        Set the state of the mask in Siril to either active or inactive
+        Set the state of the mask in Siril to either active or inactive.
+        Added: v1.1.0
+
         Args:
             state: bool. If True, the mask will be set active; if False,
                    the mask will be set inactive.
@@ -5701,7 +5703,7 @@ class SirilInterface:
     def get_image_mask_state(self) -> Optional[bool]:
 
         """
-        Request the Screen Transfer Function in use in Siril.
+        Request the image mask state in Siril. Added: v1.1.0
 
         Returns:
             bool: True if the image mask is active, False if the image mask is not
@@ -5724,7 +5726,8 @@ class SirilInterface:
     def _mask_update_polygon(self, poly: Polygon, adding: bool):
         """
         Adds or subtracts a user polygon to / from the Siril image mask. This is an internal
-        function used by mask_add_polygon() and mask_subtract_polygon()
+        function used by mask_add_polygon() and mask_subtract_polygon(). Added: v1.1.1
+
         Args:
             polygon: Polygon defining the polygon to be added
             adding: bool speficying whether to add or subtract the polygon.
@@ -5801,7 +5804,7 @@ class SirilInterface:
 
     def mask_add_polygon(self, poly: Polygon):
         """
-        Adds a user polygon to the Siril image mask.
+        Adds a user polygon to the Siril image mask. Added: v1.1.1
 
         Args:
             polygon: Polygon defining the polygon to be added
@@ -5816,7 +5819,7 @@ class SirilInterface:
 
     def mask_subtract_polygon(self, poly: Polygon):
         """
-        Subtracts a user polygon from the Siril image mask.
+        Subtracts a user polygon from the Siril image mask. Added: v1.1.1
 
         Args:
             polygon: Polygon defining the polygon to be added
