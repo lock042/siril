@@ -3591,55 +3591,49 @@ int process_mtf(int nb) {
 
 	image_cfa_warning_check();
 
-	if (inverse) {
-		// For inverse MTF, use direct call for now
-		// TODO: Create inverse_mtf_single_image_hook if needed for mask support
-		apply_linked_pseudoinverse_mtf_to_fits(gfit, gfit, params, TRUE);
-	} else {
-		// Create data structure
-		struct mtf_data *data = create_mtf_data();
-		if (!data) {
-			return CMD_ALLOC_ERROR;
-		}
-
-		data->fit = gfit;
-		data->params = params;
-		data->auto_display_compensation = FALSE;
-		data->is_preview = FALSE;
-
-		// Create generic_img_args
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		if (!args) {
-			destroy_mtf_data(data);
-			return CMD_ALLOC_ERROR;
-		}
-
-		args->fit = gfit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = mtf_single_image_hook;
-		args->log_hook = mtf_log_hook;
-		args->idle_function = NULL;  // No idle in command mode
-		args->description = _("Midtones Transfer Function");
-		args->command_updates_gfit = TRUE;
-		args->command = TRUE; // calling as command, not from GUI
-		args->verbose = TRUE;
-		args->user = data;
-		args->mask_aware = mask_aware;
-		args->max_threads = com.max_thread;
-		args->for_preview = FALSE;
-		args->for_roi = FALSE;
-
-		// Run worker synchronously - cleanup happens via destructor
-		gpointer result = generic_image_worker(args);
-		int retval = GPOINTER_TO_INT(result);
-
-		if (retval != 0) {
-			return CMD_GENERIC_ERROR;
-		}
-
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-			params.shadows, params.midtones, params.highlights);
+	// Create data structure
+	struct mtf_data *data = create_mtf_data();
+	if (!data) {
+		return CMD_ALLOC_ERROR;
 	}
+
+	data->fit = gfit;
+	data->params = params;
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+
+	// Create generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_mtf_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = inverse ? invmtf_single_image_hook : mtf_single_image_hook;
+	args->log_hook = inverse ? invmtf_log_hook : mtf_log_hook;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = inverse ? _("Inverse Midtones Transfer Function") : _("Midtones Transfer Function");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run worker synchronously - cleanup happens via destructor
+	gpointer result = generic_image_worker(args);
+	int retval = GPOINTER_TO_INT(result);
+
+	if (retval != 0) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+		params.shadows, params.midtones, params.highlights);
 
 	// Add to history
 	char log[90];

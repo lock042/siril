@@ -1119,6 +1119,14 @@ void update_gfit_histogram_if_needed() {
 	}
 }
 
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data)
+		return 1;
+	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
+	return 0;
+}
+
 int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	struct mtf_data *data = (struct mtf_data *)args->user;
 	if (!data)
@@ -1579,6 +1587,13 @@ static gchar* generate_stretch_log_message(gpointer p, int invocation, log_hook_
 		}
 	}
 	return log_string;
+}
+
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
+	struct mtf_data *data = (struct mtf_data*) p;
+	gchar *message = g_strdup_printf(_("Inverse MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
+						data->params.shadows, data->params.midtones, data->params.highlights);
+	return message;
 }
 
 gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
