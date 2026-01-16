@@ -373,9 +373,19 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 	return (res != CURLE_OK ? 1 : 0);
 }
 
-// null callback
-static size_t cbk_null(void *ptr, size_t size, size_t nmemb, void *data) {
-    return size * nmemb;
+// abort callback
+static size_t cbk_abort(void *ptr, size_t size, size_t nmemb, void *data) {
+	size_t total = size * nmemb;
+	
+	// If it's exactly 1 byte, we assume it's our requested range.
+	// We "consume" it to let the connection close gracefully (CURLE_OK).
+	if (total == 1) {
+		return total;
+	}
+
+	// If it's anything else, it's likely the entire request body so we
+	// return zero to kill the connection immediately (CURLE_WRITE_ERROR).
+	return 0;
 }
 
 /**
@@ -398,7 +408,7 @@ int http_check(const gchar *url) {
 	CURLcode retval;
 	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_null);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_abort);
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, SIRIL_USER_AGENT);
 	retval |= curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -413,13 +423,13 @@ int http_check(const gchar *url) {
 
 	res = curl_easy_perform(curl);
 
-	if (res == CURLE_OK) {
+	if (res == CURLE_OK || res == CURLE_WRITE_ERROR) {
 		long response_code;
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
 		if (response_code == 206) {
 			// Success: Server is up and handled the range request
-			double total_time;
+			double total_time = 0;
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
 			result_val = (int)(total_time * 1000.0);
 		}
