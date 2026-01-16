@@ -105,6 +105,7 @@ typedef enum {
 	CMD_SET_IMAGE_MASK = 88,
 	CMD_SET_IMAGE_MASK_STATE = 89,
 	CMD_GET_IMAGE_MASK_STATE = 90,
+	CMD_MASK_UPDATE_POLYGON = 91,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -227,6 +228,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_info_t* info, gboolean show_samples, gboolean recalculate);
 gboolean handle_set_image_header_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_info_t* info);
+gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_set_iccprofile_request(Connection* conn, const incoming_image_info_t* info);
 gboolean handle_save_image_file_request(Connection *conn, const char* payload, size_t payload_length);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);

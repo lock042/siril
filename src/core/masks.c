@@ -32,7 +32,6 @@
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
-#include "gui/user_polygons.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV

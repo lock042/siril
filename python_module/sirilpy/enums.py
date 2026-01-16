@@ -174,6 +174,7 @@ class _Command(IntEnum):
     SET_IMAGE_MASK = 88
     SET_IMAGE_MASK_STATE = 89
     GET_IMAGE_MASK_STATE = 90
+    MASK_UPDATE_POLYGON = 91
     ERROR = 0xFF
 
 @unique

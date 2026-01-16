@@ -1525,6 +1525,91 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	return result;
 }
 
+gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_image_info_t* info) {
+	// Check if image is loaded first
+	if (!(single_image_is_loaded() || sequence_is_loaded())) {
+		siril_debug_print("Failed to modify mask with user polygon: no image loaded\n");
+		const char* error_msg = _("Failed to modify mask with user polygon: no image loaded");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+	win_shm_handle_t win_handle = {NULL, NULL};
+	HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+	if (mapping == NULL) {
+		const char* error_msg = "Failed to open shared memory mapping";
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+	if (shm_ptr == NULL) {
+		CloseHandle(mapping);
+		const char* error_msg = "Failed to map shared memory view";
+		CloseHandle(mapping);
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	win_handle.mapping = mapping;
+	win_handle.ptr = shm_ptr;
+	#else
+	int fd = shm_open(info->shm_name, O_RDONLY, 0);
+	if (fd == -1) {
+		const char* error_msg = _("Failed to open shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		close(fd);
+		const char* error_msg = _("Failed to map shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+	#endif
+
+	if (!shm_ptr) {
+		const char* error_msg = _("Error: could not open shared memory");
+		#ifdef _WIN32
+		UnmapViewOfFile(shm_ptr);
+		CloseHandle(win_handle.mapping);
+		#else
+		munmap(shm_ptr, info->size);
+		close(fd);
+		#endif
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Deserialize the polygon from shared memory
+	UserPolygon *polygon = deserialize_polygon((const uint8_t*) shm_ptr, info->size);
+
+	// Cleanup shared memory
+#ifdef _WIN32
+	UnmapViewOfFile(shm_ptr);
+	CloseHandle(win_handle.mapping);
+#else
+	munmap(shm_ptr, info->size);
+	close(fd);
+#endif
+
+	// Are we adding or subtracting?
+	gboolean adding = (gboolean) info->width;
+
+	gboolean result = FALSE;
+	if (polygon) {
+		if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
+			mask_create_zeroes_like(gfit, get_default_mask_bitpix());
+		}
+		set_poly_in_mask(polygon, gfit, adding);
+		free_user_polygon(polygon);
+		queue_redraw_mask();
+		result = send_response(conn, STATUS_OK, NULL, 0);
+	} else {
+		siril_debug_print("Failed to deserialize user polygon\n");
+		const char* error_msg = _("Failed to update mask with user polygon");
+		result = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	return result;
+}
+
 // Monitor stdout stream
 static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
 

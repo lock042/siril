@@ -2722,11 +2722,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_DRAW_POLYGON: {
 			mouse_status_enum mouse_status = get_mouse_status();
-			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+/*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
 				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
+			}*/
 			if (payload_length == 5) {
 				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
 				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
@@ -3478,6 +3478,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Send success response with dimensions
 			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_MASK_UPDATE_POLYGON: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_mask_update_polygon_request(conn, info);
+			}
 			break;
 		}
 

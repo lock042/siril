@@ -5,6 +5,7 @@
 #define MAX_POLYGON_POINTS 1e6
 
 UserPolygon *find_polygon_by_id(int id);
+void free_user_polygon(gpointer data);
 int get_unused_polygon_id(void);
 int add_user_polygon(point *points, int num_points, const GdkRGBA *color, gboolean fill);
 gboolean delete_user_polygon(int id);

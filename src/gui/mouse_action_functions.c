@@ -338,12 +338,13 @@ static gboolean mask_add_poly_release(mouse_data *data) {
 	gui.drawing_polygon = FALSE;
 	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
+	// Free and NULL gui.drawing_polypoints
+	g_slist_free_full(gui.drawing_polypoints, free);
 	if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
 		mask_create_zeroes_like(gfit, get_default_mask_bitpix());
 	}
 	set_poly_in_mask(poly, gfit, TRUE);
-	// Free and NULL gui.drawing_polypoints
-	g_slist_free_full(gui.drawing_polypoints, free);
+	free_user_polygon(poly);
 	gui.drawing_polypoints = NULL;
 	queue_redraw_mask();
 	return TRUE;

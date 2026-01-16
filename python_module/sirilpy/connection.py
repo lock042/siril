@@ -5720,3 +5720,111 @@ class SirilInterface:
             return bool(mode[0])
         except struct.error as e:
             raise SirilError(_("Error occurred in get_image_mask_state(): {}").format(e)) from e
+
+    def _mask_update_polygon(self, poly: Polygon, adding: bool):
+        """
+        Adds or subtracts a user polygon to / from the Siril image mask. This is an internal
+        function used by mask_add_polygon() and mask_subtract_polygon()
+        Args:
+            polygon: Polygon defining the polygon to be added
+            adding: bool speficying whether to add or subtract the polygon.
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        shm = None
+        shm_info = None
+        int_adding = 1 if adding else 0
+
+        try:
+            # Serialize the provided polygon
+            polygon_bytes = poly.serialize()
+
+            # Calculate total size needed
+            total_bytes = len(polygon_bytes)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy polygon data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(polygon_bytes)] = polygon_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the polygon info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                int_adding,  # representation of "adding"
+                0,  # unused field 2
+                0,  # unused field 3
+                0,  # unused field 4
+                total_bytes,  # size of polygon data
+                shm_info.shm_name  # shared memory name
+            )
+
+            # Send command using the existing _execute_command method
+            self._request_data(_Command.MASK_UPDATE_POLYGON, info)
+
+        except (TypeError, SirilError, DataError, SirilConnectionError, SharedMemoryError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in mask_add_polygon(): {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    if shm_info is not None:
+                        self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception:
+                    pass
+
+    def mask_add_polygon(self, poly: Polygon):
+        """
+        Adds a user polygon to the Siril image mask.
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, True)
+
+    def mask_subtract_polygon(self, poly: Polygon):
+        """
+        Subtracts a user polygon from the Siril image mask.
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, False)
