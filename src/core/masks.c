@@ -875,40 +875,29 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 FAST_MATH_POP
 
 int mask_autostretch(fits *fit) {
-	struct mtf_data *data = create_mtf_data();
-	if (!data) {
+	struct mtf_params *params = calloc(1, sizeof(struct mtf_params));
+	if (!params) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 	fits *mfit = mask_to_fits(fit);
 
-	data->fit = mfit;
-	data->auto_display_compensation = FALSE;
-	data->is_preview = FALSE;
-	data->linked = TRUE;
-
-	// Create generic_img_args
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		destroy_mtf_data(data);
-		return 1;
-	}
 	// Compute the autostretch parameters
-	find_linked_midtones_balance(mfit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &data->params);
-	data->params.do_red = data->params.do_green = data->params.do_blue = TRUE;
+	find_linked_midtones_balance(mfit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
+	params->do_red = params->do_green = params->do_blue = TRUE;
 
-	args->fit = mfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = mtf_single_image_hook;
-	args->description = _("Autostretch mask");
-	args->updates_mask = TRUE;
-	args->user = data;
-	args->max_threads = com.max_thread;
+	// Compute the autostretch
+	apply_linked_mtf_to_fits(mfit, mfit, *params, TRUE);
+	free(params);
 
-	// Run worker synchronously - cleanup happens via destructor
-	gpointer result = generic_image_worker(args);
-	if (result)
-		siril_log_color_message(_("Warning: mask autostretch encountered a problem.\n"), "salmon");
+	// Update the mask
+	mask_t *mask = fits_to_mask(mfit);
+	clearfits(mfit);
+	free(mfit);
+	if (gfit->mask)
+		free(gfit->mask);
+	gfit->mask = mask;
+
 	return 0;
 }
 

@@ -668,7 +668,7 @@ static gboolean crop_idle(gpointer p) {
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
-			queue_redraw_mask(gfit->mask);
+			queue_redraw_mask();
 	}
 
 	free_generic_img_args(args);

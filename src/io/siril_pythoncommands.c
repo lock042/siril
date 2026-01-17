@@ -2721,7 +2721,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_DRAW_POLYGON: {
-			mouse_status_enum mouse_status = get_mouse_status();
+//			mouse_status_enum mouse_status = get_mouse_status();
 /*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
 				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");

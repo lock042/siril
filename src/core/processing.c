@@ -1525,21 +1525,6 @@ static gboolean end_generic_image_update_gfit(gpointer p) {
 	return FALSE;
 }
 
-static gboolean end_generic_image_update_gfit_mask(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args*) p;
-	mask_t *mask = fits_to_mask(args->fit);
-	clearfits(args->fit);
-	free(args->fit);
-	if (gfit->mask)
-		free(gfit->mask);
-	gfit->mask = mask;
-
-	stop_processing_thread();
-
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /** Free generic_img_args structure */
 void free_generic_img_args(struct generic_img_args *args) {
 	if (!args)
@@ -1794,12 +1779,7 @@ the_end_no_orig:
 
 	int retval = args->retval;
 
-	/*
-	 *
-	 */
-	if (args->updates_mask) {
-		execute_idle_and_wait_for_it(end_generic_image_update_gfit_mask, args);
-	} else if (args->command) {
+	if (args->command) {
 		// commands do not use custom idles and the generic ones must run synchronously
 		if (args->command_updates_gfit) {
 			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
