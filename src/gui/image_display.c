@@ -599,24 +599,30 @@ static void remap_all_vports() {
 			lock_display_transform();
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
+#pragma omp parallel num_threads(com.max_thread)
+{
+		// Thread-local buffers - allocated once per thread
+		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		BYTE *pixelbuf_byte = malloc(width * 3);
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
+
+#pragma omp for schedule(static)
+#else
+		// Single-threaded: allocate once
+		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		BYTE *pixelbuf_byte = malloc(width * 3);
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
 #endif
 		for (y = 0; y < height; y++) {
 			guint x;
 			const guint src_i = y * width;
 
-			// Set up a buffer so that the color space transform can be carried out on
-			// a whole row at a time using OpenMP to parallelize rows and the single
-			// threaded lcms2 context to give SIMD parallelisation within the rows
-			WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
-			WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
-			BYTE *pixelbuf_byte = malloc(width * 3);
-			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
-
-			// Allocate mask buffer for current row if mask is active
-			BYTE *mask_row = NULL;
+			// Precompute mask values for entire row if mask is active
 			if (apply_mask) {
-				mask_row = malloc(width * sizeof(BYTE));
 
 				// Precompute mask values for entire row
 				if (mask_bitpix == 8) {
@@ -758,12 +764,21 @@ static void remap_all_vports() {
 					}
 				}
 			}
-
-			free(pixelbuf);
-			free(pixelbuf_byte);
-			if (mask_row)
-				free(mask_row);
 		}
+#ifdef _OPENMP
+		// Clean up thread-local buffers
+		free(pixelbuf);
+		free(pixelbuf_byte);
+		if (mask_row)
+			free(mask_row);
+}
+#else
+		// Clean up single-threaded buffers
+		free(pixelbuf);
+		free(pixelbuf_byte);
+		if (mask_row)
+			free(mask_row);
+#endif
 		if (do_transform)
 			unlock_display_transform();
 	}
