@@ -291,6 +291,7 @@ static int rgradient_process_with_worker() {
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

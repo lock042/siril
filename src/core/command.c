@@ -5186,40 +5186,43 @@ int process_rotatepi(int nb){
 	}
 	return CMD_OK;
 }
+
 int process_rgradient(int nb) {
 	if (gfit->orig_bitpix == BYTE_IMG) {
 		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
 		return CMD_INVALID_IMAGE;
 	}
-
 	// Parse arguments
 	gchar *endxc, *endyc, *enddR, *endda;
 	double xc = g_ascii_strtod(word[1], &endxc);
 	double yc = g_ascii_strtod(word[2], &endyc);
 	double dR = g_ascii_strtod(word[3], &enddR);
 	double da = g_ascii_strtod(word[4], &endda);
+	gboolean mask_aware = FALSE;
 
 	// Validate arguments
 	if (endxc == word[1] || endyc == word[2] || enddR == word[3] || endda == word[4]) {
 		siril_log_message(_("Invalid numeric arguments. Usage: rgradient xc yc dR da\n"));
 		return CMD_ARG_ERROR;
 	}
-
 	if (xc >= gfit->rx || yc >= gfit->ry) {
 		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
 			"Please change their values and retry.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	image_cfa_warning_check();
+	// Check for optional -mask flag
+	if (word[5] && !strcmp(word[5], "-mask")) {
+		mask_aware = TRUE;
+	}
 
+	image_cfa_warning_check();
 	// Allocate parameters
 	struct rgradient_data *params = new_rgradient_data();
 	if (!params) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-
 	// Set parameters
 	params->xc = xc;
 	params->yc = yc;
@@ -5227,7 +5230,6 @@ int process_rgradient(int nb) {
 	params->da = da;
 	params->fit = gfit;
 	params->verbose = TRUE;
-
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
@@ -5236,26 +5238,22 @@ int process_rgradient(int nb) {
 		free(params);
 		return CMD_ALLOC_ERROR;
 	}
-
 	// Set up generic_img_args
 	args->fit = gfit;
 	args->mem_ratio = 3.0f; // Need memory for two temporary images
 	args->image_hook = rgradient_image_hook;
 	args->log_hook = rgradient_log_hook;
-	args->idle_function = NULL; // Use default idle for commands
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;
 	args->user = params;
+	args->mask_aware = mask_aware;
 	args->max_threads = com.max_thread;
-	args->for_preview = FALSE;
-	args->for_roi = FALSE;
-	args->command_updates_gfit = TRUE; // Important for command context
+	args->command_updates_gfit = TRUE;
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
-
 	return CMD_OK;
 }
 
