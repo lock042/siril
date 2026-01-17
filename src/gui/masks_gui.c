@@ -256,7 +256,9 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* Variables for mask parameters */
 	gdouble weight_r = 0.0, weight_g = 0.0, weight_b = 0.0;
 	gint channel = 0;
-	int result = 0;
+
+	/* Get mask type to determine channel or luminance mode */
+	gint mask_type = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_mask_from_image_type));
 
 	if (mask_from_file_mode) {
 		/* File mode - create mask from external file */
@@ -266,102 +268,117 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 
-		/* Get mask type to determine channel or luminance mode */
-		gint mask_type = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_mask_from_image_type));
-
 		if (mask_type == 0) {
-			/* Luminance mode: channel = -1, pass weights */
+			/* Luminance mode */
 			weight_r = gtk_spin_button_get_value(spin_mask_lr);
 			weight_g = gtk_spin_button_get_value(spin_mask_lg);
 			weight_b = gtk_spin_button_get_value(spin_mask_lb);
-			result = mask_create_from_image(gfit, selected_mask_filename, -1, bitdepth, weight_r, weight_g, weight_b);
+
+			mask_from_lum_data *data = calloc(1, sizeof(mask_from_lum_data));
+			data->rw = weight_r;
+			data->gw = weight_g;
+			data->bw = weight_b;
+			data->autostretch = autostretch;
+			data->invert = invert;
+			data->use_human = FALSE;
+			data->use_even = FALSE;
+			data->bitpix = bitdepth;
+			data->filename = g_strdup(selected_mask_filename);
+
+			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+			args->fit =  gfit;
+			args->mem_ratio = 1.0f;
+			args->mask_hook = mask_from_lum_hook;
+			args->log_hook = mask_from_lum_log;
+			args->description = _("Mask from luminance");
+			args->verbose = TRUE;
+			args->user = data;
+			args->mask_creation = TRUE;
+			args->max_threads = com.max_thread;
+
+			start_in_new_thread(generic_mask_worker, args);
 		} else {
 			/* Channel mode */
 			channel = gtk_spin_button_get_value_as_int(spin_mask_channel);
-			result = mask_create_from_image(gfit, selected_mask_filename, channel, bitdepth, 0.0, 0.0, 0.0);
-		}
 
-		if (result != 0) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
-			                     _("Failed to create mask from the selected file."));
-			return;
+			mask_from_channel_data *data = calloc(1, sizeof(mask_from_channel_data));
+			data->channel = channel;
+			data->autostretch = autostretch;
+			data->invert = invert;
+			data->bitpix = bitdepth;
+			data->filename = g_strdup(selected_mask_filename);
+
+			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+			args->fit =  gfit;
+			args->mem_ratio = 1.0f;
+			args->mask_hook = mask_from_channel_hook;
+			args->log_hook = mask_from_channel_log;
+			args->description = _("Mask from channel");
+			args->verbose = TRUE;
+			args->user = data;
+			args->mask_creation = TRUE;
+			args->max_threads = com.max_thread;
+
+			start_in_new_thread(generic_mask_worker, args);
 		}
 	} else {
 		/* Normal mode - create mask from current image */
-		gint mask_type = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_mask_from_image_type));
 
-		// We have to autostretch first, otherwise we get signal crushing
-		fits *fit = gfit;
-		if (autostretch) {
-			fit = calloc(1, sizeof(fits));
-			copyfits(gfit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			struct mtf_data *data = create_mtf_data();
-			if (!data) {
-				PRINT_ALLOC_ERR;
-				clearfits(fit);
-				free(fit);
-				return;
-			}
-			data->fit = fit;
-			data->auto_display_compensation = FALSE;
-			data->is_preview = FALSE;
-			data->linked = TRUE;
-
-			// Create generic_img_args
-			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-			if (!args) {
-				PRINT_ALLOC_ERR;
-				destroy_mtf_data(data);
-				clearfits(fit);
-				free(fit);
-				return;
-			}
-			// Compute the autostretch parameters
-			find_linked_midtones_balance(fit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &data->params);
-			data->params.do_red = data->params.do_green = data->params.do_blue = TRUE;
-
-			args->fit = fit;
-			args->mem_ratio = 1.0f;
-			args->image_hook = mtf_single_image_hook;
-			args->description = _("Autostretch mask");
-			args->idle_function = end_generic_image;
-			args->user = data;
-			args->max_threads = com.max_thread;
-
-			// Run worker synchronously - cleanup happens via destructor
-			gpointer result = generic_image_worker(args);
-
-			if (result) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
-									_("Failed to create mask."));
-				destroy_mtf_data(data);
-				clearfits(fit);
-				free(fit);
-				return;
-			}
-		}
 		if (mask_type == 0) {
 			/* Luminance method */
 			weight_r = gtk_spin_button_get_value(spin_mask_lr);
 			weight_g = gtk_spin_button_get_value(spin_mask_lg);
 			weight_b = gtk_spin_button_get_value(spin_mask_lb);
 
-			mask_create_from_luminance(gfit, fit, weight_r, weight_g, weight_b, bitdepth);
+			mask_from_lum_data *data = calloc(1, sizeof(mask_from_lum_data));
+			data->rw = weight_r;
+			data->gw = weight_g;
+			data->bw = weight_b;
+			data->autostretch = autostretch;
+			data->invert = invert;
+			data->use_human = FALSE;
+			data->use_even = FALSE;
+			data->bitpix = bitdepth;
+			data->filename = NULL;
+
+			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+			args->fit =  gfit;
+			args->mem_ratio = 1.0f;
+			args->mask_hook = mask_from_lum_hook;
+			args->log_hook = mask_from_lum_log;
+			args->description = _("Mask from luminance");
+			args->verbose = TRUE;
+			args->user = data;
+			args->mask_creation = TRUE;
+			args->max_threads = com.max_thread;
+
+			start_in_new_thread(generic_mask_worker, args);
 		} else if (mask_type == 1) {
 			/* Channel method */
 			channel = gtk_spin_button_get_value_as_int(spin_mask_channel);
-			mask_create_from_channel(gfit, fit, channel, bitdepth);
-		}
-		if (fit != gfit) { // autostretch - we have to clear up our temporary fits!
-			clearfits(fit);
-			free(fit);
+
+			mask_from_channel_data *data = calloc(1, sizeof(mask_from_channel_data));
+			data->channel = channel;
+			data->autostretch = autostretch;
+			data->invert = invert;
+			data->bitpix = bitdepth;
+			data->filename = NULL;
+
+			struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+			args->fit =  gfit;
+			args->mem_ratio = 1.0f;
+			args->mask_hook = mask_from_channel_hook;
+			args->log_hook = mask_from_channel_log;
+			args->description = _("Mask from channel");
+			args->verbose = TRUE;
+			args->user = data;
+			args->mask_creation = TRUE;
+			args->max_threads = com.max_thread;
+
+			start_in_new_thread(generic_mask_worker, args);
 		}
 	}
 
-	if (invert) {
-		mask_invert(gfit);
-	}
-	queue_redraw_mask();
 	siril_close_dialog("mask_from_image_dialog");
 }
 
@@ -471,8 +488,8 @@ void on_mask_from_stars_close_clicked(GtkButton *button, gpointer user_data) {
 * Applies the mask creation operation from detected stars.
 */
 void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit && gfit->mask) {
-		set_mask_active(gfit, FALSE);
+	if ( gfit && gfit->mask) {
+		set_mask_active( gfit, FALSE);
 		free_mask(gfit->mask);
 		gfit->mask = NULL;
 	}
@@ -490,35 +507,47 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* Get invert option */
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_mask_stars_invert));
 
+	undo_save_state( gfit, _("Create mask from stars"));
 
-	undo_save_state(gfit, _("Create mask from stars"));
-	/* Create mask from stars */
-	int result = mask_create_from_stars(gfit, star_radius, bitdepth);
+	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
+	data->r = star_radius;
+	data->feather = feather_radius;
+	data->invert = invert;
+	data->bitdepth = bitdepth;
 
-	if (result != 0) {
-		/* Error occurred during mask creation */
-		return;
-	}
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_stars_hook;
+	args->log_hook = mask_from_stars_log;
+	args->description = _("Mask from stars");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
 
-	/* Apply feathering if radius > 0 */
-	if (feather_radius > 0.0) {
-		mask_feather(gfit, feather_radius, FEATHER_OUTER);
-	}
+	start_in_new_thread(generic_mask_worker, args);
 
-	/* Apply inversion if requested */
-	if (invert) {
-		mask_invert(gfit);
-	}
-
-	queue_redraw_mask();
 	siril_close_dialog("mask_from_stars_dialog");
 }
 
 void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_blur_radius"));
 	float radius = gtk_spin_button_get_value(spin);
-	mask_apply_gaussian_blur(gfit, radius);
-	redraw_mask_idle(NULL);
+
+	mask_blur_data *data = calloc(1, sizeof(mask_blur_data));
+	data->radius = radius;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_blur_hook;
+	args->log_hook = mask_blur_log;
+	args->description = _("Blur mask");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 }
 
 void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -526,15 +555,42 @@ void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combo_mask_feather_type"));
 	float distance = gtk_spin_button_get_value(spin);
 	feather_mode mode = (feather_mode) gtk_combo_box_get_active(combo);
-	mask_feather(gfit, distance, mode);
-	redraw_mask_idle(NULL);
+
+	mask_feather_data *data = calloc(1, sizeof(mask_feather_data));
+	data->distance = distance;
+	data->mode = mode;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_feather_hook;
+	args->log_hook = mask_feather_log;
+	args->description = _("Feather mask");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 }
 
 void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_multiply_factor"));
 	float factor = gtk_spin_button_get_value(spin);
-	mask_scale(gfit, factor);
-	redraw_mask_idle(NULL);
+
+	mask_fmul_data *data = calloc(1, sizeof(mask_fmul_data));
+	data->factor = factor;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_fmul_hook;
+	args->log_hook = mask_fmul_log;
+	args->description = _("Multiply mask");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 }
 
 void on_blur_mask_close_clicked(GtkButton *button, gpointer user_data) {
@@ -606,7 +662,7 @@ void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void mask_color_handle_image_click(int x, int y) {
-	if (!gfit) return;
+	if (! gfit) return;
 
 	if (x < 0 || x >= gfit->rx || y < 0 || y >= gfit->ry) return;
 
@@ -640,7 +696,7 @@ void on_mask_color_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (!gfit) return;
+	if (! gfit) return;
 
 	/* Check that widgets are initialized */
 	if (!combo_color_mask_bitdepth || !drawing_area_color_display ||
@@ -655,6 +711,7 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 	uint8_t bitdepth = (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
 	gint feather_radius = gtk_spin_button_get_value_as_int(spin_color_feather);
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_invert));
+	gboolean cleanup = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_cleanup));
 
 	float r = selected_color_r;
 	float g = selected_color_g;
@@ -682,25 +739,30 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 	float lum_min = gtk_range_get_value(GTK_RANGE(scale_lum_min));
 	float lum_max = gtk_range_get_value(GTK_RANGE(scale_lum_max));
 
-	int result = mask_create_from_chromaticity_luminance(gfit, gfit,
-	                                                      chrom_r, chrom_g, chrom_b,
-	                                                      tolerance,
-	                                                      lum_min, lum_max,
-	                                                      feather_radius, invert,
-	                                                      bitdepth);
+	mask_from_color_data *data = calloc(1, sizeof(mask_from_color_data));
+	data->chrom_center_r = chrom_r;
+	data->chrom_center_g = chrom_g;
+	data->chrom_center_b = chrom_b;
+	data->chrom_tolerance = tolerance;
+	data->lum_min = lum_min;
+	data->lum_max = lum_max;
+	data->feather_radius = feather_radius;
+	data->invert = invert;
+	data->bitpix = bitdepth;
+	data->cleanup = cleanup;
 
-	if (result != 0) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
-		                     _("Failed to create color mask."));
-		return;
-	}
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.5f;
+	args->mask_hook = mask_from_color_hook;
+	args->log_hook = mask_from_color_log;
+	args->description = _("Mask from color");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
 
-	// Clean the mask up a bit
-	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_cleanup)))
-		mask_cleanup_morphological(gfit, 2, 2, 100);
+	start_in_new_thread(generic_mask_worker, args);
 
-	queue_redraw_mask();
 	// For now, don't close the dialog as this mask typically takes a bit of refinement.
-	// Good argument for a mask operation preview (and a generic_mask_worker, I guess)
 //	siril_close_dialog("mask_from_color_dialog");
 }

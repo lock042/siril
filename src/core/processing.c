@@ -1553,6 +1553,8 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
+	show_or_hide_mask_tab();
+	queue_redraw_mask();
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1873,6 +1875,11 @@ gpointer generic_mask_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing mask..."), 0.1f);
 
+	if (args->fit == gfit && !args->command) {
+		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		undo_save_state(gfit, undo_msg);
+		g_free(undo_msg);
+	}
 	// Call the mask processing hook
 	if (args->mask_hook(args)) {
 		siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
@@ -1881,14 +1888,7 @@ gpointer generic_mask_worker(gpointer p) {
 		// Generate the message for HISTORY
 		history = args->log_hook ? args->log_hook(args->user, DETAILED) : g_strdup(args->description);
 		siril_log_message("%s\n", history);
-
-		// Update the HISTORY card
-		if (args->command) {
-			args->fit->history = g_slist_append(args->fit->history, history);
-			update_fits_header(args->fit);
-		} else {
-			g_free(history);
-		}
+		g_free(history);
 
 		if (verbose) {
 			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
@@ -1905,6 +1905,10 @@ the_end:
 	}
 
 	int retval = args->retval;
+
+	if (args->mask_creation) {
+		set_mask_active(args->fit, TRUE);
+	}
 
 	if (args->command) {
 		// commands do not use custom idles and must run synchronously

@@ -41,18 +41,8 @@ void free_mask(mask_t* mask) {
 	free(mask->data);
 	free(mask);
 }
+/*
 
-gpointer clear_mask_worker(gpointer p) {
-	if (gfit && gfit->mask) {
-		set_mask_active(gfit, FALSE);
-		free_mask(gfit->mask);
-		gfit->mask = NULL;
-		show_or_hide_mask_tab();
-		siril_log_message(_("Mask cleared\n"));
-	}
-	siril_add_idle(end_generic, NULL);
-	return FALSE;
-}
 
 gpointer autostretch_mask_worker(gpointer p) {
 	if (gfit && gfit->mask) {
@@ -85,7 +75,7 @@ gpointer invert_mask_worker(gpointer p) {
 	siril_add_idle(end_generic, NULL);
 	return FALSE;
 }
-
+*/
 gboolean set_mask_active_idle(gpointer p) {
 	gboolean state = GPOINTER_TO_INT(p);
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("mask_active_check"));
@@ -280,7 +270,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 					}
 				} else {
 					for (size_t i = 0 ; i < npixels ;i++) {
-						m[i] = (uint8_t) ((c[i] * 255 + 32895) >> 16);
+						m[i] = (uint8_t)(((uint32_t) c[i] * 255 + 32895) >> 16);
 					}
 				}
 			} else {
@@ -612,6 +602,7 @@ FAST_MATH_POP
 * @weight_r: Red channel weight for luminance calculation (ignored if chan != -1)
 * @weight_g: Green channel weight for luminance calculation (ignored if chan != -1)
 * @weight_b: Blue channel weight for luminance calculation (ignored if chan != -1)
+* @autostretch: Whether to autostretch the source image before creating the mask
 *
 * Creates a mask from an external image file. If chan is -1, uses luminance
 * with the specified weights. Otherwise, uses the specified channel.
@@ -619,7 +610,7 @@ FAST_MATH_POP
 * Returns: 0 on success, 1 on error
 */
 int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
-						double weight_r, double weight_g, double weight_b) {
+						double weight_r, double weight_g, double weight_b, gboolean autostretch) {
 	if (!fit || !filename) {
 		siril_debug_print("mask_create_from_image: invalid parameters\n");
 		return 1;
@@ -681,6 +672,53 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 		clearfits(source);
 		free(source);
 		return 1;
+	}
+
+	if (autostretch) {
+		struct mtf_data *gi_data = create_mtf_data();
+		if (!gi_data) {
+			PRINT_ALLOC_ERR;
+			clearfits(source);
+			free(source);
+			return 1;
+		}
+		gi_data->fit = source;
+		gi_data->auto_display_compensation = FALSE;
+		gi_data->is_preview = FALSE;
+		gi_data->linked = TRUE;
+
+		// Create generic_img_args
+		struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
+		if (!gi_args) {
+			PRINT_ALLOC_ERR;
+			destroy_mtf_data(gi_data);
+			clearfits(source);
+			free(source);
+			return 1;
+		}
+		// Compute the autostretch parameters
+		find_linked_midtones_balance(source, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &gi_data->params);
+		gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
+
+		gi_args->fit = source;
+		gi_args->mem_ratio = 1.0f;
+		gi_args->image_hook = mtf_single_image_hook;
+		gi_args->description = _("Autostretch mask");
+		gi_args->idle_function = end_generic_image;
+		gi_args->user = gi_data;
+		gi_args->max_threads = com.max_thread;
+
+		// Run worker synchronously - cleanup happens via destructor
+		gpointer result = generic_image_worker(gi_args);
+
+		if (result) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+								_("Failed to create mask."));
+			destroy_mtf_data(gi_data);
+			clearfits(source);
+			free(source);
+			return 1;
+		}
 	}
 
 	if (chan == -1) {
@@ -880,8 +918,8 @@ int mask_autostretch(fits *fit) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
+	// Convert the mask to a temporary fits struct
 	fits *mfit = mask_to_fits(fit);
-
 	// Compute the autostretch parameters
 	find_linked_midtones_balance(mfit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, params);
 	params->do_red = params->do_green = params->do_blue = TRUE;
@@ -894,9 +932,9 @@ int mask_autostretch(fits *fit) {
 	mask_t *mask = fits_to_mask(mfit);
 	clearfits(mfit);
 	free(mfit);
-	if (gfit->mask)
-		free(gfit->mask);
-	gfit->mask = mask;
+	if (fit->mask)
+		free(fit->mask);
+	fit->mask = mask;
 
 	return 0;
 }
@@ -986,7 +1024,7 @@ mask_t *fits_to_mask(fits *mfit) {
 			uint16_t *src = (uint16_t *)mfit->data;
 
 			for (size_t i = 0; i < npixels; i++) {
-				dst[i] = (uint8_t)((uint32_t) src[i] * 255 + 32895) >> 16;
+				dst[i] = (uint8_t)(((uint32_t)src[i] * 255 + 32895) >> 16);
 			}
 			break;
 		}
@@ -1219,7 +1257,7 @@ int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
 						return 1;
 					}
 					for (size_t i = 0 ; i < npixels ; i++) {
-						new_data[i] = (uint8_t)((uint32_t) old_data[i] * 255 + 32895) >> 16;
+						new_data[i] = (uint8_t)(((uint32_t) old_data[i] * 255 + 32895) >> 16);
 					}
 					free(old_data);
 					fit->mask->data = (void*) new_data;
@@ -1288,4 +1326,304 @@ int mask_change_bitpix(fits* fit, uint8_t new_bitpix) {
 		}
 	}
 	return 0;
+}
+
+// Hook functions for mask operations
+int mask_from_stars_hook(struct generic_mask_args *args) {
+	mask_from_stars_data *data = (mask_from_stars_data *)args->user;
+
+	int retval = mask_create_from_stars(args->fit, data->r, data->bitdepth);
+	if (!retval && data->feather > 0.f) {
+		retval = mask_feather(args->fit, data->feather, FEATHER_OUTER);
+	}
+	if (!retval && data->invert) {
+		retval = mask_invert(args->fit);
+	}
+	return retval;
+}
+
+static gboolean end_embedded_autostretch(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+int mask_from_channel_hook(struct generic_mask_args *args) {
+	mask_from_channel_data *data = (mask_from_channel_data *)args->user;
+	int retval;
+	if (data->filename) {
+		retval = mask_create_from_image(args->fit, data->filename, data->channel, data->bitpix, 0.0, 0.0, 0.0, data->autostretch);
+		if (!retval && data->invert) {
+			retval = mask_invert(args->fit);
+		}
+	} else {
+		// We have to autostretch first, otherwise we get signal crushing
+		fits *fit = args->fit;
+		if (data->autostretch && fit) {
+			fits *ffit = calloc(1, sizeof(fits));
+			copyfits(args->fit, ffit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			struct mtf_data *gi_data = create_mtf_data();
+			if (!gi_data) {
+				PRINT_ALLOC_ERR;
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			gi_data->fit = ffit;
+			gi_data->auto_display_compensation = FALSE;
+			gi_data->is_preview = FALSE;
+			gi_data->linked = TRUE;
+
+			// Create generic_img_args
+			struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
+			if (!gi_args) {
+				PRINT_ALLOC_ERR;
+				destroy_mtf_data(data);
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			// Compute the autostretch parameters
+			find_linked_midtones_balance(ffit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &gi_data->params);
+			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
+
+			gi_args->fit = ffit;
+			gi_args->mem_ratio = 1.0f;
+			gi_args->image_hook = mtf_single_image_hook;
+			gi_args->description = _("Autostretch mask");
+			gi_args->idle_function = end_embedded_autostretch;
+			gi_args->user = gi_data;
+			gi_args->max_threads = com.max_thread;
+
+
+			// Run worker synchronously - cleanup happens via destructor
+			gpointer result = generic_image_worker(gi_args);
+
+			if (result) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+									_("Failed to create mask."));
+				destroy_mtf_data(gi_data);
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			fit = ffit;
+		}
+		retval = mask_create_from_channel(fit, fit, data->channel, data->bitpix);
+
+		if (!retval && data->invert) {
+			retval = mask_invert(args->fit);
+		}
+		if (fit != args->fit) {
+			if (args->fit->mask)
+				free_mask(args->fit->mask);
+			args->fit->mask = fit->mask;
+			fit->mask = NULL;
+			clearfits(fit);
+			free(fit);
+		}
+	}
+	return retval;
+}
+
+int mask_from_lum_hook(struct generic_mask_args *args) {
+	mask_from_lum_data *data = (mask_from_lum_data *)args->user;
+
+	int retval;
+	if (data->filename) {
+		retval = mask_create_from_image(args->fit, data->filename, -1, data->bitpix, data->rw, data->gw, data->bw, data->autostretch);
+		if (!retval && data->invert) {
+			retval = mask_invert(args->fit);
+		}
+	} else {
+		// We have to autostretch first, otherwise we get signal crushing
+		fits *fit = args->fit;
+		if (data->autostretch && fit) {
+			fits *ffit = calloc(1, sizeof(fits));
+			copyfits(args->fit, ffit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			struct mtf_data *gi_data = create_mtf_data();
+			if (!gi_data) {
+				PRINT_ALLOC_ERR;
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			gi_data->fit = ffit;
+			gi_data->auto_display_compensation = FALSE;
+			gi_data->is_preview = FALSE;
+			gi_data->linked = TRUE;
+
+			// Create generic_img_args
+			struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
+			if (!gi_args) {
+				PRINT_ALLOC_ERR;
+				destroy_mtf_data(data);
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			// Compute the autostretch parameters
+			find_linked_midtones_balance(ffit, AS_DEFAULT_SHADOWS_CLIPPING, AS_DEFAULT_TARGET_BACKGROUND, &gi_data->params);
+			gi_data->params.do_red = gi_data->params.do_green =gi_data->params.do_blue = TRUE;
+
+			gi_args->fit = ffit;
+			gi_args->mem_ratio = 1.0f;
+			gi_args->image_hook = mtf_single_image_hook;
+			gi_args->description = _("Autostretch mask");
+			gi_args->idle_function = end_embedded_autostretch;
+			gi_args->user = gi_data;
+			gi_args->max_threads = com.max_thread;
+
+			// Run worker synchronously - cleanup happens via destructor
+			gpointer result = generic_image_worker(gi_args);
+
+			if (result) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+									_("Failed to create mask."));
+				destroy_mtf_data(gi_data);
+				clearfits(ffit);
+				free(ffit);
+				return 1;
+			}
+			fit = ffit;
+		}
+
+		if (data->use_human || (!data->use_even && data->rw < 0.f)) {
+			retval = mask_create_from_luminance_human(fit, fit, data->bitpix);
+		} else if (data->use_even) {
+			retval = mask_create_from_luminance_even(fit, fit, data->bitpix);
+		} else {
+			retval = mask_create_from_luminance(fit, fit, data->rw, data->gw, data->bw, data->bitpix);
+		}
+
+		if (!retval && data->invert) {
+			retval = mask_invert(fit);
+		}
+
+		if (fit != args->fit) {
+			if (args->fit->mask)
+				free_mask(args->fit->mask);
+			args->fit->mask = fit->mask;
+			fit->mask = NULL;
+			clearfits(fit);
+			free(fit);
+		}
+	}
+	return retval;
+}
+
+int mask_binarize_hook(struct generic_mask_args *args) {
+	mask_binarize_data *data = (mask_binarize_data *)args->user;
+	return mask_binarize(args->fit, data->lo, data->hi);
+}
+
+int mask_blur_hook(struct generic_mask_args *args) {
+	mask_blur_data *data = (mask_blur_data *)args->user;
+	return mask_apply_gaussian_blur(args->fit, data->radius);
+}
+
+int mask_clear_hook(struct generic_mask_args *args) {
+	if (args->fit && args->fit->mask) {
+		set_mask_active(args->fit, FALSE);
+		free_mask(args->fit->mask);
+		args->fit->mask = NULL;
+		siril_log_message(_("Mask cleared\n"));
+	}
+	return 0;
+}
+
+int mask_feather_hook(struct generic_mask_args *args) {
+	mask_feather_data *data = (mask_feather_data *)args->user;
+	return mask_feather(args->fit, data->distance, data->mode);
+}
+
+int mask_fmul_hook(struct generic_mask_args *args) {
+	mask_fmul_data *data = (mask_fmul_data *)args->user;
+	return mask_scale(args->fit, data->factor);
+}
+
+int mask_invert_hook(struct generic_mask_args *args) {
+	return mask_invert(args->fit);
+}
+
+int mask_autostretch_hook(struct generic_mask_args *args) {
+	return mask_autostretch(args->fit);
+}
+
+int mask_bitpix_hook(struct generic_mask_args *args) {
+	mask_bitpix_data *data = (mask_bitpix_data *)args->user;
+	return mask_change_bitpix(args->fit, data->bitpix);
+}
+
+int mask_from_color_hook(struct generic_mask_args *args) {
+	mask_from_color_data *data = (mask_from_color_data *)args->user;
+	int retval = mask_create_from_chromaticity_luminance(args->fit, args->fit,
+	                                               data->chrom_center_r,
+	                                               data->chrom_center_g,
+	                                               data->chrom_center_b,
+	                                               data->chrom_tolerance,
+	                                               data->lum_min, data->lum_max,
+	                                               data->feather_radius,
+	                                               data->invert,
+	                                               data->bitpix);
+	if (!retval) {
+		retval = mask_cleanup_morphological(args->fit, 2, 2, 100); // TODO: possibly these params could be user configurable
+	}
+	return retval;
+}
+
+// Log hooks
+gchar *mask_from_stars_log(gpointer user, log_hook_detail detail) {
+	mask_from_stars_data *data = (mask_from_stars_data *)user;
+	return g_strdup_printf("Mask from stars: r=%.2f, feather=%.2f, invert=%d, bitdepth=%d",
+	                       data->r, data->feather, data->invert, data->bitdepth);
+}
+
+gchar *mask_from_channel_log(gpointer user, log_hook_detail detail) {
+	mask_from_channel_data *data = (mask_from_channel_data *)user;
+	return g_strdup_printf("Mask from channel: channel=%d, autostretch=%d, invert=%d, bitpix=%d%s%s",
+	                       data->channel, data->autostretch, data->invert, data->bitpix,
+	                       data->filename ? ", file=" : "", data->filename ? data->filename : "");
+}
+
+gchar *mask_from_lum_log(gpointer user, log_hook_detail detail) {
+	mask_from_lum_data *data = (mask_from_lum_data *)user;
+	return g_strdup_printf("Mask from luminance: rw=%.4f, gw=%.4f, bw=%.4f, autostretch=%d, invert=%d%s%s",
+	                       data->rw, data->gw, data->bw, data->autostretch, data->invert,
+	                       data->filename ? ", file=" : "", data->filename ? data->filename : "");
+}
+
+gchar *mask_binarize_log(gpointer user, log_hook_detail detail) {
+	mask_binarize_data *data = (mask_binarize_data *)user;
+	return g_strdup_printf("Mask binarize: lo=%.2f, hi=%.2f", data->lo, data->hi);
+}
+
+gchar *mask_blur_log(gpointer user, log_hook_detail detail) {
+	mask_blur_data *data = (mask_blur_data *)user;
+	return g_strdup_printf("Mask blur: radius=%.2f", data->radius);
+}
+
+gchar *mask_feather_log(gpointer user, log_hook_detail detail) {
+	mask_feather_data *data = (mask_feather_data *)user;
+	const char *mode_str = (data->mode == FEATHER_INNER) ? "inner" :
+	                       (data->mode == FEATHER_OUTER) ? "outer" : "edge";
+	return g_strdup_printf("Mask feather: distance=%.2f, mode=%s", data->distance, mode_str);
+}
+
+gchar *mask_fmul_log(gpointer user, log_hook_detail detail) {
+	mask_fmul_data *data = (mask_fmul_data *)user;
+	return g_strdup_printf("Mask multiply: factor=%.4f", data->factor);
+}
+
+gchar *mask_bitpix_log(gpointer user, log_hook_detail detail) {
+	mask_bitpix_data *data = (mask_bitpix_data *)user;
+	return g_strdup_printf("Mask bitdepth change: bitpix=%d", data->bitpix);
+}
+
+gchar *mask_from_color_log(gpointer user, log_hook_detail detail) {
+	mask_from_color_data *data = (mask_from_color_data *)user;
+	return g_strdup_printf("Mask from color: center=(%.3f,%.3f,%.3f), tol=%.3f, lum=(%.2f-%.2f), fr=%d, inv=%d",
+	                       data->chrom_center_r, data->chrom_center_g, data->chrom_center_b,
+	                       data->chrom_tolerance, data->lum_min, data->lum_max,
+	                       data->feather_radius, data->invert);
 }

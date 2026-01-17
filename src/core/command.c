@@ -1654,7 +1654,6 @@ int process_fmul(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	data->destructor = NULL;  // Use default free()
 	data->coeff = coeff;
 	data->from8b = (gfit->orig_bitpix == BYTE_IMG);
 
@@ -1738,7 +1737,6 @@ int process_gauss(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	data->destructor = NULL;  // Use default free()
 	data->sigma = sigma;
 
 	// Allocate and initialize generic_img_args
@@ -1814,7 +1812,7 @@ int process_entropy(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
 	if (data->has_selection) {
 		data->area = com.selection;
@@ -2925,7 +2923,7 @@ int process_unsharp(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	data->destructor = NULL;
+
 	data->sigma = sigma;
 	data->multi = multi;
 
@@ -6769,7 +6767,7 @@ int process_bg(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
 	if (data->has_selection) {
 		data->selection = com.selection;
@@ -7069,7 +7067,7 @@ int process_thresh(int nb) {
 		return CMD_ALLOC_ERROR;
 	}
 
-	data->destructor = NULL;
+
 	data->type = type;
 	data->lo = lo;
 	data->hi = hi;
@@ -7131,7 +7129,7 @@ int process_neg(int nb) {
 	if (!g_strcmp0(word[1], "-mask")) {
 		use_mask = TRUE;
 	}
-	data->destructor = NULL;
+
 
 	// Allocate and initialize generic_img_args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -7196,7 +7194,7 @@ int process_nozero(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->level = (WORD)level;
 
 	// Allocate and initialize generic_img_args
@@ -7493,7 +7491,7 @@ int process_ffill(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->level = level;
 	data->area = area;
 
@@ -8016,7 +8014,7 @@ int process_cdg(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->success = FALSE;
 
 	// Allocate and initialize generic_img_args
@@ -8156,7 +8154,7 @@ int process_fill(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->level = level;
 	data->area = area;
 
@@ -8246,7 +8244,7 @@ int process_offset(int nb) {
 		PRINT_ALLOC_ERR;
 		return CMD_ALLOC_ERROR;
 	}
-	data->destructor = NULL;
+
 	data->level = (float)level;
 
 	/* Allocate and initialize generic_img_args */
@@ -14339,11 +14337,7 @@ int process_pyscript(int nb) {
 	}
 }
 
-static gboolean end_mask_command(gpointer user_data) {
-	redraw_mask_idle(NULL);
-	return FALSE;
-}
-
+// Process functions refactored
 int process_mask_from_stars(int nb) {
 	int argidx = 1;
 	float r = 0.f, feather = 0.f;
@@ -14370,7 +14364,8 @@ int process_mask_from_stars(int nb) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 				return CMD_ARG_ERROR;
 			}
-		}		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
 			char *arg = word[argidx] + 10;
 			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
 			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
@@ -14380,20 +14375,28 @@ int process_mask_from_stars(int nb) {
 		}
 		argidx++;
 	}
-	int retval = mask_create_from_stars(gfit, r, bitdepth);
-	if (!retval && feather > 0.f) {
-		retval = mask_feather(gfit, feather, FEATHER_OUTER);
-	}
-	if (!retval && invert) {
-		retval = mask_invert(gfit);
-	}
-	if (retval)
-		return CMD_GENERIC_ERROR;
 
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
 
+	data->r = r;
+	data->feather = feather;
+	data->invert = invert;
+	data->bitdepth = bitdepth;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_stars_hook;
+	args->log_hook = mask_from_stars_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from stars");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14403,7 +14406,6 @@ int process_mask_from_channel(int nb) {
 	gboolean autostretch = FALSE;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
-	uint8_t bitpix;
 	gchar *filename = NULL;
 	char *end;
 
@@ -14436,43 +14438,33 @@ int process_mask_from_channel(int nb) {
 		argidx++;
 	}
 
-	bitpix = (uint8_t) bitdepth;
-	// Channel parameter is required
 	if (channel == -1) {
 		siril_log_message(_("Channel parameter (-channel=) is required, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Create mask from channel
-	int retval;
-	if (filename) {
-		// Use mask_create_from_image with specified file
-		retval = mask_create_from_image(gfit, filename, channel, bitpix, 0.0, 0.0, 0.0);
-	} else {
-		// Use mask_create_from_channel with current image
-		retval = mask_create_from_channel(gfit, gfit, channel, bitpix);
-	}
+	mask_from_channel_data *data = calloc(1, sizeof(mask_from_channel_data));
 
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
+	data->channel = channel;
+	data->autostretch = autostretch;
+	data->invert = invert;
+	data->bitpix = (uint8_t)bitdepth;
+	data->filename = filename;
 
-	// Apply autostretch if requested
-	if (autostretch) {
-		retval = mask_autostretch(gfit);
-		if (retval) {
-			return CMD_GENERIC_ERROR;
-		}
-	}
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_channel_hook;
+	args->log_hook = mask_from_channel_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from channel");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
 
-	// Apply invert if requested
-	if (invert) {
-		retval = mask_invert(gfit);
-		if (retval) {
-			return CMD_GENERIC_ERROR;
-		}
-	}
-
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14484,7 +14476,6 @@ int process_mask_from_lum(int nb) {
 	gboolean use_human = FALSE;
 	gboolean use_even = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
-	uint8_t bitpix;
 	gchar *filename = NULL;
 	char *end;
 
@@ -14539,27 +14530,22 @@ int process_mask_from_lum(int nb) {
 		argidx++;
 	}
 
-	bitpix = (uint8_t) bitdepth;
-	// Check for conflicting options
 	if (use_human && use_even) {
 		siril_log_message(_("Cannot specify both -human and -even options, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Check if custom weights are provided with preset options
 	if ((use_human || use_even) && (rw >= 0.f || gw >= 0.f || bw >= 0.f)) {
 		siril_log_message(_("Cannot specify custom weights with -human or -even options, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// If custom weights are provided, all three must be specified
 	gboolean has_custom_weights = (rw >= 0.f || gw >= 0.f || bw >= 0.f);
 	if (has_custom_weights && !(rw >= 0.f && gw >= 0.f && bw >= 0.f)) {
 		siril_log_message(_("All three weights (-rw, -gw, -bw) must be specified, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Determine weights to use
 	if (use_human) {
 		rw = 0.2126f;
 		gw = 0.7152f;
@@ -14571,51 +14557,37 @@ int process_mask_from_lum(int nb) {
 		bw = 0.3334f;
 	}
 	else if (!has_custom_weights) {
-		// Default to human vision weights if no option specified
 		rw = 0.2126f;
 		gw = 0.7152f;
 		bw = 0.0722f;
 	}
 
-	// Create mask from luminance
-	int retval;
-	if (filename) {
-		// Use mask_create_from_image with specified file and chan = -1 for luminance
-		retval = mask_create_from_image(gfit, filename, -1, bitpix, rw, gw, bw);
-	}
-	else {
-		// Use the appropriate luminance function based on weights
-		if (use_human || (!use_even && !has_custom_weights)) {
-			retval = mask_create_from_luminance_human(gfit, gfit, bitpix);
-		}
-		else if (use_even) {
-			retval = mask_create_from_luminance_even(gfit, gfit, bitpix);
-		}
-		else {
-			retval = mask_create_from_luminance(gfit, gfit, rw, gw, bw, bitpix);
-		}
-	}
+	mask_from_lum_data *data = calloc(1, sizeof(mask_from_lum_data));
 
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
+	data->rw = rw;
+	data->gw = gw;
+	data->bw = bw;
+	data->autostretch = autostretch;
+	data->invert = invert;
+	data->use_human = use_human;
+	data->use_even = use_even;
+	data->bitpix = (uint8_t)bitdepth;
+	data->filename = filename;
 
-	// Apply autostretch if requested
-	if (autostretch) {
-		retval = mask_autostretch(gfit);
-		if (retval) {
-			return CMD_GENERIC_ERROR;
-		}
-	}
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_lum_hook;
+	args->log_hook = mask_from_lum_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from luminance");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
 
-	// Apply invert if requested
-	if (invert) {
-		retval = mask_invert(gfit);
-		if (retval) {
-			return CMD_GENERIC_ERROR;
-		}
-	}
-
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14634,7 +14606,6 @@ int process_clear_mask(int nb) {
 }
 
 int process_binarize_mask(int nb) {
-	// Check if mask exists
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
@@ -14678,20 +14649,29 @@ int process_binarize_mask(int nb) {
 		argidx++;
 	}
 
-	// Validate that lo < hi
 	if (lo >= hi) {
 		siril_log_message(_("Low value must be less than high value, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Binarize the mask
-	int retval = mask_binarize(gfit, lo, hi);
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_binarize_data *data = calloc(1, sizeof(mask_binarize_data));
+
+	data->lo = lo;
+	data->hi = hi;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_binarize_hook;
+	args->log_hook = mask_binarize_log;
+	args->idle_function = NULL;
+	args->description = _("Binarize mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14712,33 +14692,40 @@ int process_blur_mask(int nb) {
 		argidx++;
 	}
 
-	// Radius parameter is required
 	if (radius < 0.f) {
 		siril_log_message(_("Radius parameter (-radius=) is required, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Check if mask exists
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Apply Gaussian blur to the mask
-	int retval = mask_apply_gaussian_blur(gfit, radius);
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_blur_data *data = calloc(1, sizeof(mask_blur_data));
+
+	data->radius = radius;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_blur_hook;
+	args->log_hook = mask_blur_log;
+	args->idle_function = NULL;
+	args->description = _("Blur mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
 int process_feather_mask(int nb) {
 	int argidx = 1;
 	float distance = -1.f;
-	feather_mode mode = FEATHER_OUTER; // Default to outer feathering
+	feather_mode mode = FEATHER_OUTER;
 	char *end;
 
 	while (argidx < nb) {
@@ -14769,26 +14756,34 @@ int process_feather_mask(int nb) {
 		argidx++;
 	}
 
-	// Distance parameter is required
 	if (distance < 0.f) {
 		siril_log_message(_("Distance parameter (-distance=) is required, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Check if mask exists
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Apply feathering to the mask
-	int retval = mask_feather(gfit, distance, mode);
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_feather_data *data = calloc(1, sizeof(mask_feather_data));
+
+	data->distance = distance;
+	data->mode = mode;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_feather_hook;
+	args->log_hook = mask_feather_log;
+	args->idle_function = NULL;
+	args->description = _("Feather mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14809,44 +14804,77 @@ int process_mask_fmul(int nb) {
 		argidx++;
 	}
 
-	// Factor parameter is required
 	if (factor < 0.f) {
 		siril_log_message(_("Factor parameter (-factor=) is required, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Check if mask exists
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Scale the mask
-	int retval = mask_scale(gfit, factor);
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_fmul_data *data = calloc(1, sizeof(mask_fmul_data));
+
+	data->factor = factor;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_fmul_hook;
+	args->log_hook = mask_fmul_log;
+	args->idle_function = NULL;
+	args->description = _("Multiply mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
 int process_invert_mask(int nb) {
-	if (mask_invert(gfit))
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
 	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_invert_hook;
+	args->log_hook = NULL;
+	args->idle_function = NULL;
+	args->description = _("Invert mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = NULL;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
 int process_autostretch_mask(int nb) {
-	if (mask_autostretch(gfit))
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
 	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_autostretch_hook;
+	args->log_hook = NULL;
+	args->idle_function = NULL;
+	args->description = _("Autostretch mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = NULL;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14862,20 +14890,28 @@ int process_mask_bitpix(int nb) {
 	}
 	bitpix = (uint8_t) bitdepth;
 
-	// Check if mask exists
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
 	}
 
-	// Convert the bitdepth
-	int retval = mask_change_bitpix(gfit, bitpix);
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(end_mask_command, NULL);
-	}
+	mask_bitpix_data *data = calloc(1, sizeof(mask_bitpix_data));
+
+	data->bitpix = bitpix;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_bitpix_hook;
+	args->log_hook = mask_bitpix_log;
+	args->idle_function = NULL;
+	args->description = _("Change mask bitdepth");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
 
@@ -14887,7 +14923,6 @@ int process_mask_from_color(int nb) {
 	int feather_radius = 0;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
-	uint8_t bitpix;
 	char *end;
 
 	while (argidx < nb) {
@@ -14961,36 +14996,46 @@ int process_mask_from_color(int nb) {
 		argidx++;
 	}
 
-	bitpix = (uint8_t) bitdepth;
-
-	// Validate required chroma center parameters
 	if (chrom_center_r < 0.f || chrom_center_g < 0.f || chrom_center_b < 0.f) {
 		siril_log_message(_("All three chroma center values (-cr, -cg, -cb) must be specified, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Validate required tolerance parameter
 	if (chrom_tolerance < 0.f) {
 		siril_log_message(_("Chroma tolerance (-tolerance) must be specified, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	// Validate luminance range
 	if (lum_min > lum_max) {
 		siril_log_message(_("Luminance minimum cannot be greater than luminance maximum, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	int retval = mask_create_from_chromaticity_luminance(gfit, gfit,
-	                                                     chrom_center_r, chrom_center_g, chrom_center_b,
-	                                                     chrom_tolerance,
-	                                                     lum_min, lum_max,
-	                                                     feather_radius, invert,
-	                                                     bitpix);
+	mask_from_color_data *data = calloc(1, sizeof(mask_from_color_data));
 
-	if (retval) {
-		return CMD_GENERIC_ERROR;
-	}
+	data->chrom_center_r = chrom_center_r;
+	data->chrom_center_g = chrom_center_g;
+	data->chrom_center_b = chrom_center_b;
+	data->chrom_tolerance = chrom_tolerance;
+	data->lum_min = lum_min;
+	data->lum_max = lum_max;
+	data->feather_radius = feather_radius;
+	data->invert = invert;
+	data->bitpix = (uint8_t)bitdepth;
 
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.5f;
+	args->mask_hook = mask_from_color_hook;
+	args->log_hook = mask_from_color_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from color");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }

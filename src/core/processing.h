@@ -208,6 +208,7 @@ struct generic_mask_args {
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args() */
 	gpointer user;
+	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
 	int max_threads; // number of threads to use for the operation
 };
 
