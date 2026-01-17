@@ -1507,11 +1507,53 @@ static int default_img_mem_hook(struct generic_img_args *args) {
 	return 0;
 }
 
+static int default_mask_mem_hook(struct generic_mask_args *args) {
+	if (!args || !args->fit)
+		return 1;
+
+	gint64 required_mem;
+	if (args->fit->mask) {
+		required_mem = (gint64)(args->mem_ratio *
+			args->fit->rx * args->fit->ry * (args->fit->mask->bitpix >> 3));
+	} else {
+		required_mem = (gint64) (args->mem_ratio * args->fit->rx * args->fit->ry * 4); // worst case
+	}
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
+				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
 /** Default idle function to end generic image processing */
 gboolean end_generic_image(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	free_generic_img_args(args);
+	return FALSE;
+}
+
+void free_generic_mask_args(struct generic_mask_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+gboolean end_generic_mask(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args*) p;
+	stop_processing_thread();
+	free_generic_mask_args(args);
 	return FALSE;
 }
 
@@ -1795,3 +1837,83 @@ the_end_no_orig:
 	return GINT_TO_POINTER(retval);
 }
 
+gpointer generic_mask_worker(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->fit);
+	assert(args->mask_hook);
+
+	gboolean verbose = args->verbose;
+	gchar *history = NULL;
+
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_mask_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && verbose) {
+		gchar *desc = g_strdup_printf(_("%s: processing mask...\n"), args->description);
+		siril_log_color_message(desc, "green");
+		g_free(desc);
+	}
+
+	set_progress_bar_data(_("Processing mask..."), 0.1f);
+
+	// Call the mask processing hook
+	if (args->mask_hook(args)) {
+		siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
+		args->retval = 1;
+	} else {
+		// Generate the message for HISTORY
+		history = args->log_hook ? args->log_hook(args->user, DETAILED) : g_strdup(args->description);
+		siril_log_message("%s\n", history);
+
+		// Update the HISTORY card
+		if (args->command) {
+			args->fit->history = g_slist_append(args->fit->history, history);
+			update_fits_header(args->fit);
+		} else {
+			g_free(history);
+		}
+
+		if (verbose) {
+			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+	}
+
+the_end:
+	if (args->retval) {
+		set_progress_bar_data(_("Mask processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Mask processing succeeded."), PROGRESS_DONE);
+	}
+
+	int retval = args->retval;
+
+	if (args->command) {
+		// commands do not use custom idles and must run synchronously
+		execute_idle_and_wait_for_it(end_generic_mask, args);
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_mask, args);
+	}
+
+	return GINT_TO_POINTER(retval);
+}
