@@ -811,6 +811,11 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 		copy_backup_to_gfit();
 
 		estk_data *args = bdeconv_fill_estk_from_gui();
+		if (!args) {
+			clear_backup();
+			PRINT_ALLOC_ERR;
+			return;
+		}
 		args->previewing = TRUE;
 		// Ensure we are using ROI if active
 		gboolean is_roi = (!com.headless && gui.roi.active);
@@ -819,8 +824,9 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
 		if (!worker_args) {
 			PRINT_ALLOC_ERR;
+			clear_backup();
 			set_cursor_waiting(FALSE);
-			if (args) args->destroy_fn(args);
+			args->destroy_fn(args);
 			return;
 		}
 
@@ -852,6 +858,8 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
 		seqargs = calloc(1, sizeof(deconvolution_sequence_data));
+		if (!seqargs)
+			return;
 		seqargs->seq = &com.seq;
 		seqargs->from_command = FALSE;
 		// We still need estk_data for sequence processing, populated from GUI
@@ -874,7 +882,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (!worker_args) {
 			PRINT_ALLOC_ERR;
 			set_cursor_waiting(FALSE);
-			if (args) args->destroy_fn(args);
+			args->destroy_fn(args);
 			return;
 		}
 
@@ -904,6 +912,8 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	gtk_file_chooser_unselect_all(bdeconv_filechooser);
 
 	estk_data *args = bdeconv_fill_estk_from_gui();
+	if (!args)
+		return;
 
 	if(!sequence_is_loaded()) {
 		args->fit = gfit; // The blind estimate is still always done on the whole image.
@@ -920,7 +930,7 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 		if (!worker_args) {
 			PRINT_ALLOC_ERR;
 			set_cursor_waiting(FALSE);
-			if(args) args->destroy_fn(args);
+			args->destroy_fn(args);
 			return;
 		}
 
@@ -937,7 +947,7 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 
 		start_in_new_thread(generic_image_worker, worker_args);
 	} else {
-		if (args) args->destroy_fn(args);
+		args->destroy_fn(args);
 	}
 }
 

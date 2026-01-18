@@ -1003,6 +1003,9 @@ mask_t *fits_to_mask(fits *mfit) {
 	if (!mfit || (!mfit->data && !mfit->fdata))
 		return NULL;
 
+	if ((mfit->type == DATA_USHORT && !mfit->data) || (mfit->type == DATA_FLOAT && !mfit->fdata) || mfit->type == DATA_UNSUPPORTED)
+		return NULL;
+
 	size_t npixels = mfit->rx * mfit->ry;
 
 	mask_t *mask = calloc(1, sizeof(mask_t));

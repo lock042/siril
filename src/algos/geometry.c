@@ -121,7 +121,7 @@ static int resize_mask(mask_t *mask, int old_rx, int old_ry, int new_rx, int new
 
 // Helper function to bin mask
 static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboolean mean) {
-	if (!mask || !mask->data || bin_factor == 0) {
+	if (!mask || !mask->data || bin_factor <= 0) {
 		return 0; // No mask to bin, not an error
 	}
 

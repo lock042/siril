@@ -104,18 +104,22 @@ static void set_sat_histogram(gsl_histogram *histo);
 
 struct mtf_data* create_mtf_data() {
 	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
-	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
-	if (data) {
-		data->destroy_fn = destroy_mtf_data;
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
 	}
+	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
+	data->destroy_fn = destroy_mtf_data;
 	return data;
 }
 
 struct ght_data* create_ght_data() {
 	struct ght_data *data = calloc(1, sizeof(struct ght_data));
-	if (data) {
-		data->destroy_fn = destroy_ght_data;
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
 	}
+	data->destroy_fn = destroy_ght_data;
 	return data;
 }
 
