@@ -1409,7 +1409,6 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_ccm_data(params);
-		free(params);
 		return 1;
 	}
 

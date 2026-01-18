@@ -225,7 +225,6 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_scnr_data(params);
-		free(params);
 		return 1;
 	}
 

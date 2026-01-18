@@ -488,7 +488,7 @@ void on_mask_from_stars_close_clicked(GtkButton *button, gpointer user_data) {
 * Applies the mask creation operation from detected stars.
 */
 void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
-	if ( gfit && gfit->mask) {
+	if (gfit->mask) {
 		set_mask_active( gfit, FALSE);
 		free_mask(gfit->mask);
 		gfit->mask = NULL;

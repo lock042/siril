@@ -140,7 +140,6 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	// Validate parameters
 	if (!validate_denoise_params(params)) {
 		free_denoise_args(params);
-		free(params);
 		return 1;
 	}
 
@@ -159,7 +158,6 @@ static int denoise_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_denoise_args(params);
-		free(params);
 		return 1;
 	}
 

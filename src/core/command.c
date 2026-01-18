@@ -678,7 +678,6 @@ int process_denoise(int nb) {
 			if (end == arg || mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
@@ -690,7 +689,6 @@ int process_denoise(int nb) {
 			if (end == arg || rho <= 0.f || rho >= 1.f) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
@@ -716,7 +714,6 @@ int process_denoise(int nb) {
 		else {
 			siril_log_message(_("Unknown argument %s\n"), arg);
 			free_denoise_args(params);
-			free(params);
 			set_cursor_waiting(FALSE);
 			return CMD_ARG_ERROR;
 		}
@@ -729,7 +726,6 @@ int process_denoise(int nb) {
 			"red"
 		);
 		free_denoise_args(params);
-		free(params);
 		set_cursor_waiting(FALSE);
 		return CMD_ARG_ERROR;
 	}
@@ -752,7 +748,6 @@ int process_denoise(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_denoise_args(params);
-		free(params);
 		set_cursor_waiting(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
@@ -2099,7 +2094,6 @@ int process_epf(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_epf_args(params);
-		free(params);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -3145,7 +3139,6 @@ int process_ccm(int nb) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
 				free(prefix);
 				free_ccm_data(args);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -3158,7 +3151,6 @@ int process_ccm(int nb) {
 			siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
 			free(prefix);
 			free_ccm_data(args);
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -3175,7 +3167,6 @@ int process_ccm(int nb) {
 			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
 			free(prefix);
 			free_ccm_data(args);
-			free(args);
 			return CMD_INVALID_IMAGE;
 		}
 
@@ -3185,7 +3176,6 @@ int process_ccm(int nb) {
 			PRINT_ALLOC_ERR;
 			free(prefix);
 			free_ccm_data(args);
-			free(args);
 			return CMD_GENERIC_ERROR;
 		}
 
@@ -5233,7 +5223,6 @@ int process_rgradient(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_rgradient_data(params);
-		free(params);
 		return CMD_ALLOC_ERROR;
 	}
 	// Set up generic_img_args
@@ -8352,7 +8341,6 @@ int process_scnr(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_scnr_data(params);
-		free(params);
 		return CMD_GENERIC_ERROR;
 	}
 

@@ -747,8 +747,11 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	int retvalue;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
-	gboolean tmp_mask_active = image->mask_active;
-	set_mask_active(image, FALSE);
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
+	}
 
 	int old_rx = image->rx;
 	int old_ry = image->ry;
@@ -795,8 +798,11 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
-	gboolean tmp_mask_active = image->mask_active;
-	set_mask_active(image, FALSE);
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
+	}
 
 	int orig_ry = image->ry;
 	int orig_rx = image->rx;
@@ -813,6 +819,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 			siril_log_color_message(_("Error rotating mask\n"), "red");
 			free_mask(image->mask);
 			image->mask = NULL;
+			set_mask_active(image, FALSE);
 			show_or_hide_mask_tab();
 		} else {
 			set_mask_active(image, tmp_mask_active);
@@ -832,8 +839,11 @@ int verbose_rotate_fast(fits *image, int angle) {
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped, gboolean clamp) {
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
-	gboolean tmp_mask_active = image->mask_active;
-	set_mask_active(image, FALSE);
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
+	}
 
 	int orig_ry = image->ry;
 	int orig_rx = image->rx;
@@ -851,6 +861,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			free_mask(image->mask);
 			image->mask = NULL;
 			show_or_hide_mask_tab();
+			set_mask_active(image, FALSE);
 		} else {
 			set_mask_active(image, tmp_mask_active);
 		}

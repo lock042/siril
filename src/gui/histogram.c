@@ -1430,7 +1430,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		return FALSE;
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
-	for (i = 0; i < MAXVPORT; i++) {
+	for (i = 0; i < RGB_VPORT; i++) {
 		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
 				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale());
@@ -1598,11 +1598,7 @@ gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
 
 gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
 	struct mtf_data *args = (struct mtf_data*) p;
-	gchar *message = NULL;
-	if (args->linked)
-		message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
-	else
-		message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
+	gchar *message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
 	return message;
 }
 

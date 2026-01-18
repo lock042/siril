@@ -278,7 +278,6 @@ static int rgradient_process_with_worker() {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_rgradient_data(params);
-		free(params);
 		return 1;
 	}
 

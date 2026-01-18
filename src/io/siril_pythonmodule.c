@@ -843,11 +843,14 @@ gboolean handle_set_image_mask_request(Connection *conn, fits *fit, incoming_ima
 			alloc_err = TRUE;
 		}
 	}
-	free(fit->mask->data);
-	fit->mask->data = malloc(fit->rx * fit->ry * (bitpix >> 3));
-	if (!fit->mask->data) {
-		PRINT_ALLOC_ERR;
-		alloc_err = TRUE;
+	if (!alloc_err) {
+		if (fit->mask->data)
+			free(fit->mask->data);
+		fit->mask->data = malloc(fit->rx * fit->ry * (bitpix >> 3));
+		if (!fit->mask->data) {
+			PRINT_ALLOC_ERR;
+			alloc_err = TRUE;
+		}
 	}
 	if (alloc_err) {
 		#ifdef _WIN32
