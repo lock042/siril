@@ -171,18 +171,24 @@ def download_with_progress(
             return os.path.getsize(temp_file_path), 1
         return 0, 0
 
+    # Create a session for connection pooling and reuse
+    session = requests.Session()
+
     for attempt in range(max_retries):
         try:
             # Get initial file size and determine if resuming
             initial_size, resume_attempt = get_file_size_and_resume_point()
 
-            # Prepare headers for partial content
-            headers = {}
+            # Prepare headers for partial content and custom user-agent
+            headers = {
+                'User-Agent': 'siril-1.4 (https://gitlab.com/free-astro/siril/)',
+                'Accept-Encoding': 'identity'  # Disable compression for faster streaming
+            }
             if initial_size > 0:
                 headers['Range'] = f'bytes={initial_size}-'
 
-            # Establish connection with timeout
-            response = requests.get(url, stream=True, headers=headers, timeout=(10, 30))
+            # Establish connection with more generous timeout for large files
+            response = session.get(url, stream=True, headers=headers, timeout=(10, 60))
             response.raise_for_status()
 
             # Determine total file size and content range
@@ -195,15 +201,19 @@ def download_with_progress(
 
             downloaded_size = initial_size
 
-            # Progress update rate limiting
-            max_update_frequency = 5.0
+            # Progress update rate limiting - less frequent updates for better performance
+            max_update_frequency = 2.0  # Reduced from 5.0 Hz to 2.0 Hz
             last_update_time = 0
             min_update_interval = 1 / max_update_frequency
 
-            # Open file in append mode or write mode
+            # Cache the total size string since it never changes
+            total_size_str = human_readable_size(total_size) if total_size > 0 else "Unknown"
+
+            # Open file in append mode or write mode with larger buffer
             mode = 'ab' if initial_size > 0 else 'wb'
-            with open(temp_file_path, mode) as f:
-                for chunk in response.iter_content(chunk_size=8192):
+            with open(temp_file_path, mode, buffering=1024*1024) as f:  # 1MB buffer
+                # Increased chunk size significantly for better throughput
+                for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
                     if not chunk:
                         continue
 
@@ -212,12 +222,12 @@ def download_with_progress(
 
                     current_time = time.time()
 
-                    # Update progress
+                    # Update progress less frequently
                     if total_size > 0 and current_time - last_update_time >= min_update_interval:
                         progress = downloaded_size / total_size
-                        # Line shortened to comply with line length limit
+                        # Only calculate downloaded size string, total is cached
                         status = (f"Downloading... (Attempt {resume_attempt}, "
-                                 f"{human_readable_size(downloaded_size)}/{human_readable_size(total_size)})")
+                                 f"{human_readable_size(downloaded_size)}/{total_size_str})")
                         siril.update_progress(status, progress)
                         last_update_time = current_time
 
@@ -225,6 +235,7 @@ def download_with_progress(
             if downloaded_size >= total_size:
                 # Rename temp file to final file
                 os.replace(temp_file_path, file_path)
+                session.close()
                 return True
 
             # If download is incomplete, will retry
@@ -250,9 +261,11 @@ def download_with_progress(
 
             siril.update_progress(error_message, 0.0)
 
+            session.close()
             raise SirilError(error_message) from e
 
     # All retry attempts failed
+    session.close()
     raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
 def ensure_installed(*packages: Union[str, List[str]],
