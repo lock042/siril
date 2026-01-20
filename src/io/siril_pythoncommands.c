@@ -678,7 +678,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	// Process commands
 	switch (header->command) {
 		case CMD_GET_DIMENSIONS: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = (single_image_is_loaded() || sequence_is_loaded());
 
 			if (result) {
 				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
@@ -739,7 +739,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_ACTIVE_VPORT: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = (single_image_is_loaded() || sequence_is_loaded());
 
 			if (result) {
 				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
@@ -762,7 +762,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = (single_image_is_loaded() || sequence_is_loaded());
 			if (result) {
 				if (payload_length == 16) {
 					rectangle region_BE = *(rectangle*) payload;
@@ -784,7 +784,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 			} else {
 				// Handle error retrieving dimensions
-				const char* error_msg = _("Failed to set selection - no image loaded");
+				const char* error_msg = _("Failed to set selection - no image or sequence frame loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
@@ -993,7 +993,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check an image is loaded
-			if (!single_image_is_loaded()) {
+			if (!single_image_is_loaded() || sequence_is_loaded()) {
 				const char* error_msg = _("No image loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -3211,7 +3211,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_SET_SLIDER_MODE: {
 			if (com.headless)
 				break; // Ignore this command if we are headless
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				// Validate payload length - must be 4
 				if (payload_length == 4) {
@@ -3248,7 +3248,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_SET_SLIDER_LOHI: {
 			if (com.headless)
 				break; // Ignore this command if we are headless
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				// Validate payload length - can be 4 (mode only), 8 (lo+hi), or 12 (lo+hi+mode)
 				if (payload_length == 8) {
@@ -3285,7 +3285,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_SET_PAN: {
 			if (com.headless)
 				break; // Ignore this command if we are headless
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				// Validate payload length
 				if (payload_length == 2 * sizeof(double)) {
@@ -3315,7 +3315,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_SET_ZOOM: {
 			if (com.headless)
 				break; // Ignore this command if we are headless
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				// Validate payload length
 				if (payload_length == sizeof(double)) {

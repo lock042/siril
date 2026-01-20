@@ -971,7 +971,7 @@ class SirilInterface:
     def undo_save_state(self, my_string: str) -> bool:
         """
         Saves an undo state. The maximum message length is 70 bytes: longer
-        messages will be truncated.
+        messages will be truncated. Requires a single image to be loaded.
 
         Args:
             my_string: The message to log in FITS HISTORY
@@ -1311,7 +1311,8 @@ class SirilInterface:
     def get_selection_stats(self, shape: Optional[list[int]] = None, \
         channel: Optional[int] = None) -> Optional[PSFStar]:
         """
-        Retrieves statistics for the current selection in Siril.
+        Retrieves statistics for the current selection in Siril. Requires a single
+        image or a sequence to be loaded.
 
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
@@ -2215,7 +2216,8 @@ class SirilInterface:
 
     def get_image_iccprofile(self) -> Optional[bytes]:
         """
-        Retrieve the ICC profile of the current Siril image using shared memory.
+        Retrieve the ICC profile of the current Siril image using shared memory. Requires
+        a single image to be loaded.
 
         Args:
         none.
@@ -2297,6 +2299,7 @@ class SirilInterface:
     def get_image_fits_header(self, return_as = 'str') -> Union[str, dict, None]:
         """
         Retrieve the full FITS header of the current image loaded in Siril.
+        Requires a single image to be loaded.
 
         Args:
             return_as: Optional string specifying the format of the returned header.
@@ -2385,7 +2388,7 @@ class SirilInterface:
     def get_image_unknown_keys(self) -> Optional[str]:
         """
         Retrieve the unknown key in a FITS header of the current loaded Siril
-        image using shared memory.
+        image using shared memory. Requires a single image to be loaded.
 
         Args:
             none.
@@ -2469,7 +2472,7 @@ class SirilInterface:
     def get_image_history(self) -> Optional[list[str]]:
         """
         Retrieve history entries in the FITS header of the current loaded
-        Siril image using shared memory.
+        Siril image using shared memory. Requires a single image to be loaded.
 
         Args:
             none.
@@ -2694,7 +2697,8 @@ class SirilInterface:
 
     def get_image_filename(self) -> Optional[str]:
         """
-        Request the filename of the loaded image from Siril.
+        Request the filename of the loaded image from Siril. Requires a
+        single image to be loaded.
 
         Returns:
             The filename as a string.
@@ -2719,6 +2723,7 @@ class SirilInterface:
     def get_seq_frame_filename(self, frame: int) -> Optional[str]:
         """
         Request the filename of the specified frame of the loaded sequence from Siril.
+        Requires a sequence to be loaded.
 
         Args:
             frame (int): Specifies the frame index. This
@@ -2753,7 +2758,8 @@ class SirilInterface:
 
     def get_image_stats(self, channel: int) -> Optional[ImageStats]:
         """
-        Request image statistics from Siril for a specific channel.
+        Request image statistics from Siril for a specific channel. Requires a
+        single image to be loaded.
 
         Args:
             channel: Integer specifying which channel to get statistics
@@ -3010,7 +3016,8 @@ class SirilInterface:
 
     def get_image_keywords(self) -> Optional[FKeywords]:
         """
-        Request FITS keywords data from Siril as a FKeywords object.
+        Request FITS keywords data from Siril as a FKeywords object. Requires
+        a single image to be loaded.
 
         Returns:
             FKeywords object containing the FITS keywords, or None if an error occurred
@@ -3031,7 +3038,8 @@ class SirilInterface:
 
     def get_image(self, with_pixels: Optional[bool] = True, preview: Optional[bool] = False) -> Optional[FFit]:
         """
-        Request a copy of the current image open in Siril.
+        Request a copy of the current image open in Siril. Requires a single
+        image to be loaded.
 
         Args:
             with_pixels: optional bool specifying whether to get pixel data as a

@@ -7,6 +7,7 @@ siril-1.4.2
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
 * Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
+* Enabled some python methods to work with sequence frames as well as single images (siril-scripts#86)
 
 siril-1.4.1
 01/05/26
