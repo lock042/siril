@@ -2072,6 +2072,213 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 	return ok;
 }
 
+/* ------------------------------------------------------------ */
+/* Safe recursive directory copy                                */
+/* ------------------------------------------------------------ */
+/*
+* Safety properties:
+* - Never follows symlinks (copies them as symlinks).
+* - Never crosses filesystem boundaries (optional but recommended).
+* - Re-validates type before copying to narrow TOCTOU windows.
+* - Uses GFileEnumerator instead of GDir.
+* - Recurses via GFile children, not paths.
+* - Ensures destination directories exist.
+*/
+
+#define COPY_ENUM_ATTRS \
+	G_FILE_ATTRIBUTE_STANDARD_NAME "," \
+	G_FILE_ATTRIBUTE_STANDARD_TYPE "," \
+	G_FILE_ATTRIBUTE_ID_FILESYSTEM "," \
+	G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET
+
+typedef struct {
+	gchar   *fs_id;
+	gboolean have_fs_id;
+} CopyContext;
+
+/* Initialise context: capture filesystem::id of source root */
+static gboolean
+init_copy_context (GFile *src_root, CopyContext *ctx, GError **error)
+{
+	g_autoptr(GFileInfo) fsinfo = NULL;
+
+	memset(ctx, 0, sizeof(*ctx));
+
+	fsinfo = g_file_query_filesystem_info(
+		src_root,
+		G_FILE_ATTRIBUTE_ID_FILESYSTEM,
+		NULL,
+		error
+	);
+	if (!fsinfo)
+		return FALSE;
+
+	if (g_file_info_get_attribute_type(fsinfo, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
+
+		ctx->fs_id = g_strdup(
+			g_file_info_get_attribute_string(
+				fsinfo, G_FILE_ATTRIBUTE_ID_FILESYSTEM));
+		ctx->have_fs_id = TRUE;
+	}
+
+	return TRUE;
+}
+
+/* Enforce filesystem boundary */
+static gboolean
+check_same_fs (GFileInfo *info, const CopyContext *ctx)
+{
+	if (!ctx->have_fs_id)
+		return TRUE;
+
+	if (g_file_info_get_attribute_type(info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			!= G_FILE_ATTRIBUTE_TYPE_STRING)
+		return TRUE;
+
+	const gchar *child_fs =
+		g_file_info_get_attribute_string(info, G_FILE_ATTRIBUTE_ID_FILESYSTEM);
+
+	return g_strcmp0(ctx->fs_id, child_fs) == 0;
+}
+
+/* Internal recursive helper */
+static gboolean
+copy_directory_file (GFile *src,
+					GFile *dst,
+					const CopyContext *ctx,
+					GError **error)
+{
+	/* Ensure src is a directory */
+	if (g_file_query_file_type(src, G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL)
+			!= G_FILE_TYPE_DIRECTORY) {
+
+		g_autofree gchar *p = g_file_get_path(src);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Source '%s' is not a directory",
+					p ? p : "(unknown)");
+		return FALSE;
+	}
+
+	/* Ensure destination directory exists */
+	if (!g_file_make_directory_with_parents(dst, NULL, error)) {
+		if (!g_error_matches(*error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+			return FALSE;
+		g_clear_error(error);
+	}
+
+	/* Enumerate children */
+	g_autoptr(GFileEnumerator) en = g_file_enumerate_children(
+		src,
+		COPY_ENUM_ATTRS,
+		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+		NULL,
+		error
+	);
+	if (!en)
+		return FALSE;
+
+	while (TRUE) {
+		GFileInfo *info = NULL;
+		GFile     *child = NULL;
+
+		if (!g_file_enumerator_iterate(en, &info, &child, NULL, error))
+			return FALSE;
+
+		if (!info)
+			break; /* end */
+
+		/* Filesystem boundary enforcement */
+		if (!check_same_fs(info, ctx)) {
+			g_autofree gchar *p = g_file_get_path(child);
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+						"Refusing to copy '%s' (different filesystem)",
+						p ? p : "(unknown)");
+			return FALSE;
+		}
+
+		const gchar *name = g_file_info_get_name(info);
+		g_autoptr(GFile) dst_child = g_file_get_child(dst, name);
+
+		GFileType type = g_file_info_get_file_type(info);
+
+		switch (type) {
+
+		case G_FILE_TYPE_DIRECTORY:
+			/* Recurse */
+			if (!copy_directory_file(child, dst_child, ctx, error))
+				return FALSE;
+			break;
+
+		case G_FILE_TYPE_SYMBOLIC_LINK: {
+			/* Copy symlink as symlink */
+			const gchar *target =
+				g_file_info_get_attribute_string(
+					info, G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET);
+
+			if (!target) {
+				g_autofree gchar *p = g_file_get_path(child);
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+							"Symlink '%s' has no target", p ? p : "(unknown)");
+				return FALSE;
+			}
+
+			if (!g_file_make_symbolic_link(dst_child, target, NULL, error))
+				return FALSE;
+
+			break;
+		}
+
+		case G_FILE_TYPE_REGULAR: {
+			GFileCopyFlags flags =
+				G_FILE_COPY_OVERWRITE |
+				G_FILE_COPY_NOFOLLOW_SYMLINKS |
+				G_FILE_COPY_ALL_METADATA;
+
+			if (!g_file_copy(child, dst_child, flags,
+							NULL, NULL, NULL, error))
+				return FALSE;
+
+			break;
+		}
+
+		default:
+			/* Ignore FIFOs, sockets, devices, etc. */
+			break;
+		}
+	}
+
+	return TRUE;
+}
+
+/* Public function */
+gboolean copy_directory_recursive (const gchar *src_dir,
+						const gchar *dst_dir,
+						GError **error) {
+	g_return_val_if_fail(src_dir && dst_dir, FALSE);
+
+	g_autoptr(GFile) src = g_file_new_for_path(src_dir);
+	g_autoptr(GFile) dst = g_file_new_for_path(dst_dir);
+
+	/* Validate source */
+	if (g_file_query_file_type(src, G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL)
+			!= G_FILE_TYPE_DIRECTORY) {
+
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Source '%s' is not a directory", src_dir);
+		return FALSE;
+	}
+
+	CopyContext ctx;
+	if (!init_copy_context(src, &ctx, error))
+		return FALSE;
+
+	gboolean ok = copy_directory_file(src, dst, &ctx, error);
+
+	g_free(ctx.fs_id);
+	return ok;
+}
+
 gchar *posix_path_separators(const gchar *path) {
 	gchar *normalized = g_strdup(path);
 	gchar *p = normalized;

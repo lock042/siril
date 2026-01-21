@@ -1846,69 +1846,6 @@ static version_number get_installed_module_version(const gchar* python_path, GEr
 	return ver;
 }
 
-gboolean copy_directory_recursive(const gchar *src_dir, const gchar *dest_dir, GError **error) {
-	g_return_val_if_fail(src_dir != NULL && dest_dir != NULL, FALSE);
-
-	GDir *dir = g_dir_open(src_dir, 0, error);
-	if (!dir) {
-		return FALSE;
-	}
-
-	GFile *src_file = g_file_new_for_path(src_dir);
-	GFile *dest_file = g_file_new_for_path(dest_dir);
-	gboolean success = TRUE;
-
-	// Create destination directory if it doesn't exist
-	if (!g_file_make_directory_with_parents(dest_file, NULL, error)) {
-		if (!g_error_matches(*error, G_IO_ERROR, G_IO_ERROR_EXISTS)) {
-			success = FALSE;
-			goto cleanup_files;
-		}
-		g_clear_error(error);  // Clear the "already exists" error
-	}
-
-	const gchar *filename;
-	while ((filename = g_dir_read_name(dir)) != NULL && success) {
-		gchar *src_path = g_build_filename(src_dir, filename, NULL);
-		gchar *dest_path = g_build_filename(dest_dir, filename, NULL);
-		GFile *src_child = g_file_new_for_path(src_path);
-		GFile *dest_child = g_file_new_for_path(dest_path);
-
-		GFileType file_type = g_file_query_file_type(src_child,
-													G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
-													NULL);
-
-		if (file_type == G_FILE_TYPE_DIRECTORY) {
-			// Recursively copy subdirectory
-			success = copy_directory_recursive(src_path, dest_path, error);
-		} else if (file_type == G_FILE_TYPE_REGULAR) {
-			// Copy file
-			GFileCopyFlags flags = G_FILE_COPY_OVERWRITE |
-								G_FILE_COPY_NOFOLLOW_SYMLINKS |
-								G_FILE_COPY_ALL_METADATA;
-
-			success = g_file_copy(src_child, dest_child, flags,
-								NULL, NULL, NULL, error);
-		}
-
-		g_object_unref(src_child);
-		g_object_unref(dest_child);
-		g_free(src_path);
-		g_free(dest_path);
-
-		if (!success) {
-			break;
-		}
-	}
-
-cleanup_files:
-	g_object_unref(src_file);
-	g_object_unref(dest_file);
-	g_dir_close(dir);
-
-	return success;
-}
-
 static gboolean validate_python_version(const gchar *python_exe, GError **error) {
 	gchar *argv[] = {
 		(gchar *)python_exe,
@@ -2007,29 +1944,17 @@ static gboolean validate_system_python(const gchar *python_exe, GError **error) 
 		// Provide helpful error messages based on platform
 		gchar *helpful_msg = NULL;
 
-#ifdef _WIN32
+#if (defined(_WIN32) || defined(__APPLE__))
 		helpful_msg = g_strdup(
 			"Python venv module is not available.\n\n"
-			"Please ensure Python was installed with the 'py launcher' and 'pip' options enabled.\n"
-			"You may need to reinstall Python from https://www.python.org/downloads/\n"
-			"During installation, make sure to check:\n"
-			"  - Add Python to PATH\n"
-			"  - Install pip\n"
-			"  - Install py launcher"
-		);
-#elif defined(__APPLE__)
-		helpful_msg = g_strdup(
-			"Python venv module is not available.\n\n"
-			"If using Homebrew Python, install with:\n"
-			"  brew install python@3.9\n\n"
-			"If using the system Python, you may need to install command line tools:\n"
-			"  xcode-select --install"
+			"This should not happen as it is included in the installation bundle "
+			"for this operatng system.\nYou may need to reinstall Siril."
 		);
 #else
 		// Linux - check for common error patterns
 		if (stderr_data && g_strrstr(stderr_data, "ensurepip")) {
 			helpful_msg = g_strdup(
-				"Python venv/ensurepip modules are not available.\n\n"
+				"Python venv / ensurepip modules are not available.\n\n"
 				"Please install the required packages:\n"
 				"  Debian/Ubuntu:  sudo apt install python3-venv python3-pip\n"
 				"  Fedora/RHEL:    sudo dnf install python3-pip\n"
@@ -2038,8 +1963,9 @@ static gboolean validate_system_python(const gchar *python_exe, GError **error) 
 			);
 		} else {
 			helpful_msg = g_strdup(
-				"Python venv module is not available.\n\n"
-				"Please install your distribution's python3-venv package.\n"
+				"Python venv and / or pip module is not available.\n\n"
+				"Please install your distribution's python3-venv and python3-pip "
+				"packages.\n"
 				"Common package names: python3-venv, python3-pip"
 			);
 		}
@@ -2056,7 +1982,6 @@ static gboolean validate_system_python(const gchar *python_exe, GError **error) 
 	return TRUE;
 }
 
-// New function: Comprehensive venv health check
 static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
 	if (!python_exe) {
