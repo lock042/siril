@@ -20,128 +20,529 @@
 
 #include <string.h>
 #include <math.h>
-#include <float.h>
+#include <stdlib.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
-#include "core/siril_log.h"
 #include "io/single_image.h"
-#include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
-#include "core/undo.h"
 #include "curves.h"
 #include "histogram.h"
 #include "filters/curve_transform.h"
 
-/* The gsl_histogram, documented here:
- * http://linux.math.tifr.res.in/manuals/html/gsl-ref-html/gsl-ref_21.html
- * is able to group values into bins, it does not need to handle all values
- * separately. That is useful for display purposes, but not currently used.
- */
+// ---------------------------------------------------------------------------
+// FORWARD DECLARATIONS
+// ---------------------------------------------------------------------------
+static int curves_process_with_worker(gboolean for_preview, gboolean for_roi);
+static gboolean is_curves_log_scale(void);
+static void update_range_ui_from_state(void);
+static int curves_update_preview(void);
+static void curves_update_image(void);
+static void _update_entry_text(void);
+static void _initialize_clip_text(void);
 
-// Cache UI elements
+// Forward declaration of Idle functions defined in this file
+gboolean curve_preview_idle(gpointer p);
+gboolean curve_apply_idle(gpointer p);
+
+// ---------------------------------------------------------------------------
+// UI CACHE
+// ---------------------------------------------------------------------------
+
 static GtkAdjustment *curves_adj_zoom = NULL;
 static GtkComboBoxText *curves_interpolation_combo = NULL;
 static GtkEntry *curves_id_entry = NULL, *curves_x_entry = NULL, *curves_y_entry = NULL, *curves_clip_low = NULL, *curves_clip_high = NULL, *curves_seq_entry = NULL;
 static GtkGrid *curves_point_grid = NULL;
 static GtkToggleButton *curves_sequence_check = NULL, *curves_preview_check = NULL, *curves_log_check = NULL;
-static GtkToggleToolButton *curves_red_toggle = NULL, *curves_green_toggle = NULL, *curves_blue_toggle = NULL, *curves_grid_toggle = NULL;
+static GtkToggleToolButton *curves_grid_toggle = NULL;
 static GtkWidget *curves_drawingarea = NULL, *curves_viewport = NULL, *curves_dialog = NULL;
+static GtkComboBoxText *curves_channel_combo = NULL;
+static GtkCheckButton *curves_range_check = NULL;
+static GtkScale *curves_range_min_scale = NULL;
+static GtkScale *curves_range_max_scale = NULL;
+static GtkScale *curves_range_feather_scale = NULL;
+static GtkWidget *curves_undo_stage_btn = NULL;
+static GtkLabel *curves_stage_lbl = NULL;
+
+// ---------------------------------------------------------------------------
+// STATE
+// ---------------------------------------------------------------------------
+
+static curve_channel_config gui_channels[CHAN_COUNT];
+static GList *undo_stack = NULL; // Stack of curve_state_snapshot*
+static int stage_count = 0;
+
+static enum curve_channel current_channel = CHAN_RGB_K;
+static enum curve_algorithm algorithm = AKIMA_SPLINE;
 
 static gboolean closing = FALSE;
-
 static gboolean do_channel[3];
-
 static fits *fit = NULL;
-
 static long clipped[] = {0, 0};
-
-// The histogram displayed on the drawingarea
 static gsl_histogram *display_histogram[MAXVPORT] = {NULL, NULL, NULL, NULL};
-
 static gboolean is_drawingarea_pressed = FALSE;
-
-// Original ICC profile, in case we don't apply a stretch and need to revert
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
+static point *selected_point = NULL;
+static double point_size = 5.0;
 
-// compare function for points
 int compare_points(const void *a, const void *b) {
 	point *point_a = (point *) a;
 	point *point_b = (point *) b;
-
 	if (point_a->x < point_b->x) return -1;
 	if (point_a->x > point_b->x) return 1;
 	return 0;
 }
 
-// Curve points
-static GList *curve_points = NULL;
-static point *selected_point = NULL;
-static double point_size = 5.0;
+static point* copy_point(const point *src, gpointer user_data) {
+	point *new_p = g_new(point, 1);
+	new_p->x = src->x;
+	new_p->y = src->y;
+	return new_p;
+}
 
-enum curve_algorithm algorithm = CUBIC_SPLINE;
+// ---------------------------------------------------------------------------
+// UNDO / STAGE MANAGEMENT
+// ---------------------------------------------------------------------------
+
+static void free_snapshot(curve_state_snapshot *snap) {
+	if (!snap) return;
+	for(int i=0; i<CHAN_COUNT; i++) {
+		if (snap->channels[i].points)
+			g_list_free_full(snap->channels[i].points, g_free);
+	}
+	g_free(snap);
+}
+
+static void push_undo_state() {
+	curve_state_snapshot *snap = g_new0(curve_state_snapshot, 1);
+	snap->algorithm = algorithm;
+
+	for(int i=0; i<CHAN_COUNT; i++) {
+		snap->channels[i].active = gui_channels[i].active;
+		snap->channels[i].range_enabled = gui_channels[i].range_enabled;
+		snap->channels[i].lum_min = gui_channels[i].lum_min;
+		snap->channels[i].lum_max = gui_channels[i].lum_max;
+		snap->channels[i].feather = gui_channels[i].feather;
+		if (gui_channels[i].points)
+			snap->channels[i].points = g_list_copy_deep(gui_channels[i].points, (GCopyFunc)copy_point, NULL);
+	}
+
+	undo_stack = g_list_prepend(undo_stack, snap);
+	stage_count++;
+
+	char buf[32];
+	snprintf(buf, 32, "Stages: %d", stage_count);
+	gtk_label_set_text(curves_stage_lbl, buf);
+	gtk_widget_set_sensitive(curves_undo_stage_btn, TRUE);
+}
+
+static void pop_undo_state() {
+	if (!undo_stack) return;
+
+	curve_state_snapshot *snap = (curve_state_snapshot*)undo_stack->data;
+	undo_stack = g_list_remove(undo_stack, snap);
+
+	// Restore State
+	algorithm = snap->algorithm;
+	gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), algorithm);
+
+	for(int i=0; i<CHAN_COUNT; i++) {
+		// Clear current
+		if (gui_channels[i].points) g_list_free_full(gui_channels[i].points, g_free);
+
+		// Restore
+		gui_channels[i].active = snap->channels[i].active;
+		gui_channels[i].range_enabled = snap->channels[i].range_enabled;
+		gui_channels[i].lum_min = snap->channels[i].lum_min;
+		gui_channels[i].lum_max = snap->channels[i].lum_max;
+		gui_channels[i].feather = snap->channels[i].feather;
+
+		// Move ownership
+		gui_channels[i].points = snap->channels[i].points;
+		snap->channels[i].points = NULL;
+	}
+
+	free_snapshot(snap);
+	stage_count--;
+
+	char buf[32];
+	snprintf(buf, 32, "Stages: %d", stage_count);
+	gtk_label_set_text(curves_stage_lbl, buf);
+	gtk_widget_set_sensitive(curves_undo_stage_btn, (undo_stack != NULL));
+
+	// Refresh UI
+	selected_point = (point*) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_update_entry_text();
+	curves_update_image();
+	gtk_widget_queue_draw(curves_drawingarea);
+}
+
+static void clear_undo_stack() {
+	if (undo_stack) {
+		g_list_free_full(undo_stack, (GDestroyNotify)free_snapshot);
+		undo_stack = NULL;
+	}
+	stage_count = 0;
+	if (curves_stage_lbl) gtk_label_set_text(curves_stage_lbl, "Stages: 0");
+	if (curves_undo_stage_btn) gtk_widget_set_sensitive(curves_undo_stage_btn, FALSE);
+}
+
+// ---------------------------------------------------------------------------
+// CONFIG
+// ---------------------------------------------------------------------------
+
+static void init_single_channel_config(int ch) {
+	if (gui_channels[ch].points) {
+		g_list_free_full(gui_channels[ch].points, g_free);
+		gui_channels[ch].points = NULL;
+	}
+	point *p = g_new(point, 1);
+	p->x = 0.0; p->y = 0.0;
+	gui_channels[ch].points = g_list_insert_sorted(gui_channels[ch].points, p, (GCompareFunc) compare_points);
+	p = g_new(point, 1);
+	p->x = 1.0; p->y = 1.0;
+	gui_channels[ch].points = g_list_insert_sorted(gui_channels[ch].points, p, (GCompareFunc) compare_points);
+
+	gui_channels[ch].active = FALSE;
+	gui_channels[ch].range_enabled = FALSE;
+	gui_channels[ch].lum_min = 0.0f;
+	gui_channels[ch].lum_max = 1.0f;
+	gui_channels[ch].feather = 0.25f;
+}
+
+static void init_all_curves() {
+	for(int i=0; i<CHAN_COUNT; i++) init_single_channel_config(i);
+	current_channel = CHAN_RGB_K;
+	selected_point = (point *) gui_channels[CHAN_RGB_K].points->data;
+}
+
+static void update_range_ui_from_state(void) {
+	if (!curves_range_check) return;
+	g_signal_handlers_block_by_func(curves_range_check, on_curve_check_range_button_toggled, NULL);
+	g_signal_handlers_block_by_func(curves_range_min_scale, on_curves_range_value_changed, NULL);
+	g_signal_handlers_block_by_func(curves_range_max_scale, on_curves_range_value_changed, NULL);
+	g_signal_handlers_block_by_func(curves_range_feather_scale, on_curves_feather_value_changed, NULL);
+
+	curve_channel_config *cfg = &gui_channels[current_channel];
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(curves_range_check), cfg->range_enabled);
+	gtk_range_set_value(GTK_RANGE(curves_range_min_scale), cfg->lum_min * 100.0);
+	gtk_range_set_value(GTK_RANGE(curves_range_max_scale), cfg->lum_max * 100.0);
+	gtk_range_set_value(GTK_RANGE(curves_range_feather_scale), cfg->feather * 100.0);
+
+	g_signal_handlers_unblock_by_func(curves_range_check, on_curve_check_range_button_toggled, NULL);
+	g_signal_handlers_unblock_by_func(curves_range_min_scale, on_curves_range_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(curves_range_max_scale, on_curves_range_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(curves_range_feather_scale, on_curves_feather_value_changed, NULL);
+}
+
+static void switch_channel_view(enum curve_channel new_chan) {
+	current_channel = new_chan;
+	if (gui_channels[new_chan].points)
+		selected_point = (point *) gui_channels[new_chan].points->data;
+	else {
+		init_single_channel_config(new_chan);
+		selected_point = (point *) gui_channels[new_chan].points->data;
+	}
+	update_range_ui_from_state();
+}
+
+// ---------------------------------------------------------------------------
+// UI SETUP
+// ---------------------------------------------------------------------------
 
 void curves_dialog_init_statics() {
 	if (curves_adj_zoom == NULL) {
-		// GtkAdjustment
 		curves_adj_zoom = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "curves_adj_zoom"));
-		// GtkComboBoxText
 		curves_interpolation_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "curves_interpolation_combo"));
-		// GtkDialog
 		curves_dialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_dialog"));
-		// GtkDrawingArea
 		curves_drawingarea = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_drawingarea"));
-		// GtkEntry
 		curves_id_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_id_entry"));
 		curves_x_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_x_entry"));
 		curves_y_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_y_entry"));
 		curves_clip_low = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_clip_low"));
 		curves_clip_high = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_clip_high"));
 		curves_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "curves_seq_entry"));
-		// GtkGrid
 		curves_point_grid = GTK_GRID(gtk_builder_get_object(gui.builder, "curves_point_grid"));
-		// GtkToggleButton
 		curves_sequence_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_sequence_check"));
 		curves_preview_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_preview_check"));
 		curves_log_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_log_check"));
-		// GtkToggleToolButton
-		curves_red_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_red_toggle"));
-		curves_green_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_green_toggle"));
-		curves_blue_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_blue_toggle"));
 		curves_grid_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_grid_toggle"));
-		// GtkViewport
 		curves_viewport = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_viewport"));
+
+		curves_range_check = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "curve_check_range_button"));
+		curves_range_min_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_min"));
+		curves_range_max_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_max"));
+		curves_range_feather_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_feather"));
+		curves_channel_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "curves_channel_combo"));
+
+		curves_undo_stage_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_undo_stage_btn"));
+		curves_stage_lbl = GTK_LABEL(gtk_builder_get_object(gui.builder, "curves_undo_stage_lbl"));
 	}
 }
 
-static void set_histogram(gsl_histogram *histo, int layer);
+// ---------------------------------------------------------------------------
+// DRAWING (THE COOL STUFF)
+// ---------------------------------------------------------------------------
 
-static void clear_display_histogram() {
-	if (display_histogram[0]) {
-		for (int i = 0; i < fit->naxes[2]; i++) {
-			gsl_histogram_free(display_histogram[i]);
-			display_histogram[i] = NULL;
+static void draw_background_gradient(cairo_t *cr, int width, int height) {
+	cairo_pattern_t *pat = cairo_pattern_create_linear(0, height, 0, 0);
+
+	if (current_channel == CHAN_S || current_channel == CHAN_C) {
+		cairo_pattern_add_color_stop_rgb(pat, 0.0, 0.1, 0.1, 0.1);
+
+		if (current_channel == CHAN_S) {
+			cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.16, 0.12, 0.27);
+		} else {
+			cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.27, 0.16, 0.12);
+		}
+
+		cairo_set_source(cr, pat);
+		cairo_rectangle(cr, 0, 0, width, height);
+		cairo_fill(cr);
+
+		cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, 10);
+
+		const char *lbl = (current_channel == CHAN_S) ? "High Sat" : "High Chroma";
+		cairo_move_to(cr, 5, 12);
+		cairo_show_text(cr, lbl);
+
+		lbl = (current_channel == CHAN_S) ? "Low Sat" : "Low Chroma";
+		cairo_move_to(cr, 5, height - 5);
+		cairo_show_text(cr, lbl);
+
+	} else {
+
+		double r=0.12, g=0.12, b=0.12;
+
+		if (current_channel == CHAN_R)      { r=0.15; g=0.08; b=0.08; }
+		else if (current_channel == CHAN_G) { r=0.08; g=0.15; b=0.08; }
+		else if (current_channel == CHAN_B) { r=0.08; g=0.08; b=0.18; }
+		else if (current_channel == CHAN_L) { r=0.14; g=0.14; b=0.14; }
+
+		cairo_pattern_add_color_stop_rgb(pat, 0.0, 0.05, 0.05, 0.05);
+		cairo_pattern_add_color_stop_rgb(pat, 1.0, r, g, b);
+
+		cairo_set_source(cr, pat);
+		cairo_rectangle(cr, 0, 0, width, height);
+		cairo_fill(cr);
+	}
+
+	cairo_pattern_destroy(pat);
+
+	if (gtk_toggle_tool_button_get_active(curves_grid_toggle)) {
+		cairo_set_source_rgba(cr, 0.4, 0.4, 0.4, 0.3);
+		cairo_set_line_width(cr, 1.0);
+		double dashes[] = {2.0};
+		cairo_set_dash(cr, dashes, 1, 0);
+
+		for(int i=1; i<4; i++) {
+			cairo_move_to(cr, i*width/4.0, 0); cairo_line_to(cr, i*width/4.0, height);
+			cairo_move_to(cr, 0, i*height/4.0); cairo_line_to(cr, width, i*height/4.0);
+		}
+		cairo_stroke(cr);
+		cairo_set_dash(cr, NULL, 0, 0);
+
+		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.5);
+		cairo_move_to(cr, 0, height); cairo_line_to(cr, width, 0);
+		cairo_stroke(cr);
+	}
+}
+
+static void render_spline(cairo_t *cr, GList *points, int width, int height) {
+	if (!points) return;
+
+	if (algorithm == LINEAR) {
+		double slopes[MAX_POINTS];
+		linear_fit(points, slopes);
+		for (double x = 0; x <= 1; x += 1.0 / width) {
+			double y = linear_interpolate(x, points, slopes);
+			if (x == 0) cairo_move_to(cr, x * width, height - (y * height));
+			else cairo_line_to(cr, x * width, height - (y * height));
+		}
+	} else if (algorithm == CUBIC_SPLINE) {
+		cubic_spline_data cspline_data;
+		cubic_spline_fit(points, &cspline_data);
+		for (double x = 0; x <= 1; x += 1.0 / width) {
+			double y = cubic_spline_interpolate(x, &cspline_data);
+			if (x == 0) cairo_move_to(cr, x * width, height - (y * height));
+			else cairo_line_to(cr, x * width, height - (y * height));
+		}
+	} else if (algorithm == AKIMA_SPLINE) {
+		akima_spline_data akima_data;
+		akima_spline_fit(points, &akima_data);
+		for (double x = 0; x <= 1; x += 1.0 / width) {
+			double y = akima_spline_interpolate(x, &akima_data);
+			if (x == 0) cairo_move_to(cr, x * width, height - (y * height));
+			else cairo_line_to(cr, x * width, height - (y * height));
 		}
 	}
 }
 
-static void update_do_channel() {
-	do_channel[0] = gtk_toggle_tool_button_get_active(curves_red_toggle);
-	do_channel[1] = gtk_toggle_tool_button_get_active(curves_green_toggle);
-	do_channel[2] = gtk_toggle_tool_button_get_active(curves_blue_toggle);
+static void draw_ghost_curves(cairo_t *cr, int width, int height) {
+	cairo_set_line_width(cr, 1.0);
+
+	for(int i=0; i<CHAN_COUNT; i++) {
+		if (i == current_channel) continue;
+
+		gboolean active = FALSE;
+		if (gui_channels[i].points && g_list_length(gui_channels[i].points) > 2) active = TRUE;
+		else if (gui_channels[i].points) {
+			point *p1 = (point*)gui_channels[i].points->data;
+			point *p2 = (point*)gui_channels[i].points->next->data;
+			if (fabs(p1->y) > 0.01 || fabs(p2->y - 1.0) > 0.01) active = TRUE;
+		}
+
+		if (active) {
+			switch(i) {
+				case CHAN_R: cairo_set_source_rgba(cr, 1.0, 0.2, 0.2, 0.3); break;
+				case CHAN_G: cairo_set_source_rgba(cr, 0.2, 1.0, 0.2, 0.3); break;
+				case CHAN_B: cairo_set_source_rgba(cr, 0.2, 0.2, 1.0, 0.3); break;
+				case CHAN_L: cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 0.3); break;
+				default:     cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.2); break;
+			}
+			render_spline(cr, gui_channels[i].points, width, height);
+			cairo_stroke(cr);
+		}
+	}
 }
 
-static int curves_update_preview();
+static void draw_active_curve(cairo_t *cr, int width, int height) {
+	double r = 1.0, g = 1.0, b = 1.0;
 
-static void curves_update_image() {
+	if (current_channel == CHAN_R) { r=1.0; g=0.3; b=0.3; }
+	else if (current_channel == CHAN_G) { r=0.3; g=1.0; b=0.3; }
+	else if (current_channel == CHAN_B) { r=0.4; g=0.4; b=1.0; }
+	else if (current_channel == CHAN_L) { r=0.9; g=0.9; b=0.9; } // L = White/Grey
+	else if (current_channel == CHAN_C) { r=1.0; g=0.7; b=0.2; } // C = Gold/Orange
+	else if (current_channel == CHAN_S) { r=0.9; g=0.2; b=0.9; } // S = Magenta/Purple
+	else { r=1.0; g=1.0; b=1.0; } // RGB/K = White
+
+	cairo_set_source_rgb(cr, r, g, b);
+	cairo_set_line_width(cr, 2.0);
+
+	render_spline(cr, gui_channels[current_channel].points, width, height);
+
+	cairo_stroke(cr);
+}
+
+void draw_curve_points(cairo_t *cr, int width, int height) {
+	GList *iter;
+	point *p;
+
+	cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+	cairo_set_line_width(cr, 1.5);
+
+	GList *points = gui_channels[current_channel].points;
+
+	for (iter = points; iter != NULL; iter = iter->next) {
+		p = (point *) iter->data;
+		double x = p->x * width;
+		double y = height - (p->y * height);
+
+		cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.8);
+		cairo_arc(cr, x, y, point_size, 0, 2*M_PI);
+		cairo_fill(cr);
+		cairo_set_source_rgba(cr, 0.8, 0.8, 0.8, 0.8);
+		cairo_arc(cr, x, y, point_size, 0, 2*M_PI);
+		cairo_stroke(cr);
+	}
+	if (selected_point) {
+		double x = selected_point->x * width;
+		double y = height - (selected_point->y * height);
+
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.4);
+		cairo_arc(cr, x, y, point_size+3, 0, 2*M_PI);
+		cairo_fill(cr);
+
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_arc(cr, x, y, point_size+1, 0, 2*M_PI);
+		cairo_fill(cr);
+	}
+}
+
+void draw_range_overlays(cairo_t *cr, int width, int height) {
+	if (gui_channels[current_channel].range_enabled) {
+		float mn = gui_channels[current_channel].lum_min;
+		float mx = gui_channels[current_channel].lum_max;
+
+		cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.6);
+
+		if (mn > 0.0) {
+			cairo_rectangle(cr, 0, 0, mn * width, height);
+			cairo_fill(cr);
+		}
+		if (mx < 1.0) {
+			cairo_rectangle(cr, mx * width, 0, (1.0 - mx) * width, height);
+			cairo_fill(cr);
+		}
+
+		cairo_set_source_rgba(cr, 1.0, 0.6, 0.0, 0.8);
+		cairo_set_line_width(cr, 1.5);
+		double dashes[] = {4.0};
+		cairo_set_dash(cr, dashes, 1, 0);
+
+		if (mn > 0.0) {
+			cairo_move_to(cr, mn * width, 0); cairo_line_to(cr, mn * width, height); cairo_stroke(cr);
+		}
+		if (mx < 1.0) {
+			cairo_move_to(cr, mx * width, 0); cairo_line_to(cr, mx * width, height); cairo_stroke(cr);
+		}
+		cairo_set_dash(cr, NULL, 0, 0);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// LOGIC
+// ---------------------------------------------------------------------------
+
+static gboolean is_curves_log_scale(void) {
+	return (gtk_toggle_button_get_active(curves_log_check));
+}
+
+gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	int width = gtk_widget_get_allocated_width(curves_drawingarea);
+	int height = gtk_widget_get_allocated_height(curves_drawingarea);
+	if (height == 1) return FALSE;
+
+	draw_background_gradient(cr, width, height);
+
+	for (int i = 0; i < MAXVPORT; i++) {
+		if (current_channel == CHAN_R && i != 0) continue;
+		if (current_channel == CHAN_G && i != 1) continue;
+		if (current_channel == CHAN_B && i != 2) continue;
+		display_histo(display_histogram[i], cr, i, width, height, 1.0, 1.0, FALSE, is_curves_log_scale());
+	}
+
+	draw_range_overlays(cr, width, height);
+	draw_ghost_curves(cr, width, height);
+	draw_active_curve(cr, width, height);
+	draw_curve_points(cr, width, height);
+
+	return FALSE;
+}
+
+static int curves_update_preview(void) {
+	fit = gui.roi.active ? &gui.roi.fit : gfit;
+	if (!closing) {
+		copy_backup_to_gfit();
+		// Reset is handled in curves_process_with_worker via local param
+		curves_process_with_worker(TRUE, gui.roi.active);
+	}
+	return 0;
+}
+
+static void curves_update_image(void) {
 	set_cursor_waiting(TRUE);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = curves_update_preview;
@@ -150,69 +551,82 @@ static void curves_update_image() {
 	set_cursor_waiting(FALSE);
 }
 
-// sets the channel names of the toggle buttons in the curves window, based on the number of color channels
-void set_curves_toggles_names() {
-	update_do_channel();
+static void _initialize_clip_text(void) {
+	gtk_entry_set_text(curves_clip_low, "0.000%");
+	gtk_entry_set_text(curves_clip_high, "0.000%");
+}
 
-	if (fit->naxis == 2) {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(curves_red_toggle),
-									_("Toggles whether to apply the curve to the monochrome channel"));
-		GtkWidget *w;
-		if (com.pref.gui.combo_theme == 0) {
-			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
-		} else {
-			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");
-		}
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(curves_red_toggle), w);
-		gtk_widget_show(w);
-		gtk_widget_set_visible(GTK_WIDGET(curves_green_toggle), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(curves_blue_toggle), FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(curves_green_toggle), FALSE);
-		gtk_widget_set_sensitive(GTK_WIDGET(curves_blue_toggle), FALSE);
+// Helper to update UI from global stats
+static void update_clip_ui_from_stats(void) {
+	if (!fit) return;
+	size_t total_pixels = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	if (total_pixels == 0) total_pixels = 1; // Safety
+
+	double tmp;
+	char buffer[32];
+
+	// High
+	tmp = (double) clipped[1] * 100.0 / (double) total_pixels;
+	if (tmp < 0) tmp = 0;
+	snprintf(buffer, sizeof(buffer), "%.3f%%", tmp);
+	gtk_entry_set_text(curves_clip_high, buffer);
+
+	// Low
+	tmp = (double) clipped[0] * 100.0 / (double) total_pixels;
+	if (tmp < 0) tmp = 0;
+	snprintf(buffer, sizeof(buffer), "%.3f%%", tmp);
+	gtk_entry_set_text(curves_clip_low, buffer);
+}
+
+static void reset_cursors_and_values(gboolean full_reset) {
+	_initialize_clip_text();
+	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
+	gtk_entry_set_text(curves_seq_entry, "curve_");
+	gtk_toggle_button_set_active(curves_preview_check, TRUE);
+
+	if (full_reset) {
+		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), AKIMA_SPLINE);
+		algorithm = AKIMA_SPLINE;
+		if (curves_channel_combo) gtk_combo_box_set_active(GTK_COMBO_BOX(curves_channel_combo), 0);
+		init_all_curves();
+		clear_undo_stack();
 	} else {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(curves_red_toggle),
-									_("Toggles whether to apply the curve to the red channel"));
-		GtkWidget *w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/r.svg");
-		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(curves_red_toggle), w);
-		gtk_widget_show(w);
-		gtk_widget_set_sensitive(GTK_WIDGET(curves_green_toggle), TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(curves_blue_toggle), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(curves_green_toggle), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(curves_blue_toggle), TRUE);
+		init_single_channel_config(current_channel);
+		selected_point = (point*) gui_channels[current_channel].points->data;
+	}
+	update_range_ui_from_state();
+	_update_entry_text();
+	update_gfit_curves_histogram_if_needed();
+}
+
+static void set_histogram(gsl_histogram *histo, int layer) {
+	g_assert(layer >= 0 && layer < MAXVPORT);
+	if (com.layers_hist[layer]) gsl_histogram_free(com.layers_hist[layer]);
+	com.layers_hist[layer] = histo;
+}
+
+static void clear_display_histogram(void) {
+	if (display_histogram[0]) {
+		for (int i = 0; i < fit->naxes[2]; i++) {
+			gsl_histogram_free(display_histogram[i]);
+			display_histogram[i] = NULL;
+		}
 	}
 }
 
-static void init_curve_points() {
-	curve_points = NULL;
-
-	// Add two initial points at [0,0] and [1,1]
-	point *p = g_new(point, 1);
-	p->x = 0.0;
-	p->y = 0.0;
-	curve_points = g_list_insert_sorted(curve_points, p, (GCompareFunc) compare_points);
-	p = g_new(point, 1);
-	p->x = 1.0;
-	p->y = 1.0;
-	curve_points = g_list_insert_sorted(curve_points, p, (GCompareFunc) compare_points);
-
-	selected_point = (point *) curve_points->data;
-}
-
-static void curves_startup() {
-	init_curve_points();
-
+static void curves_startup(void) {
+	init_all_curves();
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
 	roi_supported(TRUE);
-	update_do_channel();
 	copy_gfit_to_backup();
-	// also get the display histogram
 	compute_histo_for_fit(fit);
-	set_curves_toggles_names();
 	for (int i = 0; i < fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
+	clear_undo_stack();
+
 	for (int i = 0; i < fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
@@ -221,79 +635,50 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 		set_cursor_waiting(TRUE);
 		notify_gfit_modified();
 	}
-
 	if (revert_icc_profile && !single_image_stretch_applied) {
-		if (gfit->icc_profile)
-			cmsCloseProfile(gfit->icc_profile);
+		if (gfit->icc_profile) cmsCloseProfile(gfit->icc_profile);
 		gfit->icc_profile = copyICCProfile(original_icc);
 		color_manage(gfit, gfit->icc_profile != NULL);
 	}
-
 	clear_backup();
 	clear_display_histogram();
 	roi_supported(FALSE);
 	remove_roi_callback(curves_histogram_change_between_roi_and_image);
 }
 
-static void _update_clipped_pixels(size_t data) {
-	if (fit->type == DATA_USHORT) {
-		for (size_t i = 0; i < fit->naxes[2]; i++) {
-			for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-				if (fit->pdata[i][j] <= 0) clipped[0]++;
-				else if (fit->pdata[i][j] >= USHRT_MAX_DOUBLE) clipped[1]++;
-			}
-		}
-	} else if (fit->type == DATA_FLOAT) {
-		for (size_t i = 0; i < fit->naxes[2]; i++) {
-			for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-				if (fit->fpdata[i][j] <= 0) clipped[0]++;
-				else if (fit->fpdata[i][j] >= 1) clipped[1]++;
-			}
-		}
-	}
-
-	double tmp;
-	char buffer[16];
-
-	tmp = max((double) clipped[1] * 100.0 / (double) data, 0);
-	g_snprintf(buffer, sizeof(buffer), "%.3f%%", tmp);
-	gtk_entry_set_text(curves_clip_high, buffer);
-	tmp = max((double) clipped[0] * 100.0 / (double) data, 0);
-	g_snprintf(buffer, sizeof(buffer), "%.3f%%", tmp);
-	gtk_entry_set_text(curves_clip_low, buffer);
-}
-
-/* Create and launch curve processing with generic_image_worker */
 static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
-	// Allocate parameters
 	struct curve_params *params = new_curve_params();
-	if (!params) {
-		PRINT_ALLOC_ERR;
-		return 1;
+	if (!params) { PRINT_ALLOC_ERR; return 1; }
+
+	// Deep Copy Configuration for Thread Safety
+	for(int i=0; i<CHAN_COUNT; i++) {
+		params->channels[i].active = gui_channels[i].active;
+		params->channels[i].range_enabled = gui_channels[i].range_enabled;
+		params->channels[i].lum_min = gui_channels[i].lum_min;
+		params->channels[i].lum_max = gui_channels[i].lum_max;
+		params->channels[i].feather = gui_channels[i].feather;
+
+		if (gui_channels[i].points) {
+			params->channels[i].points = g_list_copy_deep(gui_channels[i].points, (GCopyFunc)copy_point, NULL);
+		} else {
+			params->channels[i].points = NULL;
+		}
 	}
 
-	// Set up curve parameters
-	params->points = curve_points;
+	// Reset global clipping and link it to the worker params
+	clipped[0] = 0;
+	clipped[1] = 0;
+	params->clipped_count = clipped;
+
 	params->algorithm = algorithm;
-	params->do_channel[0] = do_channel[0];
-	params->do_channel[1] = do_channel[1];
-	params->do_channel[2] = do_channel[2];
+	params->target_channel = current_channel;
 	params->fit = for_roi ? &gui.roi.fit : gfit;
 	params->verbose = !for_preview;
 	params->for_preview = for_preview;
 
-	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		free_curve_params(params);
-		free(params);
-		return 1;
-	}
-
-	// Set the fit based on whether ROI is active
-	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
+	args->fit = params->fit;
+	args->mem_ratio = 2.0f;
 	args->image_hook = curve_image_hook;
 	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
 	args->description = _("Curve Transformation");
@@ -311,210 +696,46 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	return 0;
 }
 
-static void _initialize_clip_text() {
-	gtk_entry_set_text(curves_clip_low, "0.000%");
-	gtk_entry_set_text(curves_clip_high, "0.000%");
+// Idle function implementation to update UI stats
+gboolean curve_preview_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	// Update UI from stats gathered by worker
+	update_clip_ui_from_stats();
+
+	stop_processing_thread();
+	if (args->retval == 0) notify_gfit_modified();
+	free_generic_img_args(args);
+	return FALSE;
 }
 
-void _update_entry_text() {
-	if (selected_point == NULL)
-		return;
+gboolean curve_apply_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
 
+	// Update UI from stats gathered by worker
+	update_clip_ui_from_stats();
+
+	stop_processing_thread();
+	if (args->retval == 0) notify_gfit_modified();
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void _update_entry_text(void) {
+	if (selected_point == NULL) return;
 	gchar *buffer;
-
 	buffer = g_strdup_printf("%.7f", selected_point->x);
 	gtk_entry_set_text(curves_x_entry, buffer);
 	g_free(buffer);
 	buffer = g_strdup_printf("%.7f", selected_point->y);
 	gtk_entry_set_text(curves_y_entry, buffer);
 	g_free(buffer);
-	buffer = g_strdup_printf("%d", g_list_index(curve_points, selected_point));
+	buffer = g_strdup_printf("%d", g_list_index(gui_channels[current_channel].points, selected_point));
 	gtk_entry_set_text(curves_id_entry, buffer);
 	g_free(buffer);
 }
 
-static void reset_curve_points() {
-	GList *iter;
-	point *p;
-	for (iter = curve_points; iter != NULL; iter = iter->next) {
-		p = (point *) iter->data;
-		g_free(p);
-	}
-	g_list_free(curve_points);
-	curve_points = NULL;
-	init_curve_points();
-}
-
-static void adjust_curves_vport_size() {
-	int target_width, target_height, current_width, current_height;
-	double zoom = gtk_adjustment_get_value(curves_adj_zoom);
-
-	current_width = gtk_widget_get_allocated_width(curves_viewport);
-	current_height = gtk_widget_get_allocated_height(curves_viewport);
-
-	target_width = (int) (((double) current_width) * zoom);
-	target_height = (int) (((double) current_height) * 1.0); // The vertical zoom is always 1.0
-	gtk_widget_set_size_request(curves_drawingarea, target_width, target_height);
-}
-
-static void draw_curve(cairo_t *cr, int width, int height) {
-	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgb(cr, 0.98, 0.5, 0.45);
-	cairo_set_line_width(cr, 1.0);
-
-	if (algorithm == LINEAR) {
-		GList *iter;
-		point *p = NULL;
-		for (iter = curve_points; iter != NULL; iter = iter->next) {
-			p = (point *) iter->data;
-			if (iter == curve_points) {
-				cairo_move_to(cr, 0, height - (p->y * height));
-			}
-			cairo_line_to(cr, p->x * width, height - (p->y * height));
-		}
-		if (p) cairo_line_to(cr, width, height - (p->y * height));
-	} else if (algorithm == CUBIC_SPLINE) {
-		cubic_spline_data cspline_data;
-		cubic_spline_fit(curve_points, &cspline_data);
-		for (double x = 0; x <= 1; x += 1.0 / width) {
-			double y = cubic_spline_interpolate(x, &cspline_data);
-			if (x == 0) {
-				cairo_move_to(cr, x * width, height - (y * height));
-			} else {
-				cairo_line_to(cr, x * width, height - (y * height));
-			}
-		}
-	}
-
-	cairo_stroke(cr);
-}
-
-void draw_curve_points(cairo_t *cr, int width, int height) {
-	GList *iter;
-	point *p;
-	cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
-	cairo_set_line_width(cr, 1.0);
-
-	for (iter = curve_points; iter != NULL; iter = iter->next) {
-		p = (point *) iter->data;
-		cairo_rectangle(cr, p->x * width - point_size / 2, height - (p->y * height) - point_size / 2, point_size,
-						point_size);
-		cairo_stroke(cr);
-	}
-
-	cairo_rectangle(cr, selected_point->x * width - point_size / 2,
-					height - (selected_point->y * height) - point_size / 2, point_size, point_size);
-	cairo_fill(cr);
-}
-
-// erase image and redraw the background color and grid
-void erase_curves_histogram_display(cairo_t *cr, int width, int height) {
-	// clear all with background color
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
-
-	update_do_channel();
-	if (gtk_toggle_tool_button_get_active(curves_grid_toggle))
-		draw_grid(cr, width, height);
-}
-
-static void reset_cursors_and_values(gboolean full_reset) {
-	_initialize_clip_text();
-	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
-	gtk_entry_set_text(curves_seq_entry, "curve_");
-	gtk_toggle_button_set_active(curves_preview_check, TRUE);
-	gtk_toggle_button_set_active(curves_sequence_check, FALSE);
-	gtk_toggle_tool_button_set_active(curves_grid_toggle, TRUE);
-	if (full_reset) {
-		gtk_toggle_tool_button_set_active(curves_red_toggle, TRUE);
-		gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
-		gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
-		gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
-	}
-	reset_curve_points();
-	_update_entry_text();
-	update_gfit_curves_histogram_if_needed();
-}
-
-static int curves_update_preview() {
-	fit = gui.roi.active ? &gui.roi.fit : gfit;
-	if (!closing) {
-		copy_backup_to_gfit();
-
-		// Reset clipped pixels counter
-		clipped[0] = 0;
-		clipped[1] = 0;
-		if (fit->type == DATA_USHORT) {
-			for (size_t i = 0; i < fit->naxes[2]; i++) {
-				for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-					if (fit->pdata[i][j] <= 0) clipped[0]--;
-					else if (fit->pdata[i][j] >= USHRT_MAX_DOUBLE) clipped[1]--;
-				}
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			for (size_t i = 0; i < fit->naxes[2]; i++) {
-				for (size_t j = 0; j < fit->naxes[0] * fit->naxes[1]; j++) {
-					if (fit->fpdata[i][j] <= 0) clipped[0]--;
-					else if (fit->fpdata[i][j] >= 1) clipped[1]--;
-				}
-			}
-		}
-
-		// Process with worker
-		curves_process_with_worker(TRUE, gui.roi.active);
-
-	}
-	return 0;
-}
-
-/* Idle function for preview updates */
-gboolean curve_preview_idle(gpointer p) {
-	// Update clipped pixels after processing completes
-	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	_update_clipped_pixels(data);
-
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-/* Idle function for final application */
-gboolean curve_apply_idle(gpointer p) {
-	// Update clipped pixels after processing completes
-	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	_update_clipped_pixels(data);
-
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-
-static gboolean is_curves_log_scale() {
-	return (gtk_toggle_button_get_active(curves_log_check));
-}
-
-static void set_histogram(gsl_histogram *histo, int layer) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
-	if (com.layers_hist[layer])
-		gsl_histogram_free(com.layers_hist[layer]);
-	com.layers_hist[layer] = histo;
-}
-
-/* Public functions */
-
-/* call from main thread */
-void update_gfit_curves_histogram_if_needed() {
+void update_gfit_curves_histogram_if_needed(void) {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
 		compute_histo_for_fit(fit);
@@ -522,41 +743,67 @@ void update_gfit_curves_histogram_if_needed() {
 	}
 }
 
-/* Callback functions */
-
-void curves_histogram_change_between_roi_and_image() {
-	// This should be called if the ROI is set, changed or cleared to ensure the
-	// curves dialog continues to process the right data.
+void curves_histogram_change_between_roi_and_image(void) {
 	fit = gui.roi.active ? &gui.roi.fit : gfit;
-
 	gui.roi.operation_supports_roi = TRUE;
 	curves_update_image();
 }
 
-gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	int i, width = 339, height = 281;
-	double zoom = 1;
+// ---------------------------------------------------------------------------
+// EVENTS
+// ---------------------------------------------------------------------------
 
-	update_do_channel();
-	width = gtk_widget_get_allocated_width(curves_drawingarea);
-	height = gtk_widget_get_allocated_height(curves_drawingarea);
-	zoom = gtk_adjustment_get_value(curves_adj_zoom);
+void on_curves_channel_combo_changed(GtkComboBox *widget, gpointer user_data) {
+	enum curve_channel new_chan = gtk_combo_box_get_active(widget);
+	if (new_chan != current_channel) {
+		switch_channel_view(new_chan);
+		gtk_widget_queue_draw(curves_drawingarea);
+		curves_update_image();
+		_update_entry_text();
+	}
+}
 
-	if (height == 1)
-		return FALSE;
+void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean active = gtk_toggle_button_get_active(button);
+	gui_channels[current_channel].range_enabled = active;
 
-	erase_curves_histogram_display(cr, width, height);
+	GtkWidget *expander = lookup_widget("curve_range_expander");
+	gtk_expander_set_resize_toplevel((GtkExpander*)expander, TRUE);
+	gtk_widget_set_sensitive(expander, active);
+	gtk_expander_set_expanded((GtkExpander*)expander,  active);
 
-	for (i = 0; i < MAXVPORT; i++)
-		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale());
+	gtk_widget_queue_draw(curves_drawingarea);
+	curves_update_image();
+}
 
-	draw_curve(cr, width, height);
-	draw_curve_points(cr, width, height);
-	return FALSE;
+void on_curves_range_value_changed(GtkRange *range, gpointer user_data) {
+	double min_v = gtk_range_get_value(GTK_RANGE(curves_range_min_scale));
+	double max_v = gtk_range_get_value(GTK_RANGE(curves_range_max_scale));
+
+	if (min_v >= max_v) {
+		if (GTK_WIDGET(range) == GTK_WIDGET(curves_range_min_scale)) {
+			max_v = min_v + 1.0; if (max_v > 100) max_v = 100;
+			gtk_range_set_value(GTK_RANGE(curves_range_max_scale), max_v);
+		} else {
+			min_v = max_v - 1.0; if (min_v < 0) min_v = 0;
+			gtk_range_set_value(GTK_RANGE(curves_range_min_scale), min_v);
+		}
+	}
+
+	gui_channels[current_channel].lum_min = min_v / 100.0f;
+	gui_channels[current_channel].lum_max = max_v / 100.0f;
+
+	gtk_widget_queue_draw(curves_drawingarea);
+	curves_update_image();
+}
+
+void on_curves_feather_value_changed(GtkRange *range, gpointer user_data) {
+	double val = gtk_range_get_value(range);
+	gui_channels[current_channel].feather = val / 100.0f;
+	curves_update_image();
 }
 
 void on_curves_display_toggle(GtkToggleButton *togglebutton, gpointer user_data) {
-	update_do_channel();
 	gtk_widget_queue_draw(curves_drawingarea);
 	curves_update_image();
 }
@@ -580,45 +827,48 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values(FALSE);
-	curves_close(TRUE, FALSE);
-	curves_startup();
+	init_single_channel_config(current_channel);
+	selected_point = (point*) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_initialize_clip_text();
+	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
+	_update_entry_text();
+	curves_update_image();
 	gtk_widget_queue_draw(curves_drawingarea);
 	set_cursor_waiting(FALSE);
 }
 
 void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
-	if (!check_ok_if_cfa())
-		return;
+	if (!check_ok_if_cfa()) return;
 
-	if (gtk_toggle_button_get_active(curves_sequence_check)
-		&& sequence_is_loaded()) {
-		// apply to sequence
-		int algoritm = gtk_combo_box_get_active(GTK_COMBO_BOX(curves_interpolation_combo));
-		struct curve_params temp_params = {.points = curve_points, .algorithm = algoritm, .do_channel = {do_channel[0],
-																									do_channel[1],
-																									do_channel[2]}};
+	if (gtk_toggle_button_get_active(curves_sequence_check) && sequence_is_loaded()) {
 		struct curve_data *args = calloc(1, sizeof(struct curve_data));
+		for(int i=0; i<CHAN_COUNT; i++) {
+			args->params.channels[i].active = gui_channels[i].active;
+			args->params.channels[i].range_enabled = gui_channels[i].range_enabled;
+			args->params.channels[i].lum_min = gui_channels[i].lum_min;
+			args->params.channels[i].lum_max = gui_channels[i].lum_max;
+			args->params.channels[i].feather = gui_channels[i].feather;
+			if (gui_channels[i].points)
+				args->params.channels[i].points = g_list_copy_deep(gui_channels[i].points, (GCopyFunc)copy_point, NULL);
+		}
+		args->params.algorithm = algorithm;
+		args->params.target_channel = current_channel;
 
-		args->params = temp_params;
 		args->seq_entry = strdup(gtk_entry_get_text(curves_seq_entry));
 		args->seq = &com.seq;
-		// If entry text is empty, set the sequence prefix to default 'curve_'
 		if (args->seq_entry && args->seq_entry[0] == '\0') {
 			free(args->seq_entry);
 			args->seq_entry = strdup("curve_");
 		}
-
 		curves_close(FALSE, TRUE);
 		siril_close_dialog("curves_dialog");
-
 		gtk_toggle_button_set_active(curves_sequence_check, FALSE);
 		apply_curve_to_sequence(args);
 	} else {
-		// the apply button resets everything after recomputing with the current values
+		push_undo_state();
+
 		fit = gfit;
-		// janky undo preparation to account for ICC usage
-		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
 		fits undo_fit = {0};
 		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
 		undo_fit.icc_profile = original_icc;
@@ -629,19 +879,39 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 
 		single_image_stretch_applied = TRUE;
 		populate_roi();
-
 		clear_backup();
 		clear_display_histogram();
-		// reinit
 		curves_startup();
+
 		reset_cursors_and_values(FALSE);
 		set_cursor("default");
 	}
 }
 
+void on_curves_undo_stage_clicked(GtkButton *button, gpointer user_data) {
+	if (!undo_stack) return;
+
+	set_cursor_waiting(TRUE);
+
+	// FIX LINKER ERROR: Removed explicit call to cmd_interpreter/undo.
+	// This button now acts as "Restore Previous Curve State"
+	// To undo image changes, user must use the main Undo button (Ctrl+Z).
+	// siril_log_message(_("Undo Stage: Restoring curve parameters... (Use Ctrl+Z to undo image changes)"));
+
+	pop_undo_state();
+
+	if (stage_count == 0) single_image_stretch_applied = FALSE;
+
+	set_cursor_waiting(FALSE);
+}
+
 int curve_finalize_hook(struct generic_seq_args *args) {
 	struct curve_data *curve_data = (struct curve_data *) args->user;
 	int return_value = seq_finalize_hook(args);
+	for(int i=0; i<CHAN_COUNT; i++) {
+		if (curve_data->params.channels[i].points)
+			g_list_free_full(curve_data->params.channels[i].points, g_free);
+	}
 	free(curve_data);
 	return return_value;
 }
@@ -686,7 +956,11 @@ void on_curves_reset_zoom_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_curves_spin_zoom_value_changed(GtkRange *range, gpointer user_data) {
-	adjust_curves_vport_size();
+	int target_width, current_width;
+	double zoom = gtk_adjustment_get_value(curves_adj_zoom);
+	current_width = gtk_widget_get_allocated_width(curves_viewport);
+	target_width = (int) (((double) current_width) * zoom);
+	gtk_widget_set_size_request(curves_drawingarea, target_width, 281);
 	gtk_widget_queue_draw(curves_drawingarea);
 }
 
@@ -697,7 +971,7 @@ void on_curves_interpolation_combo_changed(GtkComboBox *widget, gpointer user_da
 }
 
 void setup_curve_dialog() {
-	gtk_window_set_title(GTK_WINDOW(curves_dialog), _("Curves Transformation"));
+	gtk_window_set_title(GTK_WINDOW(curves_dialog), _("Curve Transformation")); 
 	gtk_widget_set_visible(GTK_WIDGET(curves_point_grid), TRUE);
 	gtk_window_resize(GTK_WINDOW(curves_dialog), 1, 1);
 }
@@ -706,7 +980,6 @@ void toggle_curves_window_visibility() {
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog")))
 	siril_close_dialog("histogram_dialog");
 
-	// Initialize UI elements
 	curves_dialog_init_statics();
 
 	if (gtk_widget_get_visible(curves_dialog)) {
@@ -715,13 +988,8 @@ void toggle_curves_window_visibility() {
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("curves_dialog");
 	} else {
-		for (int i = 0; i < 3; i++) {
-			do_channel[i] = TRUE;
-		}
+		for (int i = 0; i < 3; i++) do_channel[i] = TRUE;
 		single_image_stretch_applied = FALSE;
-		// When opening the dialog with a single image loaded, we cache the original ICC
-		// profile (may be NULL) in case the user closes the dialog without applying a
-		// stretch, in which case we will revert.
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
@@ -729,59 +997,39 @@ void toggle_curves_window_visibility() {
 			}
 			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
 		} else {
-			if (original_icc) {
-				cmsCloseProfile(original_icc);
-				original_icc = NULL;
-			}
+			if (original_icc) { cmsCloseProfile(original_icc); original_icc = NULL; }
 		}
 		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		setup_curve_dialog();
-
-		if (gui.rendering_mode == LINEAR_DISPLAY)
-			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
+		if (gui.rendering_mode == LINEAR_DISPLAY) setup_stretch_sliders();
 		siril_open_dialog("curves_dialog");
 	}
 }
 
 gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data) {
-	if (!is_drawingarea_pressed)
-	return FALSE;
-
+	if (!is_drawingarea_pressed) return FALSE;
 	gdouble xpos = ((GdkEventMotion *) event)->x / (gdouble) gtk_widget_get_allocated_width(curves_drawingarea);
-	// y position is inverted
 	gdouble ypos = 1 - ((GdkEventMotion *) event)->y / (gdouble) gtk_widget_get_allocated_height(curves_drawingarea);
-
-	// clamp the coordinates to 0 and 1
 	xpos = (xpos < 0) ? 0 : (xpos > 1) ? 1 : xpos;
 	selected_point->y = (ypos < 0) ? 0 : (ypos > 1) ? 1 : ypos;
 
-	// Find the closest points to the selected point based on x position
-	// Limit the range of movement to the closest points
+	GList *points = gui_channels[current_channel].points;
 	GList *iter;
 	point *p;
 	point *prev = NULL;
 	point *next = NULL;
-	for (iter = curve_points; iter != NULL; iter = iter->next) {
+	for (iter = points; iter != NULL; iter = iter->next) {
 		p = (point *) iter->data;
-		if (p->x < selected_point->x)
-			prev = p;
-		else if (p->x > selected_point->x) {
-			next = p;
-			break;
-		}
+		if (p->x < selected_point->x) prev = p;
+		else if (p->x > selected_point->x) { next = p; break; }
 	}
-
-	if (prev && prev->x >= xpos)
-		selected_point->x = prev->x + 0.00001;
-	else if (next && next->x <= xpos)
-		selected_point->x = next->x - 0.00001;
-	else
-		selected_point->x = xpos;
+	if (prev && prev->x >= xpos) selected_point->x = prev->x + 0.00001;
+	else if (next && next->x <= xpos) selected_point->x = next->x - 0.00001;
+	else selected_point->x = xpos;
 
 	_update_entry_text();
 	gtk_widget_queue_draw(widget);
-
 	return FALSE;
 }
 
@@ -791,19 +1039,17 @@ void on_curves_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event
 
 gboolean on_curves_drawingarea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	gdouble xpos = ((GdkEventButton *) event)->x / (gdouble) gtk_widget_get_allocated_width(curves_drawingarea);
-	// y position is inverted
 	gdouble ypos = 1 - ((GdkEventButton *) event)->y / (gdouble) gtk_widget_get_allocated_height(curves_drawingarea);
-
-	// This value dictates how close the cursor has to be to a point to select it (makes the selection smoother)
 	double click_precision = 0.02 / gtk_adjustment_get_value(curves_adj_zoom);
+
+	GList **points_ptr = &gui_channels[current_channel].points;
+	GList *points = *points_ptr;
 
 	if (event->button == GDK_BUTTON_PRIMARY) {
 		gboolean was_point_clicked = FALSE;
-
-		// If a point is clicked, select it
 		GList *iter;
 		point *p;
-		for (iter = curve_points; iter != NULL; iter = iter->next) {
+		for (iter = points; iter != NULL; iter = iter->next) {
 			p = (point *) iter->data;
 			if (fabs(p->x - xpos) < click_precision && fabs(p->y - ypos) < click_precision) {
 				selected_point = p;
@@ -813,43 +1059,30 @@ gboolean on_curves_drawingarea_button_press_event(GtkWidget *widget, GdkEventBut
 			}
 		}
 
-		// If no point is clicked, add a new point
-		if (!was_point_clicked && g_list_length(curve_points) < MAX_POINTS) {
-			// If a point already exists at the same x position, don't add a new point
-			for (iter = curve_points; iter != NULL; iter = iter->next) {
+		if (!was_point_clicked && g_list_length(points) < MAX_POINTS) {
+			for (iter = points; iter != NULL; iter = iter->next) {
 				p = (point *) iter->data;
-				if (p->x == xpos) {
-					GtkWidget *popover = popover_new(curves_drawingarea, "A point already exists at this x position");
-					gtk_widget_show_all(popover);
-					return FALSE;
-				}
+				if (p->x == xpos) return FALSE;
 			}
-
 			point *p1 = g_new(point, 1);
-			p1->x = xpos;
-			p1->y = ypos;
-			curve_points = g_list_insert_sorted(curve_points, p1, (GCompareFunc) compare_points);
+			p1->x = xpos; p1->y = ypos;
+			*points_ptr = g_list_insert_sorted(points, p1, (GCompareFunc) compare_points);
 			selected_point = p1;
 		}
-
 		is_drawingarea_pressed = TRUE;
 		gtk_widget_queue_draw(widget);
 		_update_entry_text();
 	} else if (event->button == GDK_BUTTON_SECONDARY && !is_drawingarea_pressed) {
-		// If a point is right-clicked, remove it and select the previous point. You can't remove a point if there are only two points
 		GList *iter;
 		point *p;
-		for (iter = curve_points; iter != NULL; iter = iter->next) {
+		for (iter = points; iter != NULL; iter = iter->next) {
 			p = (point *) iter->data;
 			if (fabs(p->x - xpos) < click_precision && fabs(p->y - ypos) < click_precision) {
-				if (g_list_length(curve_points) > 2) {
+				if (g_list_length(points) > 2) {
 					GList *new_selected_point;
-					if	(p == g_list_nth_data(curve_points, 0))
-						new_selected_point = iter->next;
-					else
-						new_selected_point = iter->prev;
-
-					curve_points = g_list_remove(curve_points, p);
+					if	(p == g_list_nth_data(points, 0)) new_selected_point = iter->next;
+					else new_selected_point = iter->prev;
+					*points_ptr = g_list_remove(points, p);
 					g_free(p);
 					selected_point = (point *) new_selected_point->data;
 					gtk_widget_queue_draw(widget);
@@ -869,108 +1102,68 @@ gboolean on_curves_drawingarea_button_release_event(GtkWidget *widget, GdkEventB
 }
 
 gboolean on_curves_prev_button_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-	// Ignore double clicks (double click would register as 3 button presses)
-	if (event->type != GDK_BUTTON_PRESS)
-	return TRUE;
-
-	int selected_point_index = g_list_index(curve_points, selected_point);
+	if (event->type != GDK_BUTTON_PRESS) return TRUE;
+	GList *points = gui_channels[current_channel].points;
+	int selected_point_index = g_list_index(points, selected_point);
 	if (selected_point_index > 0) {
-		selected_point = g_list_nth_data(curve_points, selected_point_index - 1);
+		selected_point = g_list_nth_data(points, selected_point_index - 1);
 		gtk_widget_queue_draw(curves_drawingarea);
 		_update_entry_text();
 	}
-
 	return FALSE;
 }
 
 gboolean on_curves_next_button_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-	// Ignore double clicks (double click would register as 3 button presses)
-	if (event->type != GDK_BUTTON_PRESS)
-	return TRUE;
-
-	int selected_point_index = g_list_index(curve_points, selected_point);
-	if (selected_point_index < g_list_length(curve_points) - 1) {
-		selected_point = g_list_nth_data(curve_points, selected_point_index + 1);
+	if (event->type != GDK_BUTTON_PRESS) return TRUE;
+	GList *points = gui_channels[current_channel].points;
+	int selected_point_index = g_list_index(points, selected_point);
+	if (selected_point_index < g_list_length(points) - 1) {
+		selected_point = g_list_nth_data(points, selected_point_index + 1);
 		gtk_widget_queue_draw(curves_drawingarea);
 		_update_entry_text();
 	}
-
 	return FALSE;
 }
 
 void on_curves_id_entry_activate(GtkEntry *entry, gpointer user_data) {
+	GList *points = gui_channels[current_channel].points;
 	int entered_index = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	int curve_points_length = g_list_length(curve_points);
-
-	// If the entered index is out of bounds, select the first or last point
-	if (entered_index >= 0 && entered_index < curve_points_length)
-		selected_point = g_list_nth_data(curve_points, entered_index);
-	else if (entered_index >= curve_points_length)
-		selected_point = g_list_nth_data(curve_points, curve_points_length - 1);
-	else
-		selected_point = g_list_nth_data(curve_points, 0);
-
+	int len = g_list_length(points);
+	if (entered_index >= 0 && entered_index < len) selected_point = g_list_nth_data(points, entered_index);
+	else if (entered_index >= len) selected_point = g_list_nth_data(points, len - 1);
+	else selected_point = g_list_nth_data(points, 0);
 	gtk_widget_queue_draw(curves_drawingarea);
 	_update_entry_text();
 }
-
-gboolean on_curves_id_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	on_curves_id_entry_activate(curves_id_entry, user_data);
-	return FALSE;
-}
+gboolean on_curves_id_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) { on_curves_id_entry_activate(curves_id_entry, user_data); return FALSE; }
 
 void on_curves_x_entry_activate(GtkEntry *entry, gpointer user_data) {
 	float curve_x = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-
-	GList *iter;
-	point *p;
-	for (iter = curve_points; iter != NULL; iter = iter->next) {
+	GList *points = gui_channels[current_channel].points;
+	GList *iter; point *p;
+	for (iter = points; iter != NULL; iter = iter->next) {
 		p = (point *) iter->data;
-		if (p != selected_point && p->x == curve_x) {
-			// Reset the entry text to the previous value and show a popover
-			gchar *str = g_strdup_printf("%8.7f", selected_point->x);
-			gtk_entry_set_text(entry, str);
-			GtkWidget *popover = popover_new(curves_drawingarea, "A point already exists at this x position");
-			gtk_widget_show_all(popover);
-			return;
-		}
+		if (p != selected_point && p->x == curve_x) return;
 	}
-
-	if (curve_x < 0 || curve_x > 1) {
-		gchar *str = g_strdup_printf("%8.7f", selected_point->x);
-		gtk_entry_set_text(entry, str);
-		return;
-	}
-
+	if (curve_x < 0 || curve_x > 1) return;
 	selected_point->x = curve_x;
-	curve_points = g_list_sort(curve_points, (GCompareFunc) compare_points);
+	gui_channels[current_channel].points = g_list_sort(points, (GCompareFunc) compare_points);
 	gtk_widget_queue_draw(curves_drawingarea);
-
-	curves_update_image();
-	_update_entry_text();
+	curves_update_image(); _update_entry_text();
 }
-
-gboolean on_curves_x_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	on_curves_x_entry_activate(curves_x_entry, user_data);
-	return FALSE;
-}
+gboolean on_curves_x_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) { on_curves_x_entry_activate(curves_x_entry, user_data); return FALSE; }
 
 void on_curves_y_entry_activate(GtkEntry *entry, gpointer user_data) {
 	float curve_y = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	curve_y = (curve_y < 0) ? 0 : (curve_y > 1) ? 1 : curve_y;
 	selected_point->y = curve_y;
 	gtk_widget_queue_draw(curves_drawingarea);
-
 	curves_update_image();
 	gchar *str = g_strdup_printf("%8.7f", curve_y);
 	gtk_entry_set_text(entry, str);
 	g_free(str);
 }
-
-gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	on_curves_y_entry_activate(curves_y_entry, user_data);
-	return FALSE;
-}
+gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) { on_curves_y_entry_activate(curves_y_entry, user_data); return FALSE; }
 
 void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
@@ -986,6 +1179,3 @@ void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_curves_log_check_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_queue_draw(curves_drawingarea);
 }
-
-
-
