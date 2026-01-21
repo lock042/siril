@@ -140,25 +140,12 @@ def download_with_progress(
     max_retries: int = 3,
     retry_delay: int = 5,
     resume: bool = True
-    ) -> bool:
+) -> bool:
     """
     Robust file download method with native Siril progress tracking
     and error handling using retries and a resume mechanism.
-
-    Args:
-        siril (SirilInterface): SirilInterface to use to update the progress bar
-        url (str): URL of the file to download
-        file_path (str): Local path to save the downloaded file
-        max_retries (int): Number of download retry attempts
-        retry_delay (int): Delay between retry attempts in seconds
-        resume (bool): Whether or not to resume a partially downloaded file or start again
-
-    Returns:
-        bool: True if download successful, False otherwise
-
-    Raises:
-        SirilError: On unhandled errors
     """
+
     temp_file_path = file_path + '.part'
 
     # If resume is False and the temporary file exists, delete it
@@ -174,99 +161,91 @@ def download_with_progress(
     # Create a session for connection pooling and reuse
     session = requests.Session()
 
-    for attempt in range(max_retries):
-        try:
-            # Get initial file size and determine if resuming
-            initial_size, resume_attempt = get_file_size_and_resume_point()
+    try:
+        for attempt in range(max_retries):
+            try:
+                # Determine resume point
+                initial_size, resume_attempt = get_file_size_and_resume_point()
 
-            # Prepare headers for partial content and custom user-agent
-            headers = {
-                'User-Agent': 'siril-1.4 (https://gitlab.com/free-astro/siril/)',
-                'Accept-Encoding': 'identity'  # Disable compression for faster streaming
-            }
-            if initial_size > 0:
-                headers['Range'] = f'bytes={initial_size}-'
+                # Prepare headers
+                headers = {
+                    'User-Agent': 'siril-1.4 (https://gitlab.com/free-astro/siril/)',
+                }
+                if initial_size > 0:
+                    headers['Range'] = f'bytes={initial_size}-'
 
-            # Establish connection with more generous timeout for large files
-            response = session.get(url, stream=True, headers=headers, timeout=(10, 60))
-            response.raise_for_status()
+                # Establish connection
+                response = session.get(
+                    url,
+                    stream=True,
+                    headers=headers,
+                    timeout=(10, 30)
+                )
+                response.raise_for_status()
 
-            # Determine total file size and content range
-            total_size = int(response.headers.get('content-length', 0))
-            if headers.get('Range'):
-                # If resuming, adjust total size
-                content_range = response.headers.get('Content-Range', '')
-                if content_range:
-                    total_size = int(content_range.split('/')[-1])
+                # Determine total size
+                total_size = int(response.headers.get('content-length', 0))
+                if 'Range' in headers:
+                    content_range = response.headers.get('Content-Range', '')
+                    if content_range:
+                        total_size = int(content_range.split('/')[-1])
 
-            downloaded_size = initial_size
+                downloaded_size = initial_size
 
-            # Progress update rate limiting - less frequent updates for better performance
-            max_update_frequency = 2.0  # Reduced from 5.0 Hz to 2.0 Hz
-            last_update_time = 0
-            min_update_interval = 1 / max_update_frequency
+                # Progress update throttling
+                max_update_frequency = 2.0
+                min_update_interval = 1 / max_update_frequency
+                last_update_time = 0
 
-            # Cache the total size string since it never changes
-            total_size_str = human_readable_size(total_size) if total_size > 0 else "Unknown"
+                # Cache formatted total size
+                total_size_str = human_readable_size(total_size) if total_size > 0 else "Unknown"
 
-            # Open file in append mode or write mode with larger buffer
-            mode = 'ab' if initial_size > 0 else 'wb'
-            with open(temp_file_path, mode, buffering=1024*1024) as f:  # 1MB buffer
-                # Increased chunk size significantly for better throughput
-                for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                    if not chunk:
-                        continue
+                # Open file with large buffer
+                mode = 'ab' if initial_size > 0 else 'wb'
+                with open(temp_file_path, mode, buffering=1024 * 1024) as f:
+                    # Balanced chunk size
+                    for chunk in response.iter_content(chunk_size=256 * 1024):
+                        if not chunk:
+                            continue
 
-                    f.write(chunk)
-                    downloaded_size += len(chunk)
+                        f.write(chunk)
+                        downloaded_size += len(chunk)
 
-                    current_time = time.time()
+                        current_time = time.time()
+                        if total_size > 0 and current_time - last_update_time >= min_update_interval:
+                            progress = downloaded_size / total_size
+                            status = (
+                                f"Downloading... (Attempt {resume_attempt}, "
+                                f"{human_readable_size(downloaded_size)}/{total_size_str})"
+                            )
+                            siril.update_progress(status, progress)
+                            last_update_time = current_time
 
-                    # Update progress less frequently
-                    if total_size > 0 and current_time - last_update_time >= min_update_interval:
-                        progress = downloaded_size / total_size
-                        # Only calculate downloaded size string, total is cached
-                        status = (f"Downloading... (Attempt {resume_attempt}, "
-                                 f"{human_readable_size(downloaded_size)}/{total_size_str})")
-                        siril.update_progress(status, progress)
-                        last_update_time = current_time
+                # Verify completeness
+                if downloaded_size >= total_size:
+                    os.replace(temp_file_path, file_path)
+                    return True
 
-            # Verify download completeness
-            if downloaded_size >= total_size:
-                # Rename temp file to final file
-                os.replace(temp_file_path, file_path)
-                session.close()
-                return True
+                # Retry if incomplete
+                time.sleep(retry_delay)
 
-            # If download is incomplete, will retry
-            time.sleep(retry_delay)
+            except requests.exceptions.RequestException as e:
+                error_message = f"Download error (Attempt {attempt + 1}/{max_retries}): {str(e)}"
+                print(error_message)
+                siril.update_progress(error_message, 0.0)
+                time.sleep(retry_delay * (attempt + 1))
 
-        except requests.exceptions.RequestException as e:
-            # Comprehensive error handling for network-related issues
-            error_message = f"Download error (Attempt {attempt + 1}/{max_retries}): {str(e)}"
+            except Exception as e:
+                error_message = f"Unexpected error during download: {str(e)}"
+                print(error_message)
+                siril.update_progress(error_message, 0.0)
+                raise SirilError(error_message) from e
 
-            # Log or print error
-            print(error_message)
+        # All retries failed
+        raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
 
-            # Provide progress update for error state
-            siril.update_progress(error_message, 0.0)
-
-            # Wait before retrying, with exponential backoff
-            time.sleep(retry_delay * (attempt + 1))
-
-        except Exception as e:
-            # Catch any unexpected errors
-            error_message = f"Unexpected error during download: {str(e)}"
-            print(error_message)
-
-            siril.update_progress(error_message, 0.0)
-
-            session.close()
-            raise SirilError(error_message) from e
-
-    # All retry attempts failed
-    session.close()
-    raise SirilError(f"Failed to download file from {url} after {max_retries} attempts")
+    finally:
+        session.close()
 
 def ensure_installed(*packages: Union[str, List[str]],
                      version_constraints: Optional[Union[str, List[str]]] = None,
