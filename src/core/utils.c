@@ -1795,16 +1795,16 @@ gchar* remove_extension_from_path(const gchar* filepath) {
 /* Safe recursive directory deletion                            */
 /* ------------------------------------------------------------ */
 /*
- * Trust model:
- * - Safe against accidental symlink traversal and path escape.
- * - Mitigates (but does not eliminate) TOCTOU via:
- *   - filesystem boundary checks
- *   - type re-validation
- *   - inode/device consistency checks
- * - Not fully hardened against a malicious actor with concurrent write access.
- */
+* Trust model:
+* - Safe against accidental symlink traversal and path escape.
+* - Mitigates (but does not eliminate) TOCTOU via:
+*   - filesystem boundary checks
+*   - type re-validation
+*   - inode/device consistency checks
+* - Not fully hardened against a malicious actor with concurrent write access.
+*/
 
-/* Attributes we care about for TOCTOU mitigation. */
+/* Attributes we request during enumeration */
 #define DELETE_DIR_ENUM_ATTRS \
 	G_FILE_ATTRIBUTE_STANDARD_NAME "," \
 	G_FILE_ATTRIBUTE_STANDARD_TYPE "," \
@@ -1813,38 +1813,53 @@ gchar* remove_extension_from_path(const gchar* filepath) {
 	G_FILE_ATTRIBUTE_UNIX_INODE
 
 typedef struct {
-	gchar *fs_id;      /* filesystem::id (string) */
-	guint64 dev;       /* unix::device (if available) */
-	gboolean have_dev;
-	guint64 inode;     /* unix::inode of the root */
-	gboolean have_inode;
+	/* filesystem::id (portable, best effort) */
+	gchar    *fs_id;
+	gboolean  have_fs_id;
+
+	/* unix::device (when available) */
+	guint64   dev;
+	gboolean  have_dev;
 } DeleteDirContext;
 
-
-typedef struct {
-	guint64  inode;
-	guint64  dev;
-	gboolean have_inode;
-} DeleteDirEntryId;
-
+/* Initialize deletion context from the root directory */
 static gboolean init_delete_dir_context (GFile *root, DeleteDirContext *ctx, GError **error) {
+	g_autoptr(GFileInfo) fs_info = NULL;
 	g_autoptr(GFileInfo) stat_info = NULL;
 
 	memset(ctx, 0, sizeof(*ctx));
 
-	/* Query UNIX device and inode attributes (type-safe) */
+	/* filesystem::id (portable) */
+	fs_info = g_file_query_filesystem_info(
+		root,
+		G_FILE_ATTRIBUTE_ID_FILESYSTEM,
+		NULL,
+		NULL
+	);
+
+	if (fs_info &&
+		g_file_info_get_attribute_type(
+			fs_info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
+
+		ctx->fs_id = g_strdup(
+			g_file_info_get_attribute_string(
+				fs_info, G_FILE_ATTRIBUTE_ID_FILESYSTEM));
+		ctx->have_fs_id = TRUE;
+	}
+
+	/* unix::device (best effort, Unix-like systems) */
 	stat_info = g_file_query_info(
 		root,
-		G_FILE_ATTRIBUTE_UNIX_DEVICE "," G_FILE_ATTRIBUTE_UNIX_INODE,
+		G_FILE_ATTRIBUTE_UNIX_DEVICE,
 		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
 		NULL,
-		error);
-	if (!stat_info)
-		return FALSE;
+		NULL
+	);
 
-	/* unix::device */
-	if (g_file_info_has_attribute(stat_info, G_FILE_ATTRIBUTE_UNIX_DEVICE) &&
-		g_file_info_get_attribute_type(stat_info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
+	if (stat_info &&
+		g_file_info_get_attribute_type(
+			stat_info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
 			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
 
 		ctx->dev = g_file_info_get_attribute_uint64(
@@ -1852,34 +1867,34 @@ static gboolean init_delete_dir_context (GFile *root, DeleteDirContext *ctx, GEr
 		ctx->have_dev = TRUE;
 	}
 
-	/* unix::inode (optional, for inode consistency if available) */
-	if (g_file_info_has_attribute(stat_info, G_FILE_ATTRIBUTE_UNIX_INODE) &&
-		g_file_info_get_attribute_type(stat_info, G_FILE_ATTRIBUTE_UNIX_INODE)
-			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
-
-		ctx->inode = g_file_info_get_attribute_uint64(
-			stat_info, G_FILE_ATTRIBUTE_UNIX_INODE);
-		ctx->have_inode = TRUE;
-	}
-
 	return TRUE;
 }
 
+/* Enforce filesystem boundary conservatively */
 static gboolean check_same_filesystem (GFileInfo *info, const DeleteDirContext *ctx) {
-	const gchar *child_fs_id =
-		g_file_info_get_attribute_string(
-			info, G_FILE_ATTRIBUTE_ID_FILESYSTEM);
+	/* Prefer filesystem::id if available on both sides */
+	if (ctx->have_fs_id &&
+		g_file_info_get_attribute_type(
+			info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
 
-	if (ctx->fs_id && child_fs_id &&
-		g_strcmp0(ctx->fs_id, child_fs_id) != 0)
-		return FALSE;
+		const gchar *child_fs_id =
+			g_file_info_get_attribute_string(
+				info, G_FILE_ATTRIBUTE_ID_FILESYSTEM);
 
+		if (g_strcmp0(ctx->fs_id, child_fs_id) != 0)
+			return FALSE;
+	}
+
+	/* Fallback to unix::device if available on both sides */
 	if (ctx->have_dev &&
-		g_file_info_get_attribute_type(info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
+		g_file_info_get_attribute_type(
+			info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
 			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
 
-		guint64 dev = g_file_info_get_attribute_uint64(
-			info, G_FILE_ATTRIBUTE_UNIX_DEVICE);
+		guint64 dev =
+			g_file_info_get_attribute_uint64(
+				info, G_FILE_ATTRIBUTE_UNIX_DEVICE);
 
 		if (dev != ctx->dev)
 			return FALSE;
@@ -1888,74 +1903,13 @@ static gboolean check_same_filesystem (GFileInfo *info, const DeleteDirContext *
 	return TRUE;
 }
 
-static void capture_entry_id (GFileInfo *info, DeleteDirEntryId *id) {
-	memset(id, 0, sizeof(*id));
-
-	if (g_file_info_get_attribute_type(info, G_FILE_ATTRIBUTE_UNIX_INODE)
-			== G_FILE_ATTRIBUTE_TYPE_UINT64 &&
-		g_file_info_get_attribute_type(info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
-			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
-
-		id->inode = g_file_info_get_attribute_uint64(
-			info, G_FILE_ATTRIBUTE_UNIX_INODE);
-		id->dev = g_file_info_get_attribute_uint64(
-			info, G_FILE_ATTRIBUTE_UNIX_DEVICE);
-		id->have_inode = TRUE;
-	}
-}
-
-
-static gboolean revalidate_entry_id (GFile *file,
-					const DeleteDirEntryId *id,
-					GError **error) {
-	if (!id->have_inode)
-		return TRUE;
-
-	g_autoptr(GFileInfo) now = g_file_query_info(
-		file,
-		G_FILE_ATTRIBUTE_UNIX_INODE "," G_FILE_ATTRIBUTE_UNIX_DEVICE,
-		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
-		NULL,
-		error);
-	if (!now)
-		return FALSE;
-
-	if (g_file_info_get_attribute_type(now, G_FILE_ATTRIBUTE_UNIX_INODE)
-			!= G_FILE_ATTRIBUTE_TYPE_UINT64 ||
-		g_file_info_get_attribute_type(now, G_FILE_ATTRIBUTE_UNIX_DEVICE)
-			!= G_FILE_ATTRIBUTE_TYPE_UINT64) {
-
-		/* Backend changed attribute representation: refuse */
-		g_autofree gchar *path = g_file_get_path(file);
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					"Refusing to delete '%s' (inode type changed)",
-					path ? path : "(unknown)");
-		return FALSE;
-	}
-
-	guint64 inode_now = g_file_info_get_attribute_uint64(
-		now, G_FILE_ATTRIBUTE_UNIX_INODE);
-	guint64 dev_now = g_file_info_get_attribute_uint64(
-		now, G_FILE_ATTRIBUTE_UNIX_DEVICE);
-
-	if (inode_now != id->inode || dev_now != id->dev) {
-		g_autofree gchar *path = g_file_get_path(file);
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					"Refusing to delete '%s' (inode/device changed)",
-					path ? path : "(unknown)");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-
+/* Internal recursive helper */
 static gboolean delete_directory_file (GFile *root,
 					const DeleteDirContext *ctx,
 					GError **error) {
 	g_autoptr(GFileEnumerator) enumerator = NULL;
 
-	/* Ensure root is currently a real directory (not a symlink). */
+	/* Ensure root is a real directory at time of entry */
 	if (g_file_query_file_type(
 			root,
 			G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
@@ -1973,7 +1927,9 @@ static gboolean delete_directory_file (GFile *root,
 		DELETE_DIR_ENUM_ATTRS,
 		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
 		NULL,
-		error);
+		error
+	);
+
 	if (!enumerator)
 		return FALSE;
 
@@ -1981,16 +1937,15 @@ static gboolean delete_directory_file (GFile *root,
 		GFileInfo *info = NULL;
 		GFile     *child = NULL;
 
-		gboolean ok = g_file_enumerator_iterate(
-			enumerator, &info, &child, NULL, error);
-
-		if (!ok)
-			return FALSE;  /* error already set */
+		if (!g_file_enumerator_iterate(
+				enumerator, &info, &child, NULL, error))
+			return FALSE;
 
 		if (!info)
-			break;        /* end of enumeration */
+			break; /* end of enumeration */
 
-		/* Enforce filesystem boundary */
+		/* No g_autoptr here – enumerator owns info/child */
+
 		if (!check_same_filesystem(info, ctx)) {
 			g_autofree gchar *path = g_file_get_path(child);
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
@@ -1999,28 +1954,19 @@ static gboolean delete_directory_file (GFile *root,
 			return FALSE;
 		}
 
-		/* Capture inode/device identity (best-effort) */
-		DeleteDirEntryId entry_id;
-		capture_entry_id(info, &entry_id);
-
 		GFileType type = g_file_info_get_file_type(info);
 
 		switch (type) {
 		case G_FILE_TYPE_DIRECTORY:
-			/* Recurse; delete_directory_file() re-validates type */
 			if (!delete_directory_file(child, ctx, error))
 				return FALSE;
 			break;
 
 		case G_FILE_TYPE_SYMBOLIC_LINK:
-			/* Re-validate type before deletion */
-			type = g_file_query_file_type(
-				child,
-				G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
-				NULL);
-
-			if (type != G_FILE_TYPE_SYMBOLIC_LINK &&
-				type != G_FILE_TYPE_UNKNOWN) {
+			if (g_file_query_file_type(
+					child,
+					G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+					NULL) != G_FILE_TYPE_SYMBOLIC_LINK) {
 
 				g_autofree gchar *path = g_file_get_path(child);
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
@@ -2029,21 +1975,16 @@ static gboolean delete_directory_file (GFile *root,
 				return FALSE;
 			}
 
-			if (!revalidate_entry_id(child, &entry_id, error))
-				return FALSE;
-
 			if (!g_file_delete(child, NULL, error))
 				return FALSE;
 			break;
 
 		default:
-			/* Re-validate type before deletion */
-			type = g_file_query_file_type(
-				child,
-				G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
-				NULL);
+			if (g_file_query_file_type(
+					child,
+					G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+					NULL) == G_FILE_TYPE_DIRECTORY) {
 
-			if (type == G_FILE_TYPE_DIRECTORY) {
 				g_autofree gchar *path = g_file_get_path(child);
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
 							"Refusing to delete '%s' (became directory)",
@@ -2051,28 +1992,13 @@ static gboolean delete_directory_file (GFile *root,
 				return FALSE;
 			}
 
-			if (!revalidate_entry_id(child, &entry_id, error))
-				return FALSE;
-
 			if (!g_file_delete(child, NULL, error))
 				return FALSE;
 			break;
 		}
-
-		/* IMPORTANT:
-		* Do NOT unref info or child here.
-		* g_file_enumerator_iterate() will unref them
-		* automatically on the next call.
-		*
-		* Ownership rule for g_file_enumerator_iterate():
-		* - info/child are owned by the enumerator
-		* - they are unref'ed automatically on the next iterate() call
-		* - never unref them unless exiting the loop
-		*/
-
 	}
 
-	/* Re-check root before deleting to catch races */
+	/* Final re-check before deleting root */
 	if (g_file_query_file_type(
 			root,
 			G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
@@ -2085,15 +2011,10 @@ static gboolean delete_directory_file (GFile *root,
 		return FALSE;
 	}
 
-	/* Delete the now-empty directory */
 	return g_file_delete(root, NULL, error);
 }
 
-
-/* ------------------------------------------------------------ */
-/* Public delete_directory function                             */
-/* ------------------------------------------------------------ */
-
+/* Public API */
 gboolean delete_directory (const gchar *dir_path, GError **error) {
 	g_autoptr(GFile) root = NULL;
 	DeleteDirContext ctx;
@@ -2112,15 +2033,41 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 			NULL) != G_FILE_TYPE_DIRECTORY) {
 
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					"Path '%s' is not a directory",
-					dir_path);
+					"Path '%s' is not a directory", dir_path);
 		return FALSE;
 	}
 
 	if (!init_delete_dir_context(root, &ctx, error))
 		return FALSE;
 
+	/* Try to delete recursively */
 	gboolean ok = delete_directory_file(root, &ctx, error);
+
+	if (!ok) {
+		/* Best-effort quarantine: move the broken directory aside so the
+		* original name can be reused safely.
+		*/
+		g_autoptr(GFile) parent = g_file_get_parent(root);
+		if (parent) {
+			g_autofree gchar *basename = g_file_get_basename(root);
+			gint64 now_us = g_get_real_time();
+			g_autofree gchar *suffix =
+				g_strdup_printf(".error-%" G_GINT64_FORMAT, now_us);
+			g_autofree gchar *newname =
+				g_strconcat(basename ? basename : "dir", suffix, NULL);
+			g_autoptr(GFile) quarantine =
+				g_file_get_child(parent, newname);
+
+			/* Ignore errors from the move: we don't want to mask the
+			* original deletion error.
+			*/
+			g_file_move(root,
+						quarantine,
+						G_FILE_COPY_NOFOLLOW_SYMLINKS,
+						NULL, NULL, NULL, NULL);
+		}
+	}
+
 	g_free(ctx.fs_id);
 	return ok;
 }
