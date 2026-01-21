@@ -38,6 +38,7 @@ typedef struct {
 
 void curves_histogram_change_between_roi_and_image();
 void update_gfit_curves_histogram_if_needed();
+void curves_reset_after_undo();
 void apply_curves_cancel();
 void toggle_curves_window_visibility();
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data);
@@ -48,6 +49,5 @@ void on_curves_channel_combo_changed(GtkComboBox *widget, gpointer user_data);
 void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_data);
 void on_curves_range_value_changed(GtkRange *range, gpointer user_data);
 void on_curves_feather_value_changed(GtkRange *range, gpointer user_data);
-void on_curves_undo_stage_clicked(GtkButton *button, gpointer user_data); // NEW
 
 #endif

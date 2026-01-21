@@ -41,12 +41,12 @@
 // FORWARD DECLARATIONS
 // ---------------------------------------------------------------------------
 static int curves_process_with_worker(gboolean for_preview, gboolean for_roi);
-static gboolean is_curves_log_scale(void);
-static void update_range_ui_from_state(void);
-static int curves_update_preview(void);
-static void curves_update_image(void);
-static void _update_entry_text(void);
-static void _initialize_clip_text(void);
+static gboolean is_curves_log_scale();
+static void update_range_ui_from_state();
+static int curves_update_preview();
+static void curves_update_image();
+static void _update_entry_text();
+static void _initialize_clip_text();
 
 // Forward declaration of Idle functions defined in this file
 gboolean curve_preview_idle(gpointer p);
@@ -68,16 +68,12 @@ static GtkCheckButton *curves_range_check = NULL;
 static GtkScale *curves_range_min_scale = NULL;
 static GtkScale *curves_range_max_scale = NULL;
 static GtkScale *curves_range_feather_scale = NULL;
-static GtkWidget *curves_undo_stage_btn = NULL;
-static GtkLabel *curves_stage_lbl = NULL;
 
 // ---------------------------------------------------------------------------
 // STATE
 // ---------------------------------------------------------------------------
 
 static curve_channel_config gui_channels[CHAN_COUNT];
-static GList *undo_stack = NULL; // Stack of curve_state_snapshot*
-static int stage_count = 0;
 
 static enum curve_channel current_channel = CHAN_RGB_K;
 static enum curve_algorithm algorithm = AKIMA_SPLINE;
@@ -109,94 +105,6 @@ static point* copy_point(const point *src, gpointer user_data) {
 }
 
 // ---------------------------------------------------------------------------
-// UNDO / STAGE MANAGEMENT
-// ---------------------------------------------------------------------------
-
-static void free_snapshot(curve_state_snapshot *snap) {
-	if (!snap) return;
-	for(int i=0; i<CHAN_COUNT; i++) {
-		if (snap->channels[i].points)
-			g_list_free_full(snap->channels[i].points, g_free);
-	}
-	g_free(snap);
-}
-
-static void push_undo_state() {
-	curve_state_snapshot *snap = g_new0(curve_state_snapshot, 1);
-	snap->algorithm = algorithm;
-
-	for(int i=0; i<CHAN_COUNT; i++) {
-		snap->channels[i].active = gui_channels[i].active;
-		snap->channels[i].range_enabled = gui_channels[i].range_enabled;
-		snap->channels[i].lum_min = gui_channels[i].lum_min;
-		snap->channels[i].lum_max = gui_channels[i].lum_max;
-		snap->channels[i].feather = gui_channels[i].feather;
-		if (gui_channels[i].points)
-			snap->channels[i].points = g_list_copy_deep(gui_channels[i].points, (GCopyFunc)copy_point, NULL);
-	}
-
-	undo_stack = g_list_prepend(undo_stack, snap);
-	stage_count++;
-
-	char buf[32];
-	snprintf(buf, 32, "Stages: %d", stage_count);
-	gtk_label_set_text(curves_stage_lbl, buf);
-	gtk_widget_set_sensitive(curves_undo_stage_btn, TRUE);
-}
-
-static void pop_undo_state() {
-	if (!undo_stack) return;
-
-	curve_state_snapshot *snap = (curve_state_snapshot*)undo_stack->data;
-	undo_stack = g_list_remove(undo_stack, snap);
-
-	// Restore State
-	algorithm = snap->algorithm;
-	gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), algorithm);
-
-	for(int i=0; i<CHAN_COUNT; i++) {
-		// Clear current
-		if (gui_channels[i].points) g_list_free_full(gui_channels[i].points, g_free);
-
-		// Restore
-		gui_channels[i].active = snap->channels[i].active;
-		gui_channels[i].range_enabled = snap->channels[i].range_enabled;
-		gui_channels[i].lum_min = snap->channels[i].lum_min;
-		gui_channels[i].lum_max = snap->channels[i].lum_max;
-		gui_channels[i].feather = snap->channels[i].feather;
-
-		// Move ownership
-		gui_channels[i].points = snap->channels[i].points;
-		snap->channels[i].points = NULL;
-	}
-
-	free_snapshot(snap);
-	stage_count--;
-
-	char buf[32];
-	snprintf(buf, 32, "Stages: %d", stage_count);
-	gtk_label_set_text(curves_stage_lbl, buf);
-	gtk_widget_set_sensitive(curves_undo_stage_btn, (undo_stack != NULL));
-
-	// Refresh UI
-	selected_point = (point*) gui_channels[current_channel].points->data;
-	update_range_ui_from_state();
-	_update_entry_text();
-	curves_update_image();
-	gtk_widget_queue_draw(curves_drawingarea);
-}
-
-static void clear_undo_stack() {
-	if (undo_stack) {
-		g_list_free_full(undo_stack, (GDestroyNotify)free_snapshot);
-		undo_stack = NULL;
-	}
-	stage_count = 0;
-	if (curves_stage_lbl) gtk_label_set_text(curves_stage_lbl, "Stages: 0");
-	if (curves_undo_stage_btn) gtk_widget_set_sensitive(curves_undo_stage_btn, FALSE);
-}
-
-// ---------------------------------------------------------------------------
 // CONFIG
 // ---------------------------------------------------------------------------
 
@@ -220,12 +128,13 @@ static void init_single_channel_config(int ch) {
 }
 
 static void init_all_curves() {
-	for(int i=0; i<CHAN_COUNT; i++) init_single_channel_config(i);
+	for (int i = 0; i < CHAN_COUNT; i++)
+		init_single_channel_config(i);
 	current_channel = CHAN_RGB_K;
 	selected_point = (point *) gui_channels[CHAN_RGB_K].points->data;
 }
 
-static void update_range_ui_from_state(void) {
+static void update_range_ui_from_state() {
 	if (!curves_range_check) return;
 	g_signal_handlers_block_by_func(curves_range_check, on_curve_check_range_button_toggled, NULL);
 	g_signal_handlers_block_by_func(curves_range_min_scale, on_curves_range_value_changed, NULL);
@@ -283,9 +192,6 @@ void curves_dialog_init_statics() {
 		curves_range_max_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_max"));
 		curves_range_feather_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_feather"));
 		curves_channel_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "curves_channel_combo"));
-
-		curves_undo_stage_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "curves_undo_stage_btn"));
-		curves_stage_lbl = GTK_LABEL(gtk_builder_get_object(gui.builder, "curves_undo_stage_lbl"));
 	}
 }
 
@@ -506,7 +412,7 @@ void draw_range_overlays(cairo_t *cr, int width, int height) {
 // LOGIC
 // ---------------------------------------------------------------------------
 
-static gboolean is_curves_log_scale(void) {
+static gboolean is_curves_log_scale() {
 	return (gtk_toggle_button_get_active(curves_log_check));
 }
 
@@ -532,7 +438,7 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	return FALSE;
 }
 
-static int curves_update_preview(void) {
+static int curves_update_preview() {
 	fit = gui.roi.active ? &gui.roi.fit : gfit;
 	if (!closing) {
 		copy_backup_to_gfit();
@@ -542,7 +448,7 @@ static int curves_update_preview(void) {
 	return 0;
 }
 
-static void curves_update_image(void) {
+static void curves_update_image() {
 	set_cursor_waiting(TRUE);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = curves_update_preview;
@@ -551,13 +457,13 @@ static void curves_update_image(void) {
 	set_cursor_waiting(FALSE);
 }
 
-static void _initialize_clip_text(void) {
+static void _initialize_clip_text() {
 	gtk_entry_set_text(curves_clip_low, "0.000%");
 	gtk_entry_set_text(curves_clip_high, "0.000%");
 }
 
 // Helper to update UI from global stats
-static void update_clip_ui_from_stats(void) {
+static void update_clip_ui_from_stats() {
 	if (!fit) return;
 	size_t total_pixels = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 	if (total_pixels == 0) total_pixels = 1; // Safety
@@ -589,7 +495,6 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		algorithm = AKIMA_SPLINE;
 		if (curves_channel_combo) gtk_combo_box_set_active(GTK_COMBO_BOX(curves_channel_combo), 0);
 		init_all_curves();
-		clear_undo_stack();
 	} else {
 		init_single_channel_config(current_channel);
 		selected_point = (point*) gui_channels[current_channel].points->data;
@@ -605,7 +510,7 @@ static void set_histogram(gsl_histogram *histo, int layer) {
 	com.layers_hist[layer] = histo;
 }
 
-static void clear_display_histogram(void) {
+static void clear_display_histogram() {
 	if (display_histogram[0]) {
 		for (int i = 0; i < fit->naxes[2]; i++) {
 			gsl_histogram_free(display_histogram[i]);
@@ -614,7 +519,7 @@ static void clear_display_histogram(void) {
 	}
 }
 
-static void curves_startup(void) {
+static void curves_startup() {
 	init_all_curves();
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
 	roi_supported(TRUE);
@@ -625,8 +530,6 @@ static void curves_startup(void) {
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
-	clear_undo_stack();
-
 	for (int i = 0; i < fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
@@ -716,12 +619,18 @@ gboolean curve_apply_idle(gpointer p) {
 	update_clip_ui_from_stats();
 
 	stop_processing_thread();
-	if (args->retval == 0) notify_gfit_modified();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+
+		copy_gfit_to_backup();
+		compute_histo_for_fit(fit);
+		for (int i = 0; i < fit->naxes[2]; i++)
+			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	}
 	free_generic_img_args(args);
 	return FALSE;
 }
-
-void _update_entry_text(void) {
+void _update_entry_text() {
 	if (selected_point == NULL) return;
 	gchar *buffer;
 	buffer = g_strdup_printf("%.7f", selected_point->x);
@@ -735,15 +644,38 @@ void _update_entry_text(void) {
 	g_free(buffer);
 }
 
-void update_gfit_curves_histogram_if_needed(void) {
+void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
 		compute_histo_for_fit(fit);
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 }
+void curves_reset_after_undo() {
+	if (!gtk_widget_get_visible(curves_dialog))
+		return;
 
-void curves_histogram_change_between_roi_and_image(void) {
+	fit = gfit;
+	copy_gfit_to_backup();
+
+	compute_histo_for_fit(fit);
+
+	clear_display_histogram();
+	for (int i = 0; i < fit->naxes[2]; i++)
+		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+
+	init_all_curves();
+	selected_point = (point*) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_update_entry_text();
+
+	gtk_widget_queue_draw(curves_drawingarea);
+
+	single_image_stretch_applied = FALSE;
+}
+
+
+void curves_histogram_change_between_roi_and_image() {
 	fit = gui.roi.active ? &gui.roi.fit : gfit;
 	gui.roi.operation_supports_roi = TRUE;
 	curves_update_image();
@@ -835,6 +767,7 @@ void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	_update_entry_text();
 	curves_update_image();
 	gtk_widget_queue_draw(curves_drawingarea);
+	init_all_curves();
 	set_cursor_waiting(FALSE);
 }
 
@@ -866,8 +799,6 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_toggle_button_set_active(curves_sequence_check, FALSE);
 		apply_curve_to_sequence(args);
 	} else {
-		push_undo_state();
-
 		fit = gfit;
 		fits undo_fit = {0};
 		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
@@ -879,30 +810,10 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 
 		single_image_stretch_applied = TRUE;
 		populate_roi();
-		clear_backup();
-		clear_display_histogram();
-		curves_startup();
 
 		reset_cursors_and_values(FALSE);
 		set_cursor("default");
 	}
-}
-
-void on_curves_undo_stage_clicked(GtkButton *button, gpointer user_data) {
-	if (!undo_stack) return;
-
-	set_cursor_waiting(TRUE);
-
-	// FIX LINKER ERROR: Removed explicit call to cmd_interpreter/undo.
-	// This button now acts as "Restore Previous Curve State"
-	// To undo image changes, user must use the main Undo button (Ctrl+Z).
-	// siril_log_message(_("Undo Stage: Restoring curve parameters... (Use Ctrl+Z to undo image changes)"));
-
-	pop_undo_state();
-
-	if (stage_count == 0) single_image_stretch_applied = FALSE;
-
-	set_cursor_waiting(FALSE);
 }
 
 int curve_finalize_hook(struct generic_seq_args *args) {

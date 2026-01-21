@@ -33,6 +33,7 @@
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
+#include "gui/curves.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/annotation_catalogues.h"
@@ -347,6 +348,7 @@ int undo_display_data(int dir) {
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
+			curves_reset_after_undo();
 			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
@@ -388,6 +390,7 @@ int undo_display_data(int dir) {
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
+			curves_reset_after_undo();
 			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
 			lock_display_transform();
