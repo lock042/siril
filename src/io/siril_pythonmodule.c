@@ -8,6 +8,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <gio/gwin32inputstream.h>
+#include <process.h>
+#define getpid _getpid
 #else
 #include <gio/gunixinputstream.h>
 #include <glib-unix.h>
