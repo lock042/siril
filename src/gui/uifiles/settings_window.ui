@@ -5204,7 +5204,7 @@ Activating the repository will take place immediately, so that you can select sc
                                               <object class="GtkTreeView" id="treeview_scripts">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">&lt;property name="tooltip-text" translatable="yes"&gt;List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
+                                                <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
 To open an older revision (e.g. to get an older version after a bad script update) right click on a row.</property>
                                                 <property name="hscroll-policy">natural</property>
                                                 <property name="vscroll-policy">natural</property>
