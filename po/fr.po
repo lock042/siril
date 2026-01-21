@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:20+0100\n"
-"PO-Revision-Date: 2025-12-18 13:06+0000\n"
+"PO-Revision-Date: 2026-01-06 21:07+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -2799,9 +2799,8 @@ msgstr "Définir le centre de rotation pour ce canal"
 #. Replace GtkFileChooserButton with GtkButton
 #: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
 #: src/compositing/compositing.c:1676
-#, fuzzy
 msgid "(None)"
-msgstr "Aucun"
+msgstr "(Aucun)"
 
 #: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -6232,9 +6231,8 @@ msgstr ""
 "d'étoiles jusqu'à la magnitude 17,6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
-#, fuzzy
 msgid "Gaia DR3 (local catalogue)"
-msgstr "(catalogue local)"
+msgstr "Gaia DR3 (catalogue local)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -15074,9 +15072,8 @@ msgid "Manual alignment"
 msgstr "Alignement manuel"
 
 #: src/compositing/compositing.c:579
-#, fuzzy
 msgid "Select source image"
-msgstr "Sélectionner l'image"
+msgstr "Sélectionner l'image source"
 
 #: src/compositing/compositing.c:619
 msgid "Could not display image, unloading it\n"
@@ -15091,9 +15088,8 @@ msgid "Compositing result image"
 msgstr "Image résultant de la composition"
 
 #: src/compositing/compositing.c:697
-#, fuzzy
 msgid "Error: target_layer not specified\n"
-msgstr "Erreur : aucun pts_per_row n'est spécifié\n"
+msgstr "Erreur : target_layer non spécifiée\n"
 
 #: src/compositing/compositing.c:706
 #, fuzzy

@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:20+0100\n"
-"PO-Revision-Date: 2025-12-19 02:43+0000\n"
+"PO-Revision-Date: 2026-01-15 07:07+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -2756,9 +2756,8 @@ msgstr "Установка центра вращения для этого сл�
 #. Replace GtkFileChooserButton with GtkButton
 #: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
 #: src/compositing/compositing.c:1676
-#, fuzzy
 msgid "(None)"
-msgstr "Нет"
+msgstr "(Нет)"
 
 #: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -3709,7 +3708,7 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
-"Выберите тип растягивания. Обобщенное гиперболическое растягивание выполняет "
+"Выберите тип растягивания. Обобщённое гиперболическое растягивание выполняет "
 "гиперболическое растягивание с параметрами силы растягивания, локальной "
 "интенсивности, точки симметрии и областей сохранения теней и светов. "
 "Модифицированное растягивание по arcsinh выполняет растягивание по arcsinh с "
@@ -6158,9 +6157,8 @@ msgstr ""
 "звёздной величины."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
-#, fuzzy
 msgid "Gaia DR3 (local catalogue)"
-msgstr "(локальный каталог)"
+msgstr "Gaia DR3 (локальный каталог)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -8773,7 +8771,6 @@ msgid "<b>FFTW Options</b>"
 msgstr "<b>Настройки FFTW</b>"
 
 #: src/gui/uifiles/settings_window.ui:5811
-#, fuzzy
 msgid "Drizzle"
 msgstr "Сверхразрешение"
 
@@ -14868,14 +14865,12 @@ msgid "Compositing result image"
 msgstr "Сложение итогового изображения"
 
 #: src/compositing/compositing.c:697
-#, fuzzy
 msgid "Error: target_layer not specified\n"
-msgstr "Ошибка: не указана плотность образцов\n"
+msgstr "Ошибка: не указан целевой слой (target_layer)\n"
 
 #: src/compositing/compositing.c:706
-#, fuzzy
 msgid "Error: layer not found\n"
-msgstr "Ошибка: слой за приделами диапазона.\n"
+msgstr "Ошибка: слой не найден\n"
 
 #: src/compositing/compositing.c:714 src/gui/epf.c:294 src/gui/merge_cfa.c:97
 #: src/gui/merge_cfa.c:111 src/gui/merge_cfa.c:124 src/gui/merge_cfa.c:137
@@ -14958,9 +14953,8 @@ msgid "Image loaded"
 msgstr "Изображение загружено"
 
 #: src/compositing/compositing.c:853
-#, fuzzy
 msgid "Error: Could not create file chooser dialog\n"
-msgstr "Ошибка: Не удалось разобрать значения -from.\n"
+msgstr "Ошибка: Не удалось создать диалог выбора файлов\n"
 
 #: src/compositing/compositing.c:919
 msgid "You must at least load two layers before!\n"
@@ -15055,14 +15049,12 @@ msgid "Readjusting layer %d to %g times bright\n"
 msgstr "Коррекция слоя %d в %g раз ярче\n"
 
 #: src/compositing/compositing.c:1854
-#, fuzzy
 msgid "No images to reload.\n"
-msgstr "Изображения не загружены"
+msgstr "Изображения для перезагрузки отсутствуют.\n"
 
 #: src/compositing/compositing.c:1862 src/compositing/compositing.c:1877
-#, fuzzy
 msgid "Reloading image"
-msgstr "Сохранение изображения %s"
+msgstr "Перезагрузка изображения"
 
 #: src/compositing/compositing.c:1889
 msgid "All images reloaded successfully.\n"
@@ -24379,11 +24371,8 @@ msgid "Error in curl_easy_setopt() for range request\n"
 msgstr ""
 
 #: src/core/siril_networking.c:219 src/core/siril_networking.c:306
-#, fuzzy
 msgid "Error configuring CURL with CA bundle.\n"
-msgstr ""
-"Ошибка при настройке CURL с помощью пакета CA. Функциональность https "
-"недоступна.\n"
+msgstr "Ошибка при настройке CURL с помощью пакета CA.\n"
 
 #: src/core/siril_networking.c:247 src/core/siril_networking.c:335
 #, fuzzy, c-format
@@ -24409,39 +24398,38 @@ msgid "Error fetching URL: %s\n"
 msgstr "Ошибка при получении URL: %s\n"
 
 #: src/core/siril_networking.c:423
-#, fuzzy
 msgid ""
 "Error: Siril was compiled without libcurl support. Network features are "
 "unavailable.\n"
 msgstr ""
-"Siril скомпилирован без поддержки libgit2. Удалённые репозитории не могут "
-"быть получены автоматически...\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Функции работы с сетью "
+"недоступны.\n"
 
 #: src/core/siril_networking.c:438
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: Siril was compiled without libcurl support. Cannot fetch URL: %s\n"
 msgstr ""
-"Siril скомпилирован без поддержки работы с сетью, не удалось выполнить эту "
-"операцию\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Не удалось получить URL: %"
+"s\n"
 
 #: src/core/siril_networking.c:448 src/core/siril_networking.c:460
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: Siril was compiled without libcurl support. Cannot fetch URL range: "
 "%s\n"
 msgstr ""
-"Siril скомпилирован без поддержки работы с сетью, не удалось выполнить эту "
-"операцию\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Не удалось получить "
+"диапазон URL: %s\n"
 
 #: src/core/siril_networking.c:469
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: Siril was compiled without libcurl support. Cannot submit POST "
 "request to: %s\n"
 msgstr ""
-"Siril скомпилирован без поддержки работы с сетью, не удалось выполнить эту "
-"операцию\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Не удалось отправить "
+"запрос POST к: %s\n"
 
 #: src/core/siril_networking.c:490
 msgid "Siril is in online mode.\n"
@@ -24533,15 +24521,13 @@ msgid "Looking for notifications..."
 msgstr "Поиск уведомлений…"
 
 #: src/core/siril_update.c:731
-#, fuzzy
 msgid "Error parsing SPCC mirrors JSON: Failed to parse JSON\n"
-msgstr "Ошибка разбора JSON из URL: не удалось разобрать JSON\n"
+msgstr "Ошибка разбора файла JSON с зеркалами SPCC: не удалось разобрать JSON\n"
 
 #: src/core/siril_update.c:737
-#, fuzzy
 msgid "Error parsing SPCC mirrors JSON: Root is not an array\n"
 msgstr ""
-"Ошибка разбора JSON из URL: корневой узел JSON не является объектом или "
+"Ошибка разбора файла JSON с зеркалами SPCC: корневой узел не является "
 "массивом\n"
 
 #: src/core/siril_update.c:744
@@ -24549,15 +24535,15 @@ msgid "Error parsing SPCC mirrors JSON: Empty array\n"
 msgstr ""
 
 #: src/core/siril_update.c:757
-#, fuzzy
 msgid "Error parsing SPCC mirrors JSON: Entry is not a valid object\n"
-msgstr "Ошибка разбора JSON из URL: сообщение не является валидным объектом\n"
+msgstr ""
+"Ошибка разбора файла JSON с зеркалами SPCC: сообщение не является валидным "
+"объектом\n"
 
 #: src/core/siril_update.c:766
-#, fuzzy
 msgid "Error parsing SPCC mirrors JSON: Required fields missing\n"
 msgstr ""
-"Ошибка разбора JSON из URL: необходимые поля отсутствуют или невалидны\n"
+"Ошибка разбора файла JSON с зеркалами SPCC: необходимые поля отсутствуют\n"
 
 #: src/core/siril_update.c:783
 msgid "Error parsing SPCC mirrors JSON: No valid mirrors found\n"
