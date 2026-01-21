@@ -1960,6 +1960,100 @@ static gboolean validate_python_version(const gchar *python_exe, GError **error)
 	return TRUE;
 }
 
+static gboolean validate_system_python(const gchar *python_exe, GError **error) {
+	if (!python_exe || !g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+				"Python executable not found");
+		return FALSE;
+	}
+
+	// Check version
+	GError *version_error = NULL;
+	if (!validate_python_version(python_exe, &version_error)) {
+		g_propagate_error(error, version_error);
+		return FALSE;
+	}
+
+	// Check for venv and ensurepip modules
+	gchar *argv[] = {
+		(gchar *)python_exe,
+		"-c",
+		"import venv; import ensurepip",
+		NULL
+	};
+
+	gchar *stderr_data = NULL;
+	gint exit_status;
+	GError *spawn_error = NULL;
+
+	if (!g_spawn_sync(NULL, argv, NULL,
+					G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL,
+					NULL, NULL,
+					NULL, &stderr_data,
+					&exit_status, &spawn_error)) {
+		if (spawn_error) {
+			g_propagate_error(error, spawn_error);
+		} else {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Failed to check Python modules");
+		}
+		g_free(stderr_data);
+		return FALSE;
+	}
+
+	if (exit_status != 0) {
+		// Provide helpful error messages based on platform
+		gchar *helpful_msg = NULL;
+
+#ifdef _WIN32
+		helpful_msg = g_strdup(
+			"Python venv module is not available.\n\n"
+			"Please ensure Python was installed with the 'py launcher' and 'pip' options enabled.\n"
+			"You may need to reinstall Python from https://www.python.org/downloads/\n"
+			"During installation, make sure to check:\n"
+			"  - Add Python to PATH\n"
+			"  - Install pip\n"
+			"  - Install py launcher"
+		);
+#elif defined(__APPLE__)
+		helpful_msg = g_strdup(
+			"Python venv module is not available.\n\n"
+			"If using Homebrew Python, install with:\n"
+			"  brew install python@3.9\n\n"
+			"If using the system Python, you may need to install command line tools:\n"
+			"  xcode-select --install"
+		);
+#else
+		// Linux - check for common error patterns
+		if (stderr_data && g_strrstr(stderr_data, "ensurepip")) {
+			helpful_msg = g_strdup(
+				"Python venv/ensurepip modules are not available.\n\n"
+				"Please install the required packages:\n"
+				"  Debian/Ubuntu:  sudo apt install python3-venv python3-pip\n"
+				"  Fedora/RHEL:    sudo dnf install python3-pip\n"
+				"  Arch Linux:     sudo pacman -S python-pip\n"
+				"  openSUSE:       sudo zypper install python3-pip"
+			);
+		} else {
+			helpful_msg = g_strdup(
+				"Python venv module is not available.\n\n"
+				"Please install your distribution's python3-venv package.\n"
+				"Common package names: python3-venv, python3-pip"
+			);
+		}
+#endif
+
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"%s", helpful_msg);
+		g_free(helpful_msg);
+		g_free(stderr_data);
+		return FALSE;
+	}
+
+	g_free(stderr_data);
+	return TRUE;
+}
+
 // New function: Comprehensive venv health check
 static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
@@ -2185,41 +2279,73 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			return FALSE;
 		}
 
-		// Install with pip from temporary directory
-		gchar *argv[] = {
-			python_path,
-			"-m",
-			"pip",
-			"install",
-			"--no-cache-dir",
-			temp_install_path,
-			NULL
-		};
+		// RETRY LOGIC: Install with pip with timeout and retry
+		const gint TIMEOUT_SECONDS = 300;  // 5 minutes
+		gboolean install_success = FALSE;
+		GError *last_error = NULL;
 
-		gint exit_status;
-		gchar *stdout_data = NULL;
-		gchar *stderr_data = NULL;
-		GError *spawn_error = NULL;
+		for (gint retry = 0; retry < MAX_RETRIES && !install_success; retry++) {
+			if (retry > 0) {
+				siril_log_message(_("Retrying pip installation (attempt %d/%d)...\n"),
+								retry + 1, MAX_RETRIES);
+				g_usleep(2000000);  // Wait 2 seconds between retries
+			}
 
-		if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_DEFAULT,
-						NULL, NULL,
-						&stdout_data, &stderr_data,
-						&exit_status, &spawn_error)) {
-			g_propagate_error(error, spawn_error);
-			g_free(stdout_data);
-			g_free(stderr_data);
-			delete_directory(temp_install_path, NULL);
-			g_free(temp_install_path);
-			g_free(python_path);
-			return FALSE;
+			gchar timeout_str[32];
+			g_snprintf(timeout_str, sizeof(timeout_str), "%d", TIMEOUT_SECONDS);
+
+			gchar *argv[] = {
+				python_path,
+				"-m",
+				"pip",
+				"install",
+				"--timeout",
+				timeout_str,
+				"--no-cache-dir",
+				temp_install_path,
+				NULL
+			};
+
+			gint exit_status;
+			gchar *stdout_data = NULL;
+			gchar *stderr_data = NULL;
+			GError *spawn_error = NULL;
+
+			if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_DEFAULT,
+							NULL, NULL,
+							&stdout_data, &stderr_data,
+							&exit_status, &spawn_error)) {
+				g_clear_error(&last_error);
+				if (spawn_error) {
+					last_error = spawn_error;
+				} else {
+					g_set_error(&last_error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+							"Failed to execute pip");
+				}
+				g_free(stdout_data);
+				g_free(stderr_data);
+				continue;
+			}
+
+			if (exit_status == 0) {
+				install_success = TRUE;
+				g_free(stdout_data);
+				g_free(stderr_data);
+			} else {
+				// Capture error for potential retry
+				g_clear_error(&last_error);
+				g_set_error(&last_error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+						"Pip installation failed with exit status %d%s%s",
+						exit_status,
+						stderr_data ? ": " : "",
+						stderr_data ? stderr_data : "");
+				g_free(stdout_data);
+				g_free(stderr_data);
+			}
 		}
 
-		g_free(stdout_data);
-		g_free(stderr_data);
-
-		if (exit_status != 0) {
-			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"Pip installation failed with exit status: %d", exit_status);
+		if (!install_success) {
+			g_propagate_error(error, last_error);
 			delete_directory(temp_install_path, NULL);
 			g_free(temp_install_path);
 			g_free(python_path);
@@ -2482,9 +2608,9 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 #ifdef _WIN32
 		gchar *bundle_python_exe = NULL;
 		const gchar *sirilrootpath = get_siril_bundle_path();
-		printf("Siril bundle path: %s\n", sirilrootpath);
+		siril_debug_print("Siril bundle path: %s\n", sirilrootpath);
 		bundle_python_exe = g_build_filename(sirilrootpath, "python", PYTHON_EXE, NULL);
-		printf("Bundle python path: %s\n", bundle_python_exe);
+		siril_debug_print("Bundle python path: %s\n", bundle_python_exe);
 		if (!g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE)) {
 			g_free(bundle_python_exe);
 			bundle_python_exe = NULL;
@@ -2494,7 +2620,16 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 			sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL);
 
 		if (!sys_python_exe && !bundle_python_exe) {
-			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
+			siril_log_color_message(
+				_("ERROR: No Python installation found.\n\n"
+				  "Siril requires Python 3.9 or later for advanced features.\n"
+				  "Please install Python from https://www.python.org/downloads/\n\n"
+				  "During installation, ensure you check:\n"
+				  "  - 'Add Python to PATH'\n"
+				  "  - 'Install pip'\n"
+				  "  - 'Install py launcher'\n\n"
+				  "After installing Python, restart Siril.\n"),
+				"red");
 			success = FALSE;
 			goto cleanup;
 		}
@@ -2505,11 +2640,39 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 			bundle_python_exe = NULL;
 		}
 
-		printf("Python executable: %s\n", sys_python_exe);
+		siril_debug_print("Python executable: %s\n", sys_python_exe);
 		g_free(bundle_python_exe);  /* safe if NULL */
 #else
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
+
+		if (!sys_python_exe) {
+			siril_log_color_message(
+				_("ERROR: Python not found in system PATH.\n\n"
+				  "Siril requires Python 3.9 or later.\n"
+				  "Please install Python using your system package manager:\n\n"
+				  "  Debian/Ubuntu:  sudo apt install python3 python3-venv python3-pip\n"
+				  "  Fedora/RHEL:    sudo dnf install python3 python3-pip\n"
+				  "  Arch Linux:     sudo pacman -S python python-pip\n"
+				  "  openSUSE:       sudo zypper install python3 python3-pip\n"
+				  "  macOS:          brew install python@3.9\n\n"
+				  "After installing Python, restart Siril.\n"),
+				"red");
+			success = FALSE;
+			goto cleanup;
+		}
 #endif
+
+		// VALIDATE SYSTEM PYTHON before attempting venv creation
+		GError *validation_error = NULL;
+		if (!validate_system_python(sys_python_exe, &validation_error)) {
+			siril_log_color_message(
+				_("ERROR: Python validation failed.\n\n%s\n"),
+				"red",
+				validation_error ? validation_error->message : "Unknown error");
+			g_propagate_error(error, validation_error);
+			success = FALSE;
+			goto cleanup;
+		}
 
 		argv = g_new0(gchar*, 5);
 		argv[0] = sys_python_exe;
@@ -2531,28 +2694,20 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 						NULL, NULL,
 						&std_out, &std_err,
 						&exit_status, &local_error)) {
-			siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
+			siril_log_color_message(_("ERROR: Failed to execute venv creation command.\n%s\n"),
+				"red", local_error ? local_error->message : "Unknown error");
 			g_propagate_error(error, local_error);
 			success = FALSE;
 			goto cleanup;
 		}
 
 		if (!g_spawn_check_wait_status(exit_status, &local_error)) {
-			siril_log_color_message(_("Failed to create virtual environment: %s\n"), "red", local_error->message);
+			siril_log_color_message(
+				_("ERROR: Failed to create virtual environment.\n%s\n"),
+				"red", local_error ? local_error->message : "Unknown error");
 
 			if (std_err && *std_err) {
-				siril_log_color_message(_("Python stderr:\n%s\n"), "red", std_err);
-
-				/* Special-case: common Debian/Ubuntu error */
-				if (g_strrstr(std_err, "ensurepip is not available")) {
-					siril_log_color_message(
-						_("Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' package.\n"),
-						"salmon");
-				}
-			}
-
-			if (std_out && *std_out) {
-				siril_debug_print("Python stdout:\n%s\n", std_out);
+				siril_log_color_message(_("Python error output:\n%s\n"), "red", std_err);
 			}
 
 			g_propagate_error(error, local_error);
