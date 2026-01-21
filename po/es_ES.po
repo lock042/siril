@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:20+0100\n"
-"PO-Revision-Date: 2025-12-07 13:22+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2026-01-13 13:33+0000\n"
+"Last-Translator: Rodolfo Oscar Vallejos <rodolfo.os.vallejos@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
 "Language: es_ES\n"
@@ -2778,9 +2778,8 @@ msgstr "Establecer el centro de rotación para esta capa"
 #. Replace GtkFileChooserButton with GtkButton
 #: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
 #: src/compositing/compositing.c:1676
-#, fuzzy
 msgid "(None)"
-msgstr "Ningungo"
+msgstr "Ninguno"
 
 #: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -30885,9 +30884,7 @@ msgstr ""
 #: src/opencv/opencv.cpp:111
 #, c-format
 msgid "Images with %ld channels are not supported\n"
-msgstr ""
-"Las imágenes con %ld canales no están soportadas\n"
-"\n"
+msgstr "Las imágenes con %ld canales no están soportadas\n"
 
 #: src/pixelMath/pixel_math_runner.c:68
 msgid "Absolute value of x."
@@ -30899,11 +30896,11 @@ msgstr "Arco coseno de x."
 
 #: src/pixelMath/pixel_math_runner.c:70
 msgid "Hyperbolic arc cosine of x."
-msgstr "Arcocoseno hiperbólico de x."
+msgstr "Arco coseno hiperbólico de x."
 
 #: src/pixelMath/pixel_math_runner.c:71
 msgid "Arc sine of x."
-msgstr "Arcoseno de x."
+msgstr "Arco seno de x."
 
 #: src/pixelMath/pixel_math_runner.c:72
 #, fuzzy
@@ -30916,12 +30913,11 @@ msgstr "Arco tangente de x."
 
 #: src/pixelMath/pixel_math_runner.c:74
 msgid "Arc tangent of y/x."
-msgstr "Arcotangente de y/x."
+msgstr "Arco tangente de y/x."
 
 #: src/pixelMath/pixel_math_runner.c:75
-#, fuzzy
 msgid "Hyperbolic arc tangent of x."
-msgstr "Tangente hiperbólica de x."
+msgstr "Arco tangente hiperbólico de x."
 
 #: src/pixelMath/pixel_math_runner.c:76
 msgid "Round x upwards to the nearest integer."
