@@ -2094,11 +2094,11 @@ gboolean delete_directory (const gchar *dir_path, GError **error) {
 typedef struct {
 	gchar   *fs_id;
 	gboolean have_fs_id;
-} CopyContext;
+} SirilCopyContext;
 
 /* Initialise context: capture filesystem::id of source root */
 static gboolean
-init_copy_context (GFile *src_root, CopyContext *ctx, GError **error)
+init_copy_context (GFile *src_root, SirilCopyContext *ctx, GError **error)
 {
 	g_autoptr(GFileInfo) fsinfo = NULL;
 
@@ -2127,7 +2127,7 @@ init_copy_context (GFile *src_root, CopyContext *ctx, GError **error)
 
 /* Enforce filesystem boundary */
 static gboolean
-check_same_fs (GFileInfo *info, const CopyContext *ctx)
+check_same_fs (GFileInfo *info, const SirilCopyContext *ctx)
 {
 	if (!ctx->have_fs_id)
 		return TRUE;
@@ -2146,7 +2146,7 @@ check_same_fs (GFileInfo *info, const CopyContext *ctx)
 static gboolean
 copy_directory_file (GFile *src,
 					GFile *dst,
-					const CopyContext *ctx,
+					const SirilCopyContext *ctx,
 					GError **error)
 {
 	/* Ensure src is a directory */
@@ -2269,7 +2269,7 @@ gboolean copy_directory_recursive (const gchar *src_dir,
 		return FALSE;
 	}
 
-	CopyContext ctx;
+	SirilCopyContext ctx;
 	if (!init_copy_context(src, &ctx, error))
 		return FALSE;
 
