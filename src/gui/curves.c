@@ -607,7 +607,16 @@ gboolean curve_preview_idle(gpointer p) {
 	update_clip_ui_from_stats();
 
 	stop_processing_thread();
-	if (args->retval == 0) notify_gfit_modified();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+
+		compute_histo_for_fit(fit);
+		clear_display_histogram();
+		for (int i = 0; i < fit->naxes[2]; i++)
+			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+
+		gtk_widget_queue_draw(curves_drawingarea);
+	}
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -626,6 +635,8 @@ gboolean curve_apply_idle(gpointer p) {
 		compute_histo_for_fit(fit);
 		for (int i = 0; i < fit->naxes[2]; i++)
 			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+
+		gtk_widget_queue_draw(curves_drawingarea);
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -811,7 +822,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		single_image_stretch_applied = TRUE;
 		populate_roi();
 
-		reset_cursors_and_values(FALSE);
+		reset_cursors_and_values(TRUE);
 		set_cursor("default");
 	}
 }

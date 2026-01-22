@@ -671,7 +671,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_curve_min">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                <property name="tooltip-text" translatable="yes">Minimum luminance range.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0</property>
                                 <property name="progress-pulse-step">0.01</property>
@@ -694,6 +694,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           <object class="GtkScale" id="curve_slider_min">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Minimum luminance range.</property>
                             <property name="adjustment">adj_curve_slider_min</property>
                             <property name="digits">3</property>
                             <property name="draw-value">False</property>
@@ -732,7 +733,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                                   <object class="GtkSpinButton" id="spin_curve_max">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                    <property name="tooltip-text" translatable="yes">Maximum luminance range.</property>
                                     <property name="width-chars">10</property>
                                     <property name="text">100</property>
                                     <property name="progress-pulse-step">0.01</property>
@@ -756,6 +757,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkScale" id="curve_slider_max">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Maximum luminance range.</property>
                                 <property name="adjustment">adj_curve_slider_max</property>
                                 <property name="digits">3</property>
                                 <property name="draw-value">False</property>
@@ -801,7 +803,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                                   <object class="GtkSpinButton" id="spin_curve_feather">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                    <property name="tooltip-text" translatable="yes">Soft roll-off width at range boundaries.</property>
                                     <property name="width-chars">10</property>
                                     <property name="text">25</property>
                                     <property name="progress-pulse-step">0.01</property>
@@ -825,6 +827,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkScale" id="curve_slider_feather">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Soft roll-off width at range boundaries.</property>
                                 <property name="adjustment">adj_curve_slider_feather</property>
                                 <property name="digits">3</property>
                                 <property name="draw-value">False</property>
