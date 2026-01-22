@@ -65,6 +65,9 @@
 #define PIPE_NAME "\\\\.\\pipe\\mypipe"
 #define SOCKET_PORT 12345
 
+#define PIP_TIMEOUT_SECONDS 300
+#define PIP_MAX_RETRIES 3
+
 #ifdef _WIN32
 #define PYTHON_EXE "python.exe"
 #else
@@ -1650,57 +1653,40 @@ typedef struct {
 	GHashTable *env_vars;
 } PythonVenvInfo;
 
-static gchar* find_venv_bin_dir(const gchar *venv_path) {
-	gchar *bin_dir = NULL;
-
+static gchar* build_venv_subdir_path(const gchar *venv_path, const gchar *subdir) {
 #ifdef _WIN32
-	// Try Scripts directory first
-	bin_dir = g_build_filename(venv_path, "Scripts", NULL);
-	if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
-		g_free(bin_dir);
-		// Try bin directory as fallback
-		bin_dir = g_build_filename(venv_path, "bin", NULL);
-		if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
-			g_free(bin_dir);
+	// Windows: try Scripts first, then bin as fallback
+	gchar *path = g_build_filename(venv_path, "Scripts", subdir, NULL);
+	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+		g_free(path);
+		path = g_build_filename(venv_path, "bin", subdir, NULL);
+		if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+			g_free(path);
 			return NULL;
 		}
 	}
+	return path;
 #else
-	bin_dir = g_build_filename(venv_path, "bin", NULL);
-	if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
-		g_free(bin_dir);
+	// Unix: only bin directory
+	gchar *path = g_build_filename(venv_path, "bin", subdir, NULL);
+	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+		g_free(path);
 		return NULL;
 	}
+	return path;
 #endif
+}
 
-	return bin_dir;
+static gchar* find_venv_bin_dir(const gchar *venv_path) {
+	return build_venv_subdir_path(venv_path, "");
 }
 
 static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbose) {
-	gchar *python_exe = NULL;
-
-#ifdef _WIN32
-	// Try Scripts directory first
-	python_exe = g_build_filename(venv_path, "Scripts", PYTHON_EXE, NULL);
-	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
-		g_free(python_exe);
-		// Try bin directory as fallback
-		python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
-		if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
-			if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
-			g_free(python_exe);
-			return NULL;
-		}
-	}
-#else
-	python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
-	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+	gchar *python_exe = build_venv_subdir_path(venv_path, PYTHON_EXE);
+	if (!python_exe) {
 		if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
-		g_free(python_exe);
 		return NULL;
 	}
-#endif
-
 	return python_exe;
 }
 
@@ -1819,11 +1805,12 @@ static version_number get_installed_module_version(const gchar* python_path, GEr
 	}
 
 	// Try to find the version match
-	GMatchInfo *match_info;
+	GMatchInfo *match_info = NULL;
 	gchar *version = NULL;
 
 	if (g_regex_match(regex, stdout_data, 0, &match_info)) {
 		version = g_match_info_fetch(match_info, 1);
+		g_match_info_free(match_info);
 	} else {
 		g_set_error(error,
 				G_FILE_ERROR,
@@ -1836,7 +1823,6 @@ static version_number get_installed_module_version(const gchar* python_path, GEr
 	}
 
 	// Clean up
-	g_match_info_free(match_info);
 	g_regex_unref(regex);
 	g_free(stdout_data);
 	g_free(stderr_data);
@@ -1884,6 +1870,16 @@ static gboolean validate_python_version(const gchar *python_exe, GError **error)
 	}
 
 	g_strstrip(stdout_data);
+
+	// Validate we got some output
+	if (!stdout_data || strlen(stdout_data) == 0) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Python version check returned empty output");
+		g_free(stdout_data);
+		g_free(stderr_data);
+		return FALSE;
+	}
+
 	version_number ver = get_version_number_from_string(stdout_data);
 	g_free(stdout_data);
 	g_free(stderr_data);
@@ -1934,7 +1930,7 @@ static gboolean validate_system_python(const gchar *python_exe, GError **error) 
 			g_propagate_error(error, spawn_error);
 		} else {
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"Failed to check Python modules");
+					"Failed to execute Python to check for venv and ensurepip modules");
 		}
 		g_free(stderr_data);
 		return FALSE;
@@ -1986,7 +1982,8 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
 	if (!python_exe) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
-				"Python executable not found in venv");
+				"Python executable not found in venv. "
+				"The venv may be corrupted and need rebuilding.");
 		return FALSE;
 	}
 
@@ -2054,6 +2051,8 @@ static gboolean validate_venv_health(const gchar *venv_path, GError **error) {
 		"-m",
 		"pip",
 		"--version",
+		"--timeout",
+		"10",
 		NULL
 	};
 
@@ -2093,6 +2092,14 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	siril_debug_print("Python path: %s\n", python_path);
 	g_return_val_if_fail(python_path != NULL, FALSE);
+
+	// Verify the python executable is actually executable
+	if (!g_file_test(python_path, G_FILE_TEST_IS_EXECUTABLE)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_ACCES,
+				"Python executable found but is not executable: %s", python_path);
+		g_free(python_path);
+		return FALSE;
+	}
 
 	gboolean needs_install = FALSE;
 	gchar* module_setup_path = get_setup_path(module_path);
@@ -2188,9 +2195,11 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		}
 
 		// Create temporary directory
-		if (siril_mkdir_with_parents(temp_install_path, 0755) != 0) {
-			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
-					"Failed to create temporary directory: %s", temp_install_path);
+		int mkdir_result = siril_mkdir_with_parents(temp_install_path, 0755);
+		if (mkdir_result != 0) {
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+					"Failed to create temporary directory %s: %s",
+					temp_install_path, g_strerror(errno));
 			g_free(temp_install_path);
 			g_free(python_path);
 			return FALSE;
@@ -2207,19 +2216,24 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		}
 
 		// RETRY LOGIC: Install with pip with timeout and retry
-		const gint TIMEOUT_SECONDS = 300;  // 5 minutes
 		gboolean install_success = FALSE;
 		GError *last_error = NULL;
 
-		for (gint retry = 0; retry < MAX_RETRIES && !install_success; retry++) {
+		for (gint retry = 0; retry < PIP_MAX_RETRIES && !install_success; retry++) {
 			if (retry > 0) {
 				siril_log_message(_("Retrying pip installation (attempt %d/%d)...\n"),
-								retry + 1, MAX_RETRIES);
+								retry + 1, PIP_MAX_RETRIES);
 				g_usleep(2000000);  // Wait 2 seconds between retries
 			}
 
 			gchar timeout_str[32];
-			g_snprintf(timeout_str, sizeof(timeout_str), "%d", TIMEOUT_SECONDS);
+			int written = g_snprintf(timeout_str, sizeof(timeout_str), "%d", PIP_TIMEOUT_SECONDS);
+			if (written < 0 || written >= sizeof(timeout_str)) {
+				g_clear_error(&last_error);
+				g_set_error(&last_error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+						"Failed to format timeout string");
+				continue;
+			}
 
 			gchar *argv[] = {
 				python_path,
@@ -2259,7 +2273,25 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 				g_free(stdout_data);
 				g_free(stderr_data);
 			} else {
-				// Capture error for potential retry
+				// Classify error to determine if retry is worthwhile
+				gboolean should_retry = FALSE;
+				if (stderr_data) {
+					// Network/timeout errors are retriable
+					if (g_strstr_len(stderr_data, -1, "timeout") ||
+						g_strstr_len(stderr_data, -1, "timed out") ||
+						g_strstr_len(stderr_data, -1, "Connection") ||
+						g_strstr_len(stderr_data, -1, "Network") ||
+						g_strstr_len(stderr_data, -1, "Unable to connect")) {
+						should_retry = TRUE;
+					}
+					// Permission/dependency errors are not retriable
+					if (g_strstr_len(stderr_data, -1, "Permission denied") ||
+						g_strstr_len(stderr_data, -1, "No module named") ||
+						g_strstr_len(stderr_data, -1, "METADATA") ||
+						g_strstr_len(stderr_data, -1, "Could not find a version")) {
+						should_retry = FALSE;
+					}
+				}
 				g_clear_error(&last_error);
 				g_set_error(&last_error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 						"Pip installation failed with exit status %d%s%s",
@@ -2268,6 +2300,12 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 						stderr_data ? stderr_data : "");
 				g_free(stdout_data);
 				g_free(stderr_data);
+
+				// Break early if error is not retriable
+				if (!should_retry && retry < PIP_MAX_RETRIES - 1) {
+					siril_debug_print("Non-retriable error detected, stopping retry attempts\n");
+					break;
+				}
 			}
 		}
 
@@ -2353,7 +2391,7 @@ gboolean get_python_magic_number(char *out_buf, gsize out_buf_size) {
 	return TRUE;
 }
 
-static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
+static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError **error) {
 	PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
 	info->venv_path = g_strdup(venv_path);
 	info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -2373,7 +2411,8 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	// Get Python version
 	info->python_version = get_venv_python_version(venv_path);
 	if (!info->python_version) {
-		g_warning("Failed to determine Python version");
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to determine Python version in venv");
 		goto cleanup;
 	}
 
@@ -2383,7 +2422,8 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	// Update PATH
 	gchar *bin_dir = find_venv_bin_dir(venv_path);
 	if (!bin_dir) {
-		g_warning("Failed to locate virtual environment binary directory");
+	g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to locate virtual environment binary directory");
 		goto cleanup;
 	}
 	gchar *old_path = g_hash_table_lookup(info->env_vars, "PATH");
@@ -2409,6 +2449,12 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 		g_warning("Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
 		g_error_free(install_error);
+		// This is a critical failure - propagate it
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+				"Failed to install Python module: %s",
+				install_error ? install_error->message : "Unknown error");
+		g_clear_error(&install_error);
+		goto cleanup;
 	} else {
 		siril_log_color_message(_("Python module is up-to-date\n"), "green");
 		get_python_magic_number(com.python_magic, 9);
@@ -2443,6 +2489,14 @@ cleanup:
 //***********************************************************************************
 
 void rebuild_venv() {
+	// Warn if initialization is still in progress
+	if (com.python_init_thread) {
+		siril_log_color_message(
+			_("Warning: Python initialization in progress. Waiting for it to complete...\n"),
+			"salmon");
+		g_thread_join(com.python_init_thread);
+		com.python_init_thread = NULL;
+	}
 	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
 	GError *error = NULL, *error2 = NULL;
@@ -2693,10 +2747,12 @@ static gpointer initialize_python_venv(gpointer user_data) {
 
 	// Prepare venv environment
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
-	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
+	GError *prep_error = NULL;
+	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path, &prep_error);
 	if (!venv_info) {
-		siril_log_color_message(_("Failed to prepare virtual environment\n"), "red");
-		g_free(venv_path);
+		siril_log_color_message(_("Failed to prepare virtual environment: %s\n"), "red",
+				prep_error ? prep_error->message : "Unknown error");
+		g_clear_error(&prep_error);		g_free(venv_path);
 		g_free(project_path);
 		return GINT_TO_POINTER(1);
 	}
@@ -2705,12 +2761,28 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	GHashTableIter iter;
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
-	g_mutex_lock(&com.env_mutex);
+	// Pre-build array of environment changes to minimize mutex hold time
+	GPtrArray *env_changes = g_ptr_array_new_full(
+		g_hash_table_size(venv_info->env_vars),
+		(GDestroyNotify)g_strfreev);
+
+	g_hash_table_iter_init(&iter, venv_info->env_vars);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (!g_setenv((const gchar*)key, (const gchar*)value, TRUE))
-			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
+		gchar **pair = g_new(gchar*, 3);
+		pair[0] = g_strdup((const gchar*)key);
+		pair[1] = g_strdup((const gchar*)value);
+		pair[2] = NULL;
+		g_ptr_array_add(env_changes, pair);
+	}
+	// Lock the mutex
+	g_mutex_lock(&com.env_mutex);
+	for (guint i = 0; i < env_changes->len; i++) {
+		gchar **pair = g_ptr_array_index(env_changes, i);
+		if (!g_setenv(pair[0], pair[1], TRUE))
+			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", pair[0], pair[1]);
 	}
 	g_mutex_unlock(&com.env_mutex);
+	g_ptr_array_free(env_changes, TRUE);
 
 	// Clean up
 	if (venv_info) {
@@ -2729,8 +2801,23 @@ static gpointer initialize_python_venv(gpointer user_data) {
 }
 
 void initialize_python_venv_in_thread() {
+	// Prevent multiple simultaneous initializations
+	static GMutex init_mutex;
+
+	if (!g_mutex_trylock(&init_mutex)) {
+		siril_log_color_message(_("Python initialization already in progress\n"), "salmon");
+		return;
+	}
+
+	// Check if already initialized or in progress
+	if (com.python_init_thread) {
+		siril_debug_print("Python initialization thread already exists\n");
+		g_mutex_unlock(&init_mutex);
+		return;
+	}
+
 	com.python_init_thread = g_thread_new("initialize python venv", initialize_python_venv, NULL);
-	// We clean up the thread in python_venv_idle
+	g_mutex_unlock(&init_mutex);
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {
@@ -2829,6 +2916,17 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 }
 
 gboolean pyc_matches_magic(const char *pyc_path, const char *expected_hex_magic) {
+	if (!pyc_path || !expected_hex_magic) {
+		return FALSE;
+	}
+
+	// Validate expected_hex_magic length (should be exactly 8 hex chars)
+	if (strlen(expected_hex_magic) != 8) {
+		siril_debug_print("Invalid magic number length: %zu (expected 8)\n",
+				strlen(expected_hex_magic));
+		return FALSE;
+	}
+
 	FILE *f = fopen(pyc_path, "rb");
 	if (!f) return FALSE;
 
@@ -2900,6 +2998,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	if (!commstate.worker_thread) {
 		siril_log_color_message(_("Error: Python worker thread not available.\n"), "red");
+		cleanup_connection(commstate.python_conn);
 		// Clean up the temporary file if it's one
 		if (is_temp_file && script_name) {
 			g_unlink(script_name);
@@ -2912,6 +3011,16 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	// Get base environment
 	gchar** env = g_get_environ();
+	if (!env) {
+		siril_log_color_message(_("Error: failed to get environment variables.\n"), "red");
+		cleanup_shm_resources(commstate.python_conn);
+		free(commstate.python_conn);
+		if (is_temp_file && script_name) {
+			g_unlink(script_name);
+		}
+		g_free(script_name);
+		return;
+	}
 
 	// Handle virtual environment if active
 	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
@@ -2923,7 +3032,9 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 #ifdef _WIN32
 			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
 #else
-			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
+			gchar *python_dir = g_strdup_printf("python%s", python_version);
+			site_packages = g_build_filename(venv_path, "lib", python_dir, "site-packages", NULL);
+			g_free(python_dir);
 #endif
 			// Update PYTHONPATH to include site-packages
 			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
@@ -3034,6 +3145,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 			}
 			g_free(script_basename);
 			g_free(childname);
+		} else {
+			// Log spawn failure details
+			siril_log_color_message(_("Failed to spawn Python process: %s\n"), "red",
+					error ? error->message : "Unknown error");
 		}
 	}
 
