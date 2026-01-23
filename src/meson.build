@@ -224,6 +224,7 @@ src_files = [
   'gui/epf.c',
   'gui/fix_xtrans_af.c',
   'gui/git_gui.c',
+  'gui/histo_display.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',
   'gui/icc_profile.c',

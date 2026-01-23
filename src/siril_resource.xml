@@ -114,6 +114,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/grid.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/histo-orig.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/histo.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/histo_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/list.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrorx.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrorx_dark.svg</file>

@@ -381,6 +381,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="histo">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/histo_dark.svg</property>
+  </object>
   <object class="GtkImage" id="image3">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -10082,6 +10087,21 @@ Current state: linked.</property>
                     <property name="action-name">win.color-map</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">image_colormap</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="histo_button">
+                    <property name="name">histo_button</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Show/hide histogram overlay</property>
+                    <property name="action-name">win.histo_display</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">histo</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

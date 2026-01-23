@@ -47,6 +47,7 @@ static GActionEntry image_entries[] = {
 	{ "bit-depth", NULL },
 	{ "zoom-out", zoom_out_activate },
 	{ "zoom-in", zoom_in_activate },
+	{ "histo_display", on_histogram_overlay_activate, NULL, "false", on_histogram_overlay_state },
 	{ "zoom-fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
 	{ "zoom-one", zoom_one_activate },
 	{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },

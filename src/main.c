@@ -33,6 +33,8 @@
 #include <locale.h>
 #include <unistd.h>
 #include <fftw3.h>
+
+#include "gui/histo_display.h"
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -477,6 +479,7 @@ static void siril_app_activate(GApplication *application) {
 		/* Load UI files */
 		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
+		init_histogram_overlay();
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
 		GtkWidget *control_window = lookup_widget("control_window");

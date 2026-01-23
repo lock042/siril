@@ -44,6 +44,7 @@
 #include "gui/curves.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
+#include "gui/histo_display.h"
 #include "gui/icc_profile.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
@@ -236,6 +237,19 @@ void tab_logs_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWidget *w = lookup_widget("toolbarbox");
 	gtk_widget_set_visible(w, !gtk_widget_get_visible(w));
+}
+
+void on_histogram_overlay_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	gboolean new_state = g_variant_get_boolean(state);
+	set_histogram_overlay_visible(new_state);
+	g_simple_action_set_state(action, state);
+}
+
+void on_histogram_overlay_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
 }
 
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {

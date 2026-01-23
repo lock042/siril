@@ -202,7 +202,9 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("export_button", "export_dark.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf_dark.svg");
-} else {
+
+		update_theme_button("histo_button", "histo_dark.svg");
+	} else {
 		update_theme_button("annotate_button", "astrometry.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid.svg");
 		update_theme_button("photometry_button", "photometry.svg");
@@ -218,6 +220,8 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("export_button", "export.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf.svg");
+
+		update_theme_button("histo_button", "histo.svg");
 	}
 }
 
