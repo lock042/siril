@@ -47,6 +47,11 @@ typedef struct {
 	/* Display mode */
 	gboolean logarithmic;     /* TRUE = log scale, FALSE = linear */
 
+	/* Channel visibility */
+	gboolean show_red;        /* Show red channel */
+	gboolean show_green;      /* Show green channel */
+	gboolean show_blue;       /* Show blue channel */
+
 	/* Drag state */
 	gboolean is_dragging;
 	gint drag_start_x;

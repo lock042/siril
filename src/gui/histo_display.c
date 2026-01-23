@@ -38,6 +38,9 @@ histo_overlay_state histo_state = {
 	.opacity = 0.85,
 	.rgb_area = NULL,
 	.logarithmic = FALSE,  /* Start in linear mode */
+	.show_red = TRUE,      /* Show red channel by default */
+	.show_green = TRUE,    /* Show green channel by default */
+	.show_blue = TRUE,     /* Show blue channel by default */
 	.is_dragging = FALSE,
 	.is_resizing = FALSE,
 	.resize_edge = RESIZE_NONE,
@@ -489,6 +492,90 @@ static gboolean is_over_log_button(gint mouse_x, gint mouse_y) {
 	        mouse_y >= button_y && mouse_y <= button_y + button_height);
 }
 
+/* Check if mouse is over RGB channel buttons, returns 0=none, 1=R, 2=G, 3=B */
+static gint is_over_rgb_button(gint mouse_x, gint mouse_y) {
+	/* Only show RGB buttons for color images */
+	if (gfit && gfit->naxes[2] != 3)
+		return 0;
+
+	gint button_size = 14;  /* Square buttons */
+	gint button_spacing = 2;
+	gint start_x = histo_state.x + 5;  /* Left side of header */
+	gint button_y = histo_state.y + 3;
+
+	/* Check Red button */
+	if (mouse_x >= start_x && mouse_x <= start_x + button_size &&
+	    mouse_y >= button_y && mouse_y <= button_y + button_size) {
+		return 1;  /* Red */
+	}
+
+	/* Check Green button */
+	start_x += button_size + button_spacing;
+	if (mouse_x >= start_x && mouse_x <= start_x + button_size &&
+	    mouse_y >= button_y && mouse_y <= button_y + button_size) {
+		return 2;  /* Green */
+	}
+
+	/* Check Blue button */
+	start_x += button_size + button_spacing;
+	if (mouse_x >= start_x && mouse_x <= start_x + button_size &&
+	    mouse_y >= button_y && mouse_y <= button_y + button_size) {
+		return 3;  /* Blue */
+	}
+
+	return 0;  /* None */
+}
+
+/* Draw RGB channel toggle buttons */
+static void draw_rgb_channel_buttons(cairo_t *cr, double x, double y) {
+	/* Only draw RGB buttons for color images */
+	if (gfit->naxes[2] != 3)
+		return;
+
+	gint button_size = 14;
+	gint button_spacing = 2;
+	gint start_x = x + 5;
+	gint button_y = y + 3;
+
+	/* Red button */
+	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
+	if (histo_state.show_red) {
+		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);  /* Opaque red when ON */
+	} else {
+		cairo_set_source_rgba(cr, 0.5, 0.0, 0.0, 0.4);  /* Dimmed when OFF */
+	}
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	/* Green button */
+	start_x += button_size + button_spacing;
+	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
+	if (histo_state.show_green) {
+		cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);  /* Opaque green when ON */
+	} else {
+		cairo_set_source_rgba(cr, 0.0, 0.5, 0.0, 0.4);  /* Dimmed when OFF */
+	}
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	/* Blue button */
+	start_x += button_size + button_spacing;
+	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
+	if (histo_state.show_blue) {
+		cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 0.9);  /* Opaque blue when ON */
+	} else {
+		cairo_set_source_rgba(cr, 0.15, 0.25, 0.5, 0.4);  /* Dimmed when OFF */
+	}
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+}
+
 /* Draw Lin/Log toggle button in header */
 static void draw_log_toggle_button(cairo_t *cr, double x, double y, double width) {
 	gint button_width = 35;
@@ -544,6 +631,15 @@ static void update_cursor(GtkWidget *widget, gint mouse_x, gint mouse_y) {
 		return;
 	}
 
+	/* Check if over RGB channel buttons */
+	if (is_over_rgb_button(mouse_x, mouse_y) > 0) {
+		cursor = gdk_cursor_new_for_display(display, GDK_HAND2);
+		gdk_window_set_cursor(window, cursor);
+		if (cursor)
+			g_object_unref(cursor);
+		return;
+	}
+
 	gboolean in_header = FALSE;
 	ResizeEdge edge = get_resize_edge(mouse_x, mouse_y, &in_header);
 
@@ -575,6 +671,24 @@ static gboolean on_histogram_button_press(GtkWidget *widget, GdkEventButton *eve
 	/* Check if clicking on Lin/Log toggle button */
 	if (is_over_log_button(event->x, event->y)) {
 		histo_state.logarithmic = !histo_state.logarithmic;
+		gtk_widget_queue_draw(widget);
+		return TRUE;
+	}
+
+	/* Check if clicking on RGB channel buttons */
+	gint rgb_button = is_over_rgb_button(event->x, event->y);
+	if (rgb_button > 0) {
+		switch (rgb_button) {
+			case 1:  /* Red */
+				histo_state.show_red = !histo_state.show_red;
+				break;
+			case 2:  /* Green */
+				histo_state.show_green = !histo_state.show_green;
+				break;
+			case 3:  /* Blue */
+				histo_state.show_blue = !histo_state.show_blue;
+				break;
+		}
 		gtk_widget_queue_draw(widget);
 		return TRUE;
 	}
@@ -802,7 +916,10 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 		}
 	}
 
-	/* Draw Lin/Log toggle button */
+	/* Draw RGB channel toggle buttons (left side) */
+	draw_rgb_channel_buttons(cr, x, y);
+
+	/* Draw Lin/Log toggle button (right side) */
 	draw_log_toggle_button(cr, x, y, width);
 
 	/* Define histogram content area (below header, with space for stats panel) */
@@ -822,13 +939,19 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 
 	/* Draw filled histogram curves */
 	if (gfit->naxes[2] == 3) {
-		/* Draw filled areas for each channel */
-		draw_filled_channel(cr, x, histo_y, width, histo_height,
-		                    cache.histo_b, cache.max_b, 0.3, 0.5, 1.0);  /* Blue */
-		draw_filled_channel(cr, x, histo_y, width, histo_height,
-		                    cache.histo_g, cache.max_g, 0.0, 1.0, 0.0);  /* Green */
-		draw_filled_channel(cr, x, histo_y, width, histo_height,
-		                    cache.histo_r, cache.max_r, 1.0, 0.0, 0.0);  /* Red */
+		/* Draw filled areas for enabled channels only */
+		if (histo_state.show_blue) {
+			draw_filled_channel(cr, x, histo_y, width, histo_height,
+			                    cache.histo_b, cache.max_b, 0.3, 0.5, 1.0);  /* Blue */
+		}
+		if (histo_state.show_green) {
+			draw_filled_channel(cr, x, histo_y, width, histo_height,
+			                    cache.histo_g, cache.max_g, 0.0, 1.0, 0.0);  /* Green */
+		}
+		if (histo_state.show_red) {
+			draw_filled_channel(cr, x, histo_y, width, histo_height,
+			                    cache.histo_r, cache.max_r, 1.0, 0.0, 0.0);  /* Red */
+		}
 	} else {
 		/* Mono - white/gray */
 		draw_filled_channel(cr, x, histo_y, width, histo_height,
