@@ -36,6 +36,9 @@ histo_overlay_state histo_state = {
 	.max_height = 400,
 	.opacity = 0.85,
 	.rgb_area = NULL,
+	.r_area = NULL,
+	.g_area = NULL,
+	.b_area = NULL,
 	.logarithmic = FALSE,  /* Start in linear mode */
 	.show_red = TRUE,      /* Show red channel by default */
 	.show_green = TRUE,    /* Show green channel by default */
@@ -976,15 +979,35 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 
 /* Initialize histogram overlay */
 void init_histogram_overlay(void) {
+	siril_debug_print("Initializing histogram overlay...\n");
 
+	/* Get all 4 drawing area widgets */
 	histo_state.rgb_area = lookup_widget("drawingareargb");
-	if (!histo_state.rgb_area) {
-		siril_debug_print("ERROR: Cannot find drawingareargb widget!\n");
+	histo_state.r_area = lookup_widget("drawingarear");
+	histo_state.g_area = lookup_widget("drawingareag");
+	histo_state.b_area = lookup_widget("drawingareab");
+
+	/* Log which widgets were found */
+	if (!histo_state.rgb_area)
+		siril_debug_print("drawingareargb not found\n");
+	if (!histo_state.r_area)
+		siril_debug_print("drawingarear not found\n");
+	if (!histo_state.g_area)
+		siril_debug_print("drawingareag not found\n");
+	if (!histo_state.b_area)
+		siril_debug_print("drawingareab not found\n");
+
+	if (!histo_state.rgb_area && !histo_state.r_area &&
+	    !histo_state.g_area && !histo_state.b_area) {
+		siril_debug_print("ERROR: Cannot find any drawing area widgets!\n");
 		return;
 	}
 
-	/* Calculate initial position at bottom-left */
-	gint widget_height = gtk_widget_get_allocated_height(histo_state.rgb_area);
+	/* Calculate initial position at bottom-left using first available widget */
+	GtkWidget *ref_widget = histo_state.rgb_area ? histo_state.rgb_area :
+	                        histo_state.r_area ? histo_state.r_area :
+	                        histo_state.g_area ? histo_state.g_area : histo_state.b_area;
+	gint widget_height = gtk_widget_get_allocated_height(ref_widget);
 	if (widget_height > 0) {
 		/* Position at bottom-left with margin */
 		histo_state.x = 20;
@@ -998,22 +1021,61 @@ void init_histogram_overlay(void) {
 		histo_state.y = 300;
 	}
 
-	/* Connect draw signal */
-	g_signal_connect_after(histo_state.rgb_area, "draw",
-	                        G_CALLBACK(on_histogram_overlay_draw), NULL);
+	/* Connect signals to RGB drawing area */
+	if (histo_state.rgb_area) {
+		g_signal_connect_after(histo_state.rgb_area, "draw",
+		                        G_CALLBACK(on_histogram_overlay_draw), NULL);
+		gtk_widget_add_events(histo_state.rgb_area,
+		                      GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
+		g_signal_connect(histo_state.rgb_area, "button-press-event",
+		                 G_CALLBACK(on_histogram_button_press), NULL);
+		g_signal_connect(histo_state.rgb_area, "button-release-event",
+		                 G_CALLBACK(on_histogram_button_release), NULL);
+		g_signal_connect(histo_state.rgb_area, "motion-notify-event",
+		                 G_CALLBACK(on_histogram_motion_notify), NULL);
+	}
 
-	/* Connect mouse events for drag and resize */
-	gtk_widget_add_events(histo_state.rgb_area,
-	                      GDK_BUTTON_PRESS_MASK |
-	                      GDK_BUTTON_RELEASE_MASK |
-	                      GDK_POINTER_MOTION_MASK);
+	/* Connect signals to R drawing area */
+	if (histo_state.r_area) {
+		g_signal_connect_after(histo_state.r_area, "draw",
+		                        G_CALLBACK(on_histogram_overlay_draw), NULL);
+		gtk_widget_add_events(histo_state.r_area,
+		                      GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
+		g_signal_connect(histo_state.r_area, "button-press-event",
+		                 G_CALLBACK(on_histogram_button_press), NULL);
+		g_signal_connect(histo_state.r_area, "button-release-event",
+		                 G_CALLBACK(on_histogram_button_release), NULL);
+		g_signal_connect(histo_state.r_area, "motion-notify-event",
+		                 G_CALLBACK(on_histogram_motion_notify), NULL);
+	}
 
-	g_signal_connect(histo_state.rgb_area, "button-press-event",
-	                 G_CALLBACK(on_histogram_button_press), NULL);
-	g_signal_connect(histo_state.rgb_area, "button-release-event",
-	                 G_CALLBACK(on_histogram_button_release), NULL);
-	g_signal_connect(histo_state.rgb_area, "motion-notify-event",
-	                 G_CALLBACK(on_histogram_motion_notify), NULL);
+	/* Connect signals to G drawing area */
+	if (histo_state.g_area) {
+		g_signal_connect_after(histo_state.g_area, "draw",
+		                        G_CALLBACK(on_histogram_overlay_draw), NULL);
+		gtk_widget_add_events(histo_state.g_area,
+		                      GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
+		g_signal_connect(histo_state.g_area, "button-press-event",
+		                 G_CALLBACK(on_histogram_button_press), NULL);
+		g_signal_connect(histo_state.g_area, "button-release-event",
+		                 G_CALLBACK(on_histogram_button_release), NULL);
+		g_signal_connect(histo_state.g_area, "motion-notify-event",
+		                 G_CALLBACK(on_histogram_motion_notify), NULL);
+	}
+
+	/* Connect signals to B drawing area */
+	if (histo_state.b_area) {
+		g_signal_connect_after(histo_state.b_area, "draw",
+		                        G_CALLBACK(on_histogram_overlay_draw), NULL);
+		gtk_widget_add_events(histo_state.b_area,
+		                      GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
+		g_signal_connect(histo_state.b_area, "button-press-event",
+		                 G_CALLBACK(on_histogram_button_press), NULL);
+		g_signal_connect(histo_state.b_area, "button-release-event",
+		                 G_CALLBACK(on_histogram_button_release), NULL);
+		g_signal_connect(histo_state.b_area, "motion-notify-event",
+		                 G_CALLBACK(on_histogram_motion_notify), NULL);
+	}
 
 	siril_debug_print("Histogram overlay initialized successfully!\n");
 }
@@ -1021,19 +1083,31 @@ void init_histogram_overlay(void) {
 void set_histogram_overlay_visible(gboolean visible) {
 	histo_state.show_histo = visible;
 
-	if (!histo_state.rgb_area) {
-		siril_debug_print("ERROR: rgb_area is NULL!\n");
-		return;
-	}
-
-	gtk_widget_queue_draw(histo_state.rgb_area);
+	/* Trigger redraw on all 4 widgets */
+	if (histo_state.rgb_area)
+		gtk_widget_queue_draw(histo_state.rgb_area);
+	if (histo_state.r_area)
+		gtk_widget_queue_draw(histo_state.r_area);
+	if (histo_state.g_area)
+		gtk_widget_queue_draw(histo_state.g_area);
+	if (histo_state.b_area)
+		gtk_widget_queue_draw(histo_state.b_area);
 }
 
 void update_histogram_display(void) {
-	if (!histo_state.rgb_area || !histo_state.show_histo)
+	if (!histo_state.show_histo)
 		return;
 
 	invalidate_histogram_cache();
 	update_histogram_cache();
-	gtk_widget_queue_draw(histo_state.rgb_area);
+
+	/* Trigger redraw on all 4 widgets (only the visible one will actually draw) */
+	if (histo_state.rgb_area)
+		gtk_widget_queue_draw(histo_state.rgb_area);
+	if (histo_state.r_area)
+		gtk_widget_queue_draw(histo_state.r_area);
+	if (histo_state.g_area)
+		gtk_widget_queue_draw(histo_state.g_area);
+	if (histo_state.b_area)
+		gtk_widget_queue_draw(histo_state.b_area);
 }

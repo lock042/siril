@@ -42,7 +42,12 @@ typedef struct {
 	gint max_width;           /* Maximum width */
 	gint max_height;          /* Maximum height */
 	gdouble opacity;          /* Overlay opacity (0.0-1.0) */
-	GtkWidget *rgb_area;      /* Reference to RGB drawing area */
+
+	/* All 4 drawing area widgets */
+	GtkWidget *rgb_area;      /* RGB composite view */
+	GtkWidget *r_area;        /* Red channel / Mono */
+	GtkWidget *g_area;        /* Green channel */
+	GtkWidget *b_area;        /* Blue channel */
 
 	/* Display mode */
 	gboolean logarithmic;     /* TRUE = log scale, FALSE = linear */
