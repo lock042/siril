@@ -18,7 +18,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "histo_display.h"
@@ -977,11 +976,10 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 
 /* Initialize histogram overlay */
 void init_histogram_overlay(void) {
-	siril_log_color_message("Initializing histogram overlay...\n", "green");
 
 	histo_state.rgb_area = lookup_widget("drawingareargb");
 	if (!histo_state.rgb_area) {
-		siril_log_color_message("ERROR: Cannot find drawingareargb widget!\n", "red");
+		siril_debug_print("ERROR: Cannot find drawingareargb widget!\n");
 		return;
 	}
 
@@ -991,7 +989,7 @@ void init_histogram_overlay(void) {
 		/* Position at bottom-left with margin */
 		histo_state.x = 20;
 		histo_state.y = widget_height - histo_state.height - 20;
-		siril_log_message("Initial histogram position: %dx%d at (%d,%d)\n",
+		siril_debug_print("Initial histogram position: %dx%d at (%d,%d)\n",
 		                  histo_state.width, histo_state.height,
 		                  histo_state.x, histo_state.y);
 	} else {
@@ -1017,14 +1015,14 @@ void init_histogram_overlay(void) {
 	g_signal_connect(histo_state.rgb_area, "motion-notify-event",
 	                 G_CALLBACK(on_histogram_motion_notify), NULL);
 
-	siril_log_color_message("Histogram overlay initialized successfully!\n", "green");
+	siril_debug_print("Histogram overlay initialized successfully!\n");
 }
 
 void set_histogram_overlay_visible(gboolean visible) {
 	histo_state.show_histo = visible;
 
 	if (!histo_state.rgb_area) {
-		siril_log_color_message("ERROR: rgb_area is NULL!\n", "red");
+		siril_debug_print("ERROR: rgb_area is NULL!\n");
 		return;
 	}
 
