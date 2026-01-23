@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/icc_profile.h"
+#include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/callbacks.h"
@@ -47,6 +48,10 @@ static int curves_update_preview();
 static void curves_update_image();
 static void _update_entry_text();
 static void _initialize_clip_text();
+static void curves_setup_hsl();
+static void curves_clear_hsl();
+static void curves_compute_special_histograms();
+static gsl_histogram* curves_compute_histo_from_buffer(void* buf, fits* f);
 
 // Forward declaration of Idle functions defined in this file
 gboolean curve_preview_idle(gpointer p);
@@ -83,7 +88,11 @@ static gboolean do_channel[3];
 static fits *fit = NULL;
 static long clipped[] = {0, 0};
 static gsl_histogram *display_histogram[MAXVPORT] = {NULL, NULL, NULL, NULL};
+static gsl_histogram *display_histogram_lum = NULL;
+static gsl_histogram *display_histogram_sat = NULL;
+static gsl_histogram *display_histogram_chroma = NULL;
 static gboolean is_drawingarea_pressed = FALSE;
+static void *curves_huebuf = NULL, *curves_satbuf = NULL, *curves_lumbuf = NULL;
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
 static point *selected_point = NULL;
@@ -409,6 +418,278 @@ void draw_range_overlays(cairo_t *cr, int width, int height) {
 }
 
 // ---------------------------------------------------------------------------
+// HSL HISTOGRAM FUNCTIONS
+// ---------------------------------------------------------------------------
+
+// Draw a histogram with a custom RGB color, matching the style of display_histo()
+static void draw_histo_with_color(gsl_histogram *histo, cairo_t *cr, int width, int height,
+                                   double r, double g, double b, gboolean is_log) {
+	if (!histo) return;
+	if (width <= 0) return;
+
+	size_t norm = gsl_histogram_bins(histo) - 1;
+	float vals_per_px = (float)norm / (float)width;
+	size_t i, nb_orig_bins = gsl_histogram_bins(histo);
+
+	// Allocate array to store binned values for display
+	static gfloat *displayed_values = NULL;
+	static int nb_bins_allocated = 0;
+
+	if (nb_bins_allocated != width) {
+		gfloat *tmp;
+		nb_bins_allocated = width;
+		tmp = realloc(displayed_values, nb_bins_allocated * sizeof(gfloat));
+		if (!tmp) {
+			if (displayed_values != NULL) {
+				free(displayed_values);
+				displayed_values = NULL;
+			}
+			return;
+		}
+		displayed_values = tmp;
+		memset(displayed_values, 0, nb_bins_allocated * sizeof(gfloat));
+	}
+
+	// Set color and line style
+	cairo_set_source_rgb(cr, r, g, b);
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_line_width(cr, 1.5);
+
+	// First loop: build the bins and find the maximum
+	i = 0;
+	double graph_height = 0.0;
+	int current_bin = 0;
+
+	do {
+		double bin_val = 0.0;
+		while (i < nb_orig_bins && (double)i / vals_per_px <= current_bin + 0.5) {
+			bin_val += gsl_histogram_get(histo, i);
+			i++;
+		}
+		if (is_log && bin_val != 0.0) {
+			bin_val = logf(bin_val);
+		}
+		displayed_values[current_bin] = bin_val;
+		if (bin_val > graph_height)
+			graph_height = bin_val;
+		current_bin++;
+	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
+
+	if (!graph_height)
+		return;
+
+	// Second loop: draw the histogram as a continuous line
+	for (i = 0; i < nb_bins_allocated; i++) {
+		double bin_height = height - height * displayed_values[i] / graph_height;
+		cairo_line_to(cr, i, bin_height);
+	}
+	cairo_stroke(cr);
+}
+
+// Convert RGB image to HSL and store in buffers
+static void curves_fit_to_hsl() {
+	if (!fit || fit->naxes[2] != 3) return;
+
+	size_t npixels = fit->rx * fit->ry;
+	if (fit->type == DATA_FLOAT) {
+		float* hf = (float*) curves_huebuf;
+		float* sf = (float*) curves_satbuf;
+		float* lf = (float*) curves_lumbuf;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
+		}
+	} else {
+		WORD *hw = (WORD*) curves_huebuf;
+		WORD* sw = (WORD*) curves_satbuf;
+		WORD* lw = (WORD*) curves_lumbuf;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &hw[i], &sw[i], &lw[i]);
+		}
+	}
+}
+
+// Compute histogram from a buffer (luminance, saturation, or chroma)
+static gsl_histogram* curves_compute_histo_from_buffer(void* buf, fits* f) {
+	if (!buf || !f) return NULL;
+
+	size_t i, ndata, size;
+	size = get_histo_size(f);
+	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
+	gsl_histogram_set_ranges_uniform(histo, 0, 1.0 + 1.0 / size);
+	ndata = f->naxes[0] * f->naxes[1];
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.max_thread)
+#endif
+	{
+		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
+		gsl_histogram_set_ranges_uniform(histo_thr, 0, 1.0 + 1.0 / size);
+		if (f->type == DATA_FLOAT) {
+			float *fbuf = (float*) buf;
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+			for (i = 0; i < ndata; i++) {
+				gsl_histogram_increment(histo_thr, (double) fbuf[i]);
+			}
+		} else {
+			double invnorm = 1.0 / USHRT_MAX_DOUBLE;
+			WORD * Wbuf = (WORD*) buf;
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+			for (i = 0; i < ndata; i++) {
+				gsl_histogram_increment(histo_thr, Wbuf[i] * invnorm);
+			}
+		}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+		{
+			gsl_histogram_add(histo, histo_thr);
+		}
+		gsl_histogram_free(histo_thr);
+	}
+	return histo;
+}
+
+// Compute chroma histogram (chroma is computed from saturation and luminance)
+static gsl_histogram* curves_compute_histo_chroma(fits* f) {
+	if (!curves_satbuf || !curves_lumbuf || !f || f->naxes[2] != 3) return NULL;
+
+	size_t ndata = f->naxes[0] * f->naxes[1];
+
+	// Allocate temporary buffer for chroma values
+	void* chroma_buf = NULL;
+	if (f->type == DATA_FLOAT) {
+		chroma_buf = malloc(ndata * sizeof(float));
+		if (!chroma_buf) return NULL;
+
+		float *cf = (float*) chroma_buf;
+		float *sf = (float*) curves_satbuf;
+		float *lf = (float*) curves_lumbuf;
+
+		// Chroma approximation: saturation weighted by (1 - |2*L - 1|)
+		// This gives higher chroma for saturated colors at mid-luminance
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < ndata; i++) {
+			float l_factor = 1.0f - fabsf(2.0f * lf[i] - 1.0f);
+			cf[i] = sf[i] * l_factor;
+		}
+	} else {
+		chroma_buf = malloc(ndata * sizeof(WORD));
+		if (!chroma_buf) return NULL;
+
+		WORD *cw = (WORD*) chroma_buf;
+		WORD *sw = (WORD*) curves_satbuf;
+		WORD *lw = (WORD*) curves_lumbuf;
+		double invnorm = 1.0 / USHRT_MAX_DOUBLE;
+
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0; i < ndata; i++) {
+			double l_norm = lw[i] * invnorm;
+			double s_norm = sw[i] * invnorm;
+			double l_factor = 1.0 - fabs(2.0 * l_norm - 1.0);
+			cw[i] = (WORD)(s_norm * l_factor * USHRT_MAX_DOUBLE);
+		}
+	}
+
+	gsl_histogram* histo = curves_compute_histo_from_buffer(chroma_buf, f);
+	free(chroma_buf);
+	return histo;
+}
+
+static void curves_setup_hsl() {
+	if (!fit || fit->naxes[2] != 3) return;
+
+	// Free existing buffers
+	if (curves_huebuf) free(curves_huebuf);
+	if (curves_satbuf) free(curves_satbuf);
+	if (curves_lumbuf) free(curves_lumbuf);
+
+	// Allocate new buffers
+	if (fit->type == DATA_FLOAT) {
+		curves_huebuf = malloc(fit->rx * fit->ry * sizeof(float));
+		curves_satbuf = malloc(fit->rx * fit->ry * sizeof(float));
+		curves_lumbuf = malloc(fit->rx * fit->ry * sizeof(float));
+	} else {
+		curves_huebuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+		curves_satbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+		curves_lumbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+	}
+
+	// Convert RGB to HSL
+	curves_fit_to_hsl();
+}
+
+static void curves_clear_hsl() {
+	if (curves_huebuf) {
+		free(curves_huebuf);
+		curves_huebuf = NULL;
+	}
+	if (curves_satbuf) {
+		free(curves_satbuf);
+		curves_satbuf = NULL;
+	}
+	if (curves_lumbuf) {
+		free(curves_lumbuf);
+		curves_lumbuf = NULL;
+	}
+	if (display_histogram_lum) {
+		gsl_histogram_free(display_histogram_lum);
+		display_histogram_lum = NULL;
+	}
+	if (display_histogram_sat) {
+		gsl_histogram_free(display_histogram_sat);
+		display_histogram_sat = NULL;
+	}
+	if (display_histogram_chroma) {
+		gsl_histogram_free(display_histogram_chroma);
+		display_histogram_chroma = NULL;
+	}
+}
+
+static void curves_compute_special_histograms() {
+	if (!fit || fit->naxes[2] != 3) return;
+
+	// Free existing special histograms
+	if (display_histogram_lum) {
+		gsl_histogram_free(display_histogram_lum);
+		display_histogram_lum = NULL;
+	}
+	if (display_histogram_sat) {
+		gsl_histogram_free(display_histogram_sat);
+		display_histogram_sat = NULL;
+	}
+	if (display_histogram_chroma) {
+		gsl_histogram_free(display_histogram_chroma);
+		display_histogram_chroma = NULL;
+	}
+
+	// Compute HSL if not already done
+	if (!curves_lumbuf) {
+		curves_setup_hsl();
+	}
+
+	// Compute histograms
+	if (curves_lumbuf)
+		display_histogram_lum = curves_compute_histo_from_buffer(curves_lumbuf, fit);
+	if (curves_satbuf)
+		display_histogram_sat = curves_compute_histo_from_buffer(curves_satbuf, fit);
+	display_histogram_chroma = curves_compute_histo_chroma(fit);
+}
+
+// ---------------------------------------------------------------------------
 // LOGIC
 // ---------------------------------------------------------------------------
 
@@ -423,11 +704,24 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	draw_background_gradient(cr, width, height);
 
-	for (int i = 0; i < MAXVPORT; i++) {
-		if (current_channel == CHAN_R && i != 0) continue;
-		if (current_channel == CHAN_G && i != 1) continue;
-		if (current_channel == CHAN_B && i != 2) continue;
-		display_histo(display_histogram[i], cr, i, width, height, 1.0, 1.0, FALSE, is_curves_log_scale());
+	// Display appropriate histogram based on current channel
+	if (current_channel == CHAN_L && display_histogram_lum) {
+		// Display luminance histogram in white/gray
+		draw_histo_with_color(display_histogram_lum, cr, width, height, 0.9, 0.9, 0.9, is_curves_log_scale());
+	} else if (current_channel == CHAN_S && display_histogram_sat) {
+		// Display saturation histogram in magenta/purple
+		draw_histo_with_color(display_histogram_sat, cr, width, height, 0.9, 0.2, 0.9, is_curves_log_scale());
+	} else if (current_channel == CHAN_C && display_histogram_chroma) {
+		// Display chroma histogram in orange/gold
+		draw_histo_with_color(display_histogram_chroma, cr, width, height, 1.0, 0.7, 0.2, is_curves_log_scale());
+	} else {
+		// Display RGB histograms
+		for (int i = 0; i < MAXVPORT; i++) {
+			if (current_channel == CHAN_R && i != 0) continue;
+			if (current_channel == CHAN_G && i != 1) continue;
+			if (current_channel == CHAN_B && i != 2) continue;
+			display_histo(display_histogram[i], cr, i, width, height, 1.0, 1.0, FALSE, is_curves_log_scale());
+		}
 	}
 
 	draw_range_overlays(cr, width, height);
@@ -517,6 +811,18 @@ static void clear_display_histogram() {
 			display_histogram[i] = NULL;
 		}
 	}
+	if (display_histogram_lum) {
+		gsl_histogram_free(display_histogram_lum);
+		display_histogram_lum = NULL;
+	}
+	if (display_histogram_sat) {
+		gsl_histogram_free(display_histogram_sat);
+		display_histogram_sat = NULL;
+	}
+	if (display_histogram_chroma) {
+		gsl_histogram_free(display_histogram_chroma);
+		display_histogram_chroma = NULL;
+	}
 }
 
 static void curves_startup() {
@@ -527,6 +833,11 @@ static void curves_startup() {
 	compute_histo_for_fit(fit);
 	for (int i = 0; i < fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+
+	// Compute special histograms for L, C, S channels
+	if (fit->naxes[2] == 3) {
+		curves_compute_special_histograms();
+	}
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
@@ -545,6 +856,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	clear_backup();
 	clear_display_histogram();
+	curves_clear_hsl();
 	roi_supported(FALSE);
 	remove_roi_callback(curves_histogram_change_between_roi_and_image);
 }
@@ -627,6 +939,20 @@ gboolean curve_apply_idle(gpointer p) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
 
+		// Clear HSL buffers to force recomputation from the new transformed image
+		if (fit->naxes[2] == 3) {
+			if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+			if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
+			if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
+			curves_compute_special_histograms();
+		}
+
+		// Reset all curves to identity - transformation is now baked into the image
+		init_all_curves();
+		selected_point = (point*) gui_channels[current_channel].points->data;
+		update_range_ui_from_state();
+		_update_entry_text();
+
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 	free_generic_img_args(args);
@@ -650,6 +976,13 @@ void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
 		compute_histo_for_fit(fit);
+		// Clear HSL buffers to force recomputation from current image
+		if (fit->naxes[2] == 3) {
+			if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+			if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
+			if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
+			curves_compute_special_histograms();
+		}
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 }
@@ -665,6 +998,14 @@ void curves_reset_after_undo() {
 	clear_display_histogram();
 	for (int i = 0; i < fit->naxes[2]; i++)
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+
+	// Clear HSL buffers to force recomputation from current image
+	if (fit->naxes[2] == 3) {
+		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
+		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
+		curves_compute_special_histograms();
+	}
 
 	init_all_curves();
 	selected_point = (point*) gui_channels[current_channel].points->data;
@@ -813,7 +1154,6 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		single_image_stretch_applied = TRUE;
 		populate_roi();
 
-		reset_cursors_and_values(TRUE);
 		set_cursor("default");
 	}
 }
