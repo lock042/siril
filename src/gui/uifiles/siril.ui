@@ -10094,6 +10094,16 @@ Current state: linked.</property>
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkSeparatorToolItem" id="separateur3">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkToggleToolButton" id="histo_button">
                     <property name="name">histo_button</property>
                     <property name="visible">True</property>
@@ -10145,6 +10155,16 @@ Current state: linked.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="separateur">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
                   </packing>
                 </child>
                 <child>

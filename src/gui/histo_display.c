@@ -1164,14 +1164,6 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 			cairo_line_to(cr, marker_x, histo_y + histo_height);
 			cairo_stroke(cr);
 
-			/* Draw triangle marker at top */
-			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
-			cairo_move_to(cr, marker_x, histo_y);
-			cairo_line_to(cr, marker_x - 4, histo_y + 8);
-			cairo_line_to(cr, marker_x + 4, histo_y + 8);
-			cairo_close_path(cr);
-			cairo_fill(cr);
-
 			/* Draw value label */
 			char value_text[32];
 			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_r);
@@ -1207,14 +1199,6 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 			cairo_move_to(cr, marker_x, histo_y);
 			cairo_line_to(cr, marker_x, histo_y + histo_height);
 			cairo_stroke(cr);
-
-			/* Draw triangle marker at top */
-			cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);
-			cairo_move_to(cr, marker_x, histo_y);
-			cairo_line_to(cr, marker_x - 4, histo_y + 8);
-			cairo_line_to(cr, marker_x + 4, histo_y + 8);
-			cairo_close_path(cr);
-			cairo_fill(cr);
 
 			/* Draw value label */
 			char value_text[32];
@@ -1252,14 +1236,6 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 			cairo_line_to(cr, marker_x, histo_y + histo_height);
 			cairo_stroke(cr);
 
-			/* Draw triangle marker at top */
-			cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 0.9);
-			cairo_move_to(cr, marker_x, histo_y);
-			cairo_line_to(cr, marker_x - 4, histo_y + 8);
-			cairo_line_to(cr, marker_x + 4, histo_y + 8);
-			cairo_close_path(cr);
-			cairo_fill(cr);
-
 			/* Draw value label */
 			char value_text[32];
 			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_b);
@@ -1296,14 +1272,6 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 			cairo_move_to(cr, marker_x, histo_y);
 			cairo_line_to(cr, marker_x, histo_y + histo_height);
 			cairo_stroke(cr);
-
-			/* Draw triangle marker at top */
-			cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.9);
-			cairo_move_to(cr, marker_x, histo_y);
-			cairo_line_to(cr, marker_x - 4, histo_y + 8);
-			cairo_line_to(cr, marker_x + 4, histo_y + 8);
-			cairo_close_path(cr);
-			cairo_fill(cr);
 
 			/* Draw value label */
 			char value_text[32];
