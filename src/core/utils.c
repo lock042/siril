@@ -1890,12 +1890,10 @@ ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
 			const gchar *right_start =
 				g_utf8_offset_to_pointer (str, len_chars - right);
 
-			return g_strconcat (
-				g_strndup (str, left_cut - str),
-				ELLIPSIS,
-				right_start,
-				NULL
-			);
+			gchar *tmp = g_strndup(str, left_cut - str);
+			gchar *result = g_strconcat(tmp, ELLIPSIS, right_start, NULL);
+			g_free(tmp);
+			return result;
 		}
 
 		case ELLIPSIZE_END:
@@ -1904,11 +1902,10 @@ ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
 			const gchar *cut =
 				g_utf8_offset_to_pointer (str, n_chars - 1);
 
-			return g_strconcat (
-				g_strndup (str, cut - str),
-				ELLIPSIS,
-				NULL
-			);
+			gchar *tmp = g_strndup(str, cut - str);
+			gchar *result = g_strconcat(tmp, ELLIPSIS, NULL);
+			g_free(tmp);
+			return result;
 		}
 	}
 }

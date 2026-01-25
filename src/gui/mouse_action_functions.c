@@ -359,6 +359,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 		mask_create_ones_like(gfit, get_default_mask_bitpix());
 	}
 	set_poly_in_mask(poly, gfit, FALSE);
+	free_user_polygon(poly);
 	// Free and NULL gui.drawing_polypoints
 	g_slist_free_full(gui.drawing_polypoints, free);
 	gui.drawing_polypoints = NULL;

@@ -1381,7 +1381,7 @@ int mask_from_channel_hook(struct generic_mask_args *args) {
 			struct generic_img_args *gi_args = calloc(1, sizeof(struct generic_img_args));
 			if (!gi_args) {
 				PRINT_ALLOC_ERR;
-				destroy_mtf_data(data);
+				destroy_mtf_data(gi_data);
 				clearfits(ffit);
 				free(ffit);
 				return 1;
