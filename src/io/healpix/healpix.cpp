@@ -43,7 +43,7 @@ extern "C" {
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
-extern const char* spcc_mirrors[];
+extern const char** spcc_mirrors;
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
@@ -328,15 +328,22 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
     std::string full_url = base_url + "/" + filename;
 
     auto tempdir = get_or_create_cache_dir();
-    std::string cache_path = (tempdir / (filename + ".cache")).string();
+    std::string cache_path = (tempdir / (filename + ".index")).string();
 
     // Load or download index
     std::vector<uint32_t> full_index(n_healpixels);
 
     bool cache_exists = false;
-    {
-        std::ifstream f(cache_path, std::ios::binary);
-        cache_exists = f.good();
+    std::error_code ec;
+    if (std::filesystem::exists(cache_path, ec)) {
+        // Check if the size on disk matches our expected index size
+        if (std::filesystem::file_size(cache_path, ec) == INDEX_SIZE) {
+            cache_exists = true;
+        } else {
+            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
+                                "salmon", cache_path.c_str());
+            std::filesystem::remove(cache_path, ec);
+        }
     }
 
     // Ensure cache exists; if not, fetch and create it
@@ -404,6 +411,10 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
 
         size_t num_records = index_end - index_start;
 
+	// It's possible that we're fetching a single healpixel in this range 
+	// and that the number of data records is zero
+	if (num_records == 0) continue;
+
         size_t data_start_pos =
             HEADER_SIZE + INDEX_SIZE + index_start * sizeof(EntryType);
 
@@ -465,7 +476,6 @@ static std::vector<EntryType> query_catalog_http(const std::string& base_url,
  */
 static bool try_mirrors_and_update(CURL* curl, const char* path_suffix,
                                    HealpixCatHeader* header_out, int* error_status) {
-    extern const char* spcc_mirrors[];
 
     // First try the current mirror
     std::string current_url = std::string(com.spcc_remote_catalogue) + "/" + path_suffix;
@@ -519,7 +529,6 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
                                     const std::string& filename,
                                     const std::vector<HealPixelRange>& healpixel_ranges,
                                     const HealpixCatHeader& header) {
-    extern const char* spcc_mirrors[];
     std::vector<EntryType> results;
 
     // Try current mirror first - make a copy since the function modifies ranges
