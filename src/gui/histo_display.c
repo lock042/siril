@@ -40,9 +40,11 @@ histo_overlay_state histo_state = {
 	.g_area = NULL,
 	.b_area = NULL,
 	.logarithmic = FALSE,  /* Start in linear mode */
+	.mode_luminance = FALSE, /* Start in RGB mode */
 	.show_red = TRUE,      /* Show red channel by default */
 	.show_green = TRUE,    /* Show green channel by default */
 	.show_blue = TRUE,     /* Show blue channel by default */
+	.cursor_value = -1.0,  /* No cursor value yet */
 	.is_dragging = FALSE,
 	.is_resizing = FALSE,
 	.resize_edge = RESIZE_NONE,
@@ -62,14 +64,15 @@ typedef struct {
 	guint32 histo_r[UCHAR_MAX + 1];
 	guint32 histo_g[UCHAR_MAX + 1];
 	guint32 histo_b[UCHAR_MAX + 1];
-	guint32 max_r, max_g, max_b;
+	guint32 histo_lum[UCHAR_MAX + 1];  /* Luminance histogram */
+	guint32 max_r, max_g, max_b, max_lum;
 	gboolean is_valid;
 	guint64 image_checksum;
 
 	/* Statistics */
-	double mean_r, mean_g, mean_b;
-	double median_r, median_g, median_b;
-	double stddev_r, stddev_g, stddev_b;
+	double mean_r, mean_g, mean_b, mean_lum;
+	double median_r, median_g, median_b, median_lum;
+	double stddev_r, stddev_g, stddev_b, stddev_lum;
 } histo_cache;
 
 static histo_cache cache = { .is_valid = FALSE, .image_checksum = 0 };
@@ -172,6 +175,57 @@ static void update_histogram_cache(void) {
 	cache.image_checksum = current_checksum;
 	cache.is_valid = TRUE;
 
+	/* Compute luminance histogram (Rec. 709: L = 0.2126*R + 0.7152*G + 0.0722*B) */
+	memset(cache.histo_lum, 0, sizeof(cache.histo_lum));
+	cache.max_lum = 0;
+
+	if (nchannels == 3) {
+		/* RGB image: calculate weighted luminance */
+		if (gfit->type == DATA_USHORT) {
+			WORD *buf_r = gfit->pdata[RLAYER];
+			WORD *buf_g = gfit->pdata[GLAYER];
+			WORD *buf_b = gfit->pdata[BLAYER];
+			guint32 nb_pixels = gfit->rx * gfit->ry;
+
+			for (guint32 i = 0; i < nb_pixels; i++) {
+				double r = (buf_r[i] >> 8) / 255.0;
+				double g = (buf_g[i] >> 8) / 255.0;
+				double b = (buf_b[i] >> 8) / 255.0;
+				double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+				int bin = (int)(lum * 255.0);
+				if (bin > 255) bin = 255;
+				if (bin < 0) bin = 0;
+				cache.histo_lum[bin]++;
+			}
+		} else {  /* DATA_FLOAT */
+			float *buf_r = gfit->fpdata[RLAYER];
+			float *buf_g = gfit->fpdata[GLAYER];
+			float *buf_b = gfit->fpdata[BLAYER];
+			guint32 nb_pixels = gfit->rx * gfit->ry;
+
+			for (guint32 i = 0; i < nb_pixels; i++) {
+				double r = buf_r[i];
+				double g = buf_g[i];
+				double b = buf_b[i];
+				double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+				int bin = (int)(lum * 255.0);
+				if (bin > 255) bin = 255;
+				if (bin < 0) bin = 0;
+				cache.histo_lum[bin]++;
+			}
+		}
+
+		/* Find max for luminance */
+		for (int i = 0; i <= UCHAR_MAX; i++) {
+			if (cache.histo_lum[i] > cache.max_lum)
+				cache.max_lum = cache.histo_lum[i];
+		}
+	} else {
+		/* Mono image: luminance = R channel */
+		memcpy(cache.histo_lum, cache.histo_r, sizeof(cache.histo_r));
+		cache.max_lum = cache.max_r;
+	}
+
 	/* Compute statistics */
 	guint64 total_pixels = (guint64)gfit->rx * gfit->ry;
 
@@ -220,6 +274,41 @@ static void update_histogram_cache(void) {
 			cache.median_b = median;
 			cache.stddev_b = sqrt(variance);
 		}
+	}
+
+	/* Compute luminance statistics */
+	{
+		double mean = 0.0;
+		double variance = 0.0;
+		double median = 0.0;
+
+		/* Calculate mean */
+		for (int i = 0; i <= UCHAR_MAX; i++) {
+			mean += (i / 255.0) * cache.histo_lum[i];
+		}
+		mean /= total_pixels;
+
+		/* Calculate variance */
+		for (int i = 0; i <= UCHAR_MAX; i++) {
+			double diff = (i / 255.0) - mean;
+			variance += diff * diff * cache.histo_lum[i];
+		}
+		variance /= total_pixels;
+
+		/* Calculate median (50th percentile) */
+		guint64 cumulative = 0;
+		guint64 half = total_pixels / 2;
+		for (int i = 0; i <= UCHAR_MAX; i++) {
+			cumulative += cache.histo_lum[i];
+			if (cumulative >= half) {
+				median = i / 255.0;
+				break;
+			}
+		}
+
+		cache.mean_lum = mean;
+		cache.median_lum = median;
+		cache.stddev_lum = sqrt(variance);
 	}
 }
 
@@ -337,8 +426,13 @@ static void draw_statistics(cairo_t *cr, double x, double y, double width) {
 
 	char stats_text[256];
 
-	if (gfit->naxes[2] == 3) {
-		/* RGB stats - show average across channels */
+	if (gfit->naxes[2] == 3 && histo_state.mode_luminance) {
+		/* Luminance mode: show luminance stats */
+		snprintf(stats_text, sizeof(stats_text),
+		         "L - μ:%.3f  Med:%.3f  σ:%.3f",
+		         cache.mean_lum, cache.median_lum, cache.stddev_lum);
+	} else if (gfit->naxes[2] == 3) {
+		/* RGB mode: show average across channels */
 		double mean_avg = (cache.mean_r + cache.mean_g + cache.mean_b) / 3.0;
 		double median_avg = (cache.median_r + cache.median_g + cache.median_b) / 3.0;
 		double stddev_avg = (cache.stddev_r + cache.stddev_g + cache.stddev_b) / 3.0;
@@ -528,11 +622,30 @@ static gint is_over_rgb_button(gint mouse_x, gint mouse_y) {
 	return 0;  /* None */
 }
 
+/* Check if mouse is over RGB/K toggle button */
+static gboolean is_over_rgb_k_button(gint mouse_x, gint mouse_y) {
+	/* Only for color images */
+	if (gfit && gfit->naxes[2] != 3)
+		return FALSE;
+
+	gint button_width = 42;  /* Match drawing function width */
+	gint button_height = 16;
+	gint button_x = histo_state.x + 60;
+	gint button_y = histo_state.y + 2;
+
+	return (mouse_x >= button_x && mouse_x <= button_x + button_width &&
+	        mouse_y >= button_y && mouse_y <= button_y + button_height);
+}
+
+/* Check if mouse is over eyedropper button */
 /* Draw RGB channel toggle buttons */
 static void draw_rgb_channel_buttons(cairo_t *cr, double x, double y) {
 	/* Only draw RGB buttons for color images */
 	if (gfit->naxes[2] != 3)
 		return;
+
+	/* Buttons are inactive in luminance mode */
+	gboolean buttons_active = !histo_state.mode_luminance;
 
 	gint button_size = 14;
 	gint button_spacing = 2;
@@ -541,43 +654,91 @@ static void draw_rgb_channel_buttons(cairo_t *cr, double x, double y) {
 
 	/* Red button */
 	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
-	if (histo_state.show_red) {
+	if (buttons_active && histo_state.show_red) {
 		cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);  /* Opaque red when ON */
-	} else {
+	} else if (buttons_active) {
 		cairo_set_source_rgba(cr, 0.5, 0.0, 0.0, 0.4);  /* Dimmed when OFF */
+	} else {
+		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.3);  /* Grayed out when disabled */
 	}
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, buttons_active ? 0.8 : 0.3);
 	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 
 	/* Green button */
 	start_x += button_size + button_spacing;
 	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
-	if (histo_state.show_green) {
+	if (buttons_active && histo_state.show_green) {
 		cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);  /* Opaque green when ON */
-	} else {
+	} else if (buttons_active) {
 		cairo_set_source_rgba(cr, 0.0, 0.5, 0.0, 0.4);  /* Dimmed when OFF */
+	} else {
+		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.3);  /* Grayed out when disabled */
 	}
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, buttons_active ? 0.8 : 0.3);
 	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 
 	/* Blue button */
 	start_x += button_size + button_spacing;
 	cairo_rectangle(cr, start_x, button_y, button_size, button_size);
-	if (histo_state.show_blue) {
+	if (buttons_active && histo_state.show_blue) {
 		cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 0.9);  /* Opaque blue when ON */
-	} else {
+	} else if (buttons_active) {
 		cairo_set_source_rgba(cr, 0.15, 0.25, 0.5, 0.4);  /* Dimmed when OFF */
+	} else {
+		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.3);  /* Grayed out when disabled */
 	}
 	cairo_fill_preserve(cr);
-	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, 0.8);
+	cairo_set_source_rgba(cr, 0.6, 0.6, 0.6, buttons_active ? 0.8 : 0.3);
 	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 }
 
+/* Draw RGB/K toggle button */
+static void draw_rgb_k_toggle_button(cairo_t *cr, double x, double y) {
+	/* Only show for color images */
+	if (gfit->naxes[2] != 3)
+		return;
+
+	gint button_width = 42;  /* Wider for "RGB/K" text */
+	gint button_height = 16;
+	gint button_x = x + 60;  /* After RGB buttons */
+	gint button_y = y + 2;
+
+	/* Draw button background */
+	cairo_rectangle(cr, button_x, button_y, button_width, button_height);
+	if (!histo_state.mode_luminance) {
+		cairo_set_source_rgba(cr, 0.3, 0.5, 0.7, 0.9);  /* Highlighted when RGB/K */
+	} else {
+		cairo_set_source_rgba(cr, 0.5, 0.6, 0.3, 0.9);  /* Green-ish when L */
+	}
+	cairo_fill_preserve(cr);
+
+	/* Draw button border */
+	cairo_set_source_rgba(cr, 0.5, 0.5, 0.5, 0.9);
+	cairo_set_line_width(cr, 1.0);
+	cairo_stroke(cr);
+
+	/* Draw button text */
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cr, 9.0);
+
+	const char *text = histo_state.mode_luminance ? "L" : "RGB/K";
+	cairo_text_extents_t extents;
+	cairo_text_extents(cr, text, &extents);
+
+	double text_x = button_x + (button_width - extents.width) / 2.0;
+	double text_y = button_y + (button_height + extents.height) / 2.0;
+
+	cairo_move_to(cr, text_x, text_y);
+	cairo_show_text(cr, text);
+}
+
+/* Draw eyedropper toggle button */
 /* Draw Lin/Log toggle button in header */
 static void draw_log_toggle_button(cairo_t *cr, double x, double y, double width) {
 	gint button_width = 35;
@@ -642,6 +803,15 @@ static void update_cursor(GtkWidget *widget, gint mouse_x, gint mouse_y) {
 		return;
 	}
 
+	/* Check if over RGB/K button */
+	if (is_over_rgb_k_button(mouse_x, mouse_y)) {
+		cursor = gdk_cursor_new_for_display(display, GDK_HAND2);
+		gdk_window_set_cursor(window, cursor);
+		if (cursor)
+			g_object_unref(cursor);
+		return;
+	}
+
 	gboolean in_header = FALSE;
 	ResizeEdge edge = get_resize_edge(mouse_x, mouse_y, &in_header);
 
@@ -679,7 +849,8 @@ static gboolean on_histogram_button_press(GtkWidget *widget, GdkEventButton *eve
 
 	/* Check if clicking on RGB channel buttons */
 	gint rgb_button = is_over_rgb_button(event->x, event->y);
-	if (rgb_button > 0) {
+	if (rgb_button > 0 && !histo_state.mode_luminance) {
+		/* Only allow toggling RGB buttons when not in luminance mode */
 		switch (rgb_button) {
 			case 1:  /* Red */
 				histo_state.show_red = !histo_state.show_red;
@@ -691,6 +862,13 @@ static gboolean on_histogram_button_press(GtkWidget *widget, GdkEventButton *eve
 				histo_state.show_blue = !histo_state.show_blue;
 				break;
 		}
+		gtk_widget_queue_draw(widget);
+		return TRUE;
+	}
+
+	/* Check if clicking on RGB/K toggle button */
+	if (is_over_rgb_k_button(event->x, event->y)) {
+		histo_state.mode_luminance = !histo_state.mode_luminance;
 		gtk_widget_queue_draw(widget);
 		return TRUE;
 	}
@@ -921,6 +1099,9 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 	/* Draw RGB channel toggle buttons (left side) */
 	draw_rgb_channel_buttons(cr, x, y);
 
+	/* Draw RGB/K toggle button */
+	draw_rgb_k_toggle_button(cr, x, y);
+
 	/* Draw Lin/Log toggle button (right side) */
 	draw_log_toggle_button(cr, x, y, width);
 
@@ -939,25 +1120,75 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 	/* Draw vertical grid */
 	draw_grid(cr, x, histo_y, width, histo_height);
 
-	/* Draw filled histogram curves */
+	/* Draw filled histogram curves based on mode */
 	if (gfit->naxes[2] == 3) {
-		/* Draw filled areas for enabled channels only */
-		if (histo_state.show_blue) {
+		if (histo_state.mode_luminance) {
+			/* Luminance mode: show luminance curve */
 			draw_filled_channel(cr, x, histo_y, width, histo_height,
-			                    cache.histo_b, cache.max_b, 0.3, 0.5, 1.0);  /* Blue */
-		}
-		if (histo_state.show_green) {
-			draw_filled_channel(cr, x, histo_y, width, histo_height,
-			                    cache.histo_g, cache.max_g, 0.0, 1.0, 0.0);  /* Green */
-		}
-		if (histo_state.show_red) {
-			draw_filled_channel(cr, x, histo_y, width, histo_height,
-			                    cache.histo_r, cache.max_r, 1.0, 0.0, 0.0);  /* Red */
+			                    cache.histo_lum, cache.max_lum, 0.9, 0.9, 0.6);  /* Yellow-ish for luminance */
+		} else {
+			/* RGB mode: show enabled channels */
+			if (histo_state.show_blue) {
+				draw_filled_channel(cr, x, histo_y, width, histo_height,
+				                    cache.histo_b, cache.max_b, 0.3, 0.5, 1.0);  /* Blue */
+			}
+			if (histo_state.show_green) {
+				draw_filled_channel(cr, x, histo_y, width, histo_height,
+				                    cache.histo_g, cache.max_g, 0.0, 1.0, 0.0);  /* Green */
+			}
+			if (histo_state.show_red) {
+				draw_filled_channel(cr, x, histo_y, width, histo_height,
+				                    cache.histo_r, cache.max_r, 1.0, 0.0, 0.0);  /* Red */
+			}
 		}
 	} else {
-		/* Mono - white/gray */
+		/* Mono image: always white/gray */
 		draw_filled_channel(cr, x, histo_y, width, histo_height,
 		                    cache.histo_r, cache.max_r, 0.8, 0.8, 0.8);
+	}
+
+	/* Draw cursor value marker if value is set */
+	if (histo_state.cursor_value >= 0.0) {
+		double marker_x = x + (histo_state.cursor_value * width);
+
+		/* Draw vertical line */
+		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.8);  /* Magenta for high visibility */
+		cairo_set_line_width(cr, 2.0);
+		cairo_move_to(cr, marker_x, histo_y);
+		cairo_line_to(cr, marker_x, histo_y + histo_height);
+		cairo_stroke(cr);
+
+		/* Draw triangle marker at top */
+		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.9);
+		cairo_move_to(cr, marker_x, histo_y);
+		cairo_line_to(cr, marker_x - 4, histo_y + 8);
+		cairo_line_to(cr, marker_x + 4, histo_y + 8);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+
+		/* Draw value label */
+		char value_text[32];
+		snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value);
+
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+		cairo_set_font_size(cr, 9.0);
+
+		cairo_text_extents_t extents;
+		cairo_text_extents(cr, value_text, &extents);
+
+		double text_x = marker_x - extents.width / 2.0;
+		double text_y = histo_y + 20;
+
+		/* Draw background for text */
+		cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
+		cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.7);
+		cairo_fill(cr);
+
+		/* Draw text */
+		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 1.0);
+		cairo_move_to(cr, text_x, text_y);
+		cairo_show_text(cr, value_text);
 	}
 
 	/* Reset clip */
@@ -1102,6 +1333,74 @@ void update_histogram_display(void) {
 	update_histogram_cache();
 
 	/* Trigger redraw on all 4 widgets (only the visible one will actually draw) */
+	if (histo_state.rgb_area)
+		gtk_widget_queue_draw(histo_state.rgb_area);
+	if (histo_state.r_area)
+		gtk_widget_queue_draw(histo_state.r_area);
+	if (histo_state.g_area)
+		gtk_widget_queue_draw(histo_state.g_area);
+	if (histo_state.b_area)
+		gtk_widget_queue_draw(histo_state.b_area);
+}
+
+/* Update cursor value from image coordinates (called on mouse motion) */
+void histogram_update_cursor_value(int x, int y) {
+	if (!single_image_is_loaded())
+		return;
+
+	/* Calculate pixel index (y-axis is flipped in image coordinates) */
+	int index = gfit->rx * (gfit->ry - y - 1) + x;
+
+	/* Get pixel value based on mode and image type */
+	double value = 0.0;
+
+	if (histo_state.mode_luminance && gfit->naxes[2] == 3) {
+		/* Luminance mode: calculate weighted average */
+		if (gfit->type == DATA_USHORT) {
+			double r = gfit->pdata[RLAYER][index] / (double)USHRT_MAX;
+			double g = gfit->pdata[GLAYER][index] / (double)USHRT_MAX;
+			double b = gfit->pdata[BLAYER][index] / (double)USHRT_MAX;
+			value = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		} else if (gfit->type == DATA_FLOAT) {
+			double r = gfit->fpdata[RLAYER][index];
+			double g = gfit->fpdata[GLAYER][index];
+			double b = gfit->fpdata[BLAYER][index];
+			value = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		}
+	} else {
+		/* RGB mode or mono: use current viewport channel */
+		int vport = select_vport(gui.cvport);
+
+		if (gfit->type == DATA_USHORT) {
+			value = gfit->pdata[vport][index] / (double)USHRT_MAX;
+		} else if (gfit->type == DATA_FLOAT) {
+			value = gfit->fpdata[vport][index];
+		}
+	}
+
+	/* Clamp to 0-1 range */
+	if (value < 0.0) value = 0.0;
+	if (value > 1.0) value = 1.0;
+
+	/* Store the value */
+	histo_state.cursor_value = value;
+
+	/* Redraw histogram to show the marker */
+	if (histo_state.rgb_area)
+		gtk_widget_queue_draw(histo_state.rgb_area);
+	if (histo_state.r_area)
+		gtk_widget_queue_draw(histo_state.r_area);
+	if (histo_state.g_area)
+		gtk_widget_queue_draw(histo_state.g_area);
+	if (histo_state.b_area)
+		gtk_widget_queue_draw(histo_state.b_area);
+}
+
+/* Clear cursor value marker */
+void histogram_clear_cursor_value(void) {
+	histo_state.cursor_value = -1.0;
+
+	/* Redraw histogram to remove the marker */
 	if (histo_state.rgb_area)
 		gtk_widget_queue_draw(histo_state.rgb_area);
 	if (histo_state.r_area)

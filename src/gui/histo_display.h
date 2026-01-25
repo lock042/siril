@@ -51,11 +51,15 @@ typedef struct {
 
 	/* Display mode */
 	gboolean logarithmic;     /* TRUE = log scale, FALSE = linear */
+	gboolean mode_luminance;  /* TRUE = luminance mode (K), FALSE = RGB mode */
 
-	/* Channel visibility */
+	/* Channel visibility (only active in RGB mode) */
 	gboolean show_red;        /* Show red channel */
 	gboolean show_green;      /* Show green channel */
 	gboolean show_blue;       /* Show blue channel */
+
+	/* Cursor value tracking */
+	gdouble cursor_value;     /* Current pixel value under cursor (0.0-1.0), -1 if none */
 
 	/* Drag state */
 	gboolean is_dragging;
@@ -93,5 +97,11 @@ void invalidate_histogram_cache(void);
 
 /* Update histogram display */
 void update_histogram_display(void);
+
+/* Update cursor value from image coordinates (called on mouse motion) */
+void histogram_update_cursor_value(int x, int y);
+
+/* Clear cursor value marker */
+void histogram_clear_cursor_value(void);
 
 #endif /* _HISTO_DISPLAY_H */
