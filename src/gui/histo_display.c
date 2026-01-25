@@ -44,7 +44,9 @@ histo_overlay_state histo_state = {
 	.show_red = TRUE,      /* Show red channel by default */
 	.show_green = TRUE,    /* Show green channel by default */
 	.show_blue = TRUE,     /* Show blue channel by default */
-	.cursor_value = -1.0,  /* No cursor value yet */
+	.cursor_value_r = -1.0,  /* No cursor value yet */
+	.cursor_value_g = -1.0,
+	.cursor_value_b = -1.0,
 	.is_dragging = FALSE,
 	.is_resizing = FALSE,
 	.resize_edge = RESIZE_NONE,
@@ -1147,48 +1149,186 @@ static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpoint
 		                    cache.histo_r, cache.max_r, 0.8, 0.8, 0.8);
 	}
 
-	/* Draw cursor value marker if value is set */
-	if (histo_state.cursor_value >= 0.0) {
-		double marker_x = x + (histo_state.cursor_value * width);
+	/* Draw cursor value markers */
+	if (!histo_state.mode_luminance && gfit->naxes[2] == 3) {
+		/* RGB mode: Draw 3 colored bars */
 
-		/* Draw vertical line */
-		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.8);  /* Magenta for high visibility */
-		cairo_set_line_width(cr, 2.0);
-		cairo_move_to(cr, marker_x, histo_y);
-		cairo_line_to(cr, marker_x, histo_y + histo_height);
-		cairo_stroke(cr);
+		/* Red bar */
+		if (histo_state.cursor_value_r >= 0.0) {
+			double marker_x = x + (histo_state.cursor_value_r * width);
 
-		/* Draw triangle marker at top */
-		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.9);
-		cairo_move_to(cr, marker_x, histo_y);
-		cairo_line_to(cr, marker_x - 4, histo_y + 8);
-		cairo_line_to(cr, marker_x + 4, histo_y + 8);
-		cairo_close_path(cr);
-		cairo_fill(cr);
+			/* Draw vertical line */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.7);  /* Red */
+			cairo_set_line_width(cr, 2.0);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x, histo_y + histo_height);
+			cairo_stroke(cr);
 
-		/* Draw value label */
-		char value_text[32];
-		snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value);
+			/* Draw triangle marker at top */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x - 4, histo_y + 8);
+			cairo_line_to(cr, marker_x + 4, histo_y + 8);
+			cairo_close_path(cr);
+			cairo_fill(cr);
 
-		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
-		cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 9.0);
+			/* Draw value label */
+			char value_text[32];
+			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_r);
 
-		cairo_text_extents_t extents;
-		cairo_text_extents(cr, value_text, &extents);
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+			cairo_set_font_size(cr, 8.0);
 
-		double text_x = marker_x - extents.width / 2.0;
-		double text_y = histo_y + 20;
+			cairo_text_extents_t extents;
+			cairo_text_extents(cr, value_text, &extents);
 
-		/* Draw background for text */
-		cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
-		cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.7);
-		cairo_fill(cr);
+			double text_x = marker_x - extents.width / 2.0;
+			double text_y = histo_y + 15;
 
-		/* Draw text */
-		cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 1.0);
-		cairo_move_to(cr, text_x, text_y);
-		cairo_show_text(cr, value_text);
+			/* Draw background for text */
+			cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.8);
+			cairo_fill(cr);
+
+			/* Draw text */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
+			cairo_move_to(cr, text_x, text_y);
+			cairo_show_text(cr, value_text);
+		}
+
+		/* Green bar */
+		if (histo_state.cursor_value_g >= 0.0) {
+			double marker_x = x + (histo_state.cursor_value_g * width);
+
+			/* Draw vertical line */
+			cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.7);  /* Green */
+			cairo_set_line_width(cr, 2.0);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x, histo_y + histo_height);
+			cairo_stroke(cr);
+
+			/* Draw triangle marker at top */
+			cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 0.9);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x - 4, histo_y + 8);
+			cairo_line_to(cr, marker_x + 4, histo_y + 8);
+			cairo_close_path(cr);
+			cairo_fill(cr);
+
+			/* Draw value label */
+			char value_text[32];
+			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_g);
+
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+			cairo_set_font_size(cr, 8.0);
+
+			cairo_text_extents_t extents;
+			cairo_text_extents(cr, value_text, &extents);
+
+			double text_x = marker_x - extents.width / 2.0;
+			double text_y = histo_y + 28;  /* Offset down from red */
+
+			/* Draw background for text */
+			cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.8);
+			cairo_fill(cr);
+
+			/* Draw text */
+			cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 1.0);
+			cairo_move_to(cr, text_x, text_y);
+			cairo_show_text(cr, value_text);
+		}
+
+		/* Blue bar */
+		if (histo_state.cursor_value_b >= 0.0) {
+			double marker_x = x + (histo_state.cursor_value_b * width);
+
+			/* Draw vertical line */
+			cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 0.7);  /* Blue */
+			cairo_set_line_width(cr, 2.0);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x, histo_y + histo_height);
+			cairo_stroke(cr);
+
+			/* Draw triangle marker at top */
+			cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 0.9);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x - 4, histo_y + 8);
+			cairo_line_to(cr, marker_x + 4, histo_y + 8);
+			cairo_close_path(cr);
+			cairo_fill(cr);
+
+			/* Draw value label */
+			char value_text[32];
+			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_b);
+
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+			cairo_set_font_size(cr, 8.0);
+
+			cairo_text_extents_t extents;
+			cairo_text_extents(cr, value_text, &extents);
+
+			double text_x = marker_x - extents.width / 2.0;
+			double text_y = histo_y + 41;  /* Offset down from green */
+
+			/* Draw background for text */
+			cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.8);
+			cairo_fill(cr);
+
+			/* Draw text */
+			cairo_set_source_rgba(cr, 0.3, 0.5, 1.0, 1.0);
+			cairo_move_to(cr, text_x, text_y);
+			cairo_show_text(cr, value_text);
+		}
+
+	} else {
+		/* Luminance mode or mono: Draw single bar */
+		if (histo_state.cursor_value_r >= 0.0) {
+			double marker_x = x + (histo_state.cursor_value_r * width);
+
+			/* Draw vertical line */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.8);  /* Magenta */
+			cairo_set_line_width(cr, 2.0);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x, histo_y + histo_height);
+			cairo_stroke(cr);
+
+			/* Draw triangle marker at top */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 0.9);
+			cairo_move_to(cr, marker_x, histo_y);
+			cairo_line_to(cr, marker_x - 4, histo_y + 8);
+			cairo_line_to(cr, marker_x + 4, histo_y + 8);
+			cairo_close_path(cr);
+			cairo_fill(cr);
+
+			/* Draw value label */
+			char value_text[32];
+			snprintf(value_text, sizeof(value_text), "%.3f", histo_state.cursor_value_r);
+
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
+			cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+			cairo_set_font_size(cr, 9.0);
+
+			cairo_text_extents_t extents;
+			cairo_text_extents(cr, value_text, &extents);
+
+			double text_x = marker_x - extents.width / 2.0;
+			double text_y = histo_y + 20;
+
+			/* Draw background for text */
+			cairo_rectangle(cr, text_x - 2, text_y - extents.height - 2, extents.width + 4, extents.height + 4);
+			cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.7);
+			cairo_fill(cr);
+
+			/* Draw text */
+			cairo_set_source_rgba(cr, 1.0, 0.0, 1.0, 1.0);
+			cairo_move_to(cr, text_x, text_y);
+			cairo_show_text(cr, value_text);
+		}
 	}
 
 	/* Reset clip */
@@ -1351,11 +1491,9 @@ void histogram_update_cursor_value(int x, int y) {
 	/* Calculate pixel index (y-axis is flipped in image coordinates) */
 	int index = gfit->rx * (gfit->ry - y - 1) + x;
 
-	/* Get pixel value based on mode and image type */
-	double value = 0.0;
-
 	if (histo_state.mode_luminance && gfit->naxes[2] == 3) {
-		/* Luminance mode: calculate weighted average */
+		/* Luminance mode: calculate weighted average and store in R */
+		double value = 0.0;
 		if (gfit->type == DATA_USHORT) {
 			double r = gfit->pdata[RLAYER][index] / (double)USHRT_MAX;
 			double g = gfit->pdata[GLAYER][index] / (double)USHRT_MAX;
@@ -1367,25 +1505,64 @@ void histogram_update_cursor_value(int x, int y) {
 			double b = gfit->fpdata[BLAYER][index];
 			value = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 		}
-	} else {
-		/* RGB mode or mono: use current viewport channel */
-		int vport = select_vport(gui.cvport);
+
+		/* Clamp to 0-1 range */
+		if (value < 0.0) value = 0.0;
+		if (value > 1.0) value = 1.0;
+
+		/* Store luminance in R, clear G and B */
+		histo_state.cursor_value_r = value;
+		histo_state.cursor_value_g = -1.0;
+		histo_state.cursor_value_b = -1.0;
+
+	} else if (gfit->naxes[2] == 3) {
+		/* RGB mode: read all 3 channels */
+		double r = 0.0, g = 0.0, b = 0.0;
 
 		if (gfit->type == DATA_USHORT) {
-			value = gfit->pdata[vport][index] / (double)USHRT_MAX;
+			r = gfit->pdata[RLAYER][index] / (double)USHRT_MAX;
+			g = gfit->pdata[GLAYER][index] / (double)USHRT_MAX;
+			b = gfit->pdata[BLAYER][index] / (double)USHRT_MAX;
 		} else if (gfit->type == DATA_FLOAT) {
-			value = gfit->fpdata[vport][index];
+			r = gfit->fpdata[RLAYER][index];
+			g = gfit->fpdata[GLAYER][index];
+			b = gfit->fpdata[BLAYER][index];
 		}
+
+		/* Clamp to 0-1 range */
+		if (r < 0.0) r = 0.0;
+		if (r > 1.0) r = 1.0;
+		if (g < 0.0) g = 0.0;
+		if (g > 1.0) g = 1.0;
+		if (b < 0.0) b = 0.0;
+		if (b > 1.0) b = 1.0;
+
+		/* Store all 3 values */
+		histo_state.cursor_value_r = r;
+		histo_state.cursor_value_g = g;
+		histo_state.cursor_value_b = b;
+
+	} else {
+		/* Mono mode: use R channel */
+		double value = 0.0;
+
+		if (gfit->type == DATA_USHORT) {
+			value = gfit->pdata[RLAYER][index] / (double)USHRT_MAX;
+		} else if (gfit->type == DATA_FLOAT) {
+			value = gfit->fpdata[RLAYER][index];
+		}
+
+		/* Clamp to 0-1 range */
+		if (value < 0.0) value = 0.0;
+		if (value > 1.0) value = 1.0;
+
+		/* Store in R, clear G and B */
+		histo_state.cursor_value_r = value;
+		histo_state.cursor_value_g = -1.0;
+		histo_state.cursor_value_b = -1.0;
 	}
 
-	/* Clamp to 0-1 range */
-	if (value < 0.0) value = 0.0;
-	if (value > 1.0) value = 1.0;
-
-	/* Store the value */
-	histo_state.cursor_value = value;
-
-	/* Redraw histogram to show the marker */
+	/* Redraw histogram to show the marker(s) */
 	if (histo_state.rgb_area)
 		gtk_widget_queue_draw(histo_state.rgb_area);
 	if (histo_state.r_area)
@@ -1398,7 +1575,9 @@ void histogram_update_cursor_value(int x, int y) {
 
 /* Clear cursor value marker */
 void histogram_clear_cursor_value(void) {
-	histo_state.cursor_value = -1.0;
+	histo_state.cursor_value_r = -1.0;
+	histo_state.cursor_value_g = -1.0;
+	histo_state.cursor_value_b = -1.0;
 
 	/* Redraw histogram to remove the marker */
 	if (histo_state.rgb_area)

@@ -59,7 +59,9 @@ typedef struct {
 	gboolean show_blue;       /* Show blue channel */
 
 	/* Cursor value tracking */
-	gdouble cursor_value;     /* Current pixel value under cursor (0.0-1.0), -1 if none */
+	gdouble cursor_value_r;   /* Red channel value under cursor (0.0-1.0), -1 if none */
+	gdouble cursor_value_g;   /* Green channel value under cursor (0.0-1.0), -1 if none */
+	gdouble cursor_value_b;   /* Blue channel value under cursor (0.0-1.0), -1 if none */
 
 	/* Drag state */
 	gboolean is_dragging;
