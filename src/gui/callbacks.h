@@ -90,6 +90,8 @@ void set_viewer_mode_widgets_sensitive(gboolean sensitive);
 
 int seq_qphot(sequence *seq, int layer);
 
+void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data);
+
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *
  ****************************************************************************/

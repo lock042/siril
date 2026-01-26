@@ -599,11 +599,24 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	}
 }
 
-void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data) {
+void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	gfit->mask_active = state;
 	if (com.pref.gui.mask_tints_vports)
 		redraw(REMAP_ALL); // draw or remove the red tint from the image
+}
+
+void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	// TODO: 
+	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
+	redraw(REDRAW_OVERLAY);
+}
+
+void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
+	// TODO: 
+	siril_log_message(_("Mask cleared\n"));
+	redraw(REMAP_ALL);
 }
 
 static void initialize_mask_tab_label() {
@@ -613,33 +626,74 @@ static void initialize_mask_tab_label() {
 	// Find the mask tab (position 4 based on your XML)
 	int mask_tab_position = 4;
 
-	// Create the new tab label with checkbox
+	// Create the tab label container
 	GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	GtkWidget *mask_checkbox = gtk_check_button_new();
-	GtkWidget *mask_label = gtk_label_new("Mask");
-
-	// Pack the checkbox and label into the box
-	gtk_box_pack_start(GTK_BOX(tab_label_box), mask_checkbox, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(tab_label_box), mask_label, FALSE, FALSE, 0);
-
+	
+	// Create the menu button with a down arrow
+	GtkWidget *menu_button = gtk_menu_button_new();
+	gtk_button_set_label(GTK_BUTTON(menu_button), "Mask");
+	
+	// Create the popover
+	GtkWidget *popover = gtk_popover_new(menu_button);
+	
+	// Create a vbox to hold menu items inside the popover
+	GtkWidget *menu_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_start(menu_box, 6);
+	gtk_widget_set_margin_end(menu_box, 6);
+	gtk_widget_set_margin_top(menu_box, 6);
+	gtk_widget_set_margin_bottom(menu_box, 6);
+	
+	// Create menu items as check buttons
+	GtkWidget *enable_check = gtk_check_button_new_with_label(_("Enable/Disable Mask"));
+	GtkWidget *show_check = gtk_check_button_new_with_label(_("Show/Hide Mask"));
+	
+	// Create separator
+	GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+	gtk_widget_set_margin_top(separator, 6);
+	gtk_widget_set_margin_bottom(separator, 6);
+	
+	// Create clear button
+	GtkWidget *clear_button = gtk_button_new_with_label(_("Clear Mask"));
+	
+	// Add items to menu box
+	gtk_box_pack_start(GTK_BOX(menu_box), enable_check, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), show_check, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), separator, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), clear_button, FALSE, FALSE, 0);
+	
+	// Show all widgets in menu box
+	gtk_widget_show_all(menu_box);
+	
+	// Add menu box to popover
+	gtk_container_add(GTK_CONTAINER(popover), menu_box);
+	
+	// Set the popover to the menu button
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu_button), popover);
+	
+	// Pack the menu button into the tab label box
+	gtk_box_pack_start(GTK_BOX(tab_label_box), menu_button, FALSE, FALSE, 0);
+	
 	// Show all widgets
-	gtk_widget_show(mask_checkbox);
-	gtk_widget_show(mask_label);
+	gtk_widget_show(menu_button);
 	gtk_widget_show(tab_label_box);
-
+	
 	// Expose widgets to the builder with IDs
 	gtk_builder_expose_object(gui.builder, "mask_tab_label_box", G_OBJECT(tab_label_box));
-	gtk_builder_expose_object(gui.builder, "mask_active_check", G_OBJECT(mask_checkbox));
-	gtk_builder_expose_object(gui.builder, "mask_tab_label", G_OBJECT(mask_label));
-
+	gtk_builder_expose_object(gui.builder, "mask_menu_button", G_OBJECT(menu_button));
+	gtk_builder_expose_object(gui.builder, "mask_enable_check", G_OBJECT(enable_check));
+	gtk_builder_expose_object(gui.builder, "mask_show_check", G_OBJECT(show_check));
+	gtk_builder_expose_object(gui.builder, "mask_clear_button", G_OBJECT(clear_button));
+	
 	// Get the tab content (the vbox_mask)
 	GtkWidget *tab_content = gtk_notebook_get_nth_page(notebook, mask_tab_position);
-
+	
 	// Replace the tab label
 	gtk_notebook_set_tab_label(notebook, tab_content, tab_label_box);
-
-	// Connect to the checkbox toggle signal if needed
-	g_signal_connect(mask_checkbox, "toggled", G_CALLBACK(on_mask_active_toggled), NULL);
+	
+	// Connect signals
+	g_signal_connect(enable_check, "toggled", G_CALLBACK(on_mask_enable_toggled), NULL);
+	g_signal_connect(show_check, "toggled", G_CALLBACK(on_mask_show_toggled), NULL);
+	g_signal_connect(clear_button, "clicked", G_CALLBACK(on_mask_clear_clicked), NULL);
 }
 
 void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
