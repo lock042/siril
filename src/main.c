@@ -339,12 +339,9 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-#ifdef SIRIL_UNSTABLE
-	siril_log_message(_("Welcome to unreleased %s v%s-%s for %s (%s %s)\n"), PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
-#else
-	siril_log_message(_("Welcome to %s v%s for %s (%s %s)\n"), PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
-#endif
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();

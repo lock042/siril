@@ -9598,21 +9598,9 @@ int process_help(int nb) {
 
 int process_capabilities(int nb) {
 	// don't translate these strings, they must be easy to parse
-#ifdef _WIN32
-#ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s (%s %s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
-#else
-	siril_log_message("%s %s for %s (%s %s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
-#endif
-#else
-#ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s (%s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#else
-	siril_log_message("%s %s for %s (%s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#endif
-#endif
+	gchar *version_string = get_siril_version_string();
+	siril_log_message("%s\n", version_string);
+	g_free(version_string);
 #ifdef _OPENMP
 	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
 			ngettext("processor", "processors", com.max_thread));
