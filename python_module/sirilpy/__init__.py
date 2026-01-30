@@ -1,5 +1,5 @@
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 """

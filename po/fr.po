@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-03 10:10+0100\n"
-"PO-Revision-Date: 2025-12-02 14:06+0000\n"
+"POT-Creation-Date: 2026-01-05 22:20+0100\n"
+"PO-Revision-Date: 2026-01-06 21:07+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -205,7 +205,7 @@ msgstr ""
 "Si le paramètre est nul, alors aucun filtre n'est appliqué à l'image."
 
 #: src/gui/uifiles/Median_dialog.ui:297
-#: src/gui/uifiles/composition_dialog.ui:229
+#: src/gui/uifiles/composition_dialog.ui:217
 msgid "Use Luminance"
 msgstr "Utiliser la Luminance"
 
@@ -302,7 +302,7 @@ msgid "No Selection"
 msgstr "Aucune sélection"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
-#: src/gui/uifiles/siril.ui:2999 src/compositing/compositing.c:720
+#: src/gui/uifiles/siril.ui:2999 src/compositing/compositing.c:742
 #: src/gui/callbacks.c:949 src/gui/callbacks.c:1332
 msgid "Red"
 msgstr "Rouge"
@@ -1931,8 +1931,8 @@ msgid "Pixel Size / μm"
 msgstr "Taille Pixel / μm"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:537 src/gui/cut.c:750
-#: src/gui/photometric_cc.c:1192 src/gui/photometric_cc.c:1302
-#: src/gui/photometric_cc.c:1471
+#: src/gui/photometric_cc.c:1245 src/gui/photometric_cc.c:1355
+#: src/gui/photometric_cc.c:1524
 #, c-format
 msgid "Wavelength / nm"
 msgstr "Longueur d'onde / nm"
@@ -2741,13 +2741,13 @@ msgid "Multi-layer image composition"
 msgstr "Composition d'image multi-canaux"
 
 #. don't destroy it on removal from grid
-#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:262
-#: src/compositing/compositing.c:263 src/compositing/compositing.c:568
-#: src/compositing/compositing.c:1612 src/compositing/compositing.c:1613
+#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:258
+#: src/compositing/compositing.c:259 src/compositing/compositing.c:580
+#: src/compositing/compositing.c:1713 src/compositing/compositing.c:1714
 msgid "not loaded"
 msgstr "non chargée"
 
-#: src/gui/uifiles/composition_dialog.ui:247
+#: src/gui/uifiles/composition_dialog.ui:235
 msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
@@ -2756,11 +2756,11 @@ msgstr ""
 "Dans les autres modes d'alignement, affiche le décalage de l'axe x appliqué "
 "au calque."
 
-#: src/gui/uifiles/composition_dialog.ui:249
+#: src/gui/uifiles/composition_dialog.ui:237
 msgid "x alignment"
 msgstr "alignement en x"
 
-#: src/gui/uifiles/composition_dialog.ui:260
+#: src/gui/uifiles/composition_dialog.ui:248
 msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
@@ -2769,11 +2769,11 @@ msgstr ""
 "Dans les autres modes d'alignement, affiche le décalage de l'axe y appliqué "
 "au calque."
 
-#: src/gui/uifiles/composition_dialog.ui:262
+#: src/gui/uifiles/composition_dialog.ui:250
 msgid "y alignment"
 msgstr "alignement en y"
 
-#: src/gui/uifiles/composition_dialog.ui:273
+#: src/gui/uifiles/composition_dialog.ui:261
 msgid ""
 "In manual alignment mode, sets the rotation around the center of the image.\n"
 "In other alignment modes, shows the rotation applied to the layer around the "
@@ -2787,19 +2787,26 @@ msgstr ""
 "La rotation est indiquée en degrés dans le sens inverse des aiguilles d'une "
 "montre."
 
-#: src/gui/uifiles/composition_dialog.ui:276
+#: src/gui/uifiles/composition_dialog.ui:264
 msgid "rotation"
 msgstr "rotation"
 
-#: src/gui/uifiles/composition_dialog.ui:289 src/compositing/compositing.c:284
+#: src/gui/uifiles/composition_dialog.ui:277 src/compositing/compositing.c:280
 msgid "Set rotation center for this layer"
 msgstr "Définir le centre de rotation pour ce canal"
 
-#: src/gui/uifiles/composition_dialog.ui:329 src/gui/uifiles/pixelmath.ui:704
+#. don't destroy it on removal from grid
+#. Replace GtkFileChooserButton with GtkButton
+#: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
+#: src/compositing/compositing.c:1676
+msgid "(None)"
+msgstr "(Aucun)"
+
+#: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
 msgstr "Additionner les temps d'exposition"
 
-#: src/gui/uifiles/composition_dialog.ui:333 src/gui/uifiles/pixelmath.ui:708
+#: src/gui/uifiles/composition_dialog.ui:334 src/gui/uifiles/pixelmath.ui:708
 msgid ""
 "Sum of the exposure times of the different images used for the composition. "
 "This will change the value of some keywords such as STACKCNT (number of "
@@ -2809,11 +2816,11 @@ msgstr ""
 "composition. Cela modifiera la valeur de certains mots-clés tels que "
 "STACKCNT (nombre d'images empilées) et LIVETIME (durée totale d'exposition)."
 
-#: src/gui/uifiles/composition_dialog.ui:351
+#: src/gui/uifiles/composition_dialog.ui:352
 msgid "Linear match"
 msgstr "Linear match"
 
-#: src/gui/uifiles/composition_dialog.ui:355
+#: src/gui/uifiles/composition_dialog.ui:356
 msgid ""
 "Linear match the input layer images to the first layer.\n"
 "This is important if you are not coloring the layers with pure R, pure G and "
@@ -2824,11 +2831,11 @@ msgstr ""
 "Ceci est important si vous ne colorez pas les couches avec du R pur, du V "
 "pur et du B pur."
 
-#: src/gui/uifiles/composition_dialog.ui:367
+#: src/gui/uifiles/composition_dialog.ui:368
 msgid "Adjust layers brightness"
 msgstr "Ajuster la luminosité des canaux"
 
-#: src/gui/uifiles/composition_dialog.ui:371
+#: src/gui/uifiles/composition_dialog.ui:372
 msgid ""
 "Automatically adjust the brightness of the colours picked for layers so that "
 "they don't overflow when compositing (based on max value for each image). "
@@ -2838,7 +2845,7 @@ msgstr ""
 "de sorte qu'ils ne saturent pas lors de la composition (basé sur la valeur "
 "max pour chaque image). La teinte de la couleur est inchangée."
 
-#: src/gui/uifiles/composition_dialog.ui:384
+#: src/gui/uifiles/composition_dialog.ui:385
 msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
@@ -2847,37 +2854,37 @@ msgstr ""
 "façon d'additionner les informations des couleurs avec les données de la "
 "luminance."
 
-#: src/gui/uifiles/composition_dialog.ui:387
+#: src/gui/uifiles/composition_dialog.ui:388
 msgid "HSL composition"
 msgstr "Composition TSL"
 
-#: src/gui/uifiles/composition_dialog.ui:388
+#: src/gui/uifiles/composition_dialog.ui:389
 msgid "HSV composition"
 msgstr "Composition TSV"
 
-#: src/gui/uifiles/composition_dialog.ui:389
+#: src/gui/uifiles/composition_dialog.ui:390
 msgid "CIE L*a*b* composition"
 msgstr "Composition CIE L*a*b*"
 
-#: src/gui/uifiles/composition_dialog.ui:432
+#: src/gui/uifiles/composition_dialog.ui:433
 msgid "Use this alignment method:"
 msgstr "Utiliser cette méthode d'alignement :"
 
-#: src/gui/uifiles/composition_dialog.ui:445
+#: src/gui/uifiles/composition_dialog.ui:446
 msgid "and this framing method:"
 msgstr "et cette méthode de cadrage :"
 
-#: src/gui/uifiles/composition_dialog.ui:473 src/gui/uifiles/siril.ui:1108
+#: src/gui/uifiles/composition_dialog.ui:474 src/gui/uifiles/siril.ui:1108
 #: src/compositing/align_rgb.c:47
 msgid "Image pattern alignment (planetary/deep-sky)"
 msgstr "Alignement par motif de l'image (planétaire/ciel profond)"
 
-#: src/gui/uifiles/composition_dialog.ui:474 src/gui/uifiles/siril.ui:1099
+#: src/gui/uifiles/composition_dialog.ui:475 src/gui/uifiles/siril.ui:1099
 #: src/compositing/align_rgb.c:45
 msgid "One star registration (deep-sky)"
 msgstr "Alignement sur une étoile (ciel profond)"
 
-#: src/gui/uifiles/composition_dialog.ui:487
+#: src/gui/uifiles/composition_dialog.ui:488
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2892,23 +2899,23 @@ msgstr ""
 "COG - cadre sur le centre de gravité des pixels dans l'ensemble des images "
 "alignées."
 
-#: src/gui/uifiles/composition_dialog.ui:493
+#: src/gui/uifiles/composition_dialog.ui:494
 msgid "First channel"
 msgstr "Premier canal"
 
-#: src/gui/uifiles/composition_dialog.ui:494
+#: src/gui/uifiles/composition_dialog.ui:495
 msgid "Min"
 msgstr "Min"
 
-#: src/gui/uifiles/composition_dialog.ui:495
+#: src/gui/uifiles/composition_dialog.ui:496
 msgid "COG"
 msgstr "COG"
 
-#: src/gui/uifiles/composition_dialog.ui:505
+#: src/gui/uifiles/composition_dialog.ui:506
 msgid "Align"
 msgstr "Aligner"
 
-#: src/gui/uifiles/composition_dialog.ui:509
+#: src/gui/uifiles/composition_dialog.ui:510
 msgid "Automatic alignment using the selected registration method."
 msgstr "Alignement automatique utilisant la méthode d'alignement choisie."
 
@@ -5865,7 +5872,7 @@ msgstr "Cocher cette option pour recadrer l'image de sortie."
 msgid "Type of algorithm used for rotation"
 msgstr "Type d'algorithme utilisé pour la rotation"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:102
+#: src/gui/uifiles/s_pcc_dialog.ui:59
 msgid "Checking Gaia archive status..."
 msgstr "Vérification de l'état de l'archive Gaia..."
 
@@ -6085,7 +6092,7 @@ msgstr ""
 msgid "Sensor Type:"
 msgstr "Type de capteur :"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:1010
+#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:1063
 msgid "mono"
 msgstr "mono"
 
@@ -6136,7 +6143,7 @@ msgstr ""
 "il s'agit de la pression au niveau de la mer, sinon il s'agit de la pression "
 "locale à la hauteur de l'observateur."
 
-#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1484
+#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1537
 msgid "sea level"
 msgstr "niveau de la mer"
 
@@ -6224,8 +6231,8 @@ msgstr ""
 "d'étoiles jusqu'à la magnitude 17,6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
-msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr "Catalogue local Gaia DR3 xp_sampled"
+msgid "Gaia DR3 (local catalogue)"
+msgstr "Gaia DR3 (catalogue local)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -10187,7 +10194,7 @@ msgstr ""
 "Les images sont manipulées sous forme de séquences. Siril peut trouver ces "
 "séquences dans le répertoire de travail."
 
-#: src/gui/uifiles/siril.ui:4594 src/gui/callbacks.c:2384
+#: src/gui/uifiles/siril.ui:4594 src/gui/callbacks.c:2382
 msgid "Sequence"
 msgstr "Séquence"
 
@@ -11369,7 +11376,7 @@ msgstr ""
 msgid "Set second preview"
 msgstr "Définir 2d aperçu"
 
-#: src/gui/uifiles/siril.ui:7582 src/compositing/compositing.c:2018
+#: src/gui/uifiles/siril.ui:7582 src/compositing/compositing.c:2152
 msgid "Manual registration"
 msgstr "Alignement manuel"
 
@@ -13333,7 +13340,7 @@ msgid ""
 msgstr ""
 "Résoudre l'image avec astrometry.net pour un champ de vision de %.2f degrés\n"
 
-#: src/algos/astrometry_solver.c:891 src/gui/photometric_cc.c:1484
+#: src/algos/astrometry_solver.c:891 src/gui/photometric_cc.c:1537
 msgid "local"
 msgstr "local"
 
@@ -13383,7 +13390,7 @@ msgstr "Tentative de résolution par proximité avec un rayon de %3.1f degrés\n
 msgid "Plate Solve"
 msgstr "Résolution astrométrique"
 
-#: src/algos/astrometry_solver.c:1055 src/gui/callbacks.c:1988
+#: src/algos/astrometry_solver.c:1055 src/gui/callbacks.c:1986
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
@@ -13928,7 +13935,7 @@ msgstr "Étoiles de comparaison : traitement...\n"
 
 #: src/algos/comparison_stars.c:440 src/core/command.c:9923
 #: src/core/command.c:10635 src/core/command.c:10788 src/core/command.c:10808
-#: src/io/siril_catalogues.c:1118 src/io/siril_catalogues.c:1167
+#: src/io/siril_catalogues.c:1120 src/io/siril_catalogues.c:1169
 msgid "This command only works on plate solved images\n"
 msgstr ""
 "Cette commande ne fonctionne que sur les images résolues par astrométrie\n"
@@ -14259,7 +14266,7 @@ msgstr ""
 "%s : mémoire insuffisante pour effectuer cette opération (%s requis par "
 "image, %s considéré comme disponible)\n"
 
-#: src/algos/geometry.c:817 src/compositing/compositing.c:2061
+#: src/algos/geometry.c:817 src/compositing/compositing.c:2195
 msgid "Crop Sequence"
 msgstr "Recadrer séquence"
 
@@ -14486,19 +14493,19 @@ msgstr ""
 "Obtention des étoiles du catalogue local %s pour %s, avec un rayon de %.2f "
 "degrés et une magnitude limite de %.2f\n"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:985
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:985
 msgid "PCC"
 msgstr "PCC"
 
-#: src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:960
 msgid "No valid catalog found.\n"
 msgstr "Aucune catalogue valide trouvé.\n"
 
-#: src/algos/photometric_cc.c:962
+#: src/algos/photometric_cc.c:963
 #, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
@@ -14507,20 +14514,20 @@ msgstr ""
 "Obtenir des étoiles du catalogue en ligne %s pour PCC, avec un rayon de %.2f "
 "degrés et une magnitude limite de %.2f\n"
 
-#: src/algos/photometric_cc.c:996
+#: src/algos/photometric_cc.c:986
 #, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "Photométrie CC (algorithme : %s)"
 
-#: src/algos/photometric_cc.c:1003
+#: src/algos/photometric_cc.c:993
 msgid "Catalog error, no stars identified!\n"
 msgstr "Erreur de catalogue, aucune étoile identifiée !\n"
 
-#: src/algos/photometric_cc.c:1012
+#: src/algos/photometric_cc.c:1002
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage des couleurs par spectrophotométrie a réussi\n"
 
-#: src/algos/photometric_cc.c:1014
+#: src/algos/photometric_cc.c:1004
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "L'étalonnage des couleurs par photométrie a réussi\n"
 
@@ -14721,102 +14728,101 @@ msgstr ""
 msgid "Unknown transform\n"
 msgstr "Transformation inconnue\n"
 
-#: src/algos/search_objects.c:58
+#: src/algos/search_objects.c:59
 msgid "SIMBAD server returned:\n"
 msgstr "Retour du serveur SIMBAD :\n"
 
-#: src/algos/search_objects.c:61 src/algos/search_objects.c:137
+#: src/algos/search_objects.c:62 src/algos/search_objects.c:138
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: src/algos/search_objects.c:134 src/io/remote_catalogues.c:269
+#: src/algos/search_objects.c:135 src/io/remote_catalogues.c:271
 msgid "IMCCE server returned:\n"
 msgstr "Retour du serveur IMCCE :\n"
 
 # #################################################
-#: src/algos/search_objects.c:155
+#: src/algos/search_objects.c:156
 #, c-format
 msgid "Unsupported object type in response: %s\n"
 msgstr "Type d'objet non supporté dans la réponse : %s\n"
 
-#: src/algos/search_objects.c:191 src/algos/search_objects.c:199
+#: src/algos/search_objects.c:192 src/algos/search_objects.c:200
 #, c-format
 msgid "Could not parse the server response: %s\n"
 msgstr "Impossible d'analyser la réponse du serveur : %s\n"
 
-#: src/algos/search_objects.c:238
+#: src/algos/search_objects.c:239
 #, c-format
 msgid "Found %s"
 msgstr "A trouvé %s"
 
-#: src/algos/search_objects.c:240
+#: src/algos/search_objects.c:241
 #, c-format
 msgid " (aka %s)"
 msgstr " (alias %s)"
 
-#: src/algos/search_objects.c:241
+#: src/algos/search_objects.c:242
 #, c-format
 msgid " at coordinates: %s, %s\n"
 msgstr " aux coordonnées : %s, %s\n"
 
-#: src/algos/search_objects.c:268
+#: src/algos/search_objects.c:269
 #, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
 msgstr ""
 "L'objet %s (correspondance exacte : %s) a été trouvé dans le catalogue %s "
 "à : %s, %s\n"
 
-#: src/algos/search_objects.c:291
+#: src/algos/search_objects.c:292
 #, c-format
 msgid "Object %s record was found but is not within the bounds of the image\n"
 msgstr "L'objet %s a été trouvé, mais n'est pas dans les limites de l'image.\n"
 
-#: src/algos/search_objects.c:297
+#: src/algos/search_objects.c:298
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 "L'objet %s n'a pas été trouvé ou a rencontré une erreur lors de son "
 "traitement.\n"
 
-#: src/algos/search_objects.c:440 src/io/remote_catalogues.c:727
-#: src/io/siril_catalogues.c:615
+#: src/algos/search_objects.c:441 src/io/siril_catalogues.c:617
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr ""
 "Siril a été compilé sans support réseau, il ne peut pas effectuer cette "
 "opération.\n"
 
-#: src/algos/search_objects.c:452
+#: src/algos/search_objects.c:453
 #, c-format
 msgid "Searching %s in CDSESAME...\n"
 msgstr "Recherche de %s dans CDSESAME...\n"
 
-#: src/algos/search_objects.c:460
+#: src/algos/search_objects.c:461
 #, c-format
 msgid "Searching %s in VIZIER...\n"
 msgstr "Recherche de %s dans VIZIER...\n"
 
-#: src/algos/search_objects.c:469
+#: src/algos/search_objects.c:470
 #, c-format
 msgid "Searching %s in SIMBAD...\n"
 msgstr "Recherche de %s dans SIMBAD...\n"
 
 #. should have been caught before... just in case
-#: src/algos/search_objects.c:474 src/io/remote_catalogues.c:245
+#: src/algos/search_objects.c:475 src/io/remote_catalogues.c:247
 msgid ""
 "This command only works on images that have observation date information\n"
 msgstr ""
 "Cette commande ne fonctionne que sur les images qui ont des informations sur "
 "la date d'observation.\n"
 
-#: src/algos/search_objects.c:484
+#: src/algos/search_objects.c:485
 #, c-format
 msgid "Searching for solar system object %s on observation date %s\n"
 msgstr ""
 "Recherche de l'objet du système solaire %s à la date d'observation %s\n"
 
-#: src/algos/search_objects.c:487
+#: src/algos/search_objects.c:488
 msgid ""
 "No topocentric data available. Set to geocentric, positions may be "
 "inaccurate\n"
@@ -14824,12 +14830,12 @@ msgstr ""
 "Aucune donnée topocentrique n'est disponible. Réglées sur géocentrique, les "
 "positions peuvent être imprécises.\n"
 
-#: src/algos/search_objects.c:490
+#: src/algos/search_objects.c:491
 #, c-format
 msgid "at lat: %f, long: %f, alt: %f\n"
 msgstr "à lat : %f, long : %f, alt : %f\n"
 
-#: src/algos/search_objects.c:502
+#: src/algos/search_objects.c:503
 #, c-format
 msgid "Searching %s in SIMBAD\n"
 msgstr "Recherche de %s dans SIMBAD\n"
@@ -14891,7 +14897,7 @@ msgstr "Le fichier %s a été créé.\n"
 msgid "FindStar"
 msgstr "FindStar"
 
-#: src/algos/star_finder.c:1341 src/compositing/compositing.c:1869
+#: src/algos/star_finder.c:1341 src/compositing/compositing.c:2003
 #: src/io/sequence.c:2377 src/io/sequence.c:2395
 #: src/registration/applyreg.c:342 src/registration/applyreg.c:1112
 #: src/registration/applyreg.c:1293 src/registration/comet.c:138
@@ -14993,21 +14999,21 @@ msgstr "Alignement KOMBAT (planétaire / ciel profond)"
 msgid "Error in channels alignment."
 msgstr "Erreur dans l'alignement des canaux."
 
-#: src/compositing/align_rgb.c:154 src/compositing/compositing.c:974
-#: src/compositing/compositing.c:1012
+#: src/compositing/align_rgb.c:154 src/compositing/compositing.c:1067
+#: src/compositing/compositing.c:1105
 msgid "Error in layers alignment."
 msgstr "Erreur dans l'alignement des canaux."
 
-#: src/compositing/align_rgb.c:156 src/compositing/compositing.c:1017
+#: src/compositing/align_rgb.c:156 src/compositing/compositing.c:1110
 #: src/gui/registration.c:1234
 msgid "Registration complete."
 msgstr "Alignement terminé."
 
 #: src/compositing/compositing.c:148
 msgid "FITS and TIFF files"
-msgstr ""
+msgstr "Fichiers FITS et TIFF"
 
-#: src/compositing/compositing.c:207
+#: src/compositing/compositing.c:208
 msgid ""
 "Warning: memory limit check determines that fewer than 3 images of this size "
 "can be composited. RGB composition is not possible without freeing up more "
@@ -15017,7 +15023,7 @@ msgstr ""
 "de 3 images de cette taille peuvent être composées. La composition RVB n'est "
 "pas possible sans libérer davantage de mémoire.\n"
 
-#: src/compositing/compositing.c:209
+#: src/compositing/compositing.c:210
 msgid ""
 "Warning: memory limit check determines that fewer than 4 images of this size "
 "can be composited. LRGB composition is not possible without freeing up more "
@@ -15027,7 +15033,7 @@ msgstr ""
 "de 4 images de cette taille peuvent être composées. La composition LRGB "
 "n'est pas possible sans libérer davantage de mémoire.\n"
 
-#: src/compositing/compositing.c:211
+#: src/compositing/compositing.c:212
 #, c-format
 msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
@@ -15049,41 +15055,54 @@ msgstr ""
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
-#: src/compositing/compositing.c:496
+#: src/compositing/compositing.c:503
 msgid "Deep Sky (two-step global star registration)"
 msgstr "Ciel profond (alignement global des étoiles en deux étapes)"
 
-#: src/compositing/compositing.c:497
+#: src/compositing/compositing.c:504
 msgid "Planetary (DFT image pattern alignment)"
 msgstr "Planétaire (alignement par motif de l'image)"
 
-#: src/compositing/compositing.c:498
+#: src/compositing/compositing.c:505
 msgid "Planetary (KOMBAT image pattern alignment)"
 msgstr "Planétaire (KOMBAT : alignement par motif de l'image)"
 
-#: src/compositing/compositing.c:499
+#: src/compositing/compositing.c:506
 msgid "Manual alignment"
 msgstr "Alignement manuel"
 
-#: src/compositing/compositing.c:607
+#: src/compositing/compositing.c:579
+msgid "Select source image"
+msgstr "Sélectionner l'image source"
+
+#: src/compositing/compositing.c:619
 msgid "Could not display image, unloading it\n"
 msgstr "Impossible d'afficher l'image, déchargement de celle-ci\n"
 
-#: src/compositing/compositing.c:615
+#: src/compositing/compositing.c:627
 msgid "Unsaved compositing result"
 msgstr "Résultat non enregistré"
 
-#: src/compositing/compositing.c:617
+#: src/compositing/compositing.c:629
 msgid "Compositing result image"
 msgstr "Image résultant de la composition"
 
-#: src/compositing/compositing.c:697 src/gui/epf.c:294 src/gui/merge_cfa.c:97
+#: src/compositing/compositing.c:697
+msgid "Error: target_layer not specified\n"
+msgstr "Erreur : target_layer non spécifiée\n"
+
+#: src/compositing/compositing.c:706
+#, fuzzy
+msgid "Error: layer not found\n"
+msgstr "Erreur : canal hors de porté.\n"
+
+#: src/compositing/compositing.c:714 src/gui/epf.c:294 src/gui/merge_cfa.c:97
 #: src/gui/merge_cfa.c:111 src/gui/merge_cfa.c:124 src/gui/merge_cfa.c:137
 #: src/gui/remixer.c:1053 src/gui/remixer.c:1142
 msgid "Error: image could not be loaded"
 msgstr "Erreur : l'image n'a pas pu être chargée"
 
-#: src/compositing/compositing.c:697
+#: src/compositing/compositing.c:715
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
@@ -15091,22 +15110,22 @@ msgstr ""
 "Le nombre maximum d'images de cette taille a été atteint en fonction des "
 "limites de mémoire disponibles."
 
-#: src/compositing/compositing.c:708 src/compositing/compositing.c:713
+#: src/compositing/compositing.c:728 src/compositing/compositing.c:734
 #: src/core/preprocess.c:1029 src/core/preprocess.c:1030
 #, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
 msgstr "<span foreground=\"red\">ERREUR</span>"
 
-#: src/compositing/compositing.c:709
+#: src/compositing/compositing.c:730
 msgid "Cannot load the file, See the log for more information."
 msgstr ""
 "Impossible de charger le fichier, Voir les logs pour plus d'informations."
 
-#: src/compositing/compositing.c:714
+#: src/compositing/compositing.c:736
 msgid "Only single channel images can be loaded"
 msgstr "Seules les images à un seul canal peuvent être chargées"
 
-#: src/compositing/compositing.c:737
+#: src/compositing/compositing.c:759
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
@@ -15114,7 +15133,7 @@ msgstr ""
 "Le profil ICC diffère de celui de la première image chargée. Convertir cette "
 "image pour qu'elle corresponde à la première image chargée.\n"
 
-#: src/compositing/compositing.c:741
+#: src/compositing/compositing.c:763
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
@@ -15123,61 +15142,66 @@ msgstr ""
 "n'avait pas de profil ICC. Toutes les couches d'entrée seront traitées comme "
 "des données brutes.\n"
 
-#: src/compositing/compositing.c:753
+#: src/compositing/compositing.c:775
 msgid "The first loaded image should have the greatest sizes for now\n"
 msgstr ""
 "La première image chargée doit avoir la plus grande taille pour l'instant\n"
 
-#: src/compositing/compositing.c:754
+#: src/compositing/compositing.c:776
 #, c-format
 msgid "NOT OK %ux%u"
 msgstr "NON OK %ux%u"
 
-#: src/compositing/compositing.c:756
+#: src/compositing/compositing.c:779
 msgid "The first loaded image should have the greatest sizes for now"
 msgstr ""
 "La première image chargée doit avoir la plus grande taille pour l'instant"
 
-#: src/compositing/compositing.c:759
+#: src/compositing/compositing.c:782
 #, c-format
 msgid "Resizing the loaded image from %dx%d to %dx%d\n"
 msgstr "Redimensionnement des images chargées de %dx%d à %dx%d\n"
 
-#: src/compositing/compositing.c:762
+#: src/compositing/compositing.c:785
 #, c-format
 msgid "OK upscaled from %ux%u"
 msgstr "OK mise à la taille de %ux%u"
 
-#: src/compositing/compositing.c:768
+#: src/compositing/compositing.c:792
 msgid "Image loaded, and upscaled"
 msgstr "Image chargée et mise à l'échelle"
 
-#: src/compositing/compositing.c:774
+#: src/compositing/compositing.c:798
 #, c-format
 msgid "OK %ux%u"
 msgstr "OK %ux%u"
 
-#: src/compositing/compositing.c:776
+#: src/compositing/compositing.c:800
 msgid "Image loaded"
 msgstr "Image chargée"
 
-#: src/compositing/compositing.c:826
+#: src/compositing/compositing.c:853
+#, fuzzy
+msgid "Error: Could not create file chooser dialog\n"
+msgstr "Erreur : Impossible d'analyser les valeurs de l'option -from.\n"
+
+#: src/compositing/compositing.c:919
 msgid "You must at least load two layers before!\n"
 msgstr "Vous devez au moins charger 2 canaux\n"
 
-#: src/compositing/compositing.c:827 src/filters/wavelets.c:258
+#: src/compositing/compositing.c:920 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:579
-#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1156
+#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1209
 #: src/gui/script_menu.c:598 src/io/siril_pythoncommands.c:1136
 msgid "Warning"
 msgstr "Attention"
 
-#: src/compositing/compositing.c:916
+#: src/compositing/compositing.c:1009
 #, c-format
 msgid "NOT OK: %ux%u"
 msgstr "ERROR : %ux%u"
 
-#: src/compositing/compositing.c:922
+#: src/compositing/compositing.c:1015
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
@@ -15186,16 +15210,16 @@ msgstr ""
 "d'opérations d'alignement antérieures. Veuillez recharger les images "
 "d'entrée.\n"
 
-#: src/compositing/compositing.c:964
+#: src/compositing/compositing.c:1057
 #, c-format
 msgid "Starting registration using method: %s\n"
 msgstr "Début de l'alignement avec la méthode : %s\n"
 
-#: src/compositing/compositing.c:991
+#: src/compositing/compositing.c:1084
 msgid "Incomplete alignment"
 msgstr "Alignement incomplet"
 
-#: src/compositing/compositing.c:992
+#: src/compositing/compositing.c:1085
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
@@ -15207,7 +15231,7 @@ msgstr ""
 "l'alignement.)"
 
 #. Register button was pressed, we ask for confirmation
-#: src/compositing/compositing.c:995 src/gui/keywords_tree.c:196
+#: src/compositing/compositing.c:1088 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:602 src/gui/mouse_action_preferences.c:117
 #: src/gui/preferences.c:1106 src/gui/python_gui.c:691 src/gui/python_gui.c:719
 #: src/gui/python_gui.c:730 src/gui/python_gui.c:759 src/gui/python_gui.c:785
@@ -15216,20 +15240,20 @@ msgstr ""
 msgid "Proceed"
 msgstr "Procéder"
 
-#: src/compositing/compositing.c:1004
+#: src/compositing/compositing.c:1097
 msgid "Using Luminance channel as reference.\n"
 msgstr "En utilisant le canal Luminance comme référence.\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
-#: src/compositing/compositing.c:1117
+#: src/compositing/compositing.c:1210
 msgid "An image area must be selected for align"
 msgstr "Une sélection doit être faite pour l'alignement"
 
-#: src/compositing/compositing.c:1123
+#: src/compositing/compositing.c:1216
 msgid "At least 2 channels must be loaded for align"
 msgstr "Au moins 2 canaux doivent être chargé pour l'alignement"
 
-#: src/compositing/compositing.c:1197
+#: src/compositing/compositing.c:1290
 msgid ""
 "Attention: channels are dated more than 24 hours apart. DATE_OBS set to the "
 "earliest observation start date but for some purposes this field may be of "
@@ -15242,20 +15266,30 @@ msgstr ""
 "les objets du système solaire peuvent s'être déplacés de manière "
 "significative entre les canaux).\n"
 
-#: src/compositing/compositing.c:1658
+#: src/compositing/compositing.c:1760
 msgid "No overflow with the current colours, redrawing only\n"
 msgstr "Aucun débordement avec les couleurs actuelles\n"
 
-#: src/compositing/compositing.c:1661
+#: src/compositing/compositing.c:1763
 msgid "Nothing to adjust, no overflow\n"
 msgstr "Rien à ajuster, aucun débordement\n"
 
-#: src/compositing/compositing.c:1694
+#: src/compositing/compositing.c:1796
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
 msgstr "Réajustement du canal %d (x%g)\n"
 
-#: src/compositing/compositing.c:1755
+#: src/compositing/compositing.c:1854
+#, fuzzy
+msgid "No images to reload.\n"
+msgstr "Aucune image chargée"
+
+#: src/compositing/compositing.c:1862 src/compositing/compositing.c:1877
+#, fuzzy
+msgid "Reloading image"
+msgstr "Image %s enregistrée"
+
+#: src/compositing/compositing.c:1889
 msgid "All images reloaded successfully.\n"
 msgstr "Toutes les images ont été rechargées avec succès.\n"
 
@@ -15264,7 +15298,7 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 #. Tests if the file is in the CWD
 #. Is the current image properly plate solved
 #. fail
-#: src/compositing/compositing.c:1768 src/compositing/compositing.c:1793
+#: src/compositing/compositing.c:1902 src/compositing/compositing.c:1927
 #: src/core/icc_profile.c:1200 src/core/icc_profile.c:1210
 #: src/core/icc_profile.c:1241 src/filters/fft.c:585 src/filters/fft.c:591
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
@@ -15283,15 +15317,15 @@ msgstr "Toutes les images ont été rechargées avec succès.\n"
 msgid "Error"
 msgstr "Erreur"
 
-#: src/compositing/compositing.c:1768
+#: src/compositing/compositing.c:1902
 msgid "No layers loaded: no files to save"
 msgstr "Pas de canaux chargés : pas de fichiers à sauvegarder"
 
-#: src/compositing/compositing.c:1784
+#: src/compositing/compositing.c:1918
 msgid "All layer images saved correctly.\n"
 msgstr "Toutes les images des canaux ont été enregistrées correctement.\n"
 
-#: src/compositing/compositing.c:1786
+#: src/compositing/compositing.c:1920
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
@@ -15299,48 +15333,48 @@ msgstr ""
 "Erreur rencontrée lors de l'enregistrement d'un ou plusieurs fichiers. "
 "Vérifier les messages précédents pour plus de détails.\n"
 
-#: src/compositing/compositing.c:1793
+#: src/compositing/compositing.c:1927
 msgid "At least 2 images must be loaded to perform linear matching."
 msgstr ""
 "Au moins deux images doivent être chargées pour effectuer un linear match."
 
-#: src/compositing/compositing.c:1815
+#: src/compositing/compositing.c:1949
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr ""
 "Impossible de trouver les coefficients de correspondance linéaire pour la "
 "couche %d. Sauter...\n"
 
-#: src/compositing/compositing.c:1819
+#: src/compositing/compositing.c:1953
 msgid "Linear match layers"
 msgstr "Linear match par canal"
 
-#: src/compositing/compositing.c:1821
+#: src/compositing/compositing.c:1955
 msgid "Linear match layers complete"
 msgstr "Linear match par canal terminé"
 
-#: src/compositing/compositing.c:1823
+#: src/compositing/compositing.c:1957
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
 msgstr ""
 "Erreur : la correspondance entre le canal %d et le canal de référence a "
 "échoué.\n"
 
-#: src/compositing/compositing.c:1875
+#: src/compositing/compositing.c:2009
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
 msgstr "Aligner une séquence ouverte comme CFA est une mauvaise idée.\n"
 
-#: src/compositing/compositing.c:1877 src/registration/global.c:125
+#: src/compositing/compositing.c:2011 src/registration/global.c:125
 msgid "Reference Image:\n"
 msgstr "Image de Référence :\n"
 
-#: src/compositing/compositing.c:1984 src/registration/3stars.c:536
+#: src/compositing/compositing.c:2118 src/registration/3stars.c:536
 #: src/registration/global.c:486 src/registration/shift_methods.c:313
 #: src/registration/shift_methods.c:501 src/registration/shift_methods.c:601
 msgid "Registration finished.\n"
 msgstr "Alignement fini.\n"
 
-#: src/compositing/compositing.c:1985 src/registration/applyreg.c:735
+#: src/compositing/compositing.c:2119 src/registration/applyreg.c:735
 #: src/registration/global.c:487
 #, c-format
 msgid "%d image processed.\n"
@@ -15348,17 +15382,17 @@ msgid_plural "%d images processed.\n"
 msgstr[0] "%d image traitée\n"
 msgstr[1] "%d images traitées\n"
 
-#: src/compositing/compositing.c:1988 src/registration/3stars.c:537
+#: src/compositing/compositing.c:2122 src/registration/3stars.c:537
 #: src/registration/global.c:490 src/registration/global.c:1099
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "Total : %d en échec, %d alignées.\n"
 
-#: src/compositing/compositing.c:1993 src/registration/global.c:501
+#: src/compositing/compositing.c:2127 src/registration/global.c:501
 msgid "Registration aborted.\n"
 msgstr "Alignement interrompu.\n"
 
-#: src/compositing/compositing.c:2043
+#: src/compositing/compositing.c:2177
 msgid "Error: internal RGB composition sequence does not exist\n"
 msgstr "Erreur : la séquence de composition RVB interne n'existe pas\n"
 
@@ -16660,7 +16694,7 @@ msgstr ""
 
 #. Run PSF
 #: src/core/command.c:4695 src/core/siril_actions.c:435
-#: src/gui/callbacks.c:2552
+#: src/gui/callbacks.c:2550
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "Exécution du PSF sur la séquence, canal %d\n"
@@ -17401,7 +17435,7 @@ msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "Argument inattendu pour l'empilement `%s', abandon.\n"
 
 #: src/core/command.c:8682 src/core/command_line_processor.c:659
-#: src/gui/single_image.c:82 src/main.c:466
+#: src/gui/single_image.c:82 src/main.c:471
 #, c-format
 msgid "No sequence `%s' found.\n"
 msgstr "Aucune séquence `%s' trouvée.\n"
@@ -24642,20 +24676,20 @@ msgstr "%s s"
 msgid "Execution time"
 msgstr "Temps d'exécution"
 
-#: src/core/siril_networking.c:56
+#: src/core/siril_networking.c:63
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
 msgstr ""
 "Erreur d'initialisation de la gestion CURL, la fonctionnalité URL n'est pas "
 "disponible.\n"
 
-#: src/core/siril_networking.c:77
+#: src/core/siril_networking.c:84
 msgid ""
 "Error configuring CURL with CA bundle. https functionality unavailable.\n"
 msgstr ""
 "Erreur de configuration de CURL avec le CA embarqué. La fonctionnalité https "
 "n'est pas disponible.\n"
 
-#: src/core/siril_networking.c:110
+#: src/core/siril_networking.c:117
 #, c-format
 msgid ""
 "Server unreachable or unresponsive (HTTP code %ld - for details see https://"
@@ -24664,35 +24698,104 @@ msgstr ""
 "Serveur inaccessible ou ne répondant pas (code HTTP %ld - pour plus de "
 "détails, voir https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"
 
-#: src/core/siril_networking.c:118
+#: src/core/siril_networking.c:125
 msgid "Server unreachable or unresponsive"
 msgstr "Serveur inaccessible ou ne répondant pas"
 
-#: src/core/siril_networking.c:122
+#: src/core/siril_networking.c:129
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
 msgstr "La récupération de l'URL a échoué. erreur libcurl : [%ld]\n"
 
-#: src/core/siril_networking.c:181
+#: src/core/siril_networking.c:187
+msgid "Error: NULL CURL handle provided.\n"
+msgstr ""
+
+#: src/core/siril_networking.c:210 src/core/siril_networking.c:296
+msgid "Error in curl_easy_setopt() for range request\n"
+msgstr ""
+
+#: src/core/siril_networking.c:219 src/core/siril_networking.c:306
+#, fuzzy
+msgid "Error configuring CURL with CA bundle.\n"
+msgstr ""
+"Erreur de configuration de CURL avec le CA embarqué. La fonctionnalité https "
+"n'est pas disponible.\n"
+
+#: src/core/siril_networking.c:247 src/core/siril_networking.c:335
+#, fuzzy, c-format
+msgid "HTTP range request failed with code %ld for URL %s\n"
+msgstr ""
+"Échec de la recherche avec le code %ld\n"
+"%s\n"
+
+#: src/core/siril_networking.c:255 src/core/siril_networking.c:343
+#, fuzzy, c-format
+msgid "URL range request failed. libcurl error: %s\n"
+msgstr "La récupération de l'URL a échoué. erreur libcurl : [%ld]\n"
+
+#: src/core/siril_networking.c:274
+#, fuzzy
+msgid "Error initialising CURL handle for range request.\n"
+msgstr ""
+"Erreur d'initialisation de la gestion CURL, la fonctionnalité URL n'est pas "
+"disponible.\n"
+
+#: src/core/siril_networking.c:363
 #, c-format
 msgid "Error fetching URL: %s\n"
 msgstr "Erreur dans l'extraction de l'URL : %s\n"
 
-#: src/core/siril_networking.c:208
+#: src/core/siril_networking.c:423
+#, fuzzy
+msgid ""
+"Error: Siril was compiled without libcurl support. Network features are "
+"unavailable.\n"
+msgstr ""
+"Siril a été compilé sans le support de libgit2. Les dépôts distants ne "
+"peuvent pas être récupérés automatiquement...\n"
+
+#: src/core/siril_networking.c:438
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot fetch URL: %s\n"
+msgstr ""
+"Siril a été compilé sans support réseau, il ne peut pas effectuer cette "
+"opération.\n"
+
+#: src/core/siril_networking.c:448 src/core/siril_networking.c:460
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot fetch URL range: "
+"%s\n"
+msgstr ""
+"Siril a été compilé sans support réseau, il ne peut pas effectuer cette "
+"opération.\n"
+
+#: src/core/siril_networking.c:469
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot submit POST "
+"request to: %s\n"
+msgstr ""
+"Siril a été compilé sans support réseau, il ne peut pas effectuer cette "
+"opération.\n"
+
+#: src/core/siril_networking.c:490
 msgid "Siril is in online mode.\n"
 msgstr "Siril est en mode en ligne.\n"
 
-#: src/core/siril_networking.c:208
+#: src/core/siril_networking.c:490
 msgid "Siril is in offline mode.\n"
 msgstr "Siril est en mode hors ligne.\n"
 
-#: src/core/siril_update.c:383
+#: src/core/siril_update.c:417
 msgid "No update check: cannot fetch version file\n"
 msgstr ""
 "Aucune vérification de mise à jour : impossible de récupérer le fichier des "
 "versions\n"
 
-#: src/core/siril_update.c:401
+#: src/core/siril_update.c:435
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
@@ -24700,58 +24803,58 @@ msgstr ""
 "Nouvelle version disponible. Vous pouvez la télécharger à <a href=\"%s\">%s</"
 "a>\n"
 
-#: src/core/siril_update.c:419
+#: src/core/siril_update.c:453
 msgid "No update check: this is a development version\n"
 msgstr ""
 "Aucune vérification de mise à jour : il s'agit d'une version de "
 "développement\n"
 
-#: src/core/siril_update.c:422
+#: src/core/siril_update.c:456
 msgid "Siril is up to date\n"
 msgstr "Siril est à jour\n"
 
-#: src/core/siril_update.c:453
+#: src/core/siril_update.c:487
 msgid "Cannot fetch version file\n"
 msgstr "Impossible de récupérer le fichier de version\n"
 
-#: src/core/siril_update.c:459
+#: src/core/siril_update.c:493
 msgid "Software Update"
 msgstr "Mise À Jour Logiciel"
 
-#: src/core/siril_update.c:494
+#: src/core/siril_update.c:528
 msgid "Error parsing JSON from URL: Failed to parse JSON\n"
 msgstr "Erreur d'analyse JSON de l'URL : Échec de l'analyse JSON\n"
 
-#: src/core/siril_update.c:500
+#: src/core/siril_update.c:534
 msgid "Error parsing JSON from URL: JSON root is not an object or array\n"
 msgstr ""
 "Erreur d'analyse JSON de l'URL : La racine JSON n'est pas un objet ou un "
 "tableau\n"
 
-#: src/core/siril_update.c:518
+#: src/core/siril_update.c:552
 msgid "Error parsing JSON from URL: Invalid root JSON structure\n"
 msgstr "Erreur d'analyse JSON de l'URL : Structure JSON racine invalide\n"
 
-#: src/core/siril_update.c:528
+#: src/core/siril_update.c:562
 msgid "Error parsing JSON from URL: Message is not a valid object\n"
 msgstr "Erreur d'analyse JSON de l'URL : Message n'est pas un objet valide\n"
 
-#: src/core/siril_update.c:539
+#: src/core/siril_update.c:573
 msgid "Error parsing JSON from URL: Required fields missing or invalid\n"
 msgstr ""
 "Erreur d'analyse JSON de l'URL : Champs obligatoires manquants ou invalides\n"
 
-#: src/core/siril_update.c:547
+#: src/core/siril_update.c:581
 msgid "Error parsing JSON from URL: Invalid ISO8601 date format\n"
 msgstr "Erreur d'analyse JSON de l'URL : Format de date ISO8601 non valide\n"
 
-#: src/core/siril_update.c:620
+#: src/core/siril_update.c:654
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
 msgstr ""
 "Erreur dans l'extraction ou l'analyse du fichier JSON des notifications "
 "Siril à partir de l'URL\n"
 
-#: src/core/siril_update.c:628
+#: src/core/siril_update.c:662
 #, c-format
 msgid ""
 "*** SIRIL NOTIFICATION ***\n"
@@ -24760,19 +24863,68 @@ msgstr ""
 "*** NOTIFICATION SIRIL ***\n"
 "%s\n"
 
-#: src/core/siril_update.c:649
+#: src/core/siril_update.c:683
 msgid "Error: Siril is in offline mode, cannot check updates.\n"
 msgstr ""
 "Erreur : Siril est en mode hors ligne, il ne peut pas vérifier les mises à "
 "jour.\n"
 
-#: src/core/siril_update.c:658
+#: src/core/siril_update.c:692
 msgid "Looking for updates..."
 msgstr "Recherche des mises à jour..."
 
-#: src/core/siril_update.c:678
+#: src/core/siril_update.c:712
 msgid "Looking for notifications..."
 msgstr "Recherche des notifications..."
+
+#: src/core/siril_update.c:731
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Failed to parse JSON\n"
+msgstr "Erreur d'analyse JSON de l'URL : Échec de l'analyse JSON\n"
+
+#: src/core/siril_update.c:737
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Root is not an array\n"
+msgstr ""
+"Erreur d'analyse JSON de l'URL : La racine JSON n'est pas un objet ou un "
+"tableau\n"
+
+#: src/core/siril_update.c:744
+msgid "Error parsing SPCC mirrors JSON: Empty array\n"
+msgstr ""
+
+#: src/core/siril_update.c:757
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Entry is not a valid object\n"
+msgstr "Erreur d'analyse JSON de l'URL : Message n'est pas un objet valide\n"
+
+#: src/core/siril_update.c:766
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Required fields missing\n"
+msgstr ""
+"Erreur d'analyse JSON de l'URL : Champs obligatoires manquants ou invalides\n"
+
+#: src/core/siril_update.c:783
+msgid "Error parsing SPCC mirrors JSON: No valid mirrors found\n"
+msgstr ""
+
+#: src/core/siril_update.c:810
+#, fuzzy
+msgid "Error fetching or parsing SPCC mirrors JSON file from URL\n"
+msgstr ""
+"Erreur dans l'extraction ou l'analyse du fichier JSON des notifications "
+"Siril à partir de l'URL\n"
+
+#: src/core/siril_update.c:849
+#, fuzzy
+msgid "Siril is in offline mode, cannot check SPCC mirrors.\n"
+msgstr ""
+"Erreur : Siril est en mode hors ligne, il ne peut pas vérifier les mises à "
+"jour.\n"
+
+#: src/core/siril_update.c:862
+msgid "Checking SPCC mirrors...\n"
+msgstr ""
 
 #: src/core/undo.c:59
 #, c-format
@@ -24840,55 +24992,55 @@ msgstr "bleu"
 msgid "Failed to create directory '%s': %s\n"
 msgstr "Échec de la création du répertoire « %s » : %s\n"
 
-#: src/core/utils.c:747
+#: src/core/utils.c:749
 msgid "Unknown error\n"
 msgstr "Erreur inconnue\n"
 
-#: src/core/utils.c:750
+#: src/core/utils.c:752
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "'%s' Aucun fichier ou dossier de ce type\n"
 
-#: src/core/utils.c:753
+#: src/core/utils.c:755
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "'%s' n'est pas un répertoire\n"
 
-#: src/core/utils.c:756
+#: src/core/utils.c:758
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "Vous n'avez pas la permission d'écrire dans ce dossier : '%s'\n"
 
-#: src/core/utils.c:778
+#: src/core/utils.c:780
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "Définir le répertoire de travail à '%s'\n"
 
-#: src/core/utils.c:782
+#: src/core/utils.c:784
 #, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr ""
 "Impossible de changer de répertoire vers '%s' (code d'erreur %d : %s).\n"
 
-#: src/core/utils.c:808
+#: src/core/utils.c:810
 msgid "Filename is too long, not expanding it\n"
 msgstr "Nom de fichier trop long, ne fera rien\n"
 
-#: src/core/utils.c:918 src/core/utils.c:922 src/io/image_format_fits.c:2862
+#: src/core/utils.c:920 src/core/utils.c:924 src/io/image_format_fits.c:2862
 #: src/io/image_format_fits.c:2867 src/io/ser.c:1429 src/io/ser.c:1434
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
 msgstr[1] "pixels"
 
-#: src/core/utils.c:919 src/io/image_format_fits.c:2863
+#: src/core/utils.c:921 src/io/image_format_fits.c:2863
 #: src/io/image_format_fits.c:2868 src/io/ser.c:1430 src/io/ser.c:1435
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "canal"
 msgstr[1] "canaux"
 
-#: src/core/utils.c:1315 src/core/utils.c:1318
+#: src/core/utils.c:1317 src/core/utils.c:1320
 msgid "(invalid UTF-8 string)"
 msgstr "(chaîne UTF-8 non valide)"
 
@@ -25717,16 +25869,16 @@ msgstr "Traiter"
 #. APASS
 #. GAIA
 #. Gaia archive
-#: src/gui/astrometry_solver.c:931 src/gui/photometric_cc.c:487
-#: src/gui/photometric_cc.c:490 src/gui/photometric_cc.c:493
-#: src/gui/photometric_cc.c:507
+#: src/gui/astrometry_solver.c:931 src/gui/photometric_cc.c:540
+#: src/gui/photometric_cc.c:543 src/gui/photometric_cc.c:546
+#: src/gui/photometric_cc.c:560
 msgid "(online catalogue)"
 msgstr "(catalogue en ligne)"
 
 #. NOMAD
 #. Local Gaia xp_sampled
-#: src/gui/astrometry_solver.c:933 src/gui/photometric_cc.c:487
-#: src/gui/photometric_cc.c:510
+#: src/gui/astrometry_solver.c:933 src/gui/photometric_cc.c:540
+#: src/gui/photometric_cc.c:563
 msgid "(local catalogue)"
 msgstr "(catalogue local)"
 
@@ -25917,7 +26069,7 @@ msgstr "Convertir en 16 bits"
 msgid "B&W"
 msgstr "N&B"
 
-#: src/gui/callbacks.c:1494 src/io/siril_catalogues.c:320
+#: src/gui/callbacks.c:1494 src/io/siril_catalogues.c:321
 msgid "unknown"
 msgstr "inconnu"
 
@@ -25926,7 +26078,7 @@ msgstr "inconnu"
 msgid "Binning %d x %d is not supported\n"
 msgstr "Ce binning %d x %d n'est pas supporté\n"
 
-#: src/gui/callbacks.c:1730
+#: src/gui/callbacks.c:1728
 msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
@@ -25934,17 +26086,17 @@ msgstr ""
 "Siril a démarré en mode hors ligne. Ne tentera pas de mettre à jour les "
 "scripts siril ou la base de données siril-spcc...\n"
 
-#: src/gui/callbacks.c:1788
+#: src/gui/callbacks.c:1786
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr "L'extension par défaut des FITS est définie à %s\n"
 
-#: src/gui/callbacks.c:1811
+#: src/gui/callbacks.c:1809
 #, c-format
 msgid "Welcome to %s"
 msgstr "Bienvenue dans %s"
 
-#: src/gui/callbacks.c:1814
+#: src/gui/callbacks.c:1812
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -25957,51 +26109,51 @@ msgstr ""
 "pouvez rejouer cette introduction à tout moment dans l'onglet Divers de la "
 "boîte de dialogue des préférences."
 
-#: src/gui/callbacks.c:1817
+#: src/gui/callbacks.c:1815
 msgid "See Introduction"
 msgstr "Voir l'Introduction"
 
-#: src/gui/callbacks.c:2087
+#: src/gui/callbacks.c:2085
 msgid "Unsaved script changes"
 msgstr "Modifications de script non enregistrées"
 
-#: src/gui/callbacks.c:2088
+#: src/gui/callbacks.c:2086
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr ""
 "Il y a des modifications non enregistrées dans l'éditeur de scripts. Voulez-"
 "vous quand même quitter ?"
 
-#: src/gui/callbacks.c:2089
+#: src/gui/callbacks.c:2087
 msgid "Quit"
 msgstr "Quitter"
 
-#: src/gui/callbacks.c:2099
+#: src/gui/callbacks.c:2097
 msgid "Closing application"
 msgstr "Fermeture de l'application"
 
-#: src/gui/callbacks.c:2100
+#: src/gui/callbacks.c:2098
 msgid "Are you sure you want to quit?"
 msgstr "Êtes vous sûr de vouloir quitter ?"
 
-#: src/gui/callbacks.c:2100
+#: src/gui/callbacks.c:2098
 msgid "Exit"
 msgstr "Quitter"
 
-#: src/gui/callbacks.c:2265
+#: src/gui/callbacks.c:2263
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "Séquence %s sélectionnée %s..."
 
-#: src/gui/callbacks.c:2314
+#: src/gui/callbacks.c:2312
 msgid "Searching for sequences in the current working directory..."
 msgstr "Cherche des séquences dans le répertoire de travail..."
 
-#: src/gui/callbacks.c:2365
+#: src/gui/callbacks.c:2363
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 "Cela efface les données suivantes, et il n'y a pas d'annulation possible :\n"
 
-#: src/gui/callbacks.c:2366
+#: src/gui/callbacks.c:2364
 msgid ""
 "\n"
 "- Registration"
@@ -26009,7 +26161,7 @@ msgstr ""
 "\n"
 "- Alignement"
 
-#: src/gui/callbacks.c:2367
+#: src/gui/callbacks.c:2365
 msgid ""
 "\n"
 "- Statistics"
@@ -26017,7 +26169,7 @@ msgstr ""
 "\n"
 "- Statistiques"
 
-#: src/gui/callbacks.c:2368
+#: src/gui/callbacks.c:2366
 msgid ""
 "\n"
 "- Selection"
@@ -26025,19 +26177,19 @@ msgstr ""
 "\n"
 "- Sélection"
 
-#: src/gui/callbacks.c:2372
+#: src/gui/callbacks.c:2370
 msgid "Clear Sequence Data?"
 msgstr "Effacer les données de la séquence ?"
 
-#: src/gui/callbacks.c:2372
+#: src/gui/callbacks.c:2370
 msgid "Clear Data"
 msgstr "Effacer Données"
 
-#: src/gui/callbacks.c:2384
+#: src/gui/callbacks.c:2382
 msgid "The requested data of the sequence has been cleaned."
 msgstr "Les données demandées de la séquence ont été nettoyées."
 
-#: src/gui/callbacks.c:2392
+#: src/gui/callbacks.c:2390
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
@@ -26047,55 +26199,55 @@ msgstr ""
 "signifie que le fichier contenant les objets ajoutés manuellement sera "
 "supprimé. Cette opération ne peut pas être annulée."
 
-#: src/gui/callbacks.c:2394
+#: src/gui/callbacks.c:2392
 msgid "SOLAR SYSTEM"
 msgstr "SYSTÈME SOLAIRE"
 
-#: src/gui/callbacks.c:2394
+#: src/gui/callbacks.c:2392
 msgid "DEEP SKY"
 msgstr "CIEL PROFOND"
 
-#: src/gui/callbacks.c:2396
+#: src/gui/callbacks.c:2394
 msgid "Catalog deletion"
 msgstr "Suppression du catalogue"
 
-#: src/gui/callbacks.c:2396
+#: src/gui/callbacks.c:2394
 msgid "Purge Catalogue"
 msgstr "Purger le Catalogue"
 
-#: src/gui/callbacks.c:2422
+#: src/gui/callbacks.c:2420
 msgid "Select task to stop"
 msgstr "Sélectionner la tâche à arrêter"
 
-#: src/gui/callbacks.c:2425 src/gui/dialogs.c:253 src/gui/dialogs.c:262
+#: src/gui/callbacks.c:2423 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/git_gui.c:344 src/gui/keywords_tree.c:509
 #: src/gui/python_gui.c:792 src/gui/python_gui.c:869
 #: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1279
 msgid "_Cancel"
 msgstr "_Annuler"
 
-#: src/gui/callbacks.c:2426
+#: src/gui/callbacks.c:2424
 msgid "_Stop Process"
 msgstr "Arrêter le processus"
 
-#: src/gui/callbacks.c:2470
+#: src/gui/callbacks.c:2468
 msgid "Process Name"
 msgstr "Nom du processus"
 
-#: src/gui/callbacks.c:2480
+#: src/gui/callbacks.c:2478
 msgid "Start Time"
 msgstr "Heure de début"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1778
-#: src/gui/photometric_cc.c:430 src/gui/photometric_cc.c:442
-#: src/gui/photometric_cc.c:460 src/gui/remixer.c:1236 src/gui/remixer.c:1284
+#: src/gui/photometric_cc.c:483 src/gui/photometric_cc.c:495
+#: src/gui/photometric_cc.c:513 src/gui/remixer.c:1236 src/gui/remixer.c:1284
 msgid "There is no selection"
 msgstr "Il n'y a aucune sélection"
 
 #: src/gui/colors.c:53 src/gui/colors.c:139 src/gui/colors.c:258
-#: src/gui/photometric_cc.c:431 src/gui/photometric_cc.c:443
-#: src/gui/photometric_cc.c:461
+#: src/gui/photometric_cc.c:484 src/gui/photometric_cc.c:496
+#: src/gui/photometric_cc.c:514
 msgid "Make a selection of the background area"
 msgstr "Faire d'abord une sélection d'une zone de fond de ciel"
 
@@ -27806,67 +27958,78 @@ msgstr ""
 "Les séquences FITS ne sont pas prises en charge pour les fichiers maîtres. "
 "Veuillez sélectionner un fichier FITS unique."
 
+#: src/gui/photometric_cc.c:114
+#, fuzzy
+msgid "Checking SPCC remote catalogue status..."
+msgstr "Vérification de l'état de l'archive Gaia..."
+
 #. Failed to fetch status
-#: src/gui/photometric_cc.c:110
-msgid ""
-"The Gaia archive status indicator is not responding. This does not "
-"necessarily mean the Gaia archive is offline, however if it is then SPCC "
-"will be unavailable. Further information may be available at https://"
-"www.cosmos.esa.int/web/gaia/"
-msgstr ""
-"L'indicateur d'état des archives Gaia ne répond pas. Cela ne signifie pas "
-"nécessairement que les archives Gaia sont hors ligne, mais si c'est le cas, "
-"le SPCC sera indisponible. De plus amples informations sont disponibles à "
-"l'adresse suivante : https://www.cosmos.esa.int/web/gaia/"
-
-#: src/gui/photometric_cc.c:116
-msgid "Gaia archive available"
-msgstr "Les archives de Gaia sont disponibles"
-
 #: src/gui/photometric_cc.c:121
-msgid "Gaia archive unavailable"
-msgstr "Les archives de Gaia ne sont pas disponibles"
+msgid "The Gaia remote SPCC catalogue is not responding."
+msgstr ""
 
-#. Unexpected response format
-#: src/gui/photometric_cc.c:126
-msgid "Unknown Gaia archive status"
-msgstr "Statut inconnu de l'archive Gaia"
+#: src/gui/photometric_cc.c:127
+#, c-format
+msgid "Gaia remote SPCC catalogue available, response %d ms"
+msgstr ""
 
-#: src/gui/photometric_cc.c:144
+#: src/gui/photometric_cc.c:131
+#, c-format
+msgid "Gaia remote SPCC catalogue slow, response %d ms"
+msgstr ""
+
+#: src/gui/photometric_cc.c:135
+#, c-format
+msgid "Gaia remote SPCC catalogue very slow, response %d ms"
+msgstr ""
+
+#: src/gui/photometric_cc.c:179
+#, c-format
+msgid "Mirror %s: Not responding\n"
+msgstr ""
+
+#: src/gui/photometric_cc.c:188
+#, c-format
+msgid "Primary SPCC catalogue set to: %s (%d working mirrors available)\n"
+msgstr ""
+
+#: src/gui/photometric_cc.c:200
+#, fuzzy
 msgid ""
-"Siril is offline or built without networking. Gaia archive is unavailable.\n"
+"Siril is offline or built without networking. The remote Gaia catalogue is "
+"unavailable.\n"
 msgstr ""
 "Siril est hors ligne ou construit sans accès réseau. L'archive Gaia n'est "
 "pas disponible.\n"
 
-#: src/gui/photometric_cc.c:159
+#: src/gui/photometric_cc.c:212
 msgid ""
 "There is no valid WCS information in the header. Please platesolve first.\n"
 msgstr ""
 "Il n'y a pas d'information WCS valide dans l'en-tête. Faites une astrométrie "
 "d'abord.\n"
 
-#: src/gui/photometric_cc.c:167
+#: src/gui/photometric_cc.c:220
 msgid "Using Gaia DR3 for SPCC\n"
 msgstr "Utilisation de Gaia DR3 pour SPCC\n"
 
-#: src/gui/photometric_cc.c:263
+#: src/gui/photometric_cc.c:316
 msgid "Photometric Color Calibration"
 msgstr "Étalonnage des couleurs par photométrie"
 
-#: src/gui/photometric_cc.c:344
+#: src/gui/photometric_cc.c:397
 msgid "Spectrophotometric Color Calibration"
 msgstr "Étalonnage des couleurs par spectrophotométrie"
 
-#: src/gui/photometric_cc.c:361
+#: src/gui/photometric_cc.c:414
 msgid "Airmass read from FITS header AIRMASS card"
 msgstr "Airmass lu à partir du mot clé AIRMASS de l'en-tête FITS"
 
-#: src/gui/photometric_cc.c:364
+#: src/gui/photometric_cc.c:417
 msgid "Airmass computed from FITS header CENTALT card"
 msgstr "Airmass calculée à partir du mot clé CENTALT de l'en-tête FITS"
 
-#: src/gui/photometric_cc.c:367
+#: src/gui/photometric_cc.c:420
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
@@ -27874,12 +28037,12 @@ msgstr ""
 "Aucune donnée sur la masse d'air n'est disponible ou calculable. Estimation "
 "de la masse d'air sur la base d'une hauteur d'observation moyenne de 48.1°"
 
-#: src/gui/photometric_cc.c:371
+#: src/gui/photometric_cc.c:424
 msgid "Observer height read from FITS header SITEELEV card"
 msgstr ""
 "Hauteur de l'observateur lue sur dans le mot clé SITEELEV de l'en-tête FITS"
 
-#: src/gui/photometric_cc.c:581
+#: src/gui/photometric_cc.c:634
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
@@ -27887,7 +28050,7 @@ msgstr ""
 "Erreur : s'assurer que le capteur mono, les filtres R, V et B et la "
 "référence des blancs sont sélectionnés.\n"
 
-#: src/gui/photometric_cc.c:588
+#: src/gui/photometric_cc.c:641
 msgid ""
 "Error: ensure OSC sensor, OSC filter or NB filter values, and white "
 "reference are selected.\n"
@@ -27895,53 +28058,53 @@ msgstr ""
 "Erreur : s'assurer que le capteur couleur, le filtre couleur ou filtre à "
 "bande étroit et la référence des blancs sont sélectionnés.\n"
 
-#: src/gui/photometric_cc.c:1010
+#: src/gui/photometric_cc.c:1063
 msgid "one-shot color (OSC)"
 msgstr "couleur (OSC)"
 
-#: src/gui/photometric_cc.c:1156
+#: src/gui/photometric_cc.c:1209
 msgid "No selection made: no details to show."
 msgstr "Aucune sélection n'a été faite : aucun détail à montrer."
 
-#: src/gui/photometric_cc.c:1194
+#: src/gui/photometric_cc.c:1247
 msgid "SPCC Data"
 msgstr "Données SPCC"
 
-#: src/gui/photometric_cc.c:1195
+#: src/gui/photometric_cc.c:1248
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "Efficacité quantique / Transmittance / Nombre relatif de photons"
 
-#: src/gui/photometric_cc.c:1235 src/gui/photometric_cc.c:1276
+#: src/gui/photometric_cc.c:1288 src/gui/photometric_cc.c:1329
 msgid "Narrowband filters"
 msgstr "Filtres à bande étroite"
 
-#: src/gui/photometric_cc.c:1284
+#: src/gui/photometric_cc.c:1337
 msgid "Atmosphere model"
 msgstr "Modèle atmosphérique"
 
-#: src/gui/photometric_cc.c:1306 src/gui/photometric_cc.c:1321
+#: src/gui/photometric_cc.c:1359 src/gui/photometric_cc.c:1374
 #, c-format
 msgid "SPCC Data: %s"
 msgstr "Données SPCC : %s"
 
-#: src/gui/photometric_cc.c:1308 src/gui/photometric_cc.c:1324
+#: src/gui/photometric_cc.c:1361 src/gui/photometric_cc.c:1377
 msgid "Quantum Efficiency"
 msgstr "Efficacité quantique"
 
-#: src/gui/photometric_cc.c:1324
+#: src/gui/photometric_cc.c:1377
 msgid "Relative photon count"
 msgstr "Nombre relatif de photons"
 
-#: src/gui/photometric_cc.c:1324 src/gui/photometric_cc.c:1476
+#: src/gui/photometric_cc.c:1377 src/gui/photometric_cc.c:1529
 msgid "Transmittance"
 msgstr "Transmittance"
 
-#: src/gui/photometric_cc.c:1473
+#: src/gui/photometric_cc.c:1526
 #, c-format
 msgid "SPCC Data: Atmospheric model"
 msgstr "Données SPCC : Modèle atmosphérique"
 
-#: src/gui/photometric_cc.c:1484
+#: src/gui/photometric_cc.c:1537
 #, c-format
 msgid ""
 "Atmospheric model\n"
@@ -28732,20 +28895,20 @@ msgstr ""
 "vous voyez n'est pas ce que vous obtiendrez. Basculez le mode de "
 "visualisation sur linéaire pour enregistrer ce que vous voyez."
 
-#: src/gui/save_dialog.c:538
+#: src/gui/save_dialog.c:539
 msgid "preview"
 msgstr "aperçu"
 
-#: src/gui/save_dialog.c:838
+#: src/gui/save_dialog.c:847
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "La capture <b>%s</b> a été enregistrée dans le répertoire de travail."
 
-#: src/gui/save_dialog.c:840
+#: src/gui/save_dialog.c:849
 msgid "Snapshot was saved into the clipboard."
 msgstr "La capture a été enregistrée dans le presse-papier."
 
-#: src/gui/save_dialog.c:856
+#: src/gui/save_dialog.c:865
 #, c-format
 msgid "Cannot take snapshot: %s\n"
 msgstr "Impossible de prendre un instantané : %s\n"
@@ -29801,34 +29964,82 @@ msgid "Removing failed FITS sequence file: %s\n"
 msgstr "Suppression du fichier de la séquence FITS ayant échoué : %s\n"
 
 #. Handle file opening error
-#: src/io/healpix/healpix.cpp:133 src/io/spcc_json.c:53 src/io/spcc_json.c:285
+#: src/io/healpix/healpix.cpp:144 src/io/spcc_json.c:53 src/io/spcc_json.c:285
 #: src/io/spcc_json.c:561
 #, c-format
 msgid "Failed to open file: %s\n"
 msgstr "Échec de l'ouverture du fichier : %s\n"
 
-#: src/io/healpix/healpix.cpp:144
+#: src/io/healpix/healpix.cpp:155
 msgid "Failed to read catalog index entry.\n"
 msgstr "Échec de la lecture de l'entrée de l'index du catalogue.\n"
 
-#: src/io/healpix/healpix.cpp:157
+#: src/io/healpix/healpix.cpp:168 src/io/healpix/healpix.cpp:334
 msgid "ID range exceeds catalog bounds.\n"
 msgstr "La plage d'ID dépasse les limites du catalogue.\n"
 
-#: src/io/healpix/healpix.cpp:186
+#: src/io/healpix/healpix.cpp:197
 msgid "Failed to read data entries.\n"
 msgstr "Échec de la lecture des entrées de données.\n"
 
-#: src/io/healpix/healpix.cpp:552
+#: src/io/healpix/healpix.cpp:344
+#, fuzzy
+msgid "Failed to read index entries via HTTP\n"
+msgstr "Échec de la lecture des entrées de données.\n"
+
+#: src/io/healpix/healpix.cpp:364
+#, fuzzy
+msgid "Failed to read data entries via HTTP\n"
+msgstr "Échec de la lecture des entrées de données.\n"
+
+#: src/io/healpix/healpix.cpp:389 src/io/healpix/healpix.cpp:988
+#, fuzzy
+msgid "Error initialising CURL handle\n"
+msgstr ""
+"Erreur d'initialisation de la gestion CURL, la fonctionnalité URL n'est pas "
+"disponible.\n"
+
+#: src/io/healpix/healpix.cpp:415
+#, c-format
+msgid "Mirror %s failed, trying alternatives...\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:426 src/io/healpix/healpix.cpp:482
+#, fuzzy, c-format
+msgid "Trying mirror: %s\n"
+msgstr "Chaîne d'entrée : %s\n"
+
+#: src/io/healpix/healpix.cpp:434 src/io/healpix/healpix.cpp:494
+#, fuzzy, c-format
+msgid "Switched to working mirror: %s\n"
+msgstr "Répertoire de travail actuel : '%s'\n"
+
+#. All mirrors failed
+#: src/io/healpix/healpix.cpp:441
+msgid "All catalogue mirrors failed to respond.\n"
+msgstr ""
+
+#. Current mirror failed, try alternatives
+#: src/io/healpix/healpix.cpp:473
+#, c-format
+msgid "Query failed on mirror %s, trying alternatives...\n"
+msgstr ""
+
+#. All mirrors failed
+#: src/io/healpix/healpix.cpp:501
+msgid "All catalogue mirrors failed for query.\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:854
 msgid "Error: no chunks detected.\n"
 msgstr "Erreur : aucun bloc n'a été détecté.\n"
 
-#: src/io/healpix/healpix.cpp:602
+#: src/io/healpix/healpix.cpp:904
 #, c-format
 msgid "Chunk file not found: %s\n"
 msgstr "Fichier de morceaux non trouvé : %s\n"
 
-#: src/io/healpix/healpix.cpp:610
+#: src/io/healpix/healpix.cpp:912
 #, c-format
 msgid ""
 "Error: catalog header values for chunk %lu are incompatible with previous "
@@ -29839,6 +30050,31 @@ msgstr ""
 "incompatibles avec les valeurs précédentes. Tous les fichiers chunk doivent "
 "avoir le même niveau de chunk et le même niveau d'indexation et doivent "
 "représenter la même version de données Gaia.\n"
+
+#: src/io/healpix/healpix.cpp:1047
+#, c-format
+msgid "Failed to read header for chunk %d from any mirror\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:1055
+#, c-format
+msgid "Error: catalog header values for chunk %d are incompatible\n"
+msgstr ""
+
+#. Query returned nothing but we expected data - this might indicate failure
+#: src/io/healpix/healpix.cpp:1067
+#, c-format
+msgid "Warning: No data retrieved for chunk %d\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:1131
+#, fuzzy
+msgid ""
+"Error: Siril was compiled without libcurl support. Remote catalogue access "
+"is unavailable.\n"
+msgstr ""
+"Siril a été compilé sans le support de libgit2. Les dépôts distants ne "
+"peuvent pas être récupérés automatiquement...\n"
 
 #: src/io/image_format_fits.c:367
 #, c-format
@@ -29990,12 +30226,12 @@ msgid "Stacking error: input images have different precision\n"
 msgstr ""
 "Erreur d'empilement : les images d'entrée ont une précision différente\n"
 
-#: src/io/image_format_fits.c:3609
+#: src/io/image_format_fits.c:3527
 #, c-format
 msgid "Saving WCS file %s\n"
 msgstr "Enregistrement du fichier WCS %s\n"
 
-#: src/io/image_format_fits.c:3648
+#: src/io/image_format_fits.c:3566
 #, c-format
 msgid "Saving mask file %s\n"
 msgstr "Enregistrement du fichier de masque %s\n"
@@ -30356,50 +30592,50 @@ msgstr ""
 msgid "Save complete.\n"
 msgstr "Enregistrement terminé.\n"
 
-#: src/io/local_catalogues.c:152
+#: src/io/local_catalogues.c:153
 #, c-format
 msgid "Could not open local catalogue %s\n"
 msgstr "Impossible d'ouvrir le catalogue local %s\n"
 
-#: src/io/local_catalogues.c:158 src/io/local_catalogues.c:191
+#: src/io/local_catalogues.c:159 src/io/local_catalogues.c:192
 #, c-format
 msgid "Failed to read the local catalogue %s\n"
 msgstr "Échec de la lecture du catalogue local %s\n"
 
-#: src/io/local_catalogues.c:180
+#: src/io/local_catalogues.c:181
 msgid "Wrong trixel ID\n"
 msgstr "Mauvaise identification du trixel\n"
 
-#: src/io/local_catalogues.c:185
+#: src/io/local_catalogues.c:186
 #, c-format
 msgid "Could not open local catalogue%s\n"
 msgstr "Impossible d'ouvrir le catalogue local %s\n"
 
-#: src/io/local_catalogues.c:289
+#: src/io/local_catalogues.c:290
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr ""
 "Erreur : le nombre de trixels rapportés par le fichier est hors limites.\n"
 
-#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:843
+#: src/io/local_catalogues.c:855 src/io/siril_catalogues.c:845
 #, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "Le fichier %s ne peut pas être supprimé (%s), abandon\n"
 
-#: src/io/local_catalogues.c:864 src/io/remote_catalogues.c:652
-#: src/io/remote_catalogues.c:979 src/io/siril_catalogues.c:852
+#: src/io/local_catalogues.c:865 src/io/remote_catalogues.c:654
+#: src/io/siril_catalogues.c:854
 #, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
 msgstr "Impossible de créer le fichier de catalogue %s (%s)\n"
 
-#: src/io/local_catalogues.c:886
+#: src/io/local_catalogues.c:887
 msgid "Trixels list saved to trixels.csv\n"
 msgstr "Liste de trixels sauvegardée dans le fichier trixels.csv\n"
 
-#: src/io/local_catalogues.c:904
+#: src/io/local_catalogues.c:905
 msgid "Failed\n"
 msgstr "Échec\n"
 
-#: src/io/local_catalogues.c:908
+#: src/io/local_catalogues.c:909
 #, c-format
 msgid "Found %d trixels:\n"
 msgstr "Trouvé %d trixels :\n"
@@ -30540,12 +30776,12 @@ msgstr "Utilisation du fichier correspondant le plus récent : %s\n"
 msgid "Using the closest matching file: %s\n"
 msgstr "Utilisation du fichier le plus proche : %s\n"
 
-#: src/io/remote_catalogues.c:348
+#: src/io/remote_catalogues.c:350
 #, c-format
 msgid "Could not parse AAVSO chart buffer: %s\n"
 msgstr "Impossible d'analyser la mémoire tampon de la carte AAVSO : %s\n"
 
-#: src/io/remote_catalogues.c:540
+#: src/io/remote_catalogues.c:542
 #, c-format
 msgid ""
 "A corrupted version of %s was found in cache but cannot be deleted, "
@@ -30554,20 +30790,20 @@ msgstr ""
 "Une version corrompue de %s a été trouvée dans le cache, mais ne peut pas "
 "être supprimée, ce qui interrompt le processus.\n"
 
-#: src/io/remote_catalogues.c:575 src/io/remote_catalogues.c:953
+#: src/io/remote_catalogues.c:577
 #, c-format
 msgid "Using already downloaded catalogue %s\n"
 msgstr "Utilisation du catalogue déjà téléchargé %s\n"
 
-#: src/io/remote_catalogues.c:583
+#: src/io/remote_catalogues.c:585
 msgid "Offline: cannot download catalog\n"
 msgstr "Hors ligne : impossible de télécharger le catalogue\n"
 
-#: src/io/remote_catalogues.c:601
+#: src/io/remote_catalogues.c:603
 msgid "Contacting server\n"
 msgstr "Contacte le serveur\n"
 
-#: src/io/remote_catalogues.c:642
+#: src/io/remote_catalogues.c:644
 #, c-format
 msgid ""
 "Error: unable to retrieve the remote catalogue from the server at %s. This "
@@ -30587,66 +30823,10 @@ msgstr ""
 "Catalog_Installer.py. Cette solution est plus rapide et ne dépend pas de "
 "serveurs tiers.\n"
 
-#: src/io/remote_catalogues.c:655
+#: src/io/remote_catalogues.c:657
 #, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
 msgstr "Impossible de créer le fichier de catalogue %s (erreur générique)\n"
-
-#: src/io/remote_catalogues.c:700
-msgid "Offline, cannot retrieve URL.\n"
-msgstr "Hors ligne, impossible de récupérer l'URL.\n"
-
-#: src/io/remote_catalogues.c:730
-msgid "Offline: cannot fetch catalog\n"
-msgstr "Hors ligne : impossible de récupérer le catalogue\n"
-
-#: src/io/remote_catalogues.c:796
-msgid ""
-"Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few "
-"seconds to complete...\n"
-msgstr ""
-"Soumission d'une demande de recherche par cônes pour le catalogue Gaia DR3 "
-"de l'ESA. Cette opération peut prendre quelques secondes...\n"
-
-#: src/io/remote_catalogues.c:798
-msgid "Error submitting conesearch request.\n"
-msgstr "Erreur dans la requête.\n"
-
-#: src/io/remote_catalogues.c:805
-msgid "Job id not found in the response.\n"
-msgstr "L'identifiant du job n'a pas été trouvé dans la réponse.\n"
-
-#. Avoid infinite loop
-#: src/io/remote_catalogues.c:817
-msgid "Timeout on Gaia DR3 query\n"
-msgstr "Délai d'attente dépassé pour la requête Gaia DR3\n"
-
-#: src/io/remote_catalogues.c:830
-msgid "Gaia DR3 async query failed, unable to continue.\n"
-msgstr "La requête asynchrone Gaia DR3 a échoué, impossible de continuer.\n"
-
-#: src/io/remote_catalogues.c:871
-#, c-format
-msgid "Gaia DR3 conesearch query succeeded: cached as %s\n"
-msgstr "La requête de recherche Gaia DR3 a réussi : mise en cache sous %s\n"
-
-#: src/io/remote_catalogues.c:921
-msgid ""
-"Submitting spectral data request to ESA Gaia DR3 catalog. This may take "
-"several seconds to complete...\n"
-msgstr ""
-"Soumission d'une demande de données spectrales au catalogue Gaia DR3 de "
-"l'ESA. Cette opération peut prendre plusieurs secondes...\n"
-
-#: src/io/remote_catalogues.c:931
-msgid "Using already downloaded datalink product\n"
-msgstr "Utilisation du catalogue déjà téléchargé\n"
-
-#: src/io/remote_catalogues.c:947
-#, c-format
-msgid "Gaia DR3 datalink query succeeded: cached as %s\n"
-msgstr ""
-"La requête de liaison de données Gaia DR3 a réussi : mise en cache sous %s\n"
 
 #: src/io/seqfile.c:141
 msgid ""
@@ -31333,11 +31513,11 @@ msgstr "Tycho-2+NOMAD"
 msgid "Gaia DR3 astrometry"
 msgstr "Gaia DR3 astrométrie"
 
-#: src/io/siril_catalogues.c:292
+#: src/io/siril_catalogues.c:293
 msgid "Gaia DR3 xp_sampled"
 msgstr "Gaia DR3 xp_sampled"
 
-#: src/io/siril_catalogues.c:385
+#: src/io/siril_catalogues.c:387
 #, c-format
 msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
@@ -31346,22 +31526,22 @@ msgstr ""
 "N'a pas trouvé l'ensemble minimal de colonnes nécessaires pour le catalogue "
 "%s, interrompu\n"
 
-#: src/io/siril_catalogues.c:643 src/io/siril_catalogues.c:646
+#: src/io/siril_catalogues.c:645 src/io/siril_catalogues.c:648
 #, c-format
 msgid "Could not open the catalog (%s)\n"
 msgstr "Impossible d'ouvrir le catalogue (%s)\n"
 
-#: src/io/siril_catalogues.c:687
+#: src/io/siril_catalogues.c:689
 msgid "No columns found in the catalogue\n"
 msgstr "Aucune colonne trouvée dans le catalogue\n"
 
 #. checking that current line has a number of columns consistent with the headers
-#: src/io/siril_catalogues.c:707
+#: src/io/siril_catalogues.c:709
 #, c-format
 msgid "Malformed line found %s\n"
 msgstr "Ligne malformée trouvée %s\n"
 
-#: src/io/siril_catalogues.c:740
+#: src/io/siril_catalogues.c:742
 #, c-format
 msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
@@ -31370,31 +31550,31 @@ msgstr ""
 "Le catalogue %s a été lu mais aucun élément n'a été trouvé dans le cône de "
 "vue, rien à montrer.\n"
 
-#: src/io/siril_catalogues.c:948
+#: src/io/siril_catalogues.c:950
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr ""
 "Il n'est pas possible de corriger les vitesses, les ra/dec seront utilisés "
 "tels quels.\n"
 
-#: src/io/siril_catalogues.c:949
+#: src/io/siril_catalogues.c:951
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr ""
 "Pour étiqueter les objets du système solaire, veuillez vous référer à la "
 "commande conesearch\n"
 
-#: src/io/siril_catalogues.c:1037
+#: src/io/siril_catalogues.c:1039
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr ""
 "pas d'information sur DATE-OBS, ne peut pas rendre compte des mouvements "
 "propres des étoiles\n"
 
-#: src/io/siril_catalogues.c:1040
+#: src/io/siril_catalogues.c:1042
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr ""
 "Ce catalogue ne contient pas d'informations sur le mouvement propre, il ne "
 "sera pas calculé.\n"
 
-#: src/io/siril_catalogues.c:1102
+#: src/io/siril_catalogues.c:1104
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
@@ -31403,13 +31583,13 @@ msgstr ""
 "L'enregistrement de la liste des objets pour le catalogue %s qui ne contient "
 "pas d'informations sur le nom n'est pas possible.\n"
 
-#: src/io/siril_catalogues.c:1106
+#: src/io/siril_catalogues.c:1108
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr ""
 "N'affiche pas les étiquettes d'objets car il n'y a pas d'affichage, ignorant "
 "ainsi\n"
 
-#: src/io/siril_catalogues.c:1110
+#: src/io/siril_catalogues.c:1112
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
@@ -31418,12 +31598,12 @@ msgstr ""
 "N'affiche pas les étiquettes d'objets pour le catalogue %s qui n'a pas "
 "d'informations sur le nom.\n"
 
-#: src/io/siril_catalogues.c:1130
+#: src/io/siril_catalogues.c:1132
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr "Utilisation du code d'observatoire par défaut %s\n"
 
-#: src/io/siril_catalogues.c:1134
+#: src/io/siril_catalogues.c:1136
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
@@ -31431,29 +31611,29 @@ msgstr ""
 "N'a pas spécifié de code d'observatoire, utilise le géocentrique par défaut, "
 "les positions peuvent ne pas être exactes.\n"
 
-#: src/io/siril_catalogues.c:1262
+#: src/io/siril_catalogues.c:1264
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "Le catalogue %s a été téléchargé avec succès\n"
 
-#: src/io/siril_catalogues.c:1273
+#: src/io/siril_catalogues.c:1275
 msgid "No item found in the image\n"
 msgstr "Aucun élément n'a été trouvé dans l'image\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1405
+#: src/io/siril_catalogues.c:1407
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr ""
 "%d objets trouvés%s dans l'image (limite mag %.2f) en utilisant le catalogue "
 "%s\n"
 
-#: src/io/siril_catalogues.c:1463
+#: src/io/siril_catalogues.c:1465
 #, c-format
 msgid "List saved to %s\n"
 msgstr "Liste sauvegardée dans %s\n"
 
-#: src/io/siril_catalogues.c:1465
+#: src/io/siril_catalogues.c:1467
 #, c-format
 msgid "Failed to save list to %s\n"
 msgstr "Échec de l'enregistrement de la liste dans %s\n"
@@ -31735,9 +31915,8 @@ msgid "Invalid selection"
 msgstr "Sélection non valide"
 
 #: src/io/siril_pythoncommands.c:905
-#, fuzzy
 msgid "Selection too close to edge of image"
-msgstr "La sélection est plus grande que l'image\n"
+msgstr "Sélection trop proche du bord de l'image"
 
 #: src/io/siril_pythoncommands.c:911 src/io/siril_pythoncommands.c:1004
 #: src/io/siril_pythoncommands.c:1428 src/io/siril_pythoncommands.c:1938
@@ -32340,7 +32519,7 @@ msgstr ""
 msgid "Python module is up-to-date\n"
 msgstr "Le module Python est à jour\n"
 
-#: src/io/siril_pythonmodule.c:2216
+#: src/io/siril_pythonmodule.c:2218
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
@@ -32348,7 +32527,7 @@ msgstr ""
 "Erreur : environnement msys2 détecté. Le support Siril Python ne peut pas "
 "être initialisé correctement.\n"
 
-#: src/io/siril_pythonmodule.c:2219
+#: src/io/siril_pythonmodule.c:2221
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
@@ -32356,7 +32535,7 @@ msgstr ""
 "Pour compléter le processus, assurez-vous d'abord que vous avez une "
 "installation de Python (>=3.9) sur votre ordinateur.\n"
 
-#: src/io/siril_pythonmodule.c:2222
+#: src/io/siril_pythonmodule.c:2224
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
@@ -32364,7 +32543,7 @@ msgstr ""
 "Localisez siril.exe (généralement situé dans C:\\msys64\\mingw64\\bin) et "
 "démarrez-le à partir de là.\n"
 
-#: src/io/siril_pythonmodule.c:2225
+#: src/io/siril_pythonmodule.c:2227
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
@@ -32372,23 +32551,23 @@ msgstr ""
 "La prochaine fois que vous devrez démarrer siril, vous pourrez revenir au "
 "démarrage à partir du terminal msys2.\n"
 
-#: src/io/siril_pythonmodule.c:2254
+#: src/io/siril_pythonmodule.c:2256
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr ""
 "Aucune installation de python n'a été trouvée dans le système ou dans le "
 "bundle, abandon\n"
 
-#: src/io/siril_pythonmodule.c:2291
+#: src/io/siril_pythonmodule.c:2293
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "Erreur dans la commande de création de venv : %s\n"
 
-#: src/io/siril_pythonmodule.c:2298
+#: src/io/siril_pythonmodule.c:2300
 #, c-format
 msgid "Failed to create virtual environment: %s\n"
 msgstr "Échec de la création de l'environnement virtuel : %s\n"
 
-#: src/io/siril_pythonmodule.c:2301
+#: src/io/siril_pythonmodule.c:2303
 #, c-format
 msgid ""
 "Python stderr:\n"
@@ -32397,7 +32576,7 @@ msgstr ""
 "Python stderr :\n"
 "%s\n"
 
-#: src/io/siril_pythonmodule.c:2306
+#: src/io/siril_pythonmodule.c:2308
 msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
@@ -32405,26 +32584,26 @@ msgstr ""
 "Astuce : sous Debian/Ubuntu, vous devrez probablement installer le paquet "
 "« python3-venv ».\n"
 
-#: src/io/siril_pythonmodule.c:2363
+#: src/io/siril_pythonmodule.c:2365
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s\n"
 
-#: src/io/siril_pythonmodule.c:2374
+#: src/io/siril_pythonmodule.c:2376
 msgid "Failed to prepare virtual environment\n"
 msgstr "Échec de la préparation de l'environnement virtuel\n"
 
-#: src/io/siril_pythonmodule.c:2439 src/io/siril_pythonmodule.c:2447
+#: src/io/siril_pythonmodule.c:2441 src/io/siril_pythonmodule.c:2449
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr "Le processus Python (PID : %d) s'est arrêté avec le statut %d\n"
 
-#: src/io/siril_pythonmodule.c:2450
+#: src/io/siril_pythonmodule.c:2452
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr "Processus Python (PID : %d) terminé par le signal %d\n"
 
-#: src/io/siril_pythonmodule.c:2534
+#: src/io/siril_pythonmodule.c:2536
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
@@ -32435,27 +32614,27 @@ msgstr ""
 "encore terminée. Attendez qu'un message de fin de processus apparaisse dans "
 "le journal et réessayez.\n"
 
-#: src/io/siril_pythonmodule.c:2561
+#: src/io/siril_pythonmodule.c:2563
 msgid "Error: failed to create Python connection.\n"
 msgstr "Erreur : échec de la création d'une connexion Python.\n"
 
-#: src/io/siril_pythonmodule.c:2578
+#: src/io/siril_pythonmodule.c:2580
 msgid "Error: Python worker thread not available.\n"
 msgstr "Erreur : le thread de travail Python n'est pas disponible.\n"
 
-#: src/io/siril_pythonmodule.c:2644
+#: src/io/siril_pythonmodule.c:2646
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr ""
 "Erreur dans la recherche du chemin d'accès à python, impossible de lancer "
 "python.\n"
 
-#: src/io/siril_pythonmodule.c:2709
+#: src/io/siril_pythonmodule.c:2711
 #, c-format
 msgid "Warning: failed to add %s to child process list\n"
 msgstr ""
 "Avertissement : impossible d'ajouter %s à la liste des processus enfants\n"
 
-#: src/io/siril_pythonmodule.c:2728
+#: src/io/siril_pythonmodule.c:2730
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "Échec de l'exécution du script Python : %s\n"
@@ -32752,11 +32931,11 @@ msgstr "Image empilée %d"
 msgid "Time to process the last image for live stacking: %s\n"
 msgstr "Temps de traitement de la dernière image pour le live stacking : %s\n"
 
-#: src/main-cli.c:118 src/main.c:130
+#: src/main-cli.c:118 src/main.c:132
 msgid "changing the current working directory as the argument"
 msgstr "changer le répertoire de travail actuel par celui donné en argument"
 
-#: src/main-cli.c:119 src/main.c:131
+#: src/main-cli.c:119 src/main.c:133
 msgid ""
 "run the siril commands script in console mode. If argument is equal to \"-"
 "\", then siril will read stdin input"
@@ -32764,77 +32943,77 @@ msgstr ""
 "exécute le script de commandes siril en mode console. Si l'argument est égal "
 "à \"-\", alors siril lira l'entrée stdin"
 
-#: src/main-cli.c:120 src/main.c:132
+#: src/main-cli.c:120 src/main.c:134
 msgid ""
 "load configuration from file name instead of the default configuration file"
 msgstr ""
 "charger la configuration à partir du nom du fichier au lieu du fichier de "
 "configuration par défaut"
 
-#: src/main-cli.c:121 src/main.c:133
+#: src/main-cli.c:121 src/main.c:135
 msgid "run in console mode with command and log stream through named pipes"
 msgstr ""
 "exécuter en mode console avec flux de commandes et de log redirigés via les "
 "tubes nommés"
 
-#: src/main-cli.c:122 src/main.c:134
+#: src/main-cli.c:122 src/main.c:136
 msgid "specify the path for the read pipe, the one receiving commands"
 msgstr ""
 "spécifier le chemin pour le tube de lecture, celui qui reçoit les messages"
 
-#: src/main-cli.c:123 src/main.c:135
+#: src/main-cli.c:123 src/main.c:137
 msgid "specify the path for the write pipe, the one outputting messages"
 msgstr ""
 "spécifier le chemin d'accès au tuyau d'écriture, celui qui émet les messages"
 
-#: src/main-cli.c:124 src/main.c:136
+#: src/main-cli.c:124 src/main.c:138
 msgid ""
 "print all supported image file formats (depending on installed libraries)"
 msgstr ""
 "imprimer tous les formats de fichier image pris en charge (en fonction des "
 "bibliothèques installées)"
 
-#: src/main-cli.c:125 src/main.c:137
+#: src/main-cli.c:125 src/main.c:139
 msgid "start in offline mode"
 msgstr "démarrer en mode hors ligne"
 
-#: src/main-cli.c:126 src/main.c:138
+#: src/main-cli.c:126 src/main.c:140
 msgid "print the application’s version"
 msgstr "afficher la version de l'application"
 
-#: src/main-cli.c:127 src/main.c:139
+#: src/main-cli.c:127 src/main.c:141
 msgid "print the copyright"
 msgstr "afficher le copyright"
 
-#: src/main-cli.c:170 src/main.c:339
+#: src/main-cli.c:171 src/main.c:342
 #, c-format
 msgid "Welcome to %s v%s\n"
 msgstr "Bienvenue dans %s v%s\n"
 
-#: src/main-cli.c:180 src/main.c:349
+#: src/main-cli.c:181 src/main.c:352
 #, c-format
 msgid "Could not load or create settings file, exiting.\n"
 msgstr "Impossible de charger ou de créer le fichier de paramètres.\n"
 
-#: src/main-cli.c:230 src/main.c:398
+#: src/main-cli.c:231 src/main.c:401
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr ""
 "Le fichier [%s] n'existe pas (à partir du CWD, utiliser le chemin absolu ?)\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:396 src/main.c:643
+#: src/main-cli.c:397 src/main.c:648
 msgid "Siril - A free astronomical image processing software."
 msgstr "Siril - Un logiciel libre de traitement d'images astronomiques."
 
-#: src/main-cli.c:403 src/main.c:661
+#: src/main-cli.c:404 src/main.c:666
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
 "Exécutez “%s --help” pour voir une liste complète des options disponibles de "
 "la ligne de commande."
 
-#: src/main.c:199
+#: src/main.c:201
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
@@ -32844,7 +33023,7 @@ msgstr ""
 "l'interface graphique.\n"
 " Sortie.\n"
 
-#: src/main.c:213 src/main.c:231
+#: src/main.c:215 src/main.c:233
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI:\n"
@@ -32856,7 +33035,7 @@ msgstr ""
 "%s\n"
 "Sortie.\n"
 
-#: src/main.c:279
+#: src/main.c:282
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
 msgstr "Initialisation du support multithreading du FFTW...\n"
@@ -34657,6 +34836,74 @@ msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "L'empilement se fera sans mise à l'échelle (désactivation du 'drizzle')\n"
 
+#~ msgid "Local Gaia DR3 xp_sampled catalogue"
+#~ msgstr "Catalogue local Gaia DR3 xp_sampled"
+
+#~ msgid ""
+#~ "The Gaia archive status indicator is not responding. This does not "
+#~ "necessarily mean the Gaia archive is offline, however if it is then SPCC "
+#~ "will be unavailable. Further information may be available at https://"
+#~ "www.cosmos.esa.int/web/gaia/"
+#~ msgstr ""
+#~ "L'indicateur d'état des archives Gaia ne répond pas. Cela ne signifie pas "
+#~ "nécessairement que les archives Gaia sont hors ligne, mais si c'est le "
+#~ "cas, le SPCC sera indisponible. De plus amples informations sont "
+#~ "disponibles à l'adresse suivante : https://www.cosmos.esa.int/web/gaia/"
+
+#~ msgid "Gaia archive available"
+#~ msgstr "Les archives de Gaia sont disponibles"
+
+#~ msgid "Gaia archive unavailable"
+#~ msgstr "Les archives de Gaia ne sont pas disponibles"
+
+#~ msgid "Unknown Gaia archive status"
+#~ msgstr "Statut inconnu de l'archive Gaia"
+
+#~ msgid "Offline, cannot retrieve URL.\n"
+#~ msgstr "Hors ligne, impossible de récupérer l'URL.\n"
+
+#~ msgid "Offline: cannot fetch catalog\n"
+#~ msgstr "Hors ligne : impossible de récupérer le catalogue\n"
+
+#~ msgid ""
+#~ "Submitting conesearch request to ESA Gaia DR3 catalog. This may take a "
+#~ "few seconds to complete...\n"
+#~ msgstr ""
+#~ "Soumission d'une demande de recherche par cônes pour le catalogue Gaia "
+#~ "DR3 de l'ESA. Cette opération peut prendre quelques secondes...\n"
+
+#~ msgid "Error submitting conesearch request.\n"
+#~ msgstr "Erreur dans la requête.\n"
+
+#~ msgid "Job id not found in the response.\n"
+#~ msgstr "L'identifiant du job n'a pas été trouvé dans la réponse.\n"
+
+#~ msgid "Timeout on Gaia DR3 query\n"
+#~ msgstr "Délai d'attente dépassé pour la requête Gaia DR3\n"
+
+#~ msgid "Gaia DR3 async query failed, unable to continue.\n"
+#~ msgstr "La requête asynchrone Gaia DR3 a échoué, impossible de continuer.\n"
+
+#, c-format
+#~ msgid "Gaia DR3 conesearch query succeeded: cached as %s\n"
+#~ msgstr "La requête de recherche Gaia DR3 a réussi : mise en cache sous %s\n"
+
+#~ msgid ""
+#~ "Submitting spectral data request to ESA Gaia DR3 catalog. This may take "
+#~ "several seconds to complete...\n"
+#~ msgstr ""
+#~ "Soumission d'une demande de données spectrales au catalogue Gaia DR3 de "
+#~ "l'ESA. Cette opération peut prendre plusieurs secondes...\n"
+
+#~ msgid "Using already downloaded datalink product\n"
+#~ msgstr "Utilisation du catalogue déjà téléchargé\n"
+
+#, c-format
+#~ msgid "Gaia DR3 datalink query succeeded: cached as %s\n"
+#~ msgstr ""
+#~ "La requête de liaison de données Gaia DR3 a réussi : mise en cache sous "
+#~ "%s\n"
+
 #~ msgid "Gaia archive running but performing slightly slower"
 #~ msgstr ""
 #~ "Les archives Gaia fonctionnent, mais leur performance est légèrement "
@@ -35141,9 +35388,6 @@ msgstr ""
 #~ msgid "Error: no AI batch size specified\n"
 #~ msgstr "Erreur : aucune taille de lot de l'AI n'a été spécifiée\n"
 
-#~ msgid "Error: no pts_per_row specified\n"
-#~ msgstr "Erreur : aucun pts_per_row n'est spécifié\n"
-
 #~ msgid "Error: no spline order specified\n"
 #~ msgstr "Erreur : aucun ordre spline spécifié\n"
 
@@ -35474,13 +35718,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Le dépôt de scripts en ligne n'est pas activé. Pas de récupération ou de "
 #~ "mise à jour de siril-spcc...\n"
-
-#~ msgid ""
-#~ "Siril was compiled without libgit2 support. Remote repositories cannot be "
-#~ "automatically fetched...\n"
-#~ msgstr ""
-#~ "Siril a été compilé sans le support de libgit2. Les dépôts distants ne "
-#~ "peuvent pas être récupérés automatiquement...\n"
 
 #~ msgid "Configure GraXpert to use the GPU for AI inference, if available"
 #~ msgstr ""
@@ -37603,14 +37840,6 @@ msgstr ""
 #, c-format
 #~ msgid "Catalog APASS size: %d objects\n"
 #~ msgstr "Taille du catalogue APASS : %d objets\n"
-
-#, c-format
-#~ msgid ""
-#~ "Fetch failed with code %ld\n"
-#~ "%s\n"
-#~ msgstr ""
-#~ "Échec de la recherche avec le code %ld\n"
-#~ "%s\n"
 
 #, c-format
 #~ msgid "URL: %s\n"

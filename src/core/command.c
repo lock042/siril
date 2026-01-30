@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -7515,7 +7515,7 @@ int process_link(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed)) {
-		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		siril_log_message(_("Too many files: you should use the 'convert' command and pass the argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
 		free(destroot);
 		return CMD_GENERIC_ERROR;
@@ -10013,12 +10013,12 @@ static int do_pcc(int nb, gboolean spectro) {
 			} else {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
-					cat = CAT_GAIADR3_DIRECT;
+					cat = CAT_REMOTE_GAIA_XPSAMP;
 				else if (!g_strcmp0(arg, "localgaia")) {
 					cat = CAT_LOCAL_GAIA_XPSAMP;
 					if (!local_gaia_xpsamp_available()) {
 						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"), "salmon");
-						cat = CAT_GAIADR3_DIRECT;
+						cat = CAT_REMOTE_GAIA_XPSAMP;
 				
 					}
 				} else {
@@ -10133,7 +10133,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	if (!spectro && cat == CAT_AUTO) {
 		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
-		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_REMOTE_GAIA_XPSAMP;
 	}
 	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),

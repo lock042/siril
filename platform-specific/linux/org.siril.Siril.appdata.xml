@@ -99,6 +99,32 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.1" type="stable" date="2025-01-05">
+      <url type="details">https://siril.org/download/1.4.1</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.0 series. This version focuses on build system
+          improvements, Python scripting fixes, and catalogue system enhancements.
+        </p>
+        <ul>
+          <li>
+            Fixed build error when compiled without libgit2, libjpeg and libcurl
+          </li>
+          <li>
+            Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present
+          </li>
+          <li>
+            Fixed too-strict condition and off-by-one error in sirilpy
+          </li>
+          <li>
+            Fixed sirilpy.FFit class data setter
+          </li>
+          <li>
+            Fixed remote catalogue to avoid dependency on Gaia Archive
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.0" type="stable" date="2025-12-05">
       <url type="details">https://siril.org/download/1.4.0</url>
       <description>

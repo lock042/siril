@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -19,6 +19,8 @@
  */
 
 #include <math.h>
+
+#include "core/siril.h"
 #include "algos/search_objects.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -30,7 +32,6 @@
 #include "io/remote_catalogues.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
-
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
  * for QUERY_SERVER_EPHEMCC and QUERY_SERVER_SIMBAD_PHOTO) and stores the

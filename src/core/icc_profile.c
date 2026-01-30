@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -98,10 +98,11 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
 	if (fit == &gfit && !com.script) {
-		if (com.python_script) {
-			execute_idle_and_wait_for_it(cm_worker, &data);
-		} else {
+		GMainContext *main_context = g_main_context_default();
+		if (g_main_context_is_owner(main_context)) {
 			cm_worker(&data);
+		} else {
+			execute_idle_and_wait_for_it(cm_worker, &data);
 		}
 	}
 }

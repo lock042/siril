@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <glib.h>
 
+void initialize_spcc_mirrors();
 void check_gaia_archive_status();
 void get_spectrum_from_ui(xpsampled *spectrum, int chan);
 void initialize_photometric_cc_dialog();

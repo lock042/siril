@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-03 10:10+0100\n"
+"POT-Creation-Date: 2026-01-05 22:20+0100\n"
 "PO-Revision-Date: 2025-11-28 13:54+0000\n"
 "Last-Translator: Naming-isDifficult <eb.l0ad1ng@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.siril.org/"
@@ -200,7 +200,7 @@ msgstr ""
 "如果参数为空，则纯为处理前的图。"
 
 #: src/gui/uifiles/Median_dialog.ui:297
-#: src/gui/uifiles/composition_dialog.ui:229
+#: src/gui/uifiles/composition_dialog.ui:217
 msgid "Use Luminance"
 msgstr "使用明度通道"
 
@@ -294,7 +294,7 @@ msgid "No Selection"
 msgstr "无选区"
 
 #: src/gui/uifiles/StatWindow.ui:200 src/gui/uifiles/color_calibration.ui:389
-#: src/gui/uifiles/siril.ui:2999 src/compositing/compositing.c:720
+#: src/gui/uifiles/siril.ui:2999 src/compositing/compositing.c:742
 #: src/gui/callbacks.c:949 src/gui/callbacks.c:1332
 msgid "Red"
 msgstr "红色"
@@ -1755,8 +1755,8 @@ msgid "Pixel Size / μm"
 msgstr "像素尺寸 / 微米"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:868 src/gui/cut.c:537 src/gui/cut.c:750
-#: src/gui/photometric_cc.c:1192 src/gui/photometric_cc.c:1302
-#: src/gui/photometric_cc.c:1471
+#: src/gui/photometric_cc.c:1245 src/gui/photometric_cc.c:1355
+#: src/gui/photometric_cc.c:1524
 #, c-format
 msgid "Wavelength / nm"
 msgstr "波长 / nm"
@@ -2483,13 +2483,13 @@ msgid "Multi-layer image composition"
 msgstr "多图层图像合成"
 
 #. don't destroy it on removal from grid
-#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:262
-#: src/compositing/compositing.c:263 src/compositing/compositing.c:568
-#: src/compositing/compositing.c:1612 src/compositing/compositing.c:1613
+#: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:258
+#: src/compositing/compositing.c:259 src/compositing/compositing.c:580
+#: src/compositing/compositing.c:1713 src/compositing/compositing.c:1714
 msgid "not loaded"
 msgstr "未载入"
 
-#: src/gui/uifiles/composition_dialog.ui:247
+#: src/gui/uifiles/composition_dialog.ui:235
 msgid ""
 "In manual alignment mode, sets the x-axis shift.\n"
 "In other alignment modes, shows the x-axis shift applied to the layer."
@@ -2497,11 +2497,11 @@ msgstr ""
 "在手动对齐模式下，设置 x 轴偏移。\n"
 "在其他对齐模式下，显示应用于图层的 x 轴偏移。"
 
-#: src/gui/uifiles/composition_dialog.ui:249
+#: src/gui/uifiles/composition_dialog.ui:237
 msgid "x alignment"
 msgstr "x 对齐"
 
-#: src/gui/uifiles/composition_dialog.ui:260
+#: src/gui/uifiles/composition_dialog.ui:248
 msgid ""
 "In manual alignment mode, sets the y-axis shift.\n"
 "In other alignment modes, shows the y-axis shift applied to the layer."
@@ -2509,11 +2509,11 @@ msgstr ""
 "在手动对齐模式下，设置 y 轴偏移。\n"
 "在其他对齐模式下，显示应用于图层的 y 轴偏移。"
 
-#: src/gui/uifiles/composition_dialog.ui:262
+#: src/gui/uifiles/composition_dialog.ui:250
 msgid "y alignment"
 msgstr "y 对齐"
 
-#: src/gui/uifiles/composition_dialog.ui:273
+#: src/gui/uifiles/composition_dialog.ui:261
 msgid ""
 "In manual alignment mode, sets the rotation around the center of the image.\n"
 "In other alignment modes, shows the rotation applied to the layer around the "
@@ -2524,19 +2524,27 @@ msgstr ""
 "在其他对齐模式下，显示应用于围绕原点的图层的旋转。 \n"
 "旋转以逆时针度数显示。"
 
-#: src/gui/uifiles/composition_dialog.ui:276
+#: src/gui/uifiles/composition_dialog.ui:264
 msgid "rotation"
 msgstr "旋转"
 
-#: src/gui/uifiles/composition_dialog.ui:289 src/compositing/compositing.c:284
+#: src/gui/uifiles/composition_dialog.ui:277 src/compositing/compositing.c:280
 msgid "Set rotation center for this layer"
 msgstr "设置此图层的旋转中心"
 
-#: src/gui/uifiles/composition_dialog.ui:329 src/gui/uifiles/pixelmath.ui:704
+#. don't destroy it on removal from grid
+#. Replace GtkFileChooserButton with GtkButton
+#: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
+#: src/compositing/compositing.c:1676
+#, fuzzy
+msgid "(None)"
+msgstr "无"
+
+#: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
 msgstr "总曝光时间"
 
-#: src/gui/uifiles/composition_dialog.ui:333 src/gui/uifiles/pixelmath.ui:708
+#: src/gui/uifiles/composition_dialog.ui:334 src/gui/uifiles/pixelmath.ui:708
 msgid ""
 "Sum of the exposure times of the different images used for the composition. "
 "This will change the value of some keywords such as STACKCNT (number of "
@@ -2545,11 +2553,11 @@ msgstr ""
 "用于合成的不同图像的曝光时间总和。这将改变一些关键字的值，例如 STACKCNT（堆叠"
 "的帧数）和 LIVETIME（总曝光量）。"
 
-#: src/gui/uifiles/composition_dialog.ui:351
+#: src/gui/uifiles/composition_dialog.ui:352
 msgid "Linear match"
 msgstr "线性匹配"
 
-#: src/gui/uifiles/composition_dialog.ui:355
+#: src/gui/uifiles/composition_dialog.ui:356
 msgid ""
 "Linear match the input layer images to the first layer.\n"
 "This is important if you are not coloring the layers with pure R, pure G and "
@@ -2558,11 +2566,11 @@ msgstr ""
 "线性匹配输入图层图像与第一图层。 \n"
 "如果您没有用纯 R、纯 G 和纯 B 对图层进行着色，这一点很重要。"
 
-#: src/gui/uifiles/composition_dialog.ui:367
+#: src/gui/uifiles/composition_dialog.ui:368
 msgid "Adjust layers brightness"
 msgstr "调整图层亮度"
 
-#: src/gui/uifiles/composition_dialog.ui:371
+#: src/gui/uifiles/composition_dialog.ui:372
 msgid ""
 "Automatically adjust the brightness of the colours picked for layers so that "
 "they don't overflow when compositing (based on max value for each image). "
@@ -2571,43 +2579,43 @@ msgstr ""
 "自动调整各个图层的亮度，使之在合成中不会溢出（基于每幅图像的最大值）。色调不"
 "会改变。"
 
-#: src/gui/uifiles/composition_dialog.ui:384
+#: src/gui/uifiles/composition_dialog.ui:385
 msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
 msgstr "明度为基础的彩色合成类型。描述了在明度数据上添加彩色信息的方法。"
 
-#: src/gui/uifiles/composition_dialog.ui:387
+#: src/gui/uifiles/composition_dialog.ui:388
 msgid "HSL composition"
 msgstr "HSL合成"
 
-#: src/gui/uifiles/composition_dialog.ui:388
+#: src/gui/uifiles/composition_dialog.ui:389
 msgid "HSV composition"
 msgstr "HSV合成"
 
-#: src/gui/uifiles/composition_dialog.ui:389
+#: src/gui/uifiles/composition_dialog.ui:390
 msgid "CIE L*a*b* composition"
 msgstr "CIE L*a*b* 合成"
 
-#: src/gui/uifiles/composition_dialog.ui:432
+#: src/gui/uifiles/composition_dialog.ui:433
 msgid "Use this alignment method:"
 msgstr "使用此对齐方法:"
 
-#: src/gui/uifiles/composition_dialog.ui:445
+#: src/gui/uifiles/composition_dialog.ui:446
 msgid "and this framing method:"
 msgstr "以及此构图方式："
 
-#: src/gui/uifiles/composition_dialog.ui:473 src/gui/uifiles/siril.ui:1108
+#: src/gui/uifiles/composition_dialog.ui:474 src/gui/uifiles/siril.ui:1108
 #: src/compositing/align_rgb.c:47
 msgid "Image pattern alignment (planetary/deep-sky)"
 msgstr "图像模式对齐（行星/深空）"
 
-#: src/gui/uifiles/composition_dialog.ui:474 src/gui/uifiles/siril.ui:1099
+#: src/gui/uifiles/composition_dialog.ui:475 src/gui/uifiles/siril.ui:1099
 #: src/compositing/align_rgb.c:45
 msgid "One star registration (deep-sky)"
 msgstr "单星对齐（深空）"
 
-#: src/gui/uifiles/composition_dialog.ui:487
+#: src/gui/uifiles/composition_dialog.ui:488
 #, fuzzy
 msgid ""
 "Select framing method for deep-sky alignment:\n"
@@ -2622,23 +2630,23 @@ msgstr ""
 "最小化 - 构图到对齐图像的交集区域；\n"
 "重心 - 构图到对齐图像像素的重心。"
 
-#: src/gui/uifiles/composition_dialog.ui:493
+#: src/gui/uifiles/composition_dialog.ui:494
 msgid "First channel"
 msgstr "首通道"
 
-#: src/gui/uifiles/composition_dialog.ui:494
+#: src/gui/uifiles/composition_dialog.ui:495
 msgid "Min"
 msgstr "最小化"
 
-#: src/gui/uifiles/composition_dialog.ui:495
+#: src/gui/uifiles/composition_dialog.ui:496
 msgid "COG"
 msgstr "重心法"
 
-#: src/gui/uifiles/composition_dialog.ui:505
+#: src/gui/uifiles/composition_dialog.ui:506
 msgid "Align"
 msgstr "对齐"
 
-#: src/gui/uifiles/composition_dialog.ui:509
+#: src/gui/uifiles/composition_dialog.ui:510
 msgid "Automatic alignment using the selected registration method."
 msgstr "使用所选的方法自动对齐。"
 
@@ -5338,7 +5346,7 @@ msgstr "勾选此处将会裁切输出的图像。"
 msgid "Type of algorithm used for rotation"
 msgstr "旋转所用的算法"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:59 src/gui/photometric_cc.c:102
+#: src/gui/uifiles/s_pcc_dialog.ui:59
 msgid "Checking Gaia archive status..."
 msgstr "正在检查Gaia星表状态..."
 
@@ -5543,7 +5551,7 @@ msgstr ""
 msgid "Sensor Type:"
 msgstr "传感器类型："
 
-#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:1010
+#: src/gui/uifiles/s_pcc_dialog.ui:766 src/gui/photometric_cc.c:1063
 msgid "mono"
 msgstr "单色"
 
@@ -5590,7 +5598,7 @@ msgstr ""
 "气压（单位是hPa）。如果勾选了“海平面”则为海平面气压，否则为天文台所在海拔的气"
 "压。"
 
-#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1484
+#: src/gui/uifiles/s_pcc_dialog.ui:879 src/gui/photometric_cc.c:1537
 msgid "sea level"
 msgstr "海平面"
 
@@ -5668,8 +5676,9 @@ msgstr ""
 "Gaia DR3 包含约 3000 万颗恒星的采样光谱数据，星等暗至 17.6 等。"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
-msgid "Local Gaia DR3 xp_sampled catalogue"
-msgstr "本地 Gaia DR3 xp_sampled 星表"
+#, fuzzy
+msgid "Gaia DR3 (local catalogue)"
+msgstr "（本地星表）"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -9292,7 +9301,7 @@ msgstr ""
 "Siril以序列的形式操作图像，Siril可以找到当前目录中的序列，并且用户可以筛选其"
 "中的图像。"
 
-#: src/gui/uifiles/siril.ui:4594 src/gui/callbacks.c:2384
+#: src/gui/uifiles/siril.ui:4594 src/gui/callbacks.c:2382
 msgid "Sequence"
 msgstr "序列"
 
@@ -10357,7 +10366,7 @@ msgstr ""
 msgid "Set second preview"
 msgstr "设置预览二"
 
-#: src/gui/uifiles/siril.ui:7582 src/compositing/compositing.c:2018
+#: src/gui/uifiles/siril.ui:7582 src/compositing/compositing.c:2152
 msgid "Manual registration"
 msgstr "手动对齐"
 
@@ -12167,7 +12176,7 @@ msgid ""
 "Plate solving image with astrometry.net for a field of view of %.2f degrees\n"
 msgstr "使用 astrometry.net 解析 %.2f 度视野的图像\n"
 
-#: src/algos/astrometry_solver.c:891 src/gui/photometric_cc.c:1484
+#: src/algos/astrometry_solver.c:891 src/gui/photometric_cc.c:1537
 msgid "local"
 msgstr "局部"
 
@@ -12213,7 +12222,7 @@ msgstr "尝试半径为 %3.1f 度的临近解析\n"
 msgid "Plate Solve"
 msgstr "图像解析"
 
-#: src/algos/astrometry_solver.c:1055 src/gui/callbacks.c:1988
+#: src/algos/astrometry_solver.c:1055 src/gui/callbacks.c:1986
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr "将焦距%.2f和像素尺寸%.2f保存为缺省值\n"
@@ -12697,7 +12706,7 @@ msgstr "参考星：处理中...\n"
 
 #: src/algos/comparison_stars.c:440 src/core/command.c:9923
 #: src/core/command.c:10635 src/core/command.c:10788 src/core/command.c:10808
-#: src/io/siril_catalogues.c:1118 src/io/siril_catalogues.c:1167
+#: src/io/siril_catalogues.c:1120 src/io/siril_catalogues.c:1169
 msgid "This command only works on plate solved images\n"
 msgstr "此命令仅适用于已解析的图像\n"
 
@@ -13011,7 +13020,7 @@ msgid ""
 "considered available)\n"
 msgstr "%s: 没有足够的内存来执行操作（每线程需要%s，而仅%s可用)\n"
 
-#: src/algos/geometry.c:817 src/compositing/compositing.c:2061
+#: src/algos/geometry.c:817 src/compositing/compositing.c:2195
 msgid "Crop Sequence"
 msgstr "裁切整个序列"
 
@@ -13206,39 +13215,39 @@ msgid ""
 "and limit magnitude %.2f\n"
 msgstr "从 PCC 的本地星表中%s获取恒星%s，半径为%.2f度，极限星等为%.2f\n"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:985
 msgid "SPCC"
 msgstr "SPCC"
 
-#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:995
+#: src/algos/photometric_cc.c:943 src/algos/photometric_cc.c:985
 msgid "PCC"
 msgstr "PCC"
 
-#: src/algos/photometric_cc.c:959
+#: src/algos/photometric_cc.c:960
 msgid "No valid catalog found.\n"
 msgstr "未找到有效的星表。\n"
 
-#: src/algos/photometric_cc.c:962
+#: src/algos/photometric_cc.c:963
 #, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
 msgstr "从 PCC 的在线星表 %s 获取恒星，半径为 %.2f 度，极限星等为 %.2f\n"
 
-#: src/algos/photometric_cc.c:996
+#: src/algos/photometric_cc.c:986
 #, c-format
 msgid "Photometric CC (algorithm: %s)"
 msgstr "测光发色彩校准（算法：%s）"
 
-#: src/algos/photometric_cc.c:1003
+#: src/algos/photometric_cc.c:993
 msgid "Catalog error, no stars identified!\n"
 msgstr "星表错误，无星点可识别！\n"
 
-#: src/algos/photometric_cc.c:1012
+#: src/algos/photometric_cc.c:1002
 msgid "Spectrophotometric Color Calibration succeeded.\n"
 msgstr "分光光度色彩校准成功。\n"
 
-#: src/algos/photometric_cc.c:1014
+#: src/algos/photometric_cc.c:1004
 msgid "Photometric Color Calibration succeeded.\n"
 msgstr "测光法色彩校准成功。\n"
 
@@ -13418,103 +13427,102 @@ msgstr "错误：小波文件报告的计划数超出范围。\n"
 msgid "Unknown transform\n"
 msgstr "未知的转换\n"
 
-#: src/algos/search_objects.c:58
+#: src/algos/search_objects.c:59
 msgid "SIMBAD server returned:\n"
 msgstr "SIMBAD 服务器返回：\n"
 
-#: src/algos/search_objects.c:61 src/algos/search_objects.c:137
+#: src/algos/search_objects.c:62 src/algos/search_objects.c:138
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: src/algos/search_objects.c:134 src/io/remote_catalogues.c:269
+#: src/algos/search_objects.c:135 src/io/remote_catalogues.c:271
 msgid "IMCCE server returned:\n"
 msgstr "IMCCE服务器返回：\n"
 
-#: src/algos/search_objects.c:155
+#: src/algos/search_objects.c:156
 #, c-format
 msgid "Unsupported object type in response: %s\n"
 msgstr "响应中不支持的天体类型: %s\n"
 
-#: src/algos/search_objects.c:191 src/algos/search_objects.c:199
+#: src/algos/search_objects.c:192 src/algos/search_objects.c:200
 #, c-format
 msgid "Could not parse the server response: %s\n"
 msgstr "无法解析服务器响应：%s\n"
 
-#: src/algos/search_objects.c:238
+#: src/algos/search_objects.c:239
 #, c-format
 msgid "Found %s"
 msgstr "找到%s"
 
-#: src/algos/search_objects.c:240
+#: src/algos/search_objects.c:241
 #, c-format
 msgid " (aka %s)"
 msgstr " （或为%s）"
 
-#: src/algos/search_objects.c:241
+#: src/algos/search_objects.c:242
 #, c-format
 msgid " at coordinates: %s, %s\n"
 msgstr " 于座标：%s,%s\n"
 
-#: src/algos/search_objects.c:268
+#: src/algos/search_objects.c:269
 #, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
 msgstr "天体 %s （完全匹配：%s）在星表 %s 中被找到：%s, %s\n"
 
-#: src/algos/search_objects.c:291
+#: src/algos/search_objects.c:292
 #, c-format
 msgid "Object %s record was found but is not within the bounds of the image\n"
 msgstr "找到天体 %s 的记录，但不在图像范围内\n"
 
-#: src/algos/search_objects.c:297
+#: src/algos/search_objects.c:298
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
 msgstr "找不到天体 %s 或处理它时遇到错误\n"
 
-#: src/algos/search_objects.c:440 src/io/remote_catalogues.c:727
-#: src/io/siril_catalogues.c:615
+#: src/algos/search_objects.c:441 src/io/siril_catalogues.c:617
 msgid ""
 "Siril was compiled without networking support, cannot do this operation\n"
 msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
 
-#: src/algos/search_objects.c:452
+#: src/algos/search_objects.c:453
 #, c-format
 msgid "Searching %s in CDSESAME...\n"
 msgstr "正在 CDSESAME 中搜索 %s...\n"
 
-#: src/algos/search_objects.c:460
+#: src/algos/search_objects.c:461
 #, c-format
 msgid "Searching %s in VIZIER...\n"
 msgstr "正在 VIZIER 中搜索 %s...\n"
 
-#: src/algos/search_objects.c:469
+#: src/algos/search_objects.c:470
 #, c-format
 msgid "Searching %s in SIMBAD...\n"
 msgstr "正在 SIMBAD 中搜索 %s...\n"
 
 #. should have been caught before... just in case
-#: src/algos/search_objects.c:474 src/io/remote_catalogues.c:245
+#: src/algos/search_objects.c:475 src/io/remote_catalogues.c:247
 msgid ""
 "This command only works on images that have observation date information\n"
 msgstr "此命令仅适用于具有观测日期信息的图像\n"
 
-#: src/algos/search_objects.c:484
+#: src/algos/search_objects.c:485
 #, c-format
 msgid "Searching for solar system object %s on observation date %s\n"
 msgstr "搜索太阳系天体%s于观测日期%s\n"
 
-#: src/algos/search_objects.c:487
+#: src/algos/search_objects.c:488
 msgid ""
 "No topocentric data available. Set to geocentric, positions may be "
 "inaccurate\n"
 msgstr "没有可用的观测中心数据。设置为地心，位置可能不准确\n"
 
-#: src/algos/search_objects.c:490
+#: src/algos/search_objects.c:491
 #, c-format
 msgid "at lat: %f, long: %f, alt: %f\n"
 msgstr "位于 lat: %f, long: %f, alt: %f\n"
 
-#: src/algos/search_objects.c:502
+#: src/algos/search_objects.c:503
 #, c-format
 msgid "Searching %s in SIMBAD\n"
 msgstr "正在 SIMBAD 中搜索 %s\n"
@@ -13570,7 +13578,7 @@ msgstr "文件%s已被创建。\n"
 msgid "FindStar"
 msgstr "星点侦测"
 
-#: src/algos/star_finder.c:1341 src/compositing/compositing.c:1869
+#: src/algos/star_finder.c:1341 src/compositing/compositing.c:2003
 #: src/io/sequence.c:2377 src/io/sequence.c:2395
 #: src/registration/applyreg.c:342 src/registration/applyreg.c:1112
 #: src/registration/applyreg.c:1293 src/registration/comet.c:138
@@ -13663,12 +13671,12 @@ msgstr "KOMBAT 对齐（行星/深空）"
 msgid "Error in channels alignment."
 msgstr "通道对齐错误。"
 
-#: src/compositing/align_rgb.c:154 src/compositing/compositing.c:974
-#: src/compositing/compositing.c:1012
+#: src/compositing/align_rgb.c:154 src/compositing/compositing.c:1067
+#: src/compositing/compositing.c:1105
 msgid "Error in layers alignment."
 msgstr "图层对齐错误。"
 
-#: src/compositing/align_rgb.c:156 src/compositing/compositing.c:1017
+#: src/compositing/align_rgb.c:156 src/compositing/compositing.c:1110
 #: src/gui/registration.c:1234
 msgid "Registration complete."
 msgstr "对齐完成。"
@@ -13677,7 +13685,7 @@ msgstr "对齐完成。"
 msgid "FITS and TIFF files"
 msgstr ""
 
-#: src/compositing/compositing.c:207
+#: src/compositing/compositing.c:208
 msgid ""
 "Warning: memory limit check determines that fewer than 3 images of this size "
 "can be composited. RGB composition is not possible without freeing up more "
@@ -13686,7 +13694,7 @@ msgstr ""
 "警告：内存限制检查确定可以合成的此大小的图像少于 3 个。如果不释放更多内存，就"
 "不可能进行 RGB 合成。\n"
 
-#: src/compositing/compositing.c:209
+#: src/compositing/compositing.c:210
 msgid ""
 "Warning: memory limit check determines that fewer than 4 images of this size "
 "can be composited. LRGB composition is not possible without freeing up more "
@@ -13695,7 +13703,7 @@ msgstr ""
 "警告：内存限制检查确定可以合成的此大小的图像少于 4 个。如果不释放更多内存，就"
 "不可能进行 LRGB 组合。\n"
 
-#: src/compositing/compositing.c:211
+#: src/compositing/compositing.c:212
 #, c-format
 msgid ""
 "Based on the available memory and initial image dimensions, up to %d images "
@@ -13713,61 +13721,76 @@ msgstr ""
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
-#: src/compositing/compositing.c:496
+#: src/compositing/compositing.c:503
 msgid "Deep Sky (two-step global star registration)"
 msgstr "深空（两步全局星点对齐）"
 
-#: src/compositing/compositing.c:497
+#: src/compositing/compositing.c:504
 msgid "Planetary (DFT image pattern alignment)"
 msgstr "行星（DFT图像模式对齐）"
 
-#: src/compositing/compositing.c:498
+#: src/compositing/compositing.c:505
 msgid "Planetary (KOMBAT image pattern alignment)"
 msgstr "行星（KOMBAT图像模式对齐）"
 
-#: src/compositing/compositing.c:499
+#: src/compositing/compositing.c:506
 msgid "Manual alignment"
 msgstr "手动对齐"
 
-#: src/compositing/compositing.c:607
+#: src/compositing/compositing.c:579
+#, fuzzy
+msgid "Select source image"
+msgstr "选择图像"
+
+#: src/compositing/compositing.c:619
 msgid "Could not display image, unloading it\n"
 msgstr "无法显示图像\n"
 
-#: src/compositing/compositing.c:615
+#: src/compositing/compositing.c:627
 msgid "Unsaved compositing result"
 msgstr "合成结果未保存"
 
-#: src/compositing/compositing.c:617
+#: src/compositing/compositing.c:629
 msgid "Compositing result image"
 msgstr "合成最终目标图像"
 
-#: src/compositing/compositing.c:697 src/gui/epf.c:294 src/gui/merge_cfa.c:97
+#: src/compositing/compositing.c:697
+#, fuzzy
+msgid "Error: target_layer not specified\n"
+msgstr "错误：未指定pts_per_row（每行的点数）\n"
+
+#: src/compositing/compositing.c:706
+#, fuzzy
+msgid "Error: layer not found\n"
+msgstr "错误：图层超出范围。\n"
+
+#: src/compositing/compositing.c:714 src/gui/epf.c:294 src/gui/merge_cfa.c:97
 #: src/gui/merge_cfa.c:111 src/gui/merge_cfa.c:124 src/gui/merge_cfa.c:137
 #: src/gui/remixer.c:1053 src/gui/remixer.c:1142
 msgid "Error: image could not be loaded"
 msgstr "错误：无法载入图像"
 
-#: src/compositing/compositing.c:697
+#: src/compositing/compositing.c:715
 msgid ""
 "The maximum number of images of this size has been reached based on "
 "available memory limits."
 msgstr "根据可用内存限制，已达到此大小的图像的最大数量。"
 
-#: src/compositing/compositing.c:708 src/compositing/compositing.c:713
+#: src/compositing/compositing.c:728 src/compositing/compositing.c:734
 #: src/core/preprocess.c:1029 src/core/preprocess.c:1030
 #, c-format
 msgid "<span foreground=\"red\">ERROR</span>"
 msgstr "<span foreground=\"red\">错误</span>"
 
-#: src/compositing/compositing.c:709
+#: src/compositing/compositing.c:730
 msgid "Cannot load the file, See the log for more information."
 msgstr "文件无法载入，请查询日志以获取更多信息。"
 
-#: src/compositing/compositing.c:714
+#: src/compositing/compositing.c:736
 msgid "Only single channel images can be loaded"
 msgstr "只有单通道图像可被载入"
 
-#: src/compositing/compositing.c:737
+#: src/compositing/compositing.c:759
 msgid ""
 "ICC profile differs to that of the first image loaded. Converting this image "
 "to match the first one loaded.\n"
@@ -13775,7 +13798,7 @@ msgstr ""
 "ICC 色彩特性文件与载入的第一幅图像的特性文件不同。转换此图像以匹配载入的第一"
 "幅图像。\n"
 
-#: src/compositing/compositing.c:741
+#: src/compositing/compositing.c:763
 msgid ""
 "Input images have inconsistent ICC profiles. First image had no ICC profile. "
 "All input layers will be treated as raw data.\n"
@@ -13783,74 +13806,79 @@ msgstr ""
 "输入图像的 ICC 色彩特性文件不一致。第一幅图像没有 ICC 色彩特性文件。所有输入"
 "图层都将被视为原始数据。\n"
 
-#: src/compositing/compositing.c:753
+#: src/compositing/compositing.c:775
 msgid "The first loaded image should have the greatest sizes for now\n"
 msgstr "第一个载入的图像需要有最大的尺寸\n"
 
-#: src/compositing/compositing.c:754
+#: src/compositing/compositing.c:776
 #, c-format
 msgid "NOT OK %ux%u"
 msgstr "NOT OK %ux%u"
 
-#: src/compositing/compositing.c:756
+#: src/compositing/compositing.c:779
 msgid "The first loaded image should have the greatest sizes for now"
 msgstr "第一个载入的图像需要具有最大的尺寸"
 
-#: src/compositing/compositing.c:759
+#: src/compositing/compositing.c:782
 #, c-format
 msgid "Resizing the loaded image from %dx%d to %dx%d\n"
 msgstr "将当前载入图像尺寸从 %dx%d 改变为 %dx%d\n"
 
-#: src/compositing/compositing.c:762
+#: src/compositing/compositing.c:785
 #, c-format
 msgid "OK upscaled from %ux%u"
 msgstr "将%ux%u放大完成"
 
-#: src/compositing/compositing.c:768
+#: src/compositing/compositing.c:792
 msgid "Image loaded, and upscaled"
 msgstr "图像载入并放大完成"
 
-#: src/compositing/compositing.c:774
+#: src/compositing/compositing.c:798
 #, c-format
 msgid "OK %ux%u"
 msgstr "OK %ux%u"
 
-#: src/compositing/compositing.c:776
+#: src/compositing/compositing.c:800
 msgid "Image loaded"
 msgstr "图像载入"
 
-#: src/compositing/compositing.c:826
+#: src/compositing/compositing.c:853
+#, fuzzy
+msgid "Error: Could not create file chooser dialog\n"
+msgstr "错误：无法解析 -from 值。\n"
+
+#: src/compositing/compositing.c:919
 msgid "You must at least load two layers before!\n"
 msgstr "必须先期载入至少两个图层！\n"
 
-#: src/compositing/compositing.c:827 src/filters/wavelets.c:258
+#: src/compositing/compositing.c:920 src/filters/wavelets.c:258
 #: src/filters/wavelets.c:267 src/filters/wavelets.c:328 src/gui/colors.c:579
-#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1156
+#: src/gui/nina_light_curve.c:263 src/gui/photometric_cc.c:1209
 #: src/gui/script_menu.c:598 src/io/siril_pythoncommands.c:1136
 msgid "Warning"
 msgstr "警告"
 
-#: src/compositing/compositing.c:916
+#: src/compositing/compositing.c:1009
 #, c-format
 msgid "NOT OK: %ux%u"
 msgstr "NOT OK: %ux%u"
 
-#: src/compositing/compositing.c:922
+#: src/compositing/compositing.c:1015
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
 msgstr "图像尺寸不一致。这可能是先前对齐操作的结果。请重新加载输入图像。\n"
 
-#: src/compositing/compositing.c:964
+#: src/compositing/compositing.c:1057
 #, c-format
 msgid "Starting registration using method: %s\n"
 msgstr "开始对齐，使用方法：%s\n"
 
-#: src/compositing/compositing.c:991
+#: src/compositing/compositing.c:1084
 msgid "Incomplete alignment"
 msgstr "不完全对齐"
 
-#: src/compositing/compositing.c:992
+#: src/compositing/compositing.c:1085
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
@@ -13860,7 +13888,7 @@ msgstr ""
 "况下，必须重新加载图像才能重试对齐。）"
 
 #. Register button was pressed, we ask for confirmation
-#: src/compositing/compositing.c:995 src/gui/keywords_tree.c:196
+#: src/compositing/compositing.c:1088 src/gui/keywords_tree.c:196
 #: src/gui/keywords_tree.c:602 src/gui/mouse_action_preferences.c:117
 #: src/gui/preferences.c:1106 src/gui/python_gui.c:691 src/gui/python_gui.c:719
 #: src/gui/python_gui.c:730 src/gui/python_gui.c:759 src/gui/python_gui.c:785
@@ -13869,20 +13897,20 @@ msgstr ""
 msgid "Proceed"
 msgstr "继续"
 
-#: src/compositing/compositing.c:1004
+#: src/compositing/compositing.c:1097
 msgid "Using Luminance channel as reference.\n"
 msgstr "使用明度通道作为参考。\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
-#: src/compositing/compositing.c:1117
+#: src/compositing/compositing.c:1210
 msgid "An image area must be selected for align"
 msgstr "必须选定一个区域用于对齐"
 
-#: src/compositing/compositing.c:1123
+#: src/compositing/compositing.c:1216
 msgid "At least 2 channels must be loaded for align"
 msgstr "必须载入至少两个通道用于对齐"
 
-#: src/compositing/compositing.c:1197
+#: src/compositing/compositing.c:1290
 msgid ""
 "Attention: channels are dated more than 24 hours apart. DATE_OBS set to the "
 "earliest observation start date but for some purposes this field may be of "
@@ -13893,20 +13921,30 @@ msgstr ""
 "某些目的，该字段的用途可能有限（例如，太阳系天体可能在通道之间发生了显著移"
 "动）。\n"
 
-#: src/compositing/compositing.c:1658
+#: src/compositing/compositing.c:1760
 msgid "No overflow with the current colours, redrawing only\n"
 msgstr "当前色彩无溢出，仅执行重绘\n"
 
-#: src/compositing/compositing.c:1661
+#: src/compositing/compositing.c:1763
 msgid "Nothing to adjust, no overflow\n"
 msgstr "无需要校准，无溢出\n"
 
-#: src/compositing/compositing.c:1694
+#: src/compositing/compositing.c:1796
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
 msgstr "重新调整图层 %d 到 %g 倍亮\n"
 
-#: src/compositing/compositing.c:1755
+#: src/compositing/compositing.c:1854
+#, fuzzy
+msgid "No images to reload.\n"
+msgstr "图像未载入"
+
+#: src/compositing/compositing.c:1862 src/compositing/compositing.c:1877
+#, fuzzy
+msgid "Reloading image"
+msgstr "保存图像 %s"
+
+#: src/compositing/compositing.c:1889
 msgid "All images reloaded successfully.\n"
 msgstr "已成功重新加载所有图像。\n"
 
@@ -13915,7 +13953,7 @@ msgstr "已成功重新加载所有图像。\n"
 #. Tests if the file is in the CWD
 #. Is the current image properly plate solved
 #. fail
-#: src/compositing/compositing.c:1768 src/compositing/compositing.c:1793
+#: src/compositing/compositing.c:1902 src/compositing/compositing.c:1927
 #: src/core/icc_profile.c:1200 src/core/icc_profile.c:1210
 #: src/core/icc_profile.c:1241 src/filters/fft.c:585 src/filters/fft.c:591
 #: src/filters/fft.c:610 src/gui/PSF_list.c:303 src/gui/PSF_list.c:308
@@ -13934,74 +13972,74 @@ msgstr "已成功重新加载所有图像。\n"
 msgid "Error"
 msgstr "错误"
 
-#: src/compositing/compositing.c:1768
+#: src/compositing/compositing.c:1902
 msgid "No layers loaded: no files to save"
 msgstr "未加载图层：无保存文件"
 
-#: src/compositing/compositing.c:1784
+#: src/compositing/compositing.c:1918
 msgid "All layer images saved correctly.\n"
 msgstr "所有图层图像均已正确保存。\n"
 
-#: src/compositing/compositing.c:1786
+#: src/compositing/compositing.c:1920
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
 msgstr "保存一个或多个文件时遇到错误。有关详细信息，请查看以前的日志消息。\n"
 
-#: src/compositing/compositing.c:1793
+#: src/compositing/compositing.c:1927
 msgid "At least 2 images must be loaded to perform linear matching."
 msgstr "必须加载至少2个图像才能执行线性匹配。"
 
-#: src/compositing/compositing.c:1815
+#: src/compositing/compositing.c:1949
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr "找不到图层 %d 的线性匹配系数。正在跳过...\n"
 
-#: src/compositing/compositing.c:1819
+#: src/compositing/compositing.c:1953
 msgid "Linear match layers"
 msgstr "线性匹配图层"
 
-#: src/compositing/compositing.c:1821
+#: src/compositing/compositing.c:1955
 msgid "Linear match layers complete"
 msgstr "线性匹配图层完成"
 
-#: src/compositing/compositing.c:1823
+#: src/compositing/compositing.c:1957
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
 msgstr "错误：无法将 %d 个图层与参考图层匹配。\n"
 
-#: src/compositing/compositing.c:1875
+#: src/compositing/compositing.c:2009
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
 msgstr "在CFA模式的序列上进行对齐是个坏主意。\n"
 
-#: src/compositing/compositing.c:1877 src/registration/global.c:125
+#: src/compositing/compositing.c:2011 src/registration/global.c:125
 msgid "Reference Image:\n"
 msgstr "参考帧:\n"
 
-#: src/compositing/compositing.c:1984 src/registration/3stars.c:536
+#: src/compositing/compositing.c:2118 src/registration/3stars.c:536
 #: src/registration/global.c:486 src/registration/shift_methods.c:313
 #: src/registration/shift_methods.c:501 src/registration/shift_methods.c:601
 msgid "Registration finished.\n"
 msgstr "对齐结束。\n"
 
-#: src/compositing/compositing.c:1985 src/registration/applyreg.c:735
+#: src/compositing/compositing.c:2119 src/registration/applyreg.c:735
 #: src/registration/global.c:487
 #, c-format
 msgid "%d image processed.\n"
 msgid_plural "%d images processed.\n"
 msgstr[0] "%d 图像已处理。\n"
 
-#: src/compositing/compositing.c:1988 src/registration/3stars.c:537
+#: src/compositing/compositing.c:2122 src/registration/3stars.c:537
 #: src/registration/global.c:490 src/registration/global.c:1099
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "总计: %d 失败， %d 已对齐。\n"
 
-#: src/compositing/compositing.c:1993 src/registration/global.c:501
+#: src/compositing/compositing.c:2127 src/registration/global.c:501
 msgid "Registration aborted.\n"
 msgstr "对齐操作异常中止。\n"
 
-#: src/compositing/compositing.c:2043
+#: src/compositing/compositing.c:2177
 msgid "Error: internal RGB composition sequence does not exist\n"
 msgstr "错误：内部RGB合成序列不存在\n"
 
@@ -15177,7 +15215,7 @@ msgstr "PSF在通道 %d上，在有%d通道的序列中无法被计算\n"
 
 #. Run PSF
 #: src/core/command.c:4695 src/core/siril_actions.c:435
-#: src/gui/callbacks.c:2552
+#: src/gui/callbacks.c:2550
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "于序列中执行PSF，图层 %d\n"
@@ -15828,7 +15866,7 @@ msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "叠加中出现意外参数“%s”，异常中止。\n"
 
 #: src/core/command.c:8682 src/core/command_line_processor.c:659
-#: src/gui/single_image.c:82 src/main.c:466
+#: src/gui/single_image.c:82 src/main.c:471
 #, c-format
 msgid "No sequence `%s' found.\n"
 msgstr "无法找到序列 %s。\n"
@@ -22137,16 +22175,16 @@ msgstr "%s s"
 msgid "Execution time"
 msgstr "执行时间"
 
-#: src/core/siril_networking.c:56
+#: src/core/siril_networking.c:63
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
 msgstr "初始化 CURL 句柄时出错，URL 功能不可用。\n"
 
-#: src/core/siril_networking.c:77
+#: src/core/siril_networking.c:84
 msgid ""
 "Error configuring CURL with CA bundle. https functionality unavailable.\n"
 msgstr "使用CA捆绑包配置CURL时出错。https功能不可用。\n"
 
-#: src/core/siril_networking.c:110
+#: src/core/siril_networking.c:117
 #, c-format
 msgid ""
 "Server unreachable or unresponsive (HTTP code %ld - for details see https://"
@@ -22155,83 +22193,140 @@ msgstr ""
 "服务器无法访问或无响应（HTTP 代码 %ld - 有关详细信息，请参阅 https://"
 "developer.mozilla.org/en-US/docs/Web/HTTP/Status）\n"
 
-#: src/core/siril_networking.c:118
+#: src/core/siril_networking.c:125
 msgid "Server unreachable or unresponsive"
 msgstr "服务器无法连接或未响应"
 
-#: src/core/siril_networking.c:122
+#: src/core/siril_networking.c:129
 #, c-format
 msgid "URL retrieval failed. libcurl error: [%ld]\n"
 msgstr "URL 检索失败。libcurl 错误：[ %ld ]\n"
 
-#: src/core/siril_networking.c:181
+#: src/core/siril_networking.c:187
+msgid "Error: NULL CURL handle provided.\n"
+msgstr ""
+
+#: src/core/siril_networking.c:210 src/core/siril_networking.c:296
+msgid "Error in curl_easy_setopt() for range request\n"
+msgstr ""
+
+#: src/core/siril_networking.c:219 src/core/siril_networking.c:306
+#, fuzzy
+msgid "Error configuring CURL with CA bundle.\n"
+msgstr "使用CA捆绑包配置CURL时出错。https功能不可用。\n"
+
+#: src/core/siril_networking.c:247 src/core/siril_networking.c:335
+#, fuzzy, c-format
+msgid "HTTP range request failed with code %ld for URL %s\n"
+msgstr ""
+"获取失败，代码为 %ld\n"
+"%s\n"
+
+#: src/core/siril_networking.c:255 src/core/siril_networking.c:343
+#, fuzzy, c-format
+msgid "URL range request failed. libcurl error: %s\n"
+msgstr "URL 检索失败。libcurl 错误：[ %ld ]\n"
+
+#: src/core/siril_networking.c:274
+#, fuzzy
+msgid "Error initialising CURL handle for range request.\n"
+msgstr "初始化 CURL 句柄时出错，URL 功能不可用。\n"
+
+#: src/core/siril_networking.c:363
 #, c-format
 msgid "Error fetching URL: %s\n"
 msgstr "从链接 %s 抓取时出错\n"
 
-#: src/core/siril_networking.c:208
+#: src/core/siril_networking.c:423
+#, fuzzy
+msgid ""
+"Error: Siril was compiled without libcurl support. Network features are "
+"unavailable.\n"
+msgstr "Siril 的编译没有 libgit2 支持。无法自动获取远程存储库...\n"
+
+#: src/core/siril_networking.c:438
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot fetch URL: %s\n"
+msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
+
+#: src/core/siril_networking.c:448 src/core/siril_networking.c:460
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot fetch URL range: "
+"%s\n"
+msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
+
+#: src/core/siril_networking.c:469
+#, fuzzy, c-format
+msgid ""
+"Error: Siril was compiled without libcurl support. Cannot submit POST "
+"request to: %s\n"
+msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
+
+#: src/core/siril_networking.c:490
 msgid "Siril is in online mode.\n"
 msgstr "Siril现为在线模式。\n"
 
-#: src/core/siril_networking.c:208
+#: src/core/siril_networking.c:490
 msgid "Siril is in offline mode.\n"
 msgstr "Siril现为离线模式。\n"
 
-#: src/core/siril_update.c:383
+#: src/core/siril_update.c:417
 msgid "No update check: cannot fetch version file\n"
 msgstr "无法检查更新：无法获取版本文件\n"
 
-#: src/core/siril_update.c:401
+#: src/core/siril_update.c:435
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
 msgstr "发现新版本。请到此处下载更新 <a href=\"%s\">%s</a>\n"
 
-#: src/core/siril_update.c:419
+#: src/core/siril_update.c:453
 msgid "No update check: this is a development version\n"
 msgstr "无法检查更新：这是一个测试版软件\n"
 
-#: src/core/siril_update.c:422
+#: src/core/siril_update.c:456
 msgid "Siril is up to date\n"
 msgstr "Siril已是最新版\n"
 
-#: src/core/siril_update.c:453
+#: src/core/siril_update.c:487
 msgid "Cannot fetch version file\n"
 msgstr "无法获取版本文件\n"
 
-#: src/core/siril_update.c:459
+#: src/core/siril_update.c:493
 msgid "Software Update"
 msgstr "软件更新"
 
-#: src/core/siril_update.c:494
+#: src/core/siril_update.c:528
 msgid "Error parsing JSON from URL: Failed to parse JSON\n"
 msgstr "解析URL中的JSON时出错：无法解析JSON\n"
 
-#: src/core/siril_update.c:500
+#: src/core/siril_update.c:534
 msgid "Error parsing JSON from URL: JSON root is not an object or array\n"
 msgstr "解析URL中的JSON时出错：JSON源不是一个对象或数组\n"
 
-#: src/core/siril_update.c:518
+#: src/core/siril_update.c:552
 msgid "Error parsing JSON from URL: Invalid root JSON structure\n"
 msgstr "解析URL中的JSON时出错：源JSON结构无效\n"
 
-#: src/core/siril_update.c:528
+#: src/core/siril_update.c:562
 msgid "Error parsing JSON from URL: Message is not a valid object\n"
 msgstr "解析URL中的JSON时出错：消息不是有效对象\n"
 
-#: src/core/siril_update.c:539
+#: src/core/siril_update.c:573
 msgid "Error parsing JSON from URL: Required fields missing or invalid\n"
 msgstr "解析URL中的JSON时出错：必要字段缺失或无效\n"
 
-#: src/core/siril_update.c:547
+#: src/core/siril_update.c:581
 msgid "Error parsing JSON from URL: Invalid ISO8601 date format\n"
 msgstr "解析URL中的JSON时出错：ISO8601日期格式无效\n"
 
-#: src/core/siril_update.c:620
+#: src/core/siril_update.c:654
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
 msgstr "从URL获取或解析Siril通知JSON文件时出错\n"
 
-#: src/core/siril_update.c:628
+#: src/core/siril_update.c:662
 #, c-format
 msgid ""
 "*** SIRIL NOTIFICATION ***\n"
@@ -22240,17 +22335,59 @@ msgstr ""
 "*** SIRIL 通知 ***\n"
 "%s\n"
 
-#: src/core/siril_update.c:649
+#: src/core/siril_update.c:683
 msgid "Error: Siril is in offline mode, cannot check updates.\n"
 msgstr "错误：Siril现为离线模式，不能检查更新。\n"
 
-#: src/core/siril_update.c:658
+#: src/core/siril_update.c:692
 msgid "Looking for updates..."
 msgstr "查询更新…"
 
-#: src/core/siril_update.c:678
+#: src/core/siril_update.c:712
 msgid "Looking for notifications..."
 msgstr "查询通知…"
+
+#: src/core/siril_update.c:731
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Failed to parse JSON\n"
+msgstr "解析URL中的JSON时出错：无法解析JSON\n"
+
+#: src/core/siril_update.c:737
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Root is not an array\n"
+msgstr "解析URL中的JSON时出错：JSON源不是一个对象或数组\n"
+
+#: src/core/siril_update.c:744
+msgid "Error parsing SPCC mirrors JSON: Empty array\n"
+msgstr ""
+
+#: src/core/siril_update.c:757
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Entry is not a valid object\n"
+msgstr "解析URL中的JSON时出错：消息不是有效对象\n"
+
+#: src/core/siril_update.c:766
+#, fuzzy
+msgid "Error parsing SPCC mirrors JSON: Required fields missing\n"
+msgstr "解析URL中的JSON时出错：必要字段缺失或无效\n"
+
+#: src/core/siril_update.c:783
+msgid "Error parsing SPCC mirrors JSON: No valid mirrors found\n"
+msgstr ""
+
+#: src/core/siril_update.c:810
+#, fuzzy
+msgid "Error fetching or parsing SPCC mirrors JSON file from URL\n"
+msgstr "从URL获取或解析Siril通知JSON文件时出错\n"
+
+#: src/core/siril_update.c:849
+#, fuzzy
+msgid "Siril is in offline mode, cannot check SPCC mirrors.\n"
+msgstr "错误：Siril现为离线模式，不能检查更新。\n"
+
+#: src/core/siril_update.c:862
+msgid "Checking SPCC mirrors...\n"
+msgstr ""
 
 #: src/core/undo.c:59
 #, c-format
@@ -22313,52 +22450,52 @@ msgstr "蓝色"
 msgid "Failed to create directory '%s': %s\n"
 msgstr "无法创建配置目录 %s\n"
 
-#: src/core/utils.c:747
+#: src/core/utils.c:749
 msgid "Unknown error\n"
 msgstr "未知错误\n"
 
-#: src/core/utils.c:750
+#: src/core/utils.c:752
 #, c-format
 msgid "'%s' No such file or directory\n"
 msgstr "‘%s’文件或目录不存在\n"
 
-#: src/core/utils.c:753
+#: src/core/utils.c:755
 #, c-format
 msgid "'%s' is not a directory\n"
 msgstr "‘%s’不是一个目录\n"
 
-#: src/core/utils.c:756
+#: src/core/utils.c:758
 #, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
 msgstr "当前用户对目录 ‘%s’ 没有写权限\n"
 
-#: src/core/utils.c:778
+#: src/core/utils.c:780
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr "设置当前工作目录 (CWD) 为 '%s'\n"
 
-#: src/core/utils.c:782
+#: src/core/utils.c:784
 #, c-format
 msgid "Could not change directory to '%s'(error code %d: %s).\n"
 msgstr "无法将目录更改为'%s'（错误代码%d: %s）。\n"
 
-#: src/core/utils.c:808
+#: src/core/utils.c:810
 msgid "Filename is too long, not expanding it\n"
 msgstr "文件名太长了\n"
 
-#: src/core/utils.c:918 src/core/utils.c:922 src/io/image_format_fits.c:2862
+#: src/core/utils.c:920 src/core/utils.c:924 src/io/image_format_fits.c:2862
 #: src/io/image_format_fits.c:2867 src/io/ser.c:1429 src/io/ser.c:1434
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "像素"
 
-#: src/core/utils.c:919 src/io/image_format_fits.c:2863
+#: src/core/utils.c:921 src/io/image_format_fits.c:2863
 #: src/io/image_format_fits.c:2868 src/io/ser.c:1430 src/io/ser.c:1435
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "通道"
 
-#: src/core/utils.c:1315 src/core/utils.c:1318
+#: src/core/utils.c:1317 src/core/utils.c:1320
 msgid "(invalid UTF-8 string)"
 msgstr "（UTF-8 字符串无效）"
 
@@ -23141,16 +23278,16 @@ msgstr "处理"
 #. APASS
 #. GAIA
 #. Gaia archive
-#: src/gui/astrometry_solver.c:931 src/gui/photometric_cc.c:487
-#: src/gui/photometric_cc.c:490 src/gui/photometric_cc.c:493
-#: src/gui/photometric_cc.c:507
+#: src/gui/astrometry_solver.c:931 src/gui/photometric_cc.c:540
+#: src/gui/photometric_cc.c:543 src/gui/photometric_cc.c:546
+#: src/gui/photometric_cc.c:560
 msgid "(online catalogue)"
 msgstr "（在线星表）"
 
 #. NOMAD
 #. Local Gaia xp_sampled
-#: src/gui/astrometry_solver.c:933 src/gui/photometric_cc.c:487
-#: src/gui/photometric_cc.c:510
+#: src/gui/astrometry_solver.c:933 src/gui/photometric_cc.c:540
+#: src/gui/photometric_cc.c:563
 msgid "(local catalogue)"
 msgstr "（本地星表）"
 
@@ -23323,7 +23460,7 @@ msgstr "转换为16位"
 msgid "B&W"
 msgstr "黑白"
 
-#: src/gui/callbacks.c:1494 src/io/siril_catalogues.c:320
+#: src/gui/callbacks.c:1494 src/io/siril_catalogues.c:321
 msgid "unknown"
 msgstr "未知"
 
@@ -23332,23 +23469,23 @@ msgstr "未知"
 msgid "Binning %d x %d is not supported\n"
 msgstr "不支持合并 %d x %d\n"
 
-#: src/gui/callbacks.c:1730
+#: src/gui/callbacks.c:1728
 msgid ""
 "Siril started in offline mode. Will not attempt to update siril-scripts or "
 "siril-spcc-database...\n"
 msgstr "Siril现为离线模式。不会更新脚本和SPCC数据库...\n"
 
-#: src/gui/callbacks.c:1788
+#: src/gui/callbacks.c:1786
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr "缺省FITS扩展名设置为 %s\n"
 
-#: src/gui/callbacks.c:1811
+#: src/gui/callbacks.c:1809
 #, c-format
 msgid "Welcome to %s"
 msgstr "欢迎来到 %s"
 
-#: src/gui/callbacks.c:1814
+#: src/gui/callbacks.c:1812
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -23358,48 +23495,48 @@ msgstr ""
 "欢迎！这是您第一次打开Siril新版本。请坐下来花点时间观看我们为您准备的简介。您"
 "随时可以通过偏好设置对话框里的“杂项”选项卡重播此简介。"
 
-#: src/gui/callbacks.c:1817
+#: src/gui/callbacks.c:1815
 msgid "See Introduction"
 msgstr "观看介绍"
 
-#: src/gui/callbacks.c:2087
+#: src/gui/callbacks.c:2085
 msgid "Unsaved script changes"
 msgstr "脚本更改未保存"
 
-#: src/gui/callbacks.c:2088
+#: src/gui/callbacks.c:2086
 msgid "There are unsaved changes in the script editor. Quit anyway?"
 msgstr "脚本编辑器中有未保存的更改。依然退出吗？"
 
-#: src/gui/callbacks.c:2089
+#: src/gui/callbacks.c:2087
 msgid "Quit"
 msgstr "退出"
 
-#: src/gui/callbacks.c:2099
+#: src/gui/callbacks.c:2097
 msgid "Closing application"
 msgstr "关闭程序"
 
-#: src/gui/callbacks.c:2100
+#: src/gui/callbacks.c:2098
 msgid "Are you sure you want to quit?"
 msgstr "确定要退出吗？"
 
-#: src/gui/callbacks.c:2100
+#: src/gui/callbacks.c:2098
 msgid "Exit"
 msgstr "退出"
 
-#: src/gui/callbacks.c:2265
+#: src/gui/callbacks.c:2263
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr "已选择 %s 序列 %s..."
 
-#: src/gui/callbacks.c:2314
+#: src/gui/callbacks.c:2312
 msgid "Searching for sequences in the current working directory..."
 msgstr "在当前工作目录中搜索序列..."
 
-#: src/gui/callbacks.c:2365
+#: src/gui/callbacks.c:2363
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr "这将清除以下数据，且无法撤消：\n"
 
-#: src/gui/callbacks.c:2366
+#: src/gui/callbacks.c:2364
 msgid ""
 "\n"
 "- Registration"
@@ -23407,7 +23544,7 @@ msgstr ""
 "\n"
 "- 对齐"
 
-#: src/gui/callbacks.c:2367
+#: src/gui/callbacks.c:2365
 msgid ""
 "\n"
 "- Statistics"
@@ -23415,7 +23552,7 @@ msgstr ""
 "\n"
 "- 统计信息"
 
-#: src/gui/callbacks.c:2368
+#: src/gui/callbacks.c:2366
 msgid ""
 "\n"
 "- Selection"
@@ -23423,19 +23560,19 @@ msgstr ""
 "\n"
 "- 选择"
 
-#: src/gui/callbacks.c:2372
+#: src/gui/callbacks.c:2370
 msgid "Clear Sequence Data?"
 msgstr "清除序列数据？"
 
-#: src/gui/callbacks.c:2372
+#: src/gui/callbacks.c:2370
 msgid "Clear Data"
 msgstr "清除数据"
 
-#: src/gui/callbacks.c:2384
+#: src/gui/callbacks.c:2382
 msgid "The requested data of the sequence has been cleaned."
 msgstr "序列的请求数据已被清除。"
 
-#: src/gui/callbacks.c:2392
+#: src/gui/callbacks.c:2390
 #, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
@@ -23444,55 +23581,55 @@ msgstr ""
 "您将要清除您的 %s 用户星表。这意味着包含手动添加的天体的文件将被删除。此操作"
 "无法撤消。"
 
-#: src/gui/callbacks.c:2394
+#: src/gui/callbacks.c:2392
 msgid "SOLAR SYSTEM"
 msgstr "太阳系"
 
-#: src/gui/callbacks.c:2394
+#: src/gui/callbacks.c:2392
 msgid "DEEP SKY"
 msgstr "深空"
 
-#: src/gui/callbacks.c:2396
+#: src/gui/callbacks.c:2394
 msgid "Catalog deletion"
 msgstr "星表删除"
 
-#: src/gui/callbacks.c:2396
+#: src/gui/callbacks.c:2394
 msgid "Purge Catalogue"
 msgstr "清除星表"
 
-#: src/gui/callbacks.c:2422
+#: src/gui/callbacks.c:2420
 msgid "Select task to stop"
 msgstr "选择要中止的任务"
 
-#: src/gui/callbacks.c:2425 src/gui/dialogs.c:253 src/gui/dialogs.c:262
+#: src/gui/callbacks.c:2423 src/gui/dialogs.c:253 src/gui/dialogs.c:262
 #: src/gui/dialogs.c:268 src/gui/git_gui.c:344 src/gui/keywords_tree.c:509
 #: src/gui/python_gui.c:792 src/gui/python_gui.c:869
 #: src/io/image_formats_libraries.c:2497 src/pixelMath/pixel_math_runner.c:1279
 msgid "_Cancel"
 msgstr "_取消"
 
-#: src/gui/callbacks.c:2426
+#: src/gui/callbacks.c:2424
 msgid "_Stop Process"
 msgstr "_中止进程"
 
-#: src/gui/callbacks.c:2470
+#: src/gui/callbacks.c:2468
 msgid "Process Name"
 msgstr "进程名称"
 
-#: src/gui/callbacks.c:2480
+#: src/gui/callbacks.c:2478
 msgid "Start Time"
 msgstr "开始时间"
 
 #: src/gui/colors.c:52 src/gui/colors.c:138 src/gui/colors.c:171
 #: src/gui/colors.c:257 src/gui/colors.c:268 src/gui/histogram.c:1778
-#: src/gui/photometric_cc.c:430 src/gui/photometric_cc.c:442
-#: src/gui/photometric_cc.c:460 src/gui/remixer.c:1236 src/gui/remixer.c:1284
+#: src/gui/photometric_cc.c:483 src/gui/photometric_cc.c:495
+#: src/gui/photometric_cc.c:513 src/gui/remixer.c:1236 src/gui/remixer.c:1284
 msgid "There is no selection"
 msgstr "无效选择"
 
 #: src/gui/colors.c:53 src/gui/colors.c:139 src/gui/colors.c:258
-#: src/gui/photometric_cc.c:431 src/gui/photometric_cc.c:443
-#: src/gui/photometric_cc.c:461
+#: src/gui/photometric_cc.c:484 src/gui/photometric_cc.c:496
+#: src/gui/photometric_cc.c:514
 msgid "Make a selection of the background area"
 msgstr "请先框选一个背景区域"
 
@@ -25016,130 +25153,143 @@ msgid ""
 "FITS file."
 msgstr "主校准帧不可以选择FITS序列，请选择一个单一的FITS文件。"
 
+#: src/gui/photometric_cc.c:114
+#, fuzzy
+msgid "Checking SPCC remote catalogue status..."
+msgstr "正在检查Gaia星表状态..."
+
 #. Failed to fetch status
-#: src/gui/photometric_cc.c:110
-msgid ""
-"The Gaia archive status indicator is not responding. This does not "
-"necessarily mean the Gaia archive is offline, however if it is then SPCC "
-"will be unavailable. Further information may be available at https://"
-"www.cosmos.esa.int/web/gaia/"
-msgstr ""
-"Gaia星表状态未响应。Gaia未必离线，但如果确实离线，那SPCC就不可用了。详情请访"
-"问https://www.cosmos.esa.int/web/gaia/"
-
-#: src/gui/photometric_cc.c:116
-msgid "Gaia archive available"
-msgstr "Gaia星表可用"
-
 #: src/gui/photometric_cc.c:121
-msgid "Gaia archive unavailable"
-msgstr "Gaia星表不可用"
+msgid "The Gaia remote SPCC catalogue is not responding."
+msgstr ""
 
-#. Unexpected response format
-#: src/gui/photometric_cc.c:126
-msgid "Unknown Gaia archive status"
-msgstr "Gaia星表状态未知"
+#: src/gui/photometric_cc.c:127
+#, c-format
+msgid "Gaia remote SPCC catalogue available, response %d ms"
+msgstr ""
 
-#: src/gui/photometric_cc.c:144
+#: src/gui/photometric_cc.c:131
+#, c-format
+msgid "Gaia remote SPCC catalogue slow, response %d ms"
+msgstr ""
+
+#: src/gui/photometric_cc.c:135
+#, c-format
+msgid "Gaia remote SPCC catalogue very slow, response %d ms"
+msgstr ""
+
+#: src/gui/photometric_cc.c:179
+#, c-format
+msgid "Mirror %s: Not responding\n"
+msgstr ""
+
+#: src/gui/photometric_cc.c:188
+#, c-format
+msgid "Primary SPCC catalogue set to: %s (%d working mirrors available)\n"
+msgstr ""
+
+#: src/gui/photometric_cc.c:200
+#, fuzzy
 msgid ""
-"Siril is offline or built without networking. Gaia archive is unavailable.\n"
+"Siril is offline or built without networking. The remote Gaia catalogue is "
+"unavailable.\n"
 msgstr "Siril处于离线模式。Gaia星表不可用。\n"
 
-#: src/gui/photometric_cc.c:159
+#: src/gui/photometric_cc.c:212
 msgid ""
 "There is no valid WCS information in the header. Please platesolve first.\n"
 msgstr "文件头中没有有效的 WCS 信息。让我们先来做一个解析。\n"
 
-#: src/gui/photometric_cc.c:167
+#: src/gui/photometric_cc.c:220
 msgid "Using Gaia DR3 for SPCC\n"
 msgstr "使用 Gaia DR3 进行 SPCC\n"
 
-#: src/gui/photometric_cc.c:263
+#: src/gui/photometric_cc.c:316
 msgid "Photometric Color Calibration"
 msgstr "测光法色彩校准"
 
-#: src/gui/photometric_cc.c:344
+#: src/gui/photometric_cc.c:397
 msgid "Spectrophotometric Color Calibration"
 msgstr "分光光度色彩校准"
 
-#: src/gui/photometric_cc.c:361
+#: src/gui/photometric_cc.c:414
 msgid "Airmass read from FITS header AIRMASS card"
 msgstr "大气光学质量由FITS文件头中的AIRMASS关键字获取"
 
-#: src/gui/photometric_cc.c:364
+#: src/gui/photometric_cc.c:417
 msgid "Airmass computed from FITS header CENTALT card"
 msgstr "大气光学质量由FITS文件头中的CENTALT关键字计算"
 
-#: src/gui/photometric_cc.c:367
+#: src/gui/photometric_cc.c:420
 msgid ""
 "No airmass data available or computable. Estimating airmass based on average "
 "observation height of 48.1°"
 msgstr "无法获取或计算大气光学质量。按48.1度的平均观测高度角估算大气光学质量"
 
-#: src/gui/photometric_cc.c:371
+#: src/gui/photometric_cc.c:424
 msgid "Observer height read from FITS header SITEELEV card"
 msgstr "观测高度角由FITS文件头中的SITEELEV关键字获取"
 
-#: src/gui/photometric_cc.c:581
+#: src/gui/photometric_cc.c:634
 msgid ""
 "Error: ensure mono sensor, R, G and B filters and white reference are "
 "selected.\n"
 msgstr "错误：确保选择单色传感器、R、G 和 B 滤镜以及白点参考。\n"
 
-#: src/gui/photometric_cc.c:588
+#: src/gui/photometric_cc.c:641
 #, fuzzy
 msgid ""
 "Error: ensure OSC sensor, OSC filter or NB filter values, and white "
 "reference are selected.\n"
 msgstr "错误：确保选择 OSC 传感器、OSC 滤镜和白点参考。\n"
 
-#: src/gui/photometric_cc.c:1010
+#: src/gui/photometric_cc.c:1063
 msgid "one-shot color (OSC)"
 msgstr "单张彩色 (OSC)"
 
-#: src/gui/photometric_cc.c:1156
+#: src/gui/photometric_cc.c:1209
 msgid "No selection made: no details to show."
 msgstr "未做出选择：没有可显示的详细信息。"
 
-#: src/gui/photometric_cc.c:1194
+#: src/gui/photometric_cc.c:1247
 msgid "SPCC Data"
 msgstr "SPCC 数据"
 
-#: src/gui/photometric_cc.c:1195
+#: src/gui/photometric_cc.c:1248
 msgid "Quantum Efficiency / Transmittance / Rel. Photon Count"
 msgstr "量子效率/透射率/相对光子数"
 
-#: src/gui/photometric_cc.c:1235 src/gui/photometric_cc.c:1276
+#: src/gui/photometric_cc.c:1288 src/gui/photometric_cc.c:1329
 msgid "Narrowband filters"
 msgstr "窄带滤镜"
 
-#: src/gui/photometric_cc.c:1284
+#: src/gui/photometric_cc.c:1337
 msgid "Atmosphere model"
 msgstr "大气模型"
 
-#: src/gui/photometric_cc.c:1306 src/gui/photometric_cc.c:1321
+#: src/gui/photometric_cc.c:1359 src/gui/photometric_cc.c:1374
 #, c-format
 msgid "SPCC Data: %s"
 msgstr "SPCC 数据：%s"
 
-#: src/gui/photometric_cc.c:1308 src/gui/photometric_cc.c:1324
+#: src/gui/photometric_cc.c:1361 src/gui/photometric_cc.c:1377
 msgid "Quantum Efficiency"
 msgstr "量子效率"
 
-#: src/gui/photometric_cc.c:1324
+#: src/gui/photometric_cc.c:1377
 msgid "Relative photon count"
 msgstr "相对光子数"
 
-#: src/gui/photometric_cc.c:1324 src/gui/photometric_cc.c:1476
+#: src/gui/photometric_cc.c:1377 src/gui/photometric_cc.c:1529
 msgid "Transmittance"
 msgstr "透射率"
 
-#: src/gui/photometric_cc.c:1473
+#: src/gui/photometric_cc.c:1526
 #, c-format
 msgid "SPCC Data: Atmospheric model"
 msgstr "SPCC 数据：大气模型"
 
-#: src/gui/photometric_cc.c:1484
+#: src/gui/photometric_cc.c:1537
 #, c-format
 msgid ""
 "Atmospheric model\n"
@@ -25851,20 +26001,20 @@ msgstr ""
 "当前保存的图像是以非线性模式被显示。所见非所得。请将预览切换为线性模式来获得"
 "真实效果。"
 
-#: src/gui/save_dialog.c:538
+#: src/gui/save_dialog.c:539
 msgid "preview"
 msgstr "预览"
 
-#: src/gui/save_dialog.c:838
+#: src/gui/save_dialog.c:847
 #, c-format
 msgid "Snapshot <b>%s</b> was saved into the working directory."
 msgstr "快照 <b>%s</b> 已保存于工作目录。"
 
-#: src/gui/save_dialog.c:840
+#: src/gui/save_dialog.c:849
 msgid "Snapshot was saved into the clipboard."
 msgstr "快照已保存到剪贴板。"
 
-#: src/gui/save_dialog.c:856
+#: src/gui/save_dialog.c:865
 #, c-format
 msgid "Cannot take snapshot: %s\n"
 msgstr "无法获取快照: %s\n"
@@ -26818,34 +26968,80 @@ msgid "Removing failed FITS sequence file: %s\n"
 msgstr "移除FITS序列失败: %s\n"
 
 #. Handle file opening error
-#: src/io/healpix/healpix.cpp:133 src/io/spcc_json.c:53 src/io/spcc_json.c:285
+#: src/io/healpix/healpix.cpp:144 src/io/spcc_json.c:53 src/io/spcc_json.c:285
 #: src/io/spcc_json.c:561
 #, c-format
 msgid "Failed to open file: %s\n"
 msgstr "无法打开文件: %s\n"
 
-#: src/io/healpix/healpix.cpp:144
+#: src/io/healpix/healpix.cpp:155
 msgid "Failed to read catalog index entry.\n"
 msgstr "无法读取目录索引条目。\n"
 
-#: src/io/healpix/healpix.cpp:157
+#: src/io/healpix/healpix.cpp:168 src/io/healpix/healpix.cpp:334
 msgid "ID range exceeds catalog bounds.\n"
 msgstr "ID范围超出目录边界。\n"
 
-#: src/io/healpix/healpix.cpp:186
+#: src/io/healpix/healpix.cpp:197
 msgid "Failed to read data entries.\n"
 msgstr "无法读取数据条目。\n"
 
-#: src/io/healpix/healpix.cpp:552
+#: src/io/healpix/healpix.cpp:344
+#, fuzzy
+msgid "Failed to read index entries via HTTP\n"
+msgstr "无法读取数据条目。\n"
+
+#: src/io/healpix/healpix.cpp:364
+#, fuzzy
+msgid "Failed to read data entries via HTTP\n"
+msgstr "无法读取数据条目。\n"
+
+#: src/io/healpix/healpix.cpp:389 src/io/healpix/healpix.cpp:988
+#, fuzzy
+msgid "Error initialising CURL handle\n"
+msgstr "初始化 CURL 句柄时出错，URL 功能不可用。\n"
+
+#: src/io/healpix/healpix.cpp:415
+#, c-format
+msgid "Mirror %s failed, trying alternatives...\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:426 src/io/healpix/healpix.cpp:482
+#, fuzzy, c-format
+msgid "Trying mirror: %s\n"
+msgstr "String in: %s\n"
+
+#: src/io/healpix/healpix.cpp:434 src/io/healpix/healpix.cpp:494
+#, fuzzy, c-format
+msgid "Switched to working mirror: %s\n"
+msgstr "当前工作目录：%s\n"
+
+#. All mirrors failed
+#: src/io/healpix/healpix.cpp:441
+msgid "All catalogue mirrors failed to respond.\n"
+msgstr ""
+
+#. Current mirror failed, try alternatives
+#: src/io/healpix/healpix.cpp:473
+#, c-format
+msgid "Query failed on mirror %s, trying alternatives...\n"
+msgstr ""
+
+#. All mirrors failed
+#: src/io/healpix/healpix.cpp:501
+msgid "All catalogue mirrors failed for query.\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:854
 msgid "Error: no chunks detected.\n"
 msgstr "错误：未检测到块。\n"
 
-#: src/io/healpix/healpix.cpp:602
+#: src/io/healpix/healpix.cpp:904
 #, c-format
 msgid "Chunk file not found: %s\n"
 msgstr "无法找到chunk文件：%s\n"
 
-#: src/io/healpix/healpix.cpp:610
+#: src/io/healpix/healpix.cpp:912
 #, c-format
 msgid ""
 "Error: catalog header values for chunk %lu are incompatible with previous "
@@ -26854,6 +27050,29 @@ msgid ""
 msgstr ""
 "错误：块%lu的目录标头值与以前的值不兼容。所有块文件必须具有相同的块级别和索引"
 "级别，并且必须表示相同的Gaia DR\n"
+
+#: src/io/healpix/healpix.cpp:1047
+#, c-format
+msgid "Failed to read header for chunk %d from any mirror\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:1055
+#, c-format
+msgid "Error: catalog header values for chunk %d are incompatible\n"
+msgstr ""
+
+#. Query returned nothing but we expected data - this might indicate failure
+#: src/io/healpix/healpix.cpp:1067
+#, c-format
+msgid "Warning: No data retrieved for chunk %d\n"
+msgstr ""
+
+#: src/io/healpix/healpix.cpp:1131
+#, fuzzy
+msgid ""
+"Error: Siril was compiled without libcurl support. Remote catalogue access "
+"is unavailable.\n"
+msgstr "Siril 的编译没有 libgit2 支持。无法自动获取远程存储库...\n"
 
 #: src/io/image_format_fits.c:367
 #, c-format
@@ -26984,12 +27203,12 @@ msgstr "叠加错误：图像拥有不同的尺寸\n"
 msgid "Stacking error: input images have different precision\n"
 msgstr "叠加错误：图像拥有不同的精度\n"
 
-#: src/io/image_format_fits.c:3609
+#: src/io/image_format_fits.c:3527
 #, c-format
 msgid "Saving WCS file %s\n"
 msgstr "保存 WCS 文件 %s\n"
 
-#: src/io/image_format_fits.c:3648
+#: src/io/image_format_fits.c:3566
 #, c-format
 msgid "Saving mask file %s\n"
 msgstr "保存蒙版文件 %s\n"
@@ -27325,49 +27544,49 @@ msgstr ""
 msgid "Save complete.\n"
 msgstr "保存完成。\n"
 
-#: src/io/local_catalogues.c:152
+#: src/io/local_catalogues.c:153
 #, c-format
 msgid "Could not open local catalogue %s\n"
 msgstr "无法打开本地星表%s\n"
 
-#: src/io/local_catalogues.c:158 src/io/local_catalogues.c:191
+#: src/io/local_catalogues.c:159 src/io/local_catalogues.c:192
 #, c-format
 msgid "Failed to read the local catalogue %s\n"
 msgstr "无法读取本地星表%s\n"
 
-#: src/io/local_catalogues.c:180
+#: src/io/local_catalogues.c:181
 msgid "Wrong trixel ID\n"
 msgstr "错误的trixel ID\n"
 
-#: src/io/local_catalogues.c:185
+#: src/io/local_catalogues.c:186
 #, c-format
 msgid "Could not open local catalogue%s\n"
 msgstr "无法打开本地星表%s\n"
 
-#: src/io/local_catalogues.c:289
+#: src/io/local_catalogues.c:290
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr "错误：文件报告的 trixel 数量超出限制。\n"
 
-#: src/io/local_catalogues.c:854 src/io/siril_catalogues.c:843
+#: src/io/local_catalogues.c:855 src/io/siril_catalogues.c:845
 #, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
 msgstr "文件 %s 无法删除 (%s)，异常中止\n"
 
-#: src/io/local_catalogues.c:864 src/io/remote_catalogues.c:652
-#: src/io/remote_catalogues.c:979 src/io/siril_catalogues.c:852
+#: src/io/local_catalogues.c:865 src/io/remote_catalogues.c:654
+#: src/io/siril_catalogues.c:854
 #, c-format
 msgid "Cannot create catalogue file %s (%s)\n"
 msgstr "无法创建星表文件%s（%s）\n"
 
-#: src/io/local_catalogues.c:886
+#: src/io/local_catalogues.c:887
 msgid "Trixels list saved to trixels.csv\n"
 msgstr "Trixels 列表已保存到trixels.csv\n"
 
-#: src/io/local_catalogues.c:904
+#: src/io/local_catalogues.c:905
 msgid "Failed\n"
 msgstr "失败\n"
 
-#: src/io/local_catalogues.c:908
+#: src/io/local_catalogues.c:909
 #, c-format
 msgid "Found %d trixels:\n"
 msgstr "找到 %d trixels:\n"
@@ -27501,32 +27720,32 @@ msgstr "使用最新的匹配文件: %s\n"
 msgid "Using the closest matching file: %s\n"
 msgstr "使用最匹配的文件: %s\n"
 
-#: src/io/remote_catalogues.c:348
+#: src/io/remote_catalogues.c:350
 #, c-format
 msgid "Could not parse AAVSO chart buffer: %s\n"
 msgstr "无法解析 AAVSO 图表缓冲区：%s\n"
 
-#: src/io/remote_catalogues.c:540
+#: src/io/remote_catalogues.c:542
 #, c-format
 msgid ""
 "A corrupted version of %s was found in cache but cannot be deleted, "
 "aborting\n"
 msgstr "在缓存中发现 %s 的损坏版本，但无法删除，异常中止\n"
 
-#: src/io/remote_catalogues.c:575 src/io/remote_catalogues.c:953
+#: src/io/remote_catalogues.c:577
 #, c-format
 msgid "Using already downloaded catalogue %s\n"
 msgstr "使用已下载的星表 %s\n"
 
-#: src/io/remote_catalogues.c:583
+#: src/io/remote_catalogues.c:585
 msgid "Offline: cannot download catalog\n"
 msgstr "离线：无法下载星表\n"
 
-#: src/io/remote_catalogues.c:601
+#: src/io/remote_catalogues.c:603
 msgid "Contacting server\n"
 msgstr "联系服务器\n"
 
-#: src/io/remote_catalogues.c:642
+#: src/io/remote_catalogues.c:644
 #, c-format
 msgid ""
 "Error: unable to retrieve the remote catalogue from the server at %s. This "
@@ -27543,61 +27762,10 @@ msgstr ""
 "如通过Catalog_Installer.py脚本安装的Gaia DR3优化版Siril提取文件。此方案不仅响"
 "应速度更快，且无需依赖第三方服务器。\n"
 
-#: src/io/remote_catalogues.c:655
+#: src/io/remote_catalogues.c:657
 #, c-format
 msgid "Cannot create catalogue file %s (generic error)\n"
 msgstr "无法创建星表文件%s（普通错误）\n"
-
-#: src/io/remote_catalogues.c:700
-msgid "Offline, cannot retrieve URL.\n"
-msgstr "离线模式：不能检索URL。\n"
-
-#: src/io/remote_catalogues.c:730
-msgid "Offline: cannot fetch catalog\n"
-msgstr "离线模式：不能获取星表\n"
-
-#: src/io/remote_catalogues.c:796
-msgid ""
-"Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few "
-"seconds to complete...\n"
-msgstr "向 ESA Gaia DR3 星表提交锥形搜索请求。这可能需要几秒钟才能完成...\n"
-
-#: src/io/remote_catalogues.c:798
-msgid "Error submitting conesearch request.\n"
-msgstr "提交锥形搜索请求时出错。\n"
-
-#: src/io/remote_catalogues.c:805
-msgid "Job id not found in the response.\n"
-msgstr "在响应中找不到作业 ID。\n"
-
-#. Avoid infinite loop
-#: src/io/remote_catalogues.c:817
-msgid "Timeout on Gaia DR3 query\n"
-msgstr "Gaia DR3 查询超时\n"
-
-#: src/io/remote_catalogues.c:830
-msgid "Gaia DR3 async query failed, unable to continue.\n"
-msgstr "Gaia DR3 异步查询失败，无法继续。\n"
-
-#: src/io/remote_catalogues.c:871
-#, c-format
-msgid "Gaia DR3 conesearch query succeeded: cached as %s\n"
-msgstr "Gaia DR3 conesearch 查询成功：缓存为 %s\n"
-
-#: src/io/remote_catalogues.c:921
-msgid ""
-"Submitting spectral data request to ESA Gaia DR3 catalog. This may take "
-"several seconds to complete...\n"
-msgstr "向 ESA Gaia DR3 星表提交光谱数据请求。这可能需要几秒钟才能完成...\n"
-
-#: src/io/remote_catalogues.c:931
-msgid "Using already downloaded datalink product\n"
-msgstr "使用已下载的数据链产品\n"
-
-#: src/io/remote_catalogues.c:947
-#, c-format
-msgid "Gaia DR3 datalink query succeeded: cached as %s\n"
-msgstr "Gaia DR3 数据链路查询成功：缓存为 %s\n"
 
 #: src/io/seqfile.c:141
 msgid ""
@@ -28215,105 +28383,105 @@ msgstr "Tycho-2+NOMAD星表"
 msgid "Gaia DR3 astrometry"
 msgstr "Gaia DR3 天体测量"
 
-#: src/io/siril_catalogues.c:292
+#: src/io/siril_catalogues.c:293
 msgid "Gaia DR3 xp_sampled"
 msgstr "Gaia DR3 xp_sampled 星表"
 
-#: src/io/siril_catalogues.c:385
+#: src/io/siril_catalogues.c:387
 #, c-format
 msgid ""
 "Did not find the minimal set of columns necessary for the catalog %s, "
 "aborting\n"
 msgstr "未找到星表 %s 所需的最小列集，异常中止\n"
 
-#: src/io/siril_catalogues.c:643 src/io/siril_catalogues.c:646
+#: src/io/siril_catalogues.c:645 src/io/siril_catalogues.c:648
 #, c-format
 msgid "Could not open the catalog (%s)\n"
 msgstr "无法打开星表（%s）\n"
 
-#: src/io/siril_catalogues.c:687
+#: src/io/siril_catalogues.c:689
 msgid "No columns found in the catalogue\n"
 msgstr "在星表中找不到列\n"
 
 #. checking that current line has a number of columns consistent with the headers
-#: src/io/siril_catalogues.c:707
+#: src/io/siril_catalogues.c:709
 #, c-format
 msgid "Malformed line found %s\n"
 msgstr "发现格式错误的行: %s\n"
 
-#: src/io/siril_catalogues.c:740
+#: src/io/siril_catalogues.c:742
 #, c-format
 msgid ""
 "Catalog %s was read but no items were found in the view cone, nothing to "
 "show\n"
 msgstr "星表 %s 已读取，但在视锥中未找到任何项目，没有可显示的内容\n"
 
-#: src/io/siril_catalogues.c:948
+#: src/io/siril_catalogues.c:950
 msgid "Cannot correct for velocities, will use ra/dec as is\n"
 msgstr "无法校正速率，将按原样使用 赤经/赤纬\n"
 
-#: src/io/siril_catalogues.c:949
+#: src/io/siril_catalogues.c:951
 msgid "To tag solar system objects, please refer to conesearch command\n"
 msgstr "要标记太阳系天体，请参考conesearch命令\n"
 
-#: src/io/siril_catalogues.c:1037
+#: src/io/siril_catalogues.c:1039
 msgid "no DATE-OBS information, cannot account for stars proper motions\n"
 msgstr "没有 DATE-OBS 信息，无法解释恒星自行运动\n"
 
-#: src/io/siril_catalogues.c:1040
+#: src/io/siril_catalogues.c:1042
 msgid "This catalog does not have proper motion info, will not be computed\n"
 msgstr "该星表没有自行信息，不会被计算\n"
 
-#: src/io/siril_catalogues.c:1102
+#: src/io/siril_catalogues.c:1104
 #, c-format
 msgid ""
 "Won't log list of objects for catalog %s which does not have name "
 "information\n"
 msgstr "不会记录没有名称信息的星表 %s 的天体列表\n"
 
-#: src/io/siril_catalogues.c:1106
+#: src/io/siril_catalogues.c:1108
 msgid "Won't show objects tags as there is no display, ignoring\n"
 msgstr "不会显示天体标签，因为没有显示，已忽略\n"
 
-#: src/io/siril_catalogues.c:1110
+#: src/io/siril_catalogues.c:1112
 #, c-format
 msgid ""
 "Won't display objects tags for catalog %s which does not have name "
 "information\n"
 msgstr "不会显示没有名称信息的星表 %s 的天体标签\n"
 
-#: src/io/siril_catalogues.c:1130
+#: src/io/siril_catalogues.c:1132
 #, c-format
 msgid "Using default observatory code %s\n"
 msgstr "使用默认天文台代码 %s\n"
 
-#: src/io/siril_catalogues.c:1134
+#: src/io/siril_catalogues.c:1136
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr "未指定天文台代码，默认使用地心，位置可能不准确\n"
 
-#: src/io/siril_catalogues.c:1262
+#: src/io/siril_catalogues.c:1264
 #, c-format
 msgid "The %s catalog has been successfully downloaded\n"
 msgstr "%s 星表已成功下载\n"
 
-#: src/io/siril_catalogues.c:1273
+#: src/io/siril_catalogues.c:1275
 msgid "No item found in the image\n"
 msgstr "图像中未找到项目\n"
 
 #. Summary log message
-#: src/io/siril_catalogues.c:1405
+#: src/io/siril_catalogues.c:1407
 #, c-format
 msgid "%d objects found%s in the image (mag limit %.2f) using %s catalogue\n"
 msgstr "%d 个天体在图像%s中找到（极限星等: %.2f，使用星表: %s）\n"
 
-#: src/io/siril_catalogues.c:1463
+#: src/io/siril_catalogues.c:1465
 #, c-format
 msgid "List saved to %s\n"
 msgstr "列表已保存至 %s\n"
 
-#: src/io/siril_catalogues.c:1465
+#: src/io/siril_catalogues.c:1467
 #, c-format
 msgid "Failed to save list to %s\n"
 msgstr "将列表保存到%s时出错\n"
@@ -29172,77 +29340,77 @@ msgstr "警告：无法安装或更新 Siril python 模块。\n"
 msgid "Python module is up-to-date\n"
 msgstr "Python模块已是最新\n"
 
-#: src/io/siril_pythonmodule.c:2216
+#: src/io/siril_pythonmodule.c:2218
 msgid ""
 "Error: msys2 environment detected. Siril Python support cannot be correctly "
 "initialized.\n"
 msgstr "错误：检测到 msys2 环境。无法正确初始化 Siril Python 支持。\n"
 
-#: src/io/siril_pythonmodule.c:2219
+#: src/io/siril_pythonmodule.c:2221
 msgid ""
 "To complete the process, first make sure you have a Python installation "
 "(>=3.9) on your computer.\n"
 msgstr "要完成该过程，首先确保您的计算机上已安装 Python（>=3.9）。\n"
 
-#: src/io/siril_pythonmodule.c:2222
+#: src/io/siril_pythonmodule.c:2224
 msgid ""
 "Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it "
 "from there.\n"
 msgstr "找到 siril.exe（通常位于 C:\\msys64\\mingw64\\bin）并从此处启动。\n"
 
-#: src/io/siril_pythonmodule.c:2225
+#: src/io/siril_pythonmodule.c:2227
 msgid ""
 "Next time you need to start siril, you can go back to starting it from msys2 "
 "terminal.\n"
 msgstr "下次需要启动siril时，你可以通过MSYS2终端来启动。\n"
 
-#: src/io/siril_pythonmodule.c:2254
+#: src/io/siril_pythonmodule.c:2256
 msgid "No python installation found in the system or in the bundle, aborting\n"
 msgstr "在系统或捆绑包中找不到python安装，异常中止\n"
 
-#: src/io/siril_pythonmodule.c:2291
+#: src/io/siril_pythonmodule.c:2293
 #, c-format
 msgid "Error in venv creation command: %s\n"
 msgstr "创建虚拟环境的命令出错：%s\n"
 
-#: src/io/siril_pythonmodule.c:2298
+#: src/io/siril_pythonmodule.c:2300
 #, fuzzy, c-format
 msgid "Failed to create virtual environment: %s\n"
 msgstr "无法准备虚拟环境\n"
 
-#: src/io/siril_pythonmodule.c:2301
+#: src/io/siril_pythonmodule.c:2303
 #, fuzzy, c-format
 msgid ""
 "Python stderr:\n"
 "%s\n"
 msgstr "Python脚本"
 
-#: src/io/siril_pythonmodule.c:2306
+#: src/io/siril_pythonmodule.c:2308
 msgid ""
 "Hint: On Debian/Ubuntu, you probably need to install the 'python3-venv' "
 "package.\n"
 msgstr ""
 
-#: src/io/siril_pythonmodule.c:2363
+#: src/io/siril_pythonmodule.c:2365
 #, c-format
 msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "无法初始化Python虚拟环境：%s\n"
 
-#: src/io/siril_pythonmodule.c:2374
+#: src/io/siril_pythonmodule.c:2376
 msgid "Failed to prepare virtual environment\n"
 msgstr "无法准备虚拟环境\n"
 
-#: src/io/siril_pythonmodule.c:2439 src/io/siril_pythonmodule.c:2447
+#: src/io/siril_pythonmodule.c:2441 src/io/siril_pythonmodule.c:2449
 #, c-format
 msgid "Python process (PID: %d) exited with status %d\n"
 msgstr "Python进程（PID: %d）已退出，状态为%d\n"
 
-#: src/io/siril_pythonmodule.c:2450
+#: src/io/siril_pythonmodule.c:2452
 #, c-format
 msgid "Python process (PID: %d) terminated by signal %d\n"
 msgstr "Python进程（PID: %d）被信号%d终止\n"
 
-#: src/io/siril_pythonmodule.c:2534
+#: src/io/siril_pythonmodule.c:2536
 msgid ""
 "Error: python not ready yet. This may happen at first run if the python venv "
 "and module setup has not yet completed. Please wait a short time for a "
@@ -29251,25 +29419,25 @@ msgstr ""
 "错误：python还没配置好。如果python虚拟环境和模块设置尚未完成，则可能会在首次"
 "运行时发生这种情况。请稍等，直到日志中出现完成消息后再试。\n"
 
-#: src/io/siril_pythonmodule.c:2561
+#: src/io/siril_pythonmodule.c:2563
 msgid "Error: failed to create Python connection.\n"
 msgstr "错误：创建Python连接失败。\n"
 
-#: src/io/siril_pythonmodule.c:2578
+#: src/io/siril_pythonmodule.c:2580
 #, fuzzy
 msgid "Error: Python worker thread not available.\n"
 msgstr "错误：Python连接不可用。\n"
 
-#: src/io/siril_pythonmodule.c:2644
+#: src/io/siril_pythonmodule.c:2646
 msgid "Error finding venv python path, unable to spawn python.\n"
 msgstr "找不到python虚拟环境的路径，无法调用python。\n"
 
-#: src/io/siril_pythonmodule.c:2709
+#: src/io/siril_pythonmodule.c:2711
 #, fuzzy, c-format
 msgid "Warning: failed to add %s to child process list\n"
 msgstr "警告：获取仓库索引条目失败。\n"
 
-#: src/io/siril_pythonmodule.c:2728
+#: src/io/siril_pythonmodule.c:2730
 #, c-format
 msgid "Failed to execute Python script: %s\n"
 msgstr "无法执行Python脚本：%s\n"
@@ -29546,76 +29714,76 @@ msgstr "叠加图像 %d"
 msgid "Time to process the last image for live stacking: %s\n"
 msgstr "处理实时叠加的最后一幅图像的时间：%s\n"
 
-#: src/main-cli.c:118 src/main.c:130
+#: src/main-cli.c:118 src/main.c:132
 msgid "changing the current working directory as the argument"
 msgstr "该参数用于修改当前工作目录作"
 
-#: src/main-cli.c:119 src/main.c:131
+#: src/main-cli.c:119 src/main.c:133
 msgid ""
 "run the siril commands script in console mode. If argument is equal to \"-"
 "\", then siril will read stdin input"
 msgstr "在控制台模式运行siril命令脚本，如果参数为“-”则siril会读取stdin作为输入"
 
-#: src/main-cli.c:120 src/main.c:132
+#: src/main-cli.c:120 src/main.c:134
 msgid ""
 "load configuration from file name instead of the default configuration file"
 msgstr "从特定文件读取色彩特性而非缺省的配置文件"
 
-#: src/main-cli.c:121 src/main.c:133
+#: src/main-cli.c:121 src/main.c:135
 msgid "run in console mode with command and log stream through named pipes"
 msgstr "运行于控制台模式，命令交互和日志输入通过命名管道"
 
-#: src/main-cli.c:122 src/main.c:134
+#: src/main-cli.c:122 src/main.c:136
 msgid "specify the path for the read pipe, the one receiving commands"
 msgstr "指定读取管道的路径，即接收命令的路径"
 
-#: src/main-cli.c:123 src/main.c:135
+#: src/main-cli.c:123 src/main.c:137
 msgid "specify the path for the write pipe, the one outputting messages"
 msgstr "指定输出消息的写管道的路径"
 
-#: src/main-cli.c:124 src/main.c:136
+#: src/main-cli.c:124 src/main.c:138
 msgid ""
 "print all supported image file formats (depending on installed libraries)"
 msgstr "列出所有支持的图像文件格式（依赖于所安装的库）"
 
-#: src/main-cli.c:125 src/main.c:137
+#: src/main-cli.c:125 src/main.c:139
 msgid "start in offline mode"
 msgstr "以离线模式启动"
 
-#: src/main-cli.c:126 src/main.c:138
+#: src/main-cli.c:126 src/main.c:140
 msgid "print the application’s version"
 msgstr "显示应用版本号"
 
-#: src/main-cli.c:127 src/main.c:139
+#: src/main-cli.c:127 src/main.c:141
 msgid "print the copyright"
 msgstr "显示版权信息"
 
-#: src/main-cli.c:170 src/main.c:339
+#: src/main-cli.c:171 src/main.c:342
 #, c-format
 msgid "Welcome to %s v%s\n"
 msgstr "欢迎使用 %s v%s\n"
 
-#: src/main-cli.c:180 src/main.c:349
+#: src/main-cli.c:181 src/main.c:352
 #, c-format
 msgid "Could not load or create settings file, exiting.\n"
 msgstr "无法读取或创建配置文件，程序退出。\n"
 
-#: src/main-cli.c:230 src/main.c:398
+#: src/main-cli.c:231 src/main.c:401
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr "文件 [%s] 不存在（命令行使用绝对路径）\n"
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:396 src/main.c:643
+#: src/main-cli.c:397 src/main.c:648
 msgid "Siril - A free astronomical image processing software."
 msgstr "Siril - 一款自由的天文图像处理软件。"
 
-#: src/main-cli.c:403 src/main.c:661
+#: src/main-cli.c:404 src/main.c:666
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr "执行 “%s --help” 来得到一个完整的命令行参数列表。"
 
-#: src/main.c:199
+#: src/main.c:201
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
@@ -29624,7 +29792,7 @@ msgstr ""
 "未找到 %s 或包含错误，无法渲染 GUI。\n"
 "已退出。\n"
 
-#: src/main.c:213 src/main.c:231
+#: src/main.c:215 src/main.c:233
 #, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI:\n"
@@ -29635,7 +29803,7 @@ msgstr ""
 "%s\n"
 "已退出。\n"
 
-#: src/main.c:279
+#: src/main.c:282
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
 msgstr "正在初始化 FFTW 多线程支持...\n"
@@ -31272,6 +31440,66 @@ msgstr "将要叠加的超采样序列"
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 
+#~ msgid "Local Gaia DR3 xp_sampled catalogue"
+#~ msgstr "本地 Gaia DR3 xp_sampled 星表"
+
+#~ msgid ""
+#~ "The Gaia archive status indicator is not responding. This does not "
+#~ "necessarily mean the Gaia archive is offline, however if it is then SPCC "
+#~ "will be unavailable. Further information may be available at https://"
+#~ "www.cosmos.esa.int/web/gaia/"
+#~ msgstr ""
+#~ "Gaia星表状态未响应。Gaia未必离线，但如果确实离线，那SPCC就不可用了。详情请"
+#~ "访问https://www.cosmos.esa.int/web/gaia/"
+
+#~ msgid "Gaia archive available"
+#~ msgstr "Gaia星表可用"
+
+#~ msgid "Gaia archive unavailable"
+#~ msgstr "Gaia星表不可用"
+
+#~ msgid "Unknown Gaia archive status"
+#~ msgstr "Gaia星表状态未知"
+
+#~ msgid "Offline, cannot retrieve URL.\n"
+#~ msgstr "离线模式：不能检索URL。\n"
+
+#~ msgid "Offline: cannot fetch catalog\n"
+#~ msgstr "离线模式：不能获取星表\n"
+
+#~ msgid ""
+#~ "Submitting conesearch request to ESA Gaia DR3 catalog. This may take a "
+#~ "few seconds to complete...\n"
+#~ msgstr "向 ESA Gaia DR3 星表提交锥形搜索请求。这可能需要几秒钟才能完成...\n"
+
+#~ msgid "Error submitting conesearch request.\n"
+#~ msgstr "提交锥形搜索请求时出错。\n"
+
+#~ msgid "Job id not found in the response.\n"
+#~ msgstr "在响应中找不到作业 ID。\n"
+
+#~ msgid "Timeout on Gaia DR3 query\n"
+#~ msgstr "Gaia DR3 查询超时\n"
+
+#~ msgid "Gaia DR3 async query failed, unable to continue.\n"
+#~ msgstr "Gaia DR3 异步查询失败，无法继续。\n"
+
+#, c-format
+#~ msgid "Gaia DR3 conesearch query succeeded: cached as %s\n"
+#~ msgstr "Gaia DR3 conesearch 查询成功：缓存为 %s\n"
+
+#~ msgid ""
+#~ "Submitting spectral data request to ESA Gaia DR3 catalog. This may take "
+#~ "several seconds to complete...\n"
+#~ msgstr "向 ESA Gaia DR3 星表提交光谱数据请求。这可能需要几秒钟才能完成...\n"
+
+#~ msgid "Using already downloaded datalink product\n"
+#~ msgstr "使用已下载的数据链产品\n"
+
+#, c-format
+#~ msgid "Gaia DR3 datalink query succeeded: cached as %s\n"
+#~ msgstr "Gaia DR3 数据链路查询成功：缓存为 %s\n"
+
 #, fuzzy
 #~ msgid "Gaia archive running but performing slightly slower"
 #~ msgstr "Gaia星表运行中，但性能略有下降\n"
@@ -31704,9 +31932,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #~ msgid "Error: no AI batch size specified\n"
 #~ msgstr "错误：未指定AI批处理尺寸\n"
 
-#~ msgid "Error: no pts_per_row specified\n"
-#~ msgstr "错误：未指定pts_per_row（每行的点数）\n"
-
 #~ msgid "Error: no spline order specified\n"
 #~ msgstr "错误：未指定spline order\n"
 
@@ -32013,11 +32238,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #~ "Online scripts repository not enabled. Not fetching or updating siril-"
 #~ "spcc...\n"
 #~ msgstr "未启用联机脚本存储库。不获取或更新siril spcc...\n"
-
-#~ msgid ""
-#~ "Siril was compiled without libgit2 support. Remote repositories cannot be "
-#~ "automatically fetched...\n"
-#~ msgstr "Siril 的编译没有 libgit2 支持。无法自动获取远程存储库...\n"
 
 #~ msgid "Configure GraXpert to use the GPU for AI inference, if available"
 #~ msgstr "配置GraXpert在有条件时使用GPU进行AI推算"
@@ -33621,14 +33841,6 @@ msgstr "叠加将不会使用超采样（“drizzle”关闭）\n"
 #, c-format
 #~ msgid "Catalog APASS size: %d objects\n"
 #~ msgstr "星表 APASS 样本量： %d 对象\n"
-
-#, c-format
-#~ msgid ""
-#~ "Fetch failed with code %ld\n"
-#~ "%s\n"
-#~ msgstr ""
-#~ "获取失败，代码为 %ld\n"
-#~ "%s\n"
 
 #, c-format
 #~ msgid "URL: %s\n"
