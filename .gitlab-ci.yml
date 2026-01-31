@@ -351,11 +351,10 @@ cppcheck:
 ################################################################################
 # Distribution
 win64-native-installer:
-  rules:
-    *run_ondemand_schedule_tag
   parallel:
     matrix:
       - MSYSTEM: [ "MINGW64", "UCRT64" ]
+  rules: !reference [.run_ondemand_schedule_tag]
   variables:
     CHERE_INVOKING: "yes"
   tags:
