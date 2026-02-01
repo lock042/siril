@@ -49,4 +49,5 @@ ${PREFIX}-libgit2-winhttp \
 ${PREFIX}-ffmpeg \
 ${PREFIX}-ffms2 \
 ${PREFIX}-curl \
+${PREFIX}-sqlite3 \
 
