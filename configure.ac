@@ -401,6 +401,34 @@ AM_CONDITIONAL([PLATFORM_OSX], [test "$platform" = "osx"])
 AC_DEFINE_UNQUOTED(CPU_ARCH, "$host_cpu", [The CPU family this was built for])
 AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family", [The OS family this was built for])
 
+# Check if we're on Windows and get MSYSTEM
+case "$host_os" in
+  mingw*|msys*|cygwin*)
+    # We're on Windows, get the MSYSTEM environment variable
+    MSYSTEM="${MSYSTEM:-unknown}"
+    AC_MSG_NOTICE([Building on Windows with MSYSTEM: $MSYSTEM])
+    
+    # Check if using UCRT runtime
+    case "$MSYSTEM" in
+      UCRT64|CLANG64|CLANGARM64)
+        AC_DEFINE([USE_UCRT], [1], [Define if building with UCRT runtime])
+        AC_MSG_NOTICE([Building with UCRT runtime])
+        ;;
+      *)
+        AC_MSG_NOTICE([Building with MSVCRT runtime])
+        ;;
+    esac
+    
+    # Convert to lowercase and define
+    msystem_lower=$(echo "$MSYSTEM" | tr '[:upper:]' '[:lower:]')
+    AC_DEFINE_UNQUOTED([SIRIL_BUILD_PLATFORM_ENV], "$msystem_lower", [The Windows MSYSTEM environment])
+    ;;
+  *)
+    # Not Windows
+    AC_DEFINE([SIRIL_BUILD_PLATFORM_ENV], "", [The Windows MSYSTEM environment])
+    ;;
+esac
+
 AC_SUBST(WIN32_LARGE_ADDRESS_AWARE)
 AC_SUBST(PATHSEP)
 

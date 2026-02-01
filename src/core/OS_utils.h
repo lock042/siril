@@ -54,6 +54,8 @@ gchar *find_executable_in_path(const char *exe_name, const char *path);
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
 
+gchar *get_siril_version_string();
+
 #ifdef __cplusplus
 }
 #endif
