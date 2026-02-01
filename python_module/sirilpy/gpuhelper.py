@@ -177,6 +177,404 @@ def _detect_intel_gpu_for_openvino():
         print(f"Error detecting Intel GPU: {e}")
         return False
 
+def _get_nvidia_gpu_info() -> Optional[Dict[str, Any]]:
+    """
+    Detect NVIDIA GPU and determine the appropriate CUDA version for PyTorch.
+
+    Returns:
+        Dict with 'detected', 'gpu_name', 'compute_capability', 'recommended_cuda' keys,
+        or None if no NVIDIA GPU detected.
+    """
+    try:
+        # Try nvidia-smi first
+        result = subprocess.run(
+            ['nvidia-smi', '--query-gpu=name,compute_cap', '--format=csv,noheader'],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            lines = result.stdout.strip().split('\n')
+            gpu_name = lines[0].split(',')[0].strip()
+            compute_cap = lines[0].split(',')[1].strip() if ',' in lines[0] else None
+
+            # Determine recommended CUDA version based on GPU generation
+            recommended_cuda = _determine_cuda_version_for_gpu(gpu_name, compute_cap)
+
+            return {
+                'detected': True,
+                'gpu_name': gpu_name,
+                'compute_capability': compute_cap,
+                'recommended_cuda': recommended_cuda
+            }
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    # Fallback to basic detection
+    system = platform.system().lower()
+    if _detect_nvidia_gpu(system):
+        return {
+            'detected': True,
+            'gpu_name': 'Unknown NVIDIA GPU',
+            'compute_capability': None,
+            'recommended_cuda': 'cu126'  # Safe default for most modern cards
+        }
+
+    return None
+
+
+def _determine_cuda_version_for_gpu(gpu_name: str, compute_cap: Optional[str] = None) -> str:
+    """
+    Determine the safest CUDA version for PyTorch based on GPU generation.
+
+    Args:
+        gpu_name: Name of the GPU (e.g., "GeForce RTX 3090")
+        compute_cap: Compute capability (e.g., "8.6"), if available
+
+    Returns:
+        CUDA version string for PyTorch (e.g., "cu118", "cu126", "cu128")
+    """
+    gpu_lower = gpu_name.lower()
+
+    # RTX 50xx series (Blackwell) - requires CUDA 12.8+
+    if any(x in gpu_lower for x in ['rtx 50', 'rtx50']):
+        return 'cu128'
+
+    # RTX 40xx series (Ada Lovelace) - CUDA 12.6 recommended
+    # RTX 30xx series (Ampere) - CUDA 12.6 supported
+    # RTX 20xx series (Turing) - CUDA 12.6 supported
+    # GTX 16xx series (Turing) - CUDA 12.6 supported
+    # RTX 10xx series (Pascal) - CUDA 12.6 supported
+    if any(x in gpu_lower for x in ['rtx 40', 'rtx40', 'rtx 30', 'rtx30',
+                                     'rtx 20', 'rtx20', 'gtx 16', 'gtx16',
+                                     'gtx 10', 'gtx10', 'titan x', 'tesla p']):
+        return 'cu126'
+
+    # GTX 9xx series (Maxwell) - CUDA 11.8 is safest
+    # GTX 7xx/8xx series (Kepler) - CUDA 11.8
+    if any(x in gpu_lower for x in ['gtx 9', 'gtx 8', 'gtx 7',
+                                     'titan', 'tesla k', 'quadro k']):
+        return 'cu118'
+
+    # Use compute capability if available
+    if compute_cap:
+        try:
+            major, minor = map(int, compute_cap.split('.'))
+            cc_val = major * 10 + minor
+
+            # SM 9.0+ (Blackwell and future) - CUDA 12.8+
+            if cc_val >= 90:
+                return 'cu128'
+            # SM 7.0-8.9 (Volta, Turing, Ampere, Ada) - CUDA 12.6
+            elif cc_val >= 70:
+                return 'cu126'
+            # SM 5.0-6.x (Maxwell, Pascal) - CUDA 11.8
+            elif cc_val >= 50:
+                return 'cu118'
+        except (ValueError, AttributeError):
+            pass
+
+    # Default to cu126 for unknown modern GPUs
+    return 'cu126'
+
+
+def _get_amd_gpu_info() -> Optional[Dict[str, Any]]:
+    """
+    Detect AMD GPU and determine if it supports ROCm for PyTorch.
+
+    Returns:
+        Dict with 'detected', 'gpu_name', 'rocm_compatible', 'is_igpu' keys,
+        or None if no AMD GPU detected.
+    """
+    system = platform.system().lower()
+
+    # ROCm only supports Linux
+    if system != 'linux':
+        # Check for AMD GPU on non-Linux systems
+        if system == 'windows':
+            try:
+                output = subprocess.check_output(
+                    ["powershell", "-Command",
+                     "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -like '*AMD*' -or $_.Name -like '*Radeon*'}"],
+                    text=True
+                )
+                if output.strip():
+                    # AMD GPU detected on Windows - not ROCm compatible but DirectML can be used
+                    gpu_name = output.split('\n')[0].strip() if output.strip() else "AMD GPU"
+                    return {
+                        'detected': True,
+                        'gpu_name': gpu_name,
+                        'rocm_compatible': False,
+                        'is_igpu': _is_amd_igpu(gpu_name)
+                    }
+            except (subprocess.SubprocessError, FileNotFoundError):
+                pass
+        return None
+
+    # Linux - check for ROCm compatibility
+    try:
+        # Try rocm-smi first
+        result = subprocess.run(
+            ['rocm-smi', '--showproductname'],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            gpu_name = result.stdout.strip()
+            is_igpu = _is_amd_igpu(gpu_name)
+            rocm_compatible = not is_igpu  # iGPUs generally don't support ROCm well
+
+            return {
+                'detected': True,
+                'gpu_name': gpu_name,
+                'rocm_compatible': rocm_compatible,
+                'is_igpu': is_igpu
+            }
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    # Fallback to lspci
+    try:
+        output = subprocess.check_output(['lspci'], text=True)
+        amd_lines = [line for line in output.split('\n')
+                     if any(x in line.lower() for x in ['amd', 'ati', 'radeon'])]
+
+        if amd_lines:
+            gpu_name = amd_lines[0].split(':')[-1].strip()
+            is_igpu = _is_amd_igpu(gpu_name)
+
+            # Check if this is a ROCm-compatible discrete GPU
+            rocm_compatible = _is_rocm_compatible_gpu(gpu_name) and not is_igpu
+
+            return {
+                'detected': True,
+                'gpu_name': gpu_name,
+                'rocm_compatible': rocm_compatible,
+                'is_igpu': is_igpu
+            }
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    return None
+
+
+def _is_amd_igpu(gpu_name: str) -> bool:
+    """Check if AMD GPU is an integrated GPU."""
+    igpu_indicators = [
+        'vega', 'radeon graphics', 'ryzen', 'renoir', 'cezanne',
+        'barcelo', 'rembrandt', 'phoenix', 'raphael', 'dragon range',
+        'strix point', 'mendocino', 'picasso', 'raven'
+    ]
+    gpu_lower = gpu_name.lower()
+    return any(indicator in gpu_lower for indicator in igpu_indicators)
+
+
+def _is_rocm_compatible_gpu(gpu_name: str) -> bool:
+    """
+    Check if AMD GPU is compatible with ROCm.
+    ROCm supports RDNA2/3 and some older GCN architectures.
+    """
+    gpu_lower = gpu_name.lower()
+
+    # RDNA architectures (RX 5000, 6000, 7000 series)
+    rocm_compatible = [
+        'rx 7', 'rx 6', 'rx 5',  # Consumer RDNA
+        'radeon pro w', 'radeon pro v',  # Professional RDNA
+        'instinct',  # Data center
+        'vii',  # Radeon VII
+    ]
+
+    return any(indicator in gpu_lower for indicator in rocm_compatible)
+
+
+def _get_intel_gpu_info() -> Optional[Dict[str, Any]]:
+    """
+    Detect Intel GPU and determine if it's Arc (discrete) or iGPU.
+
+    Returns:
+        Dict with 'detected', 'gpu_name', 'is_arc', 'is_igpu', 'torch_compatible' keys,
+        or None if no Intel GPU detected.
+    """
+    system = platform.system().lower()
+    gpu_name = None
+
+    # Windows detection
+    if system == 'windows':
+        try:
+            output = subprocess.check_output(
+                ["powershell", "-Command",
+                 "Get-WmiObject -Class Win32_VideoController | Where-Object {$_.Name -like '*Intel*'}"],
+                text=True
+            )
+            if output.strip():
+                lines = [l.strip() for l in output.split('\n') if l.strip()]
+                for line in lines:
+                    if 'Name' in line:
+                        gpu_name = line.split(':')[-1].strip()
+                        break
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+    # Linux detection
+    elif system == 'linux':
+        try:
+            output = subprocess.check_output(['lspci'], text=True)
+            intel_lines = [line for line in output.split('\n')
+                          if 'intel' in line.lower() and
+                          any(x in line.lower() for x in ['vga', 'display', '3d', 'graphics'])]
+            if intel_lines:
+                gpu_name = intel_lines[0].split(':')[-1].strip()
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+    # macOS detection
+    elif system == 'darwin':
+        try:
+            output = subprocess.check_output(
+                ['system_profiler', 'SPDisplaysDataType'],
+                text=True
+            )
+            if 'intel' in output.lower():
+                for line in output.split('\n'):
+                    if 'Chipset Model' in line or 'Graphics' in line:
+                        if 'Intel' in line:
+                            gpu_name = line.split(':')[-1].strip()
+                            break
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+    if not gpu_name:
+        return None
+
+    gpu_lower = gpu_name.lower()
+
+    # Check if it's Arc (discrete GPU)
+    is_arc = any(x in gpu_lower for x in [
+        'arc', 'a770', 'a750', 'a580', 'a380',
+        'a370m', 'a730m', 'a550m', 'a350m'
+    ])
+
+    # Check if it's an iGPU
+    is_igpu = any(x in gpu_lower for x in [
+        'uhd', 'iris', 'hd graphics', 'xe graphics'
+    ]) and not is_arc
+
+    # Intel Arc GPUs support PyTorch via Intel Extension for PyTorch
+    # iGPUs generally have limited/no PyTorch support
+    torch_compatible = is_arc
+
+    return {
+        'detected': True,
+        'gpu_name': gpu_name,
+        'is_arc': is_arc,
+        'is_igpu': is_igpu,
+        'torch_compatible': torch_compatible
+    }
+
+
+def _get_apple_silicon_info() -> Optional[Dict[str, Any]]:
+    """
+    Detect Apple Silicon (M1/M2/M3/M4) chips.
+
+    Returns:
+        Dict with 'detected', 'chip_name', 'architecture' keys,
+        or None if not Apple Silicon.
+    """
+    system = platform.system().lower()
+
+    if system != 'darwin':
+        return None
+
+    try:
+        # Check if it's Apple Silicon
+        machine = platform.machine().lower()
+        if machine != 'arm64':
+            return None
+
+        # Get chip information
+        output = subprocess.check_output(
+            ['sysctl', '-n', 'machdep.cpu.brand_string'],
+            text=True
+        ).strip()
+
+        chip_name = output
+
+        # Determine architecture
+        if 'M1' in output:
+            architecture = 'M1'
+        elif 'M2' in output:
+            architecture = 'M2'
+        elif 'M3' in output:
+            architecture = 'M3'
+        elif 'M4' in output:
+            architecture = 'M4'
+        else:
+            architecture = 'Apple Silicon'
+
+        return {
+            'detected': True,
+            'chip_name': chip_name,
+            'architecture': architecture
+        }
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    return None
+
+
+def detect_gpu_capabilities() -> Dict[str, Any]:
+    """
+    Comprehensive GPU detection for all supported hardware.
+
+    Returns:
+        Dict containing detected hardware information and recommendations for
+        PyTorch, ONNX, and JAX backends.
+    """
+    system = platform.system().lower()
+
+    capabilities = {
+        'system': system,
+        'nvidia': _get_nvidia_gpu_info(),
+        'amd': _get_amd_gpu_info(),
+        'intel': _get_intel_gpu_info(),
+        'apple_silicon': _get_apple_silicon_info()
+    }
+
+    return capabilities
+
+def get_gpu_detection_report() -> Dict[str, Any]:
+    """
+    Generate a comprehensive GPU detection report suitable for display in a GUI.
+
+    Returns:
+        Dict containing all detected hardware and recommended configurations
+        for ONNX, PyTorch, and JAX.
+    """
+    caps = detect_gpu_capabilities()
+
+    report = {
+        'system': caps['system'],
+        'hardware': {
+            'nvidia': caps['nvidia'],
+            'amd': caps['amd'],
+            'intel': caps['intel'],
+            'apple_silicon': caps['apple_silicon']
+        },
+        'recommendations': {
+            'onnx': {
+                'backend': ONNXHelper().get_recommended_backend(),
+                'package': ONNXHelper()._get_onnxruntime_package()
+            },
+            'torch': TorchHelper().get_recommended_backend(),
+            'jax': JaxHelper().get_recommended_backend()
+        }
+    }
+
+    return report
+
 class ONNXHelper:
     """
     A class to handle detection and installation of the appropriate ONNX Runtime
@@ -201,6 +599,42 @@ class ONNXHelper:
         self.system = platform.system().lower()
         self.providers = None
         self.config_file = os.path.join(user_config_dir(appname="siril"), "siril_onnx.conf")
+
+    def get_recommended_backend(self) -> str:
+        """
+        Determine the recommended ONNX Runtime backend based on hardware.
+
+        Returns:
+            Backend name: 'gpu', 'directml', 'openvino', or 'cpu'
+        """
+        caps = detect_gpu_capabilities()
+        system = caps['system']
+
+        # NVIDIA GPUs - use CUDA backend
+        if caps['nvidia'] and caps['nvidia']['detected']:
+            return 'gpu'
+
+        # Windows with AMD GPU - use DirectML
+        if system == 'windows' and caps['amd'] and caps['amd']['detected']:
+            return 'directml'
+
+        # Intel Arc GPUs - use OpenVINO
+        if caps['intel'] and caps['intel']['detected'] and caps['intel']['is_arc']:
+            return 'openvino'
+
+        # Linux with AMD ROCm-compatible GPU
+        if system == 'linux' and caps['amd'] and caps['amd'].get('rocm_compatible'):
+            # Note: ONNX Runtime doesn't have great ROCm support yet
+            # Fall through to CPU for now
+            pass
+
+        # Apple Silicon - use CoreML (if available) or CPU
+        if caps['apple_silicon']:
+            # ONNX Runtime supports CoreML execution provider on Apple Silicon
+            return 'coreml'
+
+        # Default to CPU
+        return 'cpu'
 
     def status(self):
         """
@@ -600,50 +1034,41 @@ class ONNXHelper:
         Determine the appropriate ONNX Runtime package based on system and available hardware.
 
         Returns:
-            tuple: (package_name, url) where url is None except for special cases like ROCm
+            tuple: (package_name, from_url, index_url) where from_url and index_url
+                are None except for special cases like ROCm
         """
         from_url = None
         index_url = None
-        onnxruntime_pkg = "onnxruntime"
-        cuda_version = _detect_cuda_version(self.system)
-        if self.system == "windows":
-            onnxruntime_pkg = "onnxruntime-directml"
-            # NVidia GPU runtime that supports CUDA
-            ## onnxruntime-gpu currently disabled for Windows as it is highly problematic to get all the dependencies correct.
-            ## may be reinstated later if a version of the runtime is released that can depend on the nvidia-* modules in the same
-            ## way as torch
 
-#            if _detect_nvidia_gpu(self.system) and pkg_version.Version(cuda_version).major >= 11:
-#                onnxruntime_pkg = "onnxruntime-gpu"
-#                if pkg_version.Version(cuda_version).major == 11:
-#                    index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-#            else:
-#                # DirectML provides hardware acceleration for various GPUs on Windows
-#                onnxruntime_pkg = "onnxruntime-directml"
+        backend = self.get_recommended_backend()
 
-        elif self.system == "darwin":  # macOS
-            onnxruntime_pkg = "onnxruntime"
+        if backend == 'gpu':
+            onnxruntime_pkg = 'onnxruntime-gpu'
+            # Check CUDA version for index_url
+            cuda_version = _detect_cuda_version(self.system)
+            if cuda_version and pkg_version.Version(cuda_version).major == 11:
+                index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
 
-        elif self.system == "linux":
-            if _detect_nvidia_gpu(self.system):
-                if pkg_version.Version(cuda_version).major >= 11:
-                    onnxruntime_pkg = "onnxruntime-gpu"
-                    if pkg_version.Version(cuda_version).major == 11:
-                        index_url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"
-                    return onnxruntime_pkg, from_url, index_url
+        elif backend == 'directml':
+            onnxruntime_pkg = 'onnxruntime-directml'
 
-                else:
-                    print("Warning: NVIDIA GPU detected but unable to confirm CUDA version. Ensure nvidia libraries are installed "
-                          "and either nvcc is installed on the system or Torch is installed in the Siril venv")
+        elif backend == 'openvino':
+            onnxruntime_pkg = 'onnxruntime-openvino'
 
-            if _detect_amd_gpu():
-                # ROCm support for AMD GPUs on Linux
-                onnxruntime_pkg = "onnxruntime-rocm"
-                from_url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/"
-            elif _detect_intel_gpu_for_openvino():
-                onnxruntime_pkg = "onnxruntime-openvino"
+        elif backend == 'coreml':
+            # Standard onnxruntime supports CoreML on macOS
+            onnxruntime_pkg = 'onnxruntime'
 
-        return onnxruntime_pkg, from_url, index_url
+        else:  # CPU or unknown
+            onnxruntime_pkg = 'onnxruntime'
+
+        # Special case: AMD ROCm (currently experimental)
+        caps = detect_gpu_capabilities()
+        if (self.system == 'linux' and
+            caps['amd'] and
+            caps['amd'].get('rocm_compatible')):
+            onnxruntime_pkg = 'onnxruntime-rocm'
+            from_url = 'https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4/'
 
     def _check_onnxruntime_availability(self, package_name):
         """
@@ -898,74 +1323,120 @@ class TorchHelper:
             "to write a script that uses both Torch and jax, and even switching between the two in "
             "different scripts is difficult at present. This issue has been raised upstream with Torch.")
 
-    def install_torch(self, cuda_version: str = "auto", force_reinstall: bool = False) -> bool:
+    def get_recommended_backend(self) -> Dict[str, Any]:
         """
-        Install PyTorch with GPU compute platform support where available and stable. Use this in
-        place of ensure_installed() to make sure that the correct Torch package is installed for the
-        user's hardware and OS.
-
-        Args:
-            cuda_version: compute platform to install (e.g., 'cu118', 'cu126', 'cu128', 'rocm', 'cpu', 'auto')
-            force_reinstall: Whether to reinstall even if already installed
+        Determine the recommended PyTorch backend and installation parameters.
 
         Returns:
-            bool: True if installation successful, False otherwise
+            Dict with 'backend', 'cuda_version', 'extra_index_url', 'packages' keys
         """
+        caps = detect_gpu_capabilities()
+        system = caps['system']
 
-        if self.is_torch_installed() and not force_reinstall:
-            print("PyTorch is already installed.")
-            return self._import_torch()
+        # NVIDIA GPUs
+        if caps['nvidia'] and caps['nvidia']['detected']:
+            cuda_version = caps['nvidia']['recommended_cuda']
+            return {
+                'backend': 'cuda',
+                'cuda_version': cuda_version,
+                'extra_index_url': f'https://download.pytorch.org/whl/{cuda_version}',
+                'packages': ['torch', 'torchvision', 'torchaudio']
+            }
 
-        # Auto-detect GPU if needed
-        if cuda_version == "auto":
-            cuda_version = self._detect_compute_platform()
-            print(f"Auto-detected compute platform: {cuda_version}")
+        # AMD ROCm on Linux
+        if system == 'linux' and caps['amd'] and caps['amd'].get('rocm_compatible'):
+            return {
+                'backend': 'rocm',
+                'cuda_version': None,
+                'extra_index_url': 'https://download.pytorch.org/whl/rocm6.2',
+                'packages': ['torch', 'torchvision', 'torchaudio']
+            }
 
-        print(f"Installing PyTorch for compute platform {cuda_version}...")
-        host = self.system
+        # Intel Arc GPUs
+        if caps['intel'] and caps['intel'].get('torch_compatible'):
+            return {
+                'backend': 'intel',
+                'cuda_version': None,
+                'extra_index_url': None,
+                'packages': ['torch', 'torchvision', 'torchaudio',
+                            'intel-extension-for-pytorch']
+            }
+
+        # Apple Silicon
+        if caps['apple_silicon']:
+            return {
+                'backend': 'mps',
+                'cuda_version': None,
+                'extra_index_url': None,
+                'packages': ['torch', 'torchvision', 'torchaudio']
+            }
+
+        # AMD on Windows - use CPU (DirectML support is experimental)
+        # Intel iGPU - use CPU
+        # Default CPU
+        return {
+            'backend': 'cpu',
+            'cuda_version': None,
+            'extra_index_url': None,
+            'packages': ['torch', 'torchvision', 'torchaudio']
+        }
+
+    def ensure_torch(self, cuda_version: Optional[str] = None):
+        """
+        Ensure PyTorch is installed with the appropriate backend.
+
+        Args:
+            cuda_version: Optional CUDA version to override auto-detection
+                         (e.g., 'cu118', 'cu126', 'cu128')
+        """
+        if self.is_torch_installed():
+            print("Torch is already installed")
+            return
+
+        backend_info = self.get_recommended_backend()
+
+        # Override CUDA version if specified
+        if cuda_version is not None and backend_info['backend'] == 'cuda':
+            backend_info['cuda_version'] = cuda_version
+            backend_info['extra_index_url'] = f'https://download.pytorch.org/whl/{cuda_version}'
+
+        print(f"Installing PyTorch with backend: {backend_info['backend']}")
+        if backend_info['cuda_version']:
+            print(f"Using CUDA version: {backend_info['cuda_version']}")
+
+        self.install_torch(
+            cuda_version=backend_info['cuda_version'],
+            extra_index_url=backend_info['extra_index_url'],
+            packages=backend_info['packages']
+        )
+
+    def install_torch(self, cuda_version: Optional[str] = None,
+                     extra_index_url: Optional[str] = None,
+                     packages: Optional[list] = None):
+        """
+        Install PyTorch with specified configuration.
+
+        Args:
+            cuda_version: CUDA version (e.g., 'cu118', 'cu126', 'cu128')
+            extra_index_url: PyTorch wheel repository URL
+            packages: List of packages to install
+        """
+        if packages is None:
+            packages = ['torch', 'torchvision', 'torchaudio']
+
+        install_cmd = [sys.executable, '-m', 'pip', 'install'] + packages
+
+        if extra_index_url:
+            install_cmd.extend(['--extra-index-url', extra_index_url])
+
         try:
-            if host == 'darwin' or (host == 'windows' and cuda_version == 'cpu'):
-                _install_package("torch")
-            elif cuda_version.lower() == 'cpu':
-                _install_package("torch", index_url="https://download.pytorch.org/whl/cpu")
-            else:
-                print("NOTE: Torch does not play nicely with other packages because of its excessively "
-                    "zealous == nvidia / CUDA dependencies. In order to mitigate this, the package will be "
-                    "installed and then reinstalled with the --no-deps flag. The initial installation may "
-                    "override CUDA dependencies of other packages. Where this is known (e.g. jax) the "
-                    "other package will be reinstalled. If you see errors relating to other packages that "
-                    "have nvidia dependencies you may need to reinstall those as well, using a simple "
-                    "script calling sirilpy.ensure_installed('package', reinstall=True)", file=sys.stderr)
-                # Install torch to ensure min deps are met
-                _install_package("torch", index_url=f"https://download.pytorch.org/whl/{cuda_version}")
-                # Reinstall with --no-deps t oensure that torch's punitively restrictive nvidia dependencies
-                # don't cause problems with other packages
-                _install_package("torch", index_url=f"https://download.pytorch.org/whl/{cuda_version}", reinstall=True, nodeps=True)
-                # Check if jax is installed; if so, force reinstallation to restore its minimum CUDA dependencies
-                jh = JaxHelper()
-                if jh.is_jax_installed():
-                    _install_package("jax", reinstall=True)
-
-            # Try to import after installation
-            return self._import_torch()
-
+            print(f"Installing: {' '.join(packages)}")
+            subprocess.run(install_cmd, check=True)
+            self.torch_installed = True
+            print("PyTorch installation completed successfully")
         except subprocess.CalledProcessError as e:
-            print(f"(x) PyTorch installation failed: {e}")
-            if e.stderr:
-                print("Error output:", e.stderr[-500:])  # Show last 500 chars
-            return False
-        except Exception as e:
-            print(f"(x) Unexpected error during installation: {e}")
-            return False
-
-    def ensure_torch(self) -> bool:
-        """
-        Wrapper for install_torch() that only installs it if needed, with
-        negligible overhead if it is already installed.
-        """
-        if not self.is_torch_installed():
-            return self.install_torch()
-        return self._import_torch()
+            print(f"Failed to install PyTorch: {e}")
+            raise
 
     def _detect_compute_platform(self) -> str:
         """
@@ -1366,6 +1837,56 @@ class JaxHelper:
             "install Jax. (You can do this the other way round and it will still work but will be less "
             "efficient.)")
 
+    def get_recommended_backend(self) -> Dict[str, Any]:
+        """
+        Determine the recommended JAX backend and installation parameters.
+
+        Returns:
+            Dict with 'backend', 'packages', 'extra_index_url' keys
+        """
+        caps = detect_gpu_capabilities()
+        system = caps['system']
+
+        # NVIDIA GPUs with CUDA
+        if caps['nvidia'] and caps['nvidia']['detected']:
+            # JAX supports CUDA 12.x
+            return {
+                'backend': 'cuda',
+                'packages': ['jax[cuda12]'],
+                'extra_index_url': None
+            }
+
+        # AMD ROCm on Linux (experimental)
+        if system == 'linux' and caps['amd'] and caps['amd'].get('rocm_compatible'):
+            return {
+                'backend': 'rocm',
+                'packages': ['jax[rocm]'],
+                'extra_index_url': None
+            }
+
+        # Apple Silicon - Metal backend
+        if caps['apple_silicon']:
+            return {
+                'backend': 'metal',
+                'packages': ['jax-metal'],
+                'extra_index_url': None
+            }
+
+        # Intel Arc GPUs (experimental)
+        if caps['intel'] and caps['intel'].get('is_arc'):
+            return {
+                'backend': 'intel',
+                'packages': ['jax', 'intel-extension-for-openxla'],
+                'extra_index_url': None
+            }
+
+        # CPU fallback
+        return {
+            'backend': 'cpu',
+            'packages': ['jax'],
+            'extra_index_url': None
+        }
+
     def is_jax_installed(self) -> bool:
         """Check if PyTorch is installed without importing it."""
         if self.jax_installed:
@@ -1385,25 +1906,21 @@ class JaxHelper:
         Returns:
             Dict containing detected hardware info and recommended JAX installation.
         """
+        caps = detect_gpu_capabilities()
+
         config = {
             'system': self.system,
-            'has_nvidia_gpu': False,
-            'has_amd_gpu': False,
-            'has_intel_gpu': False,
-            'cuda_version': None,
+            'has_nvidia_gpu': caps['nvidia'] is not None and caps['nvidia']['detected'],
+            'has_amd_gpu': caps['amd'] is not None and caps['amd']['detected'],
+            'has_intel_gpu': caps['intel'] is not None and caps['intel']['detected'],
+            'cuda_version': caps['nvidia']['recommended_cuda'] if caps['nvidia'] else None,
+            'amd_rocm_compatible': caps['amd']['rocm_compatible'] if caps['amd'] else False,
+            'intel_is_arc': caps['intel']['is_arc'] if caps['intel'] else False,
+            'apple_silicon': caps['apple_silicon'] is not None,
             'recommended_jax_variant': 'jax[cpu]',
             'install_url': None,
             'index_url': None
         }
-
-        # Detect GPUs
-        config['has_nvidia_gpu'] = _detect_nvidia_gpu(self.system)
-        config['has_amd_gpu'] = _detect_amd_gpu()
-        config['has_intel_gpu'] = _detect_intel_gpu_for_openvino()
-
-        # Detect CUDA version if NVIDIA GPU is present
-        if config['has_nvidia_gpu']:
-            config['cuda_version'] = _detect_cuda_version(self.system)
 
         # Determine JAX variant based on hardware
         config = self._determine_jax_variant(config)
@@ -1429,6 +1946,7 @@ class JaxHelper:
                 "matures we hope to enable the cuda wheel however at "
                 "present only CPU support is available, which is mostly "
                 "only useful for development purposes.")
+
         if force_cpu:
             config['recommended_jax_variant'] = 'jax[cpu]'
             print("(!) Warning: performance of the CPU-only jax variant "
@@ -1437,46 +1955,53 @@ class JaxHelper:
                 "optimisation in scripts that offer it!")
             return config
 
-        if config['has_nvidia_gpu']:
-            if config['system'] == 'linux':
-                # NVIDIA GPU with CUDA
-                config['recommended_jax_variant'] = 'jax[cuda12]'
-# ## Commented out until the Windows wheel supports numpy 2.x
-#            elif config['system'] == 'windows':
-#                print("(!) Windows CUDA support for jax is experimental: "
-#                    "if you have problems, reinstall forcing CPU support")
-#                config['recommended_jax_variant'] = 'jax[cuda12]'
-            else:
-                config['recommended_jax_variant'] = 'jax[cpu]'
+        # NVIDIA GPU with CUDA (Linux only for now)
+        if config['has_nvidia_gpu'] and config['system'] == 'linux':
+            config['recommended_jax_variant'] = 'jax[cuda12]'
+            print(f"Detected NVIDIA GPU - will install jax[cuda12]")
 
-        elif config['has_amd_gpu'] and config['system'] == 'linux':
-            # AMD GPU with ROCm (Linux only)
+        # AMD GPU with ROCm support (Linux only)
+        elif config['amd_rocm_compatible'] and config['system'] == 'linux':
             config['recommended_jax_variant'] = 'jax[rocm]'
+            print("Detected ROCm-compatible AMD GPU - will install jax[rocm]")
+            print("(!) AMD ROCm support in JAX is experimental - feedback appreciated!")
 
-        elif config['has_intel_gpu']:
-            # Current pypi package for intel-extension-for-openxla
-            # has dependency clashes (still requires numpy 1.x)
-            print("(!) Intel GPU detected: unfortunately the experimental "
+        # Intel Arc GPU (experimental, has dependency conflicts)
+        elif config['intel_is_arc']:
+            print("(!) Intel Arc GPU detected: unfortunately the experimental "
                 "jax plugin for Intel GPUs has dependency clashes and "
                 "still requires numpy 1.x therefore only the CPU variant "
                 "can be installed. Hopefully this will change in the "
                 "future.")
             config['recommended_jax_variant'] = 'jax[cpu]'
 
-        elif config['system'] == 'darwin':
-            # macOS - use Metal wheel and print an experimental warning
-            print("(!) jax Metal support on MacOS is still experimental")
+        # Apple Silicon with Metal backend
+        elif config['apple_silicon']:
             config['recommended_jax_variant'] = 'jax-metal'
+            print("Detected Apple Silicon - will install jax-metal")
+            print("(!) jax Metal support on macOS is still experimental")
 
-        else:
-            # Default to CPU
+        # AMD GPU without ROCm support (e.g., iGPU or older GPU)
+        elif config['has_amd_gpu']:
+            print("(!) AMD GPU detected but ROCm not supported - falling back to CPU")
             config['recommended_jax_variant'] = 'jax[cpu]'
 
-        if config['recommended_jax_variant'] == 'jax[cpu]':
+        # Intel iGPU or other non-Arc Intel GPU
+        elif config['has_intel_gpu']:
+            print("(!) Intel GPU detected but not Arc series - falling back to CPU")
+            config['recommended_jax_variant'] = 'jax[cpu]'
+
+        # Default to CPU
+        else:
+            config['recommended_jax_variant'] = 'jax[cpu]'
+
+        # Warn about CPU-only performance
+        if config['recommended_jax_variant'] in ['jax[cpu]', 'jax']:
             print("(!) Warning: performance of the CPU-only jax variant "
                 "is slow and is intended for development use only. It "
                 "is generally recommended that you do NOT enable jax "
                 "optimisation in scripts that offer it!")
+
         return config
 
     def install_jax(self, force_variant: Optional[str] = None,
