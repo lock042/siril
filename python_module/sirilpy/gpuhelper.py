@@ -1105,7 +1105,7 @@ class ONNXHelper:
                     import onnxruntime.tools.add_openvino_win_libs as utils
                     utils.add_openvino_libs_to_path()
                 try:
-                    import onnxruntime
+                    self.import_onnxruntime()
                 except ImportError as e:
                     print(f"Checked installed runtime {onnxruntime_pkg} cannot be imported: {e}. Falling back to the basic CPU runtime", file=sys.stderr)
                     self.uninstall_onnxruntime()
@@ -1143,7 +1143,7 @@ class ONNXHelper:
         """
         try:
             # Try importing onnxruntime - if this fails, the package is not usable
-            import onnxruntime
+            self.import_onnxruntime()
 
         except ImportError as e:
             # If import fails, package is not usable regardless of pip list
@@ -1234,7 +1234,7 @@ class ONNXHelper:
         if self.providers is not None:
             return self.providers
 
-        import onnxruntime as ort
+        self.import_onnxruntime()
 
         # Try to load cached providers first
         try:
@@ -1331,6 +1331,8 @@ class ONNXHelper:
         # Remove the execution provders config file
         if os.path.exists(self.config_file):
             os.unlink(self.config_file)
+
+        self.providers = None
 
         # Get all installed packages
         try:
@@ -1449,7 +1451,7 @@ class TorchHelper:
                 'backend': 'cuda',
                 'cuda_version': cuda_version,
                 'extra_index_url': f'https://download.pytorch.org/whl/{cuda_version}',
-                'packages': ['torch', 'torchvision', 'torchaudio']
+                'packages': ['torch', 'torchvision']
             }
 
         # AMD ROCm on Linux
@@ -1457,8 +1459,8 @@ class TorchHelper:
             return {
                 'backend': 'rocm',
                 'cuda_version': None,
-                'extra_index_url': 'https://download.pytorch.org/whl/rocm6.2',
-                'packages': ['torch', 'torchvision', 'torchaudio']
+                'extra_index_url': 'https://download.pytorch.org/whl/rocm7.1',
+                'packages': ['torch', 'torchvision']
             }
 
         # Intel Arc GPUs
@@ -1466,8 +1468,8 @@ class TorchHelper:
             return {
                 'backend': 'intel',
                 'cuda_version': None,
-                'extra_index_url': None,
-                'packages': ['torch', 'torchvision', 'torchaudio',
+                'extra_index_url': 'https://download.pytorch.org/whl/xpu',
+                'packages': ['torch', 'torchvision',
                             'intel-extension-for-pytorch']
             }
 
@@ -1477,7 +1479,7 @@ class TorchHelper:
                 'backend': 'mps',
                 'cuda_version': None,
                 'extra_index_url': None,
-                'packages': ['torch', 'torchvision', 'torchaudio']
+                'packages': ['torch', 'torchvision']
             }
 
         # All other cases (AMD on Windows, iGPUs, CPU) - use CPU
@@ -1485,7 +1487,7 @@ class TorchHelper:
             'backend': 'cpu',
             'cuda_version': None,
             'extra_index_url': None,
-            'packages': ['torch', 'torchvision', 'torchaudio']
+            'packages': ['torch', 'torchvision']
         }
 
     def ensure_torch(self, cuda_version: Optional[str] = None) -> bool:
@@ -1546,7 +1548,7 @@ class TorchHelper:
         try:
             print(f"Installing: {' '.join(packages)}")
             subprocess.run(install_cmd, check=True)
-            self.torch_installed = True
+            self.torch_installed = self.is_torch_installed()
             print("PyTorch installation completed successfully")
         except subprocess.CalledProcessError as e:
             print(f"Failed to install PyTorch: {e}")
@@ -1846,6 +1848,12 @@ class TorchHelper:
         Returns:
             list: A list of uninstalled packages
         """
+        self._torch_installed = False
+        self.torch = None
+        self.nn = None
+        self.F = None
+        self.device_info = None
+
         # Define torch ecosystem packages to look for
         torch_ecosystem_packages = [
             'torch', 'torchvision', 'torchaudio', 'torchtext', 'torchdata',
@@ -2177,7 +2185,7 @@ class JaxHelper:
                 reinstall = force_reinstall
             )
 
-            self.jax_installed = True
+            self.jax_installed = self.is_jax_installed()
             print(f"Successfully installed {variant}")
             return True
 
@@ -2316,6 +2324,9 @@ class JaxHelper:
         Returns:
             Dict containing information about detected and uninstalled packages
         """
+        self.jax_installed = False
+        self.detected_config = None
+
         results = {
             'detected_packages': [],
             'uninstalled_packages': [],
