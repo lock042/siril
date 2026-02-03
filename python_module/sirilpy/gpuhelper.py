@@ -235,8 +235,26 @@ def _determine_cuda_version_for_gpu(gpu_name: str, compute_cap: Optional[str] = 
     Returns:
         CUDA version string for PyTorch (e.g., "cu118", "cu126", "cu128")
     """
-    gpu_lower = gpu_name.lower()
 
+    # Use compute capability if available
+    if compute_cap:
+        try:
+            major, minor = map(int, compute_cap.split('.'))
+            cc_val = major * 10 + minor
+
+            # SM 9.0+ (Blackwell and future) - CUDA 12.8+
+            if cc_val >= 90:
+                return 'cu128'
+            # SM 7.0-8.9 (Volta, Turing, Ampere, Ada) - CUDA 12.6
+            elif cc_val >= 70:
+                return 'cu126'
+            # SM 5.0-6.x (Maxwell, Pascal) - CUDA 11.8
+            elif cc_val >= 50:
+                return 'cu118'
+        except (ValueError, AttributeError):
+            pass    gpu_lower = gpu_name.lower()
+
+    # Use GPU name
     # RTX 50xx series (Blackwell) - requires CUDA 12.8+
     if any(x in gpu_lower for x in ['rtx 50', 'rtx50']):
         return 'cu128'
@@ -256,24 +274,6 @@ def _determine_cuda_version_for_gpu(gpu_name: str, compute_cap: Optional[str] = 
     if any(x in gpu_lower for x in ['gtx 9', 'gtx 8', 'gtx 7',
                                      'titan', 'tesla k', 'quadro k']):
         return 'cu118'
-
-    # Use compute capability if available
-    if compute_cap:
-        try:
-            major, minor = map(int, compute_cap.split('.'))
-            cc_val = major * 10 + minor
-
-            # SM 9.0+ (Blackwell and future) - CUDA 12.8+
-            if cc_val >= 90:
-                return 'cu128'
-            # SM 7.0-8.9 (Volta, Turing, Ampere, Ada) - CUDA 12.6
-            elif cc_val >= 70:
-                return 'cu126'
-            # SM 5.0-6.x (Maxwell, Pascal) - CUDA 11.8
-            elif cc_val >= 50:
-                return 'cu118'
-        except (ValueError, AttributeError):
-            pass
 
     # Default to cu126 for unknown modern GPUs
     return 'cu126'
@@ -1487,17 +1487,19 @@ class TorchHelper:
             'packages': ['torch', 'torchvision', 'torchaudio']
         }
 
-    def ensure_torch(self, cuda_version: Optional[str] = None):
+    def ensure_torch(self, cuda_version: Optional[str] = None) -> bool:
         """
         Ensure PyTorch is installed with the appropriate backend.
 
         Args:
             cuda_version: Optional CUDA version to override auto-detection
                             (e.g., 'cu118', 'cu126', 'cu128')
+
+        Returns: True on success, False on failure
         """
         if self.is_torch_installed():
             print("Torch is already installed")
-            return
+            return True
 
         backend_info = self.get_recommended_backend()
 
@@ -1510,11 +1512,16 @@ class TorchHelper:
         if backend_info['cuda_version']:
             print(f"Using CUDA version: {backend_info['cuda_version']}")
 
-        self.install_torch(
-            cuda_version=backend_info['cuda_version'],
-            extra_index_url=backend_info['extra_index_url'],
-            packages=backend_info['packages']
-        )
+        try:
+            self.install_torch(
+                cuda_version=backend_info['cuda_version'],
+                extra_index_url=backend_info['extra_index_url'],
+                packages=backend_info['packages']
+            )
+            return True
+        except Exception as e:
+            print(f"Error installing Torch: {e}")
+            return False
 
     def install_torch(self, cuda_version: Optional[str] = None,
                         extra_index_url: Optional[str] = None,
@@ -1533,7 +1540,7 @@ class TorchHelper:
         install_cmd = [sys.executable, '-m', 'pip', 'install'] + packages
 
         if extra_index_url:
-            install_cmd.extend(['--extra-index-url', extra_index_url])
+            install_cmd.extend(['--index-url', extra_index_url])
 
         try:
             print(f"Installing: {' '.join(packages)}")
@@ -1700,7 +1707,7 @@ class TorchHelper:
         """Test PyTorch model execution on GPU."""
         print("=== PyTorch GPU Test ===")
 
-        if not self.install_torch():
+        if not self._import_torch():
             print("PyTorch not available. Please install it first using install_torch()")
             return False
 
@@ -1764,7 +1771,7 @@ class TorchHelper:
         print("=== Tensor Operations Test ===")
         retval = None
 
-        if not self.install_torch():
+        if not self._import_torch():
             print("PyTorch not available. Please install it first using install_torch()")
             return False
 
