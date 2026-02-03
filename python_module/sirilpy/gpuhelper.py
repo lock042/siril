@@ -252,9 +252,10 @@ def _determine_cuda_version_for_gpu(gpu_name: str, compute_cap: Optional[str] = 
             elif cc_val >= 50:
                 return 'cu118'
         except (ValueError, AttributeError):
-            pass    gpu_lower = gpu_name.lower()
+            pass
 
     # Use GPU name
+    gpu_lower = gpu_name.lower()
     # RTX 50xx series (Blackwell) - requires CUDA 12.8+
     if any(x in gpu_lower for x in ['rtx 50', 'rtx50']):
         return 'cu128'
