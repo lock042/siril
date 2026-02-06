@@ -10,6 +10,7 @@ siril-1.4.2
 * Enabled some python methods to work with sequence frames as well as single images (siril-scripts#86)
 * Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
 * Improved robustness of python venv creation (!990)
+* Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
 
 siril-1.4.1
 01/05/26
