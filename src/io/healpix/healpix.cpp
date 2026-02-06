@@ -39,7 +39,7 @@ extern "C" {
 #include "core/siril_app_dirs.h"
 }
 
-#define HEALPIX_DEBUG
+//#define HEALPIX_DEBUG
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
@@ -115,6 +115,75 @@ static std::vector<HealPixelRange> create_healpixel_ranges(const std::vector<int
     // Add last range
     ranges.push_back(current_range);
     return ranges;
+}
+
+// Function to read the Healpix catalogue header
+static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
+    HealpixCatHeader header = {
+        "",                     // title: empty string
+        static_cast<GaiaVersion>(0),  // gaia_version: zero
+        0,                      // healpix_level
+        static_cast<CatalogueType>(0), // cat_type
+        0,                      // chunked
+        0,                      // chunk_level
+        0,                      // chunk_healpix
+        0,                      // chunk_first_healpixel
+        0,                      // chunk_last_healpixel
+        {}                      // spare: zero-initialized array
+    };
+
+    // Initialize error status
+    if (error_status) {
+        *error_status = 0;
+    }
+
+    // Open file in binary mode
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        if (error_status) {
+            *error_status = -1; // File open error
+        }
+        return header;
+    }
+
+    try {
+        // Read the fixed-size string (48 bytes)
+        char title_buffer[48] = {0};
+        file.read(title_buffer, 48);
+        if (file.fail()) {
+            if (error_status) {
+                *error_status = -2; // Read error
+            }
+            return header;
+        }
+        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
+
+        // Read the remaining POD members
+        file.read(reinterpret_cast<char*>(&header.gaia_version), 1);
+        file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
+        file.read(reinterpret_cast<char*>(&header.cat_type), 1);
+        file.read(reinterpret_cast<char*>(&header.chunked), 1);
+        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
+        file.read(reinterpret_cast<char*>(&header.chunk_healpix), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.chunk_first_healpixel), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.chunk_last_healpixel), sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(&header.spare), 63);
+
+        if (file.fail()) {
+            if (error_status) {
+                *error_status = -2; // Read error
+            }
+            return header;
+        }
+    }
+    catch (const std::exception&) {
+        if (error_status) {
+            *error_status = -3; // Exception during read
+        }
+        return header;
+    }
+
+    return header;
 }
 
 // This function queries a catalogue of packed EntryType objects (the template allows
@@ -217,6 +286,24 @@ static bool header_compatible(HealpixCatHeader& a, HealpixCatHeader& b) {
     return same_version && same_chunk_level && same_index_level;
 }
 
+// Get Siril data directory and ensure the relevant subdir exists
+static std::filesystem::path get_or_create_cache_dir() {
+	std::filesystem::path target_path;
+
+    const char *uddir = siril_get_user_data_dir();
+    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "siril_cat1_healpix8_xpsamp";
+    try {
+        if (!std::filesystem::exists(siril_subdir)) {
+		std::filesystem::create_directories(siril_subdir);
+        }
+        return siril_subdir;
+    } catch (const std::filesystem::filesystem_error& e) {
+        siril_debug_print(_("Can't create directory %s, falling back to system temp\n"), 
+			siril_subdir.string().c_str() );
+        return std::filesystem::temp_directory_path();
+    }
+}
+
 #ifdef HAVE_LIBCURL
 
 // Function to read header via HTTP range request using Siril's networking
@@ -238,67 +325,53 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
         *error_status = 0;
     }
 
-    gsize response_length;
-    int error;
-    char* buffer = fetch_url_range_with_curl((void*)curl, url.c_str(), 0, 128, &response_length, &error, FALSE);
+    // Setup Cache Path
+    auto tempdir = get_or_create_cache_dir();
+    std::string filename = url.substr(url.find_last_of("/\\") + 1);
+    std::string cache_path = (tempdir / (filename + ".header")).string();
 
-    if (error || !buffer || response_length < 128) {
-        if (error_status) {
-            *error_status = -1;
+    const size_t HEADER_SIZE = 128;
+
+    bool cache_exists = false;
+    std::error_code ec;
+
+    // Validate the cache file
+    if (std::filesystem::exists(cache_path, ec)) {
+        if (std::filesystem::file_size(cache_path, ec) == HEADER_SIZE) {
+            siril_debug_print(_("Header exists in cache\n"));
+            cache_exists = true;
+        } else {
+            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
+                                "salmon", cache_path.c_str());
+            std::filesystem::remove(cache_path, ec);
+        }
+    }
+
+    // Download if it doesn't exist
+    if (!cache_exists) {
+        siril_debug_print(_("Fetching header to cache: %s\n"), filename.c_str());
+
+        gsize response_length;
+        int error;
+        char* buffer = fetch_url_range_with_curl((void*)curl, url.c_str(), 0, HEADER_SIZE, &response_length, &error, FALSE);
+
+        if (error || !buffer || response_length < HEADER_SIZE) {
+            if (error_status) *error_status = -1;
+            free(buffer);
+            return {}; // Return empty header
+        }
+
+        // Save to disk
+        std::ofstream out(cache_path, std::ios::binary);
+        if (out.good()) {
+            out.write(buffer, HEADER_SIZE);
+            out.close();
         }
         free(buffer);
-        return header;
     }
 
-    try {
-        size_t offset = 0;
+    return read_healpix_cat_header(cache_path, error_status);
 
-        // Read title (48 bytes)
-        char title_buffer[48] = {0};
-        memcpy(title_buffer, buffer + offset, 48);
-        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
-        offset += 48;
-
-        // Read remaining fields
-        memcpy(&header.gaia_version, buffer + offset, 1); offset += 1;
-        memcpy(&header.healpix_level, buffer + offset, 1); offset += 1;
-        memcpy(&header.cat_type, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunked, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunk_level, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunk_healpix, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.chunk_first_healpixel, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.chunk_last_healpixel, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.spare, buffer + offset, 63);
-
-        free(buffer);
-    }
-    catch (const std::exception&) {
-        if (error_status) {
-            *error_status = -3;
-        }
-        free(buffer);
-        return header;
-    }
-
-    return header;
-}
-
-// Get Siril data directory and ensure the relevant subdir exists
-static std::filesystem::path get_or_create_cache_dir() {
-	std::filesystem::path target_path;
-
-    const char *uddir = siril_get_user_data_dir();
-    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "siril_cat1_healpix8_xpsamp";
-    try {
-        if (!std::filesystem::exists(siril_subdir)) {
-		std::filesystem::create_directories(siril_subdir);
-        }
-        return siril_subdir;
-    } catch (const std::filesystem::filesystem_error& e) {
-        siril_debug_print(_("Can't create directory %s, falling back to system temp\n"), 
-			siril_subdir.string().c_str() );
-        return std::filesystem::temp_directory_path();
-    }
 }
 
 template<typename EntryType>
@@ -575,75 +648,6 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
 }
 
 #endif
-
-// Function to read the Healpix catalogue header
-static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
-    HealpixCatHeader header = {
-        "",                     // title: empty string
-        static_cast<GaiaVersion>(0),  // gaia_version: zero
-        0,                      // healpix_level
-        static_cast<CatalogueType>(0), // cat_type
-        0,                      // chunked
-        0,                      // chunk_level
-        0,                      // chunk_healpix
-        0,                      // chunk_first_healpixel
-        0,                      // chunk_last_healpixel
-        {}                      // spare: zero-initialized array
-    };
-
-    // Initialize error status
-    if (error_status) {
-        *error_status = 0;
-    }
-
-    // Open file in binary mode
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        if (error_status) {
-            *error_status = -1; // File open error
-        }
-        return header;
-    }
-
-    try {
-        // Read the fixed-size string (48 bytes)
-        char title_buffer[48] = {0};
-        file.read(title_buffer, 48);
-        if (file.fail()) {
-            if (error_status) {
-                *error_status = -2; // Read error
-            }
-            return header;
-        }
-        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
-
-        // Read the remaining POD members
-        file.read(reinterpret_cast<char*>(&header.gaia_version), 1);
-        file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
-        file.read(reinterpret_cast<char*>(&header.cat_type), 1);
-        file.read(reinterpret_cast<char*>(&header.chunked), 1);
-        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
-        file.read(reinterpret_cast<char*>(&header.chunk_healpix), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.chunk_first_healpixel), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.chunk_last_healpixel), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.spare), 63);
-
-        if (file.fail()) {
-            if (error_status) {
-                *error_status = -2; // Read error
-            }
-            return header;
-        }
-    }
-    catch (const std::exception&) {
-        if (error_status) {
-            *error_status = -3; // Exception during read
-        }
-        return header;
-    }
-
-    return header;
-}
 
 
 #ifdef HEALPIX_DEBUG
