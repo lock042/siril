@@ -27,6 +27,7 @@
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "core/masks.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/siril_language.h"
@@ -608,15 +609,40 @@ void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
-	// TODO: 
+	com.pref.gui.mask_tints_vports = state;
 	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
-	redraw(REDRAW_OVERLAY);
+	redraw(REMAP_ALL);
 }
 
 void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
-	// TODO: 
-	siril_log_message(_("Mask cleared\n"));
-	redraw(REMAP_ALL);
+	if (!gfit || !gfit->mask) {
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mask_hook = mask_clear_hook;
+	args->description = _("Clear mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+// Callback function to switch tabs when button is clicked (left-click only)
+static gboolean on_mask_button_clicked(GtkWidget *button, GdkEventButton *event, gpointer data) {
+	if (event->button == GDK_BUTTON_PRIMARY) { // Left click
+		GtkNotebook *notebook = GTK_NOTEBOOK(data);
+		int page = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "page-num"));
+		gtk_notebook_set_current_page(notebook, page);
+	} else if (event->button == GDK_BUTTON_SECONDARY) { // Right click
+		// Manually trigger the popover to show
+		GtkWidget *popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(button)));
+		gtk_popover_popup(GTK_POPOVER(popover));
+		return TRUE; // Stop propagation so menu button doesn't interfere
+	}
+	// Return FALSE to allow the menu button to handle the click and show popover
+	return FALSE;
 }
 
 static void initialize_mask_tab_label() {
@@ -628,68 +654,80 @@ static void initialize_mask_tab_label() {
 
 	// Create the tab label container
 	GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-	
+
 	// Create the menu button with a down arrow
 	GtkWidget *menu_button = gtk_menu_button_new();
 	gtk_button_set_label(GTK_BUTTON(menu_button), "Mask");
-	
+
 	// Create the popover
 	GtkWidget *popover = gtk_popover_new(menu_button);
-	
+
 	// Create a vbox to hold menu items inside the popover
 	GtkWidget *menu_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_set_margin_start(menu_box, 6);
 	gtk_widget_set_margin_end(menu_box, 6);
 	gtk_widget_set_margin_top(menu_box, 6);
 	gtk_widget_set_margin_bottom(menu_box, 6);
-	
+
 	// Create menu items as check buttons
-	GtkWidget *enable_check = gtk_check_button_new_with_label(_("Enable/Disable Mask"));
-	GtkWidget *show_check = gtk_check_button_new_with_label(_("Show/Hide Mask"));
-	
+	GtkWidget *enable_check = gtk_check_button_new_with_label(_("Mask active (GUI)"));
+	gtk_widget_set_tooltip_text(enable_check, _("Toggle mask on or off for operations carried out using the GUI. Does not apply to Siril commands or python scripts"));
+	GtkWidget *show_check = gtk_check_button_new_with_label(_("Show mask as tint"));
+	gtk_widget_set_tooltip_text(show_check, _("Show the mask as a red tinted overlay in the image viewports. (Note: the mask can always be viewed in the mask tab)"));
+
 	// Create separator
 	GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 	gtk_widget_set_margin_top(separator, 6);
 	gtk_widget_set_margin_bottom(separator, 6);
-	
+
 	// Create clear button
 	GtkWidget *clear_button = gtk_button_new_with_label(_("Clear Mask"));
-	
+	gtk_widget_set_tooltip_text(clear_button, _("Clear the current image mask"));
+
 	// Add items to menu box
 	gtk_box_pack_start(GTK_BOX(menu_box), enable_check, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(menu_box), show_check, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(menu_box), separator, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(menu_box), clear_button, FALSE, FALSE, 0);
-	
+
 	// Show all widgets in menu box
 	gtk_widget_show_all(menu_box);
-	
+
 	// Add menu box to popover
 	gtk_container_add(GTK_CONTAINER(popover), menu_box);
-	
+
 	// Set the popover to the menu button
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu_button), popover);
-	
+
 	// Pack the menu button into the tab label box
 	gtk_box_pack_start(GTK_BOX(tab_label_box), menu_button, FALSE, FALSE, 0);
-	
+
 	// Show all widgets
 	gtk_widget_show(menu_button);
 	gtk_widget_show(tab_label_box);
-	
+
 	// Expose widgets to the builder with IDs
 	gtk_builder_expose_object(gui.builder, "mask_tab_label_box", G_OBJECT(tab_label_box));
 	gtk_builder_expose_object(gui.builder, "mask_menu_button", G_OBJECT(menu_button));
 	gtk_builder_expose_object(gui.builder, "mask_enable_check", G_OBJECT(enable_check));
 	gtk_builder_expose_object(gui.builder, "mask_show_check", G_OBJECT(show_check));
 	gtk_builder_expose_object(gui.builder, "mask_clear_button", G_OBJECT(clear_button));
-	
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(show_check), com.pref.gui.mask_tints_vports);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_check), gfit->mask_active);
+
 	// Get the tab content (the vbox_mask)
 	GtkWidget *tab_content = gtk_notebook_get_nth_page(notebook, mask_tab_position);
-	
+
 	// Replace the tab label
 	gtk_notebook_set_tab_label(notebook, tab_content, tab_label_box);
-	
+
+	// Store the page number in the menu button
+	g_object_set_data(G_OBJECT(menu_button), "page-num", GINT_TO_POINTER(mask_tab_position));
+
+	// Connect to button press event to switch tabs on left-click
+	g_signal_connect(menu_button, "button-press-event", G_CALLBACK(on_mask_button_clicked), notebook);
+
 	// Connect signals
 	g_signal_connect(enable_check, "toggled", G_CALLBACK(on_mask_enable_toggled), NULL);
 	g_signal_connect(show_check, "toggled", G_CALLBACK(on_mask_show_toggled), NULL);
@@ -717,8 +755,6 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 	siril_debug_print("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != 1 << bitdepth) {
 		siril_log_message(_("Setting HD AutoStretch display mode bit depth to %d...\n"), bitdepth);
-//		set_cursor_waiting(TRUE);
-
 		com.pref.hd_bitdepth = bitdepth;
 		gui.hd_remap_max = 1 << bitdepth;
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
@@ -726,7 +762,6 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		}
-//		set_cursor_waiting(FALSE);
 	}
 }
 
