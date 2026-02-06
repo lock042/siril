@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2025-12-07 13:22+0000\n"
-"Last-Translator: Miguel Hortelano <imahgin@gmail.com>\n"
+"PO-Revision-Date: 2026-01-13 13:33+0000\n"
+"Last-Translator: Rodolfo Oscar Vallejos <rodolfo.os.vallejos@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/es/>\n"
 "Language: es_ES\n"
@@ -2783,9 +2783,8 @@ msgstr "Establecer el centro de rotación para esta capa"
 #. Replace GtkFileChooserButton with GtkButton
 #: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
 #: src/compositing/compositing.c:1677
-#, fuzzy
 msgid "(None)"
-msgstr "Ningungo"
+msgstr "Ninguno"
 
 #: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -31508,30 +31507,27 @@ msgstr "Buscando actualizaciones..."
 
 #. Load preferred theme
 #: src/main.c:456
-#, fuzzy
 msgid "Loading theme..."
-msgstr "Luz del tema"
+msgstr "Cargando tema..."
 
 #. Load the css sheet for general style
 #: src/main.c:460
-#, fuzzy
 msgid "Loading styles..."
-msgstr "Buscando actualizaciones..."
+msgstr "Cargando estilos..."
 
 #. Load UI files
 #: src/main.c:464
-#, fuzzy
 msgid "Loading user interface..."
-msgstr "Interfaz de usuario"
+msgstr "Cargando interfaz de usuario..."
 
 #. Load state of the main windows (position and maximized)
 #: src/main.c:471
 msgid "Restoring window state..."
-msgstr ""
+msgstr "Restaurando el estado de la ventana..."
 
 #: src/main.c:474
 msgid "Initializing SPCC..."
-msgstr ""
+msgstr "Inicializando SPCC..."
 
 #: src/main.c:480
 #, fuzzy
@@ -31540,20 +31536,17 @@ msgstr "Buscando actualizaciones..."
 
 #: src/main.c:495
 msgid "Initializing interface components..."
-msgstr ""
+msgstr "Inicializando componentes de interfaz..."
 
 #. Close splash screen
 #: src/main.c:500
-#, fuzzy
 msgid "Ready!"
-msgstr "Listo."
+msgstr "Listo!"
 
 #: src/opencv/opencv.cpp:111
 #, c-format
 msgid "Images with %ld channels are not supported\n"
-msgstr ""
-"Las imágenes con %ld canales no están soportadas\n"
-"\n"
+msgstr "Las imágenes con %ld canales no están soportadas\n"
 
 #: src/pixelMath/pixel_math_runner.c:68
 msgid "Absolute value of x."
@@ -31565,11 +31558,11 @@ msgstr "Arco coseno de x."
 
 #: src/pixelMath/pixel_math_runner.c:70
 msgid "Hyperbolic arc cosine of x."
-msgstr "Arcocoseno hiperbólico de x."
+msgstr "Arco coseno hiperbólico de x."
 
 #: src/pixelMath/pixel_math_runner.c:71
 msgid "Arc sine of x."
-msgstr "Arcoseno de x."
+msgstr "Arco seno de x."
 
 #: src/pixelMath/pixel_math_runner.c:72
 #, fuzzy
@@ -31582,12 +31575,11 @@ msgstr "Arco tangente de x."
 
 #: src/pixelMath/pixel_math_runner.c:74
 msgid "Arc tangent of y/x."
-msgstr "Arcotangente de y/x."
+msgstr "Arco tangente de y/x."
 
 #: src/pixelMath/pixel_math_runner.c:75
-#, fuzzy
 msgid "Hyperbolic arc tangent of x."
-msgstr "Tangente hiperbólica de x."
+msgstr "Arco tangente hiperbólico de x."
 
 #: src/pixelMath/pixel_math_runner.c:76
 msgid "Round x upwards to the nearest integer."

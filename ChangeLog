@@ -14,6 +14,9 @@ siril-1.4.2
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
 * Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
+* Enabled some python methods to work with sequence frames as well as single images (siril-scripts#86)
+* Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
+* Improved robustness of python venv creation (!990)
 
 siril-1.4.1
 01/05/26

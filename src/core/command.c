@@ -10154,7 +10154,7 @@ int process_link(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed)) {
-		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		siril_log_message(_("Too many files: you should use the 'convert' command and pass the argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
 		free(destroot);
 		return CMD_GENERIC_ERROR;
@@ -12237,12 +12237,9 @@ int process_help(int nb) {
 
 int process_capabilities(int nb) {
 	// don't translate these strings, they must be easy to parse
-#ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s (%s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#else
-	siril_log_message("%s %s for %s (%s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#endif
+	gchar *version_string = get_siril_version_string();
+	siril_log_message("%s\n", version_string);
+	g_free(version_string);
 #ifdef _OPENMP
 	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
 			ngettext("processor", "processors", com.max_thread));
@@ -12251,6 +12248,20 @@ int process_capabilities(int nb) {
 #endif
 	siril_log_message("Detected system available memory: %d MB\n", (int)(get_available_memory() / BYTES_IN_A_MB));
 	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
+#ifdef _WIN32
+	int open_max = _getmaxstdio();
+	if (open_max < 8192) {
+		/* extend the limit to 8192 if possible
+		 * 8192 is the maximum on WINDOWS */
+		int ret = _setmaxstdio(8192);
+		if (ret == -1) {
+			/* fallback to 2048 */
+			_setmaxstdio(2048);
+		}
+		open_max = _getmaxstdio();
+	}
+	siril_log_message("Can open %d files simultaneously\n", open_max);
+#endif
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
 #endif
