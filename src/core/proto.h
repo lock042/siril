@@ -157,6 +157,7 @@ gchar *find_file_recursively(gchar *basename, const gchar *top_path);
 char *strdupnullok(char *data);
 gchar* remove_extension_from_path(const gchar* filepath);
 gboolean delete_directory(const gchar *dir_path, GError **error);
+gboolean copy_directory_recursive (const gchar *src_dir, const gchar *dst_dir, GError **error);
 gchar *posix_path_separators(const gchar *path);
 gchar* ellipsize (const gchar *str, int n_chars, EllipsizePosition position);
 
