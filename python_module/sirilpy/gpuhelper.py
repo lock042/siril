@@ -970,7 +970,7 @@ class ONNXHelper:
             print(f"(x) {expected_provider_name} failed: {e}")
             return False
 
-    def import_onnxruntime():
+    def import_onnxruntime(self):
         """
         Import onnxruntime, add it to the global dict, test if it's built against
         CUDA and if so preload the CUDA and CUDNN libraries to improve the chances
