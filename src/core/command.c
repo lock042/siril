@@ -448,7 +448,7 @@ static gboolean end_denoise(gpointer p) {
 		populate_roi();
 	}
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	queue_redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
