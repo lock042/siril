@@ -134,6 +134,7 @@ int mask_invert_hook(struct generic_mask_args *args);
 int mask_autostretch_hook(struct generic_mask_args *args);
 int mask_bitpix_hook(struct generic_mask_args *args);
 int mask_from_color_hook(struct generic_mask_args *args);
+int mask_from_gradient_hook(struct generic_mask_args *args);
 
 gchar *mask_from_stars_log(gpointer user, log_hook_detail detail);
 gchar *mask_from_channel_log(gpointer user, log_hook_detail detail);

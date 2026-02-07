@@ -1049,3 +1049,18 @@ void mask_add_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpo
 void mask_clear_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	init_clear_poly_from_mask();
 }
+
+void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!gfit) {
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mask_hook = mask_from_gradient_hook;
+	args->description = _("Gradient mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}

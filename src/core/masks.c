@@ -1575,6 +1575,11 @@ int mask_from_color_hook(struct generic_mask_args *args) {
 	return retval;
 }
 
+int mask_from_gradient_hook(struct generic_mask_args *args) {
+	int retval = mask_update_with_gradient(args->fit);
+	return retval;
+}
+
 // Log hooks
 gchar *mask_from_stars_log(gpointer user, log_hook_detail detail) {
 	mask_from_stars_data *data = (mask_from_stars_data *)user;

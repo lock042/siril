@@ -36,8 +36,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/masks.h"
 #include "core/siril_log.h"
 #include "core/settings.h"
+#include "gui/callbacks.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
@@ -1618,3 +1620,109 @@ int mask_cleanup_morphological(fits *fit, int close_size, int open_size, int den
 
 	return 0;
 }
+
+// Create a mask based on image gradient magnitude.
+// The gradient magnitude is normalized so the maximum gradient
+// maps to the maximum mask value (255/65535/1.0).
+// Return 0 on success.
+
+FAST_MATH_PUSH
+int mask_update_with_gradient(fits *fit) {
+    if (!fit) return 1;
+    if (!fit->mask || !fit->mask->data) {
+        siril_log_message(_("Error: no existing mask to update\n"));
+        return 1;
+    }
+
+    size_t rx = fit->rx, ry = fit->ry;
+    size_t npixels = rx * ry;
+    uint8_t bitpix = fit->mask->bitpix;
+
+    if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) return 1;
+
+    // Convert existing mask data to CV_32F for gradient computation
+    cv::Mat mask_img(ry, rx, CV_32F);
+    float *mask_data = mask_img.ptr<float>();
+
+    // Copy mask data (handling different bit depths)
+    switch (bitpix) {
+        case 8: {
+            uint8_t *src = (uint8_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = (float)src[i] / 255.0f;
+            }
+            break;
+        }
+        case 16: {
+            uint16_t *src = (uint16_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = (float)src[i] / 65535.0f;
+            }
+            break;
+        }
+        case 32: {
+            float *src = (float*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = src[i];
+            }
+            break;
+        }
+    }
+
+    // Compute gradients using Sobel operator
+    cv::Mat grad_x, grad_y;
+    cv::Sobel(mask_img, grad_x, CV_32F, 1, 0, 3);  // dx
+    cv::Sobel(mask_img, grad_y, CV_32F, 0, 1, 3);  // dy
+
+    // Compute gradient magnitude: sqrt(gx^2 + gy^2)
+    cv::Mat grad_mag(ry, rx, CV_32F);
+    float *gx_data = grad_x.ptr<float>();
+    float *gy_data = grad_y.ptr<float>();
+    float *mag_data = grad_mag.ptr<float>();
+
+    float max_mag = 0.0f;
+    for (size_t i = 0; i < npixels; i++) {
+        mag_data[i] = sqrtf(gx_data[i] * gx_data[i] + gy_data[i] * gy_data[i]);
+        if (mag_data[i] > max_mag) max_mag = mag_data[i];
+    }
+
+    // Avoid division by zero
+    if (max_mag == 0.0f) {
+        siril_log_message(_("Warning: gradient magnitude is zero everywhere\n"));
+        max_mag = 1.0f;
+    }
+
+    // Normalize and update the existing mask
+    switch (bitpix) {
+        case 8: {
+            uint8_t *m = (uint8_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                float normalized = mag_data[i] / max_mag;
+                m[i] = (uint8_t)roundf(normalized * 255.0f);
+            }
+            break;
+        }
+        case 16: {
+            uint16_t *m = (uint16_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                float normalized = mag_data[i] / max_mag;
+                m[i] = (uint16_t)roundf(normalized * 65535.0f);
+            }
+            break;
+        }
+        case 32: {
+            float *m = (float*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                m[i] = mag_data[i] / max_mag;
+            }
+            break;
+        }
+    }
+
+    set_mask_active(fit, TRUE);
+    show_or_hide_mask_tab();
+    siril_log_message(_("Mask updated with its gradient (max gradient: %.3f)\n"), max_mag);
+
+    return 0;
+}
+FAST_MATH_POP

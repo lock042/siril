@@ -70,6 +70,7 @@ void cvRelRot(Homography *Ref, Homography *R, Homography *Rout);
 void cvcalcH_fromKKR(Homography *Kref, Homography *K, Homography *R, Homography *H);
 int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_ref, Homography *Hom);
 
+int mask_update_with_gradient(fits *fit);
 int mask_apply_gaussian_blur(fits *fit, float radius);
 void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state);
 int mask_feather(fits *fit, float feather_dist, feather_mode mode);

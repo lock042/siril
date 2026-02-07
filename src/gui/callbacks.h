@@ -4,6 +4,10 @@
 #include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
 gboolean launch_clipboard_survey(gpointer user_data);
@@ -117,4 +121,8 @@ void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
 
 void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data);
+#ifdef __cplusplus
+}
+#endif
+
 #endif

@@ -117,6 +117,7 @@ static GActionEntry any_processing_entries[] = {
 	{ "mask_from_image", mask_from_image_activate },
 	{ "mask_from_stars", mask_from_stars_activate },
 	{ "mask_from_file", mask_from_file_activate },
+	{ "mask_from_gradient", mask_from_gradient_activate },
 	{ "mask_add_from_poly", mask_add_from_poly_activate },
 	{ "mask_clear_from_poly", mask_clear_from_poly_activate },
 	{ "clear_mask", clear_mask_activate },
