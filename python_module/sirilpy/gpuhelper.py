@@ -1303,7 +1303,7 @@ class ONNXHelper:
 
         # Try to load cached providers first
         try:
-            cached_providers = self._load_cached_providers(ort)
+            cached_providers = self._load_cached_providers()
             if cached_providers:
                 self.providers = cached_providers
                 return self.providers
@@ -1314,13 +1314,12 @@ class ONNXHelper:
                 os.unlink(self.config_file)
 
         # If no valid cache, run the test
-        return self.test_onnxruntime(ort)
+        return self.test_onnxruntime(onnxruntime)
 
-    def _load_cached_providers(self, ort):
+    def _load_cached_providers(self):
         """
         Load cached execution providers from config file if they're still valid.
-        Args:
-            ort: The ONNX runtime module
+
         Returns:
             list or None: List of cached providers if valid, None otherwise
         """
