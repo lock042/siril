@@ -14,7 +14,7 @@ m4_define([siril_stable],
           m4_if(m4_eval(siril_minor_version % 2), [0], [yes], [no]))
 
 change siril_version_full by siril_version for stable release
-dnl AC_INIT([siril], [siril_version_full],
+AC_INIT([siril], [siril_version_full],
 dnl AC_INIT([siril], [siril_version],
         [https://gitlab.com/free-astro/siril/issues],
         [siril],
@@ -516,5 +516,5 @@ AC_MSG_RESULT([$enable_relocatable_bundle])
 
 AC_SUBST([AM_LDFLAGS])
 
-AC_CONFIG_FILES([Makefile src/Makefile subprojects/Makefile data/Makefile pixmaps/Makefile pixmaps/icons/Makefile platform-specific/Makefile platform-specific/linux/Makefile po/Makefile.in])
+AC_CONFIG_FILES([Makefile src/Makefile subprojects/Makefile data/Makefile pixmaps/Makefile pixmaps/icons/Makefile platform-specific/Makefile platform-specific/linux/Makefile po/Makefile.in python_module/Makefile python_module/sirilpy/Makefile])
 AC_OUTPUT
