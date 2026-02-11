@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-01-21 11:04+0000\n"
+"PO-Revision-Date: 2026-01-28 10:50+0000\n"
 "Last-Translator: Eduardo Hartmann <eduardohart@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.siril.org/projects/siril/"
 "software/siril-1-6/pt_BR/>\n"
@@ -18136,18 +18136,21 @@ msgstr ""
 
 #: src/core/command.c:12697
 msgid "Image is already plate solved. Nothing will be done.\n"
-msgstr ""
+msgstr "A resolução astrométrica já foi feita na imagem. Nada a fazer.\n"
 
 #: src/core/command.c:12702
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr ""
+"O solucionador astrometry.net local não foi encontrado; o processo será "
+"abortado. Verifique as configurações.\n"
 
 #: src/core/command.c:12722 src/core/command.c:12726
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
+"O solucionador interno do Siril não pode ser configurado às cegas em %s\n"
 
 #: src/core/command.c:12722 src/core/command.c:12750
 #, fuzzy
@@ -18163,6 +18166,8 @@ msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr ""
+"Não foi possível fazer a resolução astrométrica, nenhuma coordenada alvo foi "
+"passada e o cabeçalho da imagem também não contém nenhuma.\n"
 
 #: src/core/command.c:12741
 #, c-format
@@ -18173,6 +18178,8 @@ msgstr "Usando coordenada de destino do cabeçalho da imagem: %f, %f\n"
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
 msgstr ""
+"%s é ignorado ao usar o recurso local de astrometria cega do astrometry.net "
+"em %s\n"
 
 #: src/core/command.c:12750
 #, fuzzy
@@ -18186,16 +18193,18 @@ msgstr "Tamanho do pixel"
 #: src/core/command.c:12769
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
-msgstr ""
+msgstr "Usando o tamanho de pixel fornecido: %.2f\n"
 
 #: src/core/command.c:12775
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr ""
+"Tamanho do pixel não encontrado na imagem ou nas configurações; não é "
+"possível prosseguir.\n"
 
 #: src/core/command.c:12781
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
-msgstr ""
+msgstr "Usando o tamanho do pixel das preferências: %.2f\n"
 
 #: src/core/command.c:12783
 #, c-format
@@ -18214,6 +18223,8 @@ msgstr "Usando a distância focal fornecida: %.2f\n"
 #: src/core/command.c:12800
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr ""
+"Distância focal não encontrada na imagem ou nas configurações; não é "
+"possível prosseguir\n"
 
 #: src/core/command.c:12806
 #, c-format
@@ -18229,12 +18240,16 @@ msgstr "Usando a distância focal da imagem: %.2f\n"
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
+"Os argumentos de alteração de magnitude são inúteis para a resolução "
+"astrométrica do astrometry.net\n"
 
 #: src/core/command.c:12839
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr ""
+"Não é possível forçar raio nulo para o localasnet se não for uma resolução "
+"cega; usando o valor padrão\n"
 
 #: src/core/command.c:12972 src/gui/annotate.c:136
 msgid ""
@@ -18245,15 +18260,15 @@ msgstr ""
 
 #: src/core/command.c:12986
 msgid "The observatory should be coded as a 3-letter word\n"
-msgstr ""
+msgstr "O observatório deve ser codificado como uma palavra de 3 letras\n"
 
 #: src/core/command.c:12997
 msgid "No local catalogues found, ignoring -trix option\n"
-msgstr ""
+msgstr "Nenhum catálogo local encontrado, ignorando a opção -trix\n"
 
 #: src/core/command.c:13003
 msgid "Trixel number must be between 0 and 511\n"
-msgstr ""
+msgstr "O número de Trixel deve estar entre 0 e 511\n"
 
 #: src/core/command.c:13018
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
@@ -18270,6 +18285,8 @@ msgstr ""
 #: src/core/command.c:13066
 msgid "Cannot use -compare argument with non-star catalogues, ignoring.\n"
 msgstr ""
+"Não é possível usar o argumento -compare com catálogos que não sejam de "
+"estrelas; ignorando.\n"
 
 #: src/core/command.c:13092 src/gui/annotate.c:401
 #, fuzzy
@@ -18279,15 +18296,19 @@ msgstr "Busca de cone"
 #: src/core/command.c:13204 src/core/command.c:13253
 #, c-format
 msgid "Unknown option provided: %s\n"
-msgstr ""
+msgstr "Opção desconhecida fornecida: %s\n"
 
 #: src/core/command.c:13264 src/core/command.c:13285
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr ""
+"O empilhamento em tempo real precisa ser inicializado primeiro com o comando "
+"START_LS\n"
 
 #: src/core/command.c:13268
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr ""
+"O empilhamento ao vivo foi configurado para usar o monitoramento de "
+"arquivos, não este comando\n"
 
 #: src/core/command.c:13310
 #, c-format
@@ -18304,14 +18325,16 @@ msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr ""
+"Erro: O modo CFA não pode ser usado com imagens coloridas ou imagens "
+"monocromáticas sem padrão Bayer.\n"
 
 #: src/core/command.c:13493
 msgid "Incorrect option follows -layer=, aborting.\n"
-msgstr ""
+msgstr "A opção seguinte a -layer= está incorreta, abortando.\n"
 
 #: src/core/command.c:13528
 msgid "Error: Could not parse -from values.\n"
-msgstr ""
+msgstr "Erro: Não foi possível analisar os valores de -from.\n"
 
 #: src/core/command.c:13536
 msgid "Error: Could not parse -to values.\n"
@@ -18331,7 +18354,7 @@ msgstr "Erro ao abrir o perfil ICC de destino.\n"
 
 #: src/core/command.c:13681
 msgid "Color profile assignment complete.\n"
-msgstr ""
+msgstr "Atribuição do perfil de cores concluída.\n"
 
 #: src/core/command.c:13684 src/core/command.c:13748
 msgid "Error opening ICC profile.\n"
@@ -18342,12 +18365,16 @@ msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
+"A imagem não possui um perfil de cor atribuído para conversão. Atribua um "
+"perfil primeiro.\n"
 
 #: src/core/command.c:13715
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
+"A intenção especificada não foi reconhecida. Especifique uma das opções: "
+"\"perceptual\", \"relative\", \"saturation\" ou \"absolute\"\n"
 
 #: src/core/command.c:13746
 msgid "Color space conversion complete.\n"
@@ -18355,11 +18382,11 @@ msgstr "Conversão de espaço de cores concluída.\n"
 
 #: src/core/command.c:13782
 msgid "OSC Sensors"
-msgstr ""
+msgstr "Sensores OSC"
 
 #: src/core/command.c:13785
 msgid "Mono Sensors"
-msgstr ""
+msgstr "Sensores Mono"
 
 #: src/core/command.c:13788
 #, fuzzy
@@ -18378,11 +18405,11 @@ msgstr "Filtro Mediano"
 
 #: src/core/command.c:13797
 msgid "OSC Filters"
-msgstr ""
+msgstr "Filtros OSC"
 
 #: src/core/command.c:13800
 msgid "OSC Low-Pass Filters"
-msgstr ""
+msgstr "Filtros Passa-Baixa OSC"
 
 #: src/core/command.c:13803
 #, fuzzy
@@ -18391,7 +18418,7 @@ msgstr "imagem de referência"
 
 #: src/core/command.c:13805
 msgid "Unknown SPCC list\n"
-msgstr ""
+msgstr "Lista SPCC desconhecida\n"
 
 #: src/core/command.c:13819 src/core/siril_actions.c:580
 msgid ""
@@ -18403,10 +18430,12 @@ msgstr ""
 #: src/core/command.c:13862
 msgid "16-bit images cannot have out-of-range pixels: nothing to do.\n"
 msgstr ""
+"Imagens de 16 bits não podem ter pixels fora do intervalo: não há nada a "
+"fazer.\n"
 
 #: src/core/command.c:13872
 msgid "No pixels require clipping. Nothing to do...\n"
-msgstr ""
+msgstr "Nenhum pixel precisa ser recortado. Nada a fazer...\n"
 
 #: src/core/command.c:13884
 msgid "Error: unknown argument!\n"
@@ -18414,7 +18443,7 @@ msgstr "Erro: argumento desconhecido!\n"
 
 #: src/core/command.c:13889
 msgid "Pixel limits applied successfully.\n"
-msgstr ""
+msgstr "Limites de pixel aplicados com sucesso.\n"
 
 #: src/core/command.c:13904
 #, c-format
@@ -18427,6 +18456,9 @@ msgid ""
 "<b>filename</b>. At each pixel location, the new value is determined as the "
 "max of value in current image and in <b>filename</b>"
 msgstr ""
+"Calcula uma nova imagem combinando a imagem na memória com a imagem "
+"<b>filename</b>. Em cada posição de pixel, o novo valor é determinado como o "
+"máximo entre o valor na imagem atual e o valor em <b>filename</b>."
 
 #: src/core/command_def.h:7
 msgid ""
@@ -18442,6 +18474,17 @@ msgid ""
 "<b>clip</b>, <b>rescale</b>, <b>rgbblend</b> or <b>globalrescale</b> are "
 "accepted and the default is rgbblend"
 msgstr ""
+"Estica a imagem para mostrar objetos tênues usando uma transformação arcseno "
+"hiperbólica. O argumento obrigatório <b>stretch</b>, geralmente entre 1 e "
+"1000, define a intensidade da distorção. O ponto preto pode ser deslocado "
+"fornecendo um argumento opcional <b>offset</b> com o valor de pixel "
+"normalizado no intervalo [0, 1]. Por fim, a opção <b>-human</b> permite usar "
+"pesos de eficiência luminosa do olho humano para calcular a luminância usada "
+"no valor de distorção de cada pixel, em vez da média simples dos valores de "
+"pixel dos canais. Este método de distorção preserva a luminosidade do espaço "
+"de cores L*a*b*. O modo de recorte pode ser definido usando o argumento "
+"<b>-clipmode=</b>: os valores <b>clip</b>, <b>rescale</b>, <b>rgbblend</b> "
+"ou <b>globalrescale</b> são aceitos, sendo o padrão rgbblend"
 
 #: src/core/command_def.h:8
 msgid ""
@@ -18458,6 +18501,17 @@ msgid ""
 "<b>rgbblend</b> or <b>globalrescale</b> are accepted and the default is "
 "rgbblend"
 msgstr ""
+"Aplicação do estiramento hiperbólico generalizado (GHS) com um ponto de "
+"simetria SP definido como k.sigma a partir da mediana de cada canal (o valor "
+"<b>shadowsclip</b> fornecido é o k aqui e pode ser negativo). Por padrão, SP "
+"e o estiramento são calculados por canal; SP pode ser calculado como a média "
+"dos canais da imagem passando <b>-linked</b>. A quantidade de estiramento "
+"<b>D</b> é fornecida no segundo argumento obrigatório.\n"
+"Valores implícitos de 13 para <b>B</b>, tornando-o muito focado na faixa de "
+"brilho SP, 0,7 para <b>HP</b>, 0 para <b>LP</b> são usados, mas podem ser "
+"alterados com as opções de mesmo nome. O modo de recorte pode ser definido "
+"usando o argumento <b>-clipmode=</b>: os valores <b>clip</b>, <b>rescale</"
+"b>, <b>rgbblend</b> ou <b>globalrescale</b> são aceitos e o padrão é rgbblend"
 
 #: src/core/command_def.h:9
 msgid ""
@@ -18472,6 +18526,17 @@ msgid ""
 "Do not use the unlinked version after color calibration, it will alter the "
 "white balance"
 msgstr ""
+"A função estica automaticamente a imagem carregada, com parâmetros "
+"diferentes para cada canal (sem vinculação), a menos que o parâmetro "
+"<b>`-linked`</b> seja passado. Os argumentos são opcionais: <b>`shadowclip`</"
+"b> é o ponto de corte das sombras, medido em unidades sigma a partir do pico "
+"principal do histograma (o padrão é -2,8); <b>`targetbg`</b> é o valor de "
+"fundo alvo, que define o brilho final da imagem, no intervalo [0, 1], o "
+"padrão é 0,25. Os valores padrão são os mesmos usados na renderização com "
+"estiramento automático pela interface gráfica.\n"
+"\n"
+"Não use a versão sem vinculação (unlinked) após a calibração de cores, pois "
+"ela alterará o balanço de branco"
 
 #: src/core/command_def.h:11
 #, fuzzy
@@ -18490,6 +18555,10 @@ msgid ""
 "argument <b>-sum</b> is passed, then the sum of pixels is computed, while it "
 "is the average when no optional argument is provided"
 msgstr ""
+"Calcula o agrupamento numérico da imagem na memória (soma dos pixels 2x2, "
+"3x3..., como o agrupamento analógico de uma câmera CCD). Se o argumento "
+"opcional <b>`-sum`</b> for passado, a soma dos pixels será calculada; caso "
+"contrário, será calculada a média"
 
 #: src/core/command_def.h:14
 msgid ""
@@ -18579,6 +18648,8 @@ msgstr ""
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation options and runtime"
 msgstr ""
+"Lista as funcionalidades do Siril, com base nas opções de compilação e no "
+"tempo de execução."
 
 #: src/core/command_def.h:19
 msgid ""
@@ -18643,15 +18714,15 @@ msgstr ""
 
 #: src/core/command_def.h:24
 msgid "Clears the graphical output logs"
-msgstr ""
+msgstr "Limpa os registros de saída gráfica"
 
 #: src/core/command_def.h:25
 msgid "Clears all the stars saved in memory and displayed on the screen"
-msgstr ""
+msgstr "Apaga todas as estrelas salvas na memória e exibidas na tela"
 
 #: src/core/command_def.h:26
 msgid "Properly closes the opened image and the opened sequence, if any"
-msgstr ""
+msgstr "Fecha corretamente a imagem aberta e a sequência aberta, se houver"
 
 #: src/core/command_def.h:27
 msgid ""
@@ -18712,6 +18783,8 @@ msgid ""
 "Same as CONVERT but converts only DSLR RAW files found in the current "
 "working directory"
 msgstr ""
+"Semelhante ao CONVERT, mas converte apenas arquivos RAW de câmeras DSLR "
+"encontrados no diretório de trabalho atual"
 
 #: src/core/command_def.h:30
 msgid ""

@@ -371,7 +371,9 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Initializing sequences..."), 0.15);
 	initialize_sequence(&com.seq, TRUE);
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
 	if (!com.headless)
