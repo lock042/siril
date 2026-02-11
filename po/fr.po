@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-02-11 12:07+0000\n"
+"PO-Revision-Date: 2026-02-11 12:47+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -15042,9 +15042,8 @@ msgstr ""
 "8).\n"
 
 #: src/compositing/compositing.c:318
-#, fuzzy
 msgid "Invalid file type for compositing\n"
-msgstr "Fichier FITS ou modèle invalide pour le dématriçage\n"
+msgstr "Type de fichier non valide pour la composition\n"
 
 #: src/compositing/compositing.c:635
 msgid ""
@@ -15496,22 +15495,22 @@ msgstr "Limitation du traitement à 1900 Mo d'allocations (système 32 bits)\n"
 #: src/core/OS_utils.c:1129
 #, c-format
 msgid "unreleased %s %s-%s for %s (%s %s)"
-msgstr ""
+msgstr "%s %s-%s non publié pour %s (%s %s)"
 
 #: src/core/OS_utils.c:1132
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s for %s (%s %s)"
-msgstr "Image %d, %s = %s\n"
+msgstr "%s %s pour %s (%s %s)"
 
 #: src/core/OS_utils.c:1136
 #, c-format
 msgid "unreleased %s %s-%s for %s (%s)"
-msgstr ""
+msgstr "%s %s-%s non publié pour %s (%s)"
 
 #: src/core/OS_utils.c:1139
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s for %s (%s)"
-msgstr "Image %d, %s = %s\n"
+msgstr "%s %s pour %s (%s)"
 
 #: src/core/arithm.c:187
 msgid "Cannot divide by zero, aborting."
@@ -17126,13 +17125,12 @@ msgstr ""
 "pas de tri.\n"
 
 #: src/core/command.c:7518
-#, fuzzy
 msgid ""
 "Too many files: you should use the 'convert' command and pass the argument "
 "-fitseq to convert your sequence to fitseq format.\n"
 msgstr ""
-"Vous devez passer un argument supplémentaire -fitseq pour convertir votre "
-"séquence au format fitseq.\n"
+"Trop de fichiers : vous devez utiliser la commande « convert » et passer "
+"l'argument -fitseq pour convertir votre séquence au format fitseq.\n"
 
 #: src/core/command.c:7524
 #, c-format
@@ -24752,9 +24750,8 @@ msgid "URL range request failed. libcurl error: %s\n"
 msgstr "Échec de la requête de plage d'URL. Erreur libcurl : %s\n"
 
 #: src/core/siril_networking.c:274
-#, fuzzy
 msgid "Error initialising CURL handle.\n"
-msgstr "Erreur lors de l'initialisation du gestionnaire CURL\n"
+msgstr "Erreur lors de l'initialisation du gestionnaire CURL.\n"
 
 #: src/core/siril_networking.c:297
 #, c-format
@@ -29996,55 +29993,54 @@ msgstr "Échec de la lecture des entrées de données.\n"
 #, c-format
 msgid "Can't create directory %s, falling back to system temp\n"
 msgstr ""
+"Impossible de créer le répertoire %s, retour au répertoire temporaire du "
+"système.\n"
 
 #: src/io/healpix/healpix.cpp:341
 msgid "Header exists in cache\n"
-msgstr ""
+msgstr "L'en-tête existe dans le cache\n"
 
 #: src/io/healpix/healpix.cpp:344 src/io/healpix/healpix.cpp:416
 #, c-format
 msgid "Cache file %s is corrupted or incomplete. Deleting...\n"
 msgstr ""
+"Le fichier cache %s est corrompu ou incomplet. Suppression en cours...\n"
 
 #: src/io/healpix/healpix.cpp:352
 #, c-format
 msgid "Fetching header to cache: %s\n"
-msgstr ""
+msgstr "Récupération de l'en-tête dans le cache : %s\n"
 
 #: src/io/healpix/healpix.cpp:424
 msgid "Fetching index to cache\n"
-msgstr ""
+msgstr "Récupération de l'index dans le cache\n"
 
 #: src/io/healpix/healpix.cpp:440
-#, fuzzy
 msgid "Failed to download index via HTTP\n"
-msgstr "Échec de la lecture des entrées d'index via HTTP\n"
+msgstr "Échec du téléchargement de l'index via HTTP\n"
 
 #: src/io/healpix/healpix.cpp:447
-#, fuzzy
 msgid "Failed to write index cache file\n"
-msgstr "Échec de la lecture du fichier image"
+msgstr "Échec de l'écriture du fichier cache d'index\n"
 
 #. At this point, the cache file is guaranteed to exist.
 #: src/io/healpix/healpix.cpp:458
 msgid "Loading index from cache\n"
-msgstr ""
+msgstr "Chargement de l'index à partir du cache\n"
 
 #: src/io/healpix/healpix.cpp:462
-#, fuzzy
 msgid "Failed to read index cache file\n"
-msgstr "Échec de la lecture du fichier image"
+msgstr "Échec de la lecture du fichier cache d'index\n"
 
 #. Process each healpixel range
 #: src/io/healpix/healpix.cpp:470
-#, fuzzy
 msgid "Fetching data\n"
-msgstr "Empilement par défaut"
+msgstr "Récupération des données\n"
 
 #: src/io/healpix/healpix.cpp:500
 #, c-format
 msgid "Fetching range %zu - %zu\n"
-msgstr ""
+msgstr "Plage de récupération %zu - %zu\n"
 
 #: src/io/healpix/healpix.cpp:512
 msgid "Failed to read data entries via HTTP\n"
@@ -31947,9 +31943,8 @@ msgstr ""
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:787
-#, fuzzy
 msgid "Failed to set selection - no image or sequence frame loaded"
-msgstr "Échec de la sélection - aucune image n'a été chargée"
+msgstr "Échec de la sélection - aucune image ou séquence d'images chargée"
 
 #: src/io/siril_pythoncommands.c:803
 #, c-format
@@ -32557,7 +32552,7 @@ msgstr ""
 #: src/io/siril_pythonmodule.c:2224
 #, c-format
 msgid "Retrying pip installation (attempt %d/%d)...\n"
-msgstr ""
+msgstr "Nouvelle tentative d'installation de pip (tentative %d/%d)...\n"
 
 #: src/io/siril_pythonmodule.c:2379
 msgid "Error checking python magic number: pyc files will not work\n"
@@ -32590,15 +32585,16 @@ msgstr "Le module Python est à jour\n"
 msgid ""
 "Warning: Python initialization in progress. Waiting for it to complete...\n"
 msgstr ""
+"Avertissement : initialisation Python en cours. En attente de la fin...\n"
 
 #: src/io/siril_pythonmodule.c:2538
 #, c-format
 msgid "Virtual environment health check failed: %s\n"
-msgstr ""
+msgstr "Vérification de l’intégrité de l’environnement virtuel échouée : %s\n"
 
 #: src/io/siril_pythonmodule.c:2541
 msgid "Venv exists but is unhealthy. Recreating the venv...\n"
-msgstr ""
+msgstr "Le venv existe mais est endommagé. Re-création du venv en cours...\n"
 
 #: src/io/siril_pythonmodule.c:2566
 msgid ""
@@ -32646,6 +32642,18 @@ msgid ""
 "\n"
 "After installing Python, restart Siril.\n"
 msgstr ""
+"ERREUR : Aucune installation Python trouvée.\n"
+"\n"
+"Siril nécessite Python 3.9 ou une version ultérieure pour les "
+"fonctionnalités avancées.\n"
+"Veuillez installer Python à partir de https://www.python.org/downloads/.\n"
+"\n"
+"Pendant l'installation, assurez-vous de cocher :\n"
+"  - 'Ajouter Python au PATH'\n"
+"  - 'Installer pip'\n"
+"  - 'Installer py launcher'\n"
+"\n"
+"Après avoir installé Python, redémarrez Siril.\n"
 
 #: src/io/siril_pythonmodule.c:2631
 msgid ""
@@ -32662,36 +32670,56 @@ msgid ""
 "\n"
 "After installing Python, restart Siril.\n"
 msgstr ""
+"ERREUR : Python introuvable dans le PATH du système.\n"
+"\n"
+"Siril nécessite Python 3.9 ou une version ultérieure.\n"
+"Veuillez installer Python à l'aide du gestionnaire de paquets de votre "
+"système :\n"
+"\n"
+"   Debian/Ubuntu :  sudo apt install python3 python3-venv python3-pip\n"
+"   Fedora/RHEL :    sudo dnf install python3 python3-pip\n"
+"   Arch Linux :     sudo pacman -S python python-pip\n"
+"   openSUSE :       sudo zypper install python3 python3-pip\n"
+"   macOS :          brew install python@3.9\n"
+"\n"
+"Après avoir installé Python, redémarrez Siril.\n"
 
 #: src/io/siril_pythonmodule.c:2650
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Python validation failed.\n"
 "\n"
 "%s\n"
-msgstr "Erreur : L'allocation de mémoire a échoué.\n"
+msgstr ""
+"ERREUR : Échec de la validation Python.\n"
+"\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2678
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Failed to execute venv creation command.\n"
 "%s\n"
-msgstr "Erreur dans la commande de création de venv : %s\n"
+msgstr ""
+"ERREUR : Échec de l'exécution de la commande de création de venv.\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2687
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Failed to create virtual environment.\n"
 "%s\n"
-msgstr "Échec de la création de l'environnement virtuel : %s\n"
+msgstr ""
+"ERREUR : Échec de la création de l'environnement virtuel.\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2691
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python error output:\n"
 "%s\n"
 msgstr ""
-"Python stderr :\n"
+"Sortie d'erreur Python :\n"
 "%s\n"
 
 #: src/io/siril_pythonmodule.c:2741
@@ -32700,14 +32728,13 @@ msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Échec de l'initialisation de l'environnement virtuel Python : %s\n"
 
 #: src/io/siril_pythonmodule.c:2753
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to prepare virtual environment: %s\n"
-msgstr "Échec de la préparation de l'environnement virtuel\n"
+msgstr "Échec de la préparation de l'environnement virtuel : %s\n"
 
 #: src/io/siril_pythonmodule.c:2808
-#, fuzzy
 msgid "Python initialization already in progress\n"
-msgstr "Gradient rotationnel en cours..."
+msgstr "Initialisation Python déjà en cours\n"
 
 #: src/io/siril_pythonmodule.c:2850 src/io/siril_pythonmodule.c:2858
 #, c-format
@@ -32739,9 +32766,8 @@ msgid "Error: Python worker thread not available.\n"
 msgstr "Erreur : le thread de travail Python n'est pas disponible.\n"
 
 #: src/io/siril_pythonmodule.c:3015
-#, fuzzy
 msgid "Error: failed to get environment variables.\n"
-msgstr "Erreur : échec de la création d'une connexion Python.\n"
+msgstr "Erreur : impossible d'obtenir les variables d'environnement.\n"
 
 #: src/io/siril_pythonmodule.c:3079
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -32757,9 +32783,9 @@ msgstr ""
 
 #. Log spawn failure details
 #: src/io/siril_pythonmodule.c:3150
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to spawn Python process: %s\n"
-msgstr "Échec de l'exécution du script Python : %s\n"
+msgstr "Échec du lancement du processus Python : %s\n"
 
 #: src/io/siril_pythonmodule.c:3167
 #, c-format
@@ -33113,9 +33139,9 @@ msgid "print the copyright"
 msgstr "afficher le copyright"
 
 #: src/main-cli.c:172
-#, fuzzy, c-format
+#, c-format
 msgid "Welcome to %s - CLI\n"
-msgstr "Bienvenue dans %s v%s\n"
+msgstr "Bienvenue dans %s - CLI\n"
 
 #: src/main-cli.c:183 src/main.c:354
 #, c-format
@@ -33168,9 +33194,9 @@ msgid "Initializing FFTW multithreading support...\n"
 msgstr "Initialisation du support multithreading du FFTW...\n"
 
 #: src/main.c:343
-#, fuzzy, c-format
+#, c-format
 msgid "Welcome to %s - GUI\n"
-msgstr "Bienvenue dans %s v%s\n"
+msgstr "Bienvenue dans %s - GUI\n"
 
 #: src/opencv/opencv.cpp:111
 #, c-format
