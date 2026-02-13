@@ -255,24 +255,25 @@ def ensure_installed(*packages: Union[str, List[str]],
 
     Args:
         *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
-        version_constraints (str or List[str], optional): Version constraint string(s)
-            (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
+        version_constraints (str or List[str], optional): Version constraint string(s) (e.g. ">=1.5", "==2.0").
+            Can be a single constraint or a list matching packages.
         reinstall (bool, optional): Forces reinstallation. Defaults to False.
 
     Returns:
         bool: True if all packages are successfully installed or already meet constraints.
 
     Raises:
-        SirilError: If package installation fails,
-        ValueError: If a different number of constraints is provided to the number
-                    of packages to be installed.
+        SirilError: If package installation fails.
+        ValueError: If a different number of constraints is provided to the number of packages to be installed.
         TimeoutError: If pip fails with an apparent timeout.
+        SystemExit: If a package that is already imported needs to be reinstalled with a different version.
     """
+    import sys
+
     # Normalize inputs to lists
     if isinstance(packages[0], list):
         packages = packages[0]
 
-    # Handle version constraints
     if version_constraints is None:
         version_constraints = [None] * len(packages)
     elif isinstance(version_constraints, str):
@@ -282,12 +283,19 @@ def ensure_installed(*packages: Union[str, List[str]],
     if len(version_constraints) != len(packages):
         raise ValueError("Number of packages must match number of version constraints")
 
-    # Track installation results
+    # Track installation results and restart requirement
     all_installed = True
+    needs_restart = False
+    reinstalled_packages = []
 
     for package, constraint in zip(packages, version_constraints):
-        # Special handling for core/builtin modules
-        if util.find_spec(package) is not None:
+        # Check if package is already in sys.modules
+        is_cached = package in sys.modules or any(mod.startswith(package + '.') for mod in sys.modules)
+
+        # Special handling for core/builtin modules (sys, os, io, etc.)
+        spec = util.find_spec(package)
+        if spec is not None and spec.origin in (None, 'built-in', 'frozen'):
+            # This is a built-in module, skip pip installation
             continue
 
         try:
@@ -296,6 +304,13 @@ def ensure_installed(*packages: Union[str, List[str]],
                 print(f"{package} {'is installed' if constraint is None else f'meets version {constraint}'}")
                 continue
 
+            # Package needs installation/upgrade
+            if is_cached:
+                # Package is already imported but needs version change
+                print(f"WARNING: {package} is already imported but needs to be reinstalled.")
+                needs_restart = True
+                reinstalled_packages.append(package)
+
             # Attempt installation
             _install_package(package, constraint, reinstall=reinstall)
 
@@ -303,13 +318,69 @@ def ensure_installed(*packages: Union[str, List[str]],
             all_installed = False
             print(f"Timeout error processing {package}: {e}")
             raise
-
         except Exception as e:
             all_installed = False
             print(f"Error processing {package}: {e}")
             raise SirilError(f"Failed to install or verify package {package}") from e
 
+    # If any cached packages were reinstalled, we must restart
+    if needs_restart:
+        print(f"\n{'='*70}")
+        print(f"CRITICAL: The following package(s) were reinstalled but already in use:")
+        for pkg in reinstalled_packages:
+            print(f"  - {pkg}")
+        print(f"\nPython must be restarted for the changes to take effect.")
+        print(f"Please restart your Python session and run this script again.")
+        print(f"{'='*70}\n")
+        sys.exit(1)
+
     return all_installed
+
+def uninstall_package(package_name: str):
+    """
+    Uninstall a package using pip, streaming output to stdout.
+    Introduced in sirilpy 1.0.15.
+
+    Args:
+        package_name (str): Name of the package to uninstall.
+
+    Raises:
+        subprocess.CalledProcessError: If pip uninstallation fails.
+    """
+    import sys
+    import subprocess
+    import threading
+
+    print(f"Uninstalling {package_name}...")
+
+    try:
+        # Build pip uninstall command with -y flag to auto-confirm
+        pip_command = [sys.executable, "-m", "pip", "uninstall", "-y", package_name]
+
+        # Start pip uninstall process with pipe for stdout
+        with subprocess.Popen(
+            pip_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=-1,
+            universal_newlines=False
+        ) as process:
+            # Create and start output streaming thread
+            output_thread = threading.Thread(target=_stream_output, args=(process,))
+            output_thread.start()
+
+            # Wait for process to complete
+            return_code = process.wait()
+            output_thread.join()
+
+            if return_code == 0:
+                print(f"Successfully uninstalled {package_name}")
+            else:
+                raise subprocess.CalledProcessError(return_code, process.args)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to uninstall {package_name}")
+        raise
 
 def _check_package_installed(package_name: str, version_constraint: Optional[str] = None) -> bool:
     """
