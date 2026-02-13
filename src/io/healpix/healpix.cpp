@@ -291,7 +291,7 @@ static std::filesystem::path get_or_create_cache_dir() {
 	std::filesystem::path target_path;
 
     const char *uddir = siril_get_user_data_dir();
-    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "siril_cat1_healpix8_xpsamp";
+    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "spcc-cache";
     try {
         if (!std::filesystem::exists(siril_subdir)) {
 		std::filesystem::create_directories(siril_subdir);
