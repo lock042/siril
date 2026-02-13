@@ -113,6 +113,7 @@ from .utility import (
     human_readable_size,
     download_with_progress,
     ensure_installed,
+    uninstall_package,
     check_module_version,
     needs_module_version,
     SuppressedStdout,
@@ -142,6 +143,7 @@ from .version import __version__, __author__, __license__, __copyright__
 # Define public API
 __all__ = [
     'ensure_installed',
+    'uninstall_package',
     'check_module_version',
     'needs_module_version',
     'SirilInterface',

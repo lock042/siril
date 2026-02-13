@@ -1535,8 +1535,7 @@ class TorchHelper:
                 'backend': 'intel',
                 'cuda_version': None,
                 'extra_index_url': 'https://download.pytorch.org/whl/xpu',
-                'packages': ['torch', 'torchvision',
-                            'intel-extension-for-pytorch']
+                'packages': ['torch', 'torchvision']
             }
 
         # Apple Silicon
