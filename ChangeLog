@@ -14,6 +14,7 @@ siril-1.4.2
 * Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
 * Improved robustness of python venv creation (!990)
 * Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
+* Improved sirilpy.ensure_installed to handle downgrades, add sirilpy.uninstall_package
 
 siril-1.4.1
 01/05/26
