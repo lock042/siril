@@ -885,21 +885,24 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		// Cache the JSON locally
 		gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(),"siril", "spcc_mirrors.json", NULL);
 		GError *error = NULL;
-
-		int retval = g_file_set_contents(spcc_mirror_path, content, -1, &error);
-		free(content);
-		if (retval) {
+		siril_debug_print("%s\n", content);
+		if (g_file_set_contents(spcc_mirror_path, content, -1, &error)) {
 			siril_debug_print("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
 		} else {
 			// Handle error
 			siril_debug_print("Failed to write spcc_mirrors.json file: %s\n", error->message);
 			g_error_free(error);
+			free(content);
+			return;
 		}
 
 		// Parse JSON file and populate spcc_mirrors
 		if (parseJsonSpccMirrors(content) != 0) {
 			siril_log_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
+			free(content);
+			return;
 		}
+		free(content);
 		spcc_mirrors_checked = TRUE;
 		/* pre-check the Gaia archive status */
 		gaia_check(NULL);
