@@ -825,7 +825,7 @@ end_spcc_mirrors_error:
 	return FALSE;
 }
 
-void siril_check_spcc_mirrors(gboolean verbose) {
+void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 	if (spcc_mirrors_checked) { // no need to check more than once per Siril instance
 		siril_debug_print("Skipping SPCC mirror checked, already done since program start\n");
 		return;
@@ -855,8 +855,7 @@ void siril_check_spcc_mirrors(gboolean verbose) {
 		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
 		return;
 	}
-
-	if (!com.script) {
+	if (!sync) {
 		fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
 		GString *url = g_string_new(GITLAB_URL);
 		g_string_append_printf(url, "/%s/%s", BRANCH, SPCC_MIRRORS);
@@ -903,7 +902,7 @@ void siril_check_spcc_mirrors(gboolean verbose) {
 		}
 		spcc_mirrors_checked = TRUE;
 		/* pre-check the Gaia archive status */
-		check_gaia_archive_status();
+		gaia_check(NULL);
 	}
 }
 

@@ -10217,7 +10217,7 @@ int process_pcc(int nb) {
 }
 
 int process_spcc(int nb) {
-	siril_check_spcc_mirrors(TRUE);
+	siril_check_spcc_mirrors(TRUE, TRUE);
 	return do_pcc(nb, TRUE);
 }
 

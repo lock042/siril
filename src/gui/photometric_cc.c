@@ -345,7 +345,7 @@ void populate_nb_spinbuttons() {
 }
 
 void initialize_spectrophotometric_cc_dialog() {
-	siril_check_spcc_mirrors(TRUE);
+	siril_check_spcc_mirrors(TRUE, FALSE);
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*pcc_catalog_label, *catalog_box_pcc, *catalog_box_spcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
