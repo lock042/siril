@@ -761,10 +761,10 @@ static int parseJsonSpccMirrors(const char *jsonString) {
 		siril_log_color_message(_("Error parsing SPCC mirrors JSON: No valid mirrors found\n"), "red");
 		return 1;
 	}
-
-	// siril_log_message(_("Successfully loaded %zu SPCC mirror(s)\n"), valid_count);
 	return 0;
 }
+
+static gboolean spcc_mirrors_checked = FALSE;
 
 static gboolean end_spcc_mirrors_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
@@ -785,9 +785,10 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 
 	// Parse JSON file and populate spcc_mirrors
 	if (parseJsonSpccMirrors(args->content) != 0) {
-		siril_log_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
+		siril_log_color_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"), "red");
 		goto end_spcc_mirrors_error;
 	}
+	spcc_mirrors_checked = TRUE;
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
 
@@ -802,7 +803,12 @@ end_spcc_mirrors_error:
 	return FALSE;
 }
 
-void siril_check_spcc_mirrors(gboolean verbose) {
+void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
+	if (spcc_mirrors_checked) { // no need to check more than once per Siril instance
+		siril_debug_print("Skipping SPCC mirror checked, already done since program start\n");
+		return;
+	}
+
 	// Try to read the local cached version of the SPCC mirrors file
 	gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(), "siril", "spcc_mirrors.json", NULL);
 	if (g_file_test(spcc_mirror_path, G_FILE_TEST_EXISTS)) {
@@ -827,20 +833,58 @@ void siril_check_spcc_mirrors(gboolean verbose) {
 		siril_log_color_message(_("Siril is in offline mode, cannot check SPCC mirrors.\n"), "red");
 		return;
 	}
+	if (!sync) {
+		fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
+		GString *url = g_string_new(GITLAB_URL);
+		g_string_append_printf(url, "/%s/%s", BRANCH, SPCC_MIRRORS);
+		args->url = g_string_free(url, FALSE);
+		siril_debug_print("SPCC mirrors URL: %s\n", args->url);
+		args->content = NULL;
+		args->verbose = verbose;
+		args->idle_function = end_spcc_mirrors_idle;
 
-	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	GString *url = g_string_new(GITLAB_URL);
-	g_string_append_printf(url, "/%s/%s", BRANCH, SPCC_MIRRORS);
-	args->url = g_string_free(url, FALSE);
-	siril_debug_print("SPCC mirrors URL: %s\n", args->url);
-	args->content = NULL;
-	args->verbose = verbose;
-	args->idle_function = end_spcc_mirrors_idle;
+		siril_log_message(_("Checking SPCC mirrors...\n"));
 
-	siril_log_message(_("Checking SPCC mirrors...\n"));
+		// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+		g_thread_new("siril-spcc-mirrors", fetch_url_async, args);
+	} else {
+		GString *urlstring = g_string_new(GITLAB_URL);
+		g_string_append_printf(urlstring, "/%s/%s", BRANCH, SPCC_MIRRORS);
+		gchar *url = g_string_free(urlstring, FALSE);
+		gsize length = 0;
+		int interror = 0;
+		char *content = fetch_url(url, &length, &interror, TRUE);
+		g_free(url);
+		if (interror || length < 1) {
+			free(content);
+			siril_log_color_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"), "red");
+			return;
+		}
+		// Cache the JSON locally
+		gchar *spcc_mirror_path = g_build_path(G_DIR_SEPARATOR_S, siril_get_config_dir(),"siril", "spcc_mirrors.json", NULL);
+		GError *error = NULL;
+		siril_debug_print("%s\n", content);
+		if (g_file_set_contents(spcc_mirror_path, content, -1, &error)) {
+			siril_debug_print("Wrote spcc_mirrors.json file at %s\n", spcc_mirror_path);
+		} else {
+			// Handle error
+			siril_debug_print("Failed to write spcc_mirrors.json file: %s\n", error->message);
+			g_error_free(error);
+			free(content);
+			return;
+		}
 
-	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-spcc-mirrors", fetch_url_async, args);
+		// Parse JSON file and populate spcc_mirrors
+		if (parseJsonSpccMirrors(content) != 0) {
+			siril_log_message(_("Error fetching or parsing SPCC mirrors JSON file from URL\n"));
+			free(content);
+			return;
+		}
+		free(content);
+		spcc_mirrors_checked = TRUE;
+		/* pre-check the Gaia archive status */
+		gaia_check(NULL);
+	}
 }
 
 #endif // HAVE_LIBCURL
