@@ -6,7 +6,6 @@ siril-1.4.2
 * Fixed some data entry typos in Messier.csv (!991)
 * Fixed crash resulting from GTK code used in command functions (!992)
 
-
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
 * Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
@@ -15,6 +14,7 @@ siril-1.4.2
 * Improved robustness of python venv creation (!990)
 * Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
 * Improved sirilpy.ensure_installed to handle downgrades, add sirilpy.uninstall_package
+* Removed SPCC mirror check at startup, now only checked on spcc command or opening spcc dialog
 
 siril-1.4.1
 01/05/26
