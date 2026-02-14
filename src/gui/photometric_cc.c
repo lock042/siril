@@ -26,6 +26,7 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/siril_networking.h"
+#include "core/siril_update.h"
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
@@ -344,7 +345,7 @@ void populate_nb_spinbuttons() {
 }
 
 void initialize_spectrophotometric_cc_dialog() {
-	check_gaia_archive_status();
+	siril_check_spcc_mirrors(TRUE);
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*pcc_catalog_label, *catalog_box_pcc, *catalog_box_spcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
