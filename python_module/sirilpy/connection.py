@@ -3728,27 +3728,46 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in get_siril_config(): {}").format(e)) from e
 
-    def set_seq_frame_incl(self, index: int, incl: bool):
+    def set_seq_frame_incl(self, index: Union[int, List[int]], incl: bool):
         """
-        Set whether a given frame is included in the currently loaded sequence
+        Set whether given frame(s) are included in the currently loaded sequence
         in Siril. This method is intended for use in creating custom sequence
         filters.
 
         Args:
-            index: integer specifying which frame to set the pixeldata for. This
-                uses a 0-based indexing scheme, i.e. the first frame is frame
-                number 0, not frame numer 1.
-            incl: bool specifying whether the frame is included or not.
+            index: integer or list of integers specifying which frame(s) to set the 
+                inclusion status for. This uses a 0-based indexing scheme, i.e. the 
+                first frame is frame number 0, not frame number 1.
+                Passing a list is available since sirilpy 1.0.17
+            incl: bool specifying whether the frame(s) are included or not.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
+            TypeError: if index is not an int or list of ints,
             SirilError: on failure.
         """
         try:
             if not self.is_sequence_loaded():
                 raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
-            # Pack the index and incl into bytes using network byte order (!)
-            payload = struct.pack('!II', index, incl)
+            
+            # Validate and normalize index parameter
+            if isinstance(index, int):
+                indices = [index]
+            elif isinstance(index, list):
+                if not index:
+                    raise ValueError(_("Index list cannot be empty"))
+                if not all(isinstance(i, int) for i in index):
+                    raise TypeError(_("All elements in index list must be integers"))
+                indices = index
+            else:
+                raise TypeError(_("Index must be an integer or list of integers"))
+            
+            # Build payload: count, indices, incl
+            # Format: count (I) + indices (I * count) + incl (I)
+            count = len(indices)
+            format_string = f'!I{count}II'  # count + indices + incl
+            payload = struct.pack(format_string, count, *indices, incl)
+            
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
             return
         except SirilError:
