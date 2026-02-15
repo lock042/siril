@@ -3738,7 +3738,7 @@ class SirilInterface:
             index: integer or list of integers specifying which frame(s) to set the 
                 inclusion status for. This uses a 0-based indexing scheme, i.e. the 
                 first frame is frame number 0, not frame number 1.
-                Passing a list is available since sirilpy 1.0.16
+                Passing a list is available since sirilpy 1.0.17
             incl: bool specifying whether the frame(s) are included or not.
 
         Raises:
