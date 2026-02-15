@@ -1565,6 +1565,7 @@ exit_conesearch:
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);
 		}

@@ -467,7 +467,7 @@ static gboolean end_denoise(gpointer p) {
 		populate_roi();
 	}
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	queue_redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
@@ -12857,12 +12857,8 @@ int process_pcc(int nb) {
 }
 
 int process_spcc(int nb) {
-#ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril has been compiled without libcurl support for network operations; SPCC is therefore not available. Recompile with libcurl support to enable SPCC.\n"), "red");
-	return CMD_GENERIC_ERROR;
-#else
+	siril_check_spcc_mirrors(TRUE, TRUE);
 	return do_pcc(nb, TRUE);
-#endif
 }
 
 // used for platesolve and seqplatesolve commands

@@ -11,6 +11,7 @@ siril-1.4.2
 **Fixes**
 * Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
 * Fixed some data entry typos in Messier.csv (!991)
+* Fixed crash resulting from GTK code used in command functions (!992)
 
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
