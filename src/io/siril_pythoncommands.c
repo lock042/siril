@@ -19,6 +19,7 @@
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -2456,51 +2457,59 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SEQ_FRAME_INCL: {
-			uint32_t index;
-			gboolean incl;
 			if (!sequence_is_loaded()) {
 				const char* error_msg = _("No sequence loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length == 8) {
-				// Extract the first 4 bytes as `index`
-				memcpy(&index, payload, sizeof(uint32_t));
+			if (!com.headless && gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+				siril_close_dialog("seqlist_dialog");
+			}
+			// Payload format: count (I) + indices (I * count) + incl (I)
+			if (payload_length < 12) {
+				const char* error_msg = _("Incorrect payload length: too small");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			
+			uint32_t count;
+			memcpy(&count, payload, sizeof(uint32_t));
+			count = GUINT32_FROM_BE(count);
+
+			if (payload_length != 4 + (4 * count) + 4) {
+				const char* error_msg = _("Incorrect payload length: count mismatch");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			uint32_t incl_encoded;
+			memcpy(&incl_encoded, payload + 4 + (4 * count), sizeof(uint32_t));
+			incl_encoded = GUINT32_FROM_BE(incl_encoded);
+			gboolean incl = (gboolean)incl_encoded;
+			
+			// Process each index
+			for (uint32_t i = 0; i < count; i++) {
+				uint32_t index;
+				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
 				index = GUINT32_FROM_BE(index);
-
-				// Extract the second 4 bytes as `incl`
-				uint32_t incl_encoded;
-				memcpy(&incl_encoded, payload + sizeof(uint32_t), sizeof(uint32_t));
-				incl_encoded = GUINT32_FROM_BE(incl_encoded);
-				incl = (gboolean) incl_encoded;
-
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-
-				// Update number of included frames if there is a change
-				gboolean was_incl = com.seq.imgparam[index].incl;
-				if (!was_incl && incl)
-					com.seq.selnum++;
-				else if (was_incl && !incl)
-					com.seq.selnum--;
-
-				// Set inclusion for this frame
 				com.seq.imgparam[index].incl = incl;
-
-				// Update GUI
-				if (!com.headless) {
-					GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
-					g_thread_join(thread);
-					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
-				}
-				success = send_response(conn, STATUS_OK, NULL, 0);
-			} else {
-				const char* error_msg = _("Incorrect payload length");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			fix_selnum(&com.seq, FALSE);
+			if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
+				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			}
+			// Update GUI
+			if (!com.headless) {
+				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
+				g_thread_join(thread);
+				queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			}
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
