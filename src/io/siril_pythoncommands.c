@@ -2462,9 +2462,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (!com.headless && gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
-				siril_close_dialog("seqlist_dialog");
-			}
+			ensure_seqlist_dialog_closed();
 			// Payload format: count (I) + indices (I * count) + incl (I)
 			if (payload_length < 12) {
 				const char* error_msg = _("Incorrect payload length: too small");
