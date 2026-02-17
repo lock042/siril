@@ -113,4 +113,7 @@ void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
 
+void ensure_seqlist_dialog_closed();
+gboolean in_gtk_thread(void);
+
 #endif
