@@ -651,7 +651,6 @@ int process_denoise(int nb) {
 			if (mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
@@ -664,7 +663,6 @@ int process_denoise(int nb) {
 			} else if ((rho <= 0.f) || (rho >= 1.f)) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
@@ -692,7 +690,6 @@ int process_denoise(int nb) {
 	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
 		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
 		free_denoise_args(params);
-		free(params);
 		set_cursor_waiting(FALSE);
 		return CMD_ARG_ERROR;
 	}
@@ -715,7 +712,6 @@ int process_denoise(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_denoise_args(params);
-		free(params);
 		set_cursor_waiting(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
