@@ -2550,3 +2550,22 @@ int seq_qphot(sequence *seq, int layer) {
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
 	return seqpsf(seq, layer, FALSE, TRUE, FALSE, framing, TRUE, com.script);
 }
+
+gboolean in_gtk_thread(void) {
+    return g_main_context_is_owner(g_main_context_default());
+}
+
+gboolean ensure_seqlist_dialog_closed_idle(gpointer user_data) {
+	if (gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+		siril_close_dialog("seqlist_dialog");
+	}
+	return FALSE;
+}
+
+void ensure_seqlist_dialog_closed() {
+	if (com.headless) return; // nothing to do
+	if (in_gtk_thread())
+		ensure_seqlist_dialog_closed_idle(NULL);
+	else
+		execute_idle_and_wait_for_it(ensure_seqlist_dialog_closed_idle, NULL);
+}

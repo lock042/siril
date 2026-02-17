@@ -14,6 +14,7 @@ siril-1.4.2
 * Improved robustness of python venv creation (!990)
 * Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
 * Improved sirilpy.ensure_installed to handle downgrades, add sirilpy.uninstall_package
+* Added passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl (!995)
 
 siril-1.4.1
 01/05/26
