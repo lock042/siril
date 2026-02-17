@@ -866,13 +866,13 @@ class ONNXHelper:
         elif self.system == 'linux':
             print("Linux: ONNXHelper will attempt to detect NVidia, AMD and Intel GPUs and install "
                 "either onnxruntime-gpu, onnxruntime-rocm or onnxruntime-intel as appropriate. "
-                "Note that we have had no feedback so far from AMD or Intel GPU users and none of "
-                "the developers have these GPUs, so although it *should* work on these systems "
-                "we would be very grateful for confirmation either of success or failure.")
+                "Note that we have had limited feedback so far from AMD or Intel GPU users and none of "
+                "the developers have these GPUs, so although it is believed to work on them "
+                "we would be particularly grateful for bug reports on these systems.")
         elif self.system == 'darwin':
             print("MacOS: ONNXHelper will install the standard onnxruntime module on MacOS. This "
-                "provides good support for Apple silicon and reasonable support for older Intel "
-                "silicon Macs.")
+                "provides good support for Apple silicon and may provide reasonable support for "
+                "older Intel silicon Macs.")
         print("Detection of working ExecutionProviders: ONNXHelper tests using a simple model to "
             "confirm whether each supported ExecutionProvider in the installed runtime actually "
             "works or not. This helps to ensure that scripts calling "
@@ -1471,16 +1471,14 @@ class TorchHelper:
         print(f"TorchHelper status as of sirilpy version {__version__}")
         if self.system == 'windows':
             print("Windows: TorchHelper will install Torch. A version may be specified but by default "
-                "autodetection will take place. The CUDA 12.8 version will be installed for NVidia GPUs "
-                "but other CUDA versions may be specified manually and a CPU version will be installed "
-                "for unsupported GPUs. There are not yet Intel, ROCm or DirectML Torch runtimes that are "
-                "sufficietly stable to support in this helper module.")
+                "autodetection will take place. The recommended CUDA version will be installed for NVidia GPUs "
+                "but other CUDA versions may be specified manually. For AMD and Intel GPUs the ROCm or XPU "
+                "version will be installed.")
         elif self.system == 'linux':
-            print("Linux: TorchHelper will install Torch.  A version may be specified but by default "
-                "autodetection will taklookinge place. The CUDA 12.8 version will be installed for NVidia GPUs "
-                "but other CUDA versions may be specified manually as well as a ROCm version for AMD GPUs. "
-                "There is not yet an Intel Torch runtime that is sufficietly stable to support in this "
-                "helper module.")
+            print("Linux: TorchHelper will install Torch. A version may be specified but by default "
+                "autodetection will take place. The recommended CUDA version will be installed for NVidia GPUs "
+                "but other CUDA versions may be specified manually. For AMD and Intel GPUs the ROCm or XPU "
+                "version will be installed.")
         elif self.system == 'darwin':
             print("MacOS: TorchHelper will install the standard Torch module on MacOS. This is targeted "
                 "at all Apple Macs regardless of CPU architecture: any issues with Torch on MacOS "
@@ -1488,9 +1486,10 @@ class TorchHelper:
         print("Dependencies: Torch is currently excessively strict about required versions of some "
             "dependencies including CUDnn: it requires an exact version match rather than at least a "
             "certain version. This cauess conflict with other GPU acceleration modules that have "
-            "differing dependency requirements, including jax. It is therefore not currently possible "
-            "to write a script that uses both Torch and jax, and even switching between the two in "
-            "different scripts is difficult at present. This issue has been raised upstream with Torch.")
+            "differing dependency requirements, including jax. In order to accommodate scripts that "
+            "require both, Torch is installed twice - first normally, and second with the --nodeps "
+            "flag, as advised by the Torch project. However we note that this is a problematic approach "
+            "and have encouraged Torch to adopte a more pragmatic approach in future.")
 
     def get_recommended_backend(self) -> Dict[str, Any]:
         """
@@ -1768,6 +1767,45 @@ class TorchHelper:
             for i, name in enumerate(self.device_info['gpu_names']):
                 print(f"  GPU {i}: {name}")
 
+    def get_torch_device(self, use_gpu: Optional[bool] = True) -> "torch.device":
+        """
+        Obtains a suitable torch device based on the capabilities of the installed
+        torch package. if use_gpu is False, torch.device("cpu") will be returned.
+        This function is available since sirilpy 1.0.17
+        """
+        try:
+            import torch
+        except ImportError:
+            return False
+
+        if not use_gpu:
+            print("Using CPU")
+            return torch.device("cpu")  # User has disabled GPU acceleration
+        if torch.cuda.is_available():
+            print("Using CUDA (NVidia / AMD)")
+            return torch.device("cuda")  # Nvidia / AMD GPU support
+        if torch.backends.mps.is_available():
+            # Check if we're on Apple Silicon (ARM64), not Intel
+            import platform
+            if platform.machine() == "arm64":
+                print("Using MPS (Apple Silicon)")
+                return torch.device("mps")  # Apple MPS support (M1/M2/M3)
+            else:
+                print("MPS detected but not applicable on Intel Mac - falling back to CPU")
+        if hasattr(torch, 'xpu') and torch.xpu.is_available():
+            print("Using XPU (Intel ARC / XPU)")
+            return torch.device("xpu")  # Intel Arc / XPU Support
+        # DirectML support (Windows DirectX 12)
+        try:
+            import torch_directml
+            if torch_directml.is_available():
+                print("Using DirectML")
+                return torch_directml.device()  # DirectML device
+        except ImportError:
+            pass
+        print("No GPU acceleration available, falling back to CPU use")
+        return torch.device("cpu")
+
     def _test_torch_gpu(self):
         """Test PyTorch model execution on GPU."""
         print("=== PyTorch GPU Test ===")
@@ -1803,9 +1841,9 @@ class TorchHelper:
         cpu_output, _ = self._benchmark_model(model_cpu, input_data, cpu_device)
 
         # Test GPU execution
-        if torch.cuda.is_available():
+        gpu_device = self.get_torch_device()
+        if gpu_device.type != "cpu":
             print("\nTesting GPU execution...")
-            gpu_device = torch.device('cuda:0')
 
             try:
                 model_gpu = self._create_simple_model()  # Create fresh model for GPU

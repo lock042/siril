@@ -6,7 +6,6 @@ siril-1.4.2
 * Fixed some data entry typos in Messier.csv (!991)
 * Fixed crash resulting from GTK code used in command functions (!992)
 
-
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
 * Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
