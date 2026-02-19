@@ -88,11 +88,6 @@ static void compute_histogram_for_channel(int channel, guint32 *histo, guint32 *
 		histo[i] = 0;
 	}
 
-	if (!single_image_is_loaded()) {
-		*max_val = 0;
-		return;
-	}
-
 	if (gfit->type == DATA_USHORT) {
 		WORD *buf = gfit->pdata[channel];
 		guint32 nb_pixels = gfit->rx * gfit->ry;
@@ -122,8 +117,6 @@ static void compute_histogram_for_channel(int channel, guint32 *histo, guint32 *
 
 /* Compute image checksum */
 static guint64 compute_image_checksum(void) {
-	if (!single_image_is_loaded())
-		return 0;
 
 	guint64 checksum = 0;
 	int step = (gfit->rx * gfit->ry) / 1000;
@@ -150,11 +143,6 @@ static guint64 compute_image_checksum(void) {
 
 /* Update histogram cache if necessary */
 static void update_histogram_cache(void) {
-	if (!single_image_is_loaded()) {
-		cache.is_valid = FALSE;
-		return;
-	}
-
 	guint64 current_checksum = compute_image_checksum();
 
 	if (cache.is_valid && cache.image_checksum == current_checksum)
@@ -1032,7 +1020,7 @@ static gboolean on_histogram_motion_notify(GtkWidget *widget, GdkEventMotion *ev
 
 /* Draw histogram overlay */
 static gboolean on_histogram_overlay_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	if (!histo_state.show_histo || !single_image_is_loaded())
+	if (!histo_state.show_histo)
 		return FALSE;
 
 	update_histogram_cache();
@@ -1453,9 +1441,6 @@ void update_histogram_display(void) {
 
 /* Update cursor value from image coordinates (called on mouse motion) */
 void histogram_update_cursor_value(int x, int y) {
-	if (!single_image_is_loaded())
-		return;
-
 	/* Calculate pixel index (y-axis is flipped in image coordinates) */
 	int index = gfit->rx * (gfit->ry - y - 1) + x;
 
