@@ -378,7 +378,7 @@ win64-native-installer:
       artifacts: true
       parallel:
         matrix:
-          - MSYSTEM: $MSYSTEM
+          - MSYSTEM: [ "MINGW64", "UCRT64" ]
   allow_failure: true
 
 ################################################################################
