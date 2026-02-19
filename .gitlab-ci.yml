@@ -226,9 +226,13 @@ macos:
 
 # Fetch msys2 image from siril-windows
 # Build siril and package it
-.win64-native-common: &win64-native-common
+win64-native:
   stage: packaging
+  parallel:
+    matrix:
+      - MSYSTEM: [ "MINGW64", "UCRT64" ]
   cache:
+    key: "cache-windows-small1-${MSYSTEM}"
     paths:
       - ccache
       - DLLcache # cache for the DLL txt files recording all files to be copied to the package
@@ -239,56 +243,35 @@ macos:
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
     SDW_VERSION: 56
+    SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
+    SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
     SPW_VERSION: 23
-    PY_OUT: "/c/siril-python"
+    SPW_NAME: siril-python$SPW_VERSION
+    SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
+    PY_OUT: "/c/siril-python" #used in siril-package.sh
   tags:
     - saas-windows-medium-amd64
   needs: []
   artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${MSYSTEM}"
     when: always
     expire_in: 1 week
+    paths:
+    - ${INSTALL_DIR}
   before_script:
     - wget.exe --quiet --no-check-certificate $SPW_RELEASE_URL
     - 7z x -oC:/ "$Env:SPW_NAME.7z"
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
+    # Set W64_OUT dynamically based on MSYSTEM
+    # used in siril-package.sh
     - $Env:W64_OUT = "/c/$Env:SDW_NAME/$($Env:MSYSTEM.ToLower())"
     - echo "W64_OUT=$Env:W64_OUT"
   script:
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
     - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "ccache -s"
-
-win64-native-mingw64:
-  <<: *win64-native-common
-  cache:
-    key: "cache-windows-small1-MINGW64"
-  variables:
-    MSYSTEM: "MINGW64"
-    SDW_NAME: siril${SDW_VERSION}_MINGW64
-    SPW_NAME: siril-python${SPW_VERSION}
-    SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
-    SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
-  artifacts:
-    name: "win64-native-${CI_COMMIT_REF_NAME}-MINGW64"
-    paths:
-      - ${INSTALL_DIR}
-
-win64-native-ucrt64:
-  <<: *win64-native-common
-  cache:
-    key: "cache-windows-small1-UCRT64"
-  variables:
-    MSYSTEM: "UCRT64"
-    SDW_NAME: siril${SDW_VERSION}_UCRT64
-    SPW_NAME: siril-python${SPW_VERSION}
-    SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
-    SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
-  artifacts:
-    name: "win64-native-${CI_COMMIT_REF_NAME}-UCRT64"
-    paths:
-      - ${INSTALL_DIR}
 
 flatpak:
   rules:
@@ -369,15 +352,19 @@ cppcheck:
 # Distribution
 ################################################################################
 # Distribution
-.win64-native-installer-common: &win64-native-installer-common
+win64-native-installer:
   rules:
     *run_ondemand_schedule_tag
+  parallel:
+    matrix:
+      - MSYSTEM: [ "MINGW64", "UCRT64" ]
   variables:
     CHERE_INVOKING: "yes"
   tags:
     - saas-windows-medium-amd64
   stage: distribution
   artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${MSYSTEM}"
     when: always
     expire_in: 1 week
     paths:
@@ -386,39 +373,13 @@ cppcheck:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
+  needs:
+    - job: win64-native
+      artifacts: true
+      parallel:
+        matrix:
+          - MSYSTEM: [ "MINGW64", "UCRT64" ]
   allow_failure: true
-
-win64-native-installer-mingw64:
-  <<: *win64-native-installer-common
-  variables:
-    CHERE_INVOKING: "yes"
-    MSYSTEM: "MINGW64"
-  artifacts:
-    name: "win64-native-installer-${CI_COMMIT_REF_NAME}-MINGW64"
-    when: always
-    expire_in: 1 week
-    paths:
-      - WinInstaller
-      - installer.log
-  needs:
-    - job: win64-native-mingw64
-      artifacts: true
-
-win64-native-installer-ucrt64:
-  <<: *win64-native-installer-common
-  variables:
-    CHERE_INVOKING: "yes"
-    MSYSTEM: "UCRT64"
-  artifacts:
-    name: "win64-native-installer-${CI_COMMIT_REF_NAME}-UCRT64"
-    when: always
-    expire_in: 1 week
-    paths:
-      - WinInstaller
-      - installer.log
-  needs:
-    - job: win64-native-ucrt64
-      artifacts: true
 
 ################################################################################
 build-paper:
