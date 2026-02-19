@@ -368,14 +368,17 @@ win64-native-installer:
     when: always
     expire_in: 1 week
     paths:
-    - WinInstaller
-    - installer.log
+      - WinInstaller
+      - installer.log
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: 
+  needs:
     - job: win64-native
       artifacts: true
+      parallel:
+        matrix:
+          - MSYSTEM: $MSYSTEM
   allow_failure: true
 
 ################################################################################
