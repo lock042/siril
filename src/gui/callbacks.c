@@ -240,7 +240,6 @@ int populate_roi() {
 		return 1;
 	if (gui.roi.selection.w == 0 || gui.roi.selection.h == 0)
 		return 1;
-
 	int retval = 0;
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	size_t npixels_gfit = gfit->rx * gfit->ry;
@@ -367,7 +366,6 @@ finalize:
 	gui.roi.active = TRUE;
 	return retval;
 }
-
 
 static void call_roi_callbacks() {
 	if (com.python_command)
@@ -755,6 +753,8 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 	siril_debug_print("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != 1 << bitdepth) {
 		siril_log_message(_("Setting HD AutoStretch display mode bit depth to %d...\n"), bitdepth);
+//		set_cursor_waiting(TRUE);
+
 		com.pref.hd_bitdepth = bitdepth;
 		gui.hd_remap_max = 1 << bitdepth;
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
@@ -762,6 +762,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		}
+//		set_cursor_waiting(FALSE);
 	}
 }
 
@@ -2791,4 +2792,23 @@ int seq_qphot(sequence *seq, int layer) {
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
 	return seqpsf(seq, layer, FALSE, TRUE, FALSE, framing, TRUE, com.script);
+}
+
+gboolean in_gtk_thread(void) {
+    return g_main_context_is_owner(g_main_context_default());
+}
+
+gboolean ensure_seqlist_dialog_closed_idle(gpointer user_data) {
+	if (gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+		siril_close_dialog("seqlist_dialog");
+	}
+	return FALSE;
+}
+
+void ensure_seqlist_dialog_closed() {
+	if (com.headless) return; // nothing to do
+	if (in_gtk_thread())
+		ensure_seqlist_dialog_closed_idle(NULL);
+	else
+		execute_idle_and_wait_for_it(ensure_seqlist_dialog_closed_idle, NULL);
 }
