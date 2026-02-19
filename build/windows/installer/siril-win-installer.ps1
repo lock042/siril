@@ -31,13 +31,14 @@ $Output="..\..\..\WinInstaller"  #location to store installer
 $Param1="-DVERSION="+$VERSIONSTR
 $Param2="-DOUTPUT="+$Output
 $Param3="-DROOTDIR="+$RootDir
+$Param4="-DMSYSTEM="+$Env:MSYSTEM
 
-&$INNOPATH $Param1 $Param2 $Param3 siril64.iss
+&$INNOPATH $Param1 $Param2 $Param3 $Param4 siril64.iss
 
 # Test if the installer was created and return success/failure
 cd $Output
 Write-Output ('Installer package directory: '+(Get-Item .).FullName)
-$EXE_ROOT = 'siril-'+$VERSIONSTR+'-setup'
+$EXE_ROOT = 'siril-'+$VERSIONSTR+'-'+$Env:MSYSTEM.ToLower()+'-setup'
 $EXE_NAME = $EXE_ROOT+'.exe'
 $SHA256_NAME = $EXE_ROOT+'.SHA256SUMS'
 $SHA512_NAME = $EXE_ROOT+'.SHA512SUMS'
