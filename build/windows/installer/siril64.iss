@@ -5,6 +5,7 @@
 
 #define MyAppName "Siril"
 #define MyAppExeName "siril.exe"
+#define MyMSYSTEM MSYSTEM
 #define RootDir ROOTDIR
 #define MyAppId "{ADA3C347-68C3-4EAA-92B3-C1BDBD836EDB}"
 
@@ -22,7 +23,7 @@ AppUpdatesURL=https://www.siril.org/
 DefaultDirName={commonpf}\Siril
 DefaultGroupName=Siril
 OutputDir={#OUTPUT}
-OutputBaseFilename=siril-{#MAJOR}.{#MINOR}.{#MICRO}-setup
+OutputBaseFilename=siril-{#MAJOR}.{#MINOR}.{#MICRO}-{#Lowercase(MyMSYSTEM)}-setup
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
