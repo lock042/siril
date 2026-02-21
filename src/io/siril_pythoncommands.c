@@ -1183,7 +1183,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (single_image_is_loaded()) {
 				if (com.headless) {
 					const char* error_msg = _("Undo not supported in headless mode");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 					break;
 				}
 				// Ensure null-terminated string for undo message
