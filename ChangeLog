@@ -1,5 +1,11 @@
-siril-1.4.2
+siril-1.4.3
 --/--/--
+
+**Fixes**
+* SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
+
+siril-1.4.2
+18/02/26
 
 **Fixes**
 * Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
