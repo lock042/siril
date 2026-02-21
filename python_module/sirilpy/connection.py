@@ -968,7 +968,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in warning_messagebox(): {e}") from e
 
-    def undo_save_state(self, my_string: str) -> bool:
+    def undo_save_state(self, my_string: str) -> Optional[bool]:
         """
         Saves an undo state. The maximum message length is 70 bytes: longer
         messages will be truncated.
@@ -977,7 +977,9 @@ class SirilInterface:
             my_string: The message to log in FITS HISTORY
 
         Returns:
-            bool: True if the message was successfully logged, False otherwise
+            Optional[bool]: True if the message was successfully logged, False if a
+            logging error occurred or None if the script is headless (undo does not
+            happen when headless)
 
         Raises:
             SirilError: if an error occurred.
@@ -4720,7 +4722,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.UNDO, None):
+            retval = self._execute_command(_Command.UNDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in undo(): {e}") from e
@@ -4735,7 +4738,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.REDO, None):
+            retval = self._execute_command(_Command.REDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in redo(): {e}") from e
