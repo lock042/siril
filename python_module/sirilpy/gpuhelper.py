@@ -1201,44 +1201,40 @@ class ONNXHelper:
     def is_onnxruntime_installed(self):
         """
         Check if any onnxruntime package is already installed and usable.
-
         Returns:
             tuple: (is_installed, package_name) where package_name could be
-                  'onnxruntime', 'onnxruntime-gpu', 'onnxruntime-silicon', etc.
+                'onnxruntime', 'onnxruntime-gpu', 'onnxruntime-silicon', etc.
         """
-        try:
-            # Try importing onnxruntime - if this fails, the package is not usable
-            self.import_onnxruntime()
+        import importlib.util
+        import importlib.metadata
 
-        except ImportError as e:
-            # If import fails, package is not usable regardless of pip list
-            # One of the error messages is a clue that MSVC runtime need updating
-            if platform.system().lower() == "windows" and \
-                                "DLL load failed" in str(e):
-                print("DLL load failed. This means you need to update system "
-                    "libraries. Usually updating Microsoft Visual C++ Runtime "
-                    "will solve the issue.", file=sys.stderr)
-            return False, None
-        except Exception as e:
-            print(f"Error checking for installed onnxruntime: {e}")
+        # Check if the onnxruntime module is findable without importing it
+        if importlib.util.find_spec("onnxruntime") is None:
             return False, None
 
-        # If we get here, some version of onnxruntime is installed and working
-        package_name = "onnxruntime"  # Default assumption
+        # Determine which variant is installed by inspecting package metadata
+        onnxruntime_variants = [
+            "onnxruntime-gpu",
+            "onnxruntime-silicon",
+            "onnxruntime-directml",
+            "onnxruntime-rocm",
+            "onnxruntime-intel",
+            "onnxruntime-openvino",
+            "onnxruntime",  # Check plain last as a fallback
+        ]
 
-        # Check provider information to determine specific package variant
-        providers = onnxruntime.get_available_providers()
-        print(f"Detected ONNX Runtime with providers: {providers}")
+        package_name = None
+        for variant in onnxruntime_variants:
+            try:
+                importlib.metadata.version(variant)
+                package_name = variant
+                break
+            except importlib.metadata.PackageNotFoundError:
+                continue
 
-        # Check for specific provider patterns
-        if any(p for p in providers if "CUDA" in p or "GPU" in p):
-            package_name = "onnxruntime-gpu"
-        elif any(p for p in providers if "DirectML" in p):
-            package_name = "onnxruntime-directml"
-        elif any(p for p in providers if "ROCm" in p):
-            package_name = "onnxruntime-rocm"
-        elif any(p for p in providers if "OpenVINO" in p or "DML" in p):
-            package_name = "onnxruntime-intel"
+        if package_name is None:
+            # Module is findable but no known metadata entry — still usable
+            package_name = "onnxruntime"
 
         return True, package_name
 
