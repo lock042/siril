@@ -140,7 +140,7 @@ int add_existing_polygon(UserPolygon* polygon, const GdkRGBA *color, gboolean fi
 }
 
 
-static void free_user_polygon(gpointer data) {
+void free_user_polygon(gpointer data) {
 	UserPolygon *polygon = (UserPolygon *)data;
 	if (polygon) {
 		g_free(polygon->points);

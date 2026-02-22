@@ -287,7 +287,6 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_curve_params(params);
-		free(params);
 		return 1;
 	}
 

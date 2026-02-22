@@ -792,7 +792,6 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
 
-
 end_spcc_mirrors_error:
 	set_cursor_waiting(FALSE);
 	/* free data */
@@ -846,7 +845,7 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		siril_log_message(_("Checking SPCC mirrors...\n"));
 
 		// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-		g_thread_new("siril-spcc-mirrors", fetch_url_async, args);
+		g_thread_unref(g_thread_new("siril-spcc-mirrors", fetch_url_async, args));
 	} else {
 		GString *urlstring = g_string_new(GITLAB_URL);
 		g_string_append_printf(urlstring, "/%s/%s", BRANCH, SPCC_MIRRORS);
