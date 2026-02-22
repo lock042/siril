@@ -1028,6 +1028,80 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_gray_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Mask</property>
+        <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="mask_menu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_image">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_image</property>
+                <property name="label" translatable="yes">Mask from current image</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_color">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_color</property>
+                <property name="label" translatable="yes">Mask from color</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_from_stars">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_stars</property>
+                <property name="label" translatable="yes">Mask from stars</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_from_file">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_from_file</property>
+                <property name="label" translatable="yes">Mask from image file</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_add_from_poly">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_add_from_poly</property>
+                <property name="label" translatable="yes">Add freehand to mask</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_mask_clear_from_poly">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.mask_clear_from_poly</property>
+                <property name="label" translatable="yes">Subtract freehand from mask</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menu_clear_mask">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.clear_mask</property>
+                <property name="label" translatable="yes">Clear mask</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="submenu_gray_roi">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -1111,6 +1185,83 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             </child>
           </object>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="menumask_rmb">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_autostretch_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.autostretch_mask</property>
+        <property name="label" translatable="yes">Autostretch Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_threshold_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.threshold_mask</property>
+        <property name="label" translatable="yes">Apply Thresholds to Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_blur_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.blur_mask</property>
+        <property name="label" translatable="yes">Blur Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_feather_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.feather_mask</property>
+        <property name="label" translatable="yes">Feather Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_invert_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.invert_mask</property>
+        <property name="label" translatable="yes">Invert Mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_scale_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.scale_mask</property>
+        <property name="label" translatable="yes">Multiply mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_gradient">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.mask_from_gradient</property>
+        <property name="label" translatable="yes">Gradient of mask</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rmb_clear_mask">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="action-name">win.clear_mask</property>
+        <property name="label" translatable="yes">Clear Mask</property>
       </object>
     </child>
   </object>
@@ -3542,6 +3693,170 @@ Output is a csv file compatible with NINA Exoplanet</property>
                       </object>
                       <packing>
                         <property name="position">3</property>
+                        <property name="tab-fill">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="vbox_mask">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel" id="labelfilename_mask">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">current blue file</property>
+                            <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                            <property name="track-visited-links">False</property>
+                            <style>
+                              <class name="label-data"/>
+                            </style>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkDrawingArea" id="drawingareamask">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
+                            <property name="margin-start">2</property>
+                            <property name="margin-end">2</property>
+                            <property name="margin-top">2</property>
+                            <property name="margin-bottom">2</property>
+                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="enter-notify-event" handler="on_drawingarea_enter_notify_event" swapped="no"/>
+                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
+                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="labelwcs_mask">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">end</property>
+                            <property name="single-line-mode">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="hboxmask">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">center</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkLabel" id="labelzoom_mask">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="width-chars">6</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="max-width-chars">6</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelfwhm_mask">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="padding">6</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_mask">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="ellipsize">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labeldensity_mask">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack-type">end</property>
+                                <property name="position">4</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="position">4</property>
+                        <property name="tab-fill">False</property>
+                      </packing>
+                    </child>
+                    <child type="tab">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">label</property>
+                      </object>
+                      <packing>
+                        <property name="position">4</property>
                         <property name="tab-fill">False</property>
                       </packing>
                     </child>

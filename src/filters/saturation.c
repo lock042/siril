@@ -203,6 +203,7 @@ static gboolean satu_apply_idle(gpointer p) {
 		notify_gfit_modified();
 	}
 	free_generic_img_args(args);
+	clear_backup();
 	return FALSE;
 }
 
@@ -221,7 +222,6 @@ static int satu_process_with_worker(gboolean for_preview) {
 	}
 
 	// Destructor required by generic_img_args
-	params->free = free;
 	params->coeff = satu_amount;
 	params->background_factor = background_factor;
 	satu_set_hues_from_types(params, satu_hue_type);
@@ -233,7 +233,6 @@ static int satu_process_with_worker(gboolean for_preview) {
 		return 1;
 	}
 
-	// Logic from source 1: processing.h, source 26: processing.c
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = saturation_image_hook;
@@ -244,6 +243,9 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	args->mask_aware = TRUE;
+	if (!for_preview)
+		args->log_hook = satu_log_hook;
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -282,11 +284,7 @@ static void satu_close(gboolean revert) {
 		if (satu_amount != 0.0) {
 			copy_backup_to_gfit();
 			notify_gfit_modified();
-		} else {
-			clear_backup();
 		}
-	} else {
-		// Undo is now saved in the worker idle function (satu_apply_idle)
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(satu_change_between_roi_and_image);
@@ -306,13 +304,10 @@ gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")))) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview"))))
 		copy_backup_to_gfit();
-	}
 
-	// Launch worker for Final Application (FALSE = not preview)
 	satu_process_with_worker(FALSE);
-
 	// Cleanup happens in idle function, close dialog now
 	siril_close_dialog("satu_dialog");
 }

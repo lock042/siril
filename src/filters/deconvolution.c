@@ -19,6 +19,7 @@
  */
 #include <fftw3.h>
 #include <math.h>
+#include <assert.h>
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
@@ -192,13 +193,14 @@ void check_orientation(estk_data *args) {
 }
 
 int load_kernel(gchar* filename, estk_data *args) {
+	assert(args);
 	int retval = 0;
 	int orig_size;
 	if (args) args->kernelorientation = BOTTOM_UP; // PSFs are always BOTTOM_UP when saved
 	gboolean original_debayer_setting = com.pref.debayer.open_debayer;
 	com.pref.debayer.open_debayer = FALSE;
 	bad_load = FALSE;
-	if (args && args->fit)
+	if (args->fit)
 		args->nchans = args->fit->naxes[2];
 	else
 		args->nchans = gfit->naxes[2]; // Fallback if fit not yet set
@@ -228,7 +230,7 @@ int load_kernel(gchar* filename, estk_data *args) {
 		orig_size = com.kernelsize;
 	}
 	com.kernelchannels = load_fit.naxes[2];
-	if(args) args->kchans = com.kernelchannels;
+	args->kchans = com.kernelchannels;
 	gui_function(set_kernel_size_in_gui, NULL);
 
 	int npixels = com.kernelsize * com.kernelsize;
@@ -916,14 +918,13 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	// We do however need to reset psftype if it was modified for the loop.
 	if (args) args->psftype = args->oldpsftype;
 
-	if (data && data->from_command && data->deconv_data)
+	if (data->from_command && data->deconv_data)
 		data->deconv_data->destroy_fn(data->deconv_data);
 	// If it wasn't from command, it was allocated in GUI, but we likely own it now in seqargs->user
 	else if (data && data->deconv_data)
 		data->deconv_data->destroy_fn(data->deconv_data);
 
-	if (data)
-		free(data);
+	free(data);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	sequence_is_running = 0;
@@ -1020,7 +1021,6 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 }
 
 gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
-	int retval = 0;
 	deconvolution_sequence_data* seqargs = calloc(1, sizeof(deconvolution_sequence_data));
 	seqargs->seqEntry = strdup("dec_");
 	seqargs->seq = seqname;
@@ -1035,9 +1035,14 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 	} else {
 		// Should not happen for command line usually, but if so:
 		seqargs->deconv_data = alloc_estk_data();
+		if (!seqargs->deconv_data) {
+			PRINT_ALLOC_ERR;
+			free(seqargs);
+			return GINT_TO_POINTER(1);
+		}
 		reset_conv_args(seqargs->deconv_data);
 	}
 
 	apply_deconvolve_to_sequence(seqargs);
-	return GINT_TO_POINTER(retval);
+	return GINT_TO_POINTER(0);
 }

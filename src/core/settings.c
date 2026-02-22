@@ -69,6 +69,7 @@ preferences pref_init = {
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
 	.drizz_weight_match_bitpix = FALSE,
+	.default_mask_bitpix = 8,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -179,7 +180,8 @@ preferences pref_init = {
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
 			.minimap = FALSE
-		}
+		},
+		.mask_tints_vports = TRUE
 	},
 	.debayer = {
 		.open_debayer = FALSE,

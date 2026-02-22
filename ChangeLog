@@ -2,8 +2,9 @@ siril-1.5.0
 --/--/--
 
 **Improvements**
-* Introduce generic_image_worker to standardize image operations (!965)
-* Adding splashscreen at startup (!975)
+* Introduced generic_image_worker to standardize image operations (!965)
+* Added splashscreen at startup (!975)
+* Added image masks (!981)
 
 siril-1.4.2
 --/--/--

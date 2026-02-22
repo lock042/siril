@@ -40,6 +40,12 @@ src/gui/uifiles/icc_gamut_dialog.ui
 src/gui/uifiles/keywords_dialog.ui
 src/gui/uifiles/linearmatch_dialog.ui
 src/gui/uifiles/livestacking_player.ui
+src/gui/uifiles/mask_blur_dialog.ui
+src/gui/uifiles/mask_feather_dialog.ui
+src/gui/uifiles/mask_fmul_dialog.ui
+src/gui/uifiles/mask_from_chromaticity.ui
+src/gui/uifiles/mask_from_image.ui
+src/gui/uifiles/mask_from_stars.ui
 src/gui/uifiles/merge_cfa_dialog.ui
 src/gui/uifiles/mouse_actions.ui
 src/gui/uifiles/pixelmath.ui
@@ -91,6 +97,7 @@ src/core/command_def.h
 src/core/command_line_processor.c
 src/core/icc_profile.c
 src/core/initfile.c
+src/core/masks.c
 src/core/pipe.c
 src/core/preprocess.c
 src/core/processing.c
@@ -145,6 +152,7 @@ src/gui/icc_profile.c
 src/gui/image_display.c
 src/gui/keywords_tree.c
 src/gui/linear_match.c
+src/gui/masks_gui.c
 src/gui/menu_gray_geometry.c
 src/gui/merge_cfa.c
 src/gui/message_dialog.c

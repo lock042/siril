@@ -481,7 +481,6 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		if (seq_toggle) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
 			free_ccm_data(args);
-			free(args);
 			return;
 		}
 

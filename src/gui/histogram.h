@@ -41,9 +41,11 @@ struct ght_data* create_ght_data();
 void destroy_mtf_data(void *args);
 void destroy_ght_data(void *args);
 
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail);
 gchar *mtf_log_hook(gpointer p, log_hook_detail detail);
 gchar *ght_log_hook(gpointer p, log_hook_detail detail);
 
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
 int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
 int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gboolean mtf_single_image_idle(gpointer p);
