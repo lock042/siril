@@ -67,6 +67,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/mask_blur_dialog.ui",
 	"/org/siril/ui/mask_feather_dialog.ui",
 	"/org/siril/ui/mask_fmul_dialog.ui",
+	"/org/siril/ui/mask_thresholds_dialog.ui",
 	"/org/siril/ui/Median_dialog.ui",
 	"/org/siril/ui/merge_cfa_dialog.ui",
 	"/org/siril/ui/mouse_actions.ui",

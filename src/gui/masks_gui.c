@@ -73,6 +73,18 @@ static float selected_color_r = 1.0f;
 static float selected_color_g = 0.39f;
 static float selected_color_b = 0.39f;
 
+/* Static widget pointers for mask thresholding */
+static GtkWidget *threshold_mask_close = NULL;
+static GtkWidget *threshold_mask_apply = NULL;
+static GtkSpinButton *spin_mask_threshold_range = NULL;
+static GtkSpinButton *spin_mask_threshold_min = NULL;
+static GtkSpinButton *spin_mask_threshold_max = NULL;
+static GtkAdjustment *adj_mask_thresh_min_float = NULL;
+static GtkAdjustment *adj_mask_thresh_max_float = NULL;
+static GtkAdjustment *adj_mask_thresh_min_8bit = NULL;
+static GtkAdjustment *adj_mask_thresh_max_8bit = NULL;
+static GtkAdjustment *adj_mask_thresh_min_16bit = NULL;
+static GtkAdjustment *adj_mask_thresh_max_16bit = NULL;
 
 /**
 * on_mask_from_image_dialog_show:
@@ -765,4 +777,69 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	// For now, don't close the dialog as this mask typically takes a bit of refinement.
 //	siril_close_dialog("mask_from_color_dialog");
+}
+
+void on_threshold_mask_show(GtkWidget *widget, gpointer user_data) {
+	static gboolean widgets_initialized = FALSE;
+
+	if (!widgets_initialized) {
+		threshold_mask_close = lookup_widget("threshold_mask_close");
+		threshold_mask_apply = lookup_widget("threshold_mask_apply");
+		spin_mask_threshold_range = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_range"));
+		spin_mask_threshold_min = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_min"));
+		spin_mask_threshold_max = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_max"));
+		adj_mask_thresh_min_float = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_float"));
+		adj_mask_thresh_max_float = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_float"));
+		adj_mask_thresh_min_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_8bit"));
+		adj_mask_thresh_max_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_8bit"));
+		adj_mask_thresh_min_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_16bit"));
+		adj_mask_thresh_max_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_16bit"));
+		widgets_initialized = TRUE;
+	}
+	if (gfit->mask) {
+		switch(gfit->mask->bitpix) {
+			case 8: {
+				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_8bit);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_8bit);
+				break;
+			}
+			case 16: {
+				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_16bit);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_16bit);
+				break;
+			}
+			default: {
+				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_float);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_float);
+				break;
+			}
+		}
+	}
+}
+
+void on_threshold_mask_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("mask_thresholds_dialog");
+}
+
+void on_threshold_mask_apply_clicked(GtkButton *button, gpointer user_data) {
+	float min_val = gtk_spin_button_get_value(spin_mask_threshold_min);
+	float max_val = gtk_spin_button_get_value(spin_mask_threshold_max);
+	float range = gtk_spin_button_get_value(spin_mask_threshold_range);
+
+	mask_thresh_data *data = calloc(1, sizeof(mask_thresh_data));
+	data->min_val = min_val;
+	data->max_val = max_val;
+	data->range = range / 100.f;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_thresh_hook;
+	args->log_hook = mask_thresh_log;
+	args->description = _("Mask intensity thresholding");
+	args->verbose = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
 }

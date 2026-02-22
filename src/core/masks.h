@@ -46,6 +46,13 @@ typedef struct {
 
 typedef struct {
 	destructor destroy_fn;
+	float min_val;
+	float max_val;
+	float range;
+} mask_thresh_data;
+
+typedef struct {
+	destructor destroy_fn;
 	float radius;
 } mask_blur_data;
 
@@ -135,6 +142,7 @@ int mask_autostretch_hook(struct generic_mask_args *args);
 int mask_bitpix_hook(struct generic_mask_args *args);
 int mask_from_color_hook(struct generic_mask_args *args);
 int mask_from_gradient_hook(struct generic_mask_args *args);
+int mask_thresh_hook(struct generic_mask_args *args);
 
 gchar *mask_from_stars_log(gpointer user, log_hook_detail detail);
 gchar *mask_from_channel_log(gpointer user, log_hook_detail detail);
@@ -145,6 +153,7 @@ gchar *mask_feather_log(gpointer user, log_hook_detail detail);
 gchar *mask_fmul_log(gpointer user, log_hook_detail detail);
 gchar *mask_bitpix_log(gpointer user, log_hook_detail detail);
 gchar *mask_from_color_log(gpointer user, log_hook_detail detail);
+gchar *mask_thresh_log(gpointer user, log_hook_detail detail);
 
 #ifdef __cplusplus
 }

@@ -154,6 +154,7 @@ void mask_add_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpo
 void mask_clear_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 gboolean chain_channels_idle_callback(gpointer user_data);
 

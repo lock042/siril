@@ -1201,12 +1201,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_rmb_binarize_mask">
+      <object class="GtkMenuItem" id="menu_rmb_threshold_mask">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
-        <property name="action-name">win.binarize_mask</property>
-        <property name="label" translatable="yes">Binarize Mask</property>
+        <property name="action-name">win.threshold_mask</property>
+        <property name="label" translatable="yes">Apply Thresholds to Mask</property>
       </object>
     </child>
     <child>
@@ -1242,6 +1242,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_rmb_gradient">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
+        <property name="action-name">win.mask_from_gradient</property>
+        <property name="label" translatable="yes">Gradient of mask</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkSeparatorMenuItem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -1253,15 +1262,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         <property name="can-focus">False</property>
         <property name="action-name">win.clear_mask</property>
         <property name="label" translatable="yes">Clear Mask</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rmb_gradient">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="tooltip-text" translatable="yes">Will use registration data if any are available on the registration layer, otherwise if the checkbox 'follow star movement' is checked in the registration tab, it will run with this option.</property>
-        <property name="action-name">win.mask_from_gradient</property>
-        <property name="label" translatable="yes">Gradient of mask</property>
       </object>
     </child>
   </object>

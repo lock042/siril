@@ -1058,9 +1058,13 @@ void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpo
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
 	args->mask_hook = mask_from_gradient_hook;
-	args->description = _("Gradient mask");
+	args->description = _("Gradient of mask");
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
 
 	start_in_new_thread(generic_mask_worker, args);
+}
+
+void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_thresholds_dialog");
 }

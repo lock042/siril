@@ -65,7 +65,9 @@ gpointer binarize_mask_from_gui_worker(gpointer p) {
 	siril_add_idle(end_generic, NULL);
 	return FALSE;
 }
+*/
 
+/*
 gpointer invert_mask_worker(gpointer p) {
 	if (gfit && gfit->mask) {
 		mask_invert(gfit);
@@ -1066,52 +1068,127 @@ mask_t *fits_to_mask(fits *mfit) {
 	return mask;
 }
 
-// Binarize the mask based on min-max range
-int mask_binarize(fits *fit, float min_val, float max_val) {
+// Binarize the mask based on min-max range with optional intensity-based feathering
+// feather_width: [0,1] normalized feather zone width on each side of the thresholds
+int mask_binarize_full(fits *fit, float min_val, float max_val, float feather_width) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_binarize: invalid mask\n");
+		siril_debug_print("mask_thresholds: invalid mask\n");
 		return 1;
 	}
-
 	if (min_val > max_val) {
-		siril_debug_print("mask_binarize: min_val must be <= max_val\n");
+		siril_debug_print("mask_thresholds: min_val must be <= max_val\n");
+		return 1;
+	}
+	if (feather_width < 0.f || feather_width > 1.f) {
+		siril_debug_print("mask_thresholds: feather_width must be in [0, 1]\n");
 		return 1;
 	}
 
 	size_t npixels = fit->rx * fit->ry;
 	float actual_min = min_val;
 	float actual_max = max_val;
+	float actual_feather = feather_width;
 
-	// Scale range values if they are normalized (< 1) but mask is 8 or 16 bit
-	if (min_val < 1.f && max_val < 1.f) {
-		if (fit->mask->bitpix == 8) {
-			actual_min = min_val * UCHAR_MAX;
-			actual_max = max_val * UCHAR_MAX;
-		} else if (fit->mask->bitpix == 16) {
-			actual_min = min_val * USHRT_MAX;
-			actual_max = max_val * USHRT_MAX;
-		}
+	// Scale range and feather values if normalized but mask is 8 or 16 bit
+	if (fit->mask->bitpix == 8) {
+		if (actual_min < 1.f) actual_min = min_val * UCHAR_MAX;
+		if (actual_max < 1.f) actual_max = max_val * UCHAR_MAX;
+		actual_feather = feather_width * UCHAR_MAX;
+	} else if (fit->mask->bitpix == 16) {
+		if (actual_min < 1.f) actual_min = min_val * USHRT_MAX;
+		if (actual_max < 1.f) actual_max = max_val * USHRT_MAX;
+		actual_feather = feather_width * USHRT_MAX;
 	}
+	// bitpix == 32: all values already in [0,1], no scaling needed
+
+	// Precompute reciprocal to replace division with multiplication in the hot loop
+	const float inv_feather = (actual_feather > 0.f) ? (1.f / actual_feather) : 0.f;
+	const float feather_lo  = actual_min - actual_feather;  // lower feather zone start
+	const float feather_hi  = actual_max + actual_feather;  // upper feather zone end
+	const int   do_feather  = (actual_feather > 0.f);
 
 	switch (fit->mask->bitpix) {
 		case 8: {
 			uint8_t *m = (uint8_t*) fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? UCHAR_MAX : 0;
+			if (!do_feather) {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? UCHAR_MAX : 0;
+				}
+			} else {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					float v = (float) m[i];
+					float t;
+					if (v >= actual_min && v <= actual_max) {
+						t = 1.f;
+					} else if (v >= feather_lo && v < actual_min) {
+						t = (v - feather_lo) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else if (v > actual_max && v <= feather_hi) {
+						t = (feather_hi - v) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else {
+						t = 0.f;
+					}
+					m[i] = (uint8_t) (t * UCHAR_MAX + 0.5f);
+				}
 			}
 			break;
 		}
 		case 16: {
 			uint16_t *m = (uint16_t*) fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? USHRT_MAX : 0;
+			if (!do_feather) {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? USHRT_MAX : 0;
+				}
+			} else {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					float v = (float) m[i];
+					float t;
+					if (v >= actual_min && v <= actual_max) {
+						t = 1.f;
+					} else if (v >= feather_lo && v < actual_min) {
+						t = (v - feather_lo) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else if (v > actual_max && v <= feather_hi) {
+						t = (feather_hi - v) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else {
+						t = 0.f;
+					}
+					m[i] = (uint16_t) (t * USHRT_MAX + 0.5f);
+				}
 			}
 			break;
 		}
 		case 32: {
 			float *m = (float*) fit->mask->data;
-			for (size_t i = 0; i < npixels; i++) {
-				m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? 1.f : 0.f;
+			if (!do_feather) {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? 1.f : 0.f;
+				}
+			} else {
+				#pragma omp parallel for simd schedule(static)
+				for (size_t i = 0; i < npixels; i++) {
+					float v = m[i];
+					float t;
+					if (v >= actual_min && v <= actual_max) {
+						t = 1.f;
+					} else if (v >= feather_lo && v < actual_min) {
+						t = (v - feather_lo) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else if (v > actual_max && v <= feather_hi) {
+						t = (feather_hi - v) * inv_feather;
+						t = t * t * (3.f - 2.f * t);
+					} else {
+						t = 0.f;
+					}
+					m[i] = t;
+				}
 			}
 			break;
 		}
@@ -1119,8 +1196,11 @@ int mask_binarize(fits *fit, float min_val, float max_val) {
 			siril_debug_print("mask_binarize: unsupported bitpix %d\n", fit->mask->bitpix);
 			return 1;
 	}
-
 	return 0;
+}
+
+int mask_binarize(fits *fit, float min_val, float max_val) {
+	return mask_binarize_full(fit, min_val, max_val, 0.f);
 }
 
 // Invert the mask. Returns 0 on success.
@@ -1515,6 +1595,11 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 	return retval;
 }
 
+int mask_thresh_hook(struct generic_mask_args *args) {
+	mask_thresh_data *data = (mask_thresh_data*) args->user;
+	return mask_binarize_full(gfit, data->min_val, data->max_val, data->range);
+}
+
 int mask_binarize_hook(struct generic_mask_args *args) {
 	mask_binarize_data *data = (mask_binarize_data *)args->user;
 	return mask_binarize(args->fit, data->lo, data->hi);
@@ -1585,6 +1670,12 @@ gchar *mask_from_stars_log(gpointer user, log_hook_detail detail) {
 	mask_from_stars_data *data = (mask_from_stars_data *)user;
 	return g_strdup_printf("Mask from stars: r=%.2f, feather=%.2f, invert=%d, bitdepth=%d",
 	                       data->r, data->feather, data->invert, data->bitdepth);
+}
+
+gchar *mask_thresh_log(gpointer user, log_hook_detail detail) {
+	mask_thresh_data *data = (mask_thresh_data *)user;
+	return g_strdup_printf("Mask thresholding: min=%.3f, max=%.3f, range=%.3f",
+	                       data->min_val, data->max_val, data->range);
 }
 
 gchar *mask_from_channel_log(gpointer user, log_hook_detail detail) {

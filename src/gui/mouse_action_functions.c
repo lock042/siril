@@ -340,6 +340,7 @@ static gboolean mask_add_poly_release(mouse_data *data) {
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
 	// Free and NULL gui.drawing_polypoints
 	g_slist_free_full(gui.drawing_polypoints, free);
+	undo_save_state(gfit, _("Add polygon to image mask"));
 	if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
 		mask_create_zeroes_like(gfit, get_default_mask_bitpix());
 	}
@@ -355,6 +356,7 @@ static gboolean mask_clear_poly_release(mouse_data *data) {
 	gui.drawing_polygon = FALSE;
 	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
+	undo_save_state(gfit, _("Subtract polygon from image mask"));
 	if (!gfit->mask) { // we need somthing to subtract the polygon from, so create a ones-like mask
 		mask_create_ones_like(gfit, get_default_mask_bitpix());
 	}
