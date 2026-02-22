@@ -538,6 +538,22 @@ if get_option('flatpak-id') != ''
   conf_data.set_quoted('FLATPAK_ID', get_option('flatpak-id'))
 endif
 
+if host_machine.system() == 'windows'
+  msystem = run_command('sh', '-c', 'echo $MSYSTEM', check: false).stdout().strip()
+  message('MSYSTEM: @0@'.format(msystem))
+  
+  # MSYSTEM will be: UCRT64, CLANG64, MINGW64, CLANGARM64, etc.
+  if msystem == 'UCRT64' or msystem == 'CLANG64' or msystem == 'CLANGARM64'
+    add_project_arguments('-DUSE_UCRT', language: ['c', 'cpp'])
+    message('Building with UCRT runtime')
+  else
+    message('Building with MSVCRT runtime')
+  endif
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_ENV', msystem.to_lower())
+else
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_ENV', '')
+endif
+
 # Check for available headers
 foreach header : [
     { 'm': 'HAVE_EXECINFO_H',     'v': 'execinfo.h' },

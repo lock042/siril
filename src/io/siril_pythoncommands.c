@@ -11,6 +11,7 @@
 #include "algos/photometry.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
@@ -1178,7 +1179,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (single_image_is_loaded()) {
 				if (com.headless) {
 					const char* error_msg = _("Undo not supported in headless mode");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 					break;
 				}
 				// Ensure null-terminated string for undo message
@@ -2452,51 +2453,57 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SEQ_FRAME_INCL: {
-			uint32_t index;
-			gboolean incl;
 			if (!sequence_is_loaded()) {
 				const char* error_msg = _("No sequence loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length == 8) {
-				// Extract the first 4 bytes as `index`
-				memcpy(&index, payload, sizeof(uint32_t));
+			ensure_seqlist_dialog_closed();
+			// Payload format: count (I) + indices (I * count) + incl (I)
+			if (payload_length < 12) {
+				const char* error_msg = _("Incorrect payload length: too small");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			
+			uint32_t count;
+			memcpy(&count, payload, sizeof(uint32_t));
+			count = GUINT32_FROM_BE(count);
+
+			if (payload_length != 4 + (4 * count) + 4) {
+				const char* error_msg = _("Incorrect payload length: count mismatch");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			uint32_t incl_encoded;
+			memcpy(&incl_encoded, payload + 4 + (4 * count), sizeof(uint32_t));
+			incl_encoded = GUINT32_FROM_BE(incl_encoded);
+			gboolean incl = (gboolean)incl_encoded;
+			
+			// Process each index
+			for (uint32_t i = 0; i < count; i++) {
+				uint32_t index;
+				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
 				index = GUINT32_FROM_BE(index);
-
-				// Extract the second 4 bytes as `incl`
-				uint32_t incl_encoded;
-				memcpy(&incl_encoded, payload + sizeof(uint32_t), sizeof(uint32_t));
-				incl_encoded = GUINT32_FROM_BE(incl_encoded);
-				incl = (gboolean) incl_encoded;
-
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-
-				// Update number of included frames if there is a change
-				gboolean was_incl = com.seq.imgparam[index].incl;
-				if (!was_incl && incl)
-					com.seq.selnum++;
-				else if (was_incl && !incl)
-					com.seq.selnum--;
-
-				// Set inclusion for this frame
 				com.seq.imgparam[index].incl = incl;
-
-				// Update GUI
-				if (!com.headless) {
-					GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
-					g_thread_join(thread);
-					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
-				}
-				success = send_response(conn, STATUS_OK, NULL, 0);
-			} else {
-				const char* error_msg = _("Incorrect payload length");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			fix_selnum(&com.seq, FALSE);
+			if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
+				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			}
+			// Update GUI
+			if (!com.headless) {
+				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
+				g_thread_join(thread);
+				queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			}
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
@@ -2720,12 +2727,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_DRAW_POLYGON: {
-			mouse_status_enum mouse_status = get_mouse_status();
-			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+//			mouse_status_enum mouse_status = get_mouse_status();
+/*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
 				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
+			}*/
 			if (payload_length == 5) {
 				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
 				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
@@ -3394,6 +3401,102 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				success = handle_save_image_file_request(conn, payload, payload_length);
+			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_MASK: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = _("No image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (gfit->mask == NULL || gfit->mask->data == NULL) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 profile_size = gfit->rx * gfit->ry * (gfit->mask->bitpix / 8);
+
+			shared_memory_info_t *info = handle_rawdata_request(conn, gfit->mask->data, profile_size);
+			info->width = (guint32) gfit->rx;
+			info->height = (guint32) gfit->ry;
+			info->data_type = (guint32) gfit->mask->bitpix; // "misuse" the data_type field for bitpix, this is a bit different to its use for image data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_image_mask_request(conn, gfit, info);
+				show_or_hide_mask_tab();
+				if (!com.script) {
+					execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+				}
+			}
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK_STATE: {
+			if (single_image_is_loaded() && gfit->mask && gfit->mask->data) {
+				if (payload_length == 1) {
+					uint8_t statebyte = payload[0];
+					gboolean state = (statebyte);
+					set_mask_active(gfit, state);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set mask state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				const char* error_msg = _("Failed to set mask state - no image loaded or image has no mask");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_MASK_STATE: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			if (!gfit->mask || !gfit->mask->data) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+
+			}
+			// Convert the integers to BE format for consistency across the UNIX socket
+			gboolean linked = gfit->mask_active;
+			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_MASK_UPDATE_POLYGON: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_mask_update_polygon_request(conn, info);
 			}
 			break;
 		}

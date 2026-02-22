@@ -18,6 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* TODO: is there an opportunity to make this more efficient so that
+ * either an image-only undo state, a mask-only undo state or a "both"
+ * undo state can be saved, to reduce the size of undo states in storage?
+ * The "both" state would apply to geometry changing operations. */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -90,6 +95,65 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 	return 0;
 }
 
+/* *filename must be freed */
+static int undo_build_mask_swapfile(fits *fit, char **filename) {
+	gchar *nameBuff;
+	char name[] = "siril_msk-XXXXXX";
+	gchar *tmpdir;
+	int fd;
+
+	if (!fit->mask || !fit->mask->data) {
+		*filename = NULL;
+		return 0;
+	}
+
+	tmpdir = com.pref.swap_dir;
+	nameBuff = g_build_filename(tmpdir, name, NULL);
+	fd = g_mkstemp(nameBuff);
+	if (fd < 1) {
+		siril_log_message(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
+				tmpdir, strerror(errno));
+		g_free(nameBuff);
+		return 1;
+	}
+
+	size_t n_pixels = fit->naxes[0] * fit->naxes[1];
+	size_t elem_size;
+
+	switch (fit->mask->bitpix) {
+		case 8:
+			elem_size = sizeof(uint8_t);
+			break;
+		case 16:
+			elem_size = sizeof(uint16_t);
+			break;
+		case 32:
+			elem_size = sizeof(float);
+			break;
+		default:
+			siril_log_message(_("Error: Invalid mask bitpix value: %d\n"), fit->mask->bitpix);
+			g_free(nameBuff);
+			g_close(fd, NULL);
+			return 1;
+	}
+
+	size_t size = n_pixels * elem_size;
+
+	errno = 0;
+	if (-1 == write(fd, fit->mask->data, size)) {
+		siril_log_message(_("File I/O Error: Unable to write mask swap file in %s: [%s]\n"),
+				tmpdir, strerror(errno));
+		g_free(nameBuff);
+		g_close(fd, NULL);
+		return 1;
+	}
+
+	*filename = nameBuff;
+	g_close(fd, NULL);
+
+	return 0;
+}
+
 static int undo_remove_item(historic *histo, int index) {
 	if (histo[index].filename) {
 		if (g_unlink(histo[index].filename))
@@ -100,11 +164,18 @@ static int undo_remove_item(historic *histo, int index) {
 		histo[index].filename = NULL;
 		memset(&histo[index].wcsdata, 0, sizeof(wcs_info));
 	}
+	if (histo[index].mask_filename) {
+		if (g_unlink(histo[index].mask_filename))
+			siril_debug_print("g_unlink() of mask failed\n");
+		g_free(histo[index].mask_filename);
+		histo[index].mask_filename = NULL;
+	}
 	memset(histo[index].history, 0, FLEN_VALUE);
+	histo[index].mask_bitpix = 0;
 	return 0;
 }
 
-static void undo_add_item(fits *fit, char *filename, const char *histo) {
+static void undo_add_item(fits *fit, char *filename, char *mask_filename, const char *histo) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;
@@ -119,6 +190,8 @@ static void undo_add_item(fits *fit, char *filename, const char *histo) {
 	}
 	int status = -1;
 	com.history[com.hist_current].filename = filename;
+	com.history[com.hist_current].mask_filename = mask_filename;
+	com.history[com.hist_current].mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
 	com.history[com.hist_current].rx = fit->rx;
 	com.history[com.hist_current].ry = fit->ry;
 	com.history[com.hist_current].nchans = fit->naxes[2];
@@ -262,6 +335,90 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	return 0;
 }
 
+static int undo_get_mask_data(fits *fit, historic *hist) {
+	int fd;
+
+	/* If there's no mask file saved, free any existing mask */
+	if (!hist->mask_filename) {
+		if (fit->mask) {
+			if (fit->mask->data) {
+				free(fit->mask->data);
+				fit->mask->data = NULL;
+			}
+			free(fit->mask);
+			fit->mask = NULL;
+		}
+		return 0;
+	}
+
+	/* Allocate or reallocate mask structure */
+	if (!fit->mask) {
+		fit->mask = calloc(1, sizeof(mask_t));
+		if (!fit->mask) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+	}
+
+	fit->mask->bitpix = hist->mask_bitpix;
+
+	if ((fd = g_open(hist->mask_filename, O_RDONLY | O_BINARY, 0)) == -1) {
+		printf("Error opening mask swap file : %s\n", hist->mask_filename);
+		return 1;
+	}
+
+	size_t n_pixels = hist->rx * hist->ry;
+	size_t elem_size;
+
+	switch (hist->mask_bitpix) {
+		case 8:
+			elem_size = sizeof(uint8_t);
+			break;
+		case 16:
+			elem_size = sizeof(uint16_t);
+			break;
+		case 32:
+			elem_size = sizeof(float);
+			break;
+		default:
+			siril_log_message(_("Error: Invalid mask bitpix value in history: %d\n"), hist->mask_bitpix);
+			g_close(fd, NULL);
+			return 1;
+	}
+
+	size_t size = n_pixels * elem_size;
+	void *buf = calloc(1, size);
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		g_close(fd, NULL);
+		return 1;
+	}
+
+	errno = 0;
+	if ((read(fd, buf, size)) < size) {
+		printf("Undo Read of mask [%s], failed with error [%s]\n", hist->mask_filename, strerror(errno));
+		free(buf);
+		g_close(fd, NULL);
+		return 1;
+	}
+
+	/* Reallocate mask data if needed */
+	void *newdata = realloc(fit->mask->data, size);
+	if (!newdata) {
+		PRINT_ALLOC_ERR;
+		free(buf);
+		g_close(fd, NULL);
+		return 1;
+	}
+
+	fit->mask->data = newdata;
+	memcpy(fit->mask->data, buf, size);
+
+	free(buf);
+	g_close(fd, NULL);
+	return 0;
+}
+
 static int undo_get_data(fits *fit, historic *hist) {
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
@@ -269,22 +426,32 @@ static int undo_get_data(fits *fit, historic *hist) {
 	color_manage(fit, (fit->icc_profile != NULL));
 	fits_change_depth(fit, hist->nchans);
 
+	int retval = 0;
+
 	if (hist->type == DATA_USHORT) {
 		if (gfit->type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 			gui_function(set_precision_switch, NULL);
 		}
-		return undo_get_data_ushort(fit, hist);
+		retval = undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
 		if (gfit->type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 			gui_function(set_precision_switch, NULL);
 		}
-		return undo_get_data_float(fit, hist);
+		retval = undo_get_data_float(fit, hist);
+	} else {
+		retval = 1;
 	}
-	return 1;
+
+	/* Restore mask data regardless of image data success/failure */
+	if (retval == 0) {
+		retval = undo_get_mask_data(fit, hist);
+	}
+
+	return retval;
 }
 
 gboolean is_undo_available() {
@@ -297,6 +464,7 @@ gboolean is_redo_available() {
 
 int undo_save_state(fits *fit, const char *message, ...) {
 	gchar *filename;
+	gchar *mask_filename;
 	va_list args;
 	va_start(args, message);
 
@@ -312,7 +480,13 @@ int undo_save_state(fits *fit, const char *message, ...) {
 			return 1;
 		}
 
-		undo_add_item(fit, filename, histo);
+		if (undo_build_mask_swapfile(fit, &mask_filename)) {
+			g_free(filename);
+			va_end(args);
+			return 1;
+		}
+
+		undo_add_item(fit, filename, mask_filename, histo);
 
 		/* update menus */
 		gui_function(update_MenuItem, NULL);
@@ -357,7 +531,9 @@ int undo_display_data(int dir) {
 			unlock_display_transform();
 			refresh_annotations(TRUE);
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
-			redraw(REMAP_ALL);
+			redraw_mask_idle(NULL);
+			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+				redraw(REMAP_ALL);
 			if (preview_was_active) {
 				copy_gfit_to_backup();
 				siril_log_message(_("Following undo / redo with a preview active you may need "
@@ -399,7 +575,9 @@ int undo_display_data(int dir) {
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
-			redraw(REMAP_ALL);
+			redraw_mask_idle(NULL);
+			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+				redraw(REMAP_ALL);
 			if (preview_was_active)
 				copy_gfit_to_backup();
 			if (roi_was_active) {

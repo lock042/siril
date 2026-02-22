@@ -2,18 +2,26 @@ siril-1.5.0
 --/--/--
 
 **Improvements**
-* Introduce generic_image_worker to standardize image operations (!965)
-* Adding splashscreen at startup (!975)
+* Introduced generic_image_worker to standardize image operations (!965)
+* Added splashscreen at startup (!975)
+* Added image masks (!981)
 
 siril-1.4.2
 --/--/--
 
 **Fixes**
 * Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
+* Fixed some data entry typos in Messier.csv (!991)
+* Fixed crash resulting from GTK code used in command functions (!992)
 
 **Improvements**
 * Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
 * Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
+* Enabled some python methods to work with sequence frames as well as single images (siril-scripts#86)
+* Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
+* Improved robustness of python venv creation (!990)
+* Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
+* Added passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl (!995)
 
 siril-1.4.1
 01/05/26

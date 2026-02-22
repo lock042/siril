@@ -104,18 +104,22 @@ static void set_sat_histogram(gsl_histogram *histo);
 
 struct mtf_data* create_mtf_data() {
 	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
-	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
-	if (data) {
-		data->destroy_fn = destroy_mtf_data;
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
 	}
+	data->linked = TRUE; // default: currently only not true for autostretch if set to linked
+	data->destroy_fn = destroy_mtf_data;
 	return data;
 }
 
 struct ght_data* create_ght_data() {
 	struct ght_data *data = calloc(1, sizeof(struct ght_data));
-	if (data) {
-		data->destroy_fn = destroy_ght_data;
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
 	}
+	data->destroy_fn = destroy_ght_data;
 	return data;
 }
 
@@ -348,6 +352,7 @@ static void histo_recompute(gboolean for_preview) {
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
 		args->custom_undo = TRUE;
+		args->mask_aware = TRUE;
 		args->for_roi = gui.roi.active;
 
 	} else if (invocation == GHT_STRETCH) {
@@ -397,14 +402,12 @@ static void histo_recompute(gboolean for_preview) {
 		args->user = data;
 		args->max_threads = com.max_thread;
 		args->for_preview = TRUE;
+		args->mask_aware = TRUE;
 		args->for_roi = gui.roi.active;
 	}
 
 	if (args) {
-		if (for_preview)
-			generic_image_worker(args);
-		else
-			start_in_new_thread(generic_image_worker, args);
+		start_in_new_thread(generic_image_worker, args);
 	}
 }
 
@@ -1120,6 +1123,14 @@ void update_gfit_histogram_if_needed() {
 	}
 }
 
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct mtf_data *data = (struct mtf_data *)args->user;
+	if (!data)
+		return 1;
+	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
+	return 0;
+}
+
 int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
 	struct mtf_data *data = (struct mtf_data *)args->user;
 	if (!data)
@@ -1423,7 +1434,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		return FALSE;
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
-	for (i = 0; i < MAXVPORT; i++) {
+	for (i = 0; i < RGB_VPORT; i++) {
 		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
 				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale());
@@ -1582,13 +1593,16 @@ static gchar* generate_stretch_log_message(gpointer p, int invocation, log_hook_
 	return log_string;
 }
 
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) {
+	struct mtf_data *data = (struct mtf_data*) p;
+	gchar *message = g_strdup_printf(_("Inverse MTF stretch (lo=%.6f, mid=%.6f, hi=%.6f)"),
+						data->params.shadows, data->params.midtones, data->params.highlights);
+	return message;
+}
+
 gchar *mtf_log_hook(gpointer p, log_hook_detail detail) {
 	struct mtf_data *args = (struct mtf_data*) p;
-	gchar *message = NULL;
-	if (args->linked)
-		message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
-	else
-		message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
+	gchar *message = generate_stretch_log_message(args, HISTO_STRETCH, detail);
 	return message;
 }
 
@@ -1868,6 +1882,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->max_threads = com.max_thread;
 			args->for_preview = FALSE;
+			args->mask_aware = TRUE;
 			args->for_roi = gui.roi.active;
 
 		} else if (invocation == GHT_STRETCH) {
@@ -1916,6 +1931,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->verbose = TRUE;
 			args->user = data;
 			args->max_threads = com.max_thread;
+			args->mask_aware = TRUE;
 			args->for_preview = FALSE;
 			args->for_roi = gui.roi.active;
 		}
@@ -2071,7 +2087,7 @@ void updateGHTcontrols() {
 
 void toggle_histogram_window_visibility(int _invocation) {
 	siril_close_preview_dialogs();
-
+	init_toggles();
 	invocation = _invocation;
 	for (int i=0;i<3;i++) {
 		do_channel[i] = TRUE;

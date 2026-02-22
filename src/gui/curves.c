@@ -892,8 +892,15 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	params->for_preview = for_preview;
 
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_curve_params(params);
+		return 1;
+	}
+
+	// Set the fit based on whether ROI is active
 	args->fit = params->fit;
-	args->mem_ratio = 2.0f;
+	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
 	args->image_hook = curve_image_hook;
 	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
 	args->description = _("Curve Transformation");

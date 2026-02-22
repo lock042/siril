@@ -260,7 +260,6 @@ static void update_user_interface_preferences() {
 	com.pref.gui.remember_windows = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rememberWindowsCheck")));
 	com.pref.gui.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
 	int selected_index = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")));
-
 	switch (selected_index) {
 	    case 0:
 	        com.pref.gui.thumbnail_size = 128; // First option (index 0)
@@ -275,7 +274,22 @@ static void update_user_interface_preferences() {
 	        com.pref.gui.thumbnail_size = 128; // Default value in case of an unexpected index
 	        break;
 	}
-
+	selected_index = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_bitpix")));
+	switch (selected_index) {
+	    case 0:
+	        com.pref.default_mask_bitpix = 8; // First option (index 0)
+	        break;
+	    case 1:
+	        com.pref.default_mask_bitpix = 16; // Second option (index 1)
+	        break;
+	    case 2:
+	        com.pref.default_mask_bitpix = 32; // Third option (index 2)
+	        break;
+	    default:
+	        com.pref.default_mask_bitpix = -1; // Default value in case of an unexpected index
+	        break;
+	}
+	com.pref.gui.mask_tints_vports = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_ui_mask_tint")));
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
@@ -796,6 +810,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 512 ? 2 : (pref->gui.thumbnail_size == 256 ? 1 : 0));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_tint")), pref->gui.mask_tints_vports);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_bitpix")), pref->default_mask_bitpix == 8 ? 0 : pref->default_mask_bitpix == 16 ? 1 : pref->default_mask_bitpix == 32 ? 2 : 3);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")), pref->gui.mmb_action);

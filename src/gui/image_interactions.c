@@ -328,6 +328,20 @@ void init_draw_poly() {
 	mouse_status = MOUSE_ACTION_DRAW_POLY;
 }
 
+void init_add_poly_to_mask() {
+	uint32_t color = 0x00FF0040;
+	gui.poly_fill = FALSE;
+	gui.poly_ink = uint32_to_gdk_rgba(color);
+	mouse_status = MOUSE_ACTION_ADD_POLY_TO_MASK;
+}
+
+void init_clear_poly_from_mask() {
+	uint32_t color = 0xFF000040;
+	gui.poly_fill = FALSE;
+	gui.poly_ink = uint32_to_gdk_rgba(color);
+	mouse_status = MOUSE_ACTION_CLEAR_POLY_FROM_MASK;
+}
+
 GdkModifierType get_primary() {
 	return gdk_keymap_get_modifier_mask(
 			gdk_keymap_get_for_display(gdk_display_get_default()),
@@ -469,8 +483,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	//siril_debug_print("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 
-	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb" };
-	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb" };
+	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb", "labeldensity_mask" };
+	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb", "labelwcs_mask" };
 	static GtkLabel *labels_wcs[G_N_ELEMENTS(label_wcs_names)] = { 0 };
 	static GtkLabel *labels_density[G_N_ELEMENTS(label_density_names)] = { 0 };
 	if (!labels_wcs[0]) {
@@ -513,37 +527,64 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			coords_width = 4;
 		if (gfit->rx >= 10000 || gfit->ry >= 10000)
 			coords_width = 5;
-		if (gfit->type == DATA_USHORT && gfit->pdata[vport] != NULL) {
-			int val_width = 3;
-			char *format_base_ushort;
-			if (gui.cvport < RGB_VPORT) {
+		if (vport < MASK_VPORT) {
+			if (gfit->type == DATA_USHORT && gfit->pdata[vport] != NULL) {
+				int val_width = 3;
+				char *format_base_ushort;
+				if (gui.cvport < RGB_VPORT) {
+					format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
+				} else {
+					format_base_ushort = "x: %%.%dd y: %%.%dd";
+				}
+				if (gfit->keywords.hi >= 1000)
+					val_width = 4;
+				if (gfit->keywords.hi >= 10000)
+					val_width = 5;
+				g_sprintf(format, format_base_ushort,
+						coords_width, coords_width, val_width);
+				if (gui.cvport < RGB_VPORT) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				} else {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y);
+				}
+			} else if (gfit->type == DATA_FLOAT && gfit->fpdata[vport] != NULL) {
+				char *format_base_float;
+				if (gui.cvport < RGB_VPORT) {
+					format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
+				} else {
+					format_base_float = "x: %%.%dd y: %%.%dd";
+				}
+				g_sprintf(format, format_base_float, coords_width, coords_width);
+				if (gui.cvport < RGB_VPORT) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				} else {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y);
+				}
+			}
+		} else if (vport == MASK_VPORT) {
+			if (gfit->mask->bitpix < 32 && gfit->mask->data != NULL) {
+				int val_width = 3;
+				char *format_base_ushort;
 				format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
-			} else {
-				format_base_ushort = "x: %%.%dd y: %%.%dd";
-			}
-			if (gfit->keywords.hi >= 1000)
-				val_width = 4;
-			if (gfit->keywords.hi >= 10000)
-				val_width = 5;
-			g_sprintf(format, format_base_ushort,
-					coords_width, coords_width, val_width);
-			if (gui.cvport < RGB_VPORT) {
-				g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
-			} else {
-				g_sprintf(buffer, format, zoomed.x, zoomed.y);
-			}
-		} else if (gfit->type == DATA_FLOAT && gfit->fpdata[vport] != NULL) {
-			char *format_base_float;
-			if (gui.cvport < RGB_VPORT) {
+				if (gfit->mask->bitpix < 16)
+					val_width = 3;
+				else
+					val_width = 5;
+				g_sprintf(format, format_base_ushort,
+						coords_width, coords_width, val_width);
+				if (gfit->mask->bitpix < 16) {
+					uint8_t* m = (uint8_t*) gfit->mask->data;
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				} else {
+					uint16_t* m = (uint16_t*) gfit->mask->data;
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				}
+			} else if (gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
+				char *format_base_float;
 				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
-			} else {
-				format_base_float = "x: %%.%dd y: %%.%dd";
-			}
-			g_sprintf(format, format_base_float, coords_width, coords_width);
-			if (gui.cvport < RGB_VPORT) {
-				g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
-			} else {
-				g_sprintf(buffer, format, zoomed.x, zoomed.y);
+				g_sprintf(format, format_base_float, coords_width, coords_width);
+				float *m = (float*) gfit->mask->data;
+				g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
 			}
 		}
 
@@ -728,7 +769,7 @@ void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	}
 }
 
-static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb" };
+static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb", "labelzoom_mask" };
 
 static gboolean set_label_zoom_text_idle(gpointer p) {
 	const gchar *txt = (const gchar *) p;

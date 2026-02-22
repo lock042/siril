@@ -122,7 +122,6 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 				params->guidefit = &loaded_fit;
 			} else {
 				free_epf_args(params);
-				free(params);
 				return 1;
 			}
 		}
@@ -138,7 +137,6 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_epf_args(params);
-		free(params);
 		return 1;
 	}
 
