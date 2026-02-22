@@ -614,7 +614,7 @@ void on_feather_mask_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_multiply_mask_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("mask_fmul_dialog");
+	siril_close_dialog("mask_scale_dialog");
 }
 
 void on_button_pick_from_image_clicked(GtkButton *button, gpointer user_data) {
