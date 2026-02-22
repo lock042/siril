@@ -85,6 +85,9 @@ static GtkAdjustment *adj_mask_thresh_min_8bit = NULL;
 static GtkAdjustment *adj_mask_thresh_max_8bit = NULL;
 static GtkAdjustment *adj_mask_thresh_min_16bit = NULL;
 static GtkAdjustment *adj_mask_thresh_max_16bit = NULL;
+static GtkAdjustment *adj_thresh_feather_float = NULL;
+static GtkAdjustment *adj_thresh_feather_8bit = NULL;
+static GtkAdjustment *adj_thresh_feather_16bit = NULL;
 
 /**
 * on_mask_from_image_dialog_show:
@@ -794,6 +797,9 @@ void on_threshold_mask_show(GtkWidget *widget, gpointer user_data) {
 		adj_mask_thresh_max_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_8bit"));
 		adj_mask_thresh_min_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_16bit"));
 		adj_mask_thresh_max_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_16bit"));
+		adj_thresh_feather_float = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_float"));;
+		adj_thresh_feather_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_8bit"));;
+		adj_thresh_feather_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_16bit"));;
 		widgets_initialized = TRUE;
 	}
 	if (gfit->mask) {
@@ -801,16 +807,28 @@ void on_threshold_mask_show(GtkWidget *widget, gpointer user_data) {
 			case 8: {
 				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_8bit);
 				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_8bit);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_range, adj_thresh_feather_8bit);
+				gtk_spin_button_set_digits(spin_mask_threshold_min, 0);
+				gtk_spin_button_set_digits(spin_mask_threshold_max, 0);
+				gtk_spin_button_set_digits(spin_mask_threshold_range, 0);
 				break;
 			}
 			case 16: {
 				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_16bit);
 				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_16bit);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_range, adj_thresh_feather_16bit);
+				gtk_spin_button_set_digits(spin_mask_threshold_min, 0);
+				gtk_spin_button_set_digits(spin_mask_threshold_max, 0);
+				gtk_spin_button_set_digits(spin_mask_threshold_range, 0);
 				break;
 			}
 			default: {
 				gtk_spin_button_set_adjustment(spin_mask_threshold_min, adj_mask_thresh_min_float);
 				gtk_spin_button_set_adjustment(spin_mask_threshold_max, adj_mask_thresh_max_float);
+				gtk_spin_button_set_adjustment(spin_mask_threshold_range, adj_thresh_feather_float);
+				gtk_spin_button_set_digits(spin_mask_threshold_min, 3);
+				gtk_spin_button_set_digits(spin_mask_threshold_max, 3);
+				gtk_spin_button_set_digits(spin_mask_threshold_range, 3);
 				break;
 			}
 		}
@@ -829,11 +847,11 @@ void on_threshold_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	mask_thresh_data *data = calloc(1, sizeof(mask_thresh_data));
 	data->min_val = min_val;
 	data->max_val = max_val;
-	data->range = range / 100.f;
+	data->range = range;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
-	args->mem_ratio = 0.0f;
+	args->mem_ratio = 1.0f;
 	args->mask_hook = mask_thresh_hook;
 	args->log_hook = mask_thresh_log;
 	args->description = _("Mask intensity thresholding");

@@ -1033,7 +1033,7 @@ mask_t *fits_to_mask(fits *mfit) {
 }
 
 // Threshold the mask based on min-max range with optional intensity-based feathering
-// feather_width: [0,1] normalized feather zone width on each side of the thresholds
+// feather_width: feather zone width on each side of the thresholds
 int mask_threshold(fits *fit, float min_val, float max_val, float feather_width) {
 	if (!fit || !fit->mask || !fit->mask->data) {
 		siril_debug_print("mask_threshold: invalid mask\n");
@@ -1043,8 +1043,9 @@ int mask_threshold(fits *fit, float min_val, float max_val, float feather_width)
 		siril_debug_print("mask_threshold: min_val must be <= max_val\n");
 		return 1;
 	}
+	feather_width /= fit->mask->bitpix == 8 ? 255.f : fit->mask->bitpix == 16 ? 65535.f : 1.f;
 	if (feather_width < 0.f || feather_width > 1.f) {
-		siril_debug_print("mask_threshold: feather_width must be in [0, 1]\n");
+		siril_debug_print("mask_threshold: feather_width out of range\n");
 		return 1;
 	}
 

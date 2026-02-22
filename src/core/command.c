@@ -14602,26 +14602,26 @@ int process_clear_mask(int nb) {
 
 int process_mask_threshold(int nb) {
 	if (!gfit->mask || !gfit->mask->data) {
-		siril_log_message(_("No mask present, aborting.\n"));
+		siril_log_color_message(_("No mask present, aborting.\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
-
-	int argidx = 1;
-	float lo = 0.f, hi, fr = 0.f;
+	float maxrange;
 	switch (gfit->mask->bitpix) {
 		case 8:
-			hi = 255.f;
+			maxrange = 255.f;
 			break;
 		case 16:
-			hi = 65535.f;
+			maxrange = 65535.f;
 			break;
 		case 32:
-			hi = 1.f;
+			maxrange = 1.f;
 			break;
 		default:
-			siril_log_message(_("Unknown mask bit depth, aborting.\n"));
+			siril_log_color_message(_("Unknown mask bit depth, aborting.\n"), "red");
 			return CMD_GENERIC_ERROR;
 	}
+	int argidx = 1;
+	float lo = 0.f, hi = maxrange, fr = 0.f;
 	char *end;
 
 	while (argidx < nb) {
@@ -14629,7 +14629,7 @@ int process_mask_threshold(int nb) {
 			char *arg = word[argidx] + 4;
 			lo = g_ascii_strtod(arg, &end);
 			if (arg == end) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -14637,7 +14637,7 @@ int process_mask_threshold(int nb) {
 			char *arg = word[argidx] + 4;
 			hi = g_ascii_strtod(arg, &end);
 			if (arg == end) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -14645,7 +14645,7 @@ int process_mask_threshold(int nb) {
 			char *arg = word[argidx] + 4;
 			fr = g_ascii_strtod(arg, &end);
 			if (arg == end) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -14653,19 +14653,26 @@ int process_mask_threshold(int nb) {
 	}
 
 	if (lo >= hi) {
-		siril_log_message(_("Low value must be less than high value, aborting.\n"));
+		siril_log_color_message(_("Low value must be less than high value, aborting.\n"), "red");
 		return CMD_ARG_ERROR;
 	}
-	if (fr < 0.f || fr > 1.f) {
-		siril_log_message(_("Feathering range must be in the interval [0, 1], aborting.\n"));
+	if (fr < 0.f || fr > maxrange) {
+		siril_log_color_message(_("Feathering range is outside mask value range, aborting.\n"), "red");
 		return CMD_ARG_ERROR;
 	}
 
 	mask_thresh_data *data = calloc(1, sizeof(mask_thresh_data));
 
-	data->min_val = lo;
-	data->max_val = hi;
-	data->range = fr;
+	// Adjust parameter ranges if necessary ([0-1] will always work)
+	if (maxrange > 1.f) {
+		data->min_val = lo >= 1.f ? lo : lo * maxrange;
+		data->max_val = hi >= 1.f ? hi : hi * maxrange;
+		data->range = fr >= 1.f ? fr : fr * maxrange;
+	} else {
+		data->min_val = lo;
+		data->max_val = hi;
+		data->range = fr;
+	}
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;

@@ -123,7 +123,6 @@ static GActionEntry any_processing_entries[] = {
 	{ "clear_mask", clear_mask_activate },
 	{ "autostretch_mask", autostretch_mask_activate },
 	{ "blur_mask", blur_mask_activate },
-	{ "binarize_mask", binarize_mask_activate },
 	{ "feather_mask", feather_mask_activate },
 	{ "invert_mask", invert_mask_activate },
 	{ "scale_mask", mask_scale_activate },
