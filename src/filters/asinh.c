@@ -50,10 +50,9 @@ static gboolean asinh_preview_idle(gpointer p) {
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-
+	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
-		populate_roi();
 		notify_gfit_modified();
 	}
 	free_generic_img_args(args);
@@ -100,6 +99,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->description = _("Asinh stretch");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
@@ -122,7 +122,6 @@ static int asinh_update_preview() {
 
 void asinh_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
-	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
@@ -186,13 +185,14 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	const gboolean do_channel[3] = { TRUE, TRUE, TRUE };
-	float m_CB = 1.f;
+	const float m_CB = 1.f;
 	float norm = get_normalized_value(fit);
 	float invnorm = 1.0f / norm;
 	float asinh_beta = asinh(beta);
-	float factor_red = human_luminance ? 0.2126f : 0.3333f;
-	float factor_green = human_luminance ? 0.7152f : 0.3333f;
-	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
+	const float third = 1.f / 3.f;
+	float factor_red = human_luminance ? 0.2126f : third;
+	float factor_green = human_luminance ? 0.7152f : third;
+	float factor_blue = human_luminance ? 0.0722f : third;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	float globalmax = -FLT_MAX;
@@ -505,6 +505,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->user = params;
 	args->log_hook = asinh_log_hook;
 	args->max_threads = com.max_thread;
+	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->custom_undo = TRUE;

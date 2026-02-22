@@ -371,7 +371,9 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Initializing sequences..."), 0.15);
 	initialize_sequence(&com.seq, TRUE);
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
 	if (!com.headless)
@@ -429,6 +431,7 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless)
 		update_splash_progress(_("Loading color profiles..."), 0.45);
 	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -493,7 +496,6 @@ static void siril_app_activate(GApplication *application) {
 		gui_function(load_main_window_state, NULL);
 
 		update_splash_progress(_("Initializing SPCC..."), 0.80);
-		initialize_spcc_mirrors();
 #if defined(HAVE_LIBCURL)
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
@@ -503,7 +505,6 @@ static void siril_app_activate(GApplication *application) {
 				siril_check_updates(FALSE);
 			}
 			siril_check_notifications(FALSE);
-			siril_check_spcc_mirrors(FALSE);
 		}
 
 #else

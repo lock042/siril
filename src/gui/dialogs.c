@@ -94,7 +94,14 @@ static const SirilDialogEntry entries[] =
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
-	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
+	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel},
+	{"mask_from_color_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_from_image_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_from_stars_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_blur_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_feather_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_scale_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_thresholds_dialog", NULL, OTHER_DIALOG, FALSE, NULL}
 };
 
 static SirilDialogEntry get_entry_by_id(gchar *id) {

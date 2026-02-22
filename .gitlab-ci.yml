@@ -224,12 +224,15 @@ macos:
     paths:
       - Siril*.dmg
 
-# Fetch msys2/mingw64 image from siril-windows
+# Fetch msys2 image from siril-windows
 # Build siril and package it
 win64-native:
   stage: packaging
+  parallel:
+    matrix:
+      - MSYSTEM: [ "MINGW64", "UCRT64" ]
   cache:
-    key: "cache-windows-small1"
+    key: "cache-windows-small1-${MSYSTEM}"
     paths:
       - ccache
       - DLLcache # cache for the DLL txt files recording all files to be copied to the package
@@ -238,22 +241,20 @@ win64-native:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
-    MSYSTEM: "MINGW64"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 47
-    SDW_NAME: siril$SDW_VERSION
+    SDW_VERSION: 56
+    SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
     SPW_VERSION: 23
     SPW_NAME: siril-python$SPW_VERSION
     SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
-    W64_OUT: "/c/$SDW_NAME/mingw64" #used in siril-package.sh
     PY_OUT: "/c/siril-python" #used in siril-package.sh
   tags:
     - saas-windows-medium-amd64
   needs: []
   artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${MSYSTEM}"
     when: always
     expire_in: 1 week
     paths:
@@ -263,10 +264,14 @@ win64-native:
     - 7z x -oC:/ "$Env:SPW_NAME.7z"
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
+    # Set W64_OUT dynamically based on MSYSTEM
+    # used in siril-package.sh
+    - $Env:W64_OUT = "/c/$Env:SDW_NAME/$($Env:MSYSTEM.ToLower())"
+    - echo "W64_OUT=$Env:W64_OUT"
   script:
-    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
-    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
-    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -c "ccache -s"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -$($Env:MSYSTEM.ToLower()) -c "ccache -s"
 
 flatpak:
   rules:
@@ -345,27 +350,35 @@ cppcheck:
 
 ################################################################################
 # Distribution
+################################################################################
+# Distribution
 win64-native-installer:
   rules:
     *run_ondemand_schedule_tag
+  parallel:
+    matrix:
+      - MSYSTEM: [ "MINGW64", "UCRT64" ]
   variables:
     CHERE_INVOKING: "yes"
   tags:
     - saas-windows-medium-amd64
   stage: distribution
-  dependencies:
-    - win64-native
   artifacts:
-    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${MSYSTEM}"
     when: always
     expire_in: 1 week
     paths:
-    - WinInstaller
-    - installer.log
+      - WinInstaller
+      - installer.log
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["win64-native"]
+  needs:
+    - job: win64-native
+      artifacts: true
+      parallel:
+        matrix:
+          - MSYSTEM: $[[ matrix.MSYSTEM ]]
   allow_failure: true
 
 ################################################################################

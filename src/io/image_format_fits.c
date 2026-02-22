@@ -36,6 +36,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
@@ -1325,6 +1326,10 @@ void clearfits(fits *fit) {
 		free(fit->fdata);
 		fit->fdata = NULL;
 	}
+	if (fit->mask) {
+		free_mask(fit->mask);
+		fit->mask = NULL;
+	}
 	clearfits_header(fit);
 }
 
@@ -2033,6 +2038,7 @@ int save_opened_fits(fits *f) {
  * - CP_COPYA: copies the actual data, from->data to to->data on all layers,
  *   but no other information from the source. Should not be used with CP_INIT
  * - CP_FORMAT: copy all metadata and leaves data to null
+ * - CP_COPYMASK: copy the image mask
  * - CP_EXPAND: forces the destination number of layers to be taken as 3, but
  *   the other operations have no modifications, meaning that if the source
  *   image has one layer, the output image will have only one actual layer
@@ -2071,6 +2077,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->fpdata[0] = NULL;
 		to->fpdata[1] = NULL;
 		to->fpdata[2] = NULL;
+		to->mask = NULL;
 		to->header = NULL;
 		to->unknown_keys = NULL;
 		to->history = NULL;
@@ -2173,6 +2180,29 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		}
 	}
 
+	if (oper & CP_COPYMASK) {
+		if (from->mask) {
+			to->mask = calloc(1, sizeof(mask_t));
+			if (!to->mask) {
+				PRINT_ALLOC_ERR;
+			} else {
+				to->mask->bitpix = from->mask->bitpix;
+				to->mask_active = from->mask_active;
+				int elem_size = to->mask->bitpix >> 3;
+				to->mask->data = malloc(nbdata * elem_size);
+				if (to->mask->data) {
+					memcpy(to->mask->data, from->mask->data, nbdata * elem_size);
+				} else {
+					PRINT_ALLOC_ERR;
+					free(to->mask);
+					to->mask = NULL;
+				}
+			}
+		} else {
+			to->mask = NULL;
+		}
+	}
+
 	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
 		// copy color management data
 		to->color_managed = from->color_managed;
@@ -2249,6 +2279,9 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	color_manage(to, FALSE);
 	to->icc_profile = NULL;
 	to->keywords.wcslib = NULL;
+	to->mask = NULL; // since this is not a deep copy we must clear this to avoid problems when
+	// this shallow copy is cleared
+	to->mask_active = FALSE;
 
 	if (from->type == DATA_USHORT)
 		if (to_float) {

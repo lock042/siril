@@ -278,7 +278,6 @@ static int rgradient_process_with_worker() {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_rgradient_data(params);
-		free(params);
 		return 1;
 	}
 
@@ -291,6 +290,7 @@ static int rgradient_process_with_worker() {
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;
 	args->user = params;
+	args->mask_aware = TRUE;
 	args->max_threads = com.max_thread;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;

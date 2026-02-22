@@ -66,6 +66,7 @@
 #include "io/conversion.h"
 #include "io/siril_pythonmodule.h"
 #include "gui/progress_and_log.h"
+#include "gui/photometric_cc.h"
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
@@ -162,7 +163,9 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
@@ -204,6 +207,7 @@ static void siril_app_activate(GApplication *application) {
 	init_num_procs();
 	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
 
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);

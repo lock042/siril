@@ -519,7 +519,6 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	g_free(siril_cat->IAUcode);
 	g_free(siril_cat->header);
 	free(siril_cat);
-	siril_cat = NULL;
 }
 
 // frees the member cat_items of a catalogue
@@ -1552,7 +1551,7 @@ gpointer conesearch_worker(gpointer p) {
 		dyf = NULL;
 	}
 
-	exit_conesearch:
+exit_conesearch:
 	{
 		gboolean go_idle = args->has_GUI;
 		if ((retval || !args->has_GUI) && temp_cat) {
@@ -1566,6 +1565,7 @@ gpointer conesearch_worker(gpointer p) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);
 		}
@@ -1687,6 +1687,7 @@ void free_sky_object_query(void *p) {
 	g_free(args->name);
 	g_free(args->prefix);
 	siril_catalog_free_item(args->item);
+	free(args->item);
 	free(args);
 }
 

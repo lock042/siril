@@ -968,7 +968,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in warning_messagebox(): {e}") from e
 
-    def undo_save_state(self, my_string: str) -> bool:
+    def undo_save_state(self, my_string: str) -> Optional[bool]:
         """
         Saves an undo state. The maximum message length is 70 bytes: longer
         messages will be truncated.
@@ -977,7 +977,9 @@ class SirilInterface:
             my_string: The message to log in FITS HISTORY
 
         Returns:
-            bool: True if the message was successfully logged, False otherwise
+            Optional[bool]: True if the message was successfully logged, False if a
+            logging error occurred or None if the script is headless (undo does not
+            happen when headless)
 
         Raises:
             SirilError: if an error occurred.
@@ -3720,27 +3722,46 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in get_siril_config(): {}").format(e)) from e
 
-    def set_seq_frame_incl(self, index: int, incl: bool):
+    def set_seq_frame_incl(self, index: Union[int, List[int]], incl: bool):
         """
-        Set whether a given frame is included in the currently loaded sequence
+        Set whether given frame(s) are included in the currently loaded sequence
         in Siril. This method is intended for use in creating custom sequence
         filters.
 
         Args:
-            index: integer specifying which frame to set the pixeldata for. This
-                uses a 0-based indexing scheme, i.e. the first frame is frame
-                number 0, not frame numer 1.
-            incl: bool specifying whether the frame is included or not.
+            index: integer or list of integers specifying which frame(s) to set the 
+                inclusion status for. This uses a 0-based indexing scheme, i.e. the 
+                first frame is frame number 0, not frame number 1.
+                Passing a list is available since sirilpy 1.0.17
+            incl: bool specifying whether the frame(s) are included or not.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
+            TypeError: if index is not an int or list of ints,
             SirilError: on failure.
         """
         try:
             if not self.is_sequence_loaded():
                 raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
-            # Pack the index and incl into bytes using network byte order (!)
-            payload = struct.pack('!II', index, incl)
+            
+            # Validate and normalize index parameter
+            if isinstance(index, int):
+                indices = [index]
+            elif isinstance(index, list):
+                if not index:
+                    raise ValueError(_("Index list cannot be empty"))
+                if not all(isinstance(i, int) for i in index):
+                    raise TypeError(_("All elements in index list must be integers"))
+                indices = index
+            else:
+                raise TypeError(_("Index must be an integer or list of integers"))
+            
+            # Build payload: count, indices, incl
+            # Format: count (I) + indices (I * count) + incl (I)
+            count = len(indices)
+            format_string = f'!I{count}II'  # count + indices + incl
+            payload = struct.pack(format_string, count, *indices, incl)
+            
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
             return
         except SirilError:
@@ -4701,7 +4722,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.UNDO, None):
+            retval = self._execute_command(_Command.UNDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in undo(): {e}") from e
@@ -4716,7 +4738,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.REDO, None):
+            retval = self._execute_command(_Command.REDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in redo(): {e}") from e
@@ -5454,3 +5477,380 @@ class SirilInterface:
                     self._execute_command(_Command.RELEASE_SHM, shm_header_info)
                 except Exception:
                     pass
+
+    def get_image_mask(self) -> Optional[bytes]:
+        """
+        Retrieve the image mask of the current Siril image using shared memory.
+        Note that this method requires a single image to be loaded, as masks do not
+        apply to sequence frames.
+
+        Note that as the mask is retrieved separately from the image, no checking
+        is done to ensure that the dimensions are the same as that of a FFit class:
+        the script writer must do this for themselves. Added: v1.1.0
+
+        Args:
+        none.
+
+        Returns:
+            bytes: The image mask as a numpy array, or None if the current
+            image has no mask.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            SirilError: If any other error occurs.
+        """
+
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_IMAGE_MASK)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("Error in get_image_mask(): no image is currently loaded in Siril"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if len(response) < 280: # Not a correct SharedMemoryInfo payload
+                return None
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            bitpix = shm_info.data_type
+            width = shm_info.width
+            height = shm_info.height
+
+            buffer = bytearray(shm.buf)[:shm_info.size]
+            if bitpix == 8:
+                dtype = np.uint8
+            elif bitpix == 16:
+                dtype = np.uint16
+            else:
+                dtype = np.float32
+
+            try:
+                arr = np.frombuffer(buffer, dtype=dtype)
+            except (BufferError, ValueError, TypeError) as e:
+                raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+
+            # Validate array size matches expected dimensions
+            expected_size = width * height
+            if arr.size < expected_size:
+                raise ValueError(
+                    f"Data size mismatch: got {arr.size} elements, "
+                    f"expected {expected_size} for dimensions "
+                    f"{shm_info.width}x{shm_info.height}"
+                )
+
+            # Reshape the array according to the image dimensions
+            try:
+                arr = arr.reshape((shm_info.height, shm_info.width))
+            except ValueError as e:
+                raise DataError(_("Failed to reshape array to image dimensions: {}").format(e)) from e
+
+            result = np.copy(arr)
+
+            return result
+
+        except SirilError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_image_mask(): {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def set_image_mask(self, mask_data: np.ndarray) -> bool:
+        """
+        Send image mask data to Siril using shared memory. Added: v1.1.0
+
+        Args:
+            mask_data: numpy.ndarray containing the image data.
+                       Must be a 2D array with dtype either np.uint8,
+                       np.uint16 or np.float32.
+
+        Raises:
+            NoImageError: if no image is loaded in Siril,
+            ValueError: if the input array is invalid,
+            SirilError: if there was an error in handling the command.
+        """
+
+        shm = None
+        shm_info = None
+        try:
+            # Validate input array
+            if not isinstance(mask_data, np.ndarray):
+                raise ValueError(_("Mask data must be a numpy array"))
+
+            if mask_data.ndim != 2:
+                raise ValueError(_("Image must be 2D array"))
+
+            if mask_data.dtype not in (np.float32, np.uint16, np.uint8):
+                raise ValueError(_("Image data must be float32, uint16 or uint8"))
+
+            # Check there is an image loaded in Siril
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_mask(): no image loaded"))
+
+            # Get dimensions
+            height, width = mask_data.shape
+
+            if any(dim <= 0 for dim in (width, height)):
+                raise ValueError(_("Invalid mask dimensions: {}x{}").format(width, height))
+
+            # Calculate total size
+            element_size = 4 if mask_data.dtype == np.float32 else 2 if mask_data.dtype == np.uint16 else 1
+            total_bytes = width * height * element_size
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=mask_data.dtype).reshape(mask_data.shape)
+                np.copyto(shared_array, mask_data)
+                # Delete transient objects used to structure copy
+                del buffer
+                del shared_array
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the image info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                width,
+                height,
+                1,
+                32 if mask_data.dtype == np.float32 else 16 if mask_data.dtype == np.uint16 else 8,
+                shm_info.size,
+                shm_info.shm_name
+            )
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SET_IMAGE_MASK, info):
+                raise SirilError(_("Failed to send image mask data command"))
+
+            return
+
+        except (SirilError, ValueError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in set_image_mask(): {e}") from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception as e:
+                    pass
+
+    def set_image_mask_state(self, state: bool) -> bool:
+        """
+        Set the state of the mask in Siril to either active or inactive.
+        Added: v1.1.0
+
+        Args:
+            state: bool. If True, the mask will be set active; if False,
+                   the mask will be set inactive.
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a STFType enum
+            if not isinstance(state, bool):
+                raise ValueError("Mode must be True or False")
+
+            # Pack the value into a byte
+            # Format depends on which arguments are provided
+            payload = struct.pack('?', state)
+            self._execute_command(_Command.SET_IMAGE_MASK_STATE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_image_mask_state(): {e}") from e
+
+    def get_image_mask_state(self) -> Optional[bool]:
+
+        """
+        Request the image mask state in Siril. Added: v1.1.0
+
+        Returns:
+            bool: True if the image mask is active, False if the image mask is not
+                  active. None is returned if the image has no mask.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_IMAGE_MASK_STATE)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return bool(mode[0])
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_image_mask_state(): {}").format(e)) from e
+
+    def _mask_update_polygon(self, poly: Polygon, adding: bool):
+        """
+        Adds or subtracts a user polygon to / from the Siril image mask. This is an internal
+        function used by mask_add_polygon() and mask_subtract_polygon(). Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+            adding: bool speficying whether to add or subtract the polygon.
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        shm = None
+        shm_info = None
+        int_adding = 1 if adding else 0
+
+        try:
+            # Serialize the provided polygon
+            polygon_bytes = poly.serialize()
+
+            # Calculate total size needed
+            total_bytes = len(polygon_bytes)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy polygon data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(polygon_bytes)] = polygon_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the polygon info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                int_adding,  # representation of "adding"
+                0,  # unused field 2
+                0,  # unused field 3
+                0,  # unused field 4
+                total_bytes,  # size of polygon data
+                shm_info.shm_name  # shared memory name
+            )
+
+            # Send command using the existing _execute_command method
+            self._request_data(_Command.MASK_UPDATE_POLYGON, info)
+
+        except (TypeError, SirilError, DataError, SirilConnectionError, SharedMemoryError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in mask_add_polygon(): {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    if shm_info is not None:
+                        self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception:
+                    pass
+
+    def mask_add_polygon(self, poly: Polygon):
+        """
+        Adds a user polygon to the Siril image mask. Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, True)
+
+    def mask_subtract_polygon(self, poly: Polygon):
+        """
+        Subtracts a user polygon from the Siril image mask. Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, False)

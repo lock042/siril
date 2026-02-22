@@ -266,6 +266,7 @@ struct gui_config {
 	double mouse_speed_limit; // Defines a mximum step size for GDK_SCROLL_SMOOTH actions
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 	struct editor_config editor_cfg; // Configuration for the script editor
+	gboolean mask_tints_vports; // Whether to show the mask as a red tint in the image mask_tints_vports
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -439,6 +440,7 @@ struct pref_struct {
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
 	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE
+	int default_mask_bitpix; // Default bit depth for masks. 8, 16 or 32; -1 = same as image. Default: 8
 };
 
 typedef struct pref_struct preferences;

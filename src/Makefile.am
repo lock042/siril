@@ -135,6 +135,8 @@ siril_common_SOURCES = \
 	core/icc_profile.h \
 	core/initfile.c \
 	core/initfile.h \
+	core/masks.c \
+	core/masks.h \
 	core/OS_utils.c \
 	core/OS_utils.h \
 	core/pipe.c \
@@ -295,6 +297,8 @@ siril_common_SOURCES = \
 	gui/image_interactions.c \
 	gui/image_interactions.h \
 	gui/linear_match.c \
+	gui/masks_gui.c \
+	gui/masks_gui.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_selection.c \

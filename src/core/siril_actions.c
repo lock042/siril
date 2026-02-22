@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/masks.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -46,6 +47,7 @@
 #include "gui/histogram.h"
 #include "gui/histo_display.h"
 #include "gui/icc_profile.h"
+#include "gui/image_interactions.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
@@ -879,4 +881,114 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("ccm_dialog");
+}
+
+void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	mask_from_image_dialog_set_file_mode(FALSE);
+	siril_open_dialog("mask_from_image_dialog");
+}
+
+void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_from_stars_dialog");
+}
+
+void mask_from_color_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_from_color_dialog");
+}
+
+void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	mask_from_image_dialog_set_file_mode(TRUE);
+	siril_open_dialog("mask_from_image_dialog");
+}
+
+void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!gfit || !gfit->mask) {
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mask_hook = mask_clear_hook;
+	args->description = _("Clear mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!gfit || !gfit->mask || !gfit->mask->data) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		                     _("There is no mask to autostretch."));
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_autostretch_hook;
+	args->description = _("Autostretch mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+void blur_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_blur_dialog");
+}
+
+void feather_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_feather_dialog");
+}
+
+void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_scale_dialog");
+}
+
+void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!gfit || !gfit->mask || !gfit->mask->data) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		                     _("There is no mask to invert."));
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_invert_hook;
+	args->log_hook = NULL;
+	args->description = _("Invert mask");
+	args->verbose = TRUE;
+	args->user = NULL;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+void mask_add_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	init_add_poly_to_mask();
+}
+
+void mask_clear_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	init_clear_poly_from_mask();
+}
+
+void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!gfit) {
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mask_hook = mask_from_gradient_hook;
+	args->description = _("Gradient of mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("mask_thresholds_dialog");
 }

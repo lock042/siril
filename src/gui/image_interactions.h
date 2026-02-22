@@ -78,6 +78,9 @@ typedef enum {
 	MOUSE_ACTION_CUT_WN1, // 8
 	MOUSE_ACTION_CUT_WN2, // 9
 	MOUSE_ACTION_DRAW_POLY, // 10
+	MOUSE_ACTION_ADD_POLY_TO_MASK, // 11
+	MOUSE_ACTION_CLEAR_POLY_FROM_MASK, // 12
+	MOUSE_ACTION_SAMPLE_MASK_COLOR // 13
 } mouse_status_enum;
 
 typedef enum {
@@ -168,6 +171,8 @@ void init_mouse();
 mouse_status_enum get_mouse_status();
 void initialize_mouse_actions();
 void init_draw_poly();
+void init_add_poly_to_mask();
+void init_clear_poly_from_mask();
 void initialize_scroll_actions();
 void load_or_initialize_mouse_actions();
 void load_or_initialize_scroll_actions();
