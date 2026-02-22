@@ -14600,14 +14600,14 @@ int process_clear_mask(int nb) {
 	return CMD_OK;
 }
 
-int process_binarize_mask(int nb) {
+int process_mask_threshold(int nb) {
 	if (!gfit->mask || !gfit->mask->data) {
 		siril_log_message(_("No mask present, aborting.\n"));
 		return CMD_GENERIC_ERROR;
 	}
 
 	int argidx = 1;
-	float lo = 0.f, hi;
+	float lo = 0.f, hi, fr = 0.f;
 	switch (gfit->mask->bitpix) {
 		case 8:
 			hi = 255.f;
@@ -14641,6 +14641,14 @@ int process_binarize_mask(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
+		else if (g_str_has_prefix(word[argidx], "-fr=")) {
+			char *arg = word[argidx] + 4;
+			fr = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
 		argidx++;
 	}
 
@@ -14648,19 +14656,24 @@ int process_binarize_mask(int nb) {
 		siril_log_message(_("Low value must be less than high value, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (fr < 0.f || fr > 1.f) {
+		siril_log_message(_("Feathering range must be in the interval [0, 1], aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
 
-	mask_binarize_data *data = calloc(1, sizeof(mask_binarize_data));
+	mask_thresh_data *data = calloc(1, sizeof(mask_thresh_data));
 
-	data->lo = lo;
-	data->hi = hi;
+	data->min_val = lo;
+	data->max_val = hi;
+	data->range = fr;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
 	args->mem_ratio = 1.0f;
-	args->mask_hook = mask_binarize_hook;
-	args->log_hook = mask_binarize_log;
+	args->mask_hook = mask_thresh_hook;
+	args->log_hook = mask_thresh_log;
 	args->idle_function = NULL;
-	args->description = _("Binarize mask");
+	args->description = _("Apply intensity threshold to mask");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->user = data;

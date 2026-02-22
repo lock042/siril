@@ -18,7 +18,6 @@ static command commands[] = {
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"bgnoise", 0, "bgnoise", process_bgnoise, STR_BGNOISE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"binarize_mask", 0, "binarize_mask {-lo=} {-hi=}", process_binarize_mask, STR_BINARIZE_MASK, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"binxy", 1, "binxy coefficient [-sum]", process_binxy, STR_BINXY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"boxselect", 0, "boxselect [-clear] [x y width height]", process_boxselect, STR_BOXSELECT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_NO_THREAD},
 
@@ -125,6 +124,7 @@ static command commands[] = {
 	{"mask_from_lum", 1, "mask_from_lum {-even} {-human} {-rw=} {-gw=} {-bw=} {-invert} {-autostretch} {\"-filename=\"} {-bitdepth=}", process_mask_from_channel, STR_MASK_FROM_LUM, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_from_stars", 1, "mask_from_stars channel -r= {-invert} {-feather=} {-bitdepth=}", process_mask_from_stars, STR_MASK_FROM_STARS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mask_invert", 0, "mask_invert", process_invert_mask, STR_INVERT_MASK, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mask_threshold", 1, "mask_threshold {-lo=} {-hi=} {-fr=}", process_mask_threshold, STR_MASK_THRESHOLD, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"merge_cfa", 5, "merge_cfa file_CFA0 file_CFA1 file_CFA2 file_CFA3 bayerpattern", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},

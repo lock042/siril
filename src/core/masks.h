@@ -40,12 +40,6 @@ typedef struct {
 
 typedef struct {
 	destructor destroy_fn;
-	float lo;
-	float hi;
-} mask_binarize_data;
-
-typedef struct {
-	destructor destroy_fn;
 	float min_val;
 	float max_val;
 	float range;

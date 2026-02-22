@@ -41,43 +41,7 @@ void free_mask(mask_t* mask) {
 	free(mask->data);
 	free(mask);
 }
-/*
 
-
-gpointer autostretch_mask_worker(gpointer p) {
-	if (gfit && gfit->mask) {
-		mask_autostretch(gfit);
-		queue_redraw_mask();
-	}
-	siril_add_idle(end_generic, NULL);
-	return FALSE;
-}
-
-gpointer binarize_mask_from_gui_worker(gpointer p) {
-	if (gfit && gfit->mask) {
-		gchar *msg = g_strdup_printf(_("This will binarize the mask based on the range slider values. Values between %f and %f will be masked TRUE, other values will be masked FALSE"), (float) gui.lo, (float) gui.hi);
-		if (siril_confirm_dialog(_("Binarize mask"), msg, _("Proceed"))) {
-			mask_binarize(gfit, (float) gui.lo, (float) gui.hi);
-			queue_redraw_mask();
-			siril_log_message(_("Mask binarized (TRUE between %f and %f)\n"), (float) gui.lo, (float) gui.hi);
-		}
-	}
-	siril_add_idle(end_generic, NULL);
-	return FALSE;
-}
-*/
-
-/*
-gpointer invert_mask_worker(gpointer p) {
-	if (gfit && gfit->mask) {
-		mask_invert(gfit);
-		queue_redraw_mask();
-		siril_log_message(_("Mask inverted\n"));
-	}
-	siril_add_idle(end_generic, NULL);
-	return FALSE;
-}
-*/
 gboolean set_mask_active_idle(gpointer p) {
 	gboolean state = GPOINTER_TO_INT(p);
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("mask_enable_check"));
@@ -1068,19 +1032,19 @@ mask_t *fits_to_mask(fits *mfit) {
 	return mask;
 }
 
-// Binarize the mask based on min-max range with optional intensity-based feathering
+// Threshold the mask based on min-max range with optional intensity-based feathering
 // feather_width: [0,1] normalized feather zone width on each side of the thresholds
-int mask_binarize_full(fits *fit, float min_val, float max_val, float feather_width) {
+int mask_threshold(fits *fit, float min_val, float max_val, float feather_width) {
 	if (!fit || !fit->mask || !fit->mask->data) {
-		siril_debug_print("mask_thresholds: invalid mask\n");
+		siril_debug_print("mask_threshold: invalid mask\n");
 		return 1;
 	}
 	if (min_val > max_val) {
-		siril_debug_print("mask_thresholds: min_val must be <= max_val\n");
+		siril_debug_print("mask_threshold: min_val must be <= max_val\n");
 		return 1;
 	}
 	if (feather_width < 0.f || feather_width > 1.f) {
-		siril_debug_print("mask_thresholds: feather_width must be in [0, 1]\n");
+		siril_debug_print("mask_threshold: feather_width must be in [0, 1]\n");
 		return 1;
 	}
 
@@ -1193,14 +1157,10 @@ int mask_binarize_full(fits *fit, float min_val, float max_val, float feather_wi
 			break;
 		}
 		default:
-			siril_debug_print("mask_binarize: unsupported bitpix %d\n", fit->mask->bitpix);
+			siril_debug_print("mask_threshold: unsupported bitpix %d\n", fit->mask->bitpix);
 			return 1;
 	}
 	return 0;
-}
-
-int mask_binarize(fits *fit, float min_val, float max_val) {
-	return mask_binarize_full(fit, min_val, max_val, 0.f);
 }
 
 // Invert the mask. Returns 0 on success.
@@ -1597,12 +1557,7 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 
 int mask_thresh_hook(struct generic_mask_args *args) {
 	mask_thresh_data *data = (mask_thresh_data*) args->user;
-	return mask_binarize_full(gfit, data->min_val, data->max_val, data->range);
-}
-
-int mask_binarize_hook(struct generic_mask_args *args) {
-	mask_binarize_data *data = (mask_binarize_data *)args->user;
-	return mask_binarize(args->fit, data->lo, data->hi);
+	return mask_threshold(gfit, data->min_val, data->max_val, data->range);
 }
 
 int mask_blur_hook(struct generic_mask_args *args) {
@@ -1690,11 +1645,6 @@ gchar *mask_from_lum_log(gpointer user, log_hook_detail detail) {
 	return g_strdup_printf("Mask from luminance: rw=%.4f, gw=%.4f, bw=%.4f, autostretch=%d, invert=%d%s%s",
 	                       data->rw, data->gw, data->bw, data->autostretch, data->invert,
 	                       data->filename ? ", file=" : "", data->filename ? data->filename : "");
-}
-
-gchar *mask_binarize_log(gpointer user, log_hook_detail detail) {
-	mask_binarize_data *data = (mask_binarize_data *)user;
-	return g_strdup_printf("Mask binarize: lo=%.2f, hi=%.2f", data->lo, data->hi);
 }
 
 gchar *mask_blur_log(gpointer user, log_hook_detail detail) {

@@ -42,7 +42,6 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
-int	process_binarize_mask(int nb);
 int	process_binxy(int nb);
 int	process_blur_mask(int nb);
 int	process_denoise(int nb);
@@ -128,6 +127,7 @@ int	process_mask_from_channel(int nb);
 int process_mask_from_color(int nb);
 int	process_mask_from_lum(int nb);
 int	process_mask_from_stars(int nb);
+int	process_mask_threshold(int nb);
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
