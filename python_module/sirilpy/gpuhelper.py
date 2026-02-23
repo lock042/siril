@@ -23,8 +23,8 @@ from typing import Tuple, Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
-from .version import __version__
-from .utility import ensure_installed, _check_package_installed, _install_package, \
+from sirilpy.version import __version__
+from sirilpy.utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr
 
 def _detect_cuda_version(system) -> Optional[str]:
@@ -1546,7 +1546,7 @@ class TorchHelper:
         return {
             'backend': 'cpu',
             'cuda_version': None,
-            'extra_index_url': None,
+            'extra_index_url': 'https://download.pytorch.org/whl/cpu',
             'packages': ['torch', 'torchvision']
         }
 
