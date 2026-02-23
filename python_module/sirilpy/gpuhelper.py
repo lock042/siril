@@ -23,8 +23,8 @@ from typing import Tuple, Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
-from sirilpy.version import __version__
-from sirilpy.utility import ensure_installed, _check_package_installed, _install_package, \
+from .version import __version__
+from .utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr
 
 def _detect_cuda_version(system) -> Optional[str]:
