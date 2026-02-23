@@ -14803,24 +14803,13 @@ int process_feather_mask(int nb) {
 }
 
 int process_mask_fmul(int nb) {
-	int argidx = 1;
 	float factor = -1.f;
 	char *end;
 
-	while (argidx < nb) {
-		if (g_str_has_prefix(word[argidx], "-factor=")) {
-			char *arg = word[argidx] + 8;
-			factor = g_ascii_strtod(arg, &end);
-			if (arg == end || factor < 0.0f) {
-				siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		argidx++;
-	}
-
-	if (factor < 0.f) {
-		siril_log_message(_("Factor parameter (-factor=) is required, aborting.\n"));
+	char *arg = word[1];
+	factor = g_ascii_strtod(arg, &end);
+	if (arg == end || factor < 0.f) {
+		siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
 	}
 
