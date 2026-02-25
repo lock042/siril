@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "core/masks.h"
 #include "core/command.h"
 #include "core/command_line_processor.h"
 #include "core/siril_language.h"
@@ -243,43 +244,124 @@ int populate_roi() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	size_t nchans = gfit->naxes[2];
-	g_assert(nchans ==1 || nchans == 3);
+	g_assert(nchans == 1 || nchans == 3);
 	gboolean rgb = (nchans == 3);
+
 	clearfits(&gui.roi.fit);
 	copyfits(gfit, &gui.roi.fit, CP_FORMAT, -1);
+
 	gui.roi.fit.rx = gui.roi.fit.naxes[0] = gui.roi.selection.w;
 	gui.roi.fit.ry = gui.roi.fit.naxes[1] = gui.roi.selection.h;
 	gui.roi.fit.naxes[2] = nchans;
-	gui.roi.fit.naxis = nchans == 1 ? 2 : 3;
+	gui.roi.fit.naxis = (nchans == 1 ? 2 : 3);
+
+	/* ---------------- IMAGE ROI COPY ---------------- */
 	if (gui.roi.fit.type == DATA_FLOAT) {
 		gui.roi.fit.fdata = malloc(npixels_roi * nchans * sizeof(float));
 		if (!gui.roi.fit.fdata)
 			retval = 1;
+
 		gui.roi.fit.fpdata[0] = gui.roi.fit.fdata;
-		gui.roi.fit.fpdata[1] = rgb? gui.roi.fit.fdata + npixels_roi : gui.roi.fit.fdata;
-		gui.roi.fit.fpdata[2] = rgb? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
-		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *srcindex = gfit->fdata + (npixels_gfit * c) + ((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) + gui.roi.selection.x;
-				float *destindex = gui.roi.fit.fdata + (npixels_roi * c) + (gui.roi.fit.rx * y);
-				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
+		gui.roi.fit.fpdata[1] = rgb ? gui.roi.fit.fdata + npixels_roi : gui.roi.fit.fdata;
+		gui.roi.fit.fpdata[2] = rgb ? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
+
+		for (uint32_t c = 0; c < nchans; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
+				float *srcindex =
+					gfit->fdata +
+					(npixels_gfit * c) +
+					((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) +
+					gui.roi.selection.x;
+
+				float *destindex =
+					gui.roi.fit.fdata +
+					(npixels_roi * c) +
+					(gui.roi.fit.rx * y);
+
+				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(float));
 			}
 		}
 	} else {
 		gui.roi.fit.data = malloc(npixels_roi * nchans * sizeof(WORD));
 		if (!gui.roi.fit.data)
 			retval = 1;
+
 		gui.roi.fit.pdata[0] = gui.roi.fit.data;
-		gui.roi.fit.pdata[1] = rgb? gui.roi.fit.data + npixels_roi : gui.roi.fit.data;
-		gui.roi.fit.pdata[2] = rgb? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
-		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *srcindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) + gui.roi.selection.x;
-				WORD *destindex = gui.roi.fit.data + (npixels_roi * c) + y * gui.roi.fit.rx;
+		gui.roi.fit.pdata[1] = rgb ? gui.roi.fit.data + npixels_roi : gui.roi.fit.data;
+		gui.roi.fit.pdata[2] = rgb ? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
+
+		for (uint32_t c = 0; c < nchans; c++) {
+			for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
+				WORD *srcindex =
+					gfit->data +
+					(npixels_gfit * c) +
+					((gfit->ry - y - (gui.roi.selection.y + 1)) * gfit->rx) +
+					gui.roi.selection.x;
+
+				WORD *destindex =
+					gui.roi.fit.data +
+					(npixels_roi * c) +
+					(y * gui.roi.fit.rx);
+
 				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
 			}
 		}
 	}
+
+	/* ---------------- MASK ROI COPY ---------------- */
+	gui.roi.fit.mask_active = FALSE;
+	gui.roi.fit.mask = NULL;
+
+	if (gfit->mask && gfit->mask->data) {
+		size_t n = gui.roi.selection.w * gui.roi.selection.h;
+		size_t src_w = gfit->rx;
+		size_t src_h = gfit->ry;
+
+		gui.roi.fit.mask = malloc(sizeof(mask_t));
+		if (!gui.roi.fit.mask) {
+			retval = 1;
+			goto finalize;
+		}
+
+		gui.roi.fit.mask->bitpix = gfit->mask->bitpix;
+
+		size_t elem_size = 0;
+		switch (gfit->mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			free(gui.roi.fit.mask);
+			gui.roi.fit.mask = NULL;
+			goto finalize;
+		}
+
+		gui.roi.fit.mask->data = malloc(n * elem_size);
+		if (!gui.roi.fit.mask->data) {
+			free(gui.roi.fit.mask);
+			gui.roi.fit.mask = NULL;
+			retval = 1;
+			goto finalize;
+		}
+
+		/* Copy mask ROI with same flip logic as image */
+		for (uint32_t y = 0; y < gui.roi.selection.h; y++) {
+			size_t src_y = src_h - y - (gui.roi.selection.y + 1);
+			size_t src_x = gui.roi.selection.x;
+
+			void *src = (uint8_t*)gfit->mask->data +
+						(src_y * src_w + src_x) * elem_size;
+
+			void *dst = (uint8_t*)gui.roi.fit.mask->data +
+						(y * gui.roi.selection.w) * elem_size;
+
+			memcpy(dst, src, gui.roi.selection.w * elem_size);
+		}
+
+		gui.roi.fit.mask_active = gfit->mask_active;
+	}
+
+finalize:
 	backup_roi();
 	gui.roi.active = TRUE;
 	return retval;
@@ -514,6 +596,140 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
+}
+
+void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	gfit->mask_active = state;
+	if (com.pref.gui.mask_tints_vports)
+		redraw(REMAP_ALL); // draw or remove the red tint from the image
+}
+
+void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	com.pref.gui.mask_tints_vports = state;
+	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
+	redraw(REMAP_ALL);
+}
+
+void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
+	if (!gfit || !gfit->mask) {
+		return;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit = gfit;
+	args->mask_hook = mask_clear_hook;
+	args->description = _("Clear mask");
+	args->verbose = TRUE;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+}
+
+// Callback function to switch tabs when button is clicked (left-click only)
+static gboolean on_mask_button_clicked(GtkWidget *button, GdkEventButton *event, gpointer data) {
+	if (event->button == GDK_BUTTON_PRIMARY) { // Left click
+		GtkNotebook *notebook = GTK_NOTEBOOK(data);
+		int page = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "page-num"));
+		gtk_notebook_set_current_page(notebook, page);
+	} else if (event->button == GDK_BUTTON_SECONDARY) { // Right click
+		// Manually trigger the popover to show
+		GtkWidget *popover = GTK_WIDGET(gtk_menu_button_get_popover(GTK_MENU_BUTTON(button)));
+		gtk_popover_popup(GTK_POPOVER(popover));
+		return TRUE; // Stop propagation so menu button doesn't interfere
+	}
+	// Return FALSE to allow the menu button to handle the click and show popover
+	return FALSE;
+}
+
+static void initialize_mask_tab_label() {
+	// Get the notebook
+	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("notebook1"));
+
+	// Find the mask tab (position 4 based on your XML)
+	int mask_tab_position = 4;
+
+	// Create the tab label container
+	GtkWidget *tab_label_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+
+	// Create the menu button with a down arrow
+	GtkWidget *menu_button = gtk_menu_button_new();
+	gtk_button_set_label(GTK_BUTTON(menu_button), "Mask");
+
+	// Create the popover
+	GtkWidget *popover = gtk_popover_new(menu_button);
+
+	// Create a vbox to hold menu items inside the popover
+	GtkWidget *menu_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_set_margin_start(menu_box, 6);
+	gtk_widget_set_margin_end(menu_box, 6);
+	gtk_widget_set_margin_top(menu_box, 6);
+	gtk_widget_set_margin_bottom(menu_box, 6);
+
+	// Create menu items as check buttons
+	GtkWidget *enable_check = gtk_check_button_new_with_label(_("Mask active (GUI)"));
+	gtk_widget_set_tooltip_text(enable_check, _("Toggle mask on or off for operations carried out using the GUI. Does not apply to Siril commands or python scripts"));
+	GtkWidget *show_check = gtk_check_button_new_with_label(_("Show mask as tint"));
+	gtk_widget_set_tooltip_text(show_check, _("Show the mask as a red tinted overlay in the image viewports. (Note: the mask can always be viewed in the mask tab)"));
+
+	// Create separator
+	GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+	gtk_widget_set_margin_top(separator, 6);
+	gtk_widget_set_margin_bottom(separator, 6);
+
+	// Create clear button
+	GtkWidget *clear_button = gtk_button_new_with_label(_("Clear Mask"));
+	gtk_widget_set_tooltip_text(clear_button, _("Clear the current image mask"));
+
+	// Add items to menu box
+	gtk_box_pack_start(GTK_BOX(menu_box), enable_check, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), show_check, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), separator, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(menu_box), clear_button, FALSE, FALSE, 0);
+
+	// Show all widgets in menu box
+	gtk_widget_show_all(menu_box);
+
+	// Add menu box to popover
+	gtk_container_add(GTK_CONTAINER(popover), menu_box);
+
+	// Set the popover to the menu button
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu_button), popover);
+
+	// Pack the menu button into the tab label box
+	gtk_box_pack_start(GTK_BOX(tab_label_box), menu_button, FALSE, FALSE, 0);
+
+	// Show all widgets
+	gtk_widget_show(menu_button);
+	gtk_widget_show(tab_label_box);
+
+	// Expose widgets to the builder with IDs
+	gtk_builder_expose_object(gui.builder, "mask_tab_label_box", G_OBJECT(tab_label_box));
+	gtk_builder_expose_object(gui.builder, "mask_menu_button", G_OBJECT(menu_button));
+	gtk_builder_expose_object(gui.builder, "mask_enable_check", G_OBJECT(enable_check));
+	gtk_builder_expose_object(gui.builder, "mask_show_check", G_OBJECT(show_check));
+	gtk_builder_expose_object(gui.builder, "mask_clear_button", G_OBJECT(clear_button));
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(show_check), com.pref.gui.mask_tints_vports);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable_check), gfit->mask_active);
+
+	// Get the tab content (the vbox_mask)
+	GtkWidget *tab_content = gtk_notebook_get_nth_page(notebook, mask_tab_position);
+
+	// Replace the tab label
+	gtk_notebook_set_tab_label(notebook, tab_content, tab_label_box);
+
+	// Store the page number in the menu button
+	g_object_set_data(G_OBJECT(menu_button), "page-num", GINT_TO_POINTER(mask_tab_position));
+
+	// Connect to button press event to switch tabs on left-click
+	g_signal_connect(menu_button, "button-press-event", G_CALLBACK(on_mask_button_clicked), notebook);
+
+	// Connect signals
+	g_signal_connect(enable_check, "toggled", G_CALLBACK(on_mask_enable_toggled), NULL);
+	g_signal_connect(show_check, "toggled", G_CALLBACK(on_mask_show_toggled), NULL);
+	g_signal_connect(clear_button, "clicked", G_CALLBACK(on_mask_clear_clicked), NULL);
 }
 
 void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
@@ -948,11 +1164,13 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 		return BLUE_VPORT;
 	else if (allow_rgb && drawing_area == gui.view[RGB_VPORT].drawarea)
 		return RGB_VPORT;
+	else if (drawing_area == gui.view[MASK_VPORT].drawarea)
+		return MASK_VPORT;
 	return -1;
 }
 
 void update_display_selection() {
-	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb", "labelselection_mask" };
 	static gchar selection_buffer[256] = { 0 };
 	if (com.selection.w && com.selection.h) {
 		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
@@ -986,6 +1204,7 @@ void update_roi_config() {
 }
 
 void update_display_fwhm() {
+	if (gui.cvport == MASK_VPORT) return;
 	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
 
@@ -1054,6 +1273,14 @@ void display_filename() {
 			gtk_label_set_ellipsize(fn_label, PANGO_ELLIPSIZE_NONE);
 		}
 		g_free(c);
+	}
+	GtkLabel *mask_label = GTK_LABEL(lookup_widget("labelfilename_mask"));
+	if (orig_base_name) {
+		gtk_label_set_text(mask_label, concat_base_name->str);
+		gtk_label_set_ellipsize(mask_label, PANGO_ELLIPSIZE_START);
+	} else {
+		gtk_label_set_text(mask_label, base_name);
+		gtk_label_set_ellipsize(mask_label, PANGO_ELLIPSIZE_NONE);
 	}
 
 	if (local_filename)
@@ -1295,6 +1522,23 @@ void set_output_filename_to_sequence_name() {
 	g_free(msg);
 }
 
+gboolean show_or_hide_mask_tab_idle(gpointer p) {
+	if (com.headless) return FALSE;
+	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
+	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
+	if (gfit->mask != NULL) {
+		gtk_widget_show(page);
+	} else {
+		gtk_widget_hide(page);
+	}
+	return FALSE;
+}
+
+void show_or_hide_mask_tab() {
+	siril_add_pythonsafe_idle(show_or_hide_mask_tab_idle, NULL);
+	return;
+}
+
 gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
@@ -1318,6 +1562,7 @@ gboolean close_tab(gpointer user_data) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_show(page);
 	}
+	show_or_hide_mask_tab_idle(NULL);
 	return FALSE;
 }
 
@@ -1530,13 +1775,22 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 	return FALSE;
 }
 
+static gboolean paned_first_resize = TRUE;
+
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
-	static gboolean first_resize = TRUE;
-	if (first_resize) {
+	if (paned_first_resize) {
 		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
-		first_resize = FALSE;
+		paned_first_resize = FALSE;
+	}
+}
+
+/* Force paned position restore (called after window is shown) */
+void force_paned_restore() {
+	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		gtk_paned_set_position(paned, com.pref.gui.pan_position);
 	}
 }
 
@@ -1652,13 +1906,12 @@ gpointer initialize_scripts(gpointer user_data) {
 }
 
 void initialize_all_GUI(gchar *supported_files) {
-	/* pre-check the Gaia archive status */
-	check_gaia_archive_status();
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
+	gui.view[MASK_VPORT].drawarea = lookup_widget("drawingareamask");
 	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
@@ -1695,6 +1948,12 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
 
+	/* initialize complex Mask tab label */
+	initialize_mask_tab_label();
+	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
+	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
+	gtk_widget_hide(page);
+
 	/* initialize scripts and SPCC in threads:
 	 * 1) initialize the scripts menu / SPCC widgets
 	 * 2) sync the scripts repositories
@@ -1722,7 +1981,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	initialize_FITS_name_entries();
 
-	initialize_log_tags();
+	initialize_log_tags();  // Can be called multiple times safely (idempotent)
 
 	/* Initialize ROI settings */
 	update_roi_config();
@@ -2037,6 +2296,15 @@ gboolean load_main_window_state(gpointer user_data) {
 	return FALSE;
 }
 
+/* Restore paned position after window is visible */
+gboolean restore_paned_position(gpointer user_data) {
+	if (!com.script && com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
+		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+		gtk_paned_set_position(paned, com.pref.gui.pan_position);
+	}
+	return FALSE;
+}
+
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
@@ -2251,7 +2519,8 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 	gui.cvport = page_num;
 	redraw(REDRAW_OVERLAY);
 	update_display_selection();	// update the dimensions of the selection when switching page
-	update_display_fwhm();
+	if (page_num < MASK_VPORT)
+		update_display_fwhm();
 }
 
 struct checkSeq_filter_data {
@@ -2523,4 +2792,23 @@ int seq_qphot(sequence *seq, int layer) {
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
 	return seqpsf(seq, layer, FALSE, TRUE, FALSE, framing, TRUE, com.script);
+}
+
+gboolean in_gtk_thread(void) {
+    return g_main_context_is_owner(g_main_context_default());
+}
+
+gboolean ensure_seqlist_dialog_closed_idle(gpointer user_data) {
+	if (gtk_widget_is_visible(lookup_widget("seqlist_dialog"))) {
+		siril_close_dialog("seqlist_dialog");
+	}
+	return FALSE;
+}
+
+void ensure_seqlist_dialog_closed() {
+	if (com.headless) return; // nothing to do
+	if (in_gtk_thread())
+		ensure_seqlist_dialog_closed_idle(NULL);
+	else
+		execute_idle_and_wait_for_it(ensure_seqlist_dialog_closed_idle, NULL);
 }

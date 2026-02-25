@@ -1,14 +1,17 @@
 // Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-// Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+// Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
 // Reference site is https://siril.org
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "core/settings.h"
 #include "core/siril.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "algos/photometry.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
@@ -325,7 +328,7 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_BE64(data->s_Bmag, double);
 	COPY_BE64(data->SNR, double);
 	// photometry *phot not currently passed to python
-	// gboolean phot_is_valid not currently passed to python
+	COPY_BE64((int64_t) data->phot_is_valid, int64_t);
 	COPY_BE64(data->BV, double);
 	COPY_BE64(data->B_err, double);
 	COPY_BE64(data->A_err, double);
@@ -760,7 +763,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SELECTION: {
-			gboolean result = single_image_is_loaded();
+			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 			if (result) {
 				if (payload_length == 16) {
 					rectangle region_BE = *(rectangle*) payload;
@@ -768,8 +771,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 										GUINT32_FROM_BE(region_BE.y),
 										GUINT32_FROM_BE(region_BE.w),
 										GUINT32_FROM_BE(region_BE.h)};
-					if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-								selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
+					if (selection.x < 0 || selection.x + selection.w > gfit->rx ||
+								selection.y < 0 || selection.y + selection.h > gfit->ry) {
 						const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
 						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 						if (!success)
@@ -805,40 +808,117 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_STAR_IN_SELECTION: {
 			gboolean error_occurred = FALSE;
+			gboolean centred = FALSE;
 			int layer = 0;
 			rectangle selection;
-			memcpy(&selection, &com.selection, sizeof(rectangle));
-			if (payload_length == 16 || payload_length == 20) {
-				rectangle region_BE = *(rectangle*) payload;
-				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
-									GUINT32_FROM_BE(region_BE.y),
-									GUINT32_FROM_BE(region_BE.w),
-									GUINT32_FROM_BE(region_BE.h)};
-			} else {
-				memcpy(&selection, &com.selection, sizeof(rectangle));
+			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
+
+			// Always expect 24 bytes: x, y, w, h, channel, centred_flag
+			if (payload_length != 24) {
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
-			if (payload_length == 20) {
-				layer = GUINT32_FROM_BE(*((int*) payload + 4));
-			} else {
-				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+
+			// Unpack the payload
+			guint32 x_BE = *((guint32*) payload);
+			guint32 y_BE = *((guint32*) (payload + 4));
+			guint32 w_BE = *((guint32*) (payload + 8));
+			guint32 h_BE = *((guint32*) (payload + 12));
+			guint32 channel_BE = *((guint32*) (payload + 16));
+			guint32 centred_BE = *((guint32*) (payload + 20));
+
+			guint32 x = GUINT32_FROM_BE(x_BE);
+			guint32 y = GUINT32_FROM_BE(y_BE);
+			guint32 w = GUINT32_FROM_BE(w_BE);
+			guint32 h = GUINT32_FROM_BE(h_BE);
+			guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+			centred = GUINT32_FROM_BE(centred_BE) != 0;
+
+			// Check if shape was provided (not sentinel values)
+			gboolean shape_provided = (x != SENTINEL_VALUE && y != SENTINEL_VALUE &&
+									w != SENTINEL_VALUE && h != SENTINEL_VALUE);
+
+			if (shape_provided) {
+				// Use provided shape
+				selection = (rectangle) {x, y, w, h};
+ 			} else {
+				// Use current selection from com.selection
+ 				memcpy(&selection, &com.selection, sizeof(rectangle));
+ 			}
+			// Determine layer/channel
+			if (channel_val != SENTINEL_VALUE) {
+				layer = channel_val;
+ 			} else {
+				// Default behavior: use current viewport in GUI mode, or channel 0 in headless
+ 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+ 			}
+			// Check for an invalid selection
+			if (selection.x < 0 || selection.w < 5 || selection.w > 300 ||
+						selection.h < 5 || selection.h > 300 || selection.y < 0) {
+				const char* error_msg = _("Invalid selection");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
-			if (selection.x < 0 || selection.x + selection.w > gfit->rx - 1 ||
-				selection.w < 5 || selection.w > 300 ||
-				selection.h < 5 || selection.h > 300 ||
-				selection.y < 0 || selection.y + selection.h > gfit->ry - 1) {
-					const char* error_msg = _("Invalid selection");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
+
+			// Check if we need to adjust the selection to fit the image
+			if (centred) {
+				// When centred, we need to preserve the centre position while clipping
+				int center_x = selection.x + selection.w / 2;
+				int center_y = selection.y + selection.h / 2;
+
+				// Clip width and height to fit image
+				if (selection.x + selection.w > gfit->rx) {
+					selection.w = gfit->rx - selection.x;
 				}
+				if (selection.y + selection.h > gfit->ry) {
+					selection.h = gfit->ry - selection.y;
+				}
+				if (selection.x < 0) {
+					selection.w += selection.x;  // Reduce width by the amount we're shifting right
+					selection.x = 0;
+				}
+				if (selection.y < 0) {
+					selection.h += selection.y;  // Reduce height by the amount we're shifting up
+					selection.y = 0;
+				}
+
+				// Now adjust x and y to maintain the original centre
+				int new_center_x = selection.x + selection.w / 2;
+				int new_center_y = selection.y + selection.h / 2;
+				selection.x += (center_x - new_center_x);
+				selection.y += (center_y - new_center_y);
+
+				// Final bounds check to ensure we haven't gone out of bounds
+				selection.x = max(0, min(selection.x, (int)gfit->rx - selection.w));
+				selection.y = max(0, min(selection.y, (int)gfit->ry - selection.h));
+			} else {
+				// Original behavior: just clip the width and height
+				if (selection.x + selection.w > gfit->rx - 1)
+					selection.w = max(0, gfit->rx - 1 - selection.x);
+				if (selection.y + selection.h > gfit->ry - 1)
+					selection.h = max(0, gfit->ry - 1 - selection.y);
+			}
+
+			if (selection.w < 5 || selection.h < 5) {
+				const char* error_msg = _("Selection too close to edge of image");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
 			if (layer < 0 || layer >= gfit->naxes[2]) {
-					const char* error_msg = _("Invalid channel");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
+				const char* error_msg = _("Invalid channel");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
 			}
 			starprofile profile = com.pref.starfinder_conf.profile;
 			psf_error error = PSF_NO_ERR;
-			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, FALSE, FALSE, NULL, TRUE, profile, &error);
-			if (!psf || error) {
+			// For get_star_in_selection we will do photometry to get more accurate mag, s_mag, SNR
+			struct phot_config *ps = phot_set_adjusted_for_image(gfit);
+			psf_star *psf = psf_get_minimisation(gfit, layer, &selection, TRUE, centred, ps, TRUE, profile, &error);
+			free(ps); // Free the struct used for photometry
+			if (!psf || (error && error != PSF_ERR_INVALID_PIX_VALUE)) { // Allow PSF_ERR_INVALID_PIX_VALUE as this just indicates photometry
+																		 // failed on a saturated star. We still return the PSF, just with
+																		 // phot_is_valid == False
 				free_psf(psf);
 				error_occurred = TRUE;
 				const char* error_msg = _("Failed to find a star");
@@ -855,7 +935,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				pix2wcs2(gfit->keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
 				// ra and dec = -1 is the error code
 			}
-			const size_t psf_star_size = 36 * sizeof(double);
+
+			const size_t psf_star_size = 37 * sizeof(double);
 			unsigned char* star = g_try_malloc0(psf_star_size);
 			unsigned char* ptr = star;
 			if (psfstar_to_py(psf, ptr, psf_star_size)) {
@@ -864,9 +945,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+
 			if(!error_occurred) {
 				success = send_response(conn, STATUS_OK, star, psf_star_size);
 			}
+
 			g_free(star);
 			break;
 		}
@@ -1096,7 +1179,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (single_image_is_loaded()) {
 				if (com.headless) {
 					const char* error_msg = _("Undo not supported in headless mode");
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 					break;
 				}
 				// Ensure null-terminated string for undo message
@@ -1836,6 +1919,34 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			psf_star **stars = NULL;
 			int nb_stars = 0;
 			gboolean stars_needs_freeing = FALSE;
+			int layer = 0;
+			const guint32 SENTINEL_VALUE = 0xFFFFFFFF;
+
+			// Parse channel from payload if provided
+			if (payload_length == 4) {
+				guint32 channel_BE = *((guint32*) payload);
+				guint32 channel_val = GUINT32_FROM_BE(channel_BE);
+
+				if (channel_val != SENTINEL_VALUE) {
+					layer = channel_val;
+					// Validate channel
+					if (layer < 0 || layer >= gfit->naxes[2]) {
+						const char* error_msg = _("Invalid channel");
+						success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+						break;
+					}
+				} else {
+					// Use default: channel 0 for mono, channel 1 (green) for color
+					layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				}
+			} else if (payload_length == 0) {
+				// No payload means use default
+				layer = (gfit->naxes[2] == 1) ? 0 : 1;
+			} else {
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 
 			// Check if we need to find stars or use existing ones
 			if (starcount(com.stars) < 1) {
@@ -1850,7 +1961,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				sf_data->im.fit = gfit;
 				sf_data->im.from_seq = NULL;
 				sf_data->im.index_in_seq = -1;
-				sf_data->layer = (gfit->naxes[2] == 1) ? 0 : 1;
+				sf_data->layer = layer;
 				sf_data->max_stars_fitted = MAX_STARS;
 				sf_data->selection = (rectangle){0, 0, 0, 0}; // no selection
 				sf_data->save_eqcoords = has_wcs(gfit); // save coords if plate solved
@@ -1862,11 +1973,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				sf_data->process_all_images = FALSE;
 				sf_data->already_in_thread = TRUE;
 				sf_data->keep_stars = FALSE;  // Changed to FALSE so worker doesn't try to manage lifecycle
-
 				// Call the worker function
 				int retval = GPOINTER_TO_INT(findstar_worker(sf_data));
 				free(sf_data);
-
 				if (retval != 0 || !stars) {
 					const char* error_msg = _("Star detection failed");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -1890,7 +1999,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Allocate memory for all star data
-			const size_t psf_star_size = 36 * sizeof(double);
+			const size_t psf_star_size = 37 * sizeof(double);
 			const size_t total_size = nb_stars * psf_star_size;
 			unsigned char* allstars = g_try_malloc0(total_size);
 			if (!allstars) {
@@ -1916,16 +2025,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Clean up and send response
 			if (stars_needs_freeing)
 				free_fitted_stars(stars);
-
 			if (!error_occurred) {
 				shared_memory_info_t *info = handle_rawdata_request(conn, allstars, total_size);
 				success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
 				free(info);
 			}
-
 			g_free(allstars);
 			break;
 		}
+
 		case CMD_GET_BGSAMPLES: {
 			int nb_samples = 0;
 			sample_mutex_lock();
@@ -2063,6 +2171,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+			// Ensure header is up-to-date
+			update_fits_header(fit);
+
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, fit->header, length);
@@ -2083,19 +2194,42 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
+
 			// Prepare data
 			size_t total_length = 0;
-			for (GSList *item = fit->history; item != NULL; item = item->next) {
-				gchar *str = (gchar *)item->data;
-				total_length += strlen(str) + 1;  // +1 to account for the null terminator
+			if (fit->history) {
+				for (GSList *item = fit->history; item != NULL; item = item->next) {
+					gchar *str = (gchar *)item->data;
+					total_length += strlen(str) + 1;  // +1 to account for the null terminator
+				}
+			}
+			if (com.history) {
+				for (int i = 0; i < com.hist_display; i++) {
+					if (com.history[i].history[0] != '\0') {
+						gchar *str = (gchar *) com.history[i].history;
+						total_length += strlen(str) + 1;
+					}
+				}
 			}
 			gchar *buffer = malloc(total_length * sizeof(char));
 			gchar *ptr = buffer;
-			for (GSList *item = fit->history; item != NULL; item = item->next) {
-				gchar *str = (gchar *)item->data;
-				size_t len = strlen(str) + 1;
-				memcpy(ptr, str, len * sizeof(char));
-				ptr += len;
+			if (fit->history) {
+				for (GSList *item = fit->history; item != NULL; item = item->next) {
+					gchar *str = (gchar *)item->data;
+					size_t len = strlen(str) + 1;
+					memcpy(ptr, str, len * sizeof(char));
+					ptr += len;
+				}
+			}
+			if (com.history) {
+				for (int i = 0; i < com.hist_display; i++) {
+					if (com.history[i].history[0] != '\0') {
+						gchar *str = (gchar *) com.history[i].history;
+						size_t len = strlen(str) + 1;
+						memcpy(ptr, str, len * sizeof(char));
+						ptr += len;
+					}
+				}
 			}
 			shared_memory_info_t *info = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
@@ -2319,51 +2453,57 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_SET_SEQ_FRAME_INCL: {
-			uint32_t index;
-			gboolean incl;
 			if (!sequence_is_loaded()) {
 				const char* error_msg = _("No sequence loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			if (payload_length == 8) {
-				// Extract the first 4 bytes as `index`
-				memcpy(&index, payload, sizeof(uint32_t));
+			ensure_seqlist_dialog_closed();
+			// Payload format: count (I) + indices (I * count) + incl (I)
+			if (payload_length < 12) {
+				const char* error_msg = _("Incorrect payload length: too small");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			
+			uint32_t count;
+			memcpy(&count, payload, sizeof(uint32_t));
+			count = GUINT32_FROM_BE(count);
+
+			if (payload_length != 4 + (4 * count) + 4) {
+				const char* error_msg = _("Incorrect payload length: count mismatch");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			uint32_t incl_encoded;
+			memcpy(&incl_encoded, payload + 4 + (4 * count), sizeof(uint32_t));
+			incl_encoded = GUINT32_FROM_BE(incl_encoded);
+			gboolean incl = (gboolean)incl_encoded;
+			
+			// Process each index
+			for (uint32_t i = 0; i < count; i++) {
+				uint32_t index;
+				memcpy(&index, payload + 4 + (i * sizeof(uint32_t)), sizeof(uint32_t));
 				index = GUINT32_FROM_BE(index);
-
-				// Extract the second 4 bytes as `incl`
-				uint32_t incl_encoded;
-				memcpy(&incl_encoded, payload + sizeof(uint32_t), sizeof(uint32_t));
-				incl_encoded = GUINT32_FROM_BE(incl_encoded);
-				incl = (gboolean) incl_encoded;
-
 				if (index >= com.seq.number) {
 					const char* error_msg = _("Index is out of range");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				}
-
-				// Update number of included frames if there is a change
-				gboolean was_incl = com.seq.imgparam[index].incl;
-				if (!was_incl && incl)
-					com.seq.selnum++;
-				else if (was_incl && !incl)
-					com.seq.selnum--;
-
-				// Set inclusion for this frame
 				com.seq.imgparam[index].incl = incl;
-
-				// Update GUI
-				if (!com.headless) {
-					GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
-					g_thread_join(thread);
-					queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
-				}
-				success = send_response(conn, STATUS_OK, NULL, 0);
-			} else {
-				const char* error_msg = _("Incorrect payload length");
-				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			fix_selnum(&com.seq, FALSE);
+			if (com.seq.imgparam[com.seq.reference_image].incl == FALSE) { // in case reference image was just excluded
+				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			}
+			// Update GUI
+			if (!com.headless) {
+				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
+				g_thread_join(thread);
+				queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			}
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
@@ -2587,12 +2727,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_DRAW_POLYGON: {
-			mouse_status_enum mouse_status = get_mouse_status();
-			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
+//			mouse_status_enum mouse_status = get_mouse_status();
+/*			if (mouse_status > MOUSE_ACTION_SELECT_REG_AREA) {
 				siril_debug_print("## Mouse mode: %d\n", (int) mouse_status);
 				const char* error_msg = _("Wrong mouse mode");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			}
+			}*/
 			if (payload_length == 5) {
 				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
 				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
@@ -3261,6 +3401,102 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				success = handle_save_image_file_request(conn, payload, payload_length);
+			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_MASK: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = _("No image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (gfit->mask == NULL || gfit->mask->data == NULL) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 profile_size = gfit->rx * gfit->ry * (gfit->mask->bitpix / 8);
+
+			shared_memory_info_t *info = handle_rawdata_request(conn, gfit->mask->data, profile_size);
+			info->width = (guint32) gfit->rx;
+			info->height = (guint32) gfit->ry;
+			info->data_type = (guint32) gfit->mask->bitpix; // "misuse" the data_type field for bitpix, this is a bit different to its use for image data
+			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));
+			free(info);
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for SET_IMAGE_MASK: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_set_image_mask_request(conn, gfit, info);
+				show_or_hide_mask_tab();
+				if (!com.script) {
+					execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+				}
+			}
+			break;
+		}
+
+		case CMD_SET_IMAGE_MASK_STATE: {
+			if (single_image_is_loaded() && gfit->mask && gfit->mask->data) {
+				if (payload_length == 1) {
+					uint8_t statebyte = payload[0];
+					gboolean state = (statebyte);
+					set_mask_active(gfit, state);
+					success = send_response(conn, STATUS_OK, NULL, 0);
+				} else {
+					const char* error_msg = _("Failed to set mask state - invalid payload length");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					if (!success)
+						siril_debug_print("Error in send_response\n");
+				}
+			} else {
+				const char* error_msg = _("Failed to set mask state - no image loaded or image has no mask");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_IMAGE_MASK_STATE: {
+			// Prepare the response data
+			uint8_t response_data[4]; // 4 for STF mode
+
+			if (!gfit->mask || !gfit->mask->data) {
+				const char* error_msg = _("Image has no mask");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+
+			}
+			// Convert the integers to BE format for consistency across the UNIX socket
+			gboolean linked = gfit->mask_active;
+			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
+
+			// Copy the packed data into the response buffer
+			memcpy(response_data, &linked_BE, sizeof(uint32_t));
+
+			// Send success response with dimensions
+			success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			break;
+		}
+
+		case CMD_MASK_UPDATE_POLYGON: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for ADD_USER_POLYGON: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_mask_update_polygon_request(conn, info);
 			}
 			break;
 		}

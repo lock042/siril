@@ -1,29 +1,29 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 /**
- *
- * \file utils.c
- * \brief Misc. function utilities.
- *
- */
+*
+* \file utils.c
+* \brief Misc. function utilities.
+*
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,11 +52,11 @@
 #endif
 
 /**
- * convert a float type buffer into a WORD buffer
- * @param buffer in float
- * @param ndata
- * @return
- */
+* convert a float type buffer into a WORD buffer
+* @param buffer in float
+* @param ndata
+* @return
+*/
 WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
@@ -71,11 +71,11 @@ WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 }
 
 /**
- * convert a float type buffer into a signed short buffer
- * @param buffer in float
- * @param ndata
- * @return
- */
+* convert a float type buffer into a signed short buffer
+* @param buffer in float
+* @param ndata
+* @return
+*/
 signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
@@ -90,11 +90,11 @@ signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 }
 
 /**
- * convert a ushort type buffer into a signed short buffer
- * @param buffer in WORD
- * @param ndata
- * @return
- */
+* convert a ushort type buffer into a signed short buffer
+* @param buffer in WORD
+* @param ndata
+* @return
+*/
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
@@ -109,11 +109,11 @@ signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 }
 
 /**
- * convert a BYTE type buffer into a float buffer
- * @param buffer in BYTE
- * @param ndata
- * @return
- */
+* convert a BYTE type buffer into a float buffer
+* @param buffer in BYTE
+* @param ndata
+* @return
+*/
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
@@ -128,11 +128,11 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
 }
 
 /**
- * convert a WORD type buffer into a float buffer
- * @param buffer in WORD
- * @param ndata
- * @return
- */
+* convert a WORD type buffer into a float buffer
+* @param buffer in WORD
+* @param ndata
+* @return
+*/
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
@@ -147,11 +147,11 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
 }
 
 /**
- * convert a WORD type buffer representing 8bit data into a float buffer
- * @param buffer in WORD
- * @param ndata
- * @return
- */
+* convert a WORD type buffer representing 8bit data into a float buffer
+* @param buffer in WORD
+* @param ndata
+* @return
+*/
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
@@ -166,10 +166,10 @@ float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
 }
 
 /**
- * Converts a channel number from a color image to its name.
- * @param channel the channel number [0, 2]
- * @return the string containing the name of the channel's color
- */
+* Converts a channel number from a color image to its name.
+* @param channel the channel number [0, 2]
+* @return the string containing the name of the channel's color
+*/
 const char *channel_number_to_name(int channel) {
 	switch (channel) {
 		case 0:
@@ -185,10 +185,10 @@ const char *channel_number_to_name(int channel) {
 }
 
 /**
- *  Searches for an extension '.something' in filename from the end
- *  @param filename input filename or path
- *  @return the index of the first '.' found
- */
+*  Searches for an extension '.something' in filename from the end
+*  @param filename input filename or path
+*  @return the index of the first '.' found
+*/
 int get_extension_index(const char *filename) {
 	if (!filename) // handle NULL filename
 		return -1;
@@ -207,10 +207,10 @@ int get_extension_index(const char *filename) {
 }
 
 /**
- * Get the extension of a file, without the dot.
- * @param filename input filename or path
- * @return extension pointed from the filename itself or NULL
- */
+* Get the extension of a file, without the dot.
+* @param filename input filename or path
+* @return extension pointed from the filename itself or NULL
+*/
 const char *get_filename_ext(const char *filename) {
 	gchar *basename;
 	int len;
@@ -237,10 +237,10 @@ const char *get_filename_ext(const char *filename) {
 }
 
 /**
- *
- * @param filename
- * @return the type of the file from its filename
- */
+*
+* @param filename
+* @return the type of the file from its filename
+*/
 image_type get_type_from_filename(const gchar *filename) {
 	const char *extension = get_filename_ext(filename);
 	if (!extension)
@@ -249,10 +249,10 @@ image_type get_type_from_filename(const gchar *filename) {
 }
 
 /**
- * Removes extension of the filename or path
- * @param filename file path with extension
- * @return newly allocated filename without extension
- */
+* Removes extension of the filename or path
+* @param filename file path with extension
+* @return newly allocated filename without extension
+*/
 char *remove_ext_from_filename(const char *filename) {
 	char *file = NULL;
 	int ext_index = -1;
@@ -275,33 +275,33 @@ char *remove_ext_from_filename(const char *filename) {
 }
 
 char *remove_all_ext_from_filename(const char *filename) {
-    char *file = NULL;
-    int ext_index = -1;
+	char *file = NULL;
+	int ext_index = -1;
 
-    // Find the first dot after the last path separator
-    for (int i = strlen(filename) - 1; i > 0; i--) {
-        if (filename[i] == '\\' || filename[i] == '/')
-            break;
-        if (filename[i] == '.') {
-            ext_index = i;  // Keep updating to find the first dot, not the last
-        }
-    }
+	// Find the first dot after the last path separator
+	for (int i = strlen(filename) - 1; i > 0; i--) {
+		if (filename[i] == '\\' || filename[i] == '/')
+			break;
+		if (filename[i] == '.') {
+			ext_index = i;  // Keep updating to find the first dot, not the last
+		}
+	}
 
-    if (ext_index == -1)
-        return strdup(filename);
+	if (ext_index == -1)
+		return strdup(filename);
 
-    file = malloc(ext_index + 1);
-    strncpy(file, filename, ext_index);
-    file[ext_index] = '\0';
-    return file;
+	file = malloc(ext_index + 1);
+	strncpy(file, filename, ext_index);
+	file[ext_index] = '\0';
+	return file;
 }
 
 /**
- * Replaces the extension of a file name or path
- * @param path the original path
- * @param new_ext the next extension to put
- * @return a new string with the new extension
- */
+* Replaces the extension of a file name or path
+* @param path the original path
+* @param new_ext the next extension to put
+* @return a new string with the new extension
+*/
 gchar *replace_ext(const char *path, const char *new_ext) {
 	int idx = get_extension_index(path);
 	gchar *retval = g_strdup(path);
@@ -311,10 +311,10 @@ gchar *replace_ext(const char *path, const char *new_ext) {
 }
 
 /**
- * Check is a string contains directory separators and thus represent a path
- * @param file the string to test
- * @return true if it contains a separator
- */
+* Check is a string contains directory separators and thus represent a path
+* @param file the string to test
+* @return true if it contains a separator
+*/
 gboolean string_is_a_path(const char *file) {
 	int len = strlen(file);
 	for (int i = 0; i < len; i++) {
@@ -325,10 +325,10 @@ gboolean string_is_a_path(const char *file) {
 }
 
 /**
- * Tests whether the given file is either regular or a symlink
- * @param filename input
- * @return 1 if file is readable (not actually opened to verify)
- */
+* Tests whether the given file is either regular or a symlink
+* @param filename input
+* @return 1 if file is readable (not actually opened to verify)
+*/
 int is_readable_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
@@ -345,10 +345,10 @@ int is_readable_file(const char *filename) {
 }
 
 /**
- * Tests whether the given file is a symlink
- * @param filename input
- * @return 1 if file is symlink
- */
+* Tests whether the given file is a symlink
+* @param filename input
+* @return 1 if file is symlink
+*/
 int is_symlink_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
@@ -408,17 +408,17 @@ void replace_invalid_chars(char *name, char repl) {
 }
 
 /**
- * Replace non-ASCII characters with their ASCII equivalents if possible.
- *
- * This function normalizes the input UTF-8 string by decomposing
- * accented characters into their base characters plus accent marks.
- * It then filters out non-ASCII characters and retains only printable ASCII characters.
- *
- * @param str The input UTF-8 string to be processed.
- * @return A newly allocated UTF-8 string where non-ASCII characters are replaced
- *         with their ASCII equivalents or removed if no equivalent exists.
- *         The caller is responsible for freeing the returned string.
- */
+* Replace non-ASCII characters with their ASCII equivalents if possible.
+*
+* This function normalizes the input UTF-8 string by decomposing
+* accented characters into their base characters plus accent marks.
+* It then filters out non-ASCII characters and retains only printable ASCII characters.
+*
+* @param str The input UTF-8 string to be processed.
+* @return A newly allocated UTF-8 string where non-ASCII characters are replaced
+*         with their ASCII equivalents or removed if no equivalent exists.
+*         The caller is responsible for freeing the returned string.
+*/
 gchar* replace_wide_char(const gchar *str) {
 	// Normalize the input string to NFD (Normalization Form Decomposition)
 	// This separates combined characters into their base and accent components
@@ -469,6 +469,8 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 		return TYPEBMP;
 	if (bytes_read >= 9 && memcmp(magic, "SIMPLE  =", 9) == 0)
 		return TYPEFITS;
+	if (bytes_read >= 4 && magic[0] == 0xFC && magic[1] == 0x31 && magic[2] == 0x22 && magic[3] == 0x01)
+		return TYPEPIC;
 	if (bytes_read >= 3 && magic[0] == 0xFF && magic[1] == 0xD8 && magic[2] == 0xFF)
 		return TYPEJPG;
 	if (bytes_read >= 8 && memcmp(magic, "\x89PNG\r\n\x1A\n", 8) == 0)
@@ -493,14 +495,14 @@ static image_type determine_image_type_from_magic(const uint8_t *magic, size_t b
 
 
 /** Tests if filename is the canonical name of a known file type
- *  If filename contains an extension, only this file name is tested, else all
- *  extensions are tested for the file name until one is found.
- * @param[in] filename the filename to test for.
- * @param[in] type is set according to the result of the test.
- * @param[out] realname (optional) is set according to the found file name: it
- *  must be freed with when no longer needed.
- * @return 0 if success, 1 if error
- */
+*  If filename contains an extension, only this file name is tested, else all
+*  extensions are tested for the file name until one is found.
+* @param[in] filename the filename to test for.
+* @param[in] type is set according to the result of the test.
+* @param[out] realname (optional) is set according to the found file name: it
+*  must be freed with when no longer needed.
+* @return 0 if success, 1 if error
+*/
 
 int stat_file(const char *filename, image_type *type, char **realname) {
 	if (!filename || !type) return 1;
@@ -601,143 +603,143 @@ static gchar* siril_canonicalize_filename(const gchar *filename,
 }
 #else
 /**
- * g_canonicalize_filename:
- * @filename: (type filename): the name of the file
- * @relative_to: (type filename) (nullable): the relative directory, or %NULL
- * to use the current working directory
- *
- * Gets the canonical file name from @filename. All triple slashes are turned into
- * single slashes, and all `..` and `.`s resolved against @relative_to.
- *
- * Symlinks are not followed, and the returned path is guaranteed to be absolute.
- *
- * If @filename is an absolute path, @relative_to is ignored. Otherwise,
- * @relative_to will be prepended to @filename to make it absolute. @relative_to
- * must be an absolute path, or %NULL. If @relative_to is %NULL, it'll fallback
- * to g_get_current_dir().
- *
- * This function never fails, and will canonicalize file paths even if they don't
- * exist.
- *
- * No file system I/O is done.
- *
- * Returns: (type filename) (transfer full): a newly allocated string with the
- * canonical file path
- * Since: 2.58
- */
-  gchar *canon, *start, *p, *q;
-  guint i;
+* g_canonicalize_filename:
+* @filename: (type filename): the name of the file
+* @relative_to: (type filename) (nullable): the relative directory, or %NULL
+* to use the current working directory
+*
+* Gets the canonical file name from @filename. All triple slashes are turned into
+* single slashes, and all `..` and `.`s resolved against @relative_to.
+*
+* Symlinks are not followed, and the returned path is guaranteed to be absolute.
+*
+* If @filename is an absolute path, @relative_to is ignored. Otherwise,
+* @relative_to will be prepended to @filename to make it absolute. @relative_to
+* must be an absolute path, or %NULL. If @relative_to is %NULL, it'll fallback
+* to g_get_current_dir().
+*
+* This function never fails, and will canonicalize file paths even if they don't
+* exist.
+*
+* No file system I/O is done.
+*
+* Returns: (type filename) (transfer full): a newly allocated string with the
+* canonical file path
+* Since: 2.58
+*/
+gchar *canon, *start, *p, *q;
+guint i;
 
-  g_return_val_if_fail (relative_to == NULL || g_path_is_absolute (relative_to), NULL);
+g_return_val_if_fail (relative_to == NULL || g_path_is_absolute (relative_to), NULL);
 
-  if (!g_path_is_absolute (filename))
-    {
-      gchar *cwd_allocated = NULL;
-      const gchar  *cwd;
+if (!g_path_is_absolute (filename))
+	{
+	gchar *cwd_allocated = NULL;
+	const gchar  *cwd;
 
-      if (relative_to != NULL)
-        cwd = relative_to;
-      else
-        cwd = cwd_allocated = g_get_current_dir ();
+	if (relative_to != NULL)
+		cwd = relative_to;
+	else
+		cwd = cwd_allocated = g_get_current_dir ();
 
-      canon = g_build_filename (cwd, filename, NULL);
-      g_free (cwd_allocated);
-    }
-  else
-    {
-      canon = g_strdup (filename);
-    }
+	canon = g_build_filename (cwd, filename, NULL);
+	g_free (cwd_allocated);
+	}
+else
+	{
+	canon = g_strdup (filename);
+	}
 
-  start = (char *)g_path_skip_root (canon);
+start = (char *)g_path_skip_root (canon);
 
-  if (start == NULL)
-    {
-      /* This shouldn't really happen, as g_get_current_dir() should
-         return an absolute pathname, but bug 573843 shows this is
-         not always happening */
-      g_free (canon);
-      return g_build_filename (G_DIR_SEPARATOR_S, filename, NULL);
-    }
+if (start == NULL)
+	{
+	/* This shouldn't really happen, as g_get_current_dir() should
+		return an absolute pathname, but bug 573843 shows this is
+		not always happening */
+	g_free (canon);
+	return g_build_filename (G_DIR_SEPARATOR_S, filename, NULL);
+	}
 
-  /* POSIX allows double slashes at the start to
-   * mean something special (as does windows too).
-   * So, "//" != "/", but more than two slashes
-   * is treated as "/".
-   */
-  i = 0;
-  for (p = start - 1;
-       (p >= canon) &&
-         G_IS_DIR_SEPARATOR (*p);
-       p--)
-    i++;
-  if (i > 2)
-    {
-      i -= 1;
-      start -= i;
-      memmove (start, start+i, strlen (start+i) + 1);
-    }
+/* POSIX allows double slashes at the start to
+* mean something special (as does windows too).
+* So, "//" != "/", but more than two slashes
+* is treated as "/".
+*/
+i = 0;
+for (p = start - 1;
+	(p >= canon) &&
+		G_IS_DIR_SEPARATOR (*p);
+	p--)
+	i++;
+if (i > 2)
+	{
+	i -= 1;
+	start -= i;
+	memmove (start, start+i, strlen (start+i) + 1);
+	}
 
-  /* Make sure we're using the canonical dir separator */
-  p++;
-  while (p < start && G_IS_DIR_SEPARATOR (*p))
-    *p++ = G_DIR_SEPARATOR;
+/* Make sure we're using the canonical dir separator */
+p++;
+while (p < start && G_IS_DIR_SEPARATOR (*p))
+	*p++ = G_DIR_SEPARATOR;
 
-  p = start;
-  while (*p != 0)
-    {
-      if (p[0] == '.' && (p[1] == 0 || G_IS_DIR_SEPARATOR (p[1])))
-        {
-          memmove (p, p+1, strlen (p+1)+1);
-        }
-      else if (p[0] == '.' && p[1] == '.' && (p[2] == 0 || G_IS_DIR_SEPARATOR (p[2])))
-        {
-          q = p + 2;
-          /* Skip previous separator */
-          p = p - 2;
-          if (p < start)
-            p = start;
-          while (p > start && !G_IS_DIR_SEPARATOR (*p))
-            p--;
-          if (G_IS_DIR_SEPARATOR (*p))
-            *p++ = G_DIR_SEPARATOR;
-          memmove (p, q, strlen (q)+1);
-        }
-      else
-        {
-          /* Skip until next separator */
-          while (*p != 0 && !G_IS_DIR_SEPARATOR (*p))
-            p++;
+p = start;
+while (*p != 0)
+	{
+	if (p[0] == '.' && (p[1] == 0 || G_IS_DIR_SEPARATOR (p[1])))
+		{
+		memmove (p, p+1, strlen (p+1)+1);
+		}
+	else if (p[0] == '.' && p[1] == '.' && (p[2] == 0 || G_IS_DIR_SEPARATOR (p[2])))
+		{
+		q = p + 2;
+		/* Skip previous separator */
+		p = p - 2;
+		if (p < start)
+			p = start;
+		while (p > start && !G_IS_DIR_SEPARATOR (*p))
+			p--;
+		if (G_IS_DIR_SEPARATOR (*p))
+			*p++ = G_DIR_SEPARATOR;
+		memmove (p, q, strlen (q)+1);
+		}
+	else
+		{
+		/* Skip until next separator */
+		while (*p != 0 && !G_IS_DIR_SEPARATOR (*p))
+			p++;
 
-          if (*p != 0)
-            {
-              /* Canonicalize one separator */
-              *p++ = G_DIR_SEPARATOR;
-            }
-        }
+		if (*p != 0)
+			{
+			/* Canonicalize one separator */
+			*p++ = G_DIR_SEPARATOR;
+			}
+		}
 
-      /* Remove additional separators */
-      q = p;
-      while (*q && G_IS_DIR_SEPARATOR (*q))
-        q++;
+	/* Remove additional separators */
+	q = p;
+	while (*q && G_IS_DIR_SEPARATOR (*q))
+		q++;
 
-      if (p != q)
-        memmove (p, q, strlen (q) + 1);
-    }
+	if (p != q)
+		memmove (p, q, strlen (q) + 1);
+	}
 
-  /* Remove trailing slashes */
-  if (p > start && G_IS_DIR_SEPARATOR (*(p-1)))
-    *(p-1) = 0;
+/* Remove trailing slashes */
+if (p > start && G_IS_DIR_SEPARATOR (*(p-1)))
+	*(p-1) = 0;
 
-  return canon;
+return canon;
 }
 #endif
 
 /** Try to change the CWD to the argument, absolute or relative.
- *  If success, the new CWD is written to com.wd
- *  @param[in] dir absolute or relative path we want to set as cwd
- *  @param[out] err error message when return value is different of 1. Can be NULL if message is not needed.
- *  @return 0 if success, any other values for error
- */
+*  If success, the new CWD is written to com.wd
+*  @param[in] dir absolute or relative path we want to set as cwd
+*  @param[out] err error message when return value is different of 1. Can be NULL if message is not needed.
+*  @return 0 if success, any other values for error
+*/
 int siril_change_dir(const char *dir, gchar **err) {
 	gchar *error = NULL;
 	int retval = 0;
@@ -761,9 +763,9 @@ int siril_change_dir(const char *dir, gchar **err) {
 		close_sequence(FALSE);
 		if (!g_chdir(dir)) {
 			/* do we need to search for sequences in the directory now? We still need to
-			 * press the check seq button to display the list, and this is also done there. */
+			* press the check seq button to display the list, and this is also done there. */
 			/* check_seq();
-			   update_sequence_list();*/
+			update_sequence_list();*/
 			// Don't follow symbolic links
 			if (g_path_is_absolute(dir)) {
 				new_dir = g_memdup(dir, strlen(dir) + 1);
@@ -775,8 +777,8 @@ int siril_change_dir(const char *dir, gchar **err) {
 				com.wd = new_dir;
 			}
 
-		  siril_log_message(_("Setting CWD (Current Working Directory) to '%s'\n"), com.wd);
-		  retval = 0;
+		siril_log_message(_("Setting CWD (Current Working Directory) to '%s'\n"), com.wd);
+		retval = 0;
 		} else {
 			int saved_errno = errno;
 			error = siril_log_message(_("Could not change directory to '%s'(error code %d: %s).\n"), dir, saved_errno, g_strerror(saved_errno));
@@ -791,10 +793,10 @@ int siril_change_dir(const char *dir, gchar **err) {
 
 
 /**
- * Expands the ~ in filenames
- * @param[in] filename input filename
- * @param[in] size maximum size of the filename
- */
+* Expands the ~ in filenames
+* @param[in] filename input filename
+* @param[in] size maximum size of the filename
+*/
 void expand_home_in_filename(char *filename, int size) {
 	if (filename[0] == '~' && filename[1] == '\0')
 		strcat(filename, G_DIR_SEPARATOR_S);
@@ -817,11 +819,11 @@ void expand_home_in_filename(char *filename, int size) {
 }
 
 /**
- * Tries to get normalized value of a fit image. Make assumption that
- * an image with no values greater than 2^8 comes from 8-bit images
- * @param fit input FITS image
- * @return 255 or 65535 if 8- or 16-bit image
- */
+* Tries to get normalized value of a fit image. Make assumption that
+* an image with no values greater than 2^8 comes from 8-bit images
+* @param fit input FITS image
+* @return 255 or 65535 if 8- or 16-bit image
+*/
 double get_normalized_value(fits *fit) {
 	if (fit->type == DATA_USHORT) {
 		image_find_minmax(fit);
@@ -836,11 +838,11 @@ double get_normalized_value(fits *fit) {
 }
 
 /**
- * append a string to the end of an existing string
- * @param data original string
- * @param newdata suffix to add
- * @return a new string that should be freed when no longer needed
- */
+* append a string to the end of an existing string
+* @param data original string
+* @param newdata suffix to add
+* @return a new string that should be freed when no longer needed
+*/
 gchar* str_append(gchar** data, const gchar* newdata) {
 	gchar* p;
 	int len = (*data ? strlen(*data) : 0);
@@ -858,12 +860,12 @@ gchar* str_append(gchar** data, const gchar* newdata) {
 }
 
 /**
- * Cut a base name to 120 characters and add a trailing underscore if needed.
- * WARNING: may return a newly allocated string and free the argument
- * @param root the original base name
- * @param can_free allow root to be freed in case a new string is allocated
- * @return a string ending with trailing underscore
- */
+* Cut a base name to 120 characters and add a trailing underscore if needed.
+* WARNING: may return a newly allocated string and free the argument
+* @param root the original base name
+* @param can_free allow root to be freed in case a new string is allocated
+* @return a string ending with trailing underscore
+*/
 char *format_basename(char *root, gboolean can_free) {
 	int len = strlen(root);
 	if (len > 120) {
@@ -884,11 +886,11 @@ char *format_basename(char *root, gboolean can_free) {
 }
 
 /**
- * Computes slope using low and high values
- * @param lo low value
- * @param hi high value
- * @return the computed slope
- */
+* Computes slope using low and high values
+* @param lo low value
+* @param hi high value
+* @return the computed slope
+*/
 float compute_slope(WORD *lo, WORD *hi) {
 	*lo = gui.lo;
 	*hi = gui.hi;
@@ -896,11 +898,11 @@ float compute_slope(WORD *lo, WORD *hi) {
 }
 
 /**
- * Try to get file info, i.e width and height
- * @param filename name of the file
- * @param pixbuf
- * @return a newly allocated and formatted string containing dimension information or NULL
- */
+* Try to get file info, i.e width and height
+* @param filename name of the file
+* @param pixbuf
+* @return a newly allocated and formatted string containing dimension information or NULL
+*/
 gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	int width, height;
 	int n_channel = 0;
@@ -926,12 +928,12 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 }
 
 /**
- * Truncate a string str to not exceed an length of size
- * @param str the string to be truncated
- * @param size maximum size of the string
- * @return the truncated size starting by "..." and followed by "/"
- * if possible
- */
+* Truncate a string str to not exceed an length of size
+* @param str the string to be truncated
+* @param size maximum size of the string
+* @return the truncated size starting by "..." and followed by "/"
+* if possible
+*/
 gchar *siril_truncate_str(gchar *str, gint size) {
 	GString *trunc_str = g_string_new(str);
 	gint len = strlen(str);
@@ -950,11 +952,11 @@ gchar *siril_truncate_str(gchar *str, gint size) {
 }
 
 /**
- *
- * @param list
- * @param arg_count
- * @return
- */
+*
+* @param list
+* @param arg_count
+* @return
+*/
 gchar **glist_to_array(GList *list, int *arg_count) {
 	int count;
 	if (arg_count && *arg_count > 0)
@@ -978,10 +980,10 @@ gchar **glist_to_array(GList *list, int *arg_count) {
 }
 
 /**
- *
- * @param uri_string
- * @return a new allocated string
- */
+*
+* @param uri_string
+* @return a new allocated string
+*/
 gchar* url_cleanup(const gchar *uri_string) {
 	GString *copy;
 	const gchar *end;
@@ -1011,9 +1013,9 @@ gchar* url_cleanup(const gchar *uri_string) {
 }
 
 /**
- * Deblanks a string
- * @param s string to be deblanked
- */
+* Deblanks a string
+* @param s string to be deblanked
+*/
 void remove_spaces_from_str(gchar *s) {
 	gchar *d = s;
 	do {
@@ -1024,10 +1026,10 @@ void remove_spaces_from_str(gchar *s) {
 }
 
 /**
- * Checks if the given UTF-8 encoded string contains any whitespace characters.
- * @param str The UTF-8 encoded string to check.
- * @return TRUE if the string contains at least one whitespace character; FALSE otherwise.
- */
+* Checks if the given UTF-8 encoded string contains any whitespace characters.
+* @param str The UTF-8 encoded string to check.
+* @return TRUE if the string contains at least one whitespace character; FALSE otherwise.
+*/
 gboolean string_has_space(const gchar *str) {
 	if (str == NULL) {
 		return FALSE;
@@ -1048,9 +1050,9 @@ gboolean string_has_space(const gchar *str) {
 
 
 /**
- * Removing trailing carriage return and newline characters in-place
- * @param the string that will be modified, allocation unchanged
- */
+* Removing trailing carriage return and newline characters in-place
+* @param the string that will be modified, allocation unchanged
+*/
 void remove_trailing_eol(char *str) {
 	int i = strlen(str) - 1;
 	while (i >= 0 && (str[i] == '\r' || str[i] == '\n'))
@@ -1078,134 +1080,134 @@ gboolean string_is_a_number(const char *str) {
 
 #if !GLIB_CHECK_VERSION(2,68,0)
 /**
- * g_string_replace:
- * @string: a #GString
- * @find: the string to find in @string
- * @replace: the string to insert in place of @find
- * @limit: the maximum instances of @find to replace with @replace, or `0` for
- * no limit
- *
- * Replaces the string @find with the string @replace in a #GString up to
- * @limit times. If the number of instances of @find in the #GString is
- * less than @limit, all instances are replaced. If the number of
- * instances is `0`, all instances of @find are replaced.
- *
- * If @find is the empty string, since versions 2.69.1 and 2.68.4 the
- * replacement will be inserted no more than once per possible position
- * (beginning of string, end of string and between characters). This did
- * not work correctly in earlier versions.
- *
- * Returns: the number of find and replace operations performed.
- *
- * Since: 2.68
- */
+* g_string_replace:
+* @string: a #GString
+* @find: the string to find in @string
+* @replace: the string to insert in place of @find
+* @limit: the maximum instances of @find to replace with @replace, or `0` for
+* no limit
+*
+* Replaces the string @find with the string @replace in a #GString up to
+* @limit times. If the number of instances of @find in the #GString is
+* less than @limit, all instances are replaced. If the number of
+* instances is `0`, all instances of @find are replaced.
+*
+* If @find is the empty string, since versions 2.69.1 and 2.68.4 the
+* replacement will be inserted no more than once per possible position
+* (beginning of string, end of string and between characters). This did
+* not work correctly in earlier versions.
+*
+* Returns: the number of find and replace operations performed.
+*
+* Since: 2.68
+*/
 guint
 g_string_replace (GString     *string,
-                  const gchar *find,
-                  const gchar *replace,
-                  guint        limit)
+				const gchar *find,
+				const gchar *replace,
+				guint        limit)
 {
-  gsize f_len, r_len, pos;
-  gchar *cur, *next;
-  gint n = 0;
+gsize f_len, r_len, pos;
+gchar *cur, *next;
+gint n = 0;
 
-  g_return_val_if_fail (string != NULL, 0);
-  g_return_val_if_fail (find != NULL, 0);
-  g_return_val_if_fail (replace != NULL, 0);
+g_return_val_if_fail (string != NULL, 0);
+g_return_val_if_fail (find != NULL, 0);
+g_return_val_if_fail (replace != NULL, 0);
 
-  f_len = strlen (find);
-  r_len = strlen (replace);
-  cur = string->str;
+f_len = strlen (find);
+r_len = strlen (replace);
+cur = string->str;
 
-  while ((next = strstr (cur, find)) != NULL)
-    {
-      pos = next - string->str;
-      g_string_erase (string, pos, f_len);
-      g_string_insert (string, pos, replace);
-      cur = string->str + pos + r_len;
-      n++;
-      /* Only match the empty string once at any given position, to
-       * avoid infinite loops */
-      if (f_len == 0)
-        {
-          if (cur[0] == '\0')
-            break;
-          else
-            cur++;
-        }
-      if (n == limit)
-        break;
-    }
+while ((next = strstr (cur, find)) != NULL)
+	{
+	pos = next - string->str;
+	g_string_erase (string, pos, f_len);
+	g_string_insert (string, pos, replace);
+	cur = string->str + pos + r_len;
+	n++;
+	/* Only match the empty string once at any given position, to
+	* avoid infinite loops */
+	if (f_len == 0)
+		{
+		if (cur[0] == '\0')
+			break;
+		else
+			cur++;
+		}
+	if (n == limit)
+		break;
+	}
 
-  return n;
+return n;
 }
 #endif
 
 /*
- * str_replace()
- *
- * Substring replacement utility function for use with basic null
- * terminated char* strings that can't be handled with the glib
- * functions of similar purpose.
- *
- * Calling function must initialize a char* to hold the result.
- * result is malloc()ed here and is the responsibility of the calling
- * function to free.
- */
+* str_replace()
+*
+* Substring replacement utility function for use with basic null
+* terminated char* strings that can't be handled with the glib
+* functions of similar purpose.
+*
+* Calling function must initialize a char* to hold the result.
+* result is malloc()ed here and is the responsibility of the calling
+* function to free.
+*/
 
 char *str_replace(char *orig, const char *rep, char *with) {
-    char *result; // the return string
-    char *ins;    // the next insert point
-    char *tmp;    // varies
-    int len_rep;  // length of rep (the string to remove)
-    int len_with; // length of with (the string to replace rep with)
-    int len_front; // distance between rep and end of last rep
-    int count;    // number of replacements
+	char *result; // the return string
+	char *ins;    // the next insert point
+	char *tmp;    // varies
+	int len_rep;  // length of rep (the string to remove)
+	int len_with; // length of with (the string to replace rep with)
+	int len_front; // distance between rep and end of last rep
+	int count;    // number of replacements
 
 
-    // sanity checks and initialization
-    if (!orig || !rep)
-        return NULL;
-    len_rep = strlen(rep);
-    if (len_rep == 0)
-        return NULL; // empty rep causes infinite loop during count
-    if (!with)
-        with = "";
-    len_with = strlen(with);
+	// sanity checks and initialization
+	if (!orig || !rep)
+		return NULL;
+	len_rep = strlen(rep);
+	if (len_rep == 0)
+		return NULL; // empty rep causes infinite loop during count
+	if (!with)
+		with = "";
+	len_with = strlen(with);
 
-    // count the number of replacements needed
-    ins = orig;
-    for (count = 0; (tmp = strstr(ins, rep)); ++count) {
-        ins = tmp + len_rep;
-    }
+	// count the number of replacements needed
+	ins = orig;
+	for (count = 0; (tmp = strstr(ins, rep)); ++count) {
+		ins = tmp + len_rep;
+	}
 
-    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+	tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
 
-    if (!result)
-        return NULL;
+	if (!result)
+		return NULL;
 
-    // first time through the loop, all the variable are set correctly
-    // from here on,
-    //    tmp points to the end of the result string
-    //    ins points to the next occurrence of rep in orig
-    //    orig points to the remainder of orig after "end of rep"
-    while (count--) {
-        ins = strstr(orig, rep);
-        len_front = ins - orig;
-        tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strcpy(tmp, with) + len_with;
-        orig += len_front + len_rep; // move to next "end of rep"
-    }
-    strcpy(tmp, orig);
-    return result;
+	// first time through the loop, all the variable are set correctly
+	// from here on,
+	//    tmp points to the end of the result string
+	//    ins points to the next occurrence of rep in orig
+	//    orig points to the remainder of orig after "end of rep"
+	while (count--) {
+		ins = strstr(orig, rep);
+		len_front = ins - orig;
+		tmp = strncpy(tmp, orig, len_front) + len_front;
+		tmp = strcpy(tmp, with) + len_with;
+		orig += len_front + len_rep; // move to next "end of rep"
+	}
+	strcpy(tmp, orig);
+	return result;
 }
 
 /**
- * Deblanks a string and replace spaces with char c
- * Multiple adjacent spaces are replaced only once
- * @param s string to be deblanked
- * @param c character to replace spaces
- */
+* Deblanks a string and replace spaces with char c
+* Multiple adjacent spaces are replaced only once
+* @param s string to be deblanked
+* @param c character to replace spaces
+*/
 void replace_spaces_from_str(gchar *s, gchar c) {
 	gchar *d = s;
 	do {
@@ -1230,10 +1232,10 @@ void replace_char_from_str(gchar *s, gchar in, gchar out) {
 }
 
 /**
- * Recomposes a string from words, with a space between each.
- * @param words a NULL-terminated array of words
- * @return a string to be freed with g_free()
- */
+* Recomposes a string from words, with a space between each.
+* @param words a NULL-terminated array of words
+* @return a string to be freed with g_free()
+*/
 gchar *build_string_from_words(char **words) {
 	GString *str = g_string_new(words[0]);
 	int i = 1;
@@ -1245,11 +1247,11 @@ gchar *build_string_from_words(char **words) {
 }
 
 /**
- * Appends elements to an existing array.
- * @param array an NULL-terminated array sufficiently allocated to contain the
- * extra elements at its end. It will be NULL-terminated after append.
- * @param elements a NULL-terminated array of elements to add to array
- */
+* Appends elements to an existing array.
+* @param array an NULL-terminated array sufficiently allocated to contain the
+* extra elements at its end. It will be NULL-terminated after append.
+* @param elements a NULL-terminated array of elements to add to array
+*/
 void append_elements_to_array(char **array, char **elements) {
 	int i = 0, j = 0;
 	while (array[i]) i++;
@@ -1259,29 +1261,29 @@ void append_elements_to_array(char **array, char **elements) {
 }
 
 /**
- * siril_any_to_utf8()
- * @str: (array length=len): The string to be converted to UTF-8.
- * @len:            The length of the string, or -1 if the string
- *                  is nul-terminated.
- * @warning_format: The message format for the warning message if conversion
- *                  to UTF-8 fails. See the <function>printf()</function>
- *                  documentation.
- * @...:            The parameters to insert into the format string.
- *
- * This function takes any string (UTF-8 or not) and always returns a valid
- * UTF-8 string.
- *
- * If @str is valid UTF-8, a copy of the string is returned.
- *
- * If UTF-8 validation fails, g_locale_to_utf8() is tried and if it
- * succeeds the resulting string is returned.
- *
- * Otherwise, the portion of @str that is UTF-8, concatenated
- * with "(invalid UTF-8 string)" is returned. If not even the start
- * of @str is valid UTF-8, only "(invalid UTF-8 string)" is returned.
- *
- * Returns: The UTF-8 string as described above.
- **/
+* siril_any_to_utf8()
+* @str: (array length=len): The string to be converted to UTF-8.
+* @len:            The length of the string, or -1 if the string
+*                  is nul-terminated.
+* @warning_format: The message format for the warning message if conversion
+*                  to UTF-8 fails. See the <function>printf()</function>
+*                  documentation.
+* @...:            The parameters to insert into the format string.
+*
+* This function takes any string (UTF-8 or not) and always returns a valid
+* UTF-8 string.
+*
+* If @str is valid UTF-8, a copy of the string is returned.
+*
+* If UTF-8 validation fails, g_locale_to_utf8() is tried and if it
+* succeeds the resulting string is returned.
+*
+* Otherwise, the portion of @str that is UTF-8, concatenated
+* with "(invalid UTF-8 string)" is returned. If not even the start
+* of @str is valid UTF-8, only "(invalid UTF-8 string)" is returned.
+*
+* Returns: The UTF-8 string as described above.
+**/
 
 gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_format, ...) {
 	const gchar *start_invalid;
@@ -1322,92 +1324,92 @@ gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_fo
 }
 
 /**
- * Get the file extension following the fz flag. If the file is
- * compressed, fz is appended to the file extension.
- * @param fz flag to know if the fz extension must be appended.
- * @return a string that must not be freed
- */
+* Get the file extension following the fz flag. If the file is
+* compressed, fz is appended to the file extension.
+* @param fz flag to know if the fz extension must be appended.
+* @return a string that must not be freed
+*/
 static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {
-    if (fz) {
-        for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
-            if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
-        }
-    }
-    return com.pref.ext;
+	if (fz) {
+		for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+			if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+		}
+	}
+	return com.pref.ext;
 }
 
 /*
-  We have 4 conventions to handle:
-  - siril: origin bottom left, y up, (0,0) at the corner of first bottom left pixel
-  - display/cairo: origin top left, y down, (0,0) at the corner of first top left pixel
-  - WCS/FITS: origin bottom left, y up, (1,1) at the center point of first bottom left pixel (https://www.atnf.csiro.au/people/mcalabre/WCS/Intro/WCS04.html, that is a pixel-one-based (FORTRAN) system)
-  - OPENCV: origin top left, y down, (0,0) at the center point of first top left pixel
-  (Both WCS/FITS and OPENCV are pixel-based while Siril and display/cairo are grid-based)
+We have 4 conventions to handle:
+- siril: origin bottom left, y up, (0,0) at the corner of first bottom left pixel
+- display/cairo: origin top left, y down, (0,0) at the corner of first top left pixel
+- WCS/FITS: origin bottom left, y up, (1,1) at the center point of first bottom left pixel (https://www.atnf.csiro.au/people/mcalabre/WCS/Intro/WCS04.html, that is a pixel-one-based (FORTRAN) system)
+- OPENCV: origin top left, y down, (0,0) at the center point of first top left pixel
+(Both WCS/FITS and OPENCV are pixel-based while Siril and display/cairo are grid-based)
 */
 
 /* converts Siril coordinates to display coordinates */
 int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
-       if (sx < 0.0 || sy < 0.0 || sy > ry)
-               return 1;
-       *dx = sx;
-       *dy = ry - sy;
-       return 0;
+	if (sx < 0.0 || sy < 0.0 || sy > ry)
+			return 1;
+	*dx = sx;
+	*dy = ry - sy;
+	return 0;
 }
 
 /* converts display coordinates to Siril */
 int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
-       if (dx < 0.0 || dy < 0.0 || dy > ry)
-               return 1;
-       *sx = dx;
-       *sy = ry - dy;
-       return 0;
+	if (dx < 0.0 || dy < 0.0 || dy > ry)
+			return 1;
+	*sx = dx;
+	*sy = ry - dy;
+	return 0;
 }
 
 /* converts FITS/WCS coordinates to display coordinates */
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
-       *dx = fx - 0.5;
-       *dy = ry - fy + 0.5;
-       return 0;
+	*dx = fx - 0.5;
+	*dy = ry - fy + 0.5;
+	return 0;
 }
 
 gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
 	gchar *filename = NULL;
-    gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
+	gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
 
-    if (uri != NULL) {
-        filename = g_filename_from_uri(uri, NULL, NULL);
-        if (filename != NULL) {
-        	char *scheme = g_uri_parse_scheme(uri);
-            if (g_strcmp0(scheme, "file") == 0) {
-                printf("The URI points to a local file.\n");
-            } else {
-                printf("The URI is non-local (scheme: %s).\n", uri);
-            }
-            g_free(scheme);
-        }
-        g_free(uri);
-    }
-    return filename;
+	if (uri != NULL) {
+		filename = g_filename_from_uri(uri, NULL, NULL);
+		if (filename != NULL) {
+			char *scheme = g_uri_parse_scheme(uri);
+			if (g_strcmp0(scheme, "file") == 0) {
+				printf("The URI points to a local file.\n");
+			} else {
+				printf("The URI is non-local (scheme: %s).\n", uri);
+			}
+			g_free(scheme);
+		}
+		g_free(uri);
+	}
+	return filename;
 }
 
 GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
-    GSList *filenames = NULL;
-    GSList *uris = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(chooser));
+	GSList *filenames = NULL;
+	GSList *uris = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(chooser));
 
-    for (GSList *iter = uris; iter != NULL; iter = g_slist_next(iter)) {
-        const gchar *uri = (const gchar *)iter->data;
-        gchar *filename = g_filename_from_uri(uri, NULL, NULL);
+	for (GSList *iter = uris; iter != NULL; iter = g_slist_next(iter)) {
+		const gchar *uri = (const gchar *)iter->data;
+		gchar *filename = g_filename_from_uri(uri, NULL, NULL);
 
-        if (filename != NULL) {
-        	printf("filename=%s\n", filename);
-            filenames = g_slist_append(filenames, filename);
-        }
-    }
+		if (filename != NULL) {
+			printf("filename=%s\n", filename);
+			filenames = g_slist_append(filenames, filename);
+		}
+	}
 
-    g_slist_free(uris);
+	g_slist_free(uris);
 
-    return filenames;
+	return filenames;
 }
 
 // This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
@@ -1553,30 +1555,30 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 }
 
 int count_lines_in_textfile(const gchar *filename) {
-    GError *error = NULL;
-    gchar *contents;
-    gsize length;
-    gint line_count = 0;
+	GError *error = NULL;
+	gchar *contents;
+	gsize length;
+	gint line_count = 0;
 
-    // Read the contents of the file
-    if (!g_file_get_contents(filename, &contents, &length, &error)) {
-        g_printerr("Error reading file: %s\n", error->message);
-        g_error_free(error);
-        return -1;
-    }
+	// Read the contents of the file
+	if (!g_file_get_contents(filename, &contents, &length, &error)) {
+		g_printerr("Error reading file: %s\n", error->message);
+		g_error_free(error);
+		return -1;
+	}
 
-    // Count the lines in the CSV file
-    gchar **lines = g_strsplit_set(contents, "\n", 0);
-    for (gchar **line = lines; *line; ++line) {
-        if (**line != '\0')  // Non-empty line
-            ++line_count;
-    }
+	// Count the lines in the CSV file
+	gchar **lines = g_strsplit_set(contents, "\n", 0);
+	for (gchar **line = lines; *line; ++line) {
+		if (**line != '\0')  // Non-empty line
+			++line_count;
+	}
 
-    // Free allocated memory
-    g_strfreev(lines);
-    g_free(contents);
+	// Free allocated memory
+	g_strfreev(lines);
+	g_free(contents);
 
-    return line_count;
+	return line_count;
 }
 
 void copy_filename(const char *filename, char *truncated_filename, size_t max_length) {
@@ -1629,27 +1631,27 @@ gboolean is_string_numeric(const gchar *str) {
 }
 
 const gchar* find_first_numeric(const gchar *string) {
-    if (string == NULL) {
-        return NULL;
-    }
-    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
-        if (g_ascii_isdigit(*ptr)) {
-            return ptr;
-        }
-    }
-    return NULL;
+	if (string == NULL) {
+		return NULL;
+	}
+	for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+		if (g_ascii_isdigit(*ptr)) {
+			return ptr;
+		}
+	}
+	return NULL;
 }
 
 const gchar* find_first_nonnumeric(const gchar *string) {
-    if (string == NULL) {
-        return NULL;
-    }
-    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
-        if (!g_ascii_isdigit(*ptr)) {
-            return ptr;
-        }
-    }
-    return NULL;
+	if (string == NULL) {
+		return NULL;
+	}
+	for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+		if (!g_ascii_isdigit(*ptr)) {
+			return ptr;
+		}
+	}
+	return NULL;
 }
 
 int count_pattern_occurence(const gchar *string, const gchar *pattern) {
@@ -1672,7 +1674,7 @@ int count_pattern_occurence(const gchar *string, const gchar *pattern) {
 }
 
 static gboolean is_in_gtk_main_thread(void) {
-    return g_main_context_is_owner(g_main_context_default());
+	return g_main_context_is_owner(g_main_context_default());
 }
 
 guint gui_function(GSourceFunc idle_function, gpointer data) {
@@ -1765,77 +1767,516 @@ char *strdupnullok(char *data) {
 
 // Returns the full path minus the extension
 gchar* remove_extension_from_path(const gchar* filepath) {
-    if (!filepath) return NULL;
+	if (!filepath) return NULL;
 
-    // Find the last dot in the entire path
-    gchar* last_dot = g_strrstr(filepath, ".");
+	// Find the last dot in the entire path
+	gchar* last_dot = g_strrstr(filepath, ".");
 
-    // Find the last directory separator to ensure the dot is in the filename part
-    gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
+	// Find the last directory separator to ensure the dot is in the filename part
+	gchar* last_sep = g_strrstr(filepath, G_DIR_SEPARATOR_S);
 
-    // Only remove extension if:
-    // 1. There is a dot
-    // 2. The dot comes after the last directory separator (or there's no separator)
-    // 3. The dot is not at the end of the string
-    if (last_dot &&
-        (!last_sep || last_dot > last_sep) &&
-        *(last_dot + 1) != '\0') {
+	// Only remove extension if:
+	// 1. There is a dot
+	// 2. The dot comes after the last directory separator (or there's no separator)
+	// 3. The dot is not at the end of the string
+	if (last_dot &&
+		(!last_sep || last_dot > last_sep) &&
+		*(last_dot + 1) != '\0') {
 
-        // Create new string up to (but not including) the dot
-        return g_strndup(filepath, last_dot - filepath);
-    }
+		// Create new string up to (but not including) the dot
+		return g_strndup(filepath, last_dot - filepath);
+	}
 
-    // No extension found, return copy of original
-    return g_strdup(filepath);
+	// No extension found, return copy of original
+	return g_strdup(filepath);
 }
 
-gboolean delete_directory(const gchar *dir_path, GError **error) {
-	GDir *dir;
-	const gchar *name;
-	gchar *full_path;
-	GFile *file;
-	gboolean success = TRUE;
+/* ------------------------------------------------------------ */
+/* Safe recursive directory deletion                            */
+/* ------------------------------------------------------------ */
+/*
+* Trust model:
+* - Safe against accidental symlink traversal and path escape.
+* - Mitigates (but does not eliminate) TOCTOU via:
+*   - filesystem boundary checks
+*   - type re-validation
+*   - inode/device consistency checks
+* - Not fully hardened against a malicious actor with concurrent write access.
+*/
 
-	dir = g_dir_open(dir_path, 0, error);
-	if (!dir) {
+/* Attributes we request during enumeration */
+#define DELETE_DIR_ENUM_ATTRS \
+	G_FILE_ATTRIBUTE_STANDARD_NAME "," \
+	G_FILE_ATTRIBUTE_STANDARD_TYPE "," \
+	G_FILE_ATTRIBUTE_ID_FILESYSTEM "," \
+	G_FILE_ATTRIBUTE_UNIX_DEVICE "," \
+	G_FILE_ATTRIBUTE_UNIX_INODE
+
+typedef struct {
+	/* filesystem::id (portable, best effort) */
+	gchar    *fs_id;
+	gboolean  have_fs_id;
+
+	/* unix::device (when available) */
+	guint64   dev;
+	gboolean  have_dev;
+} DeleteDirContext;
+
+/* Initialize deletion context from the root directory */
+static gboolean init_delete_dir_context (GFile *root, DeleteDirContext *ctx, GError **error) {
+	g_autoptr(GFileInfo) fs_info = NULL;
+	g_autoptr(GFileInfo) stat_info = NULL;
+
+	memset(ctx, 0, sizeof(*ctx));
+
+	/* filesystem::id (portable) */
+	fs_info = g_file_query_filesystem_info(
+		root,
+		G_FILE_ATTRIBUTE_ID_FILESYSTEM,
+		NULL,
+		NULL
+	);
+
+	if (fs_info &&
+		g_file_info_get_attribute_type(
+			fs_info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
+
+		ctx->fs_id = g_strdup(
+			g_file_info_get_attribute_string(
+				fs_info, G_FILE_ATTRIBUTE_ID_FILESYSTEM));
+		ctx->have_fs_id = TRUE;
+	}
+
+	/* unix::device (best effort, Unix-like systems) */
+	stat_info = g_file_query_info(
+		root,
+		G_FILE_ATTRIBUTE_UNIX_DEVICE,
+		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+		NULL,
+		NULL
+	);
+
+	if (stat_info &&
+		g_file_info_get_attribute_type(
+			stat_info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
+			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
+
+		ctx->dev = g_file_info_get_attribute_uint64(
+			stat_info, G_FILE_ATTRIBUTE_UNIX_DEVICE);
+		ctx->have_dev = TRUE;
+	}
+
+	return TRUE;
+}
+
+/* Enforce filesystem boundary conservatively */
+static gboolean check_same_filesystem (GFileInfo *info, const DeleteDirContext *ctx) {
+	/* Prefer filesystem::id if available on both sides */
+	if (ctx->have_fs_id &&
+		g_file_info_get_attribute_type(
+			info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
+
+		const gchar *child_fs_id =
+			g_file_info_get_attribute_string(
+				info, G_FILE_ATTRIBUTE_ID_FILESYSTEM);
+
+		if (g_strcmp0(ctx->fs_id, child_fs_id) != 0)
+			return FALSE;
+	}
+
+	/* Fallback to unix::device if available on both sides */
+	if (ctx->have_dev &&
+		g_file_info_get_attribute_type(
+			info, G_FILE_ATTRIBUTE_UNIX_DEVICE)
+			== G_FILE_ATTRIBUTE_TYPE_UINT64) {
+
+		guint64 dev =
+			g_file_info_get_attribute_uint64(
+				info, G_FILE_ATTRIBUTE_UNIX_DEVICE);
+
+		if (dev != ctx->dev)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Internal recursive helper */
+static gboolean delete_directory_file (GFile *root,
+					const DeleteDirContext *ctx,
+					GError **error) {
+	g_autoptr(GFileEnumerator) enumerator = NULL;
+
+	/* Ensure root is a real directory at time of entry */
+	if (g_file_query_file_type(
+			root,
+			G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+			NULL) != G_FILE_TYPE_DIRECTORY) {
+
+		g_autofree gchar *path = g_file_get_path(root);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Path '%s' is not a directory",
+					path ? path : "(unknown)");
 		return FALSE;
 	}
 
-	siril_debug_print("Deleting %s...\n", dir_path);
+	enumerator = g_file_enumerate_children(
+		root,
+		DELETE_DIR_ENUM_ATTRS,
+		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+		NULL,
+		error
+	);
 
-	while ((name = g_dir_read_name(dir))) {
-		full_path = g_build_filename(dir_path, name, NULL);
+	if (!enumerator)
+		return FALSE;
 
-		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
-			if (!delete_directory(full_path, error)) {
-				success = FALSE;
-				break;
-			}
-		} else {
-			file = g_file_new_for_path(full_path);
-			if (!g_file_delete(file, NULL, error)) {
-				g_object_unref(file);
-				success = FALSE;
-				break;
-			}
-			g_object_unref(file);
-		}
+	while (TRUE) {
+		GFileInfo *info = NULL;
+		GFile     *child = NULL;
 
-		g_free(full_path);
-	}
+		if (!g_file_enumerator_iterate(
+				enumerator, &info, &child, NULL, error))
+			return FALSE;
 
-	g_dir_close(dir);
+		if (!info)
+			break; /* end of enumeration */
 
-	if (success) {
-		file = g_file_new_for_path(dir_path);
-		if (!g_file_delete(file, NULL, error)) {
-			g_object_unref(file);
+		/* No g_autoptr here – enumerator owns info/child */
+
+		if (!check_same_filesystem(info, ctx)) {
+			g_autofree gchar *path = g_file_get_path(child);
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+						"Refusing to delete '%s' (different filesystem)",
+						path ? path : "(unknown)");
 			return FALSE;
 		}
-		g_object_unref(file);
+
+		GFileType type = g_file_info_get_file_type(info);
+
+		switch (type) {
+		case G_FILE_TYPE_DIRECTORY:
+			if (!delete_directory_file(child, ctx, error))
+				return FALSE;
+			break;
+
+		case G_FILE_TYPE_SYMBOLIC_LINK:
+			if (g_file_query_file_type(
+					child,
+					G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+					NULL) != G_FILE_TYPE_SYMBOLIC_LINK) {
+
+				g_autofree gchar *path = g_file_get_path(child);
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+							"Refusing to delete '%s' (type changed)",
+							path ? path : "(unknown)");
+				return FALSE;
+			}
+
+			if (!g_file_delete(child, NULL, error))
+				return FALSE;
+			break;
+
+		default:
+			if (g_file_query_file_type(
+					child,
+					G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+					NULL) == G_FILE_TYPE_DIRECTORY) {
+
+				g_autofree gchar *path = g_file_get_path(child);
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+							"Refusing to delete '%s' (became directory)",
+							path ? path : "(unknown)");
+				return FALSE;
+			}
+
+			if (!g_file_delete(child, NULL, error))
+				return FALSE;
+			break;
+		}
 	}
 
-	return success;
+	/* Final re-check before deleting root */
+	if (g_file_query_file_type(
+			root,
+			G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+			NULL) != G_FILE_TYPE_DIRECTORY) {
+
+		g_autofree gchar *path = g_file_get_path(root);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Path '%s' changed type during deletion",
+					path ? path : "(unknown)");
+		return FALSE;
+	}
+
+	return g_file_delete(root, NULL, error);
+}
+
+/* Public API */
+gboolean delete_directory (const gchar *dir_path, GError **error) {
+	g_autoptr(GFile) root = NULL;
+	DeleteDirContext ctx;
+
+	if (!dir_path || !*dir_path) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Empty directory path");
+		return FALSE;
+	}
+
+	root = g_file_new_for_path(dir_path);
+
+	if (g_file_query_file_type(
+			root,
+			G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+			NULL) != G_FILE_TYPE_DIRECTORY) {
+
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Path '%s' is not a directory", dir_path);
+		return FALSE;
+	}
+
+	if (!init_delete_dir_context(root, &ctx, error))
+		return FALSE;
+
+	/* Try to delete recursively */
+	gboolean ok = delete_directory_file(root, &ctx, error);
+
+	if (!ok) {
+		/* Best-effort quarantine: move the broken directory aside so the
+		* original name can be reused safely.
+		*/
+		g_autoptr(GFile) parent = g_file_get_parent(root);
+		if (parent) {
+			g_autofree gchar *basename = g_file_get_basename(root);
+			gint64 now_us = g_get_real_time();
+			g_autofree gchar *suffix =
+				g_strdup_printf(".error-%" G_GINT64_FORMAT, now_us);
+			g_autofree gchar *newname =
+				g_strconcat(basename ? basename : "dir", suffix, NULL);
+			g_autoptr(GFile) quarantine =
+				g_file_get_child(parent, newname);
+
+			/* Ignore errors from the move: we don't want to mask the
+			* original deletion error.
+			*/
+			g_file_move(root,
+						quarantine,
+						G_FILE_COPY_NOFOLLOW_SYMLINKS,
+						NULL, NULL, NULL, NULL);
+		}
+	}
+
+	g_free(ctx.fs_id);
+	return ok;
+}
+
+/* ------------------------------------------------------------ */
+/* Safe recursive directory copy                                */
+/* ------------------------------------------------------------ */
+/*
+* Safety properties:
+* - Never follows symlinks (copies them as symlinks).
+* - Never crosses filesystem boundaries (optional but recommended).
+* - Re-validates type before copying to narrow TOCTOU windows.
+* - Uses GFileEnumerator instead of GDir.
+* - Recurses via GFile children, not paths.
+* - Ensures destination directories exist.
+*/
+
+#define COPY_ENUM_ATTRS \
+	G_FILE_ATTRIBUTE_STANDARD_NAME "," \
+	G_FILE_ATTRIBUTE_STANDARD_TYPE "," \
+	G_FILE_ATTRIBUTE_ID_FILESYSTEM "," \
+	G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET
+
+typedef struct {
+	gchar   *fs_id;
+	gboolean have_fs_id;
+} SirilCopyContext;
+
+/* Initialise context: capture filesystem::id of source root */
+static gboolean
+init_copy_context (GFile *src_root, SirilCopyContext *ctx, GError **error)
+{
+	g_autoptr(GFileInfo) fsinfo = NULL;
+
+	memset(ctx, 0, sizeof(*ctx));
+
+	fsinfo = g_file_query_filesystem_info(
+		src_root,
+		G_FILE_ATTRIBUTE_ID_FILESYSTEM,
+		NULL,
+		error
+	);
+	if (!fsinfo)
+		return FALSE;
+
+	if (g_file_info_get_attribute_type(fsinfo, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			== G_FILE_ATTRIBUTE_TYPE_STRING) {
+
+		ctx->fs_id = g_strdup(
+			g_file_info_get_attribute_string(
+				fsinfo, G_FILE_ATTRIBUTE_ID_FILESYSTEM));
+		ctx->have_fs_id = TRUE;
+	}
+
+	return TRUE;
+}
+
+/* Enforce filesystem boundary */
+static gboolean
+check_same_fs (GFileInfo *info, const SirilCopyContext *ctx)
+{
+	if (!ctx->have_fs_id)
+		return TRUE;
+
+	if (g_file_info_get_attribute_type(info, G_FILE_ATTRIBUTE_ID_FILESYSTEM)
+			!= G_FILE_ATTRIBUTE_TYPE_STRING)
+		return TRUE;
+
+	const gchar *child_fs =
+		g_file_info_get_attribute_string(info, G_FILE_ATTRIBUTE_ID_FILESYSTEM);
+
+	return g_strcmp0(ctx->fs_id, child_fs) == 0;
+}
+
+/* Internal recursive helper */
+static gboolean
+copy_directory_file (GFile *src,
+					GFile *dst,
+					const SirilCopyContext *ctx,
+					GError **error)
+{
+	/* Ensure src is a directory */
+	if (g_file_query_file_type(src, G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL)
+			!= G_FILE_TYPE_DIRECTORY) {
+
+		g_autofree gchar *p = g_file_get_path(src);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Source '%s' is not a directory",
+					p ? p : "(unknown)");
+		return FALSE;
+	}
+
+	/* Ensure destination directory exists */
+	if (!g_file_make_directory_with_parents(dst, NULL, error)) {
+		if (!g_error_matches(*error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+			return FALSE;
+		g_clear_error(error);
+	}
+
+	/* Enumerate children */
+	g_autoptr(GFileEnumerator) en = g_file_enumerate_children(
+		src,
+		COPY_ENUM_ATTRS,
+		G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+		NULL,
+		error
+	);
+	if (!en)
+		return FALSE;
+
+	while (TRUE) {
+		GFileInfo *info = NULL;
+		GFile     *child = NULL;
+
+		if (!g_file_enumerator_iterate(en, &info, &child, NULL, error))
+			return FALSE;
+
+		if (!info)
+			break; /* end */
+
+		/* Filesystem boundary enforcement */
+		if (!check_same_fs(info, ctx)) {
+			g_autofree gchar *p = g_file_get_path(child);
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+						"Refusing to copy '%s' (different filesystem)",
+						p ? p : "(unknown)");
+			return FALSE;
+		}
+
+		const gchar *name = g_file_info_get_name(info);
+		g_autoptr(GFile) dst_child = g_file_get_child(dst, name);
+
+		GFileType type = g_file_info_get_file_type(info);
+
+		switch (type) {
+
+		case G_FILE_TYPE_DIRECTORY:
+			/* Recurse */
+			if (!copy_directory_file(child, dst_child, ctx, error))
+				return FALSE;
+			break;
+
+		case G_FILE_TYPE_SYMBOLIC_LINK: {
+			/* Copy symlink as symlink */
+			const gchar *target =
+				g_file_info_get_attribute_string(
+					info, G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET);
+
+			if (!target) {
+				g_autofree gchar *p = g_file_get_path(child);
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+							"Symlink '%s' has no target", p ? p : "(unknown)");
+				return FALSE;
+			}
+
+			if (!g_file_make_symbolic_link(dst_child, target, NULL, error))
+				return FALSE;
+
+			break;
+		}
+
+		case G_FILE_TYPE_REGULAR: {
+			GFileCopyFlags flags =
+				G_FILE_COPY_OVERWRITE |
+				G_FILE_COPY_NOFOLLOW_SYMLINKS |
+				G_FILE_COPY_ALL_METADATA;
+
+			if (!g_file_copy(child, dst_child, flags,
+							NULL, NULL, NULL, error))
+				return FALSE;
+
+			break;
+		}
+
+		default:
+			/* Ignore FIFOs, sockets, devices, etc. */
+			break;
+		}
+	}
+
+	return TRUE;
+}
+
+/* Public function */
+gboolean copy_directory_recursive (const gchar *src_dir,
+						const gchar *dst_dir,
+						GError **error) {
+	g_return_val_if_fail(src_dir && dst_dir, FALSE);
+
+	g_autoptr(GFile) src = g_file_new_for_path(src_dir);
+	g_autoptr(GFile) dst = g_file_new_for_path(dst_dir);
+
+	/* Validate source */
+	if (g_file_query_file_type(src, G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL)
+			!= G_FILE_TYPE_DIRECTORY) {
+
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+					"Source '%s' is not a directory", src_dir);
+		return FALSE;
+	}
+
+	SirilCopyContext ctx;
+	if (!init_copy_context(src, &ctx, error))
+		return FALSE;
+
+	gboolean ok = copy_directory_file(src, dst, &ctx, error);
+
+	g_free(ctx.fs_id);
+	return ok;
 }
 
 gchar *posix_path_separators(const gchar *path) {
@@ -1849,4 +2290,61 @@ gchar *posix_path_separators(const gchar *path) {
 		p++;
 	}
 	return normalized;
+}
+
+#define ELLIPSIS "…"
+
+gchar *
+ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
+	gsize len_chars;
+
+	g_return_val_if_fail (str != NULL, NULL);
+	g_return_val_if_fail (n_chars > 0, g_strdup (""));
+
+	len_chars = g_utf8_strlen (str, -1);
+
+	/* No ellipsizing needed */
+	if ((int) len_chars <= n_chars)
+		return g_strdup (str);
+
+	/* Only room for the ellipsis itself */
+	if (n_chars == 1)
+		return g_strdup (ELLIPSIS);
+
+	switch (position) {
+		case ELLIPSIZE_START: {
+			/* … + last (n_chars - 1) chars */
+			const gchar *start =
+				g_utf8_offset_to_pointer (str, len_chars - (n_chars - 1));
+			return g_strconcat (ELLIPSIS, start, NULL);
+		}
+
+		case ELLIPSIZE_MIDDLE: {
+			/* first k chars + … + last m chars */
+			int left = (n_chars - 1) / 2;
+			int right = (n_chars - 1) - left;
+
+			const gchar *left_cut =
+				g_utf8_offset_to_pointer (str, left);
+			const gchar *right_start =
+				g_utf8_offset_to_pointer (str, len_chars - right);
+
+			gchar *tmp = g_strndup(str, left_cut - str);
+			gchar *result = g_strconcat(tmp, ELLIPSIS, right_start, NULL);
+			g_free(tmp);
+			return result;
+		}
+
+		case ELLIPSIZE_END:
+		default: {
+			/* first (n_chars - 1) chars + … */
+			const gchar *cut =
+				g_utf8_offset_to_pointer (str, n_chars - 1);
+
+			gchar *tmp = g_strndup(str, cut - str);
+			gchar *result = g_strconcat(tmp, ELLIPSIS, NULL);
+			g_free(tmp);
+			return result;
+		}
+	}
 }

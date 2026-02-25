@@ -1,5 +1,5 @@
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -31,7 +31,7 @@ from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, Siri
         STFType, SlidersMode
 from .utility import truncate_utf8, parse_fits_header
 
-DEFAULT_TIMEOUT = 5.
+DEFAULT_TIMEOUT = 10.
 
 if os.name == 'nt':
     import win32file
@@ -968,7 +968,7 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(f"Error in warning_messagebox(): {e}") from e
 
-    def undo_save_state(self, my_string: str) -> bool:
+    def undo_save_state(self, my_string: str) -> Optional[bool]:
         """
         Saves an undo state. The maximum message length is 70 bytes: longer
         messages will be truncated.
@@ -977,7 +977,9 @@ class SirilInterface:
             my_string: The message to log in FITS HISTORY
 
         Returns:
-            bool: True if the message was successfully logged, False otherwise
+            Optional[bool]: True if the message was successfully logged, False if a
+            logging error occurred or None if the script is headless (undo does not
+            happen when headless)
 
         Raises:
             SirilError: if an error occurred.
@@ -988,7 +990,7 @@ class SirilInterface:
             # Append a newline character to the string
             # Convert string to bytes using UTF-8 encoding
             message_bytes = my_string.encode('utf-8')
-            return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes)
+            return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes, timeout=60)
 
         except Exception as e:
             raise SirilError(f"Error in undo_save_state(): {e}") from e
@@ -1224,40 +1226,48 @@ class SirilInterface:
             raise SirilError(_("Error occurred in get_image_shape()")) from e
 
     def get_selection_star(self, shape: Optional[list[int]] = None, \
-        channel: Optional[int] = None)-> Optional[PSFStar]:
-
+        channel: Optional[int] = None, assume_centred: bool = False) -> Optional[PSFStar]:
         """
         Retrieves a PSFStar star model from the current selection in Siril.
         Only a single PSFStar is returned: if there are more than one in the
         selection, the first one identified by Siril's internal star detection
         algorithm is returned.
-
+        **Update**: from sirilpy 1.0.4 this method uses Siril's photometry functions to
+        try to provide photometrically accurate values for PSFStar.mag, PSFStar.s_mag
+        and PSFStar.SNR. If photometry succeeded and no saturated pixels were detected
+        then PSFStar.phot_is_valid will be True, otherwise it will be False.
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
-                   retrieve from. w x h must not exceed 300 px x 300 px.
-                   If provided, looks for a star in the specified selection
-                   If None, looks for a star in the selection already made in
-                   Siril, if one is made.
+                retrieve from. w x h must not exceed 300 px x 300 px.
+                If provided, looks for a star in the specified selection
+                If None, looks for a star in the selection already made in
+                Siril, if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                     channel is omitted the current viewport will be used if
-                     in GUI mode, or if not in GUI mode the method will fall back
-                     to channel 0
-
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the current viewport will be used if
+                    in GUI mode, or if not in GUI mode the method will fall back
+                    to channel 0
+            assume_centred: Optional bool specifying whether to assume the star
+                        is already centred in the selection. Defaults to False.
         Returns:
             PSFStar: the PSFStar object representing the star model, or None if
-                     no star is detected in the selection.
-
+                    no star is detected in the selection.
         Raises:
             ValueError: If an invalid shape is provided,
             NoImageError: If no image is loaded,
             SirilConnectionError: If a communication error occurs,
             SirilError: If any other error occurred during execution.
         """
-
         try:
-            # Validate shape if provided
-            shape_data = None
+            # Sentinel values for not-provided parameters
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Default values
+            x = y = w = h = SENTINEL_VALUE
+            channel_val = SENTINEL_VALUE if channel is None else channel
+            centred_flag = 1 if assume_centred else 0
+
+            # Validate and set shape if provided
             if shape is not None:
                 if len(shape) != 4:
                     raise ValueError(_("Shape must be a list of [x, y, w, h]"))
@@ -1265,12 +1275,14 @@ class SirilInterface:
                     raise ValueError(_("All shape values must be integers"))
                 if any(v < 0 for v in shape):
                     raise ValueError(_("All shape values must be non-negative"))
+                x, y, w, h = shape
 
-                # Pack shape data for the command
-                if channel is None:
-                    shape_data = struct.pack('!IIII', *shape)
-                else:
-                    shape_data = struct.pack('!IIIII', *shape, channel)
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            # Always pack the same payload: x, y, w, h, channel, centred_flag (24 bytes)
+            shape_data = struct.pack('!IIIIII', x, y, w, h, channel_val, centred_flag)
 
             status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
 
@@ -1290,11 +1302,6 @@ class SirilInterface:
 
             if not response:
                 raise RuntimeError(_("Failed to transfer star data: No data received"))
-
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
-
-            # Extract the bytes for this struct and unpack
-            values = struct.unpack(format_string, response)
 
             return PSFStar.deserialize(response)
 
@@ -2092,6 +2099,8 @@ class SirilInterface:
         """
 
         shm = None
+        shm_info = None  # Initialize at the start so it's available in finally
+
         try:
             # Validate input array
             if not isinstance(image_data, np.ndarray):
@@ -2182,19 +2191,29 @@ class SirilInterface:
             if not self._execute_command(_Command.SET_SEQ_FRAME_PIXELDATA, payload):
                 raise SirilError(_("Failed to send set_seq_frame_pixeldata command"))
 
-            return
+            return True
 
         except (ValueError, SirilError):
             raise
         except Exception as e:
-            raise SirilError("Error in set_seq_frame_pixeldata(): {e}") from e
+            raise SirilError(f"Error in set_seq_frame_pixeldata(): {e}") from e
 
         finally:
+            # Close the shared memory handle first
             if shm is not None:
                 try:
                     shm.close()
-                except Exception as e:
+                except Exception:
                     pass
+
+            # Then send the release command to the C side
+            if shm_info is not None:
+                try:
+                    shm_name_str = shm_info.shm_name.decode('utf-8').rstrip('\x00')
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        print(f"Warning: Failed to release shared memory in set_seq_frame_pixeldata")
+                except Exception as e:
+                    print(f"Exception during shm cleanup in set_seq_frame_pixeldata: {e}")
 
     def get_image_iccprofile(self) -> Optional[bytes]:
         """
@@ -3162,6 +3181,11 @@ class SirilInterface:
         shm_header = None
         shm_icc_profile = None
 
+        # Initialize info variables at the start so they're available in finally
+        shm_pixels_info = None
+        shm_header_info = None
+        shm_icc_info = None
+
         data_payload = struct.pack('!I???', frame, with_pixels, preview, linked)
         response = self._request_data(_Command.GET_SEQ_IMAGE, data_payload, timeout = None)
         if response is None:
@@ -3302,7 +3326,8 @@ class SirilInterface:
                 except (OSError, ValueError) as e:
                     raise SharedMemoryError(_("Failed to map header shared memory: {}").format(e)) from e
 
-                buffer = bytes(shm_header.buf)[:shm_header_info.size]
+                # CRITICAL: Must copy data out of shared memory before it's released
+                buffer = bytearray(shm_header.buf[:shm_header_info.size])
                 try:
                     header_data = buffer.decode('utf-8').rstrip('\x00')
                 except UnicodeDecodeError as e:
@@ -3330,8 +3355,9 @@ class SirilInterface:
                 except (OSError, ValueError) as e:
                     raise SharedMemoryError(_("Failed to map ICC profile shared memory: {}").format(e)) from e
 
-                buffer = bytes(shm_icc_profile.buf)[:shm_icc_info.size]
-                icc_profile_data = bytes(buffer)
+                # Copy data out of shared memory before it's released
+                buffer = bytearray(shm_icc_profile.buf[:shm_icc_info.size])
+                icc_profile_data = bytes(buffer)  # Convert bytearray copy to immutable bytes
 
             # Build FFit object using core_vals and fits_keywords
             fit = FFit(
@@ -3366,35 +3392,53 @@ class SirilInterface:
 
         finally:
             # Clean up all shared memory mappings
-            shm_infos_to_cleanup = []
+            # Must release ALL shared memory segments that the C code sent us,
+            # even if we didn't successfully open them. The C code tracks ALL allocations
+            # and expects release commands for each one.
 
+            # Close any successfully opened shared memory handles
             if shm_pixels is not None:
                 try:
                     shm_pixels.close()
-                    shm_infos_to_cleanup.append(('pixels', shm_pixels_info))
                 except Exception:
                     pass
 
             if shm_header is not None:
                 try:
                     shm_header.close()
-                    shm_infos_to_cleanup.append(('header', shm_header_info))
                 except Exception:
                     pass
 
             if shm_icc_profile is not None:
                 try:
                     shm_icc_profile.close()
-                    shm_infos_to_cleanup.append(('icc_profile', shm_icc_info))
                 except Exception:
                     pass
 
+            # Now send RELEASE_SHM commands for ALL segments that were reported in the response,
+            # regardless of whether we successfully opened them
+            shm_infos_to_release = []
+
+            if shm_pixels_info is not None:
+                shm_infos_to_release.append(('pixels', shm_pixels_info))
+
+            if shm_header_info is not None:
+                shm_infos_to_release.append(('header', shm_header_info))
+
+            if shm_icc_info is not None:
+                shm_infos_to_release.append(('icc_profile', shm_icc_info))
+
             # Signal that Python is done with all shared memory segments
-            for shm_type, shm_info in shm_infos_to_cleanup:
+            for shm_type, shm_info in shm_infos_to_release:
                 try:
-                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
-                        raise SirilError(_("Failed to cleanup {} shared memory").format(shm_type))
-                except Exception:
+                    shm_name_str = shm_info.shm_name.decode('utf-8').rstrip('\x00')
+                    # Only send release command if there was actually a shared memory allocation
+                    # (indicated by non-empty name and non-zero size)
+                    if shm_name_str and shm_info.size > 0:
+                        if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                            print(f"Warning: Failed to cleanup {shm_type} shared memory")
+                except Exception as e:
+                    print(f"Exception during {shm_type} shm cleanup: {e}")
                     pass
 
     def get_seq_frame_header(self, frame: int, return_as = 'str') -> Union[str, dict, None]:
@@ -3491,9 +3535,16 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def get_image_stars(self) -> List[PSFStar]:
+    def get_image_stars(self, channel: Optional[int] = None) -> List[PSFStar]:
         """
         Request star model PSF data from Siril.
+
+        Args:
+            channel: Optional int specifying the channel to retrieve from.
+                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                    channel is omitted the default behavior will be used:
+                    channel 0 for mono images, channel 1 (green) for color images.
+                    **channel requires sirilpy v1.0.8 or higher.**
 
         Returns:
             List of PSFStar objects containing the star data, or None if
@@ -3504,15 +3555,29 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded,
-            SirilError: For other errors during  data retrieval,
+            ValueError: If an invalid channel is provided,
+            SirilError: For other errors during data retrieval,
         """
 
         stars = []
         shm = None
+        shm_info = None
 
         try:
+            # Sentinel value for not-provided channel
+            SENTINEL_VALUE = 0xFFFFFFFF  # -1 as unsigned int
+
+            # Validate channel if provided
+            if channel is not None and (channel < 0 or channel > 2):
+                raise ValueError(_("Channel must be 0 (Red/Mono), 1 (Green), or 2 (Blue)"))
+
+            channel_val = SENTINEL_VALUE if channel is None else channel
+
+            # Pack channel data for the command
+            channel_data = struct.pack('!I', channel_val)
+
             # Request shared memory setup
-            status, response = self._send_command(_Command.GET_PSFSTARS)
+            status, response = self._send_command(_Command.GET_PSFSTARS, channel_data)
 
             # Handle error responses
             if status == _Status.ERROR:
@@ -3529,9 +3594,6 @@ class SirilInterface:
             if not response:
                 raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
 
-            if status == _Status.NONE:
-                return None
-
             try:
                 # Parse the shared memory information
                 shm_info = _SharedMemoryInfo.from_buffer_copy(response)
@@ -3547,7 +3609,7 @@ class SirilInterface:
             except (OSError, ValueError) as e:
                 raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
 
-            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            format_string = '!13d2qdq7d q d8d q 2d'  # Define the format string based on PSFStar structure
             fixed_size = struct.calcsize(format_string)
 
             # Read entire buffer at once using memoryview
@@ -3556,15 +3618,15 @@ class SirilInterface:
             # Validate buffer size
             if shm_info.size % fixed_size != 0:
                 raise ValueError(_("Buffer size {} is not a multiple "
-                                   "of struct size {}").format(len(buffer), fixed_size))
+                                "of struct size {}").format(len(buffer), fixed_size))
 
             num_stars = len(buffer) // fixed_size
 
             # Sanity check for number of stars
-            if num_stars <= 0:  # adjust max limit as needed
+            if num_stars <= 0:
                 raise ValueError(_("Invalid number of stars: {}").format(num_stars))
 
-            if num_stars > 200000: # to match the #define MAX_STARS
+            if num_stars > 200000:  # to match the #define MAX_STARS
                 num_stars = 200000
                 self.log(_("Limiting stars to max 200000"))
 
@@ -3592,10 +3654,10 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()  # First close the memory mapping as we have finished with it
-                    # (We don't unlink it as C wll do that)
+                    # (We don't unlink it as C will do that)
 
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                    if shm_info is not None and not self._execute_command(_Command.RELEASE_SHM, shm_info):
                         raise SharedMemoryError(_("Failed to cleanup shared memory"))
 
                 except Exception:
@@ -3660,27 +3722,46 @@ class SirilInterface:
         except Exception as e:
             raise SirilError(_("Error in get_siril_config(): {}").format(e)) from e
 
-    def set_seq_frame_incl(self, index: int, incl: bool):
+    def set_seq_frame_incl(self, index: Union[int, List[int]], incl: bool):
         """
-        Set whether a given frame is included in the currently loaded sequence
+        Set whether given frame(s) are included in the currently loaded sequence
         in Siril. This method is intended for use in creating custom sequence
         filters.
 
         Args:
-            index: integer specifying which frame to set the pixeldata for. This
-                uses a 0-based indexing scheme, i.e. the first frame is frame
-                number 0, not frame numer 1.
-            incl: bool specifying whether the frame is included or not.
+            index: integer or list of integers specifying which frame(s) to set the 
+                inclusion status for. This uses a 0-based indexing scheme, i.e. the 
+                first frame is frame number 0, not frame number 1.
+                Passing a list is available since sirilpy 1.0.17
+            incl: bool specifying whether the frame(s) are included or not.
 
         Raises:
             NoSequenceError: if no sequence is loaded in Siril,
+            TypeError: if index is not an int or list of ints,
             SirilError: on failure.
         """
         try:
             if not self.is_sequence_loaded():
                 raise NoSequenceError(_("Error in set_seq_frame_incl(): no sequence loaded"))
-            # Pack the index and incl into bytes using network byte order (!)
-            payload = struct.pack('!II', index, incl)
+            
+            # Validate and normalize index parameter
+            if isinstance(index, int):
+                indices = [index]
+            elif isinstance(index, list):
+                if not index:
+                    raise ValueError(_("Index list cannot be empty"))
+                if not all(isinstance(i, int) for i in index):
+                    raise TypeError(_("All elements in index list must be integers"))
+                indices = index
+            else:
+                raise TypeError(_("Index must be an integer or list of integers"))
+            
+            # Build payload: count, indices, incl
+            # Format: count (I) + indices (I * count) + incl (I)
+            count = len(indices)
+            format_string = f'!I{count}II'  # count + indices + incl
+            payload = struct.pack(format_string, count, *indices, incl)
+            
             self._execute_command(_Command.SET_SEQ_FRAME_INCL, payload)
             return
         except SirilError:
@@ -4641,7 +4722,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.UNDO, None):
+            retval = self._execute_command(_Command.UNDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in undo(): {e}") from e
@@ -4656,7 +4738,8 @@ class SirilInterface:
         """
 
         try:
-            if self._execute_command(_Command.REDO, None):
+            retval = self._execute_command(_Command.REDO, None)
+            if retval == True or retval is None: # None covers the headless case
                 return True
             else:
                 raise SirilError(f"Error in redo(): {e}") from e
@@ -5394,3 +5477,380 @@ class SirilInterface:
                     self._execute_command(_Command.RELEASE_SHM, shm_header_info)
                 except Exception:
                     pass
+
+    def get_image_mask(self) -> Optional[bytes]:
+        """
+        Retrieve the image mask of the current Siril image using shared memory.
+        Note that this method requires a single image to be loaded, as masks do not
+        apply to sequence frames.
+
+        Note that as the mask is retrieved separately from the image, no checking
+        is done to ensure that the dimensions are the same as that of a FFit class:
+        the script writer must do this for themselves. Added: v1.1.0
+
+        Args:
+        none.
+
+        Returns:
+            bytes: The image mask as a numpy array, or None if the current
+            image has no mask.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            SirilError: If any other error occurs.
+        """
+
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_IMAGE_MASK)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("Error in get_image_mask(): no image is currently loaded in Siril"))
+                    raise SirilConnectionError(_("Server error: {}").format(error_msg))
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise SharedMemoryError(_("Failed to initiate shared memory transfer: No data received"))
+
+            if len(response) < 280: # Not a correct SharedMemoryInfo payload
+                return None
+            try:
+                # Parse the shared memory information
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise SharedMemoryError(_("Invalid shared memory information received: {}").format(e)) from e
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            bitpix = shm_info.data_type
+            width = shm_info.width
+            height = shm_info.height
+
+            buffer = bytearray(shm.buf)[:shm_info.size]
+            if bitpix == 8:
+                dtype = np.uint8
+            elif bitpix == 16:
+                dtype = np.uint16
+            else:
+                dtype = np.float32
+
+            try:
+                arr = np.frombuffer(buffer, dtype=dtype)
+            except (BufferError, ValueError, TypeError) as e:
+                raise SharedMemoryError(_("Failed to create array from shared memory: {}").format(e)) from e
+
+            # Validate array size matches expected dimensions
+            expected_size = width * height
+            if arr.size < expected_size:
+                raise ValueError(
+                    f"Data size mismatch: got {arr.size} elements, "
+                    f"expected {expected_size} for dimensions "
+                    f"{shm_info.width}x{shm_info.height}"
+                )
+
+            # Reshape the array according to the image dimensions
+            try:
+                arr = arr.reshape((shm_info.height, shm_info.width))
+            except ValueError as e:
+                raise DataError(_("Failed to reshape array to image dimensions: {}").format(e)) from e
+
+            result = np.copy(arr)
+
+            return result
+
+        except SirilError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise SirilError(_("Error in get_image_mask(): {}").format(e)) from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()  # First close the memory mapping as we have finished with it
+                    # (We don't unlink it as C wll do that)
+
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    if not self._execute_command(_Command.RELEASE_SHM, shm_info):
+                        raise SharedMemoryError(_("Failed to cleanup shared memory"))
+
+                except Exception:
+                    pass
+
+    def set_image_mask(self, mask_data: np.ndarray) -> bool:
+        """
+        Send image mask data to Siril using shared memory. Added: v1.1.0
+
+        Args:
+            mask_data: numpy.ndarray containing the image data.
+                       Must be a 2D array with dtype either np.uint8,
+                       np.uint16 or np.float32.
+
+        Raises:
+            NoImageError: if no image is loaded in Siril,
+            ValueError: if the input array is invalid,
+            SirilError: if there was an error in handling the command.
+        """
+
+        shm = None
+        shm_info = None
+        try:
+            # Validate input array
+            if not isinstance(mask_data, np.ndarray):
+                raise ValueError(_("Mask data must be a numpy array"))
+
+            if mask_data.ndim != 2:
+                raise ValueError(_("Image must be 2D array"))
+
+            if mask_data.dtype not in (np.float32, np.uint16, np.uint8):
+                raise ValueError(_("Image data must be float32, uint16 or uint8"))
+
+            # Check there is an image loaded in Siril
+            if not self.is_image_loaded():
+                raise NoImageError(_("Error in set_image_mask(): no image loaded"))
+
+            # Get dimensions
+            height, width = mask_data.shape
+
+            if any(dim <= 0 for dim in (width, height)):
+                raise ValueError(_("Invalid mask dimensions: {}x{}").format(width, height))
+
+            # Calculate total size
+            element_size = 4 if mask_data.dtype == np.float32 else 2 if mask_data.dtype == np.uint16 else 1
+            total_bytes = width * height * element_size
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=mask_data.dtype).reshape(mask_data.shape)
+                np.copyto(shared_array, mask_data)
+                # Delete transient objects used to structure copy
+                del buffer
+                del shared_array
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the image info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                width,
+                height,
+                1,
+                32 if mask_data.dtype == np.float32 else 16 if mask_data.dtype == np.uint16 else 8,
+                shm_info.size,
+                shm_info.shm_name
+            )
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SET_IMAGE_MASK, info):
+                raise SirilError(_("Failed to send image mask data command"))
+
+            return
+
+        except (SirilError, ValueError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in set_image_mask(): {e}") from e
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception as e:
+                    pass
+
+    def set_image_mask_state(self, state: bool) -> bool:
+        """
+        Set the state of the mask in Siril to either active or inactive.
+        Added: v1.1.0
+
+        Args:
+            state: bool. If True, the mask will be set active; if False,
+                   the mask will be set inactive.
+
+        Raises:
+            SirilError: if an error occurred.
+            ValueError: if parameters are not properly provided.
+
+        Returns:
+            bool: True if the slider state was set successfully
+        """
+        try:
+            # Check for valid argument combinations
+
+            # Validate that mode is a STFType enum
+            if not isinstance(state, bool):
+                raise ValueError("Mode must be True or False")
+
+            # Pack the value into a byte
+            # Format depends on which arguments are provided
+            payload = struct.pack('?', state)
+            self._execute_command(_Command.SET_IMAGE_MASK_STATE, payload)
+            return True
+        except Exception as e:
+            raise SirilError(f"Error in set_image_mask_state(): {e}") from e
+
+    def get_image_mask_state(self) -> Optional[bool]:
+
+        """
+        Request the image mask state in Siril. Added: v1.1.0
+
+        Returns:
+            bool: True if the image mask is active, False if the image mask is not
+                  active. None is returned if the image has no mask.
+
+        Raises:
+            SirilError: if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_IMAGE_MASK_STATE)
+        if response is None:
+            return None
+
+        try:
+            mode = struct.unpack('!I', response)
+            return bool(mode[0])
+        except struct.error as e:
+            raise SirilError(_("Error occurred in get_image_mask_state(): {}").format(e)) from e
+
+    def _mask_update_polygon(self, poly: Polygon, adding: bool):
+        """
+        Adds or subtracts a user polygon to / from the Siril image mask. This is an internal
+        function used by mask_add_polygon() and mask_subtract_polygon(). Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+            adding: bool speficying whether to add or subtract the polygon.
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        shm = None
+        shm_info = None
+        int_adding = 1 if adding else 0
+
+        try:
+            # Serialize the provided polygon
+            polygon_bytes = poly.serialize()
+
+            # Calculate total size needed
+            total_bytes = len(polygon_bytes)
+
+            # Create shared memory using our wrapper
+            try:
+                # Request Siril to provide a big enough shared memory allocation
+                shm_info = self._request_shm(total_bytes)
+                # Map the shared memory
+                try:
+                    shm = self._map_shared_memory(
+                        shm_info.shm_name.decode('utf-8'),
+                        shm_info.size
+                    )
+                except (OSError, ValueError) as e:
+                    raise SharedMemoryError(_("Failed to map shared memory: {}").format(e)) from e
+
+            except Exception as e:
+                raise SharedMemoryError(_("Failed to create shared memory: {}").format(e)) from e
+
+            # Copy polygon data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                buffer[:len(polygon_bytes)] = polygon_bytes
+
+                # Delete transient objects used to structure copy
+                del buffer
+            except Exception as e:
+                raise SirilError(_("Failed to copy data to shared memory: {}").format(e)) from e
+
+            # Pack the polygon info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                int_adding,  # representation of "adding"
+                0,  # unused field 2
+                0,  # unused field 3
+                0,  # unused field 4
+                total_bytes,  # size of polygon data
+                shm_info.shm_name  # shared memory name
+            )
+
+            # Send command using the existing _execute_command method
+            self._request_data(_Command.MASK_UPDATE_POLYGON, info)
+
+        except (TypeError, SirilError, DataError, SirilConnectionError, SharedMemoryError):
+            raise
+        except Exception as e:
+            raise SirilError(f"Error in mask_add_polygon(): {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    if shm_info is not None:
+                        self._execute_command(_Command.RELEASE_SHM, shm_info)
+                except Exception:
+                    pass
+
+    def mask_add_polygon(self, poly: Polygon):
+        """
+        Adds a user polygon to the Siril image mask. Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, True)
+
+    def mask_subtract_polygon(self, poly: Polygon):
+        """
+        Subtracts a user polygon from the Siril image mask. Added: v1.1.1
+
+        Args:
+            polygon: Polygon defining the polygon to be added
+
+        Raises:
+            TypeError: invalid data provided,
+            SirilConnectionError: on a connection failure,
+            DataError: on receipt of invalid data,
+            SirilError: on any failure
+        """
+        self._mask_update_polygon(poly, False)

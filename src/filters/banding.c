@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,6 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* ** Reduces Banding in Canon DSLR images. **
+ * This code originates from CanonBandingReduction.js v0.9.1, a script
+ * of PixInsight, originally written by Georg Viehoever and
+ * distributed under the terms of the GNU General Public License
+ */
+
 #include <float.h>
 #include <string.h>
 #include <gsl/gsl_statistics.h>
@@ -41,16 +48,90 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
+
 static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
+
+/*****************************************************************************
+ *      B A N D I N G      A L L O C A T O R   A N D   D E S T R U C T O R  *
+ ****************************************************************************/
+
+/* Allocator for banding_data */
+struct banding_data *new_banding_data() {
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
+	if (args) {
+		args->destroy_fn = free_banding_data;
+	}
+	return args;
+}
+
+/* Destructor for banding_data */
+void free_banding_data(void *ptr) {
+	struct banding_data *args = (struct banding_data *)ptr;
+	if (!args)
+		return;
+
+	if (args->seqEntry) {
+		free(args->seqEntry);
+		args->seqEntry = NULL;
+	}
+	if (args->seq) {
+		free_sequence(args->seq, TRUE);
+		args->seq = NULL;
+	}
+	if (args->fit) {
+		clearfits(args->fit);
+		free(args->fit);
+		args->fit = NULL;
+	}
+	free(ptr);
+}
 
 /*****************************************************************************
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
  ****************************************************************************/
 
+/* Hook for sequence processing - uses generic_seq_args */
 int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
 			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);
+}
+
+/* Hook for single image processing - uses generic_img_args */
+int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct banding_data *params = (struct banding_data *)args->user;
+	if (!params)
+		return 1;
+
+	return BandingEngine(fit, params->sigma, params->amount,
+			params->protect_highlights, params->applyRotation, MULTI_THREADED);
+}
+
+/* Idle function for single image processing */
+static gboolean banding_single_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
+}
+
+gchar *banding_log_hook(gpointer p, log_hook_detail detail) {
+	struct banding_data *params = (struct banding_data*) p;
+	gchar *message = NULL;
+	if (!params->protect_highlights) {
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, invsigma=%.2f)"), params->amount, params->sigma);
+	} else {
+		message=g_strdup_printf(_("Canon Banding Reduction (amount=%.2f, Protect=TRUE, invsigma=%.2f)"),
+				params->amount, params->sigma);
+	}
+	return message;
 }
 
 static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
@@ -109,6 +190,12 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 int banding_finalize_hook(struct generic_seq_args *args) {
 	struct banding_data *data = (struct banding_data *) args->user;
 	int retval = seq_finalize_hook(args);
+	// Note: we only free seqEntry here, not the whole struct
+	// The struct itself will be freed by the sequence worker
+	if (data->seqEntry) {
+		free(data->seqEntry);
+		data->seqEntry = NULL;
+	}
 	free(data);
 	return retval;
 }
@@ -138,20 +225,6 @@ void apply_banding_to_sequence(struct banding_data *banding_args) {
 	}
 }
 
-
-// idle function executed at the end of the BandingEngine processing
-gboolean end_BandingEngine(gpointer p) {
-	struct banding_data *args = (struct banding_data *) p;
-	stop_processing_thread();// can it be done here in case there is no thread?
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-
-	free(args);
-	return FALSE;
-}
-
 static int fmul_layer_ushort(fits *a, int layer, float coeff) {
 	WORD *buf;
 	size_t i, n = a->naxes[0] * a->naxes[1];
@@ -178,26 +251,6 @@ static int fmul_layer_float(fits *a, int layer, float coeff) {
 	}
 	invalidate_stats_from_fit(a);
 	return 0;
-}
-
-/*** Reduces Banding in Canon DSLR images.
- * This code come from CanonBandingReduction.js v0.9.1, a script of
- * PixInsight, originally written by Georg Viehoever and
- * distributed under the terms of the GNU General Public License ******/
-gpointer BandingEngineThreaded(gpointer p) {
-	struct banding_data *args = (struct banding_data *) p;
-	struct timeval t_start, t_end;
-
-	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
-
-	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation, MULTI_THREADED);
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	siril_add_idle(end_BandingEngine, args);
-
-	return GINT_TO_POINTER(retval);
 }
 
 static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
@@ -400,8 +453,6 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	struct banding_data *args = calloc(1, sizeof(struct banding_data));
-
 	if (range_amount == NULL) {
 		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
 		range_invsigma = GTK_RANGE(lookup_widget("scale_fixbanding_invsigma"));
@@ -415,33 +466,73 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	invsigma = gtk_range_get_value(range_invsigma);
 	protect_highlights = gtk_toggle_button_get_active(
 			toggle_protect_highlights_banding);
+	gboolean applyRotation = gtk_toggle_button_get_active(vertical);
 
-	if (!protect_highlights)
-		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf)"), amount);
-	else
-		undo_save_state(gfit, _("Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"),
-				amount, invsigma);
-
-	args->fit = gfit;
-	args->protect_highlights = protect_highlights;
-	args->amount = amount;
-	args->sigma = invsigma;
-	args->applyRotation = gtk_toggle_button_get_active(vertical);
-	args->seqEntry = strdup(gtk_entry_get_text(bandingSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (args->seqEntry && args->seqEntry[0] == '\0') {
-			free(args->seqEntry);
-			args->seqEntry = strdup("unband_");
+		// Sequence processing
+		struct banding_data *seq_args = new_banding_data();
+		if (!seq_args) {
+			PRINT_ALLOC_ERR;
+			set_cursor_waiting(FALSE);
+			return;
 		}
+
+		const char *entry_text = gtk_entry_get_text(bandingSeqEntry);
+		seq_args->seqEntry = strdup((entry_text && entry_text[0] != '\0') ? entry_text : "unband_");
+		seq_args->protect_highlights = protect_highlights;
+		seq_args->amount = amount;
+		seq_args->sigma = invsigma;
+		seq_args->applyRotation = applyRotation;
+		seq_args->seq = &com.seq;
+		seq_args->fit = NULL;
+
 		gtk_toggle_button_set_active(seq, FALSE);
-		args->seq = &com.seq;
-		apply_banding_to_sequence(args);
+		apply_banding_to_sequence(seq_args);
 	} else {
-		if (!start_in_new_thread(BandingEngineThreaded, args)) {
-			free(args->seqEntry);
+		// Single image processing - use generic_image_worker
+		struct banding_data *params = new_banding_data();
+		if (!params) {
+			PRINT_ALLOC_ERR;
+			set_cursor_waiting(FALSE);
+			return;
+		}
+
+		params->protect_highlights = protect_highlights;
+		params->amount = amount;
+		params->sigma = invsigma;
+		params->applyRotation = applyRotation;
+		params->seqEntry = NULL;
+		params->seq = NULL;
+		params->fit = NULL;
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			PRINT_ALLOC_ERR;
+			free_banding_data(params);
+			free(params);
+			set_cursor_waiting(FALSE);
+			return;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 2.0f; // Banding needs ~2x memory (rotation + fix image)
+		args->image_hook = banding_single_image_hook;
+		args->idle_function = banding_single_idle;
+		args->description = _("Canon Banding Reduction");
+		args->verbose = TRUE;
+		args->user = params;
+		args->log_hook = banding_log_hook;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_banding_data(params);
+			free(params);
 			free(args);
+			set_cursor_waiting(FALSE);
 		}
 	}
 }

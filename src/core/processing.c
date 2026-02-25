@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -35,11 +35,16 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/OS_utils.h"
+#include "core/undo.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/image_display.h"
+#include "io/single_image.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
+#include "gui/siril_preview.h"
 #include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
@@ -57,6 +62,20 @@ void child_mutex_lock() {
 
 void child_mutex_unlock() {
 	g_mutex_unlock(&child_mutex);
+}
+
+/* destroy_any_args() will destroy any operation-specific arguments struct that
+ * contains a destructor as its first member.
+ * The idea is that all structs passed to generic_seq_args or generic_img_args as
+ * user_data fit this polymorphic pattern. If the destroy_fn is NULL we assume
+ * there are no dynamically allocated members and the struct can just be freed.
+ */
+static void destroy_any_args(void *obj) {
+    destructor *destroy_fn = obj; // first field assumed destroy
+    if (*destroy_fn)
+		(*destroy_fn)(obj);
+	else
+		free(obj);
 }
 
 // called in start_in_new_thread only
@@ -902,11 +921,11 @@ void python_releases_thread() {
 static gboolean stop_processing_requested = FALSE;
 
 static gboolean stop_processing_thread_idle(gpointer user_data) {
+    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
     if (com.thread == NULL) {
-        siril_debug_print("The processing thread is not running.\n");
+        siril_debug_print("The processing thread is not running (may have already finished).\n");
         return FALSE;
     }
-    remove_child_from_children((GPid) -2); // magic number indicating the processing thread
     set_thread_run(FALSE);
     if (!thread_being_waited)
         waiting_for_thread();
@@ -1460,4 +1479,445 @@ int *compute_thread_distribution(int nb_workers, int max) {
 		siril_debug_print("thread %d has %d subthreads\n", i, threads[i]);
 	}
 	return threads;
+}
+
+/* Image processing worker and hooks */
+
+/** Default memory check hook - ensures enough memory for mem_ratio * image size */
+static int default_img_mem_hook(struct generic_img_args *args) {
+	if (!args || !args->fit)
+		return 1;
+
+	gint64 required_mem = (gint64)(args->mem_ratio *
+		args->fit->rx * args->fit->ry * args->fit->naxes[2] *
+		(args->fit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD)));
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
+				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
+static int default_mask_mem_hook(struct generic_mask_args *args) {
+	if (!args || !args->fit)
+		return 1;
+
+	gint64 required_mem;
+	if (args->fit->mask) {
+		required_mem = (gint64)(args->mem_ratio *
+			args->fit->rx * args->fit->ry * (args->fit->mask->bitpix >> 3));
+	} else {
+		required_mem = (gint64) (args->mem_ratio * args->fit->rx * args->fit->ry * 4); // worst case
+	}
+
+	gint64 available_mem = get_available_memory();
+
+	if (required_mem > available_mem) {
+		if (args->verbose)
+			siril_log_color_message(_("Not enough memory for operation: need %.1f MB, have %.1f MB\n"),
+				"red", (double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+		return 1;
+	}
+
+	if (args->verbose)
+		siril_debug_print("Memory check passed: need %.1f MB, have %.1f MB\n",
+			(double)required_mem / BYTES_IN_A_MB, (double)available_mem / BYTES_IN_A_MB);
+	return 0;
+}
+
+/** Default idle function to end generic image processing */
+gboolean end_generic_image(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+void free_generic_mask_args(struct generic_mask_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+gboolean end_generic_mask(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args*) p;
+	stop_processing_thread();
+	show_or_hide_mask_tab();
+	queue_redraw_mask();
+	free_generic_mask_args(args);
+	return FALSE;
+}
+
+static gboolean end_generic_image_update_gfit(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	notify_gfit_modified();
+	if (gfit->mask)
+		queue_redraw_mask();
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/** Free generic_img_args structure */
+void free_generic_img_args(struct generic_img_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+FAST_MATH_PUSH
+static inline void blend_fits_with_mask(fits* fit, fits* orig) {
+	size_t npixels = fit->rx * fit->ry;
+	mask_t *mask = fit->mask;
+
+	if (!mask || !mask->data)
+		return;
+
+	uint8_t bitpix = mask->bitpix;
+
+	if (fit->type == DATA_USHORT) {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
+			WORD *ocdata = orig->pdata[chan];
+			WORD *fcdata = fit->pdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t temp =
+						fcdata[i] * m[i] +
+						ocdata[i] * (255 - m[i]);
+					fcdata[i] = (temp * 257) >> 16;
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					uint32_t alpha = m[i];          // 0..65535
+					uint32_t temp =
+						fcdata[i] * alpha +
+						ocdata[i] * (65535 - alpha);
+					fcdata[i] = temp >> 16;         // exact /65535
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					float blend = fcdata[i] - origv;
+					float out = origv + alpha * blend;
+					if (out < 0.f) out = 0.f;
+					if (out > 65535.f) out = 65535.f;
+					fcdata[i] = (WORD)(out + 0.5f);
+				}
+				break;
+			}
+
+			default:
+				return;
+			}
+		}
+
+	} else {
+
+		for (int chan = 0; chan < fit->naxes[2]; chan++) {
+			float *ocdata = orig->fpdata[chan];
+			float *fcdata = fit->fpdata[chan];
+
+			switch (bitpix) {
+
+			case 8: {
+				uint8_t * restrict m = (uint8_t*)mask->data;
+				const float scale = 1.0f / 255.0f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 16: {
+				uint16_t * restrict m = (uint16_t*)mask->data;
+				const float scale = 1.0f / 65535.0f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i] * scale;
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			case 32: {
+				float * restrict m = (float*)mask->data;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread)
+#endif
+				for (size_t i = 0; i < npixels; i++) {
+					float alpha = m[i];
+					float origv = ocdata[i];
+					fcdata[i] = origv + alpha * (fcdata[i] - origv);
+				}
+				break;
+			}
+
+			default:
+				return;
+			}
+		}
+	}
+}
+FAST_MATH_POP
+
+/** Main generic image worker function
+ * Works with a single image, optionally using multiple threads for processing
+ */
+gpointer generic_image_worker(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->fit);
+	assert(args->image_hook);
+
+	gboolean verbose = args->verbose || !args->for_preview;
+	gchar *history = NULL;
+	gchar *summary = NULL;
+
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	fits *orig = NULL; // reference in case we need it for the undo state
+
+	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
+	// Create a copy so we still have the original fit for combining with the result
+	// according to a mask
+	if (using_mask || !args->for_preview) {
+		// we want the original image both for use with a mask and for saving the undo state, so
+		// the copy is created if using_mask (for the mask) or !args->for_preview (no need to save
+		// an undo state if we are previewing)
+		orig = calloc(1, sizeof(fits));
+		if (!orig) {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+			goto the_end_no_orig;
+		}
+		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+			siril_log_color_message(_("Failed to copy original image.\n"), "red");
+			args->retval = 1;
+			goto the_end_no_orig;
+		}
+	}
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_img_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && verbose) {
+		gchar *desc = g_strdup_printf(_("%s: processing%s...\n"), args->description, using_mask ? _(" (mask active)"): "");
+		siril_log_color_message(desc, "green");
+		g_free(desc);
+	}
+
+	set_progress_bar_data(_("Processing image..."), 0.1f);
+
+	// Call the image processing hook - operates in-place on args->fit
+	if (args->image_hook(args, args->fit, args->max_threads)) {
+		siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
+		args->retval = 1;
+	} else {
+		// Blend according to the mask
+		if (using_mask) {
+			siril_debug_print("Applying mask blend...\n");
+			blend_fits_with_mask(args->fit, orig);
+		}
+		// If there is a log_hook, set the HISTORY card and update the log as required
+		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
+		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
+		if (!args->for_preview)
+			siril_log_message("%s\n", history); // Log the full detailed description
+
+		// If we are being run from the GUI and not just updating a preview, set the undo state
+		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
+			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
+			if (orig)
+				undo_save_state(orig, summary); // We just use the short description for the undo state
+			g_free(summary); // free the message
+			g_free(history); // free the full description, we don't need it in this case
+		} else {
+			// Update the HISTORY card if it wasn't updated by undo_save_state'
+			if ((args->custom_undo)) {
+				// Do nothing, the custom undo will handle it
+				g_free(history);
+			} else if (args->command_updates_gfit) {
+				args->fit->history = g_slist_append(args->fit->history, history);
+				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
+				update_fits_header(args->fit); // update the header so the history is up to date and correctly ordered
+			} else {
+				g_free(history);
+			}
+		}
+		if (verbose) {
+			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+	}
+
+the_end:
+	// Always clean up orig if it was allocated
+	if (orig) clearfits(orig);
+	free(orig);
+
+the_end_no_orig:
+	if (args->retval) {
+		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+	}
+
+	int retval = args->retval;
+
+	if (args->command) {
+		// commands do not use custom idles and the generic ones must run synchronously
+		if (args->command_updates_gfit) {
+			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
+		} else {
+			execute_idle_and_wait_for_it(end_generic_image, args);
+		}
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_image_update_gfit, args);
+	}
+
+	return GINT_TO_POINTER(retval);
+}
+
+gpointer generic_mask_worker(gpointer p) {
+	struct generic_mask_args *args = (struct generic_mask_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->fit);
+	assert(args->mask_hook);
+
+	gboolean verbose = args->verbose;
+	gchar *history = NULL;
+
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_mask_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end;
+		}
+	}
+
+	// Output print of operation description
+	if (args->description && verbose) {
+		gchar *desc = g_strdup_printf(_("%s: processing mask...\n"), args->description);
+		siril_log_color_message(desc, "green");
+		g_free(desc);
+	}
+
+	set_progress_bar_data(_("Processing mask..."), 0.1f);
+
+	if (args->fit == gfit && !args->command) {
+		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		undo_save_state(gfit, undo_msg);
+		g_free(undo_msg);
+	}
+	// Call the mask processing hook
+	if (args->mask_hook(args)) {
+		siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
+		args->retval = 1;
+	} else {
+		// Generate the message for HISTORY
+		history = args->log_hook ? args->log_hook(args->user, DETAILED) : g_strdup(args->description);
+		siril_log_message("%s\n", history);
+		g_free(history);
+
+		if (verbose) {
+			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+	}
+
+the_end:
+	if (args->retval) {
+		set_progress_bar_data(_("Mask processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Mask processing succeeded."), PROGRESS_DONE);
+	}
+
+	int retval = args->retval;
+
+	if (args->mask_creation) {
+		set_mask_active(args->fit, TRUE);
+	}
+
+	if (args->command) {
+		// commands do not use custom idles and must run synchronously
+		execute_idle_and_wait_for_it(end_generic_mask, args);
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_mask, args);
+	}
+
+	return GINT_TO_POINTER(retval);
 }

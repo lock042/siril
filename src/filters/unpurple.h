@@ -1,7 +1,7 @@
- /*
+/*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,18 +24,29 @@
 #include "core/siril.h"
 
 struct unpurpleargs {
-	fits *fit;
+	destructor destroy_fn;  // Must be first member
+	fits *fit;  // just a reference, not freed
 	fits *starmask;
+	gboolean starmask_needs_freeing;
 	double mod_b;
 	double thresh;
 	gboolean withstarmask;
 	gboolean verbose;
-	gboolean for_final;
+	gboolean applying;
 };
 
-gpointer unpurple_handler(gpointer args);
-gpointer unpurple_filter(gpointer p);
-gpointer unpurple(gpointer p);
-void apply_unpurple_cancel();
+/* Allocator and destructor functions */
+struct unpurpleargs *new_unpurple_args();
+void free_unpurple_args(void *args);
 
-#endif /* SRC_GUI_ASINH_H_ */
+/* Image processing hook */
+int unpurple_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar *unpurple_log_hook(gpointer p, log_hook_detail detail);
+/* Idle functions */
+gboolean unpurple_preview_idle(gpointer p);
+gboolean unpurple_apply_idle(gpointer p);
+
+void apply_unpurple_cancel();
+int generate_binary_starmask(fits *fit, fits **star_mask, double threshold);
+
+#endif /* SRC_FILTERS_CA_H_ */

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_alloc.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -495,7 +496,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
 			if (area.h == 0 || area.w == 0 || maskscaled_area.w == 0 || maskscaled_area.h == 0)
 				continue;
-			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
+			mask_scaled = siril_malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
 				free(mask_scaled);
 				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
@@ -504,7 +505,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 			float *mbuffer = data->mask[frame] + offset;
 			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
-			free(mask_scaled);
+			siril_free(mask_scaled);
 			if (args->maximize_framing) {
 				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
@@ -529,8 +530,11 @@ static int stack_read_block_data(struct stacking_args *args,
 				area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
-			flip_buffer(FLOAT_IMG, dbuffer, &area);
-			// siril_debug_print("frame: %d, channel: %d, area.y: %d, area.h: %d, val: %.2f\n", frame, my_block->channel, area.y, area.h, dbuffer[0]);
+			if (!flip_buffer(FLOAT_IMG, dbuffer, &area)) {
+				siril_log_color_message(_("Error reading one of the drizzle weights areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+					area.x, area.y, area.w, area.h);
+				return ST_SEQUENCE_ERROR;
+			}
 			if (args->maximize_framing) {
 				rearrange_block_data(dbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
@@ -708,15 +712,6 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 
 	memcpy(o_stack, stack, N * sizeof(WORD)); /* making a copy of unsorted stack to apply weights (before the median sorts in place)*/
 
-	/* remove null pixels */
-	for (int frame = 0; frame < N; frame++) {
-		if (stack[frame] > 0) {
-			if (frame != kept) {
-				stack[kept] = stack[frame];
-			}
-			kept++;
-		}
-	}
 	/* remove null pixels (or null drizzle weights or both)*/
 	if (args->drizzle) {
 		float *d_stack = (float*) data->dstack;
@@ -1400,12 +1395,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 	}
 	for (i = 0; i < pool_size; i++) {
-		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
+		data_pool[i].pix = siril_malloc(nb_frames * sizeof(void *));
 		if (masking)
-			data_pool[i].mask = malloc(nb_frames * sizeof(float *));
+			data_pool[i].mask = siril_malloc(nb_frames * sizeof(float *));
 		if (args->drizzle)
-			data_pool[i].drizz = malloc(nb_frames * sizeof(float *));
-		data_pool[i].tmp = malloc(bufferSize);
+			data_pool[i].drizz = siril_malloc(nb_frames * sizeof(float *));
+		data_pool[i].tmp = siril_malloc(bufferSize);
 		if (!data_pool[i].pix || !data_pool[i].tmp || (masking && !data_pool[i].mask) || (args->drizzle && !data_pool[i].drizz)) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
@@ -1761,10 +1756,10 @@ free_and_close:
 
 	if (data_pool) {
 		for (i=0; i<pool_size; i++) {
-			if (data_pool[i].pix) free(data_pool[i].pix);
-			if (data_pool[i].mask) free(data_pool[i].mask);
-			if (data_pool[i].drizz) free(data_pool[i].drizz);
-			if (data_pool[i].tmp) free(data_pool[i].tmp);
+			if (data_pool[i].pix) siril_free(data_pool[i].pix);
+			if (data_pool[i].mask) siril_free(data_pool[i].mask);
+			if (data_pool[i].drizz) siril_free(data_pool[i].drizz);
+			if (data_pool[i].tmp) siril_free(data_pool[i].tmp);
 		}
 		free(data_pool);
 	}

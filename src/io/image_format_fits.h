@@ -33,7 +33,7 @@ int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
 int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
-void flip_buffer(int bitpix, void *buffer, const rectangle *area);
+gboolean flip_buffer(int bitpix, void *buffer, const rectangle *area);
 int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		const rectangle *area);
 int siril_fits_compress(fits *f);
@@ -81,7 +81,6 @@ int check_loaded_fits_params(fits *ref, ...);
 
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
-int get_xpsampled(double* xps, const gchar *filename, int i);
 void process_keyword_string_value(const char *input, char *output, gboolean condition);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);

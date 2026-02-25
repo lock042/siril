@@ -137,7 +137,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="adjustment">adjustment_asinh</property>
                 <property name="digits">1</property>
                 <property name="numeric">True</property>
-                <signal name="value-changed" handler="on_spin_asinh_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_asinh_parameter_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -195,7 +195,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="adjustment">adj_black_point_asinh</property>
                 <property name="digits">5</property>
                 <property name="numeric">True</property>
-                <signal name="value-changed" handler="on_black_point_spin_asinh_value_changed" swapped="no"/>
+                <signal name="value-changed" handler="on_asinh_parameter_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -239,7 +239,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="halign">end</property>
             <property name="active">True</property>
             <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_asinh_RGBspace_toggled" swapped="no"/>
+            <signal name="toggled" handler="on_asinh_parameter_changed" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -299,7 +299,7 @@ Clip is fastest: set one of the other modes when you're happy with your stretch 
                   <item translatable="yes">RGB Blend</item>
                   <item translatable="yes">Global Rescale</item>
                 </items>
-                <signal name="changed" handler="on_asinh_clipmode_changed" swapped="no"/>
+                <signal name="changed" handler="on_asinh_parameter_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

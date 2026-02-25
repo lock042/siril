@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -65,6 +65,7 @@ typedef enum {
 	CAT_GAIADR3_DIRECT = 31, // For direct queries to Gaia rather than using Vizier
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
+	CAT_REMOTE_GAIA_XPSAMP = 41, // exact equivalent of 101 but using HTTP RANGE instead of local disk reads
 // Non TAP Queries (others)
 	CAT_IMCCE = 50,
 
@@ -89,7 +90,7 @@ typedef enum {
 	CAT_LOCAL_KSTARS = 99,		// siril local (KStars Tycho-2 and NOMAD)
 	CAT_LOCAL_GAIA_ASTRO = 100, // siril local (with Gaia source_id)
 	CAT_LOCAL_GAIA_XPSAMP = 101, // siril local (with Gaia source_id and sampled SPCC data)
-	CAT_LOCAL_TRIX = 102, // for trixel query
+	CAT_LOCAL_TRIX = 103, // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -124,6 +125,30 @@ typedef enum {
 	CAT_PROJ_TAN,
 	CAT_PROJ_WCS
 } cat_proj;
+
+// the 16-byte struct
+// this is the struct we effectively use, units are the correct ones
+typedef struct {
+	int32_t RA;	// hours times 1000000
+	int32_t Dec;	// degrees times 100000
+	int16_t dRA;	// in mas per year
+	int16_t dDec;
+	int16_t B;	// B mag times 1000 (abused for Teff in offline_gaia catalogue)
+	int16_t V;	// mag times 1000
+} deepStarData;
+
+#pragma pack(push, 1) // Ensure no padding between members
+typedef struct _SourceEntryXPsamp {
+	int32_t ra_scaled;   // 4 bytes
+	int32_t dec_scaled;  // 4 bytes
+	int16_t dra_scaled;  // 2 bytes, mas per year
+	int16_t ddec_scaled; // 2 bytes, mas per year
+	int16_t mag_scaled;  // 2 bytes
+	// The remaining fields are only read for SPCC
+	uint8_t fexpo;       // 1 byte
+	int16_t flux[XPSAMPLED_LEN];   // 686 bytes: xp_sampled flux values
+} SourceEntryXPsamp;
+#pragma pack(pop)
 
 typedef struct {
 	// filled from catalogue
@@ -174,6 +199,7 @@ typedef struct {
 #define has_field_from_columns(columns, column) (columns & (1 << CAT_FIELD_##column))
 
 typedef struct {
+	destructor destroy_fn;
 	// query parameters
 	fits *fit;
 	gchar* name;
@@ -186,6 +212,7 @@ typedef struct {
 } sky_object_query_args;
 
 typedef struct {
+	destructor destroy_fn;
 	fits *fit; // the image queried
 	siril_catalogue *siril_cat; // the catalogue queried
 	gboolean display_log; // if true, displays the list in the log
@@ -197,6 +224,7 @@ typedef struct {
 } conesearch_args;
 
 typedef struct {
+	destructor destroy_fn;
 	float limit_mag;
 	gboolean photometric;
 	super_bool display_tag;
@@ -221,6 +249,11 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void free_conesearch_args(void *p);
+conesearch_args *init_conesearch_args();
+void free_conesearch_params(void *p);
+conesearch_params *init_conesearch_params();
 
 uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
@@ -258,11 +291,12 @@ double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
 
 sky_object_query_args *init_sky_object_query();
-void free_sky_object_query(sky_object_query_args *args);
+void free_sky_object_query(void *p);
 int check_conesearch_args(conesearch_args *args);
 conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
-int execute_conesearch(conesearch_params *params);
+int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads);
+// int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
 
 #ifdef __cplusplus

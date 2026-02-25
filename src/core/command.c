@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -46,6 +46,7 @@
 #include "core/arithm.h"
 #include "core/initfile.h"
 #include "core/siril_app_dirs.h"
+#include "core/masks.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
@@ -273,42 +274,111 @@ int process_seq_clean(int nb) {
 	return CMD_OK;
 }
 
-int process_satu(int nb){
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
-	args->background_factor = 1.0;
+int process_satu(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[3] = { NULL, NULL, NULL };
+	int num_index = 0;
 	gchar *end;
-	args->coeff = g_ascii_strtod(word[1], &end);
-	if (end == word[1]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-		free(args);
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 3) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* coeff (required) */
+	if (num_index < 1) {
+		siril_log_message(_("Missing saturation coefficient\n"));
 		return CMD_ARG_ERROR;
 	}
-	if (nb > 2) {
-		args->background_factor = g_ascii_strtod(word[2], &end);
-		if (end == word[2] || args->background_factor < 0.0) {
+
+	double coeff = g_ascii_strtod(num_args[0], &end);
+	if (end == num_args[0]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), num_args[0]);
+		return CMD_ARG_ERROR;
+	}
+
+	/* background_factor (optional) */
+	double background_factor = 1.0;
+	if (num_index > 1) {
+		background_factor = g_ascii_strtod(num_args[1], &end);
+		if (end == num_args[1] || background_factor < 0.0) {
 			siril_log_message(_("Background factor must be positive\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
+
+	/* satu_hue_type (optional) */
 	int satu_hue_type = 6;
-	if (nb > 3) {
-		satu_hue_type = g_ascii_strtoull(word[3], &end, 10);
-		if (end == word[3] || satu_hue_type > 6) {
+	if (num_index > 2) {
+		satu_hue_type = g_ascii_strtoull(num_args[2], &end, 10);
+		if (end == num_args[2] || satu_hue_type > 6) {
 			siril_log_message(_("Hue range must be [0, 6]\n"));
-			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	satu_set_hues_from_types(args, satu_hue_type);
-	args->input = gfit;
-	args->output = gfit;
-	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g times (median + sigma).\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	/* Allocate parameters */
+	saturation_params *params = calloc(1, sizeof(saturation_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
+	params->free = free; // Destructor
+	params->coeff = coeff;
+	params->background_factor = background_factor;
+	satu_set_hues_from_types(params, satu_hue_type);
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = saturation_image_hook;
+	args->idle_function = NULL; // Synchronous execution
+	args->description = _("Saturation");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = FALSE;
+	args->user = params;
+	args->mask_aware = mask_aware;
+	args->log_hook = satu_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	/* Run synchronously */
 	set_cursor_waiting(TRUE);
-	return GPOINTER_TO_INT(enhance_saturation(args));
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	int retval = args->retval;
+
+	if (retval != 0) {
+		siril_log_color_message(_("Saturation enhancement failed\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+
+	char log[90];
+	sprintf(log, "Color saturation %d%%, threshold %.2f",
+		round_to_int(coeff * 100.0), background_factor);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+	siril_log_message(_("%s\n"), log);
+
+	return CMD_OK;
 }
 
 int process_save(int nb){
@@ -387,6 +457,8 @@ int process_unclip(int nb) {
 	return CMD_OK;
 }
 
+// TODO: check this against the new denoise idles
+/*
 static gboolean end_denoise(gpointer p) {
 	stop_processing_thread();
 	struct denoise_args *args = (struct denoise_args *) p;
@@ -395,69 +467,52 @@ static gboolean end_denoise(gpointer p) {
 		populate_roi();
 	}
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	queue_redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
+}*/
+
+gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
+	denoise_args *args = (denoise_args *) p;
+
+	GString *gs = g_string_new(NULL);
+
+	/* Base message */
+	g_string_append_printf(gs, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
+
+	/* Optional DA3D / SOS / VST info */
+	if (args->da3d) {
+		g_string_append(gs, _(", DA3D enabled"));
+	} else if (args->sos > 1) {
+		g_string_append_printf(gs, _(", SOS enabled (iters=%d, rho=%.3f)"),
+							args->sos, args->rho);
+	} else if (args->do_anscombe) {
+		g_string_append(gs, _(", VST enabled"));
+	}
+
+	/* Optional CC info */
+	if (args->do_cosme) {
+		g_string_append(gs, _(", CC enabled)"));
+	} else {
+		g_string_append(gs, _(")"));
+	}
+
+	/* Convert to gchar* */
+	gchar *result = g_strdup(gs->str);
+	g_string_free(gs, TRUE);
+
+	return result;  /* caller must g_free() */
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
 	lock_roi_mutex();
 	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
-	struct timeval t_start, t_end;
-	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
-	int n = 0, m = 0, q = 0;
-	n = snprintf(NULL, 0, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	msg1 = malloc(n + 1);
-	n = snprintf(msg1, n + 1, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	if(args->da3d) {
-		m = snprintf(NULL, 0, _(", DA3D enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", DA3D enabled"));
-	} else if (args->sos > 1) {
-		m = snprintf(NULL, 0, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
-	} else if (args->do_anscombe) {
-		m = snprintf(NULL, 0, _(", VST enabled"));
-		msg2 = malloc(m + 1);
-		m = snprintf(msg2, m + 1, _(", VST enabled"));
-	}
-	if (args->do_cosme) {
-		q = snprintf(NULL, 0, _(", CC enabled)"));
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(", CC enabled)"));
-	} else {
-		q = 1;
-		msg3 = malloc(q + 1);
-		q = snprintf(msg3, q + 1, _(")"));
-	}
-	log_msg = malloc(n + m + q + 1);
-	if (m == 0 && q == 0)
-		snprintf(log_msg, n + 1, "%s", msg1);
-	else if (m > 0 && q == 0)
-		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
-	else if(m == 0 && q > 0)
-		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
-	else if (m > 0 && q > 0)
-		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
-	else
-		snprintf(log_msg, 26, _("Error, this can't happen!"));
 
-	if (msg1) free(msg1);
-	if (msg2) free(msg2);
-	if (msg3) free(msg3);
-
-	siril_log_message("%s\n", log_msg);
-	if (!args->previewing && !com.script)
-		undo_save_state(gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
-	free(log_msg);
-	gettimeofday(&t_start, NULL);
-	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
 
 	int retval = 0;
 
@@ -503,170 +558,329 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	unlock_roi_mutex();
-	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
-int process_denoise(int nb){
-	gboolean error = FALSE;
+/*****************************************************************************
+ *      D E N O I S E   A L L O C A T O R   A N D   D E S T R U C T O R     *
+ ****************************************************************************/
+
+/* Allocator for denoise_args */
+struct denoise_args *new_denoise_args() {
+	struct denoise_args *args = calloc(1, sizeof(struct denoise_args));
+	if (args) {
+		args->destroy_fn = free_denoise_args;
+		// Set default values
+		args->modulation = 1.0f;
+		args->sos = 1;
+		args->rho = 0.2f;
+		args->da3d = 0;
+		args->do_anscombe = FALSE;
+		args->do_cosme = TRUE;
+		args->suppress_artefacts = FALSE;
+		args->previewing = FALSE;
+	}
+	return args;
+}
+
+/* Destructor for denoise_args */
+void free_denoise_args(void *ptr) {
+	struct denoise_args *args = (struct denoise_args *)ptr;
+	if (!args)
+		return;
+	free(ptr);
+}
+
+/*****************************************************************************
+ *      D E N O I S E   P R O C E S S I N G   H O O K                       *
+ ****************************************************************************/
+
+/* The actual denoising processing hook */
+int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct denoise_args *params = (struct denoise_args *)args->user;
+	if (!params) {
+		siril_log_color_message(_("Denoising failed: invalid parameters\n"), "red");
+		return 1;
+	}
+
+	// Update fit pointer to the one being processed
+	params->fit = fit;
+
+	// Log what we're doing (only if verbose)
+	if (args->verbose) {
+		if (params->do_anscombe)
+			siril_log_message(_("Applying generalised Anscombe variance stabilising transform.\n"));
+		if (params->da3d)
+			siril_log_message(_("Carrying out final stage DA3D denoising.\n"));
+		if (params->sos > 1)
+			siril_log_message(_("Performing %d SOS iterations with rho=%.2f.\n"), params->sos, params->rho);
+		siril_log_message(_("Cosmetic correction: %s, Suppress artefacts: %s\n"),
+		                  params->do_cosme ? _("enabled") : _("disabled"),
+		                  params->suppress_artefacts ? _("enabled") : _("disabled"));
+	}
+
+	// Call the actual denoising function
+	// Note: do_nlbayes doesn't take cosmetic or suppress_artefacts parameters
+	// These might need to be applied separately or the function signature needs updating
+	int retval = do_nlbayes(fit, params->modulation, params->sos, params->da3d,
+	                        params->rho, params->do_anscombe);
+
+	if (retval != 0 && args->verbose) {
+		siril_log_color_message(_("NL-Bayes denoising failed.\n"), "red");
+	}
+
+	return retval;
+}
+
+/*****************************************************************************
+ *      C O M M A N D   P R O C E S S I N G                                 *
+ ****************************************************************************/
+
+int process_denoise(int nb) {
 	set_cursor_waiting(TRUE);
-	denoise_args *args = calloc(1, sizeof(denoise_args));
-	args->sos = 1;
-	args->rho = 0.2f;
-	args->modulation = 1.f;
-	args->da3d = 0;
-	args->do_anscombe = FALSE;
-	args->do_cosme = TRUE;
-	args->suppress_artefacts = FALSE;
-	args->previewing = FALSE;
-	args->fit = gfit;
+
+	gboolean mask_aware = FALSE;
+
+	// Allocate parameters
+	struct denoise_args *params = new_denoise_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Scan arguments (order-independent)
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-vst")) {
-			args->do_anscombe = TRUE;
+		if (!arg)
+			continue;
+
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-vst")) {
+			params->do_anscombe = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-da3d")) {
-			args->da3d = 1;
+			params->da3d = 1;
 		}
 		else if (g_str_has_prefix(arg, "-indep")) {
-			args->suppress_artefacts = TRUE;
+			params->suppress_artefacts = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nocosmetic")) {
-			args->do_cosme = FALSE;
+			params->do_cosme = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
 			float mod = (float) g_ascii_strtod(arg, &end);
-			if (mod <= 0.f || mod > 1.f) {
+			if (end == arg || mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
-				free(args);
-				return CMD_OK;
-			} else args->modulation = mod;
+				free_denoise_args(params);
+				set_cursor_waiting(FALSE);
+				return CMD_ARG_ERROR;
+			}
+			params->modulation = mod;
 		}
 		else if (g_str_has_prefix(arg, "-rho=")) {
 			arg += 5;
 			float rho = g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((rho <= 0.f) || (rho >= 1.f)) {
+			if (end == arg || rho <= 0.f || rho >= 1.f) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
-				free(args);
+				free_denoise_args(params);
+				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			}
-			if (!error) {
-				args->rho = rho;
-			}
+			params->rho = rho;
 		}
 		else if (g_str_has_prefix(arg, "-sos=")) {
 			arg += 5;
-			unsigned sos = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if (sos < 1) {
-				siril_log_message(_("Error: SOS iterations must be >= 1. Defaulting to 1.\n"));
+			unsigned sos = (unsigned) g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Error parsing SOS iterations.\n"));
+				free_denoise_args(params);
+				free(params);
+				set_cursor_waiting(FALSE);
+				return CMD_ARG_ERROR;
+			} else if (sos < 1) {
+				siril_log_message(_("Note: SOS iterations < 1. Defaulting to 1.\n"));
 				sos = 1;
-			} else if (sos > 10)
+			} else if (sos > 10) {
 				siril_log_message(_("Note: high number of SOS iterations. Processing time may be lengthy...\n"));
-			if (!error) {
-				args->sos = sos;
 			}
+			params->sos = sos;
+		}
+		else {
+			siril_log_message(_("Unknown argument %s\n"), arg);
+			free_denoise_args(params);
+			set_cursor_waiting(FALSE);
+			return CMD_ARG_ERROR;
 		}
 	}
-	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
-		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
-		free(args);
+
+	// Validate parameter combinations
+	if (params->do_anscombe && (params->sos != 1 || params->da3d)) {
+		siril_log_color_message(
+			_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. Aborting.\n"),
+			"red"
+		);
+		free_denoise_args(params);
+		set_cursor_waiting(FALSE);
 		return CMD_ARG_ERROR;
 	}
-	if (args->do_anscombe)
+
+	if (params->do_anscombe)
 		siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
-	if (args->da3d) {
+
+	if (params->da3d) {
 		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
-		if (args->sos != 1) {
+		if (params->sos != 1) {
 			siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
-			args->sos = 1;
+			params->sos = 1;
 		}
 	}
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(run_nlbayes_on_fit, args)) {
-		free(args);
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_denoise_args(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f; // Denoising needs extra memory
+	args->image_hook = denoise_image_hook;
+	args->idle_function = denoise_apply_idle;
+	args->description = _("NL-Bayes Denoising");
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = denoise_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->mask_aware = mask_aware;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	set_cursor_waiting(FALSE);
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
 	return CMD_OK;
 }
 
-int process_starnet(int nb){
+int process_starnet(int nb) {
 #ifdef HAVE_LIBTIFF
 	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
 		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
 		return CMD_FILE_NOT_FOUND;
 	}
 	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
-		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"), "red", com.pref.starnet_exe);
+		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"),
+			"red", com.pref.starnet_exe);
 		return CMD_GENERIC_ERROR;
 	}
-	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->linear = FALSE;
-	starnet_args->customstride = FALSE;
-	starnet_args->upscale = FALSE;
-	starnet_args->starmask = TRUE;
-	starnet_args->follow_on = FALSE;
-	starnet_args->starnet_fit = gfit;
-	gboolean error = FALSE;
+
+	// Allocate StarNet parameters
+	starnet_data *starnet_params = new_starnet_args();
+	if (!starnet_params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set defaults
+	starnet_params->linear = FALSE;
+	starnet_params->customstride = FALSE;
+	starnet_params->upscale = FALSE;
+	starnet_params->starmask = TRUE;
+	starnet_params->follow_on = FALSE;
+	starnet_params->starnet_fit = gfit;
+
+	/* Scan arguments (order-independent for -mask) */
+	gboolean mask_aware = FALSE;
 	for (int i = 1; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-stretch")) {
-			starnet_args->linear = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-upscale")) {
-			starnet_args->upscale = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-nostarmask")) {
-			starnet_args->starmask = FALSE;
-		}
-		else if (g_str_has_prefix(arg, "-stride=")) {
+		char *arg = word[i];
+		char *end;
+
+		if (!arg) continue;
+
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		} else if (g_str_has_prefix(arg, "-stretch")) {
+			starnet_params->linear = TRUE;
+		} else if (g_str_has_prefix(arg, "-upscale")) {
+			starnet_params->upscale = TRUE;
+		} else if (g_str_has_prefix(arg, "-nostarmask")) {
+			starnet_params->starmask = FALSE;
+		} else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
 			int stride = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
-				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
-				free(starnet_args);
+			if (arg == end) {
+				siril_log_message(_("Error parsing stride argument, aborting.\n"));
+				free_starnet_args(starnet_params);
+				return CMD_ARG_ERROR;
+			} else if ((stride < 2) || (stride > 512) || (stride % 2)) {
+				siril_log_message(_("Stride must be an even integer in [2, 512], aborting.\n"));
+				free_starnet_args(starnet_params);
 				return CMD_ARG_ERROR;
 			}
-			if (!error) {
-				starnet_args->stride = g_strdup_printf("%d", stride);
-				starnet_args->customstride = TRUE;
-			}
-		}
-		else {
+			starnet_params->stride = g_strdup_printf("%d", stride);
+			starnet_params->customstride = TRUE;
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(starnet_args);
-			return CMD_ARG_ERROR;
-		}
-		if (error) {
-			siril_log_message(_("Error parsing arguments, aborting.\n"));
-			free(starnet_args);
+			free_starnet_args(starnet_params);
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	image_cfa_warning_check();
 
+	// Save backup for undo before processing
+	copy_gfit_to_backup();
+
+	// Allocate generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_starnet_args(starnet_params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f;
+	args->image_hook = starnet_single_image_hook;
+	args->idle_function = starnet_single_image_idle;
+	args->description = _("StarNet");
+	args->verbose = TRUE;
+	args->user = starnet_params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->mask_aware = mask_aware;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
 	set_cursor_waiting(TRUE);
-	if (!start_in_new_thread(do_starnet, starnet_args)) {
-		free_starnet_args(starnet_args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
+	return CMD_OK;
 #else
 	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
+	return CMD_NOT_FOR_THIS_OS;
 #endif
-	return CMD_OK;
 }
 
 int process_seq_starnet(int nb){
@@ -689,7 +903,7 @@ int process_seq_starnet(int nb){
 	struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
 	if (!multi_args)
 		return CMD_ALLOC_ERROR;
-	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
+	starnet_data *starnet_args = new_starnet_args();
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
 	starnet_args->linear = FALSE;
@@ -995,7 +1209,97 @@ int process_rebayer(int nb){
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_imoper(int nb){
+// Structure to hold imoper-specific data
+struct imoper_data {
+	void (*destructor)(void *);  // Required as first member
+	image_operator oper;
+	char *filename;
+	gboolean force_to_float;
+};
+
+// Destructor for imoper_data
+static void free_imoper_data(void *data) {
+	struct imoper_data *imoper = (struct imoper_data *)data;
+	if (!imoper)
+		return;
+	free(imoper->filename);
+	free(imoper);
+}
+
+// Image processing hook for imoper
+static int imoper_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct imoper_data *data = (struct imoper_data *)args->user;
+
+	// Read the second image
+	fits operand = { 0 };
+	if (readfits(data->filename, &operand, NULL, data->force_to_float)) {
+		siril_log_color_message(_("Failed to read operand image\n"), "red");
+		return 1;
+	}
+
+	// Perform the operation
+	int retval = imoper(fit, &operand, data->oper, data->force_to_float);
+
+	clearfits(&operand);
+	return retval;
+}
+
+static gchar* imoper_log_hook(gpointer p, log_hook_detail detail) {
+	struct imoper_data *data = (struct imoper_data*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+	switch (data->oper) {
+		case OPER_ADD:
+			message = g_strdup_printf(_("Image addition"));
+			break;
+		case OPER_SUB:
+			message = g_strdup_printf(_("Image subtraction"));
+			break;
+		case OPER_MUL:
+			message = g_strdup_printf(_("Image multiplication"));
+			break;
+		default:
+			message = g_strdup_printf(_("Image division"));
+	}	} else {
+		switch (data->oper) {
+			case OPER_ADD:
+				message = g_strdup_printf(_("Image addition of %s"), data->filename);
+				break;
+			case OPER_SUB:
+				message = g_strdup_printf(_("Image subtraction of %s"), data->filename);
+				break;
+			case OPER_MUL:
+				message = g_strdup_printf(_("Image multiplication by %s"), data->filename);
+				break;
+			default:
+				message = g_strdup_printf(_("Image division by %s"), data->filename);
+		}
+	}
+	return message;
+}
+
+// Main command function
+int process_imoper(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *filename = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else {
+			siril_log_color_message(_("Invalid argument %s\n"), "red", word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename) {
+		siril_log_color_message(_("Missing operand image filename\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
 	image_operator oper;
 	switch (word[0][1]) {
 		case 'a':
@@ -1019,112 +1323,543 @@ int process_imoper(int nb){
 			return CMD_ARG_ERROR;
 	}
 
-	fits fit = { 0 };
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
+	/* Allocate and initialize user data */
+	struct imoper_data *imoper = calloc(1, sizeof(struct imoper_data));
+	if (!imoper) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
-	int retval = imoper(gfit, &fit, oper, !com.pref.force_16bit) ? CMD_GENERIC_ERROR : CMD_OK;
+	imoper->destructor = free_imoper_data;
+	imoper->oper = oper;
+	imoper->filename = strdup(filename);
+	imoper->force_to_float = !com.pref.force_16bit;
 
-	clearfits(&fit);
-	return retval | CMD_NOTIFY_GFIT_MODIFIED;
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_imoper_data(imoper);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Need memory for original + operand image
+	args->image_hook = imoper_image_hook;
+	args->idle_function = NULL;  // Use default
+	switch (oper) {
+		case OPER_ADD:
+			args->description = _("Image addition");
+			break;
+		case OPER_SUB:
+			args->description = _("Image subtraction");
+			break;
+		case OPER_MUL:
+			args->description = _("Image multiplication");
+			break;
+		default:
+			args->description = _("Image division");
+	}
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = imoper;
+	args->log_hook = imoper_log_hook;
+	args->max_threads = 1;  // imoper likely doesn't need multi-threading
+	args->for_preview = FALSE;
+	args->mask_aware = mask_aware;
+	args->for_roi = FALSE;
+
+	/* Start the worker thread */
+	start_in_new_thread(generic_image_worker, args);
+
+	return CMD_OK;
 }
 
-int process_addmax(int nb){
-	fits fit = { 0 };
+struct addmax_data {
+	void (*destructor)(void *);
+	fits *operand_fit;
+};
 
-	if (readfits(word[1], &fit, NULL, gfit->type == DATA_FLOAT))
-		return CMD_INVALID_IMAGE;
-	addmax(gfit, &fit);
-	clearfits(&fit);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+static void addmax_destructor(void *p) {
+	struct addmax_data *data = (struct addmax_data *)p;
+	if (data->operand_fit) {
+		clearfits(data->operand_fit);
+		free(data->operand_fit);
+	}
+	free(data);
 }
 
-int process_fdiv(int nb){
-	// combines an image division and a scalar multiplication.
-	gchar *end;
-	float norm = g_ascii_strtod(word[2], &end);
-	if (end == word[2]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+static int addmax_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct addmax_data *data = (struct addmax_data *)args->user;
+	addmax(fit, data->operand_fit);
+	return 0;
+}
+
+static gchar *addmax_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup_printf(_("Add max operation"));
+}
+
+int process_addmax(int nb) {
+	if (nb < 2) {
+		siril_log_message(_("Missing operand filename\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	fits fit = { 0 };
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
-	siril_fdiv(gfit, &fit, norm, TRUE);
+	gboolean mask_aware = FALSE;
+	char *filename = NULL;
 
-	clearfits(&fit);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename) {
+		siril_log_message(_("Operand filename not specified\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and read operand fits */
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	if (readfits(filename, operand_fit, NULL, gfit->type == DATA_FLOAT)) {
+		free(operand_fit);
+		return CMD_INVALID_IMAGE;
+	}
+
+	/* Allocate and initialize user data */
+	struct addmax_data *data = calloc(1, sizeof(struct addmax_data));
+	if (!data) {
+		clearfits(operand_fit);
+		free(operand_fit);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = addmax_destructor;
+	data->operand_fit = operand_fit;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		addmax_destructor(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = addmax_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Add max");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = addmax_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
-int process_fmul(int nb){
-	gboolean from8b = (gfit->orig_bitpix == BYTE_IMG); // get orig bitdepth of 8b before it gets converted to 32b by soper
+struct fdiv_data {
+	void (*destructor)(void *);
+	fits *operand_fit;
+	float norm;
+};
+
+static void fdiv_destructor(void *p) {
+	struct fdiv_data *data = (struct fdiv_data *)p;
+	if (data->operand_fit) {
+		clearfits(data->operand_fit);
+		free(data->operand_fit);
+	}
+	free(data);
+}
+
+static int fdiv_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fdiv_data *data = (struct fdiv_data *)args->user;
+	siril_fdiv(fit, data->operand_fit, data->norm, TRUE);
+	return 0;
+}
+
+static gchar *fdiv_log_hook(gpointer p, log_hook_detail detail) {
+	struct fdiv_data *args = (struct fdiv_data*) p;
+	return g_strdup_printf(_("Image division with normalization: %.6f"), args->norm);
+}
+
+int process_fdiv(int nb) {
+	if (nb < 3) {
+		siril_log_message(_("Missing arguments: <operand> <norm>\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean mask_aware = FALSE;
+	char *filename = NULL;
+	char *norm_arg = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!filename) {
+			filename = word[i];
+		} else if (!norm_arg) {
+			norm_arg = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!filename || !norm_arg) {
+		siril_log_message(_("Missing operand filename or normalization factor.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse norm */
 	gchar *end;
+	float norm = g_ascii_strtod(norm_arg, &end);
+	if (end == norm_arg) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), norm_arg);
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and read operand fits */
+	fits *operand_fit = calloc(1, sizeof(fits));
+	if (!operand_fit) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	if (readfits(filename, operand_fit, NULL, !com.pref.force_16bit)) {
+		free(operand_fit);
+		return CMD_INVALID_IMAGE;
+	}
+
+	/* Allocate and initialize user data */
+	struct fdiv_data *data = calloc(1, sizeof(struct fdiv_data));
+	if (!data) {
+		clearfits(operand_fit);
+		free(operand_fit);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destructor = fdiv_destructor;
+	data->operand_fit = operand_fit;
+	data->norm = norm;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		fdiv_destructor(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fdiv_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Image division");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = fdiv_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
+}
+
+// Structure to hold fmul-specific data
+struct fmul_data {
+	void (*destructor)(void *);  // Required as first member
+	float coeff;
+	gboolean from8b;
+};
+
+// Image processing hook for fmul
+static int fmul_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fmul_data *data = (struct fmul_data *)args->user;
+
+	// Perform the scalar multiplication
+	int retval = soper(fit, data->coeff, OPER_MUL, TRUE);
+
+	if (data->from8b) {
+		// Image is now 32b, need to reset slider max and update hi/lo
+		invalidate_stats_from_fit(fit);
+		image_find_minmax(fit);
+		fit->keywords.hi = (WORD)(fit->maxi * USHRT_MAX_SINGLE);
+		fit->keywords.lo = (WORD)(fit->mini * USHRT_MAX_SINGLE);
+		set_cutoff_sliders_max_values();
+	}
+
+	return retval;
+}
+
+static gchar *fmul_log_hook(gpointer p, log_hook_detail detail) {
+	struct fmul_data *args = (struct fmul_data*) p;
+	return g_strdup_printf(_("Scalar multiplication: factor %.6f"), args->coeff);
+}
+
+// Main command function for fmul
+int process_fmul(int nb) {
+	gchar *end;
+	gboolean mask_aware = FALSE;
+
 	float coeff = g_ascii_strtod(word[1], &end);
 	if (end == word[1] || coeff <= 0.f) {
 		siril_log_message(_("Multiplying by a coefficient less than or equal to 0 is not possible.\n"));
 		return CMD_ARG_ERROR;
 	}
-	soper(gfit, coeff, OPER_MUL, TRUE);
-	if (from8b) { // image is now 32b, need to reset slider max and update hi/lo
-		invalidate_stats_from_fit(gfit);
-		image_find_minmax(gfit);
-		gfit->keywords.hi = (WORD)(gfit->maxi * USHRT_MAX_SINGLE);
-		gfit->keywords.lo = (WORD)(gfit->mini * USHRT_MAX_SINGLE);
-		set_cutoff_sliders_max_values();
-	}
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
 
-int process_entropy(int nb){
-	rectangle area;
-	float e = 0.f;
-	image_cfa_warning_check();
-	if (com.selection.w > 0 && com.selection.h > 0) {
-		area = com.selection;
-		for (int c = 0; c < gfit->naxes[2]; c++)
-			e += entropy(gfit, c, &area, NULL);
+	if (word[2] && !g_strcmp0(word[2], "-mask")) {
+		mask_aware = TRUE;
 	}
-	else {
-		for (int c = 0; c < gfit->naxes[2]; c++)
-			e += entropy(gfit, c, NULL, NULL);
+	// Allocate and initialize user data
+	struct fmul_data *data = calloc(1, sizeof(struct fmul_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	siril_log_message(_("Entropy: %.3f\n"), e);
+
+	data->coeff = coeff;
+	data->from8b = (gfit->orig_bitpix == BYTE_IMG);
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // soper works in-place
+	args->image_hook = fmul_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Scalar multiplication");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = fmul_log_hook;
+	args->max_threads = 1;  // soper doesn't need multi-threading
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
 	return CMD_OK;
 }
 
-int process_gauss(int nb){
+// Structure to hold gauss-specific data
+struct gauss_data {
+	void (*destructor)(void *);  // Required as first member
+	double sigma;
+};
+
+// Image processing hook for gauss
+static int gauss_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct gauss_data *data = (struct gauss_data *)args->user;
+
+	// Perform the Gaussian blur
+	int retval = unsharp(fit, data->sigma, 0.0, TRUE);
+
+	// Add to history
+	char log[90];
+	sprintf(log, "Gaussian filtering, sigma: %.2f", data->sigma);
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return retval;
+}
+
+static gchar *gauss_log_hook(gpointer p, log_hook_detail detail) {
+	struct gauss_data *data = (struct gauss_data*) p;
+	return g_strdup_printf(_("Gaussian blur: sigma = %f"), data->sigma);
+}
+
+// Main command function for gauss
+int process_gauss(int nb) {
 	gchar *end;
+	gboolean mask_aware = FALSE;
 	double sigma = g_ascii_strtod(word[1], &end);
 	if (end == word[1] || sigma <= 0.0) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
 	}
-	image_cfa_warning_check();
-	unsharp(gfit, sigma, 0.0, TRUE);
-	//gaussian_blur_RT(gfit, sigma, com.max_thread);
+	if (word[2] && !g_strcmp0(word[2], "-mask")) {
+		mask_aware = TRUE;
+	}
 
-	char log[90];
-	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	image_cfa_warning_check();
+
+	// Allocate and initialize user data
+	struct gauss_data *data = calloc(1, sizeof(struct gauss_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->sigma = sigma;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Gaussian blur needs temporary buffers
+	args->image_hook = gauss_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Gaussian blur");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = gauss_log_hook;
+	args->max_threads = com.max_thread;  // Gaussian blur can benefit from multi-threading
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
-int process_unpurple(int nb){
-	gchar *end;
-	double mod = 1.f, thresh = 0.f;
-	gboolean withstarmask = FALSE;
-	fits *fit = gfit;
-	fits starmask = {0};
+struct entropy_data {
+	void (*destructor)(void *);
+	rectangle area;
+	gboolean has_selection;
+	float total_entropy;
+};
 
-	// Extract parameters
-	for (int i = 1 ; i < nb ; i++) {
+static int entropy_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct entropy_data *data = (struct entropy_data *)args->user;
+	float e = 0.f;
+
+	image_cfa_warning_check();
+
+	if (data->has_selection) {
+		rectangle area = data->area;
+		for (int c = 0; c < fit->naxes[2]; c++)
+			e += entropy(fit, c, &area, NULL);
+	} else {
+		for (int c = 0; c < fit->naxes[2]; c++)
+			e += entropy(fit, c, NULL, NULL);
+	}
+
+	data->total_entropy = e;
+	return 0;
+}
+
+static gchar *entropy_log_hook(gpointer p, log_hook_detail detail) {
+	struct entropy_data *args = (struct entropy_data*) p;
+	if (detail == DETAILED) {
+		return g_strdup_printf(_("Entropy: %.3f"), args->total_entropy);
+	}
+	return g_strdup(_("Entropy computation"));
+}
+
+int process_entropy(int nb) {
+	// Allocate and initialize user data
+	struct entropy_data *data = calloc(1, sizeof(struct entropy_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->area = com.selection;
+	}
+	data->total_entropy = 0.f;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = entropy_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Entropy");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = entropy_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_unpurple(int nb) {
+	gboolean mask_aware = FALSE;
+	gboolean withstarmask = FALSE;
+	double mod = 1.0, thresh = 0.0;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
 		gchar *arg = word[i];
-		if (!g_strcmp0(arg, "-starmask")) {
+
+		if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
+		}
+		else if (!g_strcmp0(arg, "-starmask")) {
 			withstarmask = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			gchar *val = arg + 5;
+			gchar *end;
 			mod = g_ascii_strtod(val, &end);
 			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
@@ -1133,27 +1868,84 @@ int process_unpurple(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-thresh=")) {
 			gchar *val = arg + 8;
+			gchar *end;
 			thresh = g_ascii_strtod(val, &end);
 			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				return CMD_ARG_ERROR;
 			}
 		}
+		else {
+			siril_log_color_message(_("Unknown argument %s\n"), "red", arg);
+			return CMD_ARG_ERROR;
+		}
 	}
 
-	if (withstarmask) {
-		generate_binary_starmask(fit, &starmask, thresh);
-	}
-
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
-
-	if (!start_in_new_thread(unpurple_handler, args)) {
-		free(args);
+	/* Allocate parameters */
+	struct unpurpleargs *params = new_unpurple_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
 		return CMD_GENERIC_ERROR;
 	}
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	params->mod_b = mod;
+	params->thresh = thresh;
+	params->withstarmask = withstarmask;
+	params->fit = gfit;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	/* Set up starmask if needed */
+	params->starmask_needs_freeing = FALSE;
+	if (withstarmask) {
+		params->starmask = calloc(1, sizeof(fits));
+		if (!params->starmask) {
+			PRINT_ALLOC_ERR;
+			free_unpurple_args(params);
+			return CMD_GENERIC_ERROR;
+		}
+
+		if (generate_binary_starmask(gfit, &params->starmask, thresh)) {
+			free_unpurple_args(params);
+			return CMD_GENERIC_ERROR;
+		}
+		params->starmask_needs_freeing = TRUE;
+	} else {
+		params->starmask = NULL;
+	}
+
+	/* Allocate worker args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_unpurple_args(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = unpurple_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Unpurple Filter");
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = unpurple_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->mask_aware = mask_aware;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	siril_log_message(_("Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d, mask_aware: %d\n"),
+		mod, thresh, withstarmask, mask_aware);
+
+	return CMD_OK;
 }
 
 int process_epf(int nb) {
@@ -1164,13 +1956,16 @@ int process_epf(int nb) {
 	ep_filter_t filter = EP_BILATERAL;
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
-	fits *fit = gfit;
 	gboolean guide_needs_freeing = FALSE;
+	gboolean mask_aware = FALSE;
 
 	for (int i = 1 ; i < nb ; i++) {
 		gchar *arg = word[i];
 		if (!g_strcmp0(arg, "-guided")) {
 			filter = EP_GUIDED;
+		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			mask_aware = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-guideimage=")) {
 			gchar *val = arg + 12;
@@ -1256,7 +2051,7 @@ int process_epf(int nb) {
 			g_free(filename);
 			guide_needs_freeing = TRUE;
 		} else {
-			guidefit = fit;
+			guidefit = gfit;
 		}
 		if (guidefit->rx != gfit->rx || guidefit->ry != gfit->ry) {
 			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
@@ -1271,17 +2066,51 @@ int process_epf(int nb) {
 		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
 		d = 5.0;
 	}
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) {.fit = fit,
-							.guidefit = guidefit,
-							.d = d,
-							.sigma_col = sigma_col,
-							.sigma_space = sigma_space,
-							.mod = mod,
-							.filter = filter,
-							.guide_needs_freeing = guide_needs_freeing,
-							.verbose = TRUE };
 
+	// Allocate parameters using the allocator
+	struct epfargs *params = new_epf_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		if (guide_needs_freeing) {
+			clearfits(guidefit);
+			free(guidefit);
+		}
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->fit = gfit;
+	params->guidefit = guidefit;
+	params->guide_needs_freeing = guide_needs_freeing;
+	params->d = d;
+	params->sigma_col = sigma_col;
+	params->sigma_space = sigma_space;
+	params->mod = mod;
+	params->filter = filter;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_epf_args(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 3.0f;
+	args->image_hook = epf_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("Edge Preserving Filter");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = params;
+	args->mask_aware = mask_aware;
+	args->log_hook = epf_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
 
 	char log[90];
 	if (filter == EP_BILATERAL) {
@@ -1290,9 +2119,9 @@ int process_epf(int nb) {
 		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
 	}
 	gfit->history = g_slist_append(gfit->history, strdup(log));
-	// We call epfhandler here as we need to take care of the ROI mutex lock
-	if (!start_in_new_thread(epfhandler, args)) {
-		free(args);
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -1326,20 +2155,71 @@ int process_getref(int nb) {
 	return CMD_OK;
 }
 
+static int grey_flat_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	compute_grey_flat(fit);
+	return 0;
+}
+
 int process_grey_flat(int nb) {
 	if (isrgb(gfit)) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	compute_grey_flat(gfit);
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = grey_flat_image_hook;
+	args->description = _("Grey flat");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+/* Wrapper hook for command-line PSF estimation with dynamic estk_data */
+int estimate_only_cmd_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct estk_data *data = (struct estk_data *)args->user;
+	if (!data)
+		return 1;
+	return GPOINTER_TO_INT(estimate_only(data));
+}
+
+/* Idle function for command-line PSF estimation */
+gboolean estimate_only_cmd_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+
+	// PSF estimation doesn't modify gfit directly, but may update the kernel
+	// No need to notify_gfit_modified() here
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	stop_processing_thread();
+	return FALSE;
 }
 
 int process_makepsf(int nb) {
 	gboolean error = FALSE;
-	estk_data* data = calloc(1, sizeof(estk_data));
+	// Use the new allocator to ensure function pointers (destructor) are set
+	estk_data* data = alloc_estk_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
 	reset_conv_args(data);
+	data->fit = gfit; // Explicitly enforce gfit per instructions
+
 	cmd_errors status = CMD_OK;
 
 	char *arg_1 = word[1];
@@ -1356,19 +2236,29 @@ int process_makepsf(int nb) {
 		if (!g_strcmp0(arg_1, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			if (!word[2] || word[2][0] == '\0') {
-				on_bdeconv_savekernel_clicked(NULL, NULL);
+				// We cannot call on_bdeconv_savekernel_clicked here as it now reads from GUI widgets.
+				// Enforce filename argument in command line mode.
+				siril_log_color_message(_("Error: a filename must be specified when saving a PSF from the command line.\n"), "red");
+				status = CMD_ARG_ERROR;
 			} else {
 				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
 					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
 					status = CMD_ARG_ERROR;
 					goto terminate_makepsf;
 				}
-				save_kernel(word[2]);
+				// Update: pass data to save_kernel
+				save_kernel(word[2], data);
 			}
 			goto terminate_makepsf;
 		}
-		reset_conv_kernel();
+
+		// If we aren't loading, we are generating, so reset previous
+		if (g_strcmp0(arg_1, "load") != 0) {
+			reset_conv_kernel();
+		}
+
 		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
+
 		if (!g_strcmp0(arg_1, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
@@ -1449,9 +2339,29 @@ int process_makepsf(int nb) {
 				}
 			}
 			image_cfa_warning_check();
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				if (data->destroy_fn) data->destroy_fn(data);
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Blind)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
@@ -1481,6 +2391,7 @@ int process_makepsf(int nb) {
 						goto terminate_makepsf;
 					}
 					data->ks = ks;
+					force_ks = TRUE;
 				}
 				else if (g_str_has_prefix(arg, "-savepsf=")) {
 					if (data->savepsf_filename) {
@@ -1508,9 +2419,29 @@ int process_makepsf(int nb) {
 				data->recalc_ks = TRUE;
 			}
 			image_cfa_warning_check();
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				if (data->destroy_fn) data->destroy_fn(data);
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Stars)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
@@ -1659,16 +2590,37 @@ int process_makepsf(int nb) {
 					goto terminate_makepsf;
 				}
 			}
-			if (!start_in_new_thread(estimate_only, data)) {
-				g_free(data->savepsf_filename);
-				free(data);
+
+			// Allocate generic worker args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				if (data->destroy_fn) data->destroy_fn(data);
+				return CMD_GENERIC_ERROR;
+			}
+
+			args->fit = gfit;
+			args->mem_ratio = 3.0f; // PSF estimation memory requirement
+			args->image_hook = estimate_only_image_hook;
+			args->idle_function = NULL;
+			args->description = _("PSF Estimation (Manual)");
+			args->verbose = TRUE;
+			args->user = data; // Dynamic estk_data managed by generic worker
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				// Free both args and data on thread start failure
+				free_generic_img_args(args);
 				return CMD_GENERIC_ERROR;
 			}
 			return CMD_OK;
 		} else if (!g_strcmp0(arg_1, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
-				if (load_kernel(word[2])) {
+				// Update: pass data to load_kernel
+				if (load_kernel(word[2], data)) {
 					siril_log_color_message(_("Error loading PSF.\n"), "red");
 					status = CMD_FILE_NOT_FOUND;
 					goto terminate_makepsf;
@@ -1682,33 +2634,52 @@ int process_makepsf(int nb) {
 		}
 	}
 terminate_makepsf:
-	g_free(data->savepsf_filename);
-	free(data);
+	// If we reached here, the data struct was not handed off to a worker thread.
+	// Clean it up.
+	if (data->destroy_fn)
+		data->destroy_fn(data);
+	else {
+		// Fallback if destructor missing (shouldn't happen with alloc_estk_data)
+		g_free(data->savepsf_filename);
+		free(data);
+	}
 	return status;
 }
 
-int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
+int parse_deconvolve(int first_arg, int nb, estk_data* data, nonblind_t type) {
 	gboolean error = FALSE;
 	gboolean kernel_loaded = FALSE;
+
 	reset_conv_args(data);
+	data->fit = gfit; // Ensure we operate on the global fit for commands
+
 	data->regtype = REG_NONE_GRAD;
+
+	// If a kernel already exists globally, sync the kernel size to the struct
 	if (com.kernel && com.kernelsize > 0)
 		data->ks = com.kernelsize;
+
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
+
 	for (int i = first_arg; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
+
 		if (g_str_has_prefix(arg, "-loadpsf=")) {
 			arg += 9;
-			if (arg[0] != '\0' && load_kernel(arg)) {
+			// UPDATE: pass 'data' to load_kernel
+			if (arg[0] != '\0' && load_kernel(arg, data)) {
 				siril_log_message(_("Error loading PSF.\n"));
 				return CMD_FILE_NOT_FOUND;
 			}
 			kernel_loaded = TRUE;
+		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			data->mask_aware = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
@@ -1760,7 +2731,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 			}
 		}
 		else if (!g_strcmp0(arg, "-tv")) {
-			 data->regtype = REG_TV_GRAD;
+			data->regtype = REG_TV_GRAD;
 		}
 		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
@@ -1776,6 +2747,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	if (error) {
 		return CMD_ARG_ERROR;
 	}
+
 	// Guess the user's intentions for a kernel:
 	// Order of preference is: if a PSF has specifically been loaded, use that, else
 	// if com.stars is populated, assume the user wants to make a PSF from stars and
@@ -1790,26 +2762,62 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel
-	else data->psftype = PSF_BLIND; // blind deconvolve
+	else
+		data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
 	return CMD_OK;
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
-	estk_data* data = calloc(1, sizeof(estk_data));
+	// Use the new allocator
+	estk_data* data = alloc_estk_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	// Explicitly set gfit
+	data->fit = gfit;
 
 	int ret = parse_deconvolve(1, nb, data, type);
-	if (ret == CMD_OK){
+	if (ret == CMD_OK) {
 		image_cfa_warning_check();
-		if (!start_in_new_thread(deconvolve, data)) {
-			g_free(data->savepsf_filename);
-			free(data);
+
+		// Allocate generic worker args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			PRINT_ALLOC_ERR;
+			if (data->destroy_fn)
+				data->destroy_fn(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 4.0f; // Deconvolution needs significant memory
+		args->image_hook = deconvolve_image_hook;
+		args->idle_function = NULL;
+		args->description = _("Deconvolution");
+		args->command_updates_gfit = TRUE;
+		args->command = TRUE; // calling as command, not from GUI
+		args->verbose = TRUE;
+		args->user = data; // Dynamic estk_data managed by generic worker
+		args->mask_aware = data->mask_aware;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			// Free both args and data on thread start failure
+			free_generic_img_args(args);
 			return CMD_GENERIC_ERROR;
 		}
 		return CMD_OK;
 	}
-	free(data);
+
+	// Call destructor on data if parse failed or thread didn't start
+	if (data->destroy_fn)
+		data->destroy_fn(data);
 	return ret;
 }
 
@@ -1858,6 +2866,34 @@ int process_seq_wiener(int nb) {
 	return process_seqdeconvolve(nb, DECONV_WIENER);
 }
 
+// Structure to hold unsharp-specific data
+struct unsharp_data {
+	void (*destructor)(void *);  // Required as first member
+	double sigma;
+	double multi;
+};
+
+// Image processing hook for unsharp
+static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct unsharp_data *data = (struct unsharp_data *)args->user;
+
+	// Perform the unsharp mask operation
+	int retval = unsharp(fit, data->sigma, data->multi, TRUE);
+
+	// Add to history
+	char log[90];
+	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", data->sigma, data->multi);
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return retval;
+}
+
+static gchar *unsharp_log_hook(gpointer p, log_hook_detail detail) {
+	struct unsharp_data *data = (struct unsharp_data *) p;
+	return g_strdup_printf(_("Unsharp mask: sigma=%f, amount=%f"), data->sigma, data->multi);
+}
+
+// Main command function for unsharp
 int process_unsharp(int nb) {
 	gchar *end;
 	double sigma = g_ascii_strtod(word[1], &end);
@@ -1870,12 +2906,51 @@ int process_unsharp(int nb) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
-	unsharp(gfit, sigma, multi, TRUE);
+	gboolean mask_aware = FALSE;
+	if (word[3] && !g_strcmp0(word[3], "-mask")) {
+		mask_aware = TRUE;
+	}
+	// Allocate and initialize user data
+	struct unsharp_data *data = calloc(1, sizeof(struct unsharp_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
-	char log[90];
-	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", sigma, multi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	data->sigma = sigma;
+	data->multi = multi;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;  // Unsharp mask needs temporary buffers
+	args->image_hook = unsharp_cmd_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Unsharp mask");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = unsharp_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 #define CHECK_KEY_LENGTH(__key__) \
@@ -2005,20 +3080,10 @@ int process_seq_update_key(int nb) {
 	return CMD_OK;
 }
 
-static gboolean crop_command_idle(gpointer arg) {
-	// operations that are not in the generic idle of notify_gfit_modified()
-	clear_stars_list(TRUE);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	return FALSE;
-}
-
-
+/* Command interpreter function for CCM using generic_image_worker */
 int process_ccm(int nb) {
 	sequence *seq = NULL;
 	char *prefix = NULL;
-
 	int arg_index = 1, offset;
 	gboolean is_sequence = (word[0][2] == 'q');
 
@@ -2031,10 +3096,13 @@ int process_ccm(int nb) {
 		}
 	} else {
 		offset = 0;
-		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
+		if (!single_image_is_loaded())
+			return CMD_IMAGE_NOT_FOUND;
 	}
 
 	arg_index++;
+
+	// Parse prefix argument for sequences
 	while (arg_index < nb && word[arg_index]) {
 		char *arg = word[arg_index];
 		if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
@@ -2052,119 +3120,100 @@ int process_ccm(int nb) {
 		}
 		arg_index++;
 	}
-	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
 
-	args->power = 1.f;
+	// Allocate ccm_data structure
+	struct ccm_data *args = new_ccm_data();
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(prefix);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Parse matrix elements
 	gchar *end;
-	for (int i = 0 ; i < 3 ; i++) {
-		for (int j = 0 ; j < 3 ; j++) {
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
 			int word_index = 3 * i + j + 1 + offset;
 			args->matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
 				free(prefix);
-				free(args);
+				free_ccm_data(args);
 				return CMD_ARG_ERROR;
 			}
 		}
 	}
+
+	// Parse power parameter (optional)
 	if (word[10 + offset]) {
 		args->power = g_ascii_strtod(word[10 + offset], &end);
-			if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
-				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
-				free(prefix);
-				free(args);
-				return CMD_ARG_ERROR;
-			}
-	}
-	siril_log_message(_("Applying CCM with coefficients %f, %f, %f, %f, %f, %f, %f, %f, %f and power %f\n"),
-						args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
-						args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
-						args->matrix[2][0], args->matrix[2][1], args->matrix[2][2], args->power);
-
-
-	printf("args->power=%lf\n", args->power);
-	if (is_sequence) {
-
-		args->seq = seq;
-		args->seqEntry = prefix ? prefix : strdup("ccm_");
-
-		apply_ccm_to_sequence(args);
-	} else {
-		if (!isrgb(gfit)) {
-			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
-			g_free(args->seqEntry);
-			free(args);
-			return CMD_INVALID_IMAGE;
-		}
-
-		ccm_calc(gfit, args->matrix, args->power);
-		char log[90];
-		snprintf(log, 89, "Color correction matrix applied:");
-		gfit->history = g_slist_append(gfit->history, strdup(log));
-		snprintf(log, 89, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
-					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
-					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
-					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
-		snprintf(log, 89, "Power: %.4f", args->power);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
-		g_free(args->seqEntry);
-		free(args);
-		return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-
-	}
-
-	return CMD_OK;
-}
-
-
-int process_crop(int nb) {
-	if (is_preview_active()) {
-		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
-						"Please consider to close the filter dialog first.\n"));
-		return CMD_GENERIC_ERROR;
-	}
-
-	rectangle area;
-	if (com.selection.h && com.selection.w) {
-		area = com.selection;
-	} else {
-		if (nb == 5) {
-			gchar *end1, *end2;
-			area.x = g_ascii_strtoull(word[1], &end1, 10);
-			area.y = g_ascii_strtoull(word[2], &end2, 10);
-			if (end1 == word[1] || area.x < 0 || end2 == word[2] || area.y < 0) {
-				siril_log_message(_("Crop: x and y must be positive values.\n"));
-				return CMD_ARG_ERROR;
-			}
-			area.w = g_ascii_strtoull(word[3], &end1, 10);
-			area.h = g_ascii_strtoull(word[4], &end2, 10);
-			if (end1 == word[3] || area.w < 0 || end2 == word[4] || area.h < 0) {
-				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
-				return CMD_ARG_ERROR;
-			}
-			if (area.x + area.w > gfit->rx || area.y + area.h > gfit->ry) {
-				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit->rx, gfit->ry);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else {
-			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+		if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
+			siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
+			free(prefix);
+			free_ccm_data(args);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	crop(gfit, &area);
+	if (is_sequence) {
+		// Sequence processing
+		args->seq = seq;
+		args->seqEntry = prefix ? prefix : strdup("ccm_");
+		apply_ccm_to_sequence(args);
+		return CMD_OK;
+	} else {
+		// Single image processing
+		if (!isrgb(gfit)) {
+			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+			free(prefix);
+			free_ccm_data(args);
+			return CMD_INVALID_IMAGE;
+		}
 
-	char log[90];
-	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-					area.x, area.y, area.w, area.h);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+		// Allocate worker args
+		struct generic_img_args *worker_args = calloc(1, sizeof(struct generic_img_args));
+		if (!worker_args) {
+			PRINT_ALLOC_ERR;
+			free(prefix);
+			free_ccm_data(args);
+			return CMD_GENERIC_ERROR;
+		}
 
-	siril_add_idle(crop_command_idle, NULL);
+		worker_args->fit = gfit;
+		worker_args->mem_ratio = 1.5f;
+		worker_args->image_hook = ccm_single_image_hook;
+		worker_args->idle_function = NULL; // Use default idle for commands
+		worker_args->description = _("Color Conversion Matrix");
+		worker_args->verbose = TRUE;
+		worker_args->user = args;
+		worker_args->log_hook = ccm_log_hook;
+		worker_args->max_threads = com.max_thread;
+		worker_args->command = TRUE;  // This is being called from a command
+		worker_args->command_updates_gfit = TRUE;  // We need gfit to be updated
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+		// Build history log
+		char log[256];
+		snprintf(log, 255, "Color correction matrix applied:");
+		gfit->history = g_slist_append(gfit->history, strdup(log));
+		snprintf(log, 255, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
+					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
+		gfit->history = g_slist_append(gfit->history, strdup(log));
+		snprintf(log, 255, "Power: %.4f", args->power);
+		gfit->history = g_slist_append(gfit->history, strdup(log));
+
+		free(prefix);
+
+		if (!start_in_new_thread(generic_image_worker, worker_args)) {
+			free_generic_img_args(worker_args);
+			return CMD_GENERIC_ERROR;
+		}
+
+		// Note: We do NOT return CMD_NOTIFY_GFIT_MODIFIED here because
+		// command_updates_gfit is set to TRUE, which handles the notification
+		return CMD_OK;
+	}
 }
 
 int process_cd(int nb) {
@@ -2228,16 +3277,18 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
+	siril_log_message(_("Wavelet reconstruction\n"));
 	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *params, struct ght_data *seqdata) {
+int process_ght_args(int nb, gboolean ght_seq, gboolean *mask_aware, int stretchtype, ght_params *params, struct ght_data *seqdata) {
 	int stretch_colourmodel = COL_INDEP;
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
 	clip_mode_t clip_mode = RGBBLEND;
+	*mask_aware = FALSE;
 	double D = NAN, B = 0.0 , LP = 0.0, SP = 0.0, HP = 1.0, BP = NAN;
 
 	for (int i = (ght_seq ? 2 : 1) ; i < nb ; i++) {
@@ -2264,6 +3315,9 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 		}
 		else if (!strcmp(arg, "GB")) {
 			do_red = FALSE;
+		}
+		else if (!g_strcmp0(arg, "-mask")) {
+			*mask_aware = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-clipmode=")) {
 			char *argument = word[i] + 10;
@@ -2438,7 +3492,8 @@ int process_seq_ghs(int nb, int stretchtype) {
 		seqdata->params_ght = params;
 	}
 
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	gboolean mask_aware; // we don't use it for the sequence processing but need to provide it to process_ght_args
+	int retval = process_ght_args(nb, TRUE, &mask_aware, stretchtype, params, seqdata);
 	if (retval) {
 		free(params);
 		free(seqdata->seqEntry);
@@ -2481,51 +3536,477 @@ int process_seq_linstretch(int nb) {
 	return process_seq_ghs(nb, STRETCH_LINEAR);
 }
 
-int process_ghs(int nb, int stretchtype) {
-	struct ght_data *seqdata = NULL;
+int process_mtf(int nb) {
+	struct mtf_params params;
+	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
+	gboolean mask_aware = FALSE;
+	gchar *end1, *end2, *end3;
+	params.shadows = g_ascii_strtod(word[1], &end1);
+	params.midtones = g_ascii_strtod(word[2], &end2);
+	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 
+	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
+			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
+			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return CMD_ARG_ERROR;
+	}
+
+	// Parse optional arguments (channel and/or -mask flag)
+	for (int i = 4; word[i]; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!strcmp(word[i], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		} else if (!strcmp(word[i], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		} else if (!strcmp(word[i], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		} else if (!strcmp(word[i], "RG")) {
+			params.do_blue = FALSE;
+		} else if (!strcmp(word[i], "RB")) {
+			params.do_green = FALSE;
+		} else if (!strcmp(word[i], "GB")) {
+			params.do_red = FALSE;
+		}
+	}
+
+	image_cfa_warning_check();
+
+	// Create data structure
+	struct mtf_data *data = create_mtf_data();
+	if (!data) {
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->fit = gfit;
+	data->params = params;
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+
+	// Create generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_mtf_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = inverse ? invmtf_single_image_hook : mtf_single_image_hook;
+	args->log_hook = inverse ? invmtf_log_hook : mtf_log_hook;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = inverse ? _("Inverse Midtones Transfer Function") : _("Midtones Transfer Function");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run worker synchronously - cleanup happens via destructor
+	gpointer result = generic_image_worker(args);
+	int retval = GPOINTER_TO_INT(result);
+
+	if (retval != 0) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+		params.shadows, params.midtones, params.highlights);
+
+	// Add to history
+	char log[90];
+	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
+			inverse ? "Inverse midtones" : "Midtones",
+			params.shadows, params.midtones, params.highlights);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
+	return CMD_OK;
+}
+
+int process_ghs(int nb, int stretchtype) {
 	ght_params *params = calloc(1, sizeof(ght_params));
 	if (!params)
 		return CMD_ALLOC_ERROR;
 
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	struct ght_data *seqdata = NULL;
+	gboolean mask_aware;
+	int retval = process_ght_args(nb, FALSE, &mask_aware, stretchtype, params, seqdata);
 	if (retval) {
-		free (params);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
+
 	if (params->payne_colourstretchmodel == COL_SAT && gfit->naxes[2] != 3) {
 		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
 		free(params);
 		return CMD_ARG_ERROR;
 	}
+
 	image_cfa_warning_check();
-	if (params->payne_colourstretchmodel == COL_SAT)
-		apply_sat_ght_to_fits(gfit, params, TRUE);
-	else
-		apply_linked_ght_to_fits(gfit, gfit, params, TRUE);
+
+	// Create data structure
+	struct ght_data *data = create_ght_data();
+	if (!data) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->fit = gfit;
+	data->params_ght = params;  // Take ownership of params
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+
+	// Create generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_ght_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = (params->payne_colourstretchmodel == COL_SAT) ? 2.0f : 1.0f;
+	args->image_hook = ght_single_image_hook;
+	args->log_hook = ght_log_hook;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = _("Generalised Hyperbolic Stretch");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run worker synchronously - cleanup happens via destructor
+	gpointer result = generic_image_worker(args);
+	retval = GPOINTER_TO_INT(result);
+
+	if (retval != 0) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Add to history
 	char log[100];
 	switch (stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
-			sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+				params->SP, params->D, params->B, params->LP, params->HP);
 			break;
 		case STRETCH_PAYNE_INVERSE:
-			sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+				params->SP, params->D, params->B, params->LP, params->HP);
 			break;
 		case STRETCH_ASINH:
-			sprintf(log, "GHS asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			sprintf(log, "GHS asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])",
+				params->SP, params->D, params->LP, params->HP);
 			break;
 		case STRETCH_INVASINH:
-			sprintf(log, "GHS inverse asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			sprintf(log, "GHS inverse asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])",
+				params->SP, params->D, params->LP, params->HP);
 			break;
 		case STRETCH_LINEAR:
 			sprintf(log, "GHS BP shift (new BP: %.3f)", params->BP);
 			break;
 	}
 	gfit->history = g_slist_append(gfit->history, strdup(log));
-	free(params);
+
 	if (gui.roi.active)
 		populate_roi();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	return CMD_OK;
+}
+
+int process_autoghs(int nb) {
+	int argidx = 1;
+	gboolean linked = FALSE, mask_aware = FALSE;
+	clip_mode_t clip_mode = RGBBLEND;
+	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
+
+	if (!g_strcmp0(word[1], "-linked")) {
+		linked = TRUE;
+		argidx++;
+	}
+
+	gchar *end = NULL;
+	shadows_clipping = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
+	float amount = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-b=")) {
+			char *arg = word[argidx] + 3;
+			b = g_ascii_strtod(arg, &end);
+			if (fabsf(b) < 1.e-3f)
+				b = 0.f;
+			if (arg == end || b < -5.0f || b > 15.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-hp=")) {
+			char *arg = word[argidx] + 4;
+			hp = g_ascii_strtod(arg, &end);
+			if (arg == end || hp < 0.0f || hp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lp=")) {
+			char *arg = word[argidx] + 4;
+			lp = g_ascii_strtod(arg, &end);
+			if (arg == end || lp < 0.0f || lp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-clipmode=")) {
+			char *argument = word[argidx] + 10;
+			if (!g_ascii_strncasecmp(argument, "clip", 4))
+				clip_mode = CLIP;
+			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
+				clip_mode = RESCALE;
+			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
+				clip_mode = RESCALEGLOBAL;
+			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
+				clip_mode = RGBBLEND;
+			else {
+				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (!g_strcmp0(word[argidx], "-mask")) {
+			mask_aware = TRUE;
+		}
+		argidx++;
+	}
+
+	int nb_channels = (int)gfit->naxes[2];
+	imstats *stats[3] = { NULL };
+	int ret = compute_all_channels_statistics_single_image(gfit, STATS_BASIC, MULTI_THREADED, stats);
+	if (ret) {
+		for (int i = 0; i < nb_channels; ++i) {
+			free_stats(stats[i]);
+		}
+		return CMD_GENERIC_ERROR;
+	}
+
+	image_cfa_warning_check();
+
+	if (linked) {
+		double median = 0.0, sigma = 0.0;
+		for (int i = 0; i < nb_channels; ++i) {
+			median += stats[i]->median;
+			sigma += stats[i]->sigma;
+			free_stats(stats[i]);
+		}
+		median /= nb_channels;
+		sigma /= nb_channels;
+		float SP = median + shadows_clipping * sigma;
+		if (gfit->type == DATA_USHORT)
+			SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+		siril_log_message(_("Symmetry point SP=%f\n"), SP);
+
+		// Create data structure for linked processing
+		struct ght_data *data = create_ght_data();
+		if (!data) {
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->fit = gfit;
+		data->params_ght = malloc(sizeof(ght_params));
+		if (!data->params_ght) {
+			destroy_ght_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		data->params_ght->B = b;
+		data->params_ght->D = amount;
+		data->params_ght->LP = lp;
+		data->params_ght->SP = SP;
+		data->params_ght->HP = hp;
+		data->params_ght->BP = 0.0;
+		data->params_ght->stretchtype = STRETCH_PAYNE_NORMAL;
+		data->params_ght->payne_colourstretchmodel = COL_INDEP;
+		data->params_ght->do_red = TRUE;
+		data->params_ght->do_green = TRUE;
+		data->params_ght->do_blue = TRUE;
+		data->params_ght->clip_mode = clip_mode;
+		data->auto_display_compensation = FALSE;
+		data->is_preview = FALSE;
+
+		// Create generic_img_args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			destroy_ght_data(data);
+			return CMD_ALLOC_ERROR;
+		}
+
+		args->fit = gfit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = ght_single_image_hook;
+		args->log_hook = ght_log_hook;
+		args->idle_function = NULL;  // No idle in command mode
+		args->description = _("AutoGHS");
+		args->command_updates_gfit = TRUE;
+		args->command = TRUE; // calling as command, not from GUI
+		args->verbose = TRUE;
+		args->user = data;
+		args->mask_aware = mask_aware;
+		args->max_threads = com.max_thread;
+		args->for_preview = FALSE;
+		args->for_roi = FALSE;
+
+		// Run worker synchronously - cleanup happens via destructor
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
+			return CMD_GENERIC_ERROR;
+		}
+
+	} else {
+		// Unlinked mode - process each channel independently
+		// For now, keep direct processing as it uses apply_ght_to_fits_channel
+		// TODO: Implement per-channel worker support for mask compatibility
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
+#endif
+		for (int i = 0; i < nb_channels; ++i) {
+			if (stats[i]) {
+				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+				if (gfit->type == DATA_USHORT)
+					SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+
+				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
+				apply_ght_to_fits_channel(gfit, gfit, i, &params, TRUE);
+
+				free_stats(stats[i]);
+			}
+		}
+	}
+
+	char log[100];
+	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
+	gfit->history = g_slist_append(gfit->history, strdup(log));
+
+	return CMD_OK;
+}
+
+int process_autostretch(int nb) {
+	int arg_index = 1;
+	gboolean linked = FALSE;
+	gboolean mask_aware = FALSE;
+
+	/* Parse optional flags (order-independent) */
+	while (arg_index < nb) {
+		if (!strcmp(word[arg_index], "-linked")) {
+			linked = TRUE;
+			arg_index++;
+		} else if (!strcmp(word[arg_index], "-mask")) {
+			mask_aware = TRUE;
+			arg_index++;
+		} else {
+			break; /* first non-flag argument */
+		}
+	}
+
+	gchar *end = NULL;
+	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
+	if (nb > arg_index) {
+		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
+		if (end == word[arg_index]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
+			return CMD_ARG_ERROR;
+		}
+		arg_index++;
+	}
+
+	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
+	if (nb > arg_index) {
+		target_bg = g_ascii_strtod(word[arg_index], &end);
+		if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
+			siril_log_message(_("The target background value must be in the [0, 1] range\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
+			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+
+	image_cfa_warning_check();
+
+	/* Create data structure */
+	struct mtf_data *data = create_mtf_data();
+	if (!data) {
+		return CMD_ALLOC_ERROR;
+	}
+	data->fit = gfit;
+	data->auto_display_compensation = FALSE;
+	data->is_preview = FALSE;
+	data->linked = linked;
+
+	/* Create generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		destroy_mtf_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+
+	/* Compute the autostretch parameters */
+	if (linked) {
+		find_linked_midtones_balance(gfit, shadows_clipping, target_bg, &data->params);
+		data->params.do_red = data->params.do_green = data->params.do_blue = TRUE;
+	} else {
+		find_unlinked_midtones_balance(gfit, shadows_clipping, target_bg, data->uparams);
+		data->uparams[0].do_red = data->uparams[0].do_green = data->uparams[0].do_blue = TRUE;
+		data->uparams[1].do_red = data->uparams[1].do_green = data->uparams[1].do_blue = TRUE;
+		data->uparams[2].do_red = data->uparams[2].do_green = data->uparams[2].do_blue = TRUE;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mtf_single_image_hook;
+	args->log_hook = mtf_log_hook;
+	args->idle_function = NULL;  // No idle in command mode
+	args->description = _("Autostretch");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	/* Run worker synchronously - cleanup happens via destructor */
+	gpointer result = generic_image_worker(args);
+	int retval = GPOINTER_TO_INT(result);
+	if (retval != 0) {
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_ght(int nb) {
@@ -2659,6 +4140,7 @@ int process_asinh(int nb) {
 	arg_offset++;
 
 	double offset = 0.0;
+	gboolean use_mask = FALSE;
 	while (arg_offset < nb) {
 		if (g_str_has_prefix(word[arg_offset], "-clipmode=")) {
 			char *argument = word[arg_offset] + 10;
@@ -2674,6 +4156,8 @@ int process_asinh(int nb) {
 				siril_log_color_message(_("Invalid clip mode %s, aborting.\n"), "red", argument);
 				return CMD_ARG_ERROR;
 			}
+		} else if (g_str_has_prefix(word[arg_offset], "-mask")) {
+			use_mask = TRUE;
 		} else {
 			offset = g_ascii_strtod(word[arg_offset], &end);
 			if (end == word[arg_offset]) {
@@ -2686,38 +4170,116 @@ int process_asinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	image_cfa_warning_check();
-	command_asinh(gfit, beta, offset, human_luminance, clip_mode);
+
+	// Allocate parameters
+	asinh_params *params = calloc(1, sizeof(asinh_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->beta = beta;
+	params->offset = offset;
+	params->human_luminance = human_luminance;
+	params->clip_mode = clip_mode;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = asinh_image_hook;
+	args->idle_function = NULL; // No idle function for synchronous execution
+	args->description = _("Asinh stretch");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = FALSE;
+	args->user = params;
+	args->log_hook = asinh_log_hook;
+	args->max_threads = com.max_thread;
+	args->mask_aware = use_mask;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Run synchronously by calling the worker directly
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Check return value
+	int retval = args->retval;
+
+	// Resources are freed at the end of the generic image worker
+
+	if (retval != 0) {
+		siril_log_color_message(_("Asinh stretch failed\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
 	gfit->history = g_slist_append(gfit->history, strdup(log));
+	siril_log_message(log);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_clahe(int nb) {
 	gchar *end;
 	double clip_limit = g_ascii_strtod(word[1], &end);
-
 	if (end == word[1] || clip_limit <= 0.0) {
 		siril_log_message(_("Clip limit must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
-
 	int size = g_ascii_strtoull(word[2], &end, 10);
-
-	if (end == word[2] || size <= 0.0) {
+	if (end == word[2] || size <= 0) {
 		siril_log_message(_("Tile size must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
+	image_cfa_warning_check();
+
+	// Allocate parameters
+	clahe_params *params = calloc(1, sizeof(clahe_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->clip = clip_limit;
+	params->tileSize = size;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
 
 	args->fit = gfit;
-	args->clip = clip_limit;
-	args->tileSize = size;
-	image_cfa_warning_check();
-	if (!start_in_new_thread(clahe, args)) {
+	args->mem_ratio = 2.0f;
+	args->image_hook = clahe_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("CLAHE");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = params;
+	args->mask_aware = word[3] && g_strcmp0(word[3], "-mask") == 0; // handle the -mask flag to set mask_aware state
+	args->log_hook = clahe_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -3063,6 +4625,8 @@ merge_clean_up:
 	return retval;
 }
 
+/* Geometry operation image commands (updated to use generic_image_worker) */
+
 int process_mirrorx_single(int nb){
 	image_type imagetype;
 	char *realname = NULL;
@@ -3124,248 +4688,78 @@ int process_mirrorx(int nb){
 		}
 		siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
 	}
-	mirrorx(gfit, TRUE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->x_axis = TRUE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrorx_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Mirror X");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;  // Don't add CMD_NOTIFY_GFIT_MODIFIED - handled by worker
 }
 
 int process_mirrory(int nb){
-	mirrory(gfit, TRUE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_mtf(int nb) {
-	struct mtf_params params;
-	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
-	gchar *end1, *end2, *end3;
-	params.shadows = g_ascii_strtod(word[1], &end1);
-	params.midtones = g_ascii_strtod(word[2], &end2);
-	params.highlights = g_ascii_strtod(word[3], &end3);
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
-			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
-			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
-		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
-		return CMD_ARG_ERROR;
-	}
-	if (word[4]) {
-		if (!strcmp(word[4], "R")) {
-			params.do_green = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "G")) {
-			params.do_red = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "B")) {
-			params.do_green = FALSE;
-			params.do_red = FALSE;
-		}
-		if (!strcmp(word[4], "RG")) {
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "RB")) {
-			params.do_green = FALSE;
-		}
-		if (!strcmp(word[4], "GB")) {
-			params.do_red = FALSE;
-		}
-	}
-	image_cfa_warning_check();
-	if (inverse)
-		apply_linked_pseudoinverse_mtf_to_fits(gfit, gfit, params, TRUE);
-	else {
-		apply_linked_mtf_to_fits(gfit, gfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
-	}
-	char log[90];
-	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
-			inverse ? "Inverse midtones" : "Midtones",
-			params.shadows, params.midtones, params.highlights);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_autoghs(int nb) {
-	int argidx = 1;
-	gboolean linked = FALSE;
-	clip_mode_t clip_mode = RGBBLEND;
-	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
-
-	if (!g_strcmp0(word[1], "-linked")) {
-		linked = TRUE;
-		argidx++;
+	// Allocate parameters
+	struct mirror_args *params = new_mirror_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
 
-	gchar *end = NULL;
-	shadows_clipping = g_ascii_strtod(word[argidx], &end);
-	if (end == word[argidx]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-		return CMD_ARG_ERROR;
-	}
-	argidx++;
+	params->x_axis = FALSE;
 
-	float amount = g_ascii_strtod(word[argidx], &end);
-	if (end == word[argidx]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-		return CMD_ARG_ERROR;
-	}
-	argidx++;
-
-	while (argidx < nb) {
-		if (g_str_has_prefix(word[argidx], "-b=")) {
-			char *arg = word[argidx] + 3;
-			b = g_ascii_strtod(arg, &end);
-			if (fabsf(b) < 1.e-3f)
-				b = 0.f;
-			if (arg == end || b < -5.0f || b > 15.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-hp=")) {
-			char *arg = word[argidx] + 4;
-			hp = g_ascii_strtod(arg, &end);
-			if (arg == end || hp < 0.0f || hp > 1.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-lp=")) {
-			char *arg = word[argidx] + 4;
-			lp = g_ascii_strtod(arg, &end);
-			if (arg == end || lp < 0.0f || lp > 1.0f) {
-				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		else if (g_str_has_prefix(word[argidx], "-clipmode=")) {
-			char *argument = word[argidx] + 10;
-			if (!g_ascii_strncasecmp(argument, "clip", 4))
-				clip_mode = CLIP;
-			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
-				clip_mode = RESCALE;
-			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
-				clip_mode = RESCALEGLOBAL;
-			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
-				clip_mode = RGBBLEND;
-			else {
-				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
-				return CMD_ARG_ERROR;
-			}
-		}
-		argidx++;
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_mirror_args(params);
+		return CMD_ALLOC_ERROR;
 	}
 
-	int nb_channels = (int)gfit->naxes[2];
-	imstats *stats[3] = { NULL };
-	int ret = compute_all_channels_statistics_single_image(gfit, STATS_BASIC, MULTI_THREADED, stats);
-	if (ret) {
-		for (int i = 0; i < nb_channels; ++i) {
-			free_stats(stats[i]);
-		}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = mirrory_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Mirror Y");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
-	image_cfa_warning_check();
-	if (linked) {
-		double median = 0.0, sigma = 0.0;
-		for (int i = 0; i < nb_channels; ++i) {
-			median += stats[i]->median;
-			sigma += stats[i]->sigma;
-			free_stats(stats[i]);
-		}
-		median /= nb_channels;
-		sigma /= nb_channels;
-		float SP = median + shadows_clipping * sigma;
-		if (gfit->type == DATA_USHORT)
-			SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-		siril_log_message(_("Symmetry point SP=%f\n"), SP);
 
-		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE, clip_mode };
-		apply_linked_ght_to_fits(gfit, gfit, &params, TRUE);
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
-#endif
-		for (int i = 0; i < nb_channels; ++i) {
-			if (stats[i]) {
-				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-				if (gfit->type == DATA_USHORT)
-					SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
-
-				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
-				apply_ght_to_fits_channel(gfit, gfit, i, &params, TRUE);
-
-				free_stats(stats[i]);
-			}
-		}
-	}
-
-	char log[100];
-	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
-			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_autostretch(int nb) {
-	int arg_index = 1;
-	gboolean linked = FALSE;
-	if (nb > 1 && !strcmp(word[1], "-linked")) {
-		linked = TRUE;
-		arg_index++;
-	}
-	gchar *end = NULL;
-	float shadows_clipping = AS_DEFAULT_SHADOWS_CLIPPING;
-	if (nb > arg_index) {
-		shadows_clipping = g_ascii_strtod(word[arg_index], &end);
-		if (end == word[arg_index]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_index]);
-			return CMD_ARG_ERROR;
-		}
-		arg_index++;
-	}
-
-	float target_bg = AS_DEFAULT_TARGET_BACKGROUND;
-	if (nb > arg_index) {
-		target_bg = g_ascii_strtod(word[arg_index], &end);
-		if (end == word[arg_index] || target_bg < 0.0f || target_bg > 1.0f) {
-			siril_log_message(_("The target background value must be in the [0, 1] range\n"));
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
-			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
-	image_cfa_warning_check();
-	if (linked) {
-		struct mtf_params params;
-		find_linked_midtones_balance(gfit, shadows_clipping, target_bg, &params);
-		params.do_red = TRUE;
-		params.do_green = TRUE;
-		params.do_blue = TRUE;
-		apply_linked_mtf_to_fits(gfit, gfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-			params.shadows, params.midtones, params.highlights);
-
-	} else {
-		struct mtf_params params[3];
-		find_unlinked_midtones_balance(gfit, shadows_clipping, target_bg, params);
-		apply_unlinked_mtf_to_fits(gfit, gfit, params);
-	}
-
-	char log[90];
-	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
-			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_binxy(int nb) {
@@ -3381,9 +4775,43 @@ int process_binxy(int nb) {
 		mean = FALSE;
 	}
 	image_cfa_warning_check();
-	fits_binning(gfit, factor, mean);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate parameters
+	struct binning_args *params = new_binning_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->factor = factor;
+	params->mean = mean;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_binning_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = binning_image_hook;
+	args->log_hook = binning_log_hook;
+	args->idle_function = NULL;
+	args->description = _("Binning");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_resample(int nb) {
@@ -3475,51 +4903,120 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
-			toX, toY, interp_to_str(interpolation));
-	int fromX = gfit->rx, fromY = gfit->ry;
 	image_cfa_warning_check();
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(gfit, toX, toY, interpolation, clamp);
 
-	char log[90];
-	sprintf(log, "Resampled from %d x %d, %s interp%s", fromX, fromY, interp_to_str(interpolation),
-			((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) ?
-			", clamped" : "");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	gui_function(update_MenuItem, NULL);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
-int process_rgradient(int nb) {
-	if (gfit->orig_bitpix == BYTE_IMG) {
-		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
-		return CMD_INVALID_IMAGE;
+	// Allocate parameters
+	struct resample_args *params = new_resample_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
 	}
 
-	gchar *endxc, *endyc, *enddR, *endda;
+	params->toX = toX;
+	params->toY = toY;
+	params->interpolation = interpolation;
+	params->clamp = clamp;
 
-	struct rgradient_filter_data *args = calloc(1, sizeof(struct rgradient_filter_data));
-	args->xc = g_ascii_strtod(word[1], &endxc);
-	args->yc = g_ascii_strtod(word[2], &endyc);
-	args->dR = g_ascii_strtod(word[3], &enddR);
-	args->da = g_ascii_strtod(word[4], &endda);
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_resample_args(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
 	args->fit = gfit;
+	args->mem_ratio = 1.0f + ((toX / gfit->rx) * (toY / gfit->ry));
+	args->image_hook = resample_image_hook;
+	args->log_hook = resample_log_hook;
+	args->idle_function = NULL;
+	args->description = _("Resample");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
 
-	if (endxc == word[1] || endyc == word[2] || enddR == word[3]
-			|| endda == word[4] || (args->xc >= args->fit->rx)
-			|| (args->yc >= args->fit->ry)) {
-		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
-				"Please change their values and retry.\n"));
-		free(args);
-		return CMD_ARG_ERROR;
-	}
-	image_cfa_warning_check();
-	if (!start_in_new_thread(rgradient_filter, args)) {
-		free(args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
+	return CMD_OK;
+}
+
+int process_crop(int nb) {
+	if (is_preview_active()) {
+		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
+						"Please consider to close the filter dialog first.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	rectangle area;
+	if (com.selection.h && com.selection.w) {
+		area = com.selection;
+	} else {
+		if (nb == 5) {
+			gchar *end1, *end2;
+			area.x = g_ascii_strtoull(word[1], &end1, 10);
+			area.y = g_ascii_strtoull(word[2], &end2, 10);
+			if (end1 == word[1] || area.x < 0 || end2 == word[2] || area.y < 0) {
+				siril_log_message(_("Crop: x and y must be positive values.\n"));
+				return CMD_ARG_ERROR;
+			}
+			area.w = g_ascii_strtoull(word[3], &end1, 10);
+			area.h = g_ascii_strtoull(word[4], &end2, 10);
+			if (end1 == word[3] || area.w < 0 || end2 == word[4] || area.h < 0) {
+				siril_log_message(_("Crop: width and height must be greater than 0.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (area.x + area.w > gfit->rx || area.y + area.h > gfit->ry) {
+				siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"), gfit->rx, gfit->ry);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else {
+			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	// Allocate parameters
+	struct crop_args *params = new_crop_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->area = area;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_crop_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = crop_image_hook_single;
+	args->idle_function = NULL;
+	args->description = _("Crop");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
 	return CMD_OK;
 }
 
@@ -3586,7 +5083,6 @@ int process_rotate(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_debug_print("%f\n",angle);
 
 	if (angle == 0.0 || angle == 360.0) {
 		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
@@ -3594,23 +5090,158 @@ int process_rotate(int nb) {
 	}
 	if (angle != 90.0 && angle != 180.0 && angle != 270.0)
 		image_cfa_warning_check();
-	verbose_rotate_image(gfit, area, angle, interpolation, crop, clamp);
 
-	// the new selection will match the current image
-	if (has_selection) {
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
-		gui_function(new_selection_zone, NULL);
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
 	}
-	update_zoom_label();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	params->area = area;
+	params->angle = angle;
+	params->interpolation = interpolation;
+	params->cropped = crop;
+	params->clamp = clamp;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		set_cursor_waiting(FALSE);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = rotation_image_hook;
+	args->log_hook = rotation_log_hook;
+	args->idle_function = NULL;
+	args->description = _("Rotation");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		set_cursor_waiting(FALSE);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_rotatepi(int nb){
-	if (verbose_rotate_fast(gfit, 180))
-		return CMD_GENERIC_ERROR;
+	// Allocate parameters
+	struct rotation_args *params = new_rotation_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
 
-	update_zoom_label();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	params->area = (rectangle){0, 0, gfit->rx, gfit->ry};
+	params->angle = 180.0;
+	params->interpolation = -1;  // Fast rotation
+	params->cropped = 0;
+	params->clamp = FALSE;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rotation_args(params);
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = rotation_image_hook;
+	args->log_hook = rotation_log_hook;
+	args->idle_function = NULL;
+	args->description = _("Rotation 180°");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = 1;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_rgradient(int nb) {
+	if (gfit->orig_bitpix == BYTE_IMG) {
+		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
+		return CMD_INVALID_IMAGE;
+	}
+	// Parse arguments
+	gchar *endxc, *endyc, *enddR, *endda;
+	double xc = g_ascii_strtod(word[1], &endxc);
+	double yc = g_ascii_strtod(word[2], &endyc);
+	double dR = g_ascii_strtod(word[3], &enddR);
+	double da = g_ascii_strtod(word[4], &endda);
+	gboolean mask_aware = FALSE;
+
+	// Validate arguments
+	if (endxc == word[1] || endyc == word[2] || enddR == word[3] || endda == word[4]) {
+		siril_log_message(_("Invalid numeric arguments. Usage: rgradient xc yc dR da\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (xc >= gfit->rx || yc >= gfit->ry) {
+		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
+			"Please change their values and retry.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	// Check for optional -mask flag
+	if (word[5] && !strcmp(word[5], "-mask")) {
+		mask_aware = TRUE;
+	}
+
+	image_cfa_warning_check();
+	// Allocate parameters
+	struct rgradient_data *params = new_rgradient_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	// Set parameters
+	params->xc = xc;
+	params->yc = yc;
+	params->dR = dR;
+	params->da = da;
+	params->fit = gfit;
+	params->verbose = TRUE;
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_rgradient_data(params);
+		return CMD_ALLOC_ERROR;
+	}
+	// Set up generic_img_args
+	args->fit = gfit;
+	args->mem_ratio = 3.0f; // Need memory for two temporary images
+	args->image_hook = rgradient_image_hook;
+	args->log_hook = rgradient_log_hook;
+	args->description = _("Rotational Gradient");
+	args->verbose = TRUE;
+	args->user = params;
+	args->mask_aware = mask_aware;
+	args->max_threads = com.max_thread;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_set(int nb) {
@@ -5057,25 +6688,162 @@ int process_seq_resample(int nb) {
 	return CMD_OK;
 }
 
-int process_bg(int nb) {
-	WORD us_bg;
+// ============================================================================
+// BG (Background)
+// ============================================================================
+struct bg_data {
+	void (*destructor)(void *);
+	rectangle selection;
+	gboolean has_selection;
+	double bg_values[3];  // Store background for up to 3 channels
+	WORD us_bg_values[3];
+	int nchannels;
+};
+
+static int bg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct bg_data *data = (struct bg_data *)args->user;
+
 	image_cfa_warning_check();
-	for (int layer = 0; layer < gfit->naxes[2]; layer++) {
-		double bg = background(gfit, layer, &com.selection, MULTI_THREADED);
-		if (gfit->type == DATA_USHORT) {
-			us_bg = round_to_WORD(bg);
-			bg = bg / get_normalized_value(gfit);
-		} else if (gfit->type == DATA_FLOAT) {
-			us_bg = float_to_ushort_range(bg);
-		} else return CMD_INVALID_IMAGE;
-		siril_log_message(_("Background value (channel: #%d): %d (%.3e)\n"), layer, us_bg, bg);
+
+	rectangle *sel_ptr = data->has_selection ? &data->selection : NULL;
+	data->nchannels = fit->naxes[2];
+
+	for (int layer = 0; layer < fit->naxes[2]; layer++) {
+		double bg = background(fit, layer, sel_ptr, MULTI_THREADED);
+		data->bg_values[layer] = bg;
+
+		if (fit->type == DATA_USHORT) {
+			data->us_bg_values[layer] = round_to_WORD(bg);
+			data->bg_values[layer] = bg / get_normalized_value(fit);
+		} else if (fit->type == DATA_FLOAT) {
+			data->us_bg_values[layer] = float_to_ushort_range(bg);
+		}
+	}
+
+	return 0;
+}
+/*
+static void bg_idle_function(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	struct bg_data *data = (struct bg_data *)args->user;
+
+	for (int layer = 0; layer < data->nchannels; layer++) {
+		siril_log_message(_("Background value (channel: #%d): %d (%.3e)\n"),
+						  layer, data->us_bg_values[layer], data->bg_values[layer]);
+	}
+}
+*/
+static gchar *bg_log_hook(gpointer p, log_hook_detail detail) {
+	struct bg_data *args = (struct bg_data*) p;
+	if (detail == DETAILED && args->nchannels > 0) {
+		if (args->nchannels == 1) {
+			return g_strdup_printf(_("Background: %d (%.3e)"),
+								   args->us_bg_values[0], args->bg_values[0]);
+		} else {
+			return g_strdup_printf(_("Background (RGB): %d, %d, %d"),
+								   args->us_bg_values[0],
+								   args->us_bg_values[1],
+								   args->us_bg_values[2]);
+		}
+	}
+	return g_strdup(_("Background computation"));
+}
+
+int process_bg(int nb) {
+	// Allocate and initialize user data
+	struct bg_data *data = calloc(1, sizeof(struct bg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->selection = com.selection;
+	}
+	data->nchannels = 0;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = bg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Background");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = bg_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }
 
-int process_bgnoise(int nb) {
+static int bgnoise_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct noise_data *data = (struct noise_data *)args->user;
+
 	image_cfa_warning_check();
-	evaluate_noise_in_image();
+
+	// Call the noise worker directly
+	noise_worker(data);
+
+	return 0;
+}
+
+static gchar *bgnoise_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Background noise estimation"));
+}
+
+int process_bgnoise(int nb) {
+	// Allocate noise_data
+	struct noise_data *noise_args = calloc(1, sizeof(struct noise_data));
+	if (!noise_args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	noise_args->fit = gfit;
+	noise_args->use_idle = FALSE;
+	noise_args->display_results = TRUE;
+	noise_args->display_start_end = TRUE;
+	memset(noise_args->bgnoise, 0.0, sizeof(double[3]));
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(noise_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = bgnoise_image_hook;
+	args->idle_function = NULL;  // noise_worker handles its own idle function
+	args->description = _("Background noise");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = noise_args;
+	args->log_hook = bgnoise_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -5136,7 +6904,7 @@ int process_tilt(int nb) {
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
 		siril_log_message(_("Clearing tilt information\n"));
-		redraw(REDRAW_OVERLAY);
+		queue_redraw(REDRAW_OVERLAY);
 	} else {
 		set_cursor_waiting(TRUE);
 		draw_sensor_tilt(gfit);
@@ -5147,76 +6915,260 @@ int process_tilt(int nb) {
 }
 
 int process_inspector(int nb) {
+	if (com.headless) {
+		siril_log_color_message(_("Error: cannot run inspector while headless"), "red");
+		return CMD_ARG_ERROR;
+	}
 	compute_aberration_inspector();
 	return CMD_OK;
 }
 
-int process_thresh(int nb){
+// Enum to distinguish threshold operations
+typedef enum {
+	THRESH_BOTH,
+	THRESH_LO,
+	THRESH_HI
+} thresh_type;
+
+// Structure to hold threshold-specific data
+struct thresh_data {
+	void (*destructor)(void *);  // Required as first member
+	thresh_type type;
+	int lo;
+	int hi;
+};
+
+// Image processing hook for threshold operations
+static int thresh_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct thresh_data *data = (struct thresh_data *)args->user;
+
+	// Perform the threshold operation(s)
+	if (data->type == THRESH_BOTH || data->type == THRESH_LO) {
+		threshlo(fit, data->lo);
+	}
+	if (data->type == THRESH_BOTH || data->type == THRESH_HI) {
+		threshhi(fit, data->hi);
+	}
+
+	// Add to history
+	char log[90];
+	if (data->type == THRESH_BOTH) {
+		sprintf(log, "Image clamped to [%d, %d]", data->lo, data->hi);
+	} else if (data->type == THRESH_LO) {
+		sprintf(log, "Image clamped to [%d, max]", data->lo);
+	} else {
+		sprintf(log, "Image clamped to [min, %d]", data->hi);
+	}
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	return 0;
+}
+
+static gchar *thresh_log_hook(gpointer p, log_hook_detail detail) {
+	struct thresh_data *args = (struct thresh_data *) p;
+	if (args->type == THRESH_LO) {
+		return g_strdup_printf(_("Low threshold: %d"), args->lo);
+	} else if (args->type == THRESH_HI) {
+		return g_strdup_printf(_("High threshold: %d"), args->hi);
+	}
+	return g_strdup_printf(_("Threshold: lo = %d, hi = %d"), args->lo, args->hi);
+}
+
+// Unified threshold processing function
+int process_thresh(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
 	gchar *end1, *end2;
-	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], &end1, 10);
-	if (end1 == word[1] || lo < 0 || lo > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	int hi = g_ascii_strtoull(word[2], &end2, 10);
-	if (end2 == word[2] || hi < 0 || hi > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	if (lo >= hi) {
-		siril_log_message(_("lo must be strictly smaller than hi\n"));
-		return CMD_ARG_ERROR;
-	}
-	threshlo(gfit, lo);
-	threshhi(gfit, hi);
 
-	char log[90];
-	sprintf(log, "Image clamped to [%d, %d]", lo, hi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+	thresh_type type;
+	int lo = 0, hi = maxlevel;
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* Determine operation type by command name */
+	if (strcmp(word[0], "thresh") == 0) {
+		if (num_index != 2)
+			return CMD_ARG_ERROR;
+
+		type = THRESH_BOTH;
+
+		lo = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || lo < 0 || lo > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+
+		hi = g_ascii_strtoull(num_args[1], &end2, 10);
+		if (end2 == num_args[1] || hi < 0 || hi > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+
+		if (lo >= hi) {
+			siril_log_message(_("lo must be strictly smaller than hi\n"));
+			return CMD_ARG_ERROR;
+		}
+
+	} else if (strcmp(word[0], "threshlo") == 0) {
+		if (num_index != 1)
+			return CMD_ARG_ERROR;
+
+		type = THRESH_LO;
+
+		lo = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || lo < 0 || lo > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+
+	} else if (strcmp(word[0], "threshhi") == 0) {
+		if (num_index != 1)
+			return CMD_ARG_ERROR;
+
+		type = THRESH_HI;
+
+		hi = g_ascii_strtoull(num_args[0], &end1, 10);
+		if (end1 == num_args[0] || hi < 0 || hi > maxlevel) {
+			siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
+			return CMD_ARG_ERROR;
+		}
+
+	} else {
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and initialize user data */
+	struct thresh_data *data = calloc(1, sizeof(struct thresh_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+
+	data->type = type;
+	data->lo = lo;
+	data->hi = hi;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Threshold operations work in-place
+	args->image_hook = thresh_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Threshold operation");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = thresh_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	/* Start the worker thread */
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
-int process_threshlo(int nb) {
-	gchar *end;
-	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || lo < 0 || lo > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	threshlo(gfit, lo);
 
-	char log[90];
-	sprintf(log, "Image clamped to [%d, max]", lo);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+// Structure for neg operation (simple, no extra data needed)
+struct neg_data {
+	void (*destructor)(void *);  // Required as first member
+};
+
+// Image processing hook for neg
+static int neg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	pos_to_neg(fit);
+	return 0;
 }
 
-int process_threshhi(int nb) {
-	gchar *end;
-	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int hi = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || hi < 0 || hi > maxlevel) {
-		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
-		return CMD_ARG_ERROR;
-	}
-	threshhi(gfit, hi);
-
-	char log[90];
-	sprintf(log, "Image clamped to [min, %d]", hi);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
-
+// Main command function for neg
 int process_neg(int nb) {
-	set_cursor_waiting(TRUE);
-	pos_to_neg(gfit);
-	gfit->history = g_slist_append(gfit->history, strdup("Image made negative"));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize user data
+	struct neg_data *data = calloc(1, sizeof(struct neg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	gboolean use_mask = FALSE;
+	if (!g_strcmp0(word[1], "-mask")) {
+		use_mask = TRUE;
+	}
+
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Neg operation works in-place
+	args->image_hook = neg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Negative");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = data;
+	args->mask_aware = use_mask;
+	// No log_hook required here as the basic description is enough
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	// Start the worker thread
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
-int process_nozero(int nb){
+struct nozero_data {
+	void (*destructor)(void *);
+	WORD level;
+};
+
+static int nozero_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct nozero_data *data = (struct nozero_data *)args->user;
+	nozero(fit, data->level);
+	return 0;
+}
+
+static gchar *nozero_log_hook(gpointer p, log_hook_detail detail) {
+	struct nozero_data *args = (struct nozero_data*) p;
+	return g_strdup_printf(_("Replace zeros with %d"), args->level);
+}
+
+int process_nozero(int nb) {
 	gchar *end;
 	int level = g_ascii_strtoull(word[1], &end, 10);
 	int maxlevel = (gfit->orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
@@ -5224,35 +7176,158 @@ int process_nozero(int nb){
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
-	nozero(gfit, (WORD)level);
 
-	char log[90];
-	sprintf(log, "Replaced zeros with %d", level);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize user data
+	struct nozero_data *data = calloc(1, sizeof(struct nozero_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->level = (WORD)level;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = nozero_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Replace zeros");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = nozero_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
+// Structure to hold DDP-specific data
+struct ddp_data {
+	void (*destructor)(void *);  // Required as first member, can be NULL
+	float level;
+	float coeff;
+	float sigma;
+};
+
+// Image processing hook for DDP
+static int ddp_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct ddp_data *data = (struct ddp_data *)args->user;
+
+	// Perform the DDP operation
+	int retval = ddp(fit, data->level, data->coeff, data->sigma);
+
+	return retval;
+}
+
+static gchar *ddp_log_hook(gpointer p, log_hook_detail detail) {
+	struct ddp_data *args = (struct ddp_data*) p;
+	if (detail == SUMMARY) {
+		return g_strdup_printf(_("DDP: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
+	}
+	return g_strdup_printf(_("Digital Development Processing: level %.3f, coeff %.3f, Sigma %.3f"), args->level, args->coeff, args->sigma);
+}
+
+// Main command function
 int process_ddp(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[3] = { NULL, NULL, NULL };
+	int num_index = 0;
 	gchar *end;
-	float level = (float) g_ascii_strtod(word[1], &end);
-	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
+
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 3) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (num_index != 3) {
+		siril_log_message(_("DDP requires 3 numeric arguments: level coeff sigma\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	float level = (float) g_ascii_strtod(num_args[0], &end);
+	if (end == num_args[0] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
-	float coeff = g_ascii_strtod(word[2], &end);
-	if (end == word[2] || coeff < 0) {
+
+	float coeff = g_ascii_strtod(num_args[1], &end);
+	if (end == num_args[1] || coeff < 0) {
 		siril_log_message(_("Coeff value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
-	float sigma = g_ascii_strtod(word[3], &end);
-	if (end == word[3] || sigma < 0) {
+
+	float sigma = g_ascii_strtod(num_args[2], &end);
+	if (end == num_args[2] || sigma < 0) {
 		siril_log_message(_("Sigma value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
+
 	image_cfa_warning_check();
-	ddp(gfit, level, coeff, sigma);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	/* Allocate and initialize user data */
+	struct ddp_data *ddp_args = calloc(1, sizeof(struct ddp_data));
+	if (!ddp_args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	ddp_args->destructor = NULL;  // Use default free()
+	ddp_args->level = level;
+	ddp_args->coeff = coeff;
+	ddp_args->sigma = sigma;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(ddp_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.f;
+	args->image_hook = ddp_image_hook;
+	args->idle_function = NULL;  // Use default
+	args->description = _("Digital Development Processing");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;  // This command modifies gfit
+	args->command = TRUE; // calling as command, not from GUI
+	args->user = ddp_args;
+	args->mask_aware = mask_aware;
+	args->log_hook = ddp_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	/* Start the worker thread */
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
+
 
 int process_new(int nb){
 	int width, height, layers;
@@ -5313,15 +7388,71 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
-int process_ffill(int nb) {
-	gchar *end;
+struct ffill_data {
+	void (*destructor)(void *);
+	int level;
 	rectangle area;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+};
+
+static int ffill_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct ffill_data *data = (struct ffill_data *)args->user;
+	rectangle area = data->area;
+
+	int retval = fill(fit, data->level, &area);
+	if (retval) {
+		return retval;
+	}
+
+	// Mirror operation
+	area.x = fit->rx - area.x - area.w;
+	area.y = fit->ry - area.y - area.h;
+	return fill(fit, data->level, &area);
+}
+
+static gchar *ffill_log_hook(gpointer p, log_hook_detail detail) {
+	struct ffill_data *args = (struct ffill_data*) p;
+	return g_strdup_printf(_("Fill mirrored region with level %d"), args->level);
+}
+
+int process_ffill(int nb) {
+	if (nb < 2) {
+		siril_log_message(_("Missing fill level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean mask_aware = FALSE;
+	char *level_arg = NULL;
+	rectangle area;
+	gchar *end;
+
+	/* Scan arguments to find level and optional -mask */
+	for (int i = 1; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else if (i >= 2 && nb >= 6) {
+			// Assume rectangle coordinates if provided
+			continue;
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Missing fill level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse fill level */
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg || level < 0 || level > USHRT_MAX) {
 		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
 
+	/* Determine area */
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
 			gchar *endx, *endy, *endw, *endh;
@@ -5330,28 +7461,57 @@ int process_ffill(int nb) {
 			area.w = g_ascii_strtoull(word[4], &endw, 10);
 			area.h = g_ascii_strtoull(word[5], &endh, 10);
 			if (endx == word[2] || endy == word[3] || endw == word[4]
-					|| endh == word[5] || (area.w + area.x > gfit->rx)
-					|| (area.h + area.y > gfit->ry)) {
+				|| endh == word[5] || (area.w + area.x > gfit->rx)
+				|| (area.h + area.y > gfit->ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
-		}
-		else {
+		} else {
 			siril_log_message(_("Fill2: select a region or provide x, y, width, height\n"));
 			return CMD_ARG_ERROR;
 		}
 	} else {
 		area = com.selection;
 	}
-	int retval = fill(gfit, level, &area);
-	if (retval) {
-		siril_log_message(_("Wrong parameters.\n"));
-		return CMD_ARG_ERROR;
+
+	/* Allocate and initialize user data */
+	struct ffill_data *data = calloc(1, sizeof(struct ffill_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	area.x = gfit->rx - area.x - area.w;
-	area.y = gfit->ry - area.y - area.h;
-	fill(gfit, level, &area);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	data->level = level;
+	data->area = area;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = ffill_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Fill mirrored region");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = ffill_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
@@ -5584,16 +7744,34 @@ int process_findhot(int nb){
 	return CMD_OK;
 }
 
+static int fix_xtrans_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return fix_xtrans_ac(fit);
+}
+
 int process_fix_xtrans(int nb) {
-	fix_xtrans_ac(gfit);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fix_xtrans_image_hook;
+	args->description = _("Fix X-Trans artefacts");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_cosme(int nb) {
 	gchar *filename;
-	int retval = 0;
-
 	if (!g_str_has_suffix(word[1], ".lst")) {
 		filename = g_strdup_printf("%s.lst", word[1]);
 	} else {
@@ -5607,20 +7785,51 @@ int process_cosme(int nb) {
 	}
 
 	GFile *file = g_file_new_for_path(filename);
+	g_free(filename);
 
 	int is_cfa = (word[0][5] == '_') ? 1 : 0;
 
-	retval = apply_cosme_to_image(gfit, file, is_cfa);
-
-	g_free(filename);
-	if (file)
+	// Allocate parameters using the new allocator
+	struct cosme_data *params = new_cosme_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
 		g_object_unref(file);
-	if (retval)
-		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
+		return CMD_GENERIC_ERROR;
+	}
 
-	invalidate_stats_from_fit(gfit);
-	notify_gfit_modified();
-	return retval ? CMD_GENERIC_ERROR : ( CMD_OK | CMD_NOTIFY_GFIT_MODIFIED );
+	params->file = file;  // Transfer ownership
+	params->is_cfa = is_cfa;
+	params->fit = NULL;  // Not used in this context
+	params->seq = NULL;  // Not used in this context
+	params->prefix = NULL;  // Not used in this context
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_cosme_data(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;  // Cosmetic correction works in-place with minimal overhead
+	args->image_hook = cosme_image_hook_generic;
+	args->idle_function = NULL;
+	args->description = _("Cosmetic Correction");
+	args->verbose = TRUE;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
 }
 
 int process_seq_cosme(int nb) {
@@ -5677,27 +7886,81 @@ int process_seq_cosme(int nb) {
 	return CMD_OK;
 }
 
-int process_fmedian(int nb){
-	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
+int process_fmedian(int nb) {
+	gboolean mask_aware = FALSE;
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
 	gchar *end1, *end2;
-	args->ksize = g_ascii_strtoull(word[1], &end1, 10);
-	args->amount = g_ascii_strtod(word[2], &end2);
-	args->iterations = 1;
 
-	if (end1 == word[1] || !(args->ksize & 1) || args->ksize < 2 || args->ksize > 15) {
+	/* Scan arguments (order-independent for -mask) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (num_index != 2) {
+		siril_log_message(_("Median filter requires 2 arguments: ksize amount\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and initialize parameters */
+	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	params->ksize = g_ascii_strtoull(num_args[0], &end1, 10);
+	if (end1 == num_args[0] || !(params->ksize & 1) ||
+	    params->ksize < 3 || params->ksize > 15) {
 		siril_log_message(_("The size of the kernel MUST be odd and in the range [3, 15].\n"));
-		free(args);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
-	if (end2 == word[2] || args->amount < 0.0 || args->amount > 1.0) {
+
+	params->amount = g_ascii_strtod(num_args[1], &end2);
+	if (end2 == num_args[1] || params->amount < 0.0 || params->amount > 1.0) {
 		siril_log_message(_("Modulation value MUST be between 0 and 1\n"));
-		free(args);
+		free(params);
 		return CMD_ARG_ERROR;
 	}
+
+	params->iterations = 1;
+	params->fit = gfit;
+
+	/* Allocate worker args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return CMD_ALLOC_ERROR;
+	}
+
 	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = median_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Median filter");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->verbose = FALSE;
+	args->user = params;
+	args->mask_aware = mask_aware;
+	args->log_hook = median_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(median_filter, args)) {
-		free(args);
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -5707,14 +7970,68 @@ int process_fmedian(int nb){
 /* The name of this command should be COG in english but this choice
  * was done to be consistent with IRIS
  */
-int process_cdg(int nb) {
-	float x_avg, y_avg;
+struct cdg_data {
+	void (*destructor)(void *);
+	float x_avg;
+	float y_avg;
+	gboolean success;
+};
 
-	if (!FindCentre(gfit, &x_avg, &y_avg)) {
-		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"), x_avg, y_avg);
-		return CMD_OK;
+static int cdg_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct cdg_data *data = (struct cdg_data *)args->user;
+	data->success = !FindCentre(fit, &data->x_avg, &data->y_avg);
+	if (data->success) {
+		siril_log_message(_("Center of gravity coordinates are (%.3lf, %.3lf)\n"),
+						  data->x_avg, data->y_avg);
 	}
-	return CMD_GENERIC_ERROR;
+	return 0;
+}
+
+static gchar *cdg_log_hook(gpointer p, log_hook_detail detail) {
+	struct cdg_data *args = (struct cdg_data*) p;
+	if (detail == DETAILED && args->success) {
+		return g_strdup_printf(_("Center of gravity: (%.3f, %.3f)"),
+							   args->x_avg, args->y_avg);
+	}
+	return g_strdup(_("Center of gravity computation"));
+}
+
+int process_cdg(int nb) {
+	// Allocate and initialize user data
+	struct cdg_data *data = calloc(1, sizeof(struct cdg_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->success = FALSE;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = cdg_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Center of gravity");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;  // This doesn't modify gfit
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = cdg_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 static gboolean clear_log_buffer(gpointer user_data) {
@@ -5735,7 +8052,7 @@ int process_clear(int nb) {
 int process_clearstar(int nb){
 	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	notify_gfit_modified();
-	redraw(REDRAW_OVERLAY);
+	queue_redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);
 	return CMD_OK;
 }
@@ -5746,104 +8063,307 @@ int process_close(int nb) {
 	return CMD_OK;
 }
 
-int process_fill(int nb){
+struct fill_data {
+	void (*destructor)(void *);
+	int level;
+	rectangle area;
+};
+
+static int fill_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct fill_data *data = (struct fill_data *)args->user;
+	rectangle area = data->area;
+	return fill(fit, data->level, &area);
+}
+
+static gchar *fill_log_hook(gpointer p, log_hook_detail detail) {
+	struct fill_data *args = (struct fill_data*) p;
+	return g_strdup_printf(_("Fill region with level %d"), args->level);
+}
+
+int process_fill(int nb) {
 	rectangle area;
 	gchar *end;
+	gboolean mask_aware = FALSE;
 
+	/* Determine area */
 	if ((!com.selection.h) || (!com.selection.w)) {
-		if (nb == 6) {
+		if (nb >= 6) {
 			gchar *endx, *endy, *endw, *endh;
 			area.x = g_ascii_strtoull(word[2], &endx, 10);
 			area.y = g_ascii_strtoull(word[3], &endy, 10);
 			area.w = g_ascii_strtoull(word[4], &endw, 10);
 			area.h = g_ascii_strtoull(word[5], &endh, 10);
 			if (endx == word[2] || endy == word[3] || endw == word[4]
-					|| endh == word[5] || (area.w + area.x > gfit->rx)
-					|| (area.h + area.y > gfit->ry)) {
+				|| endh == word[5] || (area.w + area.x > gfit->rx)
+				|| (area.h + area.y > gfit->ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
-		}
-		else {
-			area.w = gfit->rx; area.h = gfit->ry;
-			area.x = 0; area.y = 0;
+		} else {
+			area.w = gfit->rx;
+			area.h = gfit->ry;
+			area.x = 0;
+			area.y = 0;
 		}
 	} else {
 		area = com.selection;
 	}
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+
+	/* Scan arguments to find level and optional -mask */
+	char *level_arg = NULL;
+	for (int i = 1; i < nb; i++) {
+		if (!g_strcmp0(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else if (i >= 2 && nb >= 6) {
+			// Skip rectangle arguments if present
+			continue;
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Missing fill value argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse fill level */
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg || level < 0 || level > USHRT_MAX) {
 		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
-	int retval = fill(gfit, level, &area);
-	if (retval) {
-		siril_log_message(_("Wrong parameters.\n"));
-		return CMD_ARG_ERROR;
+
+	/* Allocate and initialize user data */
+	struct fill_data *data = calloc(1, sizeof(struct fill_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	data->level = level;
+	data->area = area;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = fill_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Fill region");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = fill_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	return CMD_OK;
+}
+
+struct offset_data {
+	void (*destructor)(void *);
+	float level;
+};
+
+static int offset_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct offset_data *data = (struct offset_data *)args->user;
+	off(fit, data->level);
+	return 0;
+}
+
+static gchar *offset_log_hook(gpointer p, log_hook_detail detail) {
+	struct offset_data *args = (struct offset_data*) p;
+	return g_strdup_printf(_("Offset: %.0f"), args->level);
 }
 
 int process_offset(int nb) {
-	gchar *end;
-
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1]) {
-		siril_log_message(_("Wrong parameters.\n"));
+	if (nb < 2) {
+		siril_log_message(_("Missing offset level argument.\n"));
 		return CMD_ARG_ERROR;
 	}
-	off(gfit, (float)level);
-	notify_gfit_modified();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
-}
 
-int process_scnr(int nb){
-	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
-	args->type = SCNR_AVERAGE_NEUTRAL;
-	args->amount = 0.0;
+	gboolean mask_aware = FALSE;
+	char *level_arg = NULL;
+
+	/* Scan arguments (order-independent) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!level_arg) {
+			level_arg = word[i];
+		} else {
+			siril_log_message(_("Unknown argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	if (!level_arg) {
+		siril_log_message(_("Offset level argument not specified.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Parse level */
+	gchar *end;
+	int level = g_ascii_strtoull(level_arg, &end, 10);
+	if (end == level_arg) {
+		siril_log_message(_("Invalid offset level argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate and initialize user data */
+	struct offset_data *data = calloc(1, sizeof(struct offset_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
+	data->level = (float)level;
+
+	/* Allocate and initialize generic_img_args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+
 	args->fit = gfit;
-	args->preserve = TRUE;
+	args->mem_ratio = 1.0f;
+	args->image_hook = offset_image_hook;
+	args->idle_function = NULL;
+	args->description = _("Offset");
+	args->verbose = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->mask_aware = mask_aware;
+	args->log_hook = offset_log_hook;
+	args->max_threads = 1;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
 
-	int argidx = 1;
-	if (argidx < nb && !g_strcmp0(word[1], "-nopreserve")) {
-		args->preserve = FALSE;
-		argidx++;
-	}
-
-	if (argidx < nb) {
-		gchar *end;
-		args->type = g_ascii_strtoull(word[argidx], &end, 10);
-		if (end == word[argidx] || args->type > 3) {
-			siril_log_message(_("Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
-			free(args);
-			return CMD_ARG_ERROR;
-		}
-		argidx++;
-	}
-
-	if (argidx < nb && (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)) {
-		gchar *end;
-		args->amount = g_ascii_strtod(word[argidx], &end);
-		if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
-			siril_log_message(_("Amount can only be [0, 1]\n"));
-			free(args);
-			return CMD_ARG_ERROR;
-		}
-	}
-
-	char log[90];
-	char amountstr[30] = "";
-	if (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)
-		sprintf(amountstr, "amount %.2f, ", args->amount);
-	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
-			scnr_type_to_string(args->type), amountstr,
-			args->preserve ? "" : "not ");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
-
-	if (!start_in_new_thread(scnr, args)) {
-		free(args);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
+
+	return CMD_OK;
+}
+
+/* Command interpreter function for SCNR using generic_image_worker */
+int process_scnr(int nb) {
+	gboolean mask_aware = FALSE;
+	gboolean preserve = TRUE;
+
+	const char *num_args[2] = { NULL, NULL };
+	int num_index = 0;
+
+	/* Scan arguments (order-independent flags) */
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-mask")) {
+			mask_aware = TRUE;
+		} else if (!strcmp(word[i], "-nopreserve")) {
+			preserve = FALSE;
+		} else if (num_index < 2) {
+			num_args[num_index++] = word[i];
+		} else {
+			siril_log_message(_("Invalid argument %s\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	scnr_type type = SCNR_AVERAGE_NEUTRAL;
+	double amount = 0.0;
+
+	/* Parse type (optional) */
+	if (num_index >= 1) {
+		gchar *end;
+		type = g_ascii_strtoull(num_args[0], &end, 10);
+		if (end == num_args[0] || type > 3) {
+			siril_log_message(
+				_("Type can either be 0 (average neutral), "
+				  "1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	/* Parse amount (required only for mask types) */
+	if (type == SCNR_MAXIMUM_MASK || type == SCNR_ADDITIVE_MASK) {
+		if (num_index < 2) {
+			siril_log_message(_("Amount argument is required for mask modes\n"));
+			return CMD_ARG_ERROR;
+		}
+
+		gchar *end;
+		amount = g_ascii_strtod(num_args[1], &end);
+		if (end == num_args[1] || amount < 0.0 || amount > 1.0) {
+			siril_log_message(_("Amount can only be [0, 1]\n"));
+			return CMD_ARG_ERROR;
+		}
+	} else if (num_index > 1) {
+		/* Too many numeric arguments */
+		siril_log_message(_("Too many arguments\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	/* Allocate parameters */
+	struct scnr_data *params = new_scnr_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->type = type;
+	params->amount = amount;
+	params->preserve = preserve;
+	params->verbose = TRUE;
+	params->applying = TRUE;
+
+	/* Allocate worker args */
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_scnr_data(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 1.5f;
+	args->image_hook = scnr_image_hook;
+	args->idle_function = NULL;
+	args->description = _("SCNR");
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = scnr_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+	args->mask_aware = mask_aware;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
 	return CMD_OK;
 }
 
@@ -5867,45 +8387,80 @@ int process_fft(int nb){
 }
 
 int process_fixbanding(int nb) {
-	struct banding_data *args = calloc(1, sizeof(struct banding_data));
-	args->seq = NULL;
 	gchar *end1, *end2;
-
-	args->amount = g_ascii_strtod(word[1], &end1);
-	if (end1 == word[1] || args->amount < 0 || args->amount > 4) {
+	double amount = g_ascii_strtod(word[1], &end1);
+	if (end1 == word[1] || amount < 0 || amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
-		free(args);
 		return CMD_ARG_ERROR;
 	}
-	args->sigma = g_ascii_strtod(word[2], &end2);
-	if (end2 == word[2] || args->sigma < 0 || args->sigma > 5) {
+	double sigma = g_ascii_strtod(word[2], &end2);
+	if (end2 == word[2] || sigma < 0 || sigma > 5) {
 		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
-		free(args);
 		return CMD_ARG_ERROR;
 	}
 
-	args->protect_highlights = TRUE;
-	args->applyRotation = FALSE;
-	args->fit = gfit;
+	gboolean applyRotation = FALSE;
 	if (nb > 3) {
 		int arg_index = 3;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
 			if (!g_strcmp0(arg, "-vertical")) {
-				args->applyRotation = TRUE;
+				applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-				free(args);
 				return CMD_ARG_ERROR;
 			}
 			arg_index++;
 		}
 	}
+
 	image_cfa_warning_check();
-	if (!start_in_new_thread(BandingEngineThreaded, args)) {
+
+	// Allocate parameters using the allocator
+	struct banding_data *params = new_banding_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return CMD_GENERIC_ERROR;
+	}
+
+	params->protect_highlights = TRUE;
+	params->amount = amount;
+	params->sigma = sigma;
+	params->applyRotation = applyRotation;
+	params->seqEntry = NULL;
+	params->seq = NULL;
+	params->fit = NULL;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_banding_data(params);
+		free(params);
+		return CMD_GENERIC_ERROR;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = banding_single_image_hook;
+	args->idle_function = NULL; // Use default idle function for command-line
+	args->description = _("Canon Banding Reduction");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE; // calling as command, not from GUI
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = banding_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_banding_data(params);
+		free(params);
 		free(args);
 		return CMD_GENERIC_ERROR;
 	}
+
 	return CMD_OK;
 }
 
@@ -6967,13 +9522,125 @@ int process_seq_extractHaOIII(int nb) {
 	return CMD_OK;
 }
 
-int process_stat(int nb){
-	int nplane, layer, option = STATS_BASIC;
-	char layername[6];
+static int stat_cmd_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct stat_data *data = (struct stat_data *)args->user;
+	rectangle *sel_ptr = data->has_selection ? &data->selection : NULL;
 
-	nplane = gfit->naxes[2];
+	for (int layer = 0; layer < data->nplane; layer++) {
+		int super_layer = layer;
+		if (data->cfa)
+			super_layer = -layer - 1;
+
+		data->stats[layer] = statistics(NULL, -1, fit, super_layer, sel_ptr, STATS_MAIN, MULTI_THREADED);
+		if (!data->stats[layer]) {
+			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+		}
+	}
+
+	return 0;
+}
+
+static gchar *stat_log_hook(gpointer p, log_hook_detail detail) {
+	struct stat_data *data = (struct stat_data *)p;
+
+	if (detail == SUMMARY) {
+		if (data->cfa)
+			return g_strdup(_("Statistics (CFA)"));
+		else if (data->option == STATS_MAIN)
+			return g_strdup(_("Statistics (main)"));
+		else
+			return g_strdup(_("Statistics"));
+	}
+
+	// DETAILED - recompute stats for logging
+	int nplane = data->cfa ? 3 : data->fit->naxes[2];
+	rectangle *sel_ptr = (data->selection.w > 0 && data->selection.h > 0) ? &data->selection : NULL;
+
+	GString *result = g_string_new("");
+
+	for (int layer = 0; layer < nplane; layer++) {
+		int super_layer = layer;
+		if (data->cfa)
+			super_layer = -layer - 1;
+
+		imstats *stat = statistics(NULL, -1, data->fit, super_layer, sel_ptr, STATS_MAIN, MULTI_THREADED);
+		if (!stat)
+			continue;
+
+		const char *layername;
+		switch (layer) {
+			case 0:
+				layername = (nplane == 1) ? "B&W" : "Red";
+				break;
+			case 1:
+				layername = "Green";
+				break;
+			case 2:
+				layername = "Blue";
+				break;
+			default:
+				layername = "Unknown";
+		}
+
+		if (layer > 0)
+			g_string_append(result, "\n");
+
+		if (data->option == STATS_BASIC) {
+			if (data->fit->type == DATA_USHORT) {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.6f"),
+					layername, stat->mean, stat->median, stat->sigma,
+					stat->min, stat->max, stat->bgnoise);
+			} else {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f"),
+					layername, stat->mean * USHRT_MAX_DOUBLE,
+					stat->median * USHRT_MAX_DOUBLE,
+					stat->sigma * USHRT_MAX_DOUBLE,
+					stat->min * USHRT_MAX_DOUBLE,
+					stat->max * USHRT_MAX_DOUBLE,
+					stat->bgnoise * USHRT_MAX_DOUBLE);
+			}
+		} else if (data->option == STATS_MAIN) {
+			if (data->fit->type == DATA_USHORT) {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+					  "avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f"),
+					layername, stat->mean, stat->median, stat->sigma,
+					stat->min, stat->max, stat->bgnoise, stat->avgDev,
+					stat->mad, stat->sqrtbwmv);
+			} else {
+				g_string_append_printf(result,
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+					  "Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+					  "avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f"),
+					layername, stat->mean * USHRT_MAX_DOUBLE,
+					stat->median * USHRT_MAX_DOUBLE,
+					stat->sigma * USHRT_MAX_DOUBLE,
+					stat->min * USHRT_MAX_DOUBLE,
+					stat->max * USHRT_MAX_DOUBLE,
+					stat->bgnoise * USHRT_MAX_DOUBLE,
+					stat->avgDev * USHRT_MAX_DOUBLE,
+					stat->mad * USHRT_MAX_DOUBLE,
+					stat->sqrtbwmv * USHRT_MAX_DOUBLE);
+			}
+		}
+
+		free_stats(stat);
+	}
+
+	return g_string_free(result, FALSE);
+}
+
+int process_stat(int nb) {
+	int nplane = gfit->naxes[2];
 	gboolean cfa = FALSE;
+	int option = STATS_BASIC;
 	int argidx = 1;
+
 	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
@@ -6984,75 +9651,47 @@ int process_stat(int nb){
 		}
 		argidx++;
 	}
+
 	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
 		option = STATS_MAIN;
 
-	for (layer = 0; layer < nplane; layer++) {
-		int super_layer = layer;
-		if (cfa)
-			super_layer = -layer - 1;
-		imstats* stat = statistics(NULL, -1, gfit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
-			continue;
-		}
+	// Allocate and initialize user data
+	struct stat_data *data = alloc_stat_data();
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destroy_fn = free_stat_data;
+	data->has_selection = (com.selection.w > 0 && com.selection.h > 0);
+	if (data->has_selection) {
+		data->selection = com.selection;
+	}
+	data->fit = gfit;
+	data->option = option;
+	data->cfa = cfa;
+	data->nplane = nplane;
+	memset(data->stats, 0, sizeof(data->stats));
 
-		switch (layer) {
-			case 0:
-				if (nplane == 1)
-					strcpy(layername, "B&W");
-				else
-					strcpy(layername, "Red");
-				break;
-			case 1:
-				strcpy(layername, "Green");
-				break;
-			case 2:
-				strcpy(layername, "Blue");
-				break;
-		}
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_stat_data(data);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = stat_cmd_image_hook;
+	args->description = _("Statistics");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->log_hook = stat_log_hook;
+	args->max_threads = 1;
 
-		if (option == STATS_BASIC) {
-			if (gfit->type == DATA_USHORT) {
-				siril_log_message(_("%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.6f\n"),
-						layername, stat->mean, stat->median, stat->sigma,
-						stat->min, stat->max, stat->bgnoise);
-			} else {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
-						layername, stat->mean * USHRT_MAX_DOUBLE,
-						stat->median * USHRT_MAX_DOUBLE,
-						stat->sigma * USHRT_MAX_DOUBLE,
-						stat->min * USHRT_MAX_DOUBLE,
-						stat->max * USHRT_MAX_DOUBLE,
-						stat->bgnoise * USHRT_MAX_DOUBLE);
-			}
-
-		} else if (option == STATS_MAIN) {
-			if (gfit->type == DATA_USHORT) {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
-							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
-						layername, stat->mean, stat->median, stat->sigma,
-						stat->min, stat->max, stat->bgnoise, stat->avgDev,
-						stat->mad, stat->sqrtbwmv);
-			} else {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
-							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
-						layername, stat->mean * USHRT_MAX_DOUBLE,
-						stat->median * USHRT_MAX_DOUBLE,
-						stat->sigma * USHRT_MAX_DOUBLE,
-						stat->min * USHRT_MAX_DOUBLE,
-						stat->max * USHRT_MAX_DOUBLE,
-						stat->bgnoise * USHRT_MAX_DOUBLE,
-						stat->avgDev * USHRT_MAX_DOUBLE,
-						stat->mad * USHRT_MAX_DOUBLE,
-						stat->sqrtbwmv * USHRT_MAX_DOUBLE);
-			}
-		}
-		free_stats(stat);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }
@@ -7515,7 +10154,7 @@ int process_link(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed)) {
-		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		siril_log_message(_("Too many files: you should use the 'convert' command and pass the argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
 		free(destroot);
 		return CMD_GENERIC_ERROR;
@@ -9598,12 +12237,9 @@ int process_help(int nb) {
 
 int process_capabilities(int nb) {
 	// don't translate these strings, they must be easy to parse
-#ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s (%s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#else
-	siril_log_message("%s %s for %s (%s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
-#endif
+	gchar *version_string = get_siril_version_string();
+	siril_log_message("%s\n", version_string);
+	g_free(version_string);
 #ifdef _OPENMP
 	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
 			ngettext("processor", "processors", com.max_thread));
@@ -9612,6 +12248,20 @@ int process_capabilities(int nb) {
 #endif
 	siril_log_message("Detected system available memory: %d MB\n", (int)(get_available_memory() / BYTES_IN_A_MB));
 	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
+#ifdef _WIN32
+	int open_max = _getmaxstdio();
+	if (open_max < 8192) {
+		/* extend the limit to 8192 if possible
+		 * 8192 is the maximum on WINDOWS */
+		int ret = _setmaxstdio(8192);
+		if (ret == -1) {
+			/* fallback to 2048 */
+			_setmaxstdio(2048);
+		}
+		open_max = _getmaxstdio();
+	}
+	siril_log_message("Can open %d files simultaneously\n", open_max);
+#endif
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
 #endif
@@ -9685,6 +12335,7 @@ int process_extract(int nb) {
 	args->Type = TO_PAVE_BSPLINE;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = gfit;
+	siril_log_message(_("Extracting wavelets (%d plans)\n"), Nbr_Plan);
 	if (!start_in_new_thread(extract_plans, args)) {
 		free(args);
 		return CMD_ARG_ERROR;
@@ -9990,12 +12641,12 @@ static int do_pcc(int nb, gboolean spectro) {
 			} else {
 				char *arg = word[next_arg] + 9;
 				if (!g_strcmp0(arg, "gaia"))
-					cat = CAT_GAIADR3_DIRECT;
+					cat = CAT_REMOTE_GAIA_XPSAMP;
 				else if (!g_strcmp0(arg, "localgaia")) {
 					cat = CAT_LOCAL_GAIA_XPSAMP;
 					if (!local_gaia_xpsamp_available()) {
 						siril_log_color_message(_("Local Gaia catalog is unavailable, reverting to online Gaia catalog via ESA\n"), "salmon");
-						cat = CAT_GAIADR3_DIRECT;
+						cat = CAT_REMOTE_GAIA_XPSAMP;
 				
 					}
 				} else {
@@ -10110,7 +12761,7 @@ static int do_pcc(int nb, gboolean spectro) {
 	if (!spectro && cat == CAT_AUTO) {
 		cat = local_kstars ? CAT_LOCAL_KSTARS : CAT_NOMAD;
 	} else if (spectro && cat == CAT_AUTO) {
-		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_GAIADR3_DIRECT;
+		cat = local_gaia_xpsamp_available() ? CAT_LOCAL_GAIA_XPSAMP : CAT_REMOTE_GAIA_XPSAMP;
 	}
 	if (!spectro && local_kstars && cat != CAT_LOCAL_KSTARS) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
@@ -10206,12 +12857,8 @@ int process_pcc(int nb) {
 }
 
 int process_spcc(int nb) {
-#ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril has been compiled without libcurl support for network operations; SPCC is therefore not available. Recompile with libcurl support to enable SPCC.\n"), "red");
-	return CMD_GENERIC_ERROR;
-#else
+	siril_check_spcc_mirrors(TRUE, TRUE);
 	return do_pcc(nb, TRUE);
-#endif
 }
 
 // used for platesolve and seqplatesolve commands
@@ -10779,24 +13426,65 @@ int process_conesearch(int nb) {
 	if (!params) {
 		return CMD_ARG_ERROR;
 	}
-	int result = execute_conesearch(params);
-	return result;
+
+	// Set destructor (assuming free_conesearch_params exists)
+	params->destroy_fn = (destructor)free_conesearch_params;
+
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_conesearch_params(params);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = conesearch_image_hook;
+	args->description = _("Cone search");
+	args->verbose = TRUE;
+	args->command_updates_gfit = FALSE;
+	args->command = TRUE;
+	args->user = params;
+	args->log_hook = NULL;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
-int process_catsearch(int nb){
+int process_catsearch(int nb) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	sky_object_query_args *args = init_sky_object_query();
-	args->fit = gfit;
+
+	sky_object_query_args *query_args = init_sky_object_query();
+	query_args->fit = gfit;
 	if (nb > 2) {
-		args->name = build_string_from_words(word + 1);
+		query_args->name = build_string_from_words(word + 1);
 	} else {
-		args->name = g_strdup(word[1]);
+		query_args->name = g_strdup(word[1]);
 	}
-	if (!start_in_new_thread(catsearch_worker, args)) {
-		free_sky_object_query(args);
+	// Allocate and initialize generic_img_args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_sky_object_query(query_args);
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = catsearch_image_hook;
+	args->description = _("Catalog search");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = query_args;
+	args->log_hook = catsearch_log_hook;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -11486,12 +14174,12 @@ int process_disto(int nb) {
 		return CMD_WRONG_N_ARG;
 	if (nb == 1) {
 		gui.show_wcs_disto	= TRUE;
-		redraw(REDRAW_OVERLAY);
+		queue_redraw(REDRAW_OVERLAY);
 		return CMD_OK;
 	}
 	if (!strcmp(word[1], "clear")) {
 		gui.show_wcs_disto	= FALSE;
-		redraw(REDRAW_OVERLAY);
+		queue_redraw(REDRAW_OVERLAY);
 		return CMD_OK;
 	} else {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
@@ -11758,3 +14446,714 @@ int process_eqcrop(int nb) {
         return CMD_OK;
 }
 
+// Process functions refactored
+int process_mask_from_stars(int nb) {
+	int argidx = 1;
+	float r = 0.f, feather = 0.f;
+	gboolean invert = FALSE;
+	int bitdepth = com.pref.default_mask_bitpix;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-r=")) {
+			char *arg = word[argidx] + 3;
+			r = g_ascii_strtod(arg, &end);
+			if (arg == end || r <= 0.0f || r > 100.f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-feather=")) {
+			char *arg = word[argidx] + 9;
+			feather = g_ascii_strtod(arg, &end);
+			if (arg == end || feather < 0.0f || feather > 2000.f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
+
+	data->r = r;
+	data->feather = feather;
+	data->invert = invert;
+	data->bitdepth = bitdepth;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_stars_hook;
+	args->log_hook = mask_from_stars_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from stars");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_mask_from_channel(int nb) {
+	int argidx = 1;
+	int channel = -1;
+	gboolean autostretch = FALSE;
+	gboolean invert = FALSE;
+	int bitdepth = com.pref.default_mask_bitpix;
+	gchar *filename = NULL;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-autostretch")) {
+			autostretch = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-channel=")) {
+			char *arg = word[argidx] + 9;
+			channel = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || channel < 0 || channel > 2) {
+				siril_log_message(_("Invalid argument %s, channel must be 0-2, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-filename=")) {
+			filename = word[argidx] + 10;
+		}
+		argidx++;
+	}
+
+	if (channel == -1) {
+		siril_log_message(_("Channel parameter (-channel=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	mask_from_channel_data *data = calloc(1, sizeof(mask_from_channel_data));
+
+	data->channel = channel;
+	data->autostretch = autostretch;
+	data->invert = invert;
+	data->bitpix = (uint8_t)bitdepth;
+	data->filename = filename;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_channel_hook;
+	args->log_hook = mask_from_channel_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from channel");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_mask_from_lum(int nb) {
+	int argidx = 1;
+	float rw = -1.f, gw = -1.f, bw = -1.f;
+	gboolean autostretch = FALSE;
+	gboolean invert = FALSE;
+	gboolean use_human = FALSE;
+	gboolean use_even = FALSE;
+	int bitdepth = com.pref.default_mask_bitpix;
+	gchar *filename = NULL;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-autostretch")) {
+			autostretch = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-human")) {
+			use_human = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-even")) {
+			use_even = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-rw=")) {
+			char *arg = word[argidx] + 4;
+			rw = g_ascii_strtod(arg, &end);
+			if (arg == end || rw < 0.0f || rw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, red weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-gw=")) {
+			char *arg = word[argidx] + 4;
+			gw = g_ascii_strtod(arg, &end);
+			if (arg == end || gw < 0.0f || gw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, green weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bw=")) {
+			char *arg = word[argidx] + 4;
+			bw = g_ascii_strtod(arg, &end);
+			if (arg == end || bw < 0.0f || bw > 1.0f) {
+				siril_log_message(_("Invalid argument %s, blue weight must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-filename=")) {
+			filename = word[argidx] + 10;
+		}
+		argidx++;
+	}
+
+	if (use_human && use_even) {
+		siril_log_message(_("Cannot specify both -human and -even options, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if ((use_human || use_even) && (rw >= 0.f || gw >= 0.f || bw >= 0.f)) {
+		siril_log_message(_("Cannot specify custom weights with -human or -even options, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	gboolean has_custom_weights = (rw >= 0.f || gw >= 0.f || bw >= 0.f);
+	if (has_custom_weights && !(rw >= 0.f && gw >= 0.f && bw >= 0.f)) {
+		siril_log_message(_("All three weights (-rw, -gw, -bw) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (use_human) {
+		rw = 0.2126f;
+		gw = 0.7152f;
+		bw = 0.0722f;
+	}
+	else if (use_even) {
+		rw = 0.3333f;
+		gw = 0.3333f;
+		bw = 0.3334f;
+	}
+	else if (!has_custom_weights) {
+		rw = 0.2126f;
+		gw = 0.7152f;
+		bw = 0.0722f;
+	}
+
+	mask_from_lum_data *data = calloc(1, sizeof(mask_from_lum_data));
+
+	data->rw = rw;
+	data->gw = gw;
+	data->bw = bw;
+	data->autostretch = autostretch;
+	data->invert = invert;
+	data->use_human = use_human;
+	data->use_even = use_even;
+	data->bitpix = (uint8_t)bitdepth;
+	data->filename = filename;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_from_lum_hook;
+	args->log_hook = mask_from_lum_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from luminance");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_clear_mask(int nb) {
+	if (gfit && gfit->mask) {
+		set_mask_active(gfit, FALSE);
+		free_mask(gfit->mask);
+		gfit->mask = NULL;
+		show_or_hide_mask_tab();
+		siril_log_message(_("Mask cleared\n"));
+	}
+	if (!com.script) {
+		execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+	}
+	return CMD_OK;
+}
+
+int process_mask_threshold(int nb) {
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_color_message(_("No mask present, aborting.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+	float maxrange;
+	switch (gfit->mask->bitpix) {
+		case 8:
+			maxrange = 255.f;
+			break;
+		case 16:
+			maxrange = 65535.f;
+			break;
+		case 32:
+			maxrange = 1.f;
+			break;
+		default:
+			siril_log_color_message(_("Unknown mask bit depth, aborting.\n"), "red");
+			return CMD_GENERIC_ERROR;
+	}
+	int argidx = 1;
+	float lo = 0.f, hi = maxrange, fr = 0.f;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-lo=")) {
+			char *arg = word[argidx] + 4;
+			lo = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-hi=")) {
+			char *arg = word[argidx] + 4;
+			hi = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-fr=")) {
+			char *arg = word[argidx] + 4;
+			fr = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	if (lo >= hi) {
+		siril_log_color_message(_("Low value must be less than high value, aborting.\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	if (fr < 0.f || fr > maxrange) {
+		siril_log_color_message(_("Feathering range is outside mask value range, aborting.\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	mask_thresh_data *data = calloc(1, sizeof(mask_thresh_data));
+
+	// Adjust parameter ranges if necessary ([0-1] will always work)
+	if (maxrange > 1.f) {
+		data->min_val = lo >= 1.f ? lo : lo * maxrange;
+		data->max_val = hi >= 1.f ? hi : hi * maxrange;
+		data->range = fr >= 1.f ? fr : fr * maxrange;
+	} else {
+		data->min_val = lo;
+		data->max_val = hi;
+		data->range = fr;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_thresh_hook;
+	args->log_hook = mask_thresh_log;
+	args->idle_function = NULL;
+	args->description = _("Apply intensity threshold to mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_blur_mask(int nb) {
+	int argidx = 1;
+	float radius = -1.f;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-r=")) {
+			char *arg = word[argidx] + 3;
+			radius = g_ascii_strtod(arg, &end);
+			if (arg == end || radius <= 0.0f || radius > 1000.f) {
+				siril_log_message(_("Invalid argument %s, radius must be > 0 and <= 1000, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	if (radius < 0.f) {
+		siril_log_message(_("Radius parameter (-radius=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	mask_blur_data *data = calloc(1, sizeof(mask_blur_data));
+
+	data->radius = radius;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_blur_hook;
+	args->log_hook = mask_blur_log;
+	args->idle_function = NULL;
+	args->description = _("Blur mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_feather_mask(int nb) {
+	int argidx = 1;
+	float distance = -1.f;
+	feather_mode mode = FEATHER_OUTER;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-dist=")) {
+			char *arg = word[argidx] + 6;
+			distance = g_ascii_strtod(arg, &end);
+			if (arg == end || distance <= 0.0f || distance > 2000.f) {
+				siril_log_message(_("Invalid argument %s, distance must be > 0 and <= 2000, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-mode=")) {
+			char *arg = word[argidx] + 6;
+			if (g_ascii_strcasecmp(arg, "inner") == 0) {
+				mode = FEATHER_INNER;
+			}
+			else if (g_ascii_strcasecmp(arg, "outer") == 0) {
+				mode = FEATHER_OUTER;
+			}
+			else if (g_ascii_strcasecmp(arg, "edge") == 0) {
+				mode = FEATHER_EDGE;
+			}
+			else {
+				siril_log_message(_("Invalid argument %s, mode must be 'inner', 'outer', or 'edge', aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	if (distance < 0.f) {
+		siril_log_message(_("Distance parameter (-distance=) is required, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	mask_feather_data *data = calloc(1, sizeof(mask_feather_data));
+
+	data->distance = distance;
+	data->mode = mode;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 2.0f;
+	args->mask_hook = mask_feather_hook;
+	args->log_hook = mask_feather_log;
+	args->idle_function = NULL;
+	args->description = _("Feather mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_mask_fmul(int nb) {
+	float factor = -1.f;
+	char *end;
+
+	char *arg = word[1];
+	factor = g_ascii_strtod(arg, &end);
+	if (arg == end || factor < 0.f) {
+		siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	mask_fmul_data *data = calloc(1, sizeof(mask_fmul_data));
+
+	data->factor = factor;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_fmul_hook;
+	args->log_hook = mask_fmul_log;
+	args->idle_function = NULL;
+	args->description = _("Multiply mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_invert_mask(int nb) {
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_invert_hook;
+	args->log_hook = NULL;
+	args->idle_function = NULL;
+	args->description = _("Invert mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = NULL;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_autostretch_mask(int nb) {
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 0.0f;
+	args->mask_hook = mask_autostretch_hook;
+	args->log_hook = NULL;
+	args->idle_function = NULL;
+	args->description = _("Autostretch mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = NULL;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_mask_bitpix(int nb) {
+	uint8_t bitpix;
+	char* end;
+	char* arg = word[1];
+
+	size_t bitdepth = g_ascii_strtoull(arg, &end, 10);
+	if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+		siril_log_message(_("Invalid argument %s, bitdepth must be 8, 16 or 32, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	bitpix = (uint8_t) bitdepth;
+
+	if (!gfit->mask || !gfit->mask->data) {
+		siril_log_message(_("No mask present, aborting.\n"));
+		return CMD_GENERIC_ERROR;
+	}
+
+	mask_bitpix_data *data = calloc(1, sizeof(mask_bitpix_data));
+
+	data->bitpix = bitpix;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.0f;
+	args->mask_hook = mask_bitpix_hook;
+	args->log_hook = mask_bitpix_log;
+	args->idle_function = NULL;
+	args->description = _("Change mask bitdepth");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}
+
+int process_mask_from_color(int nb) {
+	int argidx = 1;
+	float chrom_center_r = -1.f, chrom_center_g = -1.f, chrom_center_b = -1.f;
+	float chrom_tolerance = -1.f;
+	float lum_min = 0.f, lum_max = 1.f;
+	int feather_radius = 0;
+	gboolean invert = FALSE;
+	int bitdepth = com.pref.default_mask_bitpix;
+	char *end;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-invert")) {
+			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-cr=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_r = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_r < 0.0f || chrom_center_r > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center red must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-cg=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_g = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_g < 0.0f || chrom_center_g > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center green must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-cb=")) {
+			char *arg = word[argidx] + 4;
+			chrom_center_b = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_center_b < 0.0f || chrom_center_b > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma center blue must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-tol=")) {
+			char *arg = word[argidx] + 5;
+			chrom_tolerance = g_ascii_strtod(arg, &end);
+			if (arg == end || chrom_tolerance < 0.0f || chrom_tolerance > 1.0f) {
+				siril_log_message(_("Invalid argument %s, chroma tolerance must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lum_min=")) {
+			char *arg = word[argidx] + 9;
+			lum_min = g_ascii_strtod(arg, &end);
+			if (arg == end || lum_min < 0.0f || lum_min > 1.0f) {
+				siril_log_message(_("Invalid argument %s, luminance minimum must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lum_max=")) {
+			char *arg = word[argidx] + 9;
+			lum_max = g_ascii_strtod(arg, &end);
+			if (arg == end || lum_max < 0.0f || lum_max > 1.0f) {
+				siril_log_message(_("Invalid argument %s, luminance maximum must be 0-1, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-fr=")) {
+			char *arg = word[argidx] + 4;
+			feather_radius = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || feather_radius < 0) {
+				siril_log_message(_("Invalid argument %s, feather radius must be >= 0, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-bitdepth=")) {
+			char *arg = word[argidx] + 10;
+			bitdepth = (int) g_ascii_strtoull(arg, &end, 10);
+			if (arg == end || (bitdepth != 8 && bitdepth != 16 && bitdepth != 32)) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
+	if (chrom_center_r < 0.f || chrom_center_g < 0.f || chrom_center_b < 0.f) {
+		siril_log_message(_("All three chroma center values (-cr, -cg, -cb) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (chrom_tolerance < 0.f) {
+		siril_log_message(_("Chroma tolerance (-tolerance) must be specified, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (lum_min > lum_max) {
+		siril_log_message(_("Luminance minimum cannot be greater than luminance maximum, aborting.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	mask_from_color_data *data = calloc(1, sizeof(mask_from_color_data));
+
+	data->chrom_center_r = chrom_center_r;
+	data->chrom_center_g = chrom_center_g;
+	data->chrom_center_b = chrom_center_b;
+	data->chrom_tolerance = chrom_tolerance;
+	data->lum_min = lum_min;
+	data->lum_max = lum_max;
+	data->feather_radius = feather_radius;
+	data->invert = invert;
+	data->bitpix = (uint8_t)bitdepth;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	args->fit =  gfit;
+	args->mem_ratio = 1.5f;
+	args->mask_hook = mask_from_color_hook;
+	args->log_hook = mask_from_color_log;
+	args->idle_function = NULL;
+	args->description = _("Mask from color");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->mask_creation = TRUE;
+	args->user = data;
+	args->max_threads = com.max_thread;
+
+	start_in_new_thread(generic_mask_worker, args);
+	return CMD_OK;
+}

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 #include "algos/demosaicing.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_alloc.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -485,6 +486,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 		if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, scale, disto, threads)) {
 			free(p->error);
+			siril_free(p->pixmap->xmap);
 			free(p->pixmap);
 			free(p);
 			return 1;
@@ -504,6 +506,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			siril_debug_print("Replacing ushort buffer for drizzling\n");
 			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
 			newbuf = malloc(ndata * sizeof(float));
+			if (!newbuf) {
+				PRINT_ALLOC_ERR;
+				free(p->error);
+				siril_free(p->pixmap->xmap);
+				free(p->pixmap);
+				free(p);
+				return 1;
+			}
 			float invnorm = 1.f / USHRT_MAX_SINGLE;
 			for (size_t i = 0 ; i < ndata ; i++) {
 				newbuf[i] = fit->data[i] * invnorm;
@@ -526,7 +536,15 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry;
-		out.fdata = calloc(out.naxes[2] * chansize, sizeof(float));
+		out.fdata = siril_calloc(out.naxes[2] * chansize, sizeof(float));
+		if (!out.fdata) {
+			PRINT_ALLOC_ERR;
+			free(p->error);
+			siril_free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
 		out.fpdata[RLAYER] = out.fdata;
 		out.fpdata[GLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
 		out.fpdata[BLAYER] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
@@ -535,7 +553,15 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		// Set up the output_counts fits to store pixel hit counts
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
-		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		output_counts->fdata = siril_calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		if (!output_counts->fdata) {
+			PRINT_ALLOC_ERR;
+			free(p->error);
+			siril_free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
 		output_counts->fpdata[RLAYER] = output_counts->fdata;
 		output_counts->fpdata[GLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + chansize;
 		output_counts->fpdata[BLAYER] = output_counts->naxes[2] == 1 ? output_counts->fdata : output_counts->fdata + 2 * chansize;
@@ -552,6 +578,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		if (out.keywords.date_obs)
 			fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		siril_free(out.fdata); // was siril_calloc'ed, we need to free it here
+		out.fdata = NULL;
 		clearfits(&out);
 		// restore the astrometry
 		if (wcs_out) {
@@ -559,6 +587,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+			if (!fit->data) {
+				PRINT_ALLOC_ERR;
+				free(p->error);
+				siril_free(p->pixmap->xmap);
+				free(p->pixmap);
+				free(p);
+				return 1;
+			}
 		}
 		if (driz->is_bayer) {
 			/* we need to do something special here because it's a 1-channel sequence and
@@ -573,7 +609,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			clear_Bayer_information(fit); // we also reset the bayerpattern
 		}
 
-		free(p->pixmap->xmap);
+		siril_free(p->pixmap->xmap);
 		free(p->pixmap);
 
 		// Save drizzle weights to the drizztmp folder
@@ -597,6 +633,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		} // else we save as 32b
 
 		savefits(count_filename, output_counts);
+		siril_free(output_counts->fdata); // was siril_calloc'ed, we need to free it here
+		output_counts->fdata = NULL;
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
@@ -1053,7 +1091,7 @@ clean_and_exit:
 		clearfits(tiny_flat);
 		free(tiny_flat);
 	}
-	free(p->pixmap->xmap);
+	siril_free(p->pixmap->xmap);
 	free(p->pixmap);
 	free(p->error);
 	free(p);

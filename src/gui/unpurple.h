@@ -1,7 +1,7 @@
  /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,7 +24,5 @@
 #include "core/siril.h"
 
 void unpurple_change_between_roi_and_image();
-void apply_unpurple_cancel();
-int generate_binary_starmask(fits *fit, fits *starmask, double thresh);
 
 #endif /* SRC_GUI_ASINH_H_ */

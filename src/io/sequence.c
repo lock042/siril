@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -2528,8 +2528,8 @@ gchar *get_sequence_cache_filename(sequence *seq, int index, const gchar *cachef
 		cache_filename = g_strdup_printf("%s%s.%s", prefix, base_root, ext);
 	else
 		cache_filename = g_strdup_printf("%s.%s", base_root, ext);
-	if (g_strcmp0(ext, "fit") == 0) {
-		gchar *tmp_filename = set_right_extension(cache_filename);
+	if (g_strcmp0(ext, "fit") == 0 && seq->fz) {
+		gchar *tmp_filename = g_strdup_printf("%s.fz", cache_filename);
 		g_free(cache_filename);
 		cache_filename = tmp_filename;
 	}

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,9 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
+#include "core/undo.h"
+#include "gui/callbacks.h"
+#include "io/single_image.h"
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "io/image_format_fits.h"
@@ -1292,15 +1295,146 @@ void ccm_ushort(fits *fit, ccm matrix, float power) {
 	}
 }
 
+/* Allocator for ccm_data */
+struct ccm_data *new_ccm_data() {
+	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
+	if (args) {
+		args->destroy_fn = free_ccm_data;
+		args->power = 1.0f;
+	}
+	return args;
+}
+
+/* Destructor for ccm_data */
+void free_ccm_data(void *ptr) {
+	struct ccm_data *args = (struct ccm_data *)ptr;
+	if (!args)
+		return;
+
+	// Free sequence entry string if it exists
+	if (args->seqEntry) {
+		free(args->seqEntry);
+		args->seqEntry = NULL;
+	}
+
+	free(ptr);
+}
+
+/* Main CCM calculation function */
 int ccm_calc(fits *fit, ccm matrix, float power) {
 	// We require a 3-channel FITS
 	if (!isrgb(fit))
 		return 1;
+
 	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
 	return 0;
 }
 
-static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+gchar *ccm_log_hook(gpointer p, log_hook_detail detail) {
+	struct ccm_data *args = (struct ccm_data*) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+		message = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
+			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+			args->power);
+	} else {
+		message = g_strdup_printf(_("CCM applied successfully: [[%.6f %.6f %.6f][%.6f %.6f %.6f][%.6f %.6f %.6f]], pwr: %.6f"),
+			args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+			args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+			args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+			args->power);
+	}
+	return message;
+}
+
+/* CCM processing function with logging */
+static int ccm_process(struct ccm_data *args, fits *fit) {
+
+	int retval = ccm_calc(fit, args->matrix, args->power);
+
+	if (retval == 0) {
+		populate_roi();
+	}
+
+	return retval;
+}
+
+/* The actual CCM processing hook for generic_image_worker */
+int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct ccm_data *params = (struct ccm_data *)args->user;
+	if (!params)
+		return 1;
+	return ccm_process(params, fit);
+}
+
+/* Idle function for final application */
+gboolean ccm_apply_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/* Create and launch CCM processing */
+int ccm_process_with_worker(ccm matrix, float power) {
+	// Check if image is RGB
+	fits *target_fit = gfit;
+	if (!isrgb(target_fit)) {
+		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+		return 1;
+	}
+
+	// Allocate parameters
+	struct ccm_data *params = new_ccm_data();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Copy matrix
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			params->matrix[i][j] = matrix[i][j];
+		}
+	}
+	params->power = power;
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_ccm_data(params);
+		return 1;
+	}
+
+	// Set the fit based on whether ROI is active
+	args->fit = target_fit;
+	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
+	args->image_hook = ccm_single_image_hook;
+	args->idle_function = ccm_apply_idle;
+	args->description = _("Color Conversion Matrix");
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = ccm_log_hook;
+	args->max_threads = com.max_thread;
+	// We don't need to do these two because of calloc, but they are shown as a
+	// reminder of intent
+	// args->for_preview = FALSE;
+	// args->for_roi = FALSE;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return 1;
+	}
+	return 0;
+}
+
+int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
 	int ret = ccm_calc(fit, c_args->matrix, c_args->power);

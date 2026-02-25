@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -315,6 +315,7 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 void negative_processing() {
 	set_cursor_waiting(TRUE);
 	undo_save_state(gfit, _("Negative Transformation"));
+	siril_log_color_message(_("Negative Transformation\n"), "green");
 	pos_to_neg(gfit);
 	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
@@ -442,54 +443,73 @@ void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
 }
 
 
-void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
-	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
+/* Helper function to read matrix from GUI */
+static void get_ccm_values(ccm matrix, float *power) {
+	matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
+	matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
+	matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m02"))), NULL);
+	matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m10"))), NULL);
+	matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m11"))), NULL);
+	matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m12"))), NULL);
+	matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m20"))), NULL);
+	matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m21"))), NULL);
+	matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m22"))), NULL);
 
-	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
-	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
-	args->matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m02"))), NULL);
-	args->matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m10"))), NULL);
-	args->matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m11"))), NULL);
-	args->matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m12"))), NULL);
-	args->matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m20"))), NULL);
-	args->matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m21"))), NULL);
-	args->matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m22"))), NULL);
-	args->power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+	if (power) {
+		*power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+	}
+}
+
+void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
+	struct ccm_data *args = new_ccm_data();
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	get_ccm_values(args->matrix, &args->power);
 
 	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
 	gboolean seq_toggle = gtk_toggle_button_get_active(btn);
+
 	if (seq_toggle && sequence_is_loaded()) {
 		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
 		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
-
 		args->seq = &com.seq;
 		apply_ccm_to_sequence(args);
 	} else {
 		if (seq_toggle) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
-			free(args);
+			free_ccm_data(args);
 			return;
-		} else if (gfit->icc_profile && gfit->color_managed) {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
-						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
-						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
+		}
+
+		// Check for ICC profile warning
+		if (gfit->icc_profile && gfit->color_managed) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"),
+				_("This image has an attached ICC profile. Applying the CCM will invalidate the "
+				"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
+				"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
 			color_manage(gfit, FALSE);
 			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
 		}
 
-		gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
-					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
-					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
-					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
-					args->power);
+		// Free the args structure as we're using the worker
+		ccm temp_matrix;
+		float temp_power = args->power;
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				temp_matrix[i][j] = args->matrix[i][j];
+			}
+		}
+		free_ccm_data(args);
 
-		undo_save_state(gfit, buf);
-		g_free(buf);
-
-		ccm_calc(gfit, args->matrix, args->power);
-		invalidate_stats_from_fit(gfit);
-		notify_gfit_modified();
-		free(args);
+		// Process using worker
+		set_cursor_waiting(TRUE);
+		if (ccm_process_with_worker(temp_matrix, temp_power) == 0) {
+			invalidate_stats_from_fit(gfit);
+		}
+		set_cursor_waiting(FALSE);
 	}
 }
 

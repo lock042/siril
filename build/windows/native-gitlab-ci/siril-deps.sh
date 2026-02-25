@@ -1,48 +1,53 @@
+#!/bin/bash
+
+MSYSTEM=${MSYSTEM:-MINGW64}
+
+if [ "$MSYSTEM" = "UCRT64" ]; then
+    PREFIX="mingw-w64-ucrt-x86_64"
+elif [ "$MSYSTEM" = "MINGW64" ]; then
+    PREFIX="mingw-w64-x86_64"
+else
+    echo "Unsupported MSYSTEM: $MSYSTEM"
+    exit 1
+fi
+
 # development system, compiler toolchain and build tools
 pacman -S --noconfirm  --needed \
 base-devel \
-mingw-w64-x86_64-toolchain \
-mingw-w64-x86_64-cmake \
+${PREFIX}-toolchain \
+${PREFIX}-cmake \
 git \
 automake \
-mingw-w64-x86_64-autotools \
-mingw-w64-x86_64-meson \
-mingw-w64-x86_64-ninja \
-mingw-w64-x86_64-ccache
+${PREFIX}-autotools \
+${PREFIX}-meson \
+${PREFIX}-ninja \
+${PREFIX}-ccache
 
 # Siril required dependencies (either Siril or subprojects)
 pacman -S --noconfirm  --needed \
-mingw-w64-x86_64-glib2 \
-mingw-w64-x86_64-gtk3 \
-mingw-w64-x86_64-gtksourceview4 \
-mingw-w64-x86_64-gsl \
-mingw-w64-x86_64-lcms2 \
-mingw-w64-x86_64-fftw \
-mingw-w64-x86_64-cfitsio \
-mingw-w64-x86_64-opencv \
-mingw-w64-x86_64-cairo \
+${PREFIX}-glib2 \
+${PREFIX}-gtk3 \
+${PREFIX}-gtksourceview4 \
+${PREFIX}-gsl \
+${PREFIX}-lcms2 \
+${PREFIX}-fftw \
+${PREFIX}-cfitsio \
+${PREFIX}-opencv \
+${PREFIX}-cairo \
 
 # Siril optional dependencies
 pacman -S --noconfirm  --needed \
-mingw-w64-x86_64-exiv2 \
-mingw-w64-x86_64-libraw \
-mingw-w64-x86_64-libtiff \
-mingw-w64-x86_64-libjpeg-turbo \
-mingw-w64-x86_64-libjxl \
-mingw-w64-x86_64-libpng \
-mingw-w64-x86_64-libheif \
-mingw-w64-x86_64-libxisf \
-mingw-w64-x86_64-libgit2-winhttp \
-mingw-w64-x86_64-ffmpeg \
-mingw-w64-x86_64-ffms2 \
-mingw-w64-x86_64-curl
-
-# # Build LibRaw from github
-# mkdir _deps && cd _deps
-# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
-# cd LibRaw
-# autoreconf -fi && \
-# ./configure --disable-examples --disable-static && \
-# make install -j$(nproc) || exit 1
-# cd ..
+${PREFIX}-exiv2 \
+${PREFIX}-libraw \
+${PREFIX}-libtiff \
+${PREFIX}-libjpeg-turbo \
+${PREFIX}-libjxl \
+${PREFIX}-libpng \
+${PREFIX}-libheif \
+${PREFIX}-libxisf \
+${PREFIX}-libgit2-winhttp \
+${PREFIX}-ffmpeg \
+${PREFIX}-ffms2 \
+${PREFIX}-curl \
+${PREFIX}-sqlite3 \
 

@@ -22,6 +22,17 @@
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
 
+#if defined(__clang__)
+  #define FAST_MATH_PUSH _Pragma("clang fp contract(fast)")
+  #define FAST_MATH_POP  _Pragma("clang fp contract(off)")
+#elif defined(__GNUC__)
+  #define FAST_MATH_PUSH _Pragma("GCC optimize(\"fp-contract=fast\")")
+  #define FAST_MATH_POP  _Pragma("GCC optimize(\"fp-contract=off\")")
+#else
+  #define FAST_MATH_PUSH
+  #define FAST_MATH_POP
+#endif
+
 #ifdef SIRIL_OUTPUT_DEBUG
 #define DEBUG_TEST 1
 #else
@@ -109,6 +120,10 @@ typedef unsigned short WORD;	// default type for internal image data
 
 typedef struct _SirilDialogEntry SirilDialogEntry;
 
+// typedef for an args destructor function, for use in free_generic_seq_args and
+// free_generic_img_args
+typedef void (*destructor)(void *);
+
 /* used for open and savedialog */
 typedef GtkWidget SirilWidget;
 
@@ -117,6 +132,11 @@ typedef GtkWidget SirilWidget;
 #else
 #define SIRIL_EOL "\n"
 #endif
+
+typedef enum {
+	DETAILED,
+	SUMMARY
+} log_hook_detail;
 
 typedef enum {
 	RESPONSE_CANCEL = 1,
@@ -156,15 +176,18 @@ typedef enum {
 #define GREEN_VPORT 	1
 #define BLUE_VPORT 	2
 #define RGB_VPORT 	3
+#define MASK_VPORT 4
 #define MAXGRAYVPORT 	3	// 3 gray vports supported only (R, G, B)
 #define MAXCOLORVPORT	1	// 1 color vport supported only (RGB)
-#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT
+#define MAXMASKVPORT	1	// 1 vport supported for mask display
+#define MAXVPORT 	MAXGRAYVPORT + MAXCOLORVPORT + MAXMASKVPORT
 
 /* defines for copyfits actions */
 #define CP_INIT		0x01	// initialize data array with 0s
 #define CP_ALLOC	0x02	// reallocs data array
 #define CP_COPYA	0x04	// copy data array content
 #define CP_FORMAT	0x08	// copy metadata
+#define CP_COPYMASK	0x10	// copy the mask
 #define CP_EXPAND	0x20	// expands a one-channel to a three channels
 
 #define PREVIEW_NB 2
@@ -194,6 +217,11 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+typedef struct _mask_t {
+	uint8_t bitpix;
+	void *data;
+} mask_t; // A typedef for the mask
+
 typedef struct {
 	double x, y;
 } point;
@@ -205,6 +233,15 @@ typedef struct {
 typedef struct {
 	int x, y;
 } pointi;
+
+typedef struct _UserPolygon {
+	int id;
+	int n_points;
+	point *points;
+	GdkRGBA color;
+	gboolean fill;
+	gchar *legend;
+} __attribute__((packed)) UserPolygon;
 
 /* global structures */
 
@@ -270,6 +307,12 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
+// Feather mode enum
+typedef enum {
+	FEATHER_INNER,  // Feather inward from the edge
+	FEATHER_OUTER,  // Feather outward from the edge
+	FEATHER_EDGE    // Feather equally inward and outward
+} feather_mode;
 
 typedef enum {
 	SEQ_REGULAR = 0,
@@ -376,6 +419,9 @@ typedef struct {
 	gchar *filename; // filename if DISTO_FILE
 	pointf velocity; // shift velocity if DISTO_FILE_COMET
 } disto_params;
+
+// Early declaration
+struct generic_img_args;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -567,6 +613,8 @@ struct ffit {
 	/* ICC Color Management data */
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
+	mask_t* mask; // Mask for image operations
+	gboolean mask_active; // Whether or not the mask is active
 };
 
 typedef enum {
@@ -673,9 +721,11 @@ typedef struct _child_info {
 
 struct historic_struct {
 	char *filename;
+	char *mask_filename;
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
+	uint8_t mask_bitpix;
 	wcs_info wcsdata;
 	struct wcsprm *wcslib;
 	double focal_length;
@@ -689,7 +739,9 @@ typedef struct {
 	/* widgets data */
 	GtkButton *remove_button;
 	GtkDrawingArea *color_w;		// the simulated color chooser
-	GtkFileChooserButton *chooser;	// the file choosers
+	GtkButton *chooser_button;		// the file choosers
+	gchar *selected_filename;		// selected filename
+	GtkLabel *chooser_button_label;
 	GtkLabel *label;				// the labels
 	GtkSpinButton *spinbutton_x;	// the X spin button
 	GtkSpinButton *spinbutton_y;	// the Y spin button
@@ -876,6 +928,7 @@ struct cominf {
 	gsl_histogram *sat_hist;
 					      // TODO: move in ffit?
 
+	// TODO: combine these gbooleans into a single bitmask state variable
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
 	gboolean python_script;	// python script being executed
@@ -924,6 +977,7 @@ struct cominf {
 	struct common_icc icc;		// Holds common ICC color profile data
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
+	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
 };
 
 #ifndef MAIN

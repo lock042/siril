@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,9 +21,36 @@
 #include <glib.h>
 #include "curve_transform.h"
 #include "core/proto.h"
+#include "core/processing.h"
+#include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include <math.h>
 
-void apply_curve(fits *from, fits *to, struct curve_params params, gboolean multithreaded) {
+/*****************************************************************************
+ *      C U R V E      A L L O C A T O R   A N D   D E S T R U C T O R      *
+ ****************************************************************************/
+
+/* Allocator for curve_params */
+struct curve_params *new_curve_params() {
+	struct curve_params *params = calloc(1, sizeof(struct curve_params));
+	if (params) {
+		params->destroy_fn = free_curve_params;
+	}
+	return params;
+}
+
+/* Destructor for curve_params */
+void free_curve_params(void *ptr) {
+	struct curve_params *params = (struct curve_params *)ptr;
+	if (!params)
+		return;
+
+	// Note: points list is NOT freed here as it's managed by the caller
+	// (the curves dialog manages the lifetime of the points list)
+	free(ptr);
+}
+
+void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean multithreaded) {
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	g_assert(from->type == to->type);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -32,11 +59,10 @@ void apply_curve(fits *from, fits *to, struct curve_params params, gboolean mult
 	// Linear data
 	double slopes[MAX_POINTS - 1];
 
-	if (params.algorithm == CUBIC_SPLINE)
-		cubic_spline_fit(params.points, &cspline_data);
-	else if (params.algorithm == LINEAR)
-		linear_fit(params.points, slopes);
-
+	if (params->algorithm == CUBIC_SPLINE)
+		cubic_spline_fit(params->points, &cspline_data);
+	else if (params->algorithm == LINEAR)
+		linear_fit(params->points, slopes);
 
 	if (from->type == DATA_USHORT) {
 		float norm = (float) get_normalized_value(from);
@@ -45,12 +71,12 @@ void apply_curve(fits *from, fits *to, struct curve_params params, gboolean mult
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t i = 0; i < from->naxes[2]; i++) {
-			if (params.do_channel[i]) {
+			if (params->do_channel[i]) {
 				for (size_t j = 0; j < layersize; j++) {
 					float pixel_value = from->pdata[i][j] * inv_norm;
-					if (params.algorithm == LINEAR)
-						to->pdata[i][j] = roundf_to_WORD(linear_interpolate(pixel_value, params.points, slopes) * norm);
-					else if (params.algorithm == CUBIC_SPLINE)
+					if (params->algorithm == LINEAR)
+						to->pdata[i][j] = roundf_to_WORD(linear_interpolate(pixel_value, params->points, slopes) * norm);
+					else if (params->algorithm == CUBIC_SPLINE)
 						to->pdata[i][j] = roundf_to_WORD(cubic_spline_interpolate(pixel_value, &cspline_data) * norm);
 				}
 			} else
@@ -61,12 +87,12 @@ void apply_curve(fits *from, fits *to, struct curve_params params, gboolean mult
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t i = 0; i < from->naxes[2]; i++) {
-			if (params.do_channel[i]) {
+			if (params->do_channel[i]) {
 				for (size_t j = 0; j < layersize; j++) {
 					float pixel_value = from->fpdata[i][j];
-					if (params.algorithm == LINEAR)
-						to->fpdata[i][j] = linear_interpolate(pixel_value, params.points, slopes);
-					else if (params.algorithm == CUBIC_SPLINE)
+					if (params->algorithm == LINEAR)
+						to->fpdata[i][j] = linear_interpolate(pixel_value, params->points, slopes);
+					else if (params->algorithm == CUBIC_SPLINE)
 						to->fpdata[i][j] = cubic_spline_interpolate(pixel_value, &cspline_data);
 				}
 			} else
@@ -170,7 +196,6 @@ float cubic_spline_interpolate(float x, cubic_spline_data *cspline_data) {
 	else if (x < cspline_data->x_values[0])
 		return cspline_data->y_values[0];
 
-
 	x = fmax(0, fmin(1, x));
 	int i = 0;
 	while (i < cspline_data->n - 1 && x > cspline_data->x_values[i + 1])
@@ -182,4 +207,67 @@ float cubic_spline_interpolate(float x, cubic_spline_data *cspline_data) {
 			cspline_data->y_values[i] + cspline_data->b[i] * diff + cspline_data->c[i] * diff_sq +
 			cspline_data->d[i] * diff * diff_sq;
 	return fmax(0, fmin(1, interpolated_value));
+}
+
+/* The actual curve processing hook for generic_image_worker */
+int curve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct curve_params *params = (struct curve_params *)args->user;
+	if (!params)
+		return 1;
+
+	params->fit = fit;
+	apply_curve(fit, fit, params, TRUE);
+
+	// Handle mono images that need depth conversion for display
+	if (fit->naxes[2] == 1 && !params->for_preview) {
+		fits_change_depth(fit, 3);
+		if (fit->type == DATA_FLOAT) {
+			memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
+			memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
+		} else {
+			memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
+			memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
+		}
+
+		// Average back to mono
+		size_t npixels = fit->rx * fit->ry;
+		float factor = 1 / 3.f;
+		if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (size_t i = 0; i < npixels; i++) {
+				fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) * factor;
+			}
+		} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (size_t i = 0; i < npixels; i++) {
+				fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) * factor;
+			}
+		}
+		fits_change_depth(fit, 1);
+	}
+
+	return 0;
+}
+
+gchar *curves_log_hook(gpointer p, log_hook_detail detail) {
+	struct curve_params *params = (struct curve_params *) p;
+	gchar *message = NULL;
+	if (detail == SUMMARY) {
+		message = g_strdup_printf(_("%s curve transformation with %d points"), params->algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(params->points));
+	} else {
+		GString *msg = g_string_new(NULL);
+		g_string_append_printf(msg,
+				_("Applying %s curve transformation with %d points: "),
+				params->algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(params->points));
+		for (GList *iter = params->points; iter; iter = iter->next) {
+			point *p = (point *)iter->data;
+			g_string_append_printf(msg, "(%.3f, %.3f) ", p->x, p->y);
+		}
+		message = g_string_free(msg, FALSE);
+	}
+	return message;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -900,13 +900,11 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	if (error) *error = PSF_NO_ERR;
-//	gboolean photometry_computed = FALSE; // This is never used except in the dead code commented out later
 
 	psf_star *psf = NULL;
 	if (!(psf = psf_minimiz_angle(z, bg, sat, convergence, from_peaker, for_photometry, phot_set, verbose, profile, error))) {
 		return NULL;
 	}
-//	photometry_computed = TRUE;
 
 	/* We quickly test the result. If it is bad we return NULL */
 	if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
@@ -916,25 +914,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 			*error = PSF_ERR_DIVERGED;
 		return NULL;
 	}
-
-/* This code is logically dead. Commenting out prior to removal.
- *	// Photometry
-	if (for_photometry && !photometry_computed &&
-			(!error || *error == PSF_NO_ERR || *error == PSF_ERR_DIVERGED)) {
-		psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
-		if (psf->phot) {
-			psf->mag = psf->phot->mag;
-			psf->s_mag = psf->phot->s_mag;
-			psf->SNR = psf->phot->SNR;
-			psf->phot_is_valid = psf->phot->valid;
-		}
-		else {
-			psf->phot_is_valid = FALSE;
-			psf->s_mag = 9.999;
-			psf->SNR = 0;
-		}
-	}
-*/
 	return psf;
 }
 

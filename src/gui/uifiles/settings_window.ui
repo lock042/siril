@@ -3826,6 +3826,90 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-left">12</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Default mask bit depth:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_ui_mask_bitpix">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-markup" translatable="yes">Sets the default bit depth for mask creation. Some mask creation dialogs allow specification of a bit depth, but in some cases (e.g. adding a freehand selection to a mask where no mask yet exists) a default bit depth will be used.</property>
+                                            <property name="active">0</property>
+                                            <property name="active-id">0</property>
+                                            <items>
+                                              <item id="8" translatable="yes">8-bit</item>
+                                              <item id="16" translatable="yes">16-bit</item>
+                                              <item id="32" translatable="yes">32-bit</item>
+                                              <item id="-2" translatable="yes">Match image</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="pref_ui_mask_tint">
+                                            <property name="label" translatable="yes">Mask tints image viewports</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">When active, if an image mask is present and active it will tint the image viewports. Areas where the mask wil disapply image operations are shown tinted red, with the tint strength dependent on the mask value.</property>
+                                            <property name="draw-indicator">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                            <property name="width">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-top">10</property>
+                                        <property name="margin-bottom">10</property>
+                                        <property name="label" translatable="yes">Image Masks</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">7</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkFrame">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=2 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
                                         <property name="margin-start">12</property>
                                         <property name="row-spacing">6</property>
                                         <property name="column-spacing">6</property>
@@ -3893,7 +3977,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">7</property>
+                                    <property name="position">8</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -4059,7 +4143,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">8</property>
+                                    <property name="position">9</property>
                                   </packing>
                                 </child>
                               </object>
@@ -5177,6 +5261,8 @@ Activating the repository will take place immediately, so that you can select sc
                                             <property name="is-focus">True</property>
                                             <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                                             <property name="tooltip-text" translatable="yes">Type here to filter the list of scripts. The search matches any part of the script name. Filtering is case-insensitive and updates instantly as you type.</property>
+                                            <property name="margin-start">10</property>
+                                            <property name="margin-end">10</property>
                                             <property name="width-chars">30</property>
                                             <property name="primary-icon-name">edit-find-symbolic</property>
                                             <property name="primary-icon-activatable">False</property>
@@ -5193,6 +5279,8 @@ Activating the repository will take place immediately, so that you can select sc
                                           <object class="GtkScrolledWindow">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
+                                            <property name="margin-start">10</property>
+                                            <property name="margin-end">10</property>
                                             <property name="shadow-type">in</property>
                                             <property name="min-content-height">200</property>
                                             <property name="max-content-height">350</property>

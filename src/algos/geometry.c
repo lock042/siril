@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
+#include "core/masks.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
 #include "algos/statistics.h"
@@ -36,8 +37,424 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
+#include "gui/PSF_list.h"
+#include "gui/image_display.h"
+#include "gui/image_interactions.h"
 
 #include "geometry.h"
+
+/* Mask helper functions */
+// Helper function to resize mask
+static int resize_mask(mask_t *mask, int old_rx, int old_ry, int new_rx, int new_ry, opencv_interpolation interpolation) {
+	if (!mask || !mask->data) {
+		return 0; // No mask to resize, not an error
+	}
+
+	// Determine element size based on bitpix
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1; // Invalid bitpix value
+	}
+
+	int newnbdata = new_rx * new_ry;
+	void *newdata = malloc((size_t)newnbdata * elem_size);
+	if (!newdata) {
+		return -1;
+	}
+
+	// Create temporary fits structures for mask data
+	fits temp_in = { 0 };
+	temp_in.rx = old_rx;
+	temp_in.ry = old_ry;
+	temp_in.naxes[0] = old_rx;
+	temp_in.naxes[1] = old_ry;
+	temp_in.naxes[2] = 1;
+
+	fits temp_out = { 0 };
+	temp_out.rx = new_rx;
+	temp_out.ry = new_ry;
+	temp_out.naxes[0] = new_rx;
+	temp_out.naxes[1] = new_ry;
+	temp_out.naxes[2] = 1;
+
+	if (mask->bitpix == 32) {
+		temp_in.type = DATA_FLOAT;
+		temp_in.fdata = (float *)mask->data;
+		temp_in.fpdata[0] = temp_in.fdata;
+		temp_in.fpdata[1] = temp_in.fdata;
+		temp_in.fpdata[2] = temp_in.fdata;
+
+		temp_out.type = DATA_FLOAT;
+		temp_out.fdata = (float *)newdata;
+		temp_out.fpdata[0] = temp_out.fdata;
+		temp_out.fpdata[1] = temp_out.fdata;
+		temp_out.fpdata[2] = temp_out.fdata;
+	} else {
+		temp_in.type = DATA_USHORT;
+		temp_in.data = (WORD *)mask->data;
+		temp_in.pdata[0] = temp_in.data;
+		temp_in.pdata[1] = temp_in.data;
+		temp_in.pdata[2] = temp_in.data;
+
+		temp_out.type = DATA_USHORT;
+		temp_out.data = (WORD *)newdata;
+		temp_out.pdata[0] = temp_out.data;
+		temp_out.pdata[1] = temp_out.data;
+		temp_out.pdata[2] = temp_out.data;
+	}
+
+	if (cvResizeGaussian(&temp_in, new_rx, new_ry, interpolation, FALSE)) {
+		free(newdata);
+		return -1;
+	}
+
+	// Replace old mask data
+	void *tmp = mask->data;
+	mask->data = newdata;
+	free(tmp);
+
+	return 0;
+}
+
+// Helper function to bin mask
+static int bin_mask(mask_t *mask, int old_rx, int old_ry, int bin_factor, gboolean mean) {
+	if (!mask || !mask->data || bin_factor <= 0) {
+		return 0; // No mask to bin, not an error
+	}
+
+	int new_rx = old_rx / bin_factor;
+	int new_ry = old_ry / bin_factor;
+
+	// Determine element size based on bitpix
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1;
+	}
+
+	int newnbdata = new_rx * new_ry;
+	void *newdata = malloc((size_t)newnbdata * elem_size);
+	if (!newdata) {
+		return -1;
+	}
+
+	if (mask->bitpix == 32) {
+		float *buf = (float *)mask->data;
+		float *new_buf = (float *)newdata;
+
+		long k = 0;
+		for (int row = 0; row < old_ry - bin_factor + 1; row += bin_factor) {
+			for (int col = 0; col < old_rx - bin_factor + 1; col += bin_factor) {
+				int c = 0;
+				new_buf[k] = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						new_buf[k] += buf[i + col + (j + row) * old_rx];
+						c++;
+					}
+				}
+				if (mean) new_buf[k] /= c;
+				k++;
+			}
+		}
+	} else {
+		WORD *buf = (WORD *)mask->data;
+		WORD *new_buf = (WORD *)newdata;
+
+		long k = 0;
+		for (int row = 0; row < old_ry - bin_factor + 1; row += bin_factor) {
+			for (int col = 0; col < old_rx - bin_factor + 1; col += bin_factor) {
+				int c = 0;
+				int tmp = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						tmp += buf[i + col + (j + row) * old_rx];
+						c++;
+					}
+				}
+				if (mean) tmp /= c;
+				new_buf[k] = (mask->bitpix == 8) ? (uint8_t)tmp : truncate_to_WORD(tmp);
+				k++;
+			}
+		}
+	}
+
+	void *tmp = mask->data;
+	mask->data = newdata;
+	free(tmp);
+
+	return 0;
+}
+
+// Helper function to rotate mask 180 degrees
+static int rotate_mask_pi(mask_t *mask, int rx, int ry) {
+	if (!mask || !mask->data) {
+		return 0;
+	}
+
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1;
+	}
+
+	size_t line_size = rx * elem_size;
+	void *line1 = malloc(line_size);
+	void *line2 = malloc(line_size);
+	if (!line1 || !line2) {
+		if (line1) free(line1);
+		if (line2) free(line2);
+		return -1;
+	}
+
+	uint8_t *data = (uint8_t *)mask->data;
+
+	for (int line = 0; line < ry / 2; line++) {
+		uint8_t *src = data + line * rx * elem_size;
+		uint8_t *dst = data + (ry - line - 1) * rx * elem_size;
+
+		memcpy(line1, src, line_size);
+		// Reverse line1
+		for (int i = 0; i < rx / 2; i++) {
+			memcpy(line2, line1 + i * elem_size, elem_size);
+			memcpy(line1 + i * elem_size, line1 + (rx - i - 1) * elem_size, elem_size);
+			memcpy(line1 + (rx - i - 1) * elem_size, line2, elem_size);
+		}
+
+		memcpy(line2, dst, line_size);
+		// Reverse line2
+		for (int i = 0; i < rx / 2; i++) {
+			uint8_t temp[32]; // Large enough for any elem_size we support
+			memcpy(temp, line2 + i * elem_size, elem_size);
+			memcpy(line2 + i * elem_size, line2 + (rx - i - 1) * elem_size, elem_size);
+			memcpy(line2 + (rx - i - 1) * elem_size, temp, elem_size);
+		}
+
+		memcpy(src, line2, line_size);
+		memcpy(dst, line1, line_size);
+	}
+
+	if (ry & 1) {
+		// Reverse middle line
+		uint8_t *src = data + (ry / 2) * rx * elem_size;
+		for (int i = 0; i < rx / 2; i++) {
+			memcpy(line1, src + i * elem_size, elem_size);
+			memcpy(src + i * elem_size, src + (rx - i - 1) * elem_size, elem_size);
+			memcpy(src + (rx - i - 1) * elem_size, line1, elem_size);
+		}
+	}
+
+	free(line1);
+	free(line2);
+	return 0;
+}
+
+// Helper function to mirror mask horizontally
+static int mirrorx_mask(mask_t *mask, int rx, int ry) {
+	if (!mask || !mask->data) {
+		return 0;
+	}
+
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1;
+	}
+
+	size_t line_size = rx * elem_size;
+	void *swapline = malloc(line_size);
+	if (!swapline) {
+		return -1;
+	}
+
+	uint8_t *data = (uint8_t *)mask->data;
+
+	for (int line = 0; line < ry / 2; line++) {
+		uint8_t *src = data + line * rx * elem_size;
+		uint8_t *dst = data + (ry - line - 1) * rx * elem_size;
+
+		memcpy(swapline, src, line_size);
+		memcpy(src, dst, line_size);
+		memcpy(dst, swapline, line_size);
+	}
+
+	free(swapline);
+	return 0;
+}
+
+// Helper function to transform mask with homography
+static int transform_mask(mask_t *mask, int old_rx, int old_ry, int new_rx, int new_ry,
+                         Homography H, opencv_interpolation interpolation) {
+	if (!mask || !mask->data) {
+		return 0;
+	}
+
+	int old_nbdata = old_rx * old_ry;
+	int new_nbdata = new_rx * new_ry;
+
+	// Convert mask data to USHORT for processing if it's 8-bit
+	WORD *input_ushort = NULL;
+	float *input_float = NULL;
+	gboolean needs_conversion = FALSE;
+
+	if (mask->bitpix == 32) {
+		// Float mask - copy to float array
+		input_float = malloc(old_nbdata * sizeof(float));
+		if (!input_float) return -1;
+		memcpy(input_float, mask->data, old_nbdata * sizeof(float));
+	} else {
+		// 8-bit or 16-bit mask - convert to USHORT
+		input_ushort = malloc(old_nbdata * sizeof(WORD));
+		if (!input_ushort) return -1;
+
+		if (mask->bitpix == 8) {
+			needs_conversion = TRUE;
+			uint8_t *src = (uint8_t *)mask->data;
+			for (int i = 0; i < old_nbdata; i++) {
+				input_ushort[i] = (WORD)src[i];
+			}
+		} else {
+			memcpy(input_ushort, mask->data, old_nbdata * sizeof(WORD));
+		}
+	}
+
+	// Create temporary fits structure
+	fits temp_in = { 0 };
+	temp_in.rx = old_rx;
+	temp_in.ry = old_ry;
+	temp_in.naxes[0] = old_rx;
+	temp_in.naxes[1] = old_ry;
+	temp_in.naxes[2] = 1;
+
+	if (mask->bitpix == 32) {
+		temp_in.type = DATA_FLOAT;
+		temp_in.fdata = input_float;
+		temp_in.fpdata[0] = temp_in.fdata;
+		temp_in.fpdata[1] = temp_in.fdata;
+		temp_in.fpdata[2] = temp_in.fdata;
+	} else {
+		temp_in.type = DATA_USHORT;
+		temp_in.data = input_ushort;
+		temp_in.pdata[0] = temp_in.data;
+		temp_in.pdata[1] = temp_in.data;
+		temp_in.pdata[2] = temp_in.data;
+	}
+
+	// Convert H to OpenCV convention
+	Homography Hocv = H;
+	cvdisplay2ocv(&Hocv);
+
+	// cvTransformImage will free the old data and allocate new data
+	if (cvTransformImage(&temp_in, new_rx, new_ry, Hocv, 1.f, interpolation, FALSE, NULL)) {
+		if (input_ushort) free(input_ushort);
+		if (input_float) free(input_float);
+		return -1;
+	}
+
+	// cvTransformImage has replaced the data pointer with transformed data
+	// Now convert back to original format if needed
+	free(mask->data);
+
+	if (mask->bitpix == 32) {
+		mask->data = temp_in.fdata;
+	} else if (mask->bitpix == 8 && needs_conversion) {
+		// Convert USHORT back to uint8_t
+		uint8_t *new_data = malloc(new_nbdata * sizeof(uint8_t));
+		if (!new_data) {
+			free(temp_in.data);
+			return -1;
+		}
+		for (int i = 0; i < new_nbdata; i++) {
+			new_data[i] = (uint8_t)(temp_in.data[i] > 255 ? 255 : temp_in.data[i]);
+		}
+		free(temp_in.data);
+		mask->data = new_data;
+	} else {
+		// bitpix == 16
+		mask->data = temp_in.data;
+	}
+
+	return 0;
+}
+
+
+static int crop_mask(mask_t *mask, rectangle *bounds, int rx, int ry) {
+	if (!mask || !mask->data || !bounds) {
+		return 0; // No mask to crop, not an error
+	}
+
+	// Determine element size based on bitpix
+	size_t elem_size;
+	switch (mask->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			return -1; // Invalid bitpix value
+	}
+
+	// Clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > rx) ? rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > ry) ? ry - bounds->y : bounds->h;
+
+	// Validate resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= rx || bounds_cpy.y >= ry) {
+		return -1;
+	}
+
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+
+	// Allocate new buffer for cropped mask
+	void *newdata = malloc((size_t)newnbdata * elem_size);
+	if (!newdata) {
+		return -1;
+	}
+
+	// Source pointer: bottom-left origin (FITS coordinate system)
+	uint8_t *from = (uint8_t *)mask->data +
+	                (ry - bounds_cpy.y - bounds_cpy.h) * rx * elem_size +
+	                bounds_cpy.x * elem_size;
+
+	// Destination pointer
+	uint8_t *to = (uint8_t *)newdata;
+
+	size_t row_bytes = bounds_cpy.w * elem_size;
+	size_t stride_bytes = rx * elem_size;
+
+	// Copy row by row
+	for (int i = 0; i < bounds_cpy.h; ++i) {
+		memcpy(to, from, row_bytes);
+		to += row_bytes;
+		from += stride_bytes;
+	}
+
+	// Replace old mask data
+	void *tmp = mask->data;
+	mask->data = newdata;
+	free(tmp);
+
+	return 0;
+}
+
+/* Image geometry functions */
 
 /* this method rotates the image 180 degrees, useful after german mount flip.
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
@@ -265,47 +682,63 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
-	struct timeval t_start, t_end;
-
-	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
+
+	int old_rx = fit->rx;
+	int old_ry = fit->ry;
+
 	if (fit->type == DATA_USHORT) {
 		fits_binning_ushort(fit, factor, mean);
 	} else if (fit->type == DATA_FLOAT) {
 		fits_binning_float(fit, factor, mean);
 	}
 
+	if (fit->mask) {
+		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
+			siril_log_color_message(_("Error binning mask\n"), "red");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			show_or_hide_mask_tab();
+			return -1;
+		} else {
+			set_mask_active(fit, tmp_mask_active);
+		}
+	}
+
 	free_wcs(fit);
 	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
 
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-
-	char log[90];
-	sprintf(log, "Binned x%d (%s)", factor, mean ? "mean" : "sum");
-	fit->history = g_slist_append(fit->history, strdup(log));
-
-	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
-
 	return 0;
 }
 
-const char *interp_to_str(opencv_interpolation interpolation) {
+const char* interp_to_str(int interpolation) {
+	const char *str_inter;
 	switch (interpolation) {
+		case -1:
+		case OPENCV_NONE:
+			str_inter = _("No");
+			break;
 		case OPENCV_NEAREST:
-			return _("Nearest-Neighbor");
+			str_inter = _("Nearest-Neighbor");
+			break;
 		default:
 		case OPENCV_LINEAR:
-			return _("Bilinear");
+			str_inter = _("Bilinear");
+			break;
 		case OPENCV_AREA:
-			return _("Pixel Area Relation");
+			str_inter = _("Pixel Area Relation");
+			break;
 		case OPENCV_CUBIC:
-			return _("Bicubic");
+			str_inter = _("Bicubic");
+			break;
 		case OPENCV_LANCZOS4:
-			return _("Lanczos4");
+			str_inter = _("Lanczos4");
+			break;
 	}
+	return str_inter;
 }
 
 /* These functions do not more than resize_gaussian and rotate_image
@@ -313,24 +746,36 @@ const char *interp_to_str(opencv_interpolation interpolation) {
  * Indeed, siril_log_message seems not working in a cpp file */
 int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
 	int retvalue;
-	struct timeval t_start, t_end;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
+	}
 
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
-			"green", interp_to_str(interpolation));
+	int old_rx = image->rx;
+	int old_ry = image->ry;
 
-	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
+
+	if (retvalue == 0 && image->mask) {
+		if (resize_mask(image->mask, old_rx, old_ry, toX, toY, interpolation)) {
+			siril_log_color_message(_("Error resizing mask\n"), "red");
+			free_mask(image->mask);
+			image->mask = NULL;
+			show_or_hide_mask_tab();
+		} else {
+			set_mask_active(image, tmp_mask_active);
+		}
+	}
+
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
 	free_wcs(image);
 	reset_wcsdata(image);
 	refresh_annotations(TRUE);
-
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
 
 	return retvalue;
 }
@@ -352,15 +797,16 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
-	if (angle % 90 != 0) return 1;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
+	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
-	siril_log_color_message(
-			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
-			_("No"), (double)angle);
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
+	}
 
-	int orig_ry = image->ry; // required to compute flips afterwards
+	int orig_ry = image->ry;
+	int orig_rx = image->rx;
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	rectangle area = {0, 0, image->rx, image->ry};
@@ -368,8 +814,19 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 	if (cvRotateImage(image, angle)) return 1;
 
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	if (image->mask) {
+		// OPENCV_NEAREST is fine because we are rotating by a multiple of 90 \deg
+		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
+			siril_log_color_message(_("Error rotating mask\n"), "red");
+			free_mask(image->mask);
+			image->mask = NULL;
+			set_mask_active(image, FALSE);
+			show_or_hide_mask_tab();
+		} else {
+			set_mask_active(image, tmp_mask_active);
+		}
+	}
+
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, &H);
@@ -382,50 +839,34 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped, gboolean clamp) {
-	const char *str_inter;
-	struct timeval t_start, t_end;
-
-	switch (interpolation) {
-		case -1:
-			str_inter = _("No");
-			break;
-		case OPENCV_NEAREST:
-			str_inter = _("Nearest-Neighbor");
-			break;
-		default:
-		case OPENCV_LINEAR:
-			str_inter = _("Bilinear");
-			break;
-		case OPENCV_AREA:
-			str_inter = _("Pixel Area Relation");
-			break;
-		case OPENCV_CUBIC:
-			str_inter = _("Bicubic");
-			break;
-		case OPENCV_LANCZOS4:
-			str_inter = _("Lanczos4");
-			break;
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = FALSE;
+	if (image->mask) {
+		tmp_mask_active = image->mask_active;
+		set_mask_active(image, FALSE);
 	}
 
-	siril_log_color_message(
-			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
-			str_inter, angle);
-	gettimeofday(&t_start, NULL);
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
-
-	int orig_ry = image->ry; // required to compute flips afterwards
+	int orig_ry = image->ry;
+	int orig_rx = image->rx;
 	int target_rx, target_ry;
 	Homography H = { 0 }, Hocv = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	// The matrix has been written in display convention (i.e, siril flipped)
-	// We need to convert to opencv convention (pixel-based) before applying to the image
-	// The original matrix will still be used to reframe astrometry data
+
 	Hocv = H;
 	cvdisplay2ocv(&Hocv);
 	if (cvTransformImage(image, target_rx, target_ry, Hocv, 1.f, interpolation, clamp, NULL)) return 1;
 
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	if (image->mask) {
+		if (transform_mask(image->mask, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_CUBIC)) {
+			siril_log_color_message(_("Error rotating mask\n"), "red");
+			free_mask(image->mask);
+			image->mask = NULL;
+			show_or_hide_mask_tab();
+			set_mask_active(image, FALSE);
+		} else {
+			set_mask_active(image, tmp_mask_active);
+		}
+	}
 
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
@@ -507,15 +948,29 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 
 void mirrorx(fits *fit, gboolean verbose) {
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
+
 	if (fit->type == DATA_USHORT) {
 		mirrorx_ushort(fit, verbose);
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+
+	if (fit->mask) {
+		if (mirrorx_mask(fit->mask, fit->rx, fit->ry)) {
+			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			show_or_hide_mask_tab();
+		} else {
+			set_mask_active(fit, tmp_mask_active);
+		}
+	}
+
 	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
 		sprintf(fit->keywords.row_order, "TOP-DOWN");
-	else { //if (!strcmp(fit->row_order, "TOP-DOWN"))
-		// let's create the keyword in all cases
+	else {
 		sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	}
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
@@ -533,6 +988,9 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 void mirrory(fits *fit, gboolean verbose) {
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
+
 	struct timeval t_start, t_end;
 
 	if (verbose) {
@@ -542,6 +1000,19 @@ void mirrory(fits *fit, gboolean verbose) {
 
 	fits_flip_top_to_bottom(fit);
 	fits_rotate_pi(fit);
+
+	if (fit->mask) {
+		// For vertical mirror: flip top-to-bottom then rotate 180
+		if (mirrorx_mask(fit->mask, fit->rx, fit->ry) ||
+		    rotate_mask_pi(fit->mask, fit->rx, fit->ry)) {
+			siril_log_color_message(_("Error mirroring mask\n"), "red");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			show_or_hide_mask_tab();
+		} else {
+			set_mask_active(fit, tmp_mask_active);
+		}
+	}
 
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
@@ -561,73 +1032,144 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 }
 
-/* inplace cropping of the image in fit
- * fit->data is not realloc, only fit->pdata points to a different area and
- * data is correctly written to this new area, which makes this function
- * quite dangerous to use when fit is used for something else afterwards.
- */
 static int crop_ushort(fits *fit, rectangle *bounds) {
-	int i, j, layer;
-	int newnbdata;
-	rectangle bounds_cpy = { 0 };
+	if (!fit || !bounds) {
+		return -1;
+	}
 
+	// Validate and clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
-	newnbdata = bounds_cpy.w * bounds_cpy.h;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		WORD *from = fit->pdata[layer]
-			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
-		fit->pdata[layer] = fit->data + layer * newnbdata;
-		WORD *to = fit->pdata[layer];
-		int stridefrom = fit->rx - bounds_cpy.w;
+	// Validate the resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= fit->rx || bounds_cpy.y >= fit->ry) {
+		return -1;
+	}
 
-		for (i = 0; i < bounds_cpy.h; ++i) {
-			for (j = 0; j < bounds_cpy.w; ++j) {
-				*to++ = *from++;
-			}
-			from += stridefrom;
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+	int nlayers = fit->naxes[2];
+
+	// Allocate new buffer for cropped data
+	WORD *newdata = malloc(newnbdata * nlayers * sizeof(WORD));
+	if (!newdata) {
+		return -1;
+	}
+
+	// Copy cropped data from each layer
+	for (int layer = 0; layer < nlayers; ++layer) {
+		// Source pointer: start at bottom-left of crop region (FITS coordinate system)
+		WORD *from = fit->pdata[layer] +
+		             (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
+
+		// Destination pointer in new buffer
+		WORD *to = newdata + layer * newnbdata;
+
+		// Copy row by row
+		for (int i = 0; i < bounds_cpy.h; ++i) {
+			memcpy(to, from, bounds_cpy.w * sizeof(WORD));
+			to += bounds_cpy.w;
+			from += fit->rx;
 		}
 	}
+
+	// Free old data and update pointers
+	free(fit->data);
+	fit->data = newdata;
+
+	// Update layer pointers
+	for (int layer = 0; layer < nlayers; ++layer) {
+		fit->pdata[layer] = fit->data + layer * newnbdata;
+	}
+
+	// For single-layer images, set all pointers to the same data
+	if (nlayers == 1) {
+		fit->pdata[1] = fit->data;
+		fit->pdata[2] = fit->data;
+	}
+
+	// Update dimensions
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
+
 	return 0;
 }
 
 static int crop_float(fits *fit, rectangle *bounds) {
-	int i, j, layer;
-	int newnbdata;
-	rectangle bounds_cpy = { 0 };
+	if (!fit || !bounds) {
+		return -1;
+	}
 
+	// Validate and clamp bounds to image dimensions
+	rectangle bounds_cpy = { 0 };
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
-	newnbdata = bounds_cpy.w * bounds_cpy.h;
-	for (layer = 0; layer < fit->naxes[2]; ++layer) {
-		float *from = fit->fpdata[layer]
-			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
-		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
-		float *to = fit->fpdata[layer];
-		int stridefrom = fit->rx - bounds_cpy.w;
+	// Validate the resulting crop region
+	if (bounds_cpy.w <= 0 || bounds_cpy.h <= 0 ||
+	    bounds_cpy.x < 0 || bounds_cpy.y < 0 ||
+	    bounds_cpy.x >= fit->rx || bounds_cpy.y >= fit->ry) {
+		return -1;
+	}
 
-		for (i = 0; i < bounds_cpy.h; ++i) {
-			for (j = 0; j < bounds_cpy.w; ++j) {
-				*to++ = *from++;
-			}
-			from += stridefrom;
+	int newnbdata = bounds_cpy.w * bounds_cpy.h;
+	int nlayers = fit->naxes[2];
+
+	// Allocate new buffer for cropped data
+	float *newfdata = malloc(newnbdata * nlayers * sizeof(float));
+	if (!newfdata) {
+		return -1;
+	}
+
+	// Copy cropped data from each layer
+	for (int layer = 0; layer < nlayers; ++layer) {
+		// Source pointer: start at bottom-left of crop region (FITS coordinate system)
+		float *from = fit->fpdata[layer] +
+		              (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
+
+		// Destination pointer in new buffer
+		float *to = newfdata + layer * newnbdata;
+
+		// Copy row by row
+		for (int i = 0; i < bounds_cpy.h; ++i) {
+			memcpy(to, from, bounds_cpy.w * sizeof(float));
+			to += bounds_cpy.w;
+			from += fit->rx;
 		}
 	}
+
+	// Free old data and update pointers
+	free(fit->fdata);
+	fit->fdata = newfdata;
+
+	// Update layer pointers
+	for (int layer = 0; layer < nlayers; ++layer) {
+		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
+	}
+
+	// For single-layer images, set all pointers to the same data
+	if (nlayers == 1) {
+		fit->fpdata[1] = fit->fdata;
+		fit->fpdata[2] = fit->fdata;
+	}
+
+	// Update dimensions
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
+
 	return 0;
 }
 
 int crop(fits *fit, rectangle *bounds) {
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
@@ -660,6 +1202,7 @@ int crop(fits *fit, rectangle *bounds) {
 				bounds->h = 2;
 			siril_log_message(_("Rounding selection to match CFA pattern\n"));
 	}
+	int orig_rx = fit->rx; // required to compute flips afterwards
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
@@ -668,11 +1211,23 @@ int crop(fits *fit, rectangle *bounds) {
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 
 	if (fit->type == DATA_USHORT) {
-		crop_ushort(fit, bounds);
+		if (crop_ushort(fit, bounds)) return -1;
 	} else if (fit->type == DATA_FLOAT) {
-		crop_float(fit, bounds);
+		if (crop_float(fit, bounds)) return -1;
 	} else {
 		return -1;
+	}
+
+	if (fit->mask) {
+		if (crop_mask(fit->mask, bounds, orig_rx, orig_ry)) {
+			siril_log_color_message(_("Error cropping mask\n"), "red");
+			free_mask(fit->mask);
+			fit->mask = NULL;
+			show_or_hide_mask_tab();
+			return -1;
+		} else {
+			set_mask_active(fit, tmp_mask_active);
+		}
 	}
 
 	invalidate_stats_from_fit(fit);
@@ -944,4 +1499,189 @@ gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
 	}
 
 	return GINT_TO_POINTER(0);
+}
+
+/*****************************************************************************
+ *      G E O M E T R Y   A R G S   A L L O C A T O R S   A N D   D E S T R U C T O R S
+ ****************************************************************************/
+
+struct binning_args *new_binning_args() {
+	struct binning_args *args = calloc(1, sizeof(struct binning_args));
+	if (args) {
+		args->destroy_fn = free_binning_args;
+	}
+	return args;
+}
+
+void free_binning_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct crop_args *new_crop_args() {
+	struct crop_args *args = calloc(1, sizeof(struct crop_args));
+	if (args) {
+		args->destroy_fn = free_crop_args;
+	}
+	return args;
+}
+
+void free_crop_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct mirror_args *new_mirror_args() {
+	struct mirror_args *args = calloc(1, sizeof(struct mirror_args));
+	if (args) {
+		args->destroy_fn = free_mirror_args;
+	}
+	return args;
+}
+
+void free_mirror_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct resample_args *new_resample_args() {
+	struct resample_args *args = calloc(1, sizeof(struct resample_args));
+	if (args) {
+		args->destroy_fn = free_resample_args;
+	}
+	return args;
+}
+
+void free_resample_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+struct rotation_args *new_rotation_args() {
+	struct rotation_args *args = calloc(1, sizeof(struct rotation_args));
+	if (args) {
+		args->destroy_fn = free_rotation_args;
+	}
+	return args;
+}
+
+void free_rotation_args(void *ptr) {
+	if (!ptr) return;
+	free(ptr);
+}
+
+/**********************************************************************
+ *      G E O M E T R Y   L O G   H O O K S   F O R   W O R K E R
+ **********************************************************************/
+
+gchar *crop_log_hook(gpointer p, log_hook_detail detail) {
+	struct crop_args *params = (struct crop_args*) p;
+	gchar *msg = g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
+			params->area.x, params->area.y, params->area.w,
+			params->area.h);
+	return msg;
+}
+
+gchar *resample_log_hook(gpointer p, log_hook_detail detail) {
+	struct resample_args *params = (struct resample_args *)p;
+
+	gchar *msg = g_strdup_printf(_("Resampling to %d x %d pixels with %s interpolation"),
+			params->toX, params->toY, interp_to_str(params->interpolation));
+	return msg;
+}
+
+gchar *binning_log_hook(gpointer p, log_hook_detail detail) {
+	struct binning_args *params = (struct binning_args *) p;
+	gchar *msg = g_strdup_printf(_("Binning x%d (%s)"), params->factor, params->mean ? _("average") : _("sum"));
+	return msg;
+}
+
+gchar *rotation_log_hook(gpointer p, log_hook_detail detail) {
+	struct rotation_args *params = (struct rotation_args *) p;
+	gchar *msg = NULL;
+	if (detail == SUMMARY) {
+		msg = g_strdup_printf(_("Rotation (%.1fdeg)"), params->angle);
+	} else {
+		msg = g_strdup_printf(_("Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"), params->angle,
+				params->cropped ? _("TRUE") : _("FALSE"), params->clamp ? _("TRUE") : _("FALSE"),
+				interp_to_str(params->interpolation));
+	}
+	return msg;
+}
+
+/*****************************************************************************
+ *      G E O M E T R Y   I M A G E   H O O K S   F O R   W O R K E R
+ ****************************************************************************/
+
+int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct binning_args *params = (struct binning_args *)args->user;
+	if (!params)
+		return 1;
+
+	return fits_binning(fit, params->factor, params->mean);
+}
+
+static gboolean crop_gui_updates(gpointer user) {
+	clear_stars_list(TRUE);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	return FALSE;
+}
+
+int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct crop_args *params = (struct crop_args *)args->user;
+	if (!params)
+		return 1;
+	int retval = crop(fit, &params->area);
+	gui_function(crop_gui_updates, NULL);
+	return retval;
+}
+
+int mirrorx_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	mirrorx(fit, FALSE);
+	return 0;
+}
+
+int mirrory_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	mirrory(fit, FALSE);
+	return 0;
+}
+
+int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct resample_args *params = (struct resample_args *)args->user;
+	if (!params)
+		return 1;
+
+	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
+	                                params->interpolation, params->clamp);
+	gui_function(update_MenuItem, NULL);
+	return retval;
+}
+
+int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct rotation_args *params = (struct rotation_args *)args->user;
+	if (!params)
+		return 1;
+
+	// Check for fast rotation (90 degree increments)
+	int angle_int = (int)params->angle;
+	int retval;
+	if (params->angle == angle_int && angle_int % 90 == 0 &&
+	    params->area.x == 0 && params->area.y == 0 &&
+	    params->area.w == fit->rx && params->area.h == fit->ry) {
+		retval = verbose_rotate_fast(fit, angle_int);
+	} else {
+		retval = verbose_rotate_image(fit, params->area, params->angle,
+	                             params->interpolation, params->cropped,
+	                             params->clamp);
+	}
+
+	// If a selection is set, we set it to the entire image
+	if (com.selection.w > 0 && com.selection.h > 0) {
+		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
+		gui_function(new_selection_zone, NULL);
+	}
+	update_zoom_label();
+	return retval;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -76,6 +76,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "git-version.h"
 
 #include "OS_utils.h"
 
@@ -1122,3 +1123,21 @@ gchar *find_executable_in_path(const char *exe_name, const char *path) {
 }
 
 #endif
+
+gchar *get_siril_version_string() {
+#ifdef _WIN32
+#ifdef SIRIL_UNSTABLE
+	return g_strdup_printf(_("unreleased %s %s-%s for %s (%s %s)"), PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
+			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
+#else
+	return g_strdup_printf(_("%s %s for %s (%s %s)"), PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH, SIRIL_BUILD_PLATFORM_ENV);
+#endif
+#else
+#ifdef SIRIL_UNSTABLE
+	return g_strdup_printf(_("unreleased %s %s-%s for %s (%s)"), PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
+			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
+#else
+	return g_strdup_printf(_("%s %s for %s (%s)"), PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
+#endif
+#endif
+}

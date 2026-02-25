@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -2030,7 +2030,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		png_set_swap(png_ptr);
 		data = convert_data(fit);
 		// Apply ICC transform (only for color managed images)
-		if (fit->color_managed && fit->icc_profile) {
+		if (fit->color_managed && fit->icc_profile && save_transform) {
 			cmsUInt32Number datasize = sizeof(WORD);
 			cmsUInt32Number bytesperline = fit->rx * datasize * fit->naxes[2];
 			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;
@@ -2042,7 +2042,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	} else {
 		data8 = convert_data8(fit);
 		// Apply ICC transform
-		if (fit->color_managed && fit->icc_profile) {
+		if (fit->color_managed && fit->icc_profile && save_transform) {
 			cmsUInt32Number datasize = sizeof(BYTE);
 			cmsUInt32Number bytesperline = fit->rx * datasize;
 			cmsUInt32Number bytesperplane = fit->rx * fit->ry * datasize;

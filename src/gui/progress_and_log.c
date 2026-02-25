@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -105,6 +105,8 @@ void set_progress_bar_data(const char *text, double percent) {
 
 /************************ M E S S A G E    L O G G I N G  ************************/
 
+static gboolean log_tags_initialized = FALSE;
+
 struct log_message {
 	char *timestamp;
 	char *message;
@@ -131,6 +133,12 @@ static gboolean idle_messaging(gpointer p) {
 	GtkTextIter iter;
 	struct log_message *log = (struct log_message *) p;
 
+	// Check if GUI is ready and log tags are initialized
+	if (!gui.builder || !log_tags_initialized) {
+		// GUI not ready yet, skip GTK logging
+		goto cleanup;
+	}
+
 	if (!tbuf) {
 		text = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "output"));
 		tbuf = gtk_text_view_get_buffer(text);
@@ -139,10 +147,7 @@ static gboolean idle_messaging(gpointer p) {
 	if (log->message[0] == '\n' && log->message[1] == '\0') {
 		gtk_text_buffer_get_start_iter(tbuf, &iter);
 		gtk_text_buffer_insert(tbuf, &iter, log->message, strlen(log->message));
-		free(log->timestamp);
-		free(log->message);
-		free(log);
-		return FALSE;
+		goto cleanup;
 	}
 
 	gtk_text_buffer_get_end_iter(tbuf, &iter);
@@ -161,6 +166,7 @@ static gboolean idle_messaging(gpointer p) {
 	 */
 	g_timeout_add(50, scroll_to_end, (gpointer) text);
 
+cleanup:
 	free(log->timestamp);
 	free(log->message);
 	free(log);
@@ -185,6 +191,10 @@ void gui_log_message(const char* msg, const char* color) {
 }
 
 void initialize_log_tags() {
+	/* Prevent double initialization */
+	if (log_tags_initialized)
+		return;
+
 	/* Create tags associated with the buffer for the output text. */
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget("output")));
 	/* Tag with weight bold and tag name "bold" . */
@@ -197,6 +207,9 @@ void initialize_log_tags() {
 	gtk_text_buffer_create_tag (tbuf, "green", "foreground", "#01b301", NULL);
 	gtk_text_buffer_create_tag (tbuf, "blue", "foreground", "#7a7af8", NULL);
 	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
+
+	/* Mark tags as initialized */
+	log_tags_initialized = TRUE;
 }
 
 /********************** S A V I N G    T H E    L O G **********************/

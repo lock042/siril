@@ -260,7 +260,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="adjustment">adjustment_epf_d</property>
                     <property name="digits">1</property>
                     <property name="numeric">True</property>
-                    <signal name="value-changed" handler="on_spin_epf_d_value_changed" swapped="no"/>
+                    <signal name="value-changed" handler="on_epf_parameter_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -324,7 +324,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="adjustment">adjustment_epf_sigma_spatial</property>
                     <property name="digits">2</property>
                     <property name="numeric">True</property>
-                    <signal name="value-changed" handler="on_spin_epf_sigma_spatial_value_changed" swapped="no"/>
+                    <signal name="value-changed" handler="on_epf_parameter_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -382,7 +382,7 @@ If your stars look huge and defocused, start by reducing this value. Depending o
                     <property name="adjustment">adjustment_epf_sigma_col</property>
                     <property name="digits">2</property>
                     <property name="numeric">True</property>
-                    <signal name="value-changed" handler="on_spin_epf_sigma_col_value_changed" swapped="no"/>
+                    <signal name="value-changed" handler="on_epf_parameter_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -428,7 +428,7 @@ If the parameters is 0, no filter is applied at all.</property>
                     <property name="adjustment">adjustment_spin_epf_mod</property>
                     <property name="digits">2</property>
                     <property name="value">1</property>
-                    <signal name="value-changed" handler="on_spin_epf_mod_value_changed" swapped="no"/>
+                    <signal name="value-changed" handler="on_epf_parameter_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>

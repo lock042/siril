@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -81,7 +81,24 @@
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/siril_css.h"
+#include "gui/splashscreen.h"
 
+// Forward decl to avoid including all of photometric_cc.h
+void initialize_spcc_mirrors();
+void force_paned_restore();
+
+/* Callback to close splash screen and show main window after delay */
+static gboolean close_splash_and_show_window_cb(gpointer user_data) {
+	close_splash_screen();
+
+	/* Make window visible */
+	GtkWidget *control_window = lookup_widget("control_window");
+	gtk_widget_set_opacity(control_window, 1.0);
+
+	force_paned_restore();
+
+	return FALSE; // run once
+}
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
@@ -258,6 +275,7 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	com.spcc_remote_catalogue = g_strdup("https://zenodo.org/records/17988559/files");
 	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
@@ -328,29 +346,52 @@ static void siril_app_activate(GApplication *application) {
 		com.headless = TRUE;
 	}
 
+	/* Show splash screen only in GUI mode */
+	if (!com.headless) {
+		show_splash_screen();
+		update_splash_progress(_("Initializing..."), 0.0);
+	}
+
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
 #endif
+
+	if (!com.headless)
+		update_splash_progress(_("Initializing random number generator..."), 0.05);
 	siril_initialize_rng();
+
+	if (!com.headless)
+		update_splash_progress(_("Global initialization..."), 0.10);
 	global_initialization();
+
 	/* initialize sequence-related stuff */
+	if (!com.headless)
+		update_splash_progress(_("Initializing sequences..."), 0.15);
 	initialize_sequence(&com.seq, TRUE);
 
-	siril_log_color_message(_("Welcome to %s v%s\n"), "bold", PACKAGE, VERSION);
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
+	if (!com.headless)
+		update_splash_progress(_("Loading image converters..."), 0.20);
 	gchar *supported_files = initialize_converters();
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
 	}
 
+	if (!com.headless)
+		update_splash_progress(_("Loading configuration..."), 0.25);
 	if (checkinitfile()) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);
 	}
 
 	// After this point com.pref is populated
+	if (!com.headless)
+		update_splash_progress(_("Initializing language..."), 0.30);
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -377,9 +418,18 @@ static void siril_app_activate(GApplication *application) {
 		}
 	}
 
+	if (!com.headless)
+		update_splash_progress(_("Initializing processors..."), 0.35);
 	init_num_procs();
+
+	if (!com.headless)
+		update_splash_progress(_("Initializing Python environment..."), 0.40);
 	initialize_python_venv_in_thread();
+
+	if (!com.headless)
+		update_splash_progress(_("Loading color profiles..."), 0.45);
 	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -416,21 +466,38 @@ static void siril_app_activate(GApplication *application) {
 
 	if (!com.headless) {
 		/* Load GResource */
+		update_splash_progress(_("Loading resources..."), 0.50);
 		com.resource = siril_resource_get_resource();
+
 		/* Load preferred theme */
+		update_splash_progress(_("Loading theme..."), 0.55);
 		load_prefered_theme(com.pref.gui.combo_theme);
+
 		/* Load the css sheet for general style */
+		update_splash_progress(_("Loading styles..."), 0.60);
 		load_css_style_sheet();
+
 		/* Load UI files */
+		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
+
+		/* Make window transparent to keep splash on top but allow GTK calculations */
+		GtkWidget *control_window = lookup_widget("control_window");
+		gtk_widget_set_opacity(control_window, 0.0);
+
 		/* Passing GApplication to the control center */
-		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
+		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(control_window)), GTK_APPLICATION(application));
+
 		/* Load state of the main windows (position and maximized) */
+		update_splash_progress(_("Restoring window state..."), 0.75);
 		gui_function(load_main_window_state, NULL);
+
+		update_splash_progress(_("Initializing SPCC..."), 0.80);
 #if defined(HAVE_LIBCURL)
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
 		if (is_online()) {
+			update_splash_progress(_("Checking for updates..."), 0.85);
 			if (com.pref.check_update) {
 				siril_check_updates(FALSE);
 			}
@@ -444,8 +511,13 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	if (!com.headless) {
+		update_splash_progress(_("Initializing interface components..."), 0.90);
 		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
+
+		/* Show "Ready!" message then close splash and show window after 200ms */
+		update_splash_progress(_("Ready!"), 1.0);
+		g_timeout_add(200, close_splash_and_show_window_cb, NULL);
 	}
 
 	g_free(supported_files);
@@ -612,6 +684,9 @@ int main(int argc, char *argv[]) {
 #elif _WIN32
 	// suppression of annoying error boxes, hack from RawTherapee
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+	// avoid Python interfering with Siril's embedded Python
+	g_unsetenv("PYTHONPATH");
+	g_unsetenv("PYTHONHOME");
 #endif
 
 #ifdef _WIN32

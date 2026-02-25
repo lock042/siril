@@ -1,10 +1,14 @@
 {
     "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "48",
+    "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
     "command": "siril",
     "rename-icon": "org.siril.Siril",
+    "rename-mime-file": "siril.xml",
+    "rename-mime-icons": [
+        "text-x-seq"
+    ],
     "finish-args": [
         "--share=ipc",
         "--share=network",
@@ -14,10 +18,7 @@
         "--talk-name=org.freedesktop.Flatpak",
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
-        "--filesystem=xdg-run/gvfsd",
-        "--unset-env=LD_PRELOAD",
-        "--env=LD_LIBRARY_PATH=/app/lib",
-        "--env=PYTHONPATH=/app/lib/python3.13/site-packages"
+        "--filesystem=xdg-run/gvfsd"
     ],
     "modules": [
         {
@@ -34,23 +35,6 @@
             "type": "archive",
             "url": "https://prdownloads.sourceforge.net/tcl/tcl8.6.16-src.tar.gz",
             "sha256": "91cb8fa61771c63c262efb553059b7c7ad6757afa5857af6265e4b0bdc2a14a5"
-            }
-        ]
-        },
-        {
-        "name": "tk",
-        "subdir": "unix",
-        "post-install": [
-            "chmod u+w ${FLATPAK_DEST}/lib/libtk*.so"
-        ],
-        "cleanup": [
-            "/bin"
-        ],
-        "sources": [
-            {
-            "type": "archive",
-            "url": "https://prdownloads.sourceforge.net/tcl/tk8.6.16-src.tar.gz",
-            "sha256": "be9f94d3575d4b3099d84bc3c10de8994df2d7aa405208173c709cc404a7e5fe"
             }
         ]
         },
@@ -196,35 +180,6 @@
             ]
         },
         {
-            "name": "libxml2",
-            "buildsystem": "autotools",
-            "config-opts": [
-                "--disable-static",
-                "--disable-python",
-                "--disable-introspection",
-                "--with-history",
-                "--with-icu"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://download.gnome.org/sources/libxml2/2.11/libxml2-2.11.5.tar.xz",
-                    "sha256": "3727b078c360ec69fa869de14bd6f75d7ee8d36987b071e6928d4720a28df3a6"
-                }
-            ],
-            "cleanup": [
-                "/include",
-                "/lib/pkgconfig",
-                "/lib/cmake",
-                "/bin/xmlcatalog",
-                "/bin/xmllint",
-                "/share/aclocal",
-                "/share/doc",
-                "/share/gtk-doc",
-                "/share/man"
-            ]
-        },
-        {
             "name": "gtksourceview4",
             "buildsystem": "meson",
             "config-opts": [
@@ -234,7 +189,7 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://deb.debian.org/debian/pool/main/g/gtksourceview4/gtksourceview4_4.8.4.orig.tar.xz",
+                    "url": "https://download.gnome.org/sources/gtksourceview/4.8/gtksourceview-4.8.4.tar.xz",
                     "sha256": "7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d"
                 }
             ],
@@ -493,7 +448,7 @@
         },
         {
             "name": "libxisf",
-            "buildsystem": "cmake",
+            "buildsystem": "cmake-ninja",
             "config-opts": [
                 "-DUSE_BUNDLED_ZLIB=OFF"
             ],
@@ -501,7 +456,8 @@
                 {
                     "type": "git",
                     "url": "https://gitea.nouspiro.space/nou/libXISF.git",
-                    "branch": "master"
+                    "tag": "v0.2.13",
+                    "commit": "bfba76a39d2651719228841503b3a84cc5820362"
                 }
             ],
             "cleanup": [
@@ -544,11 +500,6 @@
             "config-opts": [
                 "--buildtype=release",
                 "-Dflatpak-id=${FLATPAK_ID}"
-            ],
-            "post-install": [
-                "sed -i s/text-x-seq/${FLATPAK_ID}.text-x-seq/ ${FLATPAK_DEST}/share/mime/packages/siril.xml",
-                "mv ${FLATPAK_DEST}/share/mime/packages/siril.xml ${FLATPAK_DEST}/share/mime/packages/${FLATPAK_ID}.xml",
-                "mv ${FLATPAK_DEST}/share/icons/hicolor/scalable/mimetypes/text-x-seq.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/mimetypes/${FLATPAK_ID}.text-x-seq.svg"
             ],
             "sources": [
                 {

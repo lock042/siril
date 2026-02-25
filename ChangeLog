@@ -1,3 +1,73 @@
+siril-1.5.0
+--/--/--
+
+**Improvements**
+* Introduced generic_image_worker to standardize image operations (!965)
+* Added splashscreen at startup (!975)
+* Added image masks (!981)
+
+siril-1.4.2
+--/--/--
+
+**Fixes**
+* Fixed crash in RGB composition when trying to align RGB while L is loaded but not checked
+* Fixed some data entry typos in Messier.csv (!991)
+* Fixed crash resulting from GTK code used in command functions (!992)
+
+**Improvements**
+* Trying to reproduce UI from GtkFileChooserButton and reimplemented drag and drop (!979)
+* Local cacheing of index ranges from remote SPCC catalogue, improvements to user-agent and http check (!977, !978, !980)
+* Enabled some python methods to work with sequence frames as well as single images (siril-scripts#86)
+* Added new Windows build environment, UCRT64, to expand the max limit of files in a sequence to 8192 (!987)
+* Improved robustness of python venv creation (!990)
+* Improved sirilpy.gpuhelper to provide better GPU detection and capabilities for use by the Helper classes (!988)
+* Added passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl (!995)
+
+siril-1.4.1
+01/05/26
+
+**Fixes**
+* Fixed build error when compiled without libgit2, libjpeg and libcurl (#1886, #1887, #1888, #1889)
+* Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present (!964)
+* Fixed too-strict condition and off-by-one error in sirilpy
+* Fixed sirilpy.FFit class data setter
+* Fixed remote catalogue to avoid dependency on Gaia Archive (!969)
+* Fixed hang in RGB composition (specific to flatpak) (!967)
+
+siril-1.4.0
+12/05/25
+
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
+
+**Fixes**
+* Fixed get_image_history(): now correctly updates history with operations done since loading
+* Fixed RGB composition: compressed FITS files (.fit.fz, .fits.fz) not appearing in file selector (#1878)
+* Fixed Gaia online catalogue status indicator (!963)
+* Enabled the use of the bad pixel map without having a master dark (#1876)
+* Fixed catsearch function for solar system objects (#1882)
+* Fixed cleaning python related environment variables within Siril app for Windows (#1880)
+* Fixed empty csv file exported by conesearch command when called from script (#1885)
+
+**Improvements**
+* SirilInterface.get_selection_star() now attempts accurate photometry when computing the PSF (!961)
+
+siril 1.4.0-RC2
+11/20/25
+
+**Fixes**
+* Fixed typo in platesolve tooltip
+* Fixed error in meson configuration
+* Fixed writing registration information for the reference image with global registration (#1849)
+* Fixed shared memory leak in set_seq_frame_pixeldata()
+* Fixed crash with intel macOS because of a bad pragma simd clause (#1856)
+* Updated log messages to avoid double newlines
+* Fixed rejection stacking for sequence in 16b (#1858)
+* Increase sirilpy timeouts
+* Fixed rejection stacking for sequence in 16b (#1858)
+* Attempted fix for memory allocation issue during stacking on Windows (#1858, #1866)
+* Fixed regression in pixelmath where FITS header keywords were not properly copied from the source image to the result (#1851)
+
 siril 1.4.0-RC1
 11/08/25
 

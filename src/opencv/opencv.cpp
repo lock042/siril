@@ -36,8 +36,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/masks.h"
 #include "core/siril_log.h"
 #include "core/settings.h"
+#include "gui/callbacks.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
@@ -1206,3 +1208,521 @@ int cvCalcH_from_corners(double *x_img, double *y_img, double *x_ref, double *y_
 	convert_MatH_to_H(std::move(H), Hom);
 	return 0;
 }
+
+/******************************************
+ * Mask functions that make use of OpenCV *
+ * ***************************************/
+
+// Apply Gaussian blur to the mask
+int mask_apply_gaussian_blur(fits *fit, float radius) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_apply_gaussian_blur: invalid mask\n");
+		return 1;
+	}
+	if (radius <= 0.f) {
+		siril_debug_print("mask_apply_gaussian_blur: radius must be positive\n");
+		return 1;
+	}
+
+	size_t rx = fit->rx, ry = fit->ry;
+	int cv_type;
+
+	// Determine OpenCV type based on bitpix
+	switch (fit->mask->bitpix) {
+		case 8:
+			cv_type = CV_8UC1;
+			break;
+		case 16:
+			cv_type = CV_16UC1;
+			break;
+		case 32:
+			cv_type = CV_32FC1;
+			break;
+		default:
+			siril_debug_print("mask_apply_gaussian_blur: unsupported bitpix %d\n", fit->mask->bitpix);
+			return 1;
+	}
+
+	// Create OpenCV Mat using existing data (no copy)
+	cv::Mat src(ry, rx, cv_type, fit->mask->data);
+	cv::Mat dst;
+
+	// Calculate kernel size from radius (should be odd)
+	// Using approximation: kernel_size = 2 * ceil(3 * sigma) + 1, where sigma = radius
+	int kernel_size = 2 * (int)ceilf(3.f * radius) + 1;
+
+	// Apply Gaussian blur
+	cv::GaussianBlur(src, dst, cv::Size(kernel_size, kernel_size), radius, radius);
+
+	// Allocate new data and copy result
+	size_t data_size = rx * ry * (fit->mask->bitpix / 8);
+	void *blur_data = malloc(data_size);
+	if (!blur_data) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	memcpy(blur_data, dst.data, data_size);
+
+	// Replace original data with blurred data
+	free(fit->mask->data);
+	fit->mask->data = blur_data;
+
+	return 0;
+}
+
+void set_poly_in_mask(UserPolygon *poly, fits *fit, gboolean state) {
+	if (!poly || !fit || !fit->mask || !fit->mask->data) return;
+
+	int width = fit->rx;
+	int height = fit->ry;
+	mask_t *m = fit->mask;
+
+	// Prepare OpenCV points array
+	std::vector<cv::Point> pts;
+	pts.reserve(poly->n_points);
+	for (int i = 0; i < poly->n_points; i++) {
+		pts.push_back(cv::Point(
+			round_to_int(poly->points[i].x),
+			round_to_int(fit->ry - 1 - poly->points[i].y)
+		));
+	}
+
+	// Define the fill value based on bitpix and state
+	cv::Scalar color;
+	if (state) {
+		if (m->bitpix == 8) color = cv::Scalar(255);
+		else if (m->bitpix == 16) color = cv::Scalar(65535);
+		else color = cv::Scalar(1.0);
+	} else {
+		color = cv::Scalar(0);
+	}
+
+	// Create a Mat using the existing raw data (no copy)
+	int type = (m->bitpix == 8) ? CV_8UC1 : (m->bitpix == 16 ? CV_16UC1 : CV_32FC1);
+	cv::Mat mat(height, width, type, m->data);
+
+	// Perform the polygon fill
+	std::vector<std::vector<cv::Point>> contours = { pts };
+	cv::fillPoly(mat, contours, color, cv::LINE_8);
+}
+
+int mask_feather(fits *fit, float feather_dist, feather_mode mode) {
+	if (!fit || !fit->mask || !fit->mask->data) {
+		siril_debug_print("mask_feather: invalid mask\n");
+		return 1;
+	}
+
+	if (feather_dist <= 0.f) {
+		siril_debug_print("mask_feather: feather_dist must be positive\n");
+		return 1;
+	}
+
+	size_t rx = fit->rx, ry = fit->ry;
+	size_t npixels = rx * ry;
+	uint8_t bitpix = fit->mask->bitpix;
+
+	// Convert mask to binary uint8 for OpenCV processing
+	cv::Mat binary(ry, rx, CV_8UC1);
+	uint8_t *binary_data = binary.data;
+
+	// Convert mask to binary uint8
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 127) ? 255 : 0;
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 32767) ? 255 : 0;
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				binary_data[i] = (m[i] > 0.5f) ? 255 : 0;
+			}
+			break;
+		}
+	}
+
+	// Determine which distance transforms we need
+	gboolean need_inside = (mode == FEATHER_INNER || mode == FEATHER_EDGE);
+	gboolean need_outside = (mode == FEATHER_OUTER || mode == FEATHER_EDGE);
+
+	// Adjust feather distance for EDGE mode
+	float effective_dist = (mode == FEATHER_EDGE) ? feather_dist / 2.0f : feather_dist;
+
+	// Distance maps
+	cv::Mat dist_inside, dist_outside;
+
+	// Compute inside distance transform if needed
+	if (need_inside) {
+		cv::distanceTransform(binary, dist_inside, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+	}
+
+	// Compute outside distance transform if needed
+	if (need_outside) {
+		// Invert binary mask for outside distance
+		cv::Mat binary_inv;
+		cv::bitwise_not(binary, binary_inv);
+		cv::distanceTransform(binary_inv, dist_outside, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+	}
+
+	// Apply feathering based on mode
+	switch (bitpix) {
+		case 8: {
+			uint8_t *m = (uint8_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = (uint8_t)roundf(value * 255.0f);
+			}
+			break;
+		}
+		case 16: {
+			uint16_t *m = (uint16_t*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = (uint16_t)roundf(value * 65535.0f);
+			}
+			break;
+		}
+		case 32: {
+			float *m = (float*)fit->mask->data;
+			for (size_t i = 0; i < npixels; i++) {
+				float value;
+				if (mode == FEATHER_INNER) {
+					if (dist_inside.at<float>(i) >= feather_dist) {
+						value = 1.0f;
+					} else {
+						value = dist_inside.at<float>(i) / feather_dist;
+					}
+				} else if (mode == FEATHER_OUTER) {
+					if (binary_data[i] > 127) {
+						value = 1.0f;
+					} else if (dist_outside.at<float>(i) >= feather_dist) {
+						value = 0.0f;
+					} else {
+						value = 1.0f - (dist_outside.at<float>(i) / feather_dist);
+					}
+				} else { // FEATHER_EDGE
+					if (binary_data[i] > 127) {
+						// Inside: feather inward
+						if (dist_inside.at<float>(i) >= effective_dist) {
+							value = 1.0f;
+						} else {
+							value = 0.5f + (dist_inside.at<float>(i) / feather_dist);
+						}
+					} else {
+						// Outside: feather outward
+						if (dist_outside.at<float>(i) >= effective_dist) {
+							value = 0.0f;
+						} else {
+							value = 0.5f - (dist_outside.at<float>(i) / feather_dist);
+						}
+					}
+				}
+				m[i] = value;
+			}
+			break;
+		}
+	}
+
+	const char *mode_str = (mode == FEATHER_INNER) ? "inward" :
+						(mode == FEATHER_OUTER) ? "outward" : "on edge";
+	siril_log_message(_("Mask feathered %s with distance %.1f pixels\n"), mode_str, feather_dist);
+	return 0;
+}
+
+/**
+ * mask_cleanup_morphological:
+ * @fit: The fits image containing the mask to clean up
+ * @close_size: Size of closing kernel to remove small holes (0 to skip)
+ * @open_size: Size of opening kernel to remove small noise (0 to skip)
+ * @denoise_threshold: Threshold for area-based denoising (0 to skip)
+ *
+ * Cleans up a noisy mask using morphological operations and connected component analysis.
+ * This is particularly useful for color masks where hue is poorly defined in dark areas.
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int mask_cleanup_morphological(fits *fit, int close_size, int open_size, int denoise_threshold) {
+	if (!fit || !fit->mask) {
+		siril_log_message(_("No mask to clean up\n"));
+		return -1;
+	}
+
+	int width = fit->rx;
+	int height = fit->ry;
+	int ndata = width * height;
+
+	// Convert mask to OpenCV Mat
+	cv::Mat mask_mat(height, width, CV_8UC1);
+	uint8_t *data8 = NULL;
+	uint16_t *data16 = NULL;
+	float *data32 = NULL;
+
+	switch (fit->mask->bitpix) {
+		case 8:  // 8-bit
+			data8 = (uint8_t *)fit->mask->data;
+			memcpy(mask_mat.data, data8, ndata);
+			break;
+		case 16:  // 16-bit
+			data16 = (uint16_t *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				mask_mat.data[i] = data16[i] >> 8;
+			}
+			break;
+		case 32:  // 32-bit float
+			data32 = (float *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				mask_mat.data[i] = (uint8_t)(data32[i] * 255.0f);
+			}
+			break;
+		default:
+			siril_log_message(_("Unknown mask bitpix: %d\n"), fit->mask->bitpix);
+			return -1;
+	}
+
+	cv::Mat processed = mask_mat.clone();
+
+	// Step 1: Morphological closing - fills small holes
+	if (close_size > 0) {
+		cv::Mat element_close = cv::getStructuringElement(
+			cv::MORPH_ELLIPSE,
+			cv::Size(2 * close_size + 1, 2 * close_size + 1),
+			cv::Point(close_size, close_size)
+		);
+		cv::morphologyEx(processed, processed, cv::MORPH_CLOSE, element_close);
+	}
+
+	// Step 2: Morphological opening - removes small noise
+	if (open_size > 0) {
+		cv::Mat element_open = cv::getStructuringElement(
+			cv::MORPH_ELLIPSE,
+			cv::Size(2 * open_size + 1, 2 * open_size + 1),
+			cv::Point(open_size, open_size)
+		);
+		cv::morphologyEx(processed, processed, cv::MORPH_OPEN, element_open);
+	}
+
+	// Step 3: Connected component analysis to remove small isolated regions
+	if (denoise_threshold > 0) {
+		cv::Mat labels, stats, centroids;
+		int num_labels = cv::connectedComponentsWithStats(
+			processed, labels, stats, centroids, 8, CV_32S
+		);
+
+		// Create output mask - start with all zeros
+		cv::Mat filtered = cv::Mat::zeros(height, width, CV_8UC1);
+
+		// Keep only components larger than threshold
+		// Label 0 is background, so start from 1
+		for (int label = 1; label < num_labels; label++) {
+			int area = stats.at<int>(label, cv::CC_STAT_AREA);
+
+			if (area >= denoise_threshold) {
+				// Keep this component
+				cv::Mat component_mask = (labels == label);
+				filtered.setTo(255, component_mask);
+			}
+		}
+
+		processed = filtered;
+	}
+
+	// Convert back to original mask format
+	switch (fit->mask->bitpix) {
+		case 8:  // 8-bit
+			data8 = (uint8_t *)fit->mask->data;
+			memcpy(data8, processed.data, ndata);
+			break;
+		case 16:  // 16-bit
+			data16 = (uint16_t *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				data16[i] = ((uint16_t)processed.data[i]) << 8;
+			}
+			break;
+		case 32:  // 32-bit float
+			data32 = (float *)fit->mask->data;
+			for (int i = 0; i < ndata; i++) {
+				data32[i] = processed.data[i] / 255.0f;
+			}
+			break;
+	}
+
+	return 0;
+}
+
+// Create a mask based on image gradient magnitude.
+// The gradient magnitude is normalized so the maximum gradient
+// maps to the maximum mask value (255/65535/1.0).
+// Return 0 on success.
+
+FAST_MATH_PUSH
+int mask_update_with_gradient(fits *fit) {
+    if (!fit) return 1;
+    if (!fit->mask || !fit->mask->data) {
+        siril_log_message(_("Error: no existing mask to update\n"));
+        return 1;
+    }
+
+    size_t rx = fit->rx, ry = fit->ry;
+    size_t npixels = rx * ry;
+    uint8_t bitpix = fit->mask->bitpix;
+
+    if (!(bitpix == 8 || bitpix == 16 || bitpix == 32)) return 1;
+
+    // Convert existing mask data to CV_32F for gradient computation
+    cv::Mat mask_img(ry, rx, CV_32F);
+    float *mask_data = mask_img.ptr<float>();
+
+    // Copy mask data (handling different bit depths)
+    switch (bitpix) {
+        case 8: {
+            uint8_t *src = (uint8_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = (float)src[i] / 255.0f;
+            }
+            break;
+        }
+        case 16: {
+            uint16_t *src = (uint16_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = (float)src[i] / 65535.0f;
+            }
+            break;
+        }
+        case 32: {
+            float *src = (float*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                mask_data[i] = src[i];
+            }
+            break;
+        }
+    }
+
+    // Compute gradients using Sobel operator
+    cv::Mat grad_x, grad_y;
+    cv::Sobel(mask_img, grad_x, CV_32F, 1, 0, 3);  // dx
+    cv::Sobel(mask_img, grad_y, CV_32F, 0, 1, 3);  // dy
+
+    // Compute gradient magnitude: sqrt(gx^2 + gy^2)
+    cv::Mat grad_mag(ry, rx, CV_32F);
+    float *gx_data = grad_x.ptr<float>();
+    float *gy_data = grad_y.ptr<float>();
+    float *mag_data = grad_mag.ptr<float>();
+
+    float max_mag = 0.0f;
+    for (size_t i = 0; i < npixels; i++) {
+        mag_data[i] = sqrtf(gx_data[i] * gx_data[i] + gy_data[i] * gy_data[i]);
+        if (mag_data[i] > max_mag) max_mag = mag_data[i];
+    }
+
+    // Avoid division by zero
+    if (max_mag == 0.0f) {
+        siril_log_message(_("Warning: gradient magnitude is zero everywhere\n"));
+        max_mag = 1.0f;
+    }
+
+    // Normalize and update the existing mask
+    switch (bitpix) {
+        case 8: {
+            uint8_t *m = (uint8_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                float normalized = mag_data[i] / max_mag;
+                m[i] = (uint8_t)roundf(normalized * 255.0f);
+            }
+            break;
+        }
+        case 16: {
+            uint16_t *m = (uint16_t*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                float normalized = mag_data[i] / max_mag;
+                m[i] = (uint16_t)roundf(normalized * 65535.0f);
+            }
+            break;
+        }
+        case 32: {
+            float *m = (float*)fit->mask->data;
+            for (size_t i = 0; i < npixels; i++) {
+                m[i] = mag_data[i] / max_mag;
+            }
+            break;
+        }
+    }
+
+    set_mask_active(fit, TRUE);
+    show_or_hide_mask_tab();
+    siril_log_message(_("Mask updated with its gradient (max gradient: %.3f)\n"), max_mag);
+
+    return 0;
+}
+FAST_MATH_POP

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -221,6 +221,7 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 		notify_update((gpointer) param);
 	}
 	undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
+	siril_log_color_message(_("Wavelets Transformation\n"), "green");
 
 	siril_close_dialog("wavelets_dialog");
 }
@@ -298,6 +299,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
 	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
 	reset_scale_w();
+	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), Nbr_Plan);
 	set_cursor_waiting(FALSE);
 	return;
 }

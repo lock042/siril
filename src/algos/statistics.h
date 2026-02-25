@@ -2,6 +2,7 @@
 #define _SIRIL_STATS_H
 
 struct stat_data {
+	destructor destroy_fn;
 	fits *fit;
 	int option;
 	rectangle selection;
@@ -10,6 +11,10 @@ struct stat_data {
 	gchar *csv_name;
 	const gchar *seqEntry;	// not used for stats
 	gboolean cfa;
+	imstats *stats[3]; // for stat_cmd_image_hook
+	gboolean has_selection; // for stat_cmd_image_hook
+	int nplane; // for stat_cmd_image_hook
+
 };
 
 #define NULL_STATS -999999.0
@@ -30,6 +35,9 @@ struct stat_data {
 #define STATS_LITENORM	(STATS_BASIC | STATS_MAD) // for faster normalization
 
 #include "core/siril.h"
+
+void free_stat_data(void *p);
+struct stat_data *alloc_stat_data();
 
 imstats* statistics(sequence *seq, int image_index, fits *fit, int layer,
 		rectangle *selection, int option, threading_type threads);

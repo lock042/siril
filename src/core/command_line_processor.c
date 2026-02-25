@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -205,6 +205,7 @@ int execute_command(int wordnb) {
 	if (gui.roi.active)
 		populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
+		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {
 			notify_gfit_modified();
 		} else {
@@ -214,7 +215,7 @@ int execute_command(int wordnb) {
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}
-	return (int) retval;
+	return (int) retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 }
 
 static void update_log_icon(gboolean is_running) {
@@ -633,7 +634,6 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 				remove_child_from_children((GPid) -2); // remove processing thread from list
 			}
 		}
-
 		free(myline);
 	}
 

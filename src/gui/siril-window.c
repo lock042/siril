@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -112,7 +112,21 @@ static GActionEntry any_processing_entries[] = {
 	{ "cosmetic-processing", cosmetic_activate },
 	{ "background-extr-processing", background_extr_activate },
 	{ "icc-tool", icc_activate },
-	{ "clear_roi", clear_roi }
+	{ "clear_roi", clear_roi },
+	{ "mask_from_color", mask_from_color_activate },
+	{ "mask_from_image", mask_from_image_activate },
+	{ "mask_from_stars", mask_from_stars_activate },
+	{ "mask_from_file", mask_from_file_activate },
+	{ "mask_from_gradient", mask_from_gradient_activate },
+	{ "mask_add_from_poly", mask_add_from_poly_activate },
+	{ "mask_clear_from_poly", mask_clear_from_poly_activate },
+	{ "clear_mask", clear_mask_activate },
+	{ "autostretch_mask", autostretch_mask_activate },
+	{ "blur_mask", blur_mask_activate },
+	{ "feather_mask", feather_mask_activate },
+	{ "invert_mask", invert_mask_activate },
+	{ "scale_mask", mask_scale_activate },
+	{ "threshold_mask", threshold_mask_activate }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -257,6 +271,10 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"background-extr-processing",
 		"icc-tool",
 		"clear_roi",
+		"mask_from_image",
+		"mask_from_stars",
+		"mask_from_file",
+		"clear_mask",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);
