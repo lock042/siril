@@ -748,6 +748,13 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 	}
 }
 
+void on_autofreeze_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	gui.freeze_autostretch = gtk_check_menu_item_get_active(menuitem);
+	if (gui.rendering_mode == STF_DISPLAY) {
+		redraw(REMAP_ALL);
+	}
+}
+
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	siril_debug_print("bitdepth: %d\n", bitdepth);

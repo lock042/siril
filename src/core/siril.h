@@ -894,6 +894,9 @@ struct guiinf {
 	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
 	GdkRGBA poly_ink; // Color and alpha for drawing polygons
 	gboolean poly_fill; // Whether to fill drawn polygons
+
+	gboolean freeze_autostretch; // freeze the autostretch parameters. Useful for loading
+								// a starless result andseeing it with the same stretch as the original, etc.
 };
 
 struct common_icc {

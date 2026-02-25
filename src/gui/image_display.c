@@ -339,7 +339,7 @@ static void remap(int vport) {
 		histo = com.layers_hist[vport];
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
-		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
+		if (gui.rendering_mode == STF_DISPLAY && !stf_computed && !gui.freeze_autostretch) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(gfit, stf);
 			else find_linked_midtones_balance_default(gfit, stf);

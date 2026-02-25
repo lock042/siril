@@ -633,6 +633,16 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
     <child>
+      <object class="GtkCheckMenuItem" id="autofreeze_item">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Freezes the autostretch parameters at their current values</property>
+        <property name="margin-start">18</property>
+        <property name="label" translatable="yes">Freeze autostretch</property>
+        <signal name="toggled" handler="on_autofreeze_item_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkRadioMenuItem" id="histo_item">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
