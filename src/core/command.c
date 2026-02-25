@@ -700,7 +700,6 @@ int process_denoise(int nb) {
 			if (end == arg) {
 				siril_log_message(_("Error parsing SOS iterations.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
@@ -14333,33 +14332,14 @@ int process_pyscript(int nb) {
 }
 
 int process_eqcrop(int nb) {
-        gboolean is_sequence = (word[0][0] == 's');
-        int arg_idx = (is_sequence) ? 2 : 1;
         int image_size;
-        if (is_sequence) {
-                sequence *seq = load_sequence(word[1], NULL);
-                if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (!has_wcs(gfit)) {
+		siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	image_size = max(gfit->rx, gfit->ry);
 
-                fits fit = { 0 };
-                int refimage = sequence_find_refimage(seq);
-                if (seq_read_frame_metadata(seq, refimage, &fit))
-                        return CMD_GENERIC_ERROR;
-                if (!has_wcs(&fit)) {
-                        siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
-                        clearfits(&fit);
-                        return CMD_FOR_PLATE_SOLVED;
-                }
-                image_size = max(fit.rx, fit.ry);
-                clearfits(&fit);
-                arg_idx++;
-        } else {
-                if (!has_wcs(gfit)) {
-                        siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
-                        return CMD_FOR_PLATE_SOLVED;
-                }
-                image_size = max(gfit->rx, gfit->ry);
-        }
-
+	int arg_idx = 1;
         SirilWorldCS *coords1 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
         arg_idx += 2;
         SirilWorldCS *coords2 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
@@ -14405,11 +14385,6 @@ int process_eqcrop(int nb) {
                                 return CMD_ARG_ERROR;
                         }
                 }
-                /*else if (is_sequence) {
-                        if (!g_strcmp0(word[i], "-sliding")) {
-                                sliding = TRUE;
-                        }
-                }*/
                 else {
                         siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
                         siril_world_cs_unref(coords1);
@@ -14427,23 +14402,18 @@ int process_eqcrop(int nb) {
         if (margin_asec == DBL_MAX && margin_px == INT_MAX)
                 margin_px = 10;         // set a default margin value, 10 pixels
 
-        if (!is_sequence) {
-                double ra1 = siril_world_cs_get_alpha(coords1), dec1 = siril_world_cs_get_delta(coords1), ra2 = siril_world_cs_get_alpha(coords2), dec2 = siril_world_cs_get_delta(coords2);
-                siril_world_cs_unref(coords1);
-                siril_world_cs_unref(coords2);
+	double ra1 = siril_world_cs_get_alpha(coords1), dec1 = siril_world_cs_get_delta(coords1), ra2 = siril_world_cs_get_alpha(coords2), dec2 = siril_world_cs_get_delta(coords2);
+	siril_world_cs_unref(coords1);
+	siril_world_cs_unref(coords2);
 
-                int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, gfit, NULL, NULL);
-                if (retval)
-                        return retval;
+	int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, gfit);
+	if (retval)
+		return retval;
 
-                notify_gfit_modified();
-                siril_add_idle(crop_command_idle, NULL);
-        } else {
-                siril_log_message("NOT YET IMPLEMENTED\n");
-                return CMD_GENERIC_ERROR;
-        }
+	notify_gfit_modified();
+	gui_function(crop_gui_updates, NULL);
 
-        return CMD_OK;
+	return CMD_OK;
 }
 
 // Process functions refactored

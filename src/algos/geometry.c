@@ -1196,7 +1196,7 @@ int crop(fits *fit, rectangle *bounds) {
 			bounds->y = round_down_to_multiple(bounds->y, 6);
 			bounds->w = round_down_to_multiple(bounds->w, 6);
 			bounds->h = round_down_to_multiple(bounds->h, 6);
-			if(bounds->w < 2)
+			if (bounds->w < 2)
 				bounds->w = 2;
 			if (bounds->h < 2)
 				bounds->h = 2;
@@ -1206,7 +1206,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
-	gboolean wcs = has_wcs(fit);
+	const gboolean wcs = has_wcs(fit);
 	if (wcs)
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 
@@ -1274,7 +1274,7 @@ int crop_finalize_hook(struct generic_seq_args *args) {
 	return retval;
 }
 
-int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit, int *newx, int *newy) {
+int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit) {
         int x1, y1, x2, y2, retval;
         double dx1, dy1, dx2, dy2;
         siril_debug_print("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
@@ -1344,10 +1344,6 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
 
         siril_log_message(_("Cropping image to pixel coordinates (%d, %d), size %d x %d\n"),
                         area.x, area.y, area.w, area.h);
-        if (newx)
-                *newx = area.x;
-        if (newy)
-                *newy = area.y;
 
         if (crop(fit, &area)) {
                 siril_log_color_message(_("Cropping failed\n"), "red");
@@ -1621,7 +1617,7 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	return fits_binning(fit, params->factor, params->mean);
 }
 
-static gboolean crop_gui_updates(gpointer user) {
+gboolean crop_gui_updates(gpointer user) {
 	clear_stars_list(TRUE);
 	delete_selected_area();
 	reset_display_offset();
