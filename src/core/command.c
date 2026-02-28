@@ -6380,7 +6380,7 @@ int process_light_curve(int nb) {
 				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		float fwhm = measure_image_FWHM(&reffit, layer);
+		float fwhm = measure_image_FWHM(&reffit, layer, NULL);
 		if (fwhm <= 0.0f) {
 			siril_log_color_message(_("Could not find stars in the reference image, aborting.\n"), "red");
 			if (seq != &com.seq)
@@ -14414,6 +14414,72 @@ int process_eqcrop(int nb) {
 	gui_function(crop_gui_updates, NULL);
 
 	return CMD_OK;
+}
+
+int process_catmag_mono(int nb) {
+	// catmag [reftemp] [dtemp]
+	/* find stars in image to set aperture photometry parameters and get the number of stars, gets
+	 * NOMAD stars for the plate solved image, keep only those with B-V within [refbv-dbv, refbv+dbf]
+	 * if provided and those bright enough to keep the same number as detected stars in the image,
+	 * find the best fit for the magnitude offset for all measured and valid stars.
+	 * Sun has a B-V of 0.65
+	 */
+	if (!has_wcs(gfit)) {
+		siril_log_color_message(_("Image is not plate solved!\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	struct catmag_data *args = calloc(1, sizeof(struct catmag_data));
+	gboolean limit_temperature = FALSE;
+	float refT = 5555.0f, dT = 500.0f;
+	if (nb > 1) { refT = g_ascii_strtod(word[1], NULL); limit_temperature = TRUE; }
+	if (nb > 2) dT = g_ascii_strtod(word[2], NULL);
+
+	if (limit_temperature && (refT < 2000.0f || refT > 10000.0f || dT < 10.0f || dT > 3000.0f)) {
+		siril_log_color_message(_("Reference temperature is out of usual range [2000, 10000]K\n"), "red");
+		free(args);
+		return CMD_ARG_ERROR;
+	}
+
+	if (local_gaia_available()) {
+		args->refT = refT;
+		args->dT = dT;
+		args->limit_temperature = limit_temperature;
+		args->catalogue = CAT_LOCAL_GAIA_ASTRO;
+	}
+	else if (local_kstars_available()) {
+		gboolean limit_BV = FALSE;
+		float refBV = 0.0f, dBV = 0.5f;
+		if (limit_temperature) {
+			refBV = T_to_BV(refT);
+			limit_BV = TRUE;
+			dBV = (T_to_BV(refT - dT) - T_to_BV(refT + dT)) / 2.0;
+			siril_log_message(_("Converted provided temperatures to reference B-V of %.2f and dB-V of %.3f\n"), refBV, dBV);
+		}
+
+		if (limit_BV && (refBV < -0.5f || refBV > 1.5f || dBV < 0.001f || dBV > 2.0f)) {
+			siril_log_color_message(_("Reference B-V index is out of usual range [-0.5, 1.5]\n"), "red");
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+		args->refBV = refBV;
+		args->dBV = dBV;
+		args->limit_BV = limit_BV;
+		args->catalogue = CAT_LOCAL_KSTARS;
+	}
+	else {
+		if (!is_online()) {
+			siril_log_color_message(_("local catalogues not found and offline mode is enabled, cannot proceed\n"), "red");
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
+		args->refT = refT;
+		args->dT = dT;
+		args->limit_temperature = limit_temperature;
+		args->catalogue = CAT_GAIADR3;
+	}
+	args->fit = gfit;
+	start_in_new_thread(catmag_mono_worker, args);
+	return 0;
 }
 
 // Process functions refactored
