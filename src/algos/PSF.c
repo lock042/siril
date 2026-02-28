@@ -1013,12 +1013,12 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	else {
 		g_snprintf(buffer2, 50, _(", %s channel"), chan);
 	}
-	msg = g_strdup_printf(_("PSF %s Result (%s%s):\n\n"
-				"Centroid Coordinates:\n\t\t%s\n\n"
+	msg = g_strdup_printf(_("PSF %s result (%s%s):\n\n"
+				"Centroid coordinates:\n\t\t%s\n\n"
 				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
-				"Background Value:\n\t\tB=%.6f\n\n"
-				"Maximal Intensity:\n\t\tA=%.6f\n\n"
+				"Background value:\n\t\tB=%.6f\n\n"
+				"Maximal intensity:\n\t\tA=%.6f\n\n"
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),

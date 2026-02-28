@@ -266,6 +266,8 @@ siril_common_SOURCES = \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
+	gui/catmag.c \
+	gui/catmag.h \
 	gui/compstars.c \
 	gui/compstars.h \
 	gui/conversion.c \

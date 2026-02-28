@@ -54,6 +54,7 @@ void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *
 void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
 
 double BV_to_T(double BV);
+double T_to_BV(double T);
 
 float x1931(float w);
 float y1931(float w);
