@@ -71,7 +71,8 @@ static GActionEntry image_entries[] = {
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state },
 	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate }
+	{ "compstars", compstars_activate },
+	{ "catmag", catmag_activate }
 };
 
 static GActionEntry selection_entries[] = {
@@ -207,6 +208,7 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 		"annotate-object",
 		"wcs-grid",
 		"compstars",
+		"catmag",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);

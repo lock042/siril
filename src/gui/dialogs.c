@@ -39,6 +39,7 @@
 #include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
+#include "catmag.h"
 
 static gboolean dialog_is_opened = FALSE;
 static gboolean processing_dialog_is_opened = FALSE;
@@ -56,6 +57,7 @@ static const SirilDialogEntry entries[] =
 	{"ccm_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"catmag", get_catmag_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

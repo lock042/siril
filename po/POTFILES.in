@@ -137,6 +137,7 @@ src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c
 src/gui/colors.c
+src/gui/catmag.c
 src/gui/compstars.c
 src/gui/conversion.c
 src/gui/curves.c
