@@ -50,6 +50,7 @@ static command commands[] = {
 	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"eqcrop", 4, "eqcrop ra1 dec1 ra2 dec2 [ { -marginpx= | -marginasec= } ] [-minsize=]", process_eqcrop, STR_EQCROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"epf", 0, "epf [-guided] [-d=] [-si=] [-ss=] [-mod=] [-guideimage=][-mask]", process_epf, STR_EPF, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE, REQ_CMD_NONE},
 	{"extract", 1, "extract NbPlans", process_extract, STR_EXTRACT, TRUE, REQ_CMD_SINGLE_IMAGE},

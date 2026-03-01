@@ -700,7 +700,6 @@ int process_denoise(int nb) {
 			if (end == arg) {
 				siril_log_message(_("Error parsing SOS iterations.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
@@ -14332,6 +14331,91 @@ int process_pyscript(int nb) {
 	}
 }
 
+int process_eqcrop(int nb) {
+        int image_size;
+	if (!has_wcs(gfit)) {
+		siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	image_size = max(gfit->rx, gfit->ry);
+
+	int arg_idx = 1;
+        SirilWorldCS *coords1 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        SirilWorldCS *coords2 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        if (!coords1 || !coords2) {
+                siril_log_message(_("Could not parse the coordinates\n"));
+                return CMD_ARG_ERROR;
+        }
+
+        //TODO: sequence operation
+        //gboolean sliding = FALSE;
+        int minsize = 0, margin_px = INT_MAX;
+        double margin_asec = DBL_MAX;
+        for (int i = arg_idx; i < nb; i++) {
+                gchar *end;
+                if (g_str_has_prefix(word[i], "-marginpx=")) {
+                        const char *arg = word[i] + 10;
+                        margin_px = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || margin_px >= image_size) {
+                                siril_log_color_message("margin in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-marginasec=")) {
+                        const char *arg = word[i] + 12;
+                        margin_asec = g_ascii_strtod(arg, &end);
+                        if (end == arg || margin_asec >= 1000000.0) {
+                                siril_log_color_message("margin in arcsec is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-minsize=")) {
+                        const char *arg = word[i] + 9;
+                        minsize = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || minsize >= image_size) {
+                                siril_log_color_message("minimal size in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else {
+                        siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+                        siril_world_cs_unref(coords1);
+                        siril_world_cs_unref(coords2);
+                        return CMD_ARG_ERROR;
+                }
+        }
+
+        if (margin_asec != DBL_MAX && margin_px != INT_MAX) {
+                siril_log_color_message(_("Arguments for margins in arcsec or pixels are mutually exclusive\n"), "red");
+                siril_world_cs_unref(coords1);
+                siril_world_cs_unref(coords2);
+                return CMD_ARG_ERROR;
+        }
+        if (margin_asec == DBL_MAX && margin_px == INT_MAX)
+                margin_px = 10;         // set a default margin value, 10 pixels
+
+	double ra1 = siril_world_cs_get_alpha(coords1), dec1 = siril_world_cs_get_delta(coords1), ra2 = siril_world_cs_get_alpha(coords2), dec2 = siril_world_cs_get_delta(coords2);
+	siril_world_cs_unref(coords1);
+	siril_world_cs_unref(coords2);
+
+	int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, gfit);
+	if (retval)
+		return retval;
+
+	notify_gfit_modified();
+	gui_function(crop_gui_updates, NULL);
+
+	return CMD_OK;
+}
+
 int process_catmag_mono(int nb) {
 	// catmag [reftemp] [dtemp]
 	/* find stars in image to set aperture photometry parameters and get the number of stars, gets
@@ -14398,6 +14482,7 @@ int process_catmag_mono(int nb) {
 	return 0;
 }
 
+// Process functions refactored
 int process_mask_from_stars(int nb) {
 	int argidx = 1;
 	float r = 0.f, feather = 0.f;
