@@ -12,14 +12,25 @@ typedef enum {
 
 /* scnr data from GUI */
 struct scnr_data {
-	fits *fit;
+	destructor destroy_fn;  // Must be first member for generic_image_worker
 	scnr_type type;
 	double amount;
 	gboolean preserve;
-	gboolean previewing; // Tells the threaded fn whether previewing or for real
+	gboolean verbose;
+	gboolean applying;  // TRUE for final apply, FALSE for preview
 };
 
-gpointer scnr(gpointer p);
+/* Allocator and destructor functions */
+struct scnr_data *new_scnr_data();
+void free_scnr_data(void *args);
+
+/* Image processing hooks for generic_image_worker */
+int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar *scnr_log_hook(gpointer p, log_hook_detail detail);
+
+/* Idle functions */
+gboolean scnr_preview_idle(gpointer p);
+gboolean scnr_apply_idle(gpointer p);
 
 const char *scnr_type_to_string(scnr_type t);
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -663,7 +663,11 @@ gpointer apply_pixel_math_operation(gpointer p) {
 		args->expression2 = parse_image_functions(args, 2, RLAYER);
 		args->expression3 = parse_image_functions(args, 3, RLAYER);
 	}
-
+	siril_log_message(_("Pixelmath expression 1: %s\n"), args->expression1);
+	if (args->expression2 && strncmp(args->expression1, args->expression2, strlen(args->expression1)))
+		siril_log_message(_("Pixelmath expression 2: %s\n"), args->expression2);
+	if (args->expression3 && strncmp(args->expression1, args->expression3, strlen(args->expression1)))
+		siril_log_message(_("Pixelmath expression 3: %s\n"), args->expression3);
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
 #endif

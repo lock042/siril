@@ -34,6 +34,9 @@ typedef struct {
 	double dist;
 } compstar_dist;
 
+struct compstars_arg* init_compstars_arg();
+void free_compstars_arg(gpointer p);
+
 gpointer compstars_worker(gpointer arg);
 
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,

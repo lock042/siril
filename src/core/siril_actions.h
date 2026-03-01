@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -128,6 +128,7 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -140,6 +141,21 @@ void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_color_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_image_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_stars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void blur_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void binarize_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void feather_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_add_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_clear_from_poly_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 gboolean chain_channels_idle_callback(gpointer user_data);
 

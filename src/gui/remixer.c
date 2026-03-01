@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -85,10 +85,10 @@ static gboolean remix_log_scale = FALSE;
 // to support 2 sets of histograms        //
 ////////////////////////////////////////////
 
-static gsl_histogram *remix_histlayers_left[MAXVPORT];
-static gsl_histogram *remix_histlayers_right[MAXVPORT];
-static gsl_histogram *remix_histlayers_backup_left[MAXVPORT];
-static gsl_histogram *remix_histlayers_backup_right[MAXVPORT];
+static gsl_histogram *remix_histlayers_left[RGB_VPORT];
+static gsl_histogram *remix_histlayers_right[RGB_VPORT];
+static gsl_histogram *remix_histlayers_backup_left[RGB_VPORT];
+static gsl_histogram *remix_histlayers_backup_right[RGB_VPORT];
 
 static double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
 static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
@@ -218,7 +218,7 @@ gboolean redraw_remix_histo_left(GtkWidget *widget, cairo_t *cr, gpointer data) 
 		return FALSE;
 	erase_histo_display(cr, width, height);
 	draw_grid(cr, width, height);
-		for (i = 0; i < MAXVPORT; i++) {
+		for (i = 0; i < RGB_VPORT; i++) {
 		if (remix_histlayers_left[i]) {
 			display_remix_histo(remix_histlayers_backup_left[i], cr, i, width, height, 1.0, 1.0, TRUE);
 			display_remix_histo(remix_histlayers_left[i], cr, i, width, height, 1.0, 1.0, FALSE);
@@ -239,7 +239,7 @@ gboolean redraw_remix_histo_right(GtkWidget *widget, cairo_t *cr, gpointer data)
 	erase_histo_display(cr, width, height);
 	draw_grid(cr, width, height);
 
-	for (i = 0; i < MAXVPORT; i++) {
+	for (i = 0; i < RGB_VPORT; i++) {
 		if (remix_histlayers_right[i]) {
 			display_remix_histo(remix_histlayers_backup_right[i], cr, i, width, height, 1.0, 1.0, TRUE);
 			display_remix_histo(remix_histlayers_right[i], cr, i, width, height, 1.0, 1.0, FALSE);
@@ -289,7 +289,7 @@ static void update_remix_histo_right() {
 }
 
 static void set_remix_histogram(gsl_histogram *histo, int layer, int side) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
+	g_assert(layer >= 0 && layer < RGB_VPORT);
 	if (side == 0) {
 		if (remix_histlayers_left[layer])
 			gsl_histogram_free(remix_histlayers_left[layer]);
@@ -710,6 +710,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
 			gfit->keywords.stackcnt = fit_left.keywords.stackcnt;
 			gfit->keywords.livetime = fit_left.keywords.livetime;
+			// Update the header
+			update_fits_header(gfit);
 			initialise_image();
 			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
 			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));

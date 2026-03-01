@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -157,6 +157,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
 	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
@@ -171,40 +172,74 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	sgui_linear = gtk_toggle_button_get_active(toggle_starnet_stretch);
 	sgui_starnet_stride = (int) gtk_spin_button_get_value(spin_starnet_stride);
 	if (sgui_starnet_stride % 2)
-		sgui_starnet_stride ++;
+		sgui_starnet_stride++;
 	if (sgui_starnet_stride < 2)
 		sgui_starnet_stride = 2;
 	if (sgui_starnet_stride > 256)
 		sgui_starnet_stride = 256;
-	starnet_data *starnet_args;
-	starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->starnet_fit = gfit;
-	starnet_args->imgnumber = -1;
-	starnet_args->customstride = sgui_customstride;
-	starnet_args->upscale = sgui_upscale;
-	starnet_args->linear = sgui_linear;
-	starnet_args->starmask = sgui_starmask;
-	starnet_args->stride = g_strdup_printf("%d", sgui_starnet_stride);
+
+	// Allocate parameters using the allocator
+	starnet_data *starnet_params = new_starnet_args();
+	if (!starnet_params) {
+		PRINT_ALLOC_ERR;
+		set_cursor_waiting(FALSE);
+		return;
+	}
+
+	starnet_params->starnet_fit = gfit;
+	starnet_params->imgnumber = -1;
+	starnet_params->customstride = sgui_customstride;
+	starnet_params->upscale = sgui_upscale;
+	starnet_params->linear = sgui_linear;
+	starnet_params->starmask = sgui_starmask;
+	starnet_params->stride = g_strdup_printf("%d", sgui_starnet_stride);
+	starnet_params->follow_on = sgui_follow_on;
+
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	starnet_args->follow_on = sgui_follow_on;
+
 	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
 		if (single_image_is_loaded()) {
-			if (!start_in_new_thread(do_starnet, starnet_args)) {
-				free_starnet_args(starnet_args);
+			// Save backup for undo before processing
+			copy_gfit_to_backup();
+
+			// Allocate generic_img_args
+			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+			if (!args) {
+				PRINT_ALLOC_ERR;
+				free_starnet_args(starnet_params);
+				set_cursor_waiting(FALSE);
+				return;
+			}
+
+			// Set up generic_img_args
+			args->fit = gfit;
+			args->mem_ratio = 3.0f;
+			args->image_hook = starnet_single_image_hook;
+			args->idle_function = starnet_single_image_idle;
+			args->description = _("StarNet");
+			args->verbose = TRUE;
+			args->user = starnet_params;
+			args->max_threads = com.max_thread;
+			args->for_preview = FALSE;
+			args->for_roi = FALSE;
+
+			if (!start_in_new_thread(generic_image_worker, args)) {
+				free_generic_img_args(args);
 			}
 			siril_close_dialog("starnet_dialog");
 		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
-			free_starnet_args(starnet_args);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"),
+				_("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
+			free_starnet_args(starnet_params);
 		}
 		set_cursor_waiting(FALSE);
 	} else {
 		if (sequence_is_loaded()) {
-			starnet_args->follow_on = FALSE;
+			starnet_params->follow_on = FALSE;
 			struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
-			multi_args->user_data = (gpointer) starnet_args;
-			starnet_args->multi_args = multi_args;
+			multi_args->user_data = (gpointer) starnet_params;
+			starnet_params->multi_args = multi_args;
 			multi_args->seq = &com.seq;
 			multi_args->n = sgui_starmask ? 2 : 1;
 			multi_args->new_seq_index = gtk_combo_box_get_active(combo_starnet_next_sequence);
@@ -217,8 +252,9 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			apply_starnet_to_sequence(multi_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
-			free_starnet_args(starnet_args);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"),
+				_("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
+			free_starnet_args(starnet_params);
 		}
 		set_cursor_waiting(FALSE);
 	}

@@ -163,9 +163,58 @@ struct _multi_split {
 	fits **images;
 };
 
+struct generic_img_args {
+	fits *fit; // input image to be processed
+	float mem_ratio; 	// peak memory requirement as multiple of image size
+	/** function called to process the image
+	 *  Returns 0 on success, non-zero on error */
+	int (*image_hook)(struct generic_img_args *, fits *, int);
+	gchar* (*log_hook)(gpointer, log_hook_detail); // log hook
+	GSourceFunc idle_function; // idle function. Should be NULL when calling from command.c
+	int retval; // retval, useful for the idle_function, set by the worker
+	const char *description; // terse string description for progress messages
+	gboolean verbose; // enable verbose logging
+	/* Command requires gfit update: this should only be set in command.c
+	 * (when called from the GUI gfit updates should be done in an idle) */
+	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
+	gboolean command_updates_gfit; // This command needs to updates gfit
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention MUST have a destructor as its
+	 first member, which is called in free_generic_img_args()
+	 */
+	gpointer user;
+	int max_threads; // number of threads to use for the operation
+	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
+	gboolean for_roi; // if TRUE, operation is being applied to ROI only
+	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
+	gboolean mask_aware; // Whether the operation is mask-aware or not
+};
+
+struct generic_mask_args {
+	fits *fit; // input image to be processed
+	float mem_ratio; 	// peak memory requirement as multiple of image size
+	/** function called to process the image
+	 *  Returns 0 on success, non-zero on error */
+	int (*mask_hook)(struct generic_mask_args *);
+	gchar* (*log_hook)(gpointer, log_hook_detail); // log hook
+	GSourceFunc idle_function; // idle function. Should be NULL when calling from command.c
+	int retval; // retval, useful for the idle_function, set by the worker
+	const char *description; // terse string description for progress messages
+	gboolean verbose; // enable verbose logging
+	/* Command requires gfit update: this should only be set in command.c
+	 * (when called from the GUI gfit updates should be done in an idle) */
+	gboolean command; // Marks this as a command (ie run from command.c) as opposed to a GUI operation
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention MUST have a destructor as its
+	 first member, which is called in free_generic_img_args() */
+	gpointer user;
+	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
+	int max_threads; // number of threads to use for the operation
+};
+
+void free_generic_img_args(struct generic_img_args *args);
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
-
 /* default functions for some hooks */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 int seq_prepare_hook(struct generic_seq_args *args);
@@ -230,6 +279,13 @@ void remove_child_from_children(GPid pid);
 gboolean add_child(GPid child_pid, int program, const gchar *name);
 void child_mutex_lock();
 void child_mutex_unlock();
+
+/* Single image processing worker and hooks */
+gboolean end_generic_image(gpointer p);
+gpointer generic_image_worker(gpointer p);
+
+/* Mask worker */
+gpointer generic_mask_worker(gpointer p);
 
 #ifdef __cplusplus
 }

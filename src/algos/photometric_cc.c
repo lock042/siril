@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -142,13 +142,14 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset) {
 	/* make a selection around the star, coordinates are in display reference frame */
 	double fx = star->x, fy = star->y;
 	double dx, dy;
 	siril_to_display(fx, fy, &dx, &dy, fit->ry);
 
-	double outer = com.pref.phot_set.outer;
+	struct phot_config *phot_set = pset != NULL ? pset : &com.pref.phot_set;
+	double outer = phot_set->outer;
 	area->x = round_to_int(dx - outer);
 	area->y = round_to_int(dy - outer);
 	area->w = area->h = (int)ceil(outer * 2.0);
@@ -331,7 +332,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		g_atomic_int_inc(&progress);
 
 		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -649,7 +650,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
-		if (make_selection_around_a_star(&stars[i], &area, fit)) {
+		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
 			siril_debug_print("star %d is outside image or too close to border\n", i);
 			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
 			continue;
@@ -911,7 +912,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(args->fit, -1);
+	args->fwhm = measure_image_FWHM(args->fit, -1, NULL);
 	if (args->fwhm <= 0.0f) {
 		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
 		siril_add_idle(end_generic, NULL);
@@ -947,6 +948,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 				mag = min(mag, 18.0);
 				break;
 			case CAT_GAIADR3_DIRECT:
+			case CAT_REMOTE_GAIA_XPSAMP:
 				mag = min(mag, 17.6);	// most Gaia XP_SAMPLED spectra are for mag < 17.6
 				break;
 			case CAT_APASS:
@@ -968,18 +970,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	siril_cat->phot = !(siril_cat->cat_index == CAT_GAIADR3_DIRECT);
 
 	/* Fetching the catalog*/
-	if (args->spcc && siril_cat->cat_index == CAT_GAIADR3_DIRECT) {
-		retval = siril_gaiadr3_datalink_query(siril_cat, XP_SAMPLED, &args->datalink_path, 5000);
-		if (args->datalink_path == NULL) {
-			retval = 1;
-		} else {
-			for (int i = 0 ; i < siril_cat->nbitems ; i++) {
-				// Read the xp_sampled data from the RAW-structured FITS returned from Gaia datalink
-				siril_cat->cat_items[i].xp_sampled = malloc(XPSAMPLED_LEN * sizeof(double));
-				get_xpsampled(siril_cat->cat_items[i].xp_sampled, args->datalink_path, i);
-			}
-		}
-	} else if (siril_catalog_conesearch(siril_cat) <= 0) {
+	if (siril_catalog_conesearch(siril_cat) <= 0) {
 		retval = 1;
 	}
 	// At this point siril_cat contains an array of cat_items (with with xp_sampled populated if doing SPCC)

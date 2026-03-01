@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -71,7 +71,7 @@ static void draw_polygon(float rx, float ry, float m1, float m2, float m3, float
 
 	com.tilt->fwhm_centre = mcentre;
 
-	redraw(REDRAW_OVERLAY);
+	queue_redraw(REDRAW_OVERLAY);
 }
 
 void clear_sensor_tilt() {

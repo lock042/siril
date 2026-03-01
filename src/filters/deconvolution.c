@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
  */
 #include <fftw3.h>
 #include <math.h>
+#include <assert.h>
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
@@ -48,21 +49,34 @@ gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
 gboolean next_psf_is_previous = FALSE;
-fits* the_fit = NULL;
 int sequence_is_running;
 
-estk_data args = { 0 };
+void free_estk_data(void *p) {
+	estk_data *data = (estk_data*) p;
+	free(data->savepsf_filename);
+	free(p);
+}
 
-orientation_t get_imageorientation() {
+estk_data *alloc_estk_data() {
+	estk_data *p = calloc(1, sizeof(estk_data));
+	if (!p) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	p->destroy_fn = free_estk_data;
+	return p;
+}
+
+orientation_t get_imageorientation(fits *fit) {
 	orientation_t result;
 	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
 		result = TOP_DOWN;
 	} else if (sequence_is_loaded()) {
 		result = BOTTOM_UP; // All other sequences should be BOTTOM_UP
-	} else if (single_image_is_loaded()) {
-		if (!g_strcmp0(the_fit->keywords.row_order, "TOP-DOWN")) {
+	} else if (single_image_is_loaded() && fit) {
+		if (!g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
 			result = TOP_DOWN;
-		} else if (!g_strcmp0(the_fit->keywords.row_order, "BOTTOM-UP")) {
+		} else if (!g_strcmp0(fit->keywords.row_order, "BOTTOM-UP")) {
 			result = BOTTOM_UP;
 	} else {
 			result = UNDEFINED;
@@ -82,8 +96,8 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	the_fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
-	imageorientation = get_imageorientation();
+	args->fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
+	imageorientation = get_imageorientation(args->fit);
 	args->fdata = NULL;
 	args->rx = 0;
 	args->ry = 0;
@@ -150,15 +164,20 @@ void reset_conv_kernel() {
 }
 
 void reset_conv_controls_and_args() {
-	if (!get_thread_run() || (the_fit == NULL))
-		reset_conv_args(&args);
-	gui_function(reset_conv_controls, NULL);
+	estk_data *tmp_args = alloc_estk_data();
+	if (!tmp_args) return;
+
+	if (!get_thread_run())
+		reset_conv_args(tmp_args);
+	gui_function(reset_conv_controls, tmp_args);
+
+	tmp_args->destroy_fn(tmp_args);
 }
 
-void check_orientation() {
+void check_orientation(estk_data *args) {
 	int npixels = com.kernelsize * com.kernelsize;
 	int ndata = npixels * com.kernelchannels;
-	if (get_imageorientation() != args.kernelorientation) {
+	if (get_imageorientation(args->fit) != args->kernelorientation) {
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -169,18 +188,23 @@ void check_orientation() {
 		}
 		free(com.kernel);
 		com.kernel = flip_the_kernel;
-		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
+		args->kernelorientation = (args->kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
 }
 
-int load_kernel(gchar* filename) {
+int load_kernel(gchar* filename, estk_data *args) {
+	assert(args);
 	int retval = 0;
 	int orig_size;
-	args.kernelorientation = BOTTOM_UP; // PSFs are always BOTTOM_UP when saved
+	if (args) args->kernelorientation = BOTTOM_UP; // PSFs are always BOTTOM_UP when saved
 	gboolean original_debayer_setting = com.pref.debayer.open_debayer;
 	com.pref.debayer.open_debayer = FALSE;
 	bad_load = FALSE;
-	args.nchans = the_fit->naxes[2];
+	if (args->fit)
+		args->nchans = args->fit->naxes[2];
+	else
+		args->nchans = gfit->naxes[2]; // Fallback if fit not yet set
+
 	fits load_fit = { 0 };
 	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE))) {
 		bad_load = TRUE;
@@ -206,7 +230,7 @@ int load_kernel(gchar* filename) {
 		orig_size = com.kernelsize;
 	}
 	com.kernelchannels = load_fit.naxes[2];
-	args.kchans = com.kernelchannels;
+	args->kchans = com.kernelchannels;
 	gui_function(set_kernel_size_in_gui, NULL);
 
 	int npixels = com.kernelsize * com.kernelsize;
@@ -231,7 +255,7 @@ int load_kernel(gchar* filename) {
 		}
 	}
 	// Handle SER orientation issues, if the image orientation is TOP_DOWN we need to match it
-	if (get_imageorientation() == TOP_DOWN) {
+	if (get_imageorientation(args ? args->fit : gfit) == TOP_DOWN) {
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -242,9 +266,9 @@ int load_kernel(gchar* filename) {
 		}
 		free(com.kernel);
 		com.kernel = flip_the_kernel;
-		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
+		if (args) args->kernelorientation = (args->kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
-	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
+	if (args && com.kernelchannels > args->nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
 		float* desatkernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -259,7 +283,7 @@ int load_kernel(gchar* filename) {
 		free(com.kernel);
 		com.kernel = desatkernel;
 		com.kernelchannels = 1;
-		args.kchans = 1;
+		args->kchans = 1;
 	}
 	com.pref.debayer.open_debayer = original_debayer_setting;
 	clearfits(&load_fit);
@@ -268,7 +292,7 @@ int load_kernel(gchar* filename) {
 	return retval;
 }
 
-int save_kernel(gchar* filename) {
+int save_kernel(gchar* filename, estk_data *args) {
 	int retval = 0;
 	fits *save_fit = NULL;
 	//Check there is a PSF to save
@@ -286,7 +310,7 @@ int save_kernel(gchar* filename) {
 	// Handle SER orientation issues, if the kernel orientation is TOP_DOWN then we need to reverse it: we always save the
 	// kernel in BOTTOM_UP orientation. Note that we don't actually change args->kernelorientation here as we are only flipping
 	// the sacrificial copy.
-	if (get_imageorientation() == TOP_DOWN) {
+	if (get_imageorientation(args ? args->fit : gfit) == TOP_DOWN) {
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -320,23 +344,23 @@ int save_kernel(gchar* filename) {
 	return retval;
 }
 
-int get_kernel() {
+int get_kernel(estk_data *args) {
 	int retval = 0;
-	args.rx = the_fit->rx;
-	args.ry = the_fit->ry;
-	args.nchans = the_fit->naxes[2];
-	args.kchans = 1;
+	args->rx = args->fit->rx;
+	args->ry = args->fit->ry;
+	args->nchans = args->fit->naxes[2];
+	args->kchans = 1;
 	com.kernelchannels = 1;
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
-	switch (args.psftype) {
+	switch (args->psftype) {
 		case PSF_BLIND: // Blind deconvolution
 			reset_conv_kernel();
-			switch(args.blindtype) {
+			switch(args->blindtype) {
 				case BLIND_SI:
-					com.kernel = gf_estimate_kernel(&args, com.fftw_max_thread);
+					com.kernel = gf_estimate_kernel(args, com.fftw_max_thread);
 					break;
 				case BLIND_L0:
-					com.kernel = estimate_kernel(&args, com.fftw_max_thread);
+					com.kernel = estimate_kernel(args, com.fftw_max_thread);
 					break;
 			}
 			if (get_thread_run())
@@ -359,36 +383,36 @@ int get_kernel() {
 				goto END;
 			}
 			reset_conv_kernel();
-			calculate_parameters();
-			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
+
+			com.kernel = (float*) calloc(args->ks * args->ks * args->kchans, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
-				makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f,args.psf_ratio, -args.psf_angle);
+				makegaussian(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f,args->psf_ratio, -args->psf_angle);
 			else
-				makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, -args.psf_angle);
+				makemoffat(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f, args->psf_beta, args->psf_ratio, -args->psf_angle);
 
 			break;
 		case PSF_MANUAL: // Kernel from provided parameters
 			reset_conv_kernel();
-			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
-			switch (args.profile) {
+			com.kernel = (float*) calloc(args->ks * args->ks * args->kchans, sizeof(float));
+			switch (args->profile) {
 				case PROFILE_GAUSSIAN:
-					makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_ratio, -args.psf_angle);
+					makegaussian(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f, args->psf_ratio, -args->psf_angle);
 					break;
 				case PROFILE_MOFFAT:
-					makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, -args.psf_angle);
+					makemoffat(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f, args->psf_beta, args->psf_ratio, -args->psf_angle);
 					break;
 				case PROFILE_DISK:
-					makedisc(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f);
+					makedisc(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f);
 					break;
 				case PROFILE_AIRY:
-					if (args.airy_fl == 1.f)
+					if (args->airy_fl == 1.f)
 						siril_log_message(_("Warning: focal length appears likely to be incorrect. Continuing anyway...\n"));
-					if (args.airy_diameter == 1.f)
+					if (args->airy_diameter == 1.f)
 						siril_log_message(_("Warning: diameter appears likely to be incorrect. Continuing anyway...\n"));
-					if (args.airy_fl == 0.1f)
+					if (args->airy_fl == 0.1f)
 						siril_log_message(_("Warning: sensor pixel size appears likely to be incorrect. Continuing anyway...\n"));
 
-					makeairy(com.kernel, args.ks, 1.f, +0.5, -0.5, args.airy_wl, args.airy_diameter, args.airy_fl, args.airy_pixelsize, args.airy_obstruction);
+					makeairy(com.kernel, args->ks, 1.f, +0.5, -0.5, args->airy_wl, args->airy_diameter, args->airy_fl, args->airy_pixelsize, args->airy_obstruction);
 					break;
 			}
 			break;
@@ -409,39 +433,101 @@ int get_kernel() {
 	}
 #if DEBUG_PSF
 // Ignoring the possibility of multichannel kernels here for readability: only the first channel will be shown
-	for (int i = 0; i < args.ks; i++) {
-		for (int j = 0; j < args.ks; j++) {
-			siril_debug_print("%0.2f\t", com.kernel[i * args.ks + j]);
+	for (int i = 0; i < args->ks; i++) {
+		for (int j = 0; j < args->ks; j++) {
+			siril_debug_print("%0.2f\t", com.kernel[i * args->ks + j]);
 		}
 		siril_debug_print("\n");
 	}
 #endif
 
-	args.kernelorientation = get_imageorientation();
+	args->kernelorientation = get_imageorientation(args->fit);
 #ifdef DEBUG
-	if (args.kernelorientation == BOTTOM_UP)
+	if (args->kernelorientation == BOTTOM_UP)
 		siril_log_message(_("PSF made in bottom up orientation.\n"));
 	else
 		siril_log_message(_("PSF made in top down orientation.\n"));
 #endif
-	com.kernelsize = (!com.kernel) ? 0 : args.ks;
-	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
-	if (args.psftype != PSF_PREVIOUS) {
+	com.kernelsize = (!com.kernel) ? 0 : args->ks;
+	com.kernelchannels = (!com.kernel) ? 0 : args->kchans;
+	if (args->psftype != PSF_PREVIOUS) {
 		gui_function(DrawPSF, NULL);
 	}
 END:
 	return retval;
 }
 
+gchar *makepsf_log_hook(gpointer p, log_hook_detail detail) {
+	estk_data *args = (estk_data *) p;
+	gchar *message = NULL;
+	message = g_strdup_printf(_("Est. deconv kernel (%s)"), args->psftype==PSF_BLIND ? _("blind") :
+															args->psftype==PSF_STARS ? _("from stars") :
+															/* args->psftype==PSF_MANUAL ? */ _("manual"));
+	return message;
+}
+
+gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
+	estk_data *args = (estk_data *) p;
+	gchar *msg = NULL;
+	if (detail == DETAILED) {
+		switch (args->nonblindtype) {
+			case DECONV_SB:;
+				msg = g_strdup_printf(_("Split Bregman deconvolution: alpha=%.3f, iters=%d"),
+									args->alpha, args->finaliters);
+				break;
+			case DECONV_RL:;
+				gchar *ss_string = args->rl_method == RL_MULT ? g_strdup("") : g_strdup_printf(_(", step size=%.3e"), args->stepsize);
+				msg = g_strdup_printf(_("%s Richardson-Lucy deconvolution: alpha=%.3f, iters=%d, %s regularization%s"),
+									args->rl_method == RL_MULT ? _("Multiplicative") : _("Gradient descent"),
+									args->alpha, args->finaliters,
+									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("total variation") :
+											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("Frobenius of Hessian") : _("No"),
+									  ss_string);
+				break;
+			case DECONV_WIENER:;
+				msg = g_strdup_printf(_("Wiener deconvolution: alpha=%.3f"),
+									args->alpha);
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch (args->nonblindtype) {
+			case DECONV_SB:;
+				msg = g_strdup_printf(_("SB deconv: alpha=%.3f, iters=%d"),
+									args->alpha, args->finaliters);
+				break;
+			case DECONV_RL:;
+				gchar *ss_string = args->rl_method == RL_MULT ? g_strdup("") : g_strdup_printf(_(", step size=%.2e"), args->stepsize);
+				msg = g_strdup_printf(_("%s RL deconv: alpha=%.2f, iters=%d, %s reg%s"),
+									args->rl_method == RL_MULT ? _("Mult.") : _("GD"),
+									args->alpha, args->finaliters,
+									(args->regtype == REG_TV_GRAD || args->regtype == REG_TV_MULT) ? _("TV") :
+											(args->regtype == REG_FH_GRAD || args->regtype == REG_FH_MULT) ? _("FoH") : _("no"),
+									ss_string);
+				g_free(ss_string);
+				break;
+			case DECONV_WIENER:;
+				msg = g_strdup_printf(_("Wiener deconv: alpha=%.3f"),
+									args->alpha);
+				break;
+			default:
+				break;
+		}
+	}
+	return msg;
+}
+
 gpointer estimate_only(gpointer p) {
 	lock_roi_mutex();
+	estk_data *args = (estk_data *) p;
 	int retval = 0;
-	if (p != NULL) {
-		estk_data *command_data = (estk_data *) p;
-		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
+	if (!args) {
+		retval = 1;
+		goto ENDEST;
 	}
-	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+
+	if (args->psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
 		star_finder_params sfpar;
@@ -450,12 +536,12 @@ gpointer estimate_only(gpointer p) {
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
 		image *input_image = calloc(1, sizeof(image));
-		input_image->fit = the_fit;
+		input_image->fit = args->fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 
 		int nb_stars;
-		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
+		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		if (!com.stars || nb_stars == 0) {
@@ -463,29 +549,53 @@ gpointer estimate_only(gpointer p) {
 			retval = 1;
 			goto ENDEST;
 		} else {
-			args.stars_need_clearing = TRUE;
+			args->stars_need_clearing = TRUE;
 		}
 		siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
 
-		calculate_parameters(); // Calculates some parameters based on detected stars
-		if (args.recalc_ks && args.ks < (int)(args.psf_fwhm * 4.f)) {
-			int newks = (int)(args.psf_fwhm * 4.f);
+		// Calculate parameters for struct
+		int i = 0;
+		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
+		int n = 0;
+		while (com.stars[i]) {
+			double fwhmx, fwhmy;
+			char *unit;
+			get_fwhm_as_arcsec_if_possible(com.stars[i], &fwhmx, &fwhmy, &unit);
+			if (!com.stars[i]->has_saturated) {
+				FWHMx += fwhmx;
+				beta += com.stars[i]->beta;
+				FWHMy += fwhmy;
+				angle += com.stars[i]->angle;
+				n++;
+			}
+			i++;
+		}
+		if (n > 0) {
+			args->psf_fwhm = (float) FWHMx / (float) n;
+			FWHMy = (float) FWHMy / (float) n;
+			args->psf_beta = (float) beta / (float) n;
+			args->psf_ratio = args->symkern ? 1.f : args->psf_fwhm / FWHMy;
+			args->psf_angle = (float) angle / (float) n;
+		}
+
+		if (args->recalc_ks && args->ks < (int)(args->psf_fwhm * 4.f)) {
+			int newks = (int)(args->psf_fwhm * 4.f);
 			if (!(newks%2))
 				newks++;
-			args.ks = newks;
+			args->ks = newks;
 			siril_log_message(_("Kernel size not large enough to fit PSF generated from detected stars. Increasing kernel size to %d. To override, specify kernel size using the -ks= option.\n"), newks);
-		} else if (args.ks < (int)(args.psf_fwhm * 4.f)) {
-			int recc_ks = (int)(args.psf_fwhm * 4.f);
+		} else if (args->ks < (int)(args->psf_fwhm * 4.f)) {
+			int recc_ks = (int)(args->psf_fwhm * 4.f);
 				if (!(recc_ks%2))
 					recc_ks++;
 			siril_log_message(_("Warning: PSF generated from the stars detected in this image appears to be too big for the specified kernel size. Recommend increasing kernel size to %d.\n"), recc_ks);
 		}
 	}
 
-	args.nchans = the_fit->naxes[2];
+	args->nchans = args->fit->naxes[2];
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	set_wisdom_file();
-	if (args.psftype == PSF_BLIND) {
+	if (args->psftype == PSF_BLIND) {
 		if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
 		} else if (fftwf_import_system_wisdom() == 1) {
@@ -494,22 +604,22 @@ gpointer estimate_only(gpointer p) {
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 		}
 	}
-	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
-	args.fdata = malloc(args.ndata * sizeof(float));
-	if (the_fit->type == DATA_FLOAT)
-		memcpy(args.fdata, the_fit->fdata, args.ndata * sizeof(float));
+	args->ndata = args->fit->rx * args->fit->ry * args->fit->naxes[2];
+	args->fdata = malloc(args->ndata * sizeof(float));
+	if (args->fit->type == DATA_FLOAT)
+		memcpy(args->fdata, args->fit->fdata, args->ndata * sizeof(float));
 	else {
 		float invnorm = 1.f / USHRT_MAX_SINGLE;
-		for (size_t i = 0 ; i < args.ndata ; i++) {
-			args.fdata[i] = (float) the_fit->data[i] * invnorm;
+		for (size_t i = 0 ; i < args->ndata ; i++) {
+			args->fdata[i] = (float) args->fit->data[i] * invnorm;
 		}
 	}
 
 	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
 	START_TIMER;
-	get_kernel();
+	get_kernel(args);
 	END_TIMER;
-	if (args.psftype == PSF_BLIND) {
+	if (args->psftype == PSF_BLIND) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 		} else {
@@ -518,50 +628,57 @@ gpointer estimate_only(gpointer p) {
 	}
 	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 ENDEST:
-	if (args.stars_need_clearing) {
+	if (args && args->stars_need_clearing) {
 		clear_stars_list(FALSE);
-		args.stars_need_clearing = FALSE;
+		args->stars_need_clearing = FALSE;
 	}
-	if(!retval && args.save_after) {
-		save_kernel(args.savepsf_filename);
-		free(args.savepsf_filename);
-		args.savepsf_filename = NULL;
-		args.save_after = FALSE;
+	if(!retval && args && args->save_after) {
+		save_kernel(args->savepsf_filename, args);
+		free(args->savepsf_filename);
+		args->savepsf_filename = NULL;
+		args->save_after = FALSE;
 	}
+
+	// Set global variable so GUI idle functions can switch radio button to "Previous"
+	if (!retval) {
+		next_psf_is_previous = (args->psftype == PSF_BLIND || args->psftype == PSF_STARS) ? TRUE : FALSE;
+	}
+
+	// Free fdata here as it was allocated locally
+	if (args && args->fdata) {
+		free(args->fdata);
+		args->fdata = NULL;
+	}
+
 	unlock_roi_mutex();
-	siril_add_idle(estimate_idle, NULL);
-	if (com.script) {
-		free(args.fdata);
-		args.fdata = NULL;
-	}
 	return GINT_TO_POINTER(retval);
 }
 
 gpointer deconvolve(gpointer p) {
 	lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
 	// done, in order not to have the_fit changed under us
-	struct timeval t_start, t_end;
-	if (p != NULL) {
-		estk_data *command_data = (estk_data *) p;
-		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
-		the_fit = gfit;
+	estk_data *args = (estk_data *) p;
+	if (!args) {
+		unlock_roi_mutex();
+		return GINT_TO_POINTER(1);
 	}
+
+	struct timeval t_start, t_end;
 	gboolean stars_need_clearing = FALSE;
-	check_orientation();
+	check_orientation(args);
 	if (sequence_is_running == 0)
 		gui_function(DrawPSF, NULL);
-	args.nchans = the_fit->naxes[2];
-	args.rx = the_fit->rx;
-	args.ry = the_fit->ry;
+	args->nchans = args->fit->naxes[2];
+	args->rx = args->fit->rx;
+	args->ry = args->fit->ry;
 	int retval = 0;
-	if (args.psftype == PSF_PREVIOUS && ((!com.kernel) || com.kernelsize == 0)) {
+	if (args->psftype == PSF_PREVIOUS && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the image using previous PSF if there is no previous PSF defined
 		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
 		retval = 1;
 		goto ENDDECONV;
 	}
-	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+	if (args->psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
 		star_finder_params sfpar;
@@ -570,12 +687,12 @@ gpointer deconvolve(gpointer p) {
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
 		image *input_image = calloc(1, sizeof(image));
-		input_image->fit = the_fit;
+		input_image->fit = args->fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 
 		int nb_stars;
-		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
+		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		if (retval || nb_stars == 0) {
@@ -598,25 +715,25 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (the_fit == gfit || the_fit == &gui.roi.fit)
-		if (!com.script && !com.headless && !args.previewing)
+	if (args->fit == gfit || args->fit == &gui.roi.fit)
+		if (!com.script && !com.headless && !args->previewing)
 			undo_save_state(gfit, _("Deconvolution"));
-	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
-	args.fdata = malloc(args.ndata * sizeof(float));
-	if (the_fit->type == DATA_FLOAT)
-		memcpy(args.fdata, the_fit->fdata, args.ndata * sizeof(float));
+	args->ndata = args->fit->rx * args->fit->ry * args->fit->naxes[2];
+	args->fdata = malloc(args->ndata * sizeof(float));
+	if (args->fit->type == DATA_FLOAT)
+		memcpy(args->fdata, args->fit->fdata, args->ndata * sizeof(float));
 	else {
 		float invnorm = 1.f / USHRT_MAX_SINGLE;
-		for (size_t i = 0 ; i < args.ndata ; i++) {
-			args.fdata[i] = (float) the_fit->data[i] * invnorm;
+		for (size_t i = 0 ; i < args->ndata ; i++) {
+			args->fdata[i] = (float) args->fit->data[i] * invnorm;
 		}
 	}
 
 	// Get the kernel
-	if (args.psftype != PSF_PREVIOUS) {
+	if (args->psftype != PSF_PREVIOUS) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
-		get_kernel();
+		get_kernel(args);
 }
 	if (!com.kernel) {
 		siril_debug_print("Kernel missing!\n");
@@ -624,24 +741,24 @@ gpointer deconvolve(gpointer p) {
 		goto ENDDECONV;
 	}
 
-	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
+	next_psf_is_previous = (args->psftype == PSF_BLIND || args->psftype == PSF_STARS) ? TRUE : FALSE;
 
 	float *yuvdata = NULL;
 	int threads = 1;
-	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
+	if (args->fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Convert the fit to XYZ and only deconvolve Y
-		int npixels = the_fit->rx * the_fit->ry;
-		yuvdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
+		int npixels = args->fit->rx * args->fit->ry;
+		yuvdata = malloc(npixels * args->fit->naxes[2] * sizeof(float));
 #ifdef _OPENMP
 		threads = sequence_is_running ? 1 : com.max_thread;
 #pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
-			rgb_to_yuvf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
+			rgb_to_yuvf(args->fdata[i], args->fdata[i + npixels], args->fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
 		}
-		args.nchans = 1;
-		free(args.fdata);
-		args.fdata = yuvdata; // fdata now points to the Y part of yuvdata
+		args->nchans = 1;
+		free(args->fdata);
+		args->fdata = yuvdata; // fdata now points to the Y part of yuvdata
 	}
 
 	if (get_thread_run() || sequence_is_running == 1) {
@@ -649,26 +766,26 @@ gpointer deconvolve(gpointer p) {
 			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
 		gettimeofday(&t_start, NULL);
 		// Non-blind deconvolution stage
-		switch (args.nonblindtype) {
+		switch (args->nonblindtype) {
 			case DECONV_SB:
-				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, com.fftw_max_thread);
+				split_bregman(args->fdata, args->rx, args->ry, args->nchans, com.kernel, args->ks, args->kchans, args->alpha, args->finaliters, com.fftw_max_thread);
 				break;
 			case DECONV_RL:
-				if (args.rl_method == RL_MULT) {
-					if (args.regtype == REG_TV_GRAD)
-						args.regtype = REG_TV_MULT;
-					else if (args.regtype == REG_FH_GRAD)
-						args.regtype = REG_FH_MULT;
-					else args.regtype = REG_NONE_MULT;
+				if (args->rl_method == RL_MULT) {
+					if (args->regtype == REG_TV_GRAD)
+						args->regtype = REG_TV_MULT;
+					else if (args->regtype == REG_FH_GRAD)
+						args->regtype = REG_FH_MULT;
+					else args->regtype = REG_NONE_MULT;
 				}
-				if (args.ks < com.pref.fftw_conf.fft_cutoff)
-					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, com.fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+				if (args->ks < com.pref.fftw_conf.fft_cutoff)
+					naive_richardson_lucy(args->fdata, args->rx,args->ry, args->nchans, com.kernel, args->ks, args->kchans, args->alpha, args->finaliters, args->stopcriterion, com.fftw_max_thread, args->regtype, args->stepsize, args->stopcriterion_active);
 				else
-					fft_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, com.fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+					fft_richardson_lucy(args->fdata, args->rx,args->ry, args->nchans, com.kernel, args->ks, args->kchans, args->alpha, args->finaliters, args->stopcriterion, com.fftw_max_thread, args->regtype, args->stepsize, args->stopcriterion_active);
 
 				break;
 			case DECONV_WIENER:
-				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, com.fftw_max_thread);
+				wienerdec(args->fdata, args->rx, args->ry, args->nchans, com.kernel, args->ks, args->kchans, args->alpha, com.fftw_max_thread);
 				break;
 		}
 		gettimeofday(&t_end, NULL);
@@ -677,34 +794,35 @@ gpointer deconvolve(gpointer p) {
 		}
 	}
 
-	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
+	if (args->fit->naxes[2] == 3 && com.kernelchannels == 1) {
 		// Put things back as they were
-		int npixels = the_fit->rx * the_fit->ry;
-		args.nchans = 3;
-		args.fdata = malloc(npixels * args.nchans * sizeof(float));
+		int npixels = args->fit->rx * args->fit->ry;
+		args->nchans = 3;
+		args->fdata = malloc(npixels * args->nchans * sizeof(float));
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
-			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
+			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args->fdata[i], &args->fdata[i + npixels], &args->fdata[i + 2 * npixels]);
 		}
 		free(yuvdata);
 	}
 
-	// Update the_fit with the result
+	// Update the fit with the result
 	if (get_thread_run()) {
-		if (the_fit->type == DATA_FLOAT) {
-			memcpy(the_fit->fdata, args.fdata, args.ndata * sizeof(float));
+		if (args->fit->type == DATA_FLOAT) {
+			memcpy(args->fit->fdata, args->fdata, args->ndata * sizeof(float));
 			if (com.pref.force_16bit)
-				fit_replace_buffer(the_fit, float_buffer_to_ushort(the_fit->fdata, args.ndata), DATA_USHORT);
-			else invalidate_stats_from_fit(the_fit);
+				fit_replace_buffer(args->fit, float_buffer_to_ushort(args->fit->fdata, args->ndata), DATA_USHORT);
+			else invalidate_stats_from_fit(args->fit);
 		} else {
-			for (size_t i = 0 ; i < args.ndata ; i++) {
-				the_fit->data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
+			for (size_t i = 0 ; i < args->ndata ; i++) {
+				args->fit->data[i] = roundf_to_WORD(args->fdata[i] * USHRT_MAX_SINGLE);
 			}
-			invalidate_stats_from_fit(the_fit);
+			invalidate_stats_from_fit(args->fit);
 		}
 	}
+
 ENDDECONV:
 	// Do not free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
@@ -719,23 +837,40 @@ ENDDECONV:
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
-	if (sequence_is_running == 0)
-		siril_add_idle(deconvolve_idle, NULL);
-	else {
-		free(args.fdata);
-		args.fdata = NULL;
+
+	// Free fdata as it was allocated locally for the operation
+	if (args && args->fdata) {
+		free(args->fdata);
+		args->fdata = NULL;
 	}
+
 	unlock_roi_mutex();
+
 	return GINT_TO_POINTER(retval);
+}
+
+///////// ****** IMAGE PROCESSING   ****** //////////
+
+/* Wrapper hooks for deconvolution */
+int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(deconvolve(args->user));
+}
+
+int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(estimate_only(args->user));
 }
 
 ///////// ****** SEQUENCE PROCESSING ****** //////////
 
 static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gboolean for_writer) {
+// TODO: this should probably be revisited since the change to chunked processing, as it should now never exceed available memory.
+// A factor of 2-3 is probably still a good idea to allow for a temporary copy and some working data though.
+
 // The deconvolution routines use FFTW which optimises its planning on the basis of the virtual
 // memory model and available threads. It is therefore pragmatic to allow FFTW to optimise itself
 // and run the sequence sequentially rather than in parallel. The memory hook therefore only checks
 // that at least one image can be processed.
+	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 
 // Allocations table
 // Assume kernel size is small c/w image size
@@ -755,15 +890,15 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 		int MB_per_float_image = MB_per_image * float_multiplier;
 		int required = MB_per_float_image * 2;
 		int MB_per_float_chan = float_multiplier * ceil((double)MB_per_image / seqargs->seq->nb_layers);
-		if (args.nonblindtype == DECONV_SB) {
+		if (data->deconv_data->nonblindtype == DECONV_SB) {
 			required += MB_per_float_chan * 16;
-		} else if (args.nonblindtype == DECONV_RL) {
-			if (args.ks < com.pref.fftw_conf.fft_cutoff) {
+		} else if (data->deconv_data->nonblindtype == DECONV_RL) {
+			if (data->deconv_data->ks < com.pref.fftw_conf.fft_cutoff) {
 				required += MB_per_float_chan * 6; // Naive deconvolution
 			} else {
 				required += MB_per_float_chan * 13; // FFT deconvolution
 			}
-		} else if (args.nonblindtype == DECONV_WIENER) {
+		} else if (data->deconv_data->nonblindtype == DECONV_WIENER) {
 			required += MB_per_float_chan * 8;
 		}
 		limit = MB_avail / required;
@@ -775,36 +910,49 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *seqargs, gb
 
 int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
+	estk_data *args = data->deconv_data;
 	int retval = seq_finalize_hook(seqargs);
-	if (data && data->from_command && data->deconv_data)
-		free(data->deconv_data);
-	if (data)
-		free(data);
+
+	// If we are finalizing, we may want to restore oldpsftype to the struct?
+	// But the struct is about to be destroyed.
+	// We do however need to reset psftype if it was modified for the loop.
+	if (args) args->psftype = args->oldpsftype;
+
+	if (data->from_command && data->deconv_data)
+		data->deconv_data->destroy_fn(data->deconv_data);
+	// If it wasn't from command, it was allocated in GUI, but we likely own it now in seqargs->user
+	else if (data && data->deconv_data)
+		data->deconv_data->destroy_fn(data->deconv_data);
+
+	free(data);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
-	args.psftype = args.oldpsftype; // Restore consistency
 	sequence_is_running = 0;
 	return retval;
 }
 
-
 int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fits *fit, rectangle *_, int threads) {
+	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
+	estk_data *args = data->deconv_data;
 	int ret = 0;
-	the_fit = fit;
-	ret = GPOINTER_TO_INT(deconvolve(NULL));
-	the_fit = gfit; // Prevent bad things happening if fit is freed and we then try to do things with the_fit
-	args.oldpsftype = args.psftype; // Need to store the previous psf type so we can restore
+	args->fit = fit;
+	ret = GPOINTER_TO_INT(deconvolve(args));
+	args->fit = gfit; // Prevent bad things happening if fit is freed and we then try to do things with fit
+	args->oldpsftype = args->psftype; // Need to store the previous psf type so we can restore
 	// it later and avoid inconsistency between the GTK widget and the parameter.
-	args.psftype = PSF_PREVIOUS; // For all but the first image in the sequence we will reuse the kernel calculated for the first image.
+	args->psftype = PSF_PREVIOUS; // For all but the first image in the sequence we will reuse the kernel calculated for the first image.
 
 	return ret;
 }
 
 int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
+	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
+	estk_data *args = data->deconv_data;
+
 	set_progress_bar_data(_("Deconvolution. Processing sequence..."), 0.);
 	remove_prefixed_sequence_files(seqargs->seq, seqargs->new_seq_prefix);
 	remove_prefixed_star_files(seqargs->seq, seqargs->new_seq_prefix);
-	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	if (args->psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
 		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
 		return 1;
@@ -866,22 +1014,35 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free(seqdata->seqEntry);
+		if (seqdata->deconv_data) seqdata->deconv_data->destroy_fn(seqdata->deconv_data);
 		free(seqdata);
 		free_generic_seq_args(seqargs, TRUE);
 	}
 }
 
 gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
-	int retval = 0;
-	if (p != NULL) {
-		estk_data *command_data = (estk_data *) p;
-		memcpy(&args, command_data, sizeof(estk_data));
-		free(command_data);
-	}
 	deconvolution_sequence_data* seqargs = calloc(1, sizeof(deconvolution_sequence_data));
 	seqargs->seqEntry = strdup("dec_");
 	seqargs->seq = seqname;
 	seqargs->from_command = TRUE;
+
+	if (p != NULL) {
+		estk_data *command_data = (estk_data *) p;
+		// We can directly use the passed data
+		seqargs->deconv_data = command_data;
+		// But verify if we need to copy? Usually command_data is allocated for this command.
+		// If generic_worker destroys user data, we are good.
+	} else {
+		// Should not happen for command line usually, but if so:
+		seqargs->deconv_data = alloc_estk_data();
+		if (!seqargs->deconv_data) {
+			PRINT_ALLOC_ERR;
+			free(seqargs);
+			return GINT_TO_POINTER(1);
+		}
+		reset_conv_args(seqargs->deconv_data);
+	}
+
 	apply_deconvolve_to_sequence(seqargs);
-	return GINT_TO_POINTER(retval);
+	return GINT_TO_POINTER(0);
 }

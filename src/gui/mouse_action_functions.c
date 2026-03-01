@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command_line_processor.h"
+#include "core/masks.h"
 #include "core/siril_log.h"
 #include "gui/cut.h"
 #include "gui/icc_profile.h"
@@ -38,6 +39,7 @@
 #include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
+#include "gui/masks_gui.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
 #include "gui/save_dialog.h"
@@ -93,6 +95,32 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.gui.selection_guides == 2);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.gui.selection_guides == 3);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.gui.selection_guides == 5);
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+#else
+	int button, event_time;
+
+	if (event) {
+		button = event->button;
+		event_time = event->time;
+	} else {
+		button = 0;
+		event_time = gtk_get_current_event_time();
+	}
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button, event_time);
+#endif
+}
+
+/* Mask popup menu */
+static void do_popup_maskmenu(GtkWidget *my_widget, GdkEventButton *event) {
+	static GtkMenu *menu = NULL;
+
+	if (!menu) {
+		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menumask_rmb"));
+		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+	}
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -305,9 +333,52 @@ static gboolean draw_poly_release(mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean mask_add_poly_release(mouse_data *data) {
+	// Parse gui.drawing_polypoints into a Polygon and add it using add_user_polygon
+	gui.drawing_polygon = FALSE;
+	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
+	// Free and NULL gui.drawing_polypoints
+	g_slist_free_full(gui.drawing_polypoints, free);
+	undo_save_state(gfit, _("Add polygon to image mask"));
+	if (!gfit->mask) { // we need something to add the polygon to, so create a zeroes-like mask
+		mask_create_zeroes_like(gfit, get_default_mask_bitpix());
+	}
+	set_poly_in_mask(poly, gfit, TRUE);
+	free_user_polygon(poly);
+	gui.drawing_polypoints = NULL;
+	queue_redraw_mask();
+	return TRUE;
+}
+
+static gboolean mask_clear_poly_release(mouse_data *data) {
+	// Parse gui.drawing_polypoints into a Polygon and add it using add_user_polygon
+	gui.drawing_polygon = FALSE;
+	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
+	undo_save_state(gfit, _("Subtract polygon from image mask"));
+	if (!gfit->mask) { // we need somthing to subtract the polygon from, so create a ones-like mask
+		mask_create_ones_like(gfit, get_default_mask_bitpix());
+	}
+	set_poly_in_mask(poly, gfit, FALSE);
+	free_user_polygon(poly);
+	// Free and NULL gui.drawing_polypoints
+	g_slist_free_full(gui.drawing_polypoints, free);
+	gui.drawing_polypoints = NULL;
+	queue_redraw_mask();
+	return TRUE;
+}
+
+static gboolean sample_mask_color_release(mouse_data *data) {
+	mask_color_handle_image_click(data->zoomed.x, data->zoomed.y);
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
-	if (*data->mouse_status != MOUSE_ACTION_DRAW_SAMPLES && *data->mouse_status != MOUSE_ACTION_PHOTOMETRY) {
-			do_popup_graymenu(data->widget, NULL);
+	if (gui.cvport == MASK_VPORT) {
+		do_popup_maskmenu(data->widget, NULL);
+	} else if (*data->mouse_status != MOUSE_ACTION_DRAW_SAMPLES && *data->mouse_status != MOUSE_ACTION_PHOTOMETRY) {
+		do_popup_graymenu(data->widget, NULL);
 	}
 	return TRUE;
 }
@@ -410,7 +481,7 @@ gboolean main_action_click(mouse_data *data) {
 		rectangle area;
 		struct phot_config *ps = NULL;
 		switch (*data->mouse_status) {
-			case MOUSE_ACTION_SELECT_REG_AREA:
+			case MOUSE_ACTION_SELECT_REG_AREA: {
 				if (gui.drawing) {
 					gui.drawing = FALSE;
 				} else {
@@ -460,7 +531,8 @@ gboolean main_action_click(mouse_data *data) {
 				redraw(REDRAW_OVERLAY);
 				register_release_callback(select_reg_area_release, data->event->button);
 				break;
-			case MOUSE_ACTION_DRAW_SAMPLES:
+			}
+			case MOUSE_ACTION_DRAW_SAMPLES: {
 				radius = get_background_sample_radius();
 
 				pt.x = (gdouble) data->zoomed.x;
@@ -476,16 +548,20 @@ gboolean main_action_click(mouse_data *data) {
 					gui_function(redraw_previews, NULL);
 				}
 				break;
-			case MOUSE_ACTION_SELECT_PREVIEW1:
+			}
+			case MOUSE_ACTION_SELECT_PREVIEW1: {
 				register_release_callback(select_preview1_release, data->event->button);
 				break;
-			case MOUSE_ACTION_SELECT_PREVIEW2:
+			}
+			case MOUSE_ACTION_SELECT_PREVIEW2: {
 				register_release_callback(select_preview2_release, data->event->button);
 				break;
-			case MOUSE_ACTION_GET_COMP_CENTER_COORDINATE:
+			}
+			case MOUSE_ACTION_GET_COMP_CENTER_COORDINATE: {
 				register_release_callback(get_comp_center_coordinate_release, data->event->button);
 				break;
-			case MOUSE_ACTION_PHOTOMETRY:
+			}
+			case MOUSE_ACTION_PHOTOMETRY: {
 				s = com.pref.phot_set.outer * 1.2;
 				area.x = data->zoomed.x - s;
 				area.y = data->zoomed.y - s;
@@ -513,7 +589,8 @@ gboolean main_action_click(mouse_data *data) {
 					}
 				}
 				break;
-			case MOUSE_ACTION_CUT_SELECT:
+			}
+			case MOUSE_ACTION_CUT_SELECT: {
 				// Reset the cut line before setting new coords in order to avoid
 				// drawing artefacts
 				gui.cut.cut_start.x = -1.;
@@ -539,13 +616,16 @@ gboolean main_action_click(mouse_data *data) {
 				update_spectro_labels();
 				register_release_callback(cut_select_release, data->event->button);
 				break;
-			case MOUSE_ACTION_CUT_WN1:
+			}
+			case MOUSE_ACTION_CUT_WN1: {
 				register_release_callback(cut_wn1_release, data->event->button);
 				break;
-			case MOUSE_ACTION_CUT_WN2:
+			}
+			case MOUSE_ACTION_CUT_WN2: {
 				register_release_callback(cut_wn2_release, data->event->button);
 				break;
-			case MOUSE_ACTION_DRAW_POLY:
+			}
+			case MOUSE_ACTION_DRAW_POLY: {
 				g_assert(gui.drawing_polypoints == NULL);
 				point *ev = malloc(sizeof(point));
 				ev->x = data->zoomed.x;
@@ -554,8 +634,34 @@ gboolean main_action_click(mouse_data *data) {
 				register_release_callback(draw_poly_release, data->event->button);
 				gui.drawing_polygon = TRUE;
 				break;
-			default:
+			}
+			case MOUSE_ACTION_ADD_POLY_TO_MASK: {
+				g_assert(gui.drawing_polypoints == NULL);
+				point *ev = malloc(sizeof(point));
+				ev->x = data->zoomed.x;
+				ev->y = data->zoomed.y;
+				gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);
+				register_release_callback(mask_add_poly_release, data->event->button);
+				gui.drawing_polygon = TRUE;
 				break;
+			}
+			case MOUSE_ACTION_CLEAR_POLY_FROM_MASK: {
+				g_assert(gui.drawing_polypoints == NULL);
+				point *ev = malloc(sizeof(point));
+				ev->x = data->zoomed.x;
+				ev->y = data->zoomed.y;
+				gui.drawing_polypoints = g_slist_prepend(gui.drawing_polypoints, ev);
+				register_release_callback(mask_clear_poly_release, data->event->button);
+				gui.drawing_polygon = TRUE;
+				break;
+			}
+			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
+				register_release_callback(sample_mask_color_release, data->event->button);
+				break;
+			}
+			default: {
+				break;
+			}
 		}
 	}
 	return TRUE;

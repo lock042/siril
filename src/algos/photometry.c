@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -30,13 +30,18 @@
 #include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
+#include "algos/siril_wcs.h"
 #include "algos/statistics_float.h"
+#include "algos/star_finder.h"
 #include "algos/comparison_stars.h"
+#include "algos/photometric_cc.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
+#include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
 #include "opencv/opencv.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
@@ -626,3 +631,147 @@ gpointer light_curve_worker(gpointer arg) {
 	return GINT_TO_POINTER(retval);
 }
 
+gpointer catmag_mono_worker(gpointer arg) {
+	int enough_stars = 20; // make configurable?
+	struct catmag_data *args = (struct catmag_data *)arg;
+	/* configure for current stars */
+	int nb_stars_in_image = 0;
+	double fwhm = measure_image_FWHM(args->fit, -1, &nb_stars_in_image);
+	if (nb_stars_in_image < 1 || fwhm == 0.0) {
+		fwhm = 6.0;
+	}
+	struct phot_config *pset = phot_set_adjusted_for_image(args->fit);
+	pset->force_radius = FALSE;
+	pset->inner = max(7.0, 3.0 * fwhm);
+	pset->outer = pset->inner + 10;
+	siril_debug_print(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
+			pset->inner, pset->outer);
+
+	siril_catalogue *cat = siril_catalog_fill_from_fit(args->fit, args->catalogue, -1);
+	if (!cat) {
+		siril_log_message(_("Failed to initialize the catalogue query\n"));
+		free(pset); free(args);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	// we want to get more stars than the default, they will be discarded later if they are too faint
+	// we add +1 just to be sure we have enough, as the limitmag calc is an approximation.
+	// Anyway, as it is based on local catalogues only, the query is fast.
+	cat->limitmag = compute_mag_limit_from_position_and_fov(cat->center_ra, cat->center_ra, cat->radius * 2.0 / 60., nb_stars_in_image) + 1.;
+	siril_debug_print("catalogue limit magnitude set to %.1f\n", cat->limitmag);
+	cat->phot = TRUE;
+
+	int retval;
+	if (args->catalogue == CAT_LOCAL_GAIA_ASTRO || args->catalogue == CAT_LOCAL_KSTARS) {
+		retval = siril_catalog_get_stars_from_local_catalogues(cat);
+	} else {
+		retval = siril_catalog_get_stars_from_online_catalogues(cat);
+	}
+	if (retval < 1) {
+		siril_log_message(_("Failed to get stars from catalog\n"));
+		free(pset); free(args);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	siril_debug_print("Found %d stars in the catalog\n", retval);
+	sort_cat_items_by_mag(cat);
+	retval = siril_catalog_project_with_WCS(cat, gfit, TRUE, FALSE);
+	if (retval || cat->nbitems < 1) {
+		siril_log_message(_("Failed to project stars from catalog\n"));
+		free(pset); free(args);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+
+	/* photometric analysis of all stars */
+	double *distances = malloc(enough_stars * sizeof(double));
+	float *magnitudes = malloc(enough_stars * sizeof(float));
+	if (!distances || !magnitudes) {
+		free(distances); free(magnitudes); free(pset); free(args);
+		PRINT_ALLOC_ERR;
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	int nbgood = 0;
+	//siril_debug_print("distance, mag offset\n");
+	for (int i = 0; i < cat->nbitems; i++) {
+		if (nbgood >= enough_stars) {
+			siril_debug_print("found enough stars after trying the brightest %d\n", i + 1);
+			break;
+		}
+		if ((args->limit_temperature && fabs(cat->cat_items[i].teff - args->refT) > args->dT) ||
+				(args->limit_BV && fabs(cat->cat_items[i].BV - args->refBV) > args->dBV)) {
+			//siril_debug_print("star %d is outside the specified range (T: %.0f, BV: %.2f)\n", i, cat->cat_items[i].teff, cat->cat_items[i].BV);
+			continue;
+		}
+		rectangle area = { 0 };
+		// stars are in FITS coordinates, which is what we want here
+		if (make_selection_around_a_star(cat->cat_items+i, &area, args->fit, pset)) {
+			//siril_debug_print("star %d is outside image or too close to border\n", i);
+			continue;
+		}
+
+		int layer = args->fit->naxes[2] == 3 ? 1 : 0;
+		psf_error error = PSF_NO_ERR;
+		// psf_get_minimisation flips y, so area has to be in display coordinates
+		psf_star *star = psf_get_minimisation(args->fit, layer, &area, TRUE, TRUE, pset,
+				FALSE, com.pref.starfinder_conf.profile, &error);
+		if (!star || !star->phot || !star->phot->valid || star->phot->SNR < 3.0) {
+			if (error != PSF_ERR_INVALID_PIX_VALUE && error != PSF_ERR_APERTURE_TOO_SMALL) {
+				// stars are ordered by magnitude, lets first remove the
+				// saturated or too large ones that cannot be measured
+				siril_debug_print("star %d photometry analysis failed (%s)\n", i, psf_error_to_string(error));
+			}
+			if (star) free_psf(star);
+			continue;
+		}
+
+		// area is in display coordinates, star is in local top-down coordinates from this
+		double dxpos = area.x + star->x0;
+		double dypos = area.y + area.h - star->y0;
+		double fx, fy;
+		display_to_siril(dxpos, dypos, &fx, &fy, args->fit->ry);
+		double ra, dec;
+		pix2wcs(args->fit, fx, fy, &ra, &dec);
+		if (ra != 0.0 && dec != 0.0) {
+			double dx = cat->cat_items[i].x - fx;
+			double dy = cat->cat_items[i].y - fy;
+			double dist = sqrt(dx * dx + dy * dy);
+			float diff = cat->cat_items[i].mag - star->phot->mag;
+			//siril_debug_print("%.2f, %.3f\n", dist, diff);
+			distances[nbgood] = dist;
+			magnitudes[nbgood] = diff;
+			nbgood++;
+		}
+		free_psf(star);
+	}
+	if (nbgood <= 0)
+		siril_log_message("No valid star was found\n");
+	double mean, stdev;
+	retval = robustmean(nbgood, distances, &mean, &stdev);
+	if (!retval) {
+		double sum = 0.0;
+		int kept = 0;
+		for (unsigned int i = 0; i < nbgood; i++) {
+			if (distances[i] - mean > stdev) {
+				//siril_debug_print("star %d too far from predicted\n", i);
+				continue;
+			}
+			sum += magnitudes[i];
+			kept++;
+		}
+		if (kept) {
+			double new_ref = sum / (double)kept;
+			siril_log_message("Mean magnitude offset: %.4f (using %d stars)\n", new_ref, kept);
+			com.magOffset = new_ref;
+		}
+		retval = !kept;
+	}
+
+	free(distances);
+	free(magnitudes);
+	free(pset);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(retval);
+}

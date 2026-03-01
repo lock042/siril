@@ -135,6 +135,8 @@ siril_common_SOURCES = \
 	core/icc_profile.h \
 	core/initfile.c \
 	core/initfile.h \
+	core/masks.c \
+	core/masks.h \
 	core/OS_utils.c \
 	core/OS_utils.h \
 	core/pipe.c \
@@ -151,6 +153,8 @@ siril_common_SOURCES = \
 	core/siril.c \
 	core/siril_actions.c \
 	core/siril_actions.h \
+	core/siril_alloc.c \
+	core/siril_alloc.h \
 	core/siril_app_dirs.c \
 	core/siril_app_dirs.h \
 	core/siril_cmd_help.c \
@@ -262,6 +266,8 @@ siril_common_SOURCES = \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
+	gui/catmag.c \
+	gui/catmag.h \
 	gui/compstars.c \
 	gui/compstars.h \
 	gui/conversion.c \
@@ -293,6 +299,8 @@ siril_common_SOURCES = \
 	gui/image_interactions.c \
 	gui/image_interactions.h \
 	gui/linear_match.c \
+	gui/masks_gui.c \
+	gui/masks_gui.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_selection.c \
@@ -342,6 +350,8 @@ siril_common_SOURCES = \
 	gui/siril_plot.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/splashscreen.c \
+	gui/splashscreen.h \
 	gui/split_cfa.c \
 	gui/stacking.c \
 	gui/stacking.h \

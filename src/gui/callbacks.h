@@ -4,6 +4,10 @@
 #include <sys/time.h>
 #include "core/siril.h"	// for sliders_mode
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
 gboolean launch_clipboard_survey(gpointer user_data);
@@ -46,6 +50,7 @@ int copy_rendering_settings();
 
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
+void show_or_hide_mask_tab();
 
 int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
 void update_display_selection();
@@ -89,6 +94,8 @@ void set_viewer_mode_widgets_sensitive(gboolean sensitive);
 
 int seq_qphot(sequence *seq, int layer);
 
+void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data);
+
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *
  ****************************************************************************/
@@ -112,5 +119,12 @@ void on_focal_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data);
 void on_combobinning_changed(GtkComboBox *box, gpointer user_data);
+
+void ensure_seqlist_dialog_closed();
+gboolean in_gtk_thread(void);
+void on_mask_active_toggled(GtkToggleButton *button, gpointer user_data);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

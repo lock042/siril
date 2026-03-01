@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -39,6 +39,7 @@
 #include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
+#include "catmag.h"
 
 static gboolean dialog_is_opened = FALSE;
 static gboolean processing_dialog_is_opened = FALSE;
@@ -56,6 +57,7 @@ static const SirilDialogEntry entries[] =
 	{"ccm_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"catmag", get_catmag_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -94,7 +96,14 @@ static const SirilDialogEntry entries[] =
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
-	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
+	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel},
+	{"mask_from_color_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_from_image_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_from_stars_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_blur_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_feather_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_scale_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"mask_thresholds_dialog", NULL, OTHER_DIALOG, FALSE, NULL}
 };
 
 static SirilDialogEntry get_entry_by_id(gchar *id) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -469,3 +469,34 @@ void notify_gfit_modified() {
 
 	gui_function(end_gfit_operation, NULL);
 }
+
+gboolean enforce_area_in_fits(fits *fit, rectangle *area) {
+        gboolean has_crossed = FALSE;
+        int rx = fit->rx, ry = fit->ry;
+        if (area->w > rx) {
+                area->w = rx;
+                has_crossed = TRUE;
+        }
+        if (area->h > ry) {
+                area->h = ry;
+                has_crossed = TRUE;
+        }
+        if (area->x < 0) {
+                area->x = 0;
+                has_crossed = TRUE;
+        }
+        if (area->y < 0) {
+                area->y = 0;
+                has_crossed = TRUE;
+        }
+        if (area->x + area->w > rx) {
+                area->x = rx - area->w;
+                has_crossed = TRUE;
+        }
+        if (area->y + area->h > ry) {
+                area->y = ry - area->h;
+                has_crossed = TRUE;
+        }
+        return has_crossed;
+}
+

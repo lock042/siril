@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -363,7 +363,7 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		if (retval)
 			return retval;
 	}
-	siril_log_color_message(_("Image %d: %ld pixel corrected (%ld + %ld)\n"),
+	siril_log_color_message(_("Image %d: %ld pixels corrected (%ld + %ld)\n"),
 			"bold", i, icold + ihot, icold, ihot);
 	return 0;
 }
@@ -458,31 +458,42 @@ gboolean end_autoDetect(gpointer p) {
 	return FALSE;
 }
 
+gchar* cosmetic_log_hook(gpointer p, log_hook_detail detail) {
+	struct cosmetic_data *args = (struct cosmetic_data*) p;
+	gchar *message = NULL;
+	if (args->sigma[0] >= 0.0 && args->sigma[1] >= 0.0) {
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, cold sigma %.2f, amount %.2f)..."), args->sigma[1], args->sigma[0], args->amount);
+	} else if (args->sigma[0] >= 0.0) {
+		message = g_strdup_printf(_("Cosmetic Correction applied (cold sigma %.2f, amount %.2f)..."), args->sigma[0], args->amount);
+	} else if (args->sigma[1] >= 0.0) {
+		message=g_strdup_printf(_("Cosmetic Correction applied (hot sigma %.2f, amount %.2f)..."), args->sigma[1], args->amount);
+	} else {
+		// Can't apply unless at least one of hot sigma and cold sigma are selected
+		message=g_strdup(_("Error, at least one of hot sigma and cold sigma must be provided"));
+	}
+	return message;
+}
+
 gpointer autoDetectThreaded(gpointer p) {
 	struct cosmetic_data *args = (struct cosmetic_data*) p;
-	struct timeval t_start, t_end;
 	int retval = 0, chan;
 	long icold, ihot;
-
-	siril_log_color_message(_("Cosmetic Correction: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
-
 	icold = ihot = 0L;
 	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 		retval = autoDetect(args->fit, chan, args->sigma, &icold, &ihot,
 				args->amount, args->is_cfa, args->threading);
 		if (retval)
 			break;
-	}
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	gchar *str = ngettext("%ld corrected pixel (%ld + %ld)\n", "%ld corrected pixels (%ld + %ld)\n", icold + ihot);
-	str = g_strdup_printf(str, icold + ihot, icold, ihot);
-	siril_log_message(str);
-	g_free(str);
+		const gchar *tmpl = ngettext(
+				"Channel %d: %ld corrected pixel (%ld + %ld)\n",
+				"Channel %d: %ld corrected pixels (%ld + %ld)\n",
+				icold + ihot);
 
-	free(args);
-	siril_add_idle(end_autoDetect, NULL);
+		gchar *str = g_strdup_printf(tmpl, chan, icold + ihot, icold, ihot);
+		siril_log_message(str);
+		g_free(str);
+	}
+
 	return GINT_TO_POINTER(retval);
 }
 
@@ -584,7 +595,6 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
 	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
-//	g_object_unref(c_args->file);
 	return retval;
 }
 
@@ -772,6 +782,10 @@ void on_checkSigCosme_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 	gtk_widget_set_sensitive(cosmeticApply, checkCold || checkHot);
 }
 
+int cosmetic_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
+	return GPOINTER_TO_INT(autoDetectThreaded(args->user));
+}
+
 void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry *cosmeticSeqEntry;
 	GtkToggleButton *CFA, *seq;
@@ -817,10 +831,30 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->threading = MULTI_THREADED;
-		undo_save_state(gfit, _("Cosmetic Correction"));
-		if (!start_in_new_thread(autoDetectThreaded, args)) {
-			free(args->seqEntry);
-			free(args);
+
+		// Allocate worker args
+		struct generic_img_args *ga = calloc(1, sizeof(struct generic_img_args));
+		if (!ga) {
+			PRINT_ALLOC_ERR;
+			free_cosmetic_data(args);
+			return;
+		}
+
+		// Set the fit based on whether ROI is active
+		ga->fit = gfit;
+		ga->mem_ratio = 2.f; // CCM needs minimal extra memory
+		ga->image_hook = cosmetic_image_hook_generic;
+		ga->idle_function = cosme_idle;
+		ga->description = _("Cosmetic Correction");
+		ga->verbose = TRUE;
+		ga->user = args;
+		args->fit = gfit;
+		ga->log_hook = cosmetic_log_hook;
+		ga->max_threads = com.max_thread;
+
+		if (!start_in_new_thread(generic_image_worker, ga)) {
+			free_generic_img_args(ga);
+			return;
 		}
 	}
 }
@@ -832,4 +866,72 @@ int denoise_hook_cosmetic(fits *fit) {
 		autoDetect(fit, layer, sig, &icold, &ihot, 1.0, FALSE, MULTI_THREADED);
 	}
 	return 0;
+}
+
+/*****************************************************************************
+ *      C O S M E      A L L O C A T O R   A N D   D E S T R U C T O R      *
+ ****************************************************************************/
+
+/* Allocator for cosme_data */
+struct cosme_data *new_cosme_data() {
+	struct cosme_data *args = calloc(1, sizeof(struct cosme_data));
+	if (args) {
+		args->destroy_fn = free_cosme_data;
+	}
+	return args;
+}
+
+/* Destructor for cosme_data */
+void free_cosme_data(void *ptr) {
+	struct cosme_data *args = (struct cosme_data *)ptr;
+	if (!args)
+		return;
+
+	g_clear_object(&args->file);
+	if (args->prefix)
+		free(args->prefix);
+
+	free(ptr);
+}
+
+/* Allocator for cosme_data */
+struct cosmetic_data *new_cosmetic_data() {
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
+	if (args) {
+		args->destroy_fn = free_cosmetic_data;
+	}
+	return args;
+}
+
+/* Destructor for cosme_data */
+void free_cosmetic_data(void *ptr) {
+	struct cosmetic_data *args = (struct cosmetic_data *)ptr;
+	if (!args)
+		return;
+	free(args->seqEntry);
+	free(ptr);
+}
+
+/* Image processing hook for generic_image_worker */
+int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct cosme_data *params = (struct cosme_data *)args->user;
+	if (!params)
+		return 1;
+
+	return apply_cosme_to_image(fit, params->file, params->is_cfa);
+}
+
+/* Idle function for cosmetic correction */
+gboolean cosme_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+
+	return FALSE;
 }

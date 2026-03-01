@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,6 +41,8 @@
 #include "median.h"
 #include "algos/median_fast.h"
 
+void fill_median_params_from_gui(struct median_filter_data *params, gboolean for_preview);
+
 void median_roi_callback() {
 	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
@@ -48,11 +50,53 @@ void median_roi_callback() {
 	notify_gfit_modified();
 }
 
+/* Idle function for preview updates */
+static gboolean median_preview_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/* Idle function for final application */
+static gboolean median_apply_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (args->retval == 0) {
+		copy_gfit_to_backup();
+		populate_roi();
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	median_close();
+	return FALSE;
+}
+
+gchar* median_log_hook(gpointer p, log_hook_detail detail) {
+	struct median_filter_data *params = (struct median_filter_data *) p;
+	if (detail == SUMMARY)
+		return g_strdup_printf(_("Median filter: ksize %d, iters %d, amount %.3f"),
+				params->ksize, params->iterations, params->amount);
+	return g_strdup_printf(_("Median filter: kernel size %d, iters %d, amount %.3f"),
+			params->ksize, params->iterations, params->amount);
+}
+
+int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct median_filter_data *params = (struct median_filter_data*) args->user;
+	if (!params)
+		return 1;
+	return GPOINTER_TO_INT(median_filter(params));
+}
+
 void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
 	roi_supported(TRUE);
-	median_roi_callback();
-	add_roi_callback(median_roi_callback);
+	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
 	copy_gfit_to_backup();
+	add_roi_callback(median_roi_callback);
 }
 
 void median_close() {
@@ -66,8 +110,8 @@ void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
 	median_close();
 }
 
-void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (!check_ok_if_cfa())
+void fill_median_params_from_gui(struct median_filter_data *params, gboolean for_preview) {
+	if (!params)
 		return;
 
 	int combo_size = gtk_combo_box_get_active(
@@ -77,47 +121,73 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_median")));
 	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "median_button_iterations"))));
 
+	switch (combo_size) {
+		default:
+		case 0:
+			params->ksize = 3;
+			break;
+		case 1:
+			params->ksize = 5;
+			break;
+		case 2:
+			params->ksize = 7;
+			break;
+		case 3:
+			params->ksize = 9;
+			break;
+		case 4:
+			params->ksize = 11;
+			break;
+		case 5:
+			params->ksize = 13;
+			break;
+		case 6:
+			params->ksize = 15;
+			break;
+	}
+	params->fit = for_preview && gui.roi.active && !com.headless ? &gui.roi.fit : gfit;
+	params->amount = amount;
+	params->iterations = iterations;
+}
+
+void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	if (!check_ok_if_cfa())
+		return;
+	set_cursor_waiting(TRUE);
+
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
-	struct median_filter_data *args = calloc(1, sizeof(struct median_filter_data));
+	copy_backup_to_gfit();
 
-	args->previewing = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
+	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
+	gboolean for_preview = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
+	fill_median_params_from_gui(params, for_preview);
 
-	switch (combo_size) {
-		default:
-		case 0:
-			args->ksize = 3;
-			break;
-		case 1:
-			args->ksize = 5;
-			break;
-		case 2:
-			args->ksize = 7;
-			break;
-		case 3:
-			args->ksize = 9;
-			break;
-		case 4:
-			args->ksize = 11;
-			break;
-		case 5:
-			args->ksize = 13;
-			break;
-		case 6:
-			args->ksize = 15;
-			break;
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return;
 	}
 
-	args->fit = args->previewing && gui.roi.active ? &gui.roi.fit : gfit;
-	args->amount = amount;
-	args->iterations = iterations;
-	set_cursor_waiting(TRUE);
-	if (!start_in_new_thread(median_filter, args))
-		free(args);
+	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = median_image_hook;
+	args->idle_function = for_preview ? median_preview_idle : median_apply_idle; // No idle function for command execution
+	args->description = _("Median filter");
+	args->command_updates_gfit = TRUE;
+	args->verbose = !for_preview; // Only verbose for final application
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = gui.roi.active;
 
+	generic_image_worker(args);
 }
 
 /*****************************************************************************
@@ -259,38 +329,17 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
  *                      M E D I A N     F I L T E R                          *
  ****************************************************************************/
 
-static gboolean end_median_filter(gpointer p) {
-	struct median_filter_data *args = (struct median_filter_data *) p;
-	if (!args->previewing) {
-		copy_gfit_to_backup();
-		populate_roi();
-	}
-	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-	free(args);
-	return FALSE;
-}
-
 static gpointer median_filter_ushort(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	int progress = 0;
 	int nx = args->fit->rx;
 	int ny = args->fit->ry;
 	double total;
-	struct timeval t_start, t_end;
 	int radius = (args->ksize - 1) / 2;
 
 	g_assert(args->ksize % 2 == 1 && args->ksize > 1);
 	g_assert(nx > 0 && ny > 0);
 	total = ny * args->fit->naxes[2] * args->iterations;
-
-	char *msg = siril_log_color_message(_("Median Filter: processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
-	gettimeofday(&t_start, NULL);
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(WORD);
 	WORD *temp = calloc(1, alloc_size); // we need a temporary buffer
@@ -490,10 +539,6 @@ static gpointer median_filter_ushort(gpointer p) {
 	}
 	free(temp);
 	invalidate_stats_from_fit(args->fit);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	set_progress_bar_data(_("Median filter applied"), PROGRESS_DONE);
-	siril_add_idle(end_median_filter, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -504,17 +549,11 @@ static gpointer median_filter_float(gpointer p) {
 	int nx = args->fit->rx;
 	int ny = args->fit->ry;
 	double total;
-	struct timeval t_start, t_end;
 	int radius = (args->ksize - 1) / 2;
 
 	g_assert(args->ksize % 2 == 1 && args->ksize > 1);
 	g_assert(nx > 0 && ny > 0);
 	total = ny * args->fit->naxes[2] * args->iterations;
-
-	char *msg = siril_log_color_message(_("Median Filter: processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
-	gettimeofday(&t_start, NULL);
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(float);
 	float *temp = calloc(1, alloc_size); // we need a temporary buffer
@@ -781,10 +820,6 @@ static gpointer median_filter_float(gpointer p) {
 	}
 	free(temp);
 	invalidate_stats_from_fit(args->fit);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	set_progress_bar_data(_("Median filter applied"), PROGRESS_DONE);
-	siril_add_idle(end_median_filter, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -796,16 +831,17 @@ gpointer median_filter(gpointer p) {
 	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
-	if (!com.script && !args->previewing)
-		undo_save_state(gfit, _("Median Filter (filter=%dx%d px)"),
-			args->ksize, args->ksize);
+	if (!com.script && !args->previewing) {
+		undo_save_state(gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
+			args->ksize, args->ksize, args->iterations, args->amount);
+		siril_log_color_message(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"), "green",
+			args->ksize, args->ksize, args->iterations, args->amount);
+	}
 	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
 		retval = median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
 		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	if (args->fit == gfit)
-		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }

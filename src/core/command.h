@@ -36,12 +36,14 @@ gboolean get_followstar_idle(gpointer user_data);
 
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
+int	process_autostretch_mask(int nb);
 int	process_autoghs(int nb);
 int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
 int	process_binxy(int nb);
+int	process_blur_mask(int nb);
 int	process_denoise(int nb);
 gpointer run_nlbayes_on_fit(gpointer p);
 gpointer run_bm3d_on_fit(gpointer p);
@@ -51,6 +53,7 @@ int	process_boxselect(int nb);
 int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catmag_mono(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);
@@ -58,6 +61,7 @@ int	process_cdg(int nb);
 int	process_crop(int nb);
 int	process_clahe(int nb);
 int	process_clear(int nb);
+int	process_clear_mask(int nb);
 int	process_clearstar(int nb);
 int	process_close(int nb);
 int	process_conesearch(int nb);
@@ -70,6 +74,7 @@ int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
 int	process_epf(int nb);
+int	process_eqcrop(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);
@@ -79,6 +84,7 @@ int	extract_HaOIII(extraction_scaling scaling);
 int	process_extractHaOIII(int nb);
 
 int	process_fdiv(int nb);
+int	process_feather_mask(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
 int	process_ffill(int nb);
@@ -105,6 +111,7 @@ int	process_icc_assign(int nb);
 int	process_icc_convert_to(int nb);
 int	process_icc_remove(int nb);
 int	process_imoper(int nb);
+int	process_invert_mask(int nb);
 int	process_inspector(int nb);
 
 int	process_light_curve(int nb);
@@ -117,6 +124,13 @@ int	process_log(int nb);
 int	process_ls(int nb);
 
 int	process_makepsf(int nb);
+int process_mask_bitpix(int nb);
+int	process_mask_fmul(int nb);
+int	process_mask_from_channel(int nb);
+int process_mask_from_color(int nb);
+int	process_mask_from_lum(int nb);
+int	process_mask_from_stars(int nb);
+int	process_mask_threshold(int nb);
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
@@ -263,5 +277,6 @@ int process_start_ls(int nb);
 int process_livestack(int nb);
 int process_stop_ls(int nb);
 
-int process_show(int nb);
+int	process_show(int nb);
+
 #endif

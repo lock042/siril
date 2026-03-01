@@ -1,7 +1,7 @@
- /*
+/*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,9 +21,11 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
@@ -38,125 +40,106 @@ static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
-int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
-	gboolean stars_needs_freeing = FALSE;
-	psf_star **stars = NULL;
-	int channel = 1;
+/* Helper function to get current widget values */
+static void get_unpurple_values(double *mod_b_out, double *thresh_out, gboolean *withstarmask_out) {
+	if (mod_b_out)
+		*mod_b_out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_mod_b")));
+	if (thresh_out)
+		*thresh_out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh")));
+	if (withstarmask_out)
+		*withstarmask_out = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars")));
+}
 
-	int nb_stars = starcount(com.stars);
-	int dimx = fit->naxes[0];
-	int dimy = fit->naxes[1];
-	int count = dimx * dimy;
-
-	// Do we have stars from Dynamic PSF or not?
-	if (nb_stars < 1) {
-		image *input_image = NULL;
-		input_image = calloc(1, sizeof(image));
-		input_image->fit = fit;
-		input_image->from_seq = NULL;
-		input_image->index_in_seq = -1;
-		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-						NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
-		free(input_image);
-		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		stars_needs_freeing = FALSE;
+/* Create and launch unpurple processing */
+static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) {
+	// Allocate parameters
+	struct unpurpleargs *params = new_unpurple_args();
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
 	}
 
-	if (starcount(stars) < 1) {
-		siril_log_color_message(_("No stars detected in the image.\n"), "red");
-		return -1;
-	}
+	// Get current values from widgets
+	gboolean withstarmask;
+	get_unpurple_values(&params->mod_b, &params->thresh, &withstarmask);
+	params->withstarmask = withstarmask;
+	params->fit = for_roi ? &gui.roi.fit : gfit;
 
-	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
-	if (new_fit_image(star_mask, dimx, dimy, 1, DATA_USHORT)) {
-		return -1;
-	}
+	// Set up starmask if needed
+	params->starmask_needs_freeing = FALSE;
+	if (withstarmask) {
+		// For preview, reuse existing starmask if valid
+		if (for_preview && starmask.naxis != 0 && gui.roi.active == is_roi && old_thresh == params->thresh) {
+			params->starmask = &starmask;
+		} else {
+			// Need to create new starmask
+			params->starmask = calloc(1, sizeof(fits));
+			if (!params->starmask) {
+				PRINT_ALLOC_ERR;
+				free_unpurple_args(params);
+				return 1;
+			}
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
-#endif
-	for (size_t i = 0; i < dimx * dimy; i++) {
-		(*star_mask)->pdata[0][i] = 0;
-	}
+			if (generate_binary_starmask(params->fit, &params->starmask, params->thresh)) {
+				free_unpurple_args(params);
+				return 1;
+			}
+			params->starmask_needs_freeing = TRUE;
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(com.max_thread)
-#endif
-	for (int n = 0; n < nb_stars; n++) {
-		int size = (int) 2 * max(stars[n]->fwhmx, stars[n]->fwhmy);
-
-		// The fringe factor tries to adjust the star size to allow for the purple fringe
-		// The threshold slider decides the scaling factor
-		double base_fringe = 10.0;
-		double fringe = base_fringe + threshold * pow(size, 1.5);
-		size = sqrt(pow(size, 2) + pow(fringe, 2));
-
-		if (size % 2 == 0)
-			size++;
-
-		int x0 = (int)(stars[n]->xpos - size / 2);
-		int y0 = (int)((dimy - stars[n]->ypos) - size / 2);
-		for (int y = 0; y < size; y++) {
-			for (int x = 0; x < size; x++) {
-				int px = x0 + x;
-				int py = y0 + y;
-				if (px >= 0 && px < dimx && py >= 0 && py < dimy) {
-					int idx = py * dimx + px;
-					if (idx >= 0 && idx < count) {
-						double dx = x - (size / 2.0);
-						double dy = y - (size / 2.0);
-						double distance = sqrt(dx * dx + dy * dy);
-						int is_star = (distance <= (size / 2.0)) ? 1 : 0;
-						(*star_mask)->pdata[0][idx] = is_star ? USHRT_MAX : (*star_mask)->pdata[0][idx];
-					}
-				}
+			// Update static starmask for preview reuse
+			if (for_preview) {
+				clearfits(&starmask);
+				copyfits(params->starmask, &starmask, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+				is_roi = gui.roi.active;
+				old_thresh = params->thresh;
 			}
 		}
+	} else {
+		params->starmask = NULL;
 	}
 
-	if (stars_needs_freeing)
-		free_fitted_stars(stars);
+	params->verbose = !for_preview;
+	params->applying = !for_preview;
 
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free_unpurple_args(params);
+		return 1;
+	}
+
+	// Set the fit based on whether ROI is active
+	args->fit = for_roi ? &gui.roi.fit : gfit;
+	args->mem_ratio = 2.0f; // unpurple needs some extra memory
+	args->image_hook = unpurple_image_hook;
+	args->idle_function = for_preview ? unpurple_preview_idle : unpurple_apply_idle;
+	args->description = _("Unpurple Filter");
+	args->verbose = !for_preview;
+	args->user = params;
+	args->log_hook = unpurple_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = for_roi;
+
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return 1;
+	}
 	return 0;
 }
 
 static int unpurple_update_preview() {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview"))))
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
 		copy_backup_to_gfit();
-
-	gboolean withstarmask = TRUE;
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars"))))
-		withstarmask = FALSE;
-
-	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
-
-	// We need to create a star mask if one doesn't already exist
-	// and we need to recreate it if we change roi
-	if (withstarmask) {
-		if (starmask.naxis == 0 || gui.roi.active != is_roi || old_thresh != thresh) {
-			is_roi = gui.roi.active;
-			old_thresh = thresh;
-			fits *starmask_ptr = &starmask;
-			generate_binary_starmask(fit, &starmask_ptr, thresh);
-		}
-	}
-
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
-	set_cursor_waiting(TRUE);
-	// we call the unpurple_filter directly here because update_preview already handles the ROI mutex lock
-	if (!start_in_new_thread(unpurple_filter, args)) {
-		free(args);
+		return unpurple_process_with_worker(TRUE, gui.roi.active);
 	}
 	return 0;
 }
 
 void unpurple_change_between_roi_and_image() {
-	// If we are showing the preview, update it after the ROI change.
 	gui.roi.operation_supports_roi = TRUE;
-	roi_supported(TRUE);
+	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
@@ -164,18 +147,18 @@ void unpurple_change_between_roi_and_image() {
 }
 
 static void unpurple_startup() {
+	copy_gfit_to_backup();
 	add_roi_callback(unpurple_change_between_roi_and_image);
 	roi_supported(TRUE);
-	copy_gfit_to_backup();
 }
 
 static void unpurple_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
-		siril_preview_hide();
+		copy_backup_to_gfit();
+		notify_gfit_modified();
 	} else {
 		invalidate_stats_from_fit(gfit);
-		undo_save_state(get_preview_gfit_backup(), _("Unpurple filter: (thresh=%2.2lf, mod_b=%2.2lf)"), thresh, mod_b);
 	}
 	roi_supported(FALSE);
 	remove_roi_callback(unpurple_change_between_roi_and_image);
@@ -184,35 +167,10 @@ static void unpurple_close(gboolean revert) {
 	set_cursor_waiting(FALSE);
 }
 
-static int unpurple_process_all() {
-	set_cursor_waiting(TRUE);
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview"))))
-		copy_backup_to_gfit();
-	fits *fit = gfit;
-
-	gboolean withstarmask = TRUE;
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars"))))
-		withstarmask = FALSE;
-
-	//TODO: Optimization: Can we reuse the starmask we already have?
-	if (withstarmask) {
-		fits *starmask_ptr = &starmask;
-		generate_binary_starmask(fit, &starmask_ptr, thresh);
-	}
-
-	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
-
-	// We call the unpurple handler here because we don't have update_preview to handle the ROI mutex for us
-	if (!start_in_new_thread(unpurple_handler, args)) {
-		free(args);
-	}
-
-	return 0;
-}
-
 static void apply_unpurple_changes() {
-	gboolean status = (mod_b != 1.0) || (thresh != 0.0);
+	double mod_b_val, thresh_val;
+	get_unpurple_values(&mod_b_val, &thresh_val, NULL);
+	gboolean status = (mod_b_val != 1.0) || (thresh_val != 0.0);
 	unpurple_close(!status);
 }
 
@@ -228,19 +186,16 @@ void on_unpurple_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_unpurple_thresh = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh"));
 
 	unpurple_startup();
-	mod_b = 1.0, thresh = 0.0;
+	clearfits(&starmask);
+
+	mod_b = 1.0;
+	thresh = 0.0;
 
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_unpurple_mod_b, mod_b);
 	gtk_spin_button_set_value(spin_unpurple_thresh, thresh);
-
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")), FALSE);
 	set_notify_block(FALSE);
-
-	// Default parameters transform the image, so update the preview if toggle is active
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
-	notify_update((gpointer)param);
 }
 
 void on_unpurple_cancel_clicked(GtkButton *button, gpointer user_data) {
@@ -250,9 +205,14 @@ void on_unpurple_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_unpurple_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview"))) || gui.roi.active) {
-		unpurple_process_all();
+
+	// If preview is on, need to copy backup to gfit first
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
+		copy_backup_to_gfit();
 	}
+
+	// Always process full image when Apply is clicked
+	unpurple_process_with_worker(FALSE, FALSE);
 
 	apply_unpurple_changes();
 	siril_close_dialog("unpurple_dialog");
@@ -266,11 +226,13 @@ void on_unpurple_undo_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_unpurple_mod_b = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_mod_b"));
 	GtkSpinButton *spin_unpurple_thresh = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh"));
 
-	mod_b = 1.0, thresh = 0.0;
+	mod_b = 1.0;
+	thresh = 0.0;
 
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_unpurple_mod_b, mod_b);
 	gtk_spin_button_set_value(spin_unpurple_thresh, thresh);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")), TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();

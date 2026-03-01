@@ -3,16 +3,18 @@
 
 #include <glib.h>
 
-/* color saturation data from GUI */
-struct enhance_saturation_data {
-	fits *input, *output;
-	double coeff, h_min, h_max, background_factor;
-	gboolean for_preview, for_final;
-};
+typedef struct {
+	void (*free)(gpointer); // Destructor required by generic_img_args
+	double coeff;
+	double background_factor;
+	double h_min;
+	double h_max;
+} saturation_params;
 
+gchar* satu_log_hook(gpointer p, log_hook_detail detail);
 void satu_change_between_roi_and_image();
 void apply_satu_cancel();
-gpointer enhance_saturation(gpointer p);
-void satu_set_hues_from_types(struct enhance_saturation_data *args, int type);
+void satu_set_hues_from_types(saturation_params *args, int type);
+int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
 #endif /* SRC_GUI_SATURATION_H_ */

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 #include "algos/statistics.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/siril_log.h"
 #include "opencv/opencv.h"
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
@@ -36,14 +37,90 @@
 
 #include "clahe.h"
 
-static double clahe_limit_value;
-static int clahe_tile_size;
-static gboolean clahe_show_preview;
+/* The actual CLAHE processing hook */
+int clahe_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	clahe_params *params = (clahe_params *)args->user;
+	if (!params)
+		return 1;
+
+	return cvClahe(fit, params->clip, params->tileSize);
+}
+
+gchar *clahe_log_hook(gpointer p, log_hook_detail detail) {
+	clahe_params *params = (clahe_params *) p;
+	if (!params) return NULL;
+	gchar *message = g_strdup_printf(_("CLAHE (size=%d, clip=%.2f)"), params->tileSize, params->clip);
+	return message;
+}
+
+/* Idle function for preview / final application updates */
+static gboolean clahe_worker_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+/* Helper function to get current widget values */
+static void get_clahe_values(double *clip, int *tileSize) {
+	if (clip)
+		*clip = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")));
+	if (tileSize)
+		*tileSize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")));
+}
+
+/* Create and launch CLAHE processing */
+static int clahe_process_with_worker(gboolean for_preview) {
+	// Allocate parameters
+	clahe_params *params = calloc(1, sizeof(clahe_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Get current values from widgets
+	get_clahe_values(&params->clip, &params->tileSize);
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return 1;
+	}
+
+	args->fit = gfit;
+	args->mem_ratio = 2.0f; // CLAHE needs additional memory for tile processing
+	args->image_hook = clahe_image_hook;
+	args->idle_function = clahe_worker_idle;
+	args->description = _("CLAHE");
+	args->verbose = !for_preview; // Only verbose for final application
+	args->user = params;
+	args->log_hook = clahe_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = FALSE; // CLAHE always operates on full image (no ROI support)
+
+	start_in_new_thread(generic_image_worker, args);
+	return 0;
+}
+
+/* Update preview using the worker */
+static int clahe_update_preview() {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")))) {
+		copy_backup_to_gfit();
+		return clahe_process_with_worker(TRUE);
+	}
+	return 0;
+}
 
 static void clahe_startup() {
 	copy_gfit_to_backup();
-	clahe_limit_value = 2.0;
-	clahe_tile_size = 8;
 }
 
 static void clahe_close(gboolean revert) {
@@ -52,49 +129,13 @@ static void clahe_close(gboolean revert) {
 		siril_preview_hide();
 	} else {
 		invalidate_stats_from_fit(gfit);
-		undo_save_state(get_preview_gfit_backup(),
-				_("CLAHE (size=%d, clip=%.2f)"), clahe_tile_size, clahe_limit_value);
+
+		double clip;
+		int tileSize;
+		get_clahe_values(&clip, &tileSize);
 	}
 	clear_backup();
 	set_cursor_waiting(FALSE);
-}
-
-static int clahe_update_preview() {
-	copy_backup_to_gfit();
-
-	struct CLAHE_data *args = calloc(1, sizeof(struct CLAHE_data));
-
-	set_cursor_waiting(TRUE);
-
-	args->fit = gfit;
-	args->clip = clahe_limit_value;
-	args->tileSize = clahe_tile_size;
-
-	if (!start_in_new_thread(clahe, args))
-		free(args);
-	return 0;
-}
-
-static gboolean end_clahe(gpointer p) {
-	struct CLAHE_data *args = (struct CLAHE_data *) p;
-	stop_processing_thread();
-	set_cursor_waiting(FALSE);
-
-	free(args);
-
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	return FALSE;
-}
-
-gpointer clahe(gpointer p) {
-	struct CLAHE_data *args = (struct CLAHE_data*) p;
-
-	cvClahe(args->fit, args->clip, args->tileSize);
-
-	siril_add_idle(end_clahe, args);
-	return GINT_TO_POINTER(0);
 }
 
 void apply_clahe_cancel() {
@@ -126,19 +167,51 @@ void on_clahe_undo_clicked(GtkButton *button, gpointer user_data) {
 	/* default parameters transform image, we need to update preview */
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = clahe_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
 	notify_update((gpointer) param);
 }
 
 void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (clahe_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = clahe_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+
+	// If preview is on, need to copy backup to gfit first
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")))) {
+		copy_backup_to_gfit();
 	}
+
+	// Allocate parameters for full image processing
+	clahe_params *params = calloc(1, sizeof(clahe_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	// Get current values from widgets
+	get_clahe_values(&params->clip, &params->tileSize);
+
+	// Allocate worker args
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return;
+	}
+
+	// Always process the full gfit
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = clahe_image_hook;
+	args->idle_function = clahe_worker_idle;
+	args->description = _("CLAHE");
+	args->verbose = TRUE;
+	args->user = params;
+	args->log_hook = clahe_log_hook;
+	args->max_threads = com.max_thread;
+	args->for_preview = FALSE;
+	args->for_roi = FALSE;
+
+	start_in_new_thread(generic_image_worker, args);
 
 	clahe_close(FALSE);
 	siril_close_dialog("CLAHE_dialog");
@@ -148,40 +221,35 @@ void on_CLAHE_dialog_show(GtkWidget *widget, gpointer user_data) {
 	clahe_startup();
 
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")), clahe_tile_size);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")),	clahe_limit_value);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")), 8);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")), 2.0);
 	set_notify_block(FALSE);
-
-	clahe_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
 
 	/* default parameters transform image, we need to update preview */
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = clahe_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
 	notify_update((gpointer) param);
 }
 
 /** adjusters **/
 void on_spin_clahe_value_changed(GtkSpinButton *button, gpointer user_data) {
-	clahe_limit_value = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = clahe_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
 	notify_update((gpointer) param);
 }
 
 void on_clahe_tiles_size_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
-	clahe_tile_size = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = clahe_show_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
 	notify_update((gpointer) param);
 }
 
 void on_clahe_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
-	clahe_show_preview = gtk_toggle_button_get_active(button);
-	if (!clahe_show_preview) {
+	if (!gtk_toggle_button_get_active(button)) {
 		/* if user click very fast */
 		waiting_for_thread();
 		siril_preview_hide();
@@ -194,4 +262,3 @@ void on_clahe_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		notify_update((gpointer) param);
 	}
 }
-

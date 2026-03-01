@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,6 +36,7 @@
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
@@ -1326,6 +1327,10 @@ void clearfits(fits *fit) {
 		free(fit->fdata);
 		fit->fdata = NULL;
 	}
+	if (fit->mask) {
+		free_mask(fit->mask);
+		fit->mask = NULL;
+	}
 	clearfits_header(fit);
 }
 
@@ -1658,11 +1663,14 @@ int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit) {
 	return read_fits_metadata_from_path_internal(filename, fit, FALSE);
 }
 
-void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
+gboolean flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 	/* reverse the read data, because it's stored upside-down */
 	if (get_data_type(bitpix) == DATA_FLOAT) {
 		int line_size = area->w * sizeof(float);
 		void *swap = malloc(line_size);
+		if (!swap) {
+			return FALSE;
+		}
 		float *buf = (float *)buffer;
 		int i;
 		for (i = 0; i < area->h/2 ; i++) {
@@ -1674,6 +1682,9 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 	} else {
 		int line_size = area->w * sizeof(WORD);
 		void *swap = malloc(line_size);
+		if (!swap) {
+			return FALSE;
+		}
 		WORD *buf = (WORD *)buffer;
 		int i;
 		for (i = 0; i < area->h/2 ; i++) {
@@ -1683,6 +1694,7 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 		}
 		free(swap);
 	}
+	return TRUE;
 }
 
 
@@ -1722,7 +1734,9 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	if (status)
 		return 1;
 
-	flip_buffer(seq->bitpix, buffer, area);
+	if (!flip_buffer(seq->bitpix, buffer, area)) {
+		return 1;
+	}
 	return 0;
 }
 
@@ -2025,6 +2039,7 @@ int save_opened_fits(fits *f) {
  * - CP_COPYA: copies the actual data, from->data to to->data on all layers,
  *   but no other information from the source. Should not be used with CP_INIT
  * - CP_FORMAT: copy all metadata and leaves data to null
+ * - CP_COPYMASK: copy the image mask
  * - CP_EXPAND: forces the destination number of layers to be taken as 3, but
  *   the other operations have no modifications, meaning that if the source
  *   image has one layer, the output image will have only one actual layer
@@ -2063,6 +2078,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->fpdata[0] = NULL;
 		to->fpdata[1] = NULL;
 		to->fpdata[2] = NULL;
+		to->mask = NULL;
 		to->header = NULL;
 		to->unknown_keys = NULL;
 		to->history = NULL;
@@ -2165,6 +2181,29 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		}
 	}
 
+	if (oper & CP_COPYMASK) {
+		if (from->mask) {
+			to->mask = calloc(1, sizeof(mask_t));
+			if (!to->mask) {
+				PRINT_ALLOC_ERR;
+			} else {
+				to->mask->bitpix = from->mask->bitpix;
+				to->mask_active = from->mask_active;
+				int elem_size = to->mask->bitpix >> 3;
+				to->mask->data = malloc(nbdata * elem_size);
+				if (to->mask->data) {
+					memcpy(to->mask->data, from->mask->data, nbdata * elem_size);
+				} else {
+					PRINT_ALLOC_ERR;
+					free(to->mask);
+					to->mask = NULL;
+				}
+			}
+		} else {
+			to->mask = NULL;
+		}
+	}
+
 	if ((oper & CP_ALLOC) || (oper & CP_COPYA)) {
 		// copy color management data
 		to->color_managed = from->color_managed;
@@ -2241,6 +2280,9 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	color_manage(to, FALSE);
 	to->icc_profile = NULL;
 	to->keywords.wcslib = NULL;
+	to->mask = NULL; // since this is not a deep copy we must clear this to avoid problems when
+	// this shallow copy is cleared
+	to->mask_active = FALSE;
 
 	if (from->type == DATA_USHORT)
 		if (to_float) {
@@ -2989,10 +3031,6 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	for (int i = 0; i < Hs; i++) {
 		int src_row_offset  = i * Ws;
 		int dest_row_offset = (Hs - 1 - i) * Ws * 3;
-
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 		for (int j = 0; j < Ws; j++) {
 			int src_idx  = src_row_offset + j;
 			int dest_idx = dest_row_offset + j * 3;
@@ -3099,7 +3137,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 // f is NULL-terminated and not empty
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	// input validation
-	if (!f || !f[0] || !f[1] || !result) {
+	if (!f || !f[0] || !result) {
 		siril_debug_print("merge_fits_headers_to_result2: No headers to merge\n");
 		return;
 	}
@@ -3188,88 +3226,6 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
 
 	merge_fits_headers_to_result2(result, array, do_sum);
 	free(array);
-}
-
-/*****************************************************************
- *
- * Functions to operate on special non-image FITS
- * such as the data retrieval products provided by Gaia datalink
- *
- * **************************************************************/
-
-int get_xpsampled(double *xps, const gchar *filename, int i) {
-	// The dataset wavelength range is always the same for all xpsampled spectra
-	// The spacing is always 2nm iaw the dataset
-	int status = 0, num_hdus = 0, anynul = 0, fluxcol = 0;
-	long nrows;
-	// We open a separate fptr so that multiple threads can operate on the file
-	// simultaneously, reading data from different HDUs corresponding to different sources.
-	fitsfile *fptr = NULL;
-	siril_fits_open_diskfile(&fptr, filename, READONLY, &status);
-	// HDU 1 is the Primary HDU but is a dummy in xp_sampled FITS
-	// so the first useful HDU (corresponding to the source at
-	// position 0 in the catalog) is HDU 2.
-	const int hdu = 2;
-	fits_get_num_hdus(fptr, &num_hdus, &status);
-	if (hdu > num_hdus) {
-		siril_debug_print("HDU out of range: hdu = %d, num_hdus = %d\n", hdu, num_hdus);
-		goto error;
-	}
-	// Go to the HDU containing the datalink product
-	if (fits_movabs_hdu(fptr, hdu, NULL, &status)) {
-		fits_report_error(stderr, status);
-		goto error;
-	}
-	// Get the number of rows and check we are asking for a valid entry
-	fits_get_num_rows(fptr, &nrows, &status);
-	if (nrows < i) {
-		siril_debug_print("Too few rows in datalink product FITS\n");
-		goto error;
-	}
-	// Get the column number containing flux
-	if (fits_get_colnum(fptr, CASEINSEN, "flux", &fluxcol, &status)) {
-		fits_report_error(stderr, status);
-		goto error;
-	}
-
-	// Read the repeat and width of the column (to ensure it's a variable-length array)
-	long repeat, width;
-	if (fits_get_eqcoltype(fptr, fluxcol, NULL, &repeat, &width, &status)) {
-		fits_report_error(stderr, status);
-		goto error;
-	}
-
-	// Read the variable-length array pointer and its size
-	long array_length;
-	long offset;
-	if (fits_read_descript(fptr, fluxcol, i, &array_length, &offset, &status)) {
-		fits_report_error(stderr, status);
-		goto error;
-	}
-	if (array_length != XPSAMPLED_LEN) {
-		siril_debug_print("Invalid array length %ld (should be %d)\n", array_length, XPSAMPLED_LEN);
-		goto error;
-	}
-
-	// Temporary memory for the data (we have to do this as the data is float but we need it as double)
-	float data[XPSAMPLED_LEN];
-
-	// Read the actual array data from the heap
-	if (fits_read_col(fptr, TFLOAT, fluxcol, i+1, 1, array_length, NULL, data, &anynul, &status)) {
-		fits_report_error(stderr, status);
-		goto error;
-	}
-	// Transfer the data from our temp float buffer to the xps double buffer
-	for (int j = 0 ; j < array_length ; j++) {
-		xps[j] = data[j];
-	}
-
-	if (fits_close_file(fptr, &status))
-		fits_report_error(stderr, status);
-	return 0;
-error:
-	fits_close_file(fptr, &status);
-	return 1;
 }
 
 typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);

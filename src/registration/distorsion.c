@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_alloc.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
@@ -258,13 +259,13 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 		return 0;
 
 	if (!disto->xmap) {
-		disto->xmap = malloc(rx * ry *sizeof(float));
-		disto->ymap = malloc(rx * ry *sizeof(float));
+		disto->xmap = siril_malloc(rx * ry * sizeof(float));
+		disto->ymap = siril_malloc(rx * ry * sizeof(float));
 	}
 
 	if (!disto->xmap || !disto->ymap) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 		disto->xmap = NULL;
 		disto->ymap = NULL;
 		return 2;
@@ -618,8 +619,8 @@ void free_disto_args(disto_data *disto) {
 		return;
 	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
 	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
-		free(disto->xmap);
-		free(disto->ymap);
+		siril_free(disto->xmap);
+		siril_free(disto->ymap);
 	}
 	free(disto);
 }

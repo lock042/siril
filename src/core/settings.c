@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -69,6 +69,7 @@ preferences pref_init = {
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
 	.drizz_weight_match_bitpix = FALSE,
+	.default_mask_bitpix = 8,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -179,7 +180,8 @@ preferences pref_init = {
 			.showspaces = FALSE,
 			.shownewlines = FALSE,
 			.minimap = FALSE
-		}
+		},
+		.mask_tints_vports = TRUE
 	},
 	.debayer = {
 		.open_debayer = FALSE,

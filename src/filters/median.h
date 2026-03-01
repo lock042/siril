@@ -6,6 +6,7 @@
 
 /* median filter data from GUI */
 struct median_filter_data {
+	destructor destroy_fn;
 	fits *fit;
 	int ksize;
 	double amount;
@@ -14,7 +15,8 @@ struct median_filter_data {
 };
 
 gpointer median_filter(gpointer p);
-
+int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar* median_log_hook(gpointer p, log_hook_detail detail);
 void median_roi_callback();
 void median_close();
 double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,

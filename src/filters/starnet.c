@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -39,6 +39,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/siril_spawn.h"
+#include "core/undo.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
 #include "algos/statistics.h"
@@ -48,6 +49,7 @@
 #include "filters/mtf.h"
 #include "gui/progress_and_log.h"
 #include "gui/remixer.h"
+#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 #include <unistd.h>
@@ -269,8 +271,22 @@ END:
 	return retval;
 }
 
-void free_starnet_args(starnet_data *args) {
-	// do not free multi_args, it is only a reference
+/* Allocator for starnet_data */
+starnet_data *new_starnet_args() {
+	starnet_data *args = calloc(1, sizeof(starnet_data));
+	if (args) {
+		args->destroy_fn = free_starnet_args;
+	}
+	return args;
+}
+
+/* Destructor for starnet_data */
+void free_starnet_args(void *ptr) {
+	starnet_data *args = (starnet_data *)ptr;
+	if (!args)
+		return;
+
+	// Do not free multi_args, it is only a reference
 	g_free(args->stride);
 	free(args);
 	siril_debug_print("starnet_args freed\n");
@@ -304,8 +320,6 @@ gpointer do_starnet(gpointer p) {
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
 	struct remixargs *blendargs = NULL;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
 	// Only allocate as much space for filenames as required - we determine the max pathlength
 #ifndef _WIN32
 	long pathmax = get_pathmax();
@@ -480,8 +494,6 @@ gpointer do_starnet(gpointer p) {
 	// Store current working directory
 	currentdir = g_get_current_dir();
 
-	if (verbose)
-		siril_log_color_message(_("StarNet: running. Please wait...\n"), "green");
 	if (args->customstride && verbose) siril_log_message(_("StarNet: stride = %s...\n"), args->stride);
 	if (!args->starmask && verbose) siril_log_message(_("StarNet: -nostarmask invoked, star mask will not be generated...\n"));
 
@@ -670,7 +682,7 @@ gpointer do_starnet(gpointer p) {
 		siril_log_message(_("Attempting to continue. You will need to clean up the working files manually.\n"));
 	}
 
-	/* we need to copy metadata as they have been removed with readtif     */
+	/* we need to copy metadata as they have been removed with readtif */
 	copy_fits_metadata(current_fit, &workingfit);
 	copy_fits_metadata(current_fit, &fit);
 	workingfit.header = malloc(strlen(current_fit->header)+1);
@@ -782,8 +794,10 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	copy_fits_metadata(&workingfit, current_fit);
-	current_fit->header = malloc(strlen(workingfit.header)+1);
-	memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
+	if (workingfit.header) {
+		current_fit->header = malloc(strlen(workingfit.header)+1);
+		memcpy(current_fit->header, workingfit.header, strlen(workingfit.header)+1);
+	}
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
@@ -801,12 +815,15 @@ gpointer do_starnet(gpointer p) {
 				goto CLEANUP;
 			}
 			copy_fits_metadata(&workingfit, blendargs->fit1);
+			update_fits_header(blendargs->fit1);
+
 			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
 			if (retval) {
 				siril_log_color_message(_("Error: image copy failed...\n"), "red");
 				goto CLEANUP;
 			}
 			copy_fits_metadata(&fit, blendargs->fit2);
+			update_fits_header(blendargs->fit2);
 		}
 	}
 
@@ -844,9 +861,6 @@ gpointer do_starnet(gpointer p) {
 	g_free(torcharg_weights);
 	g_free(torcharg_mask);
 	g_free(torcharg_up);
-	gettimeofday(&t_end, NULL);
-	if (verbose)
-		show_time(t_start, t_end);
 	if ((!args->multi_args)) {
 		if (args->follow_on) {
 			free_starnet_args(args);
@@ -866,10 +880,6 @@ gpointer do_starnet(gpointer p) {
 					free(blendargs);
 				return GINT_TO_POINTER(retval);
 			}
-		} else {
-			notify_gfit_modified();
-			siril_add_idle(end_starnet, args);
-			return GINT_TO_POINTER(retval);
 		}
 	}
 	return GINT_TO_POINTER(retval);
@@ -957,5 +967,55 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 		free_generic_seq_args(seqargs, TRUE);
 	}
 }
+
+/* Image processing hook for generic_image_worker - single images */
+int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	starnet_data *params = (starnet_data *)args->user;
+	if (!params)
+		return 1;
+
+	// Set the fit reference
+	params->starnet_fit = fit;
+
+	if (!args->command) {
+		// Save undo state with descriptive message
+		gchar *undo_msg = g_strdup_printf(_("StarNet: stretch=%s, upscale=%s, stride=%s"),
+			params->linear ? _("yes") : _("no"),
+			params->upscale ? _("yes") : _("no"),
+			params->customstride ? params->stride : _("default"));
+		undo_save_state(get_preview_gfit_backup(), undo_msg);
+		gfit->history = g_slist_append(gfit->history, g_strdup(undo_msg));
+		g_free(undo_msg);
+	}
+
+	// Call the actual StarNet processing function (the external application)
+	// do_starnet returns a gpointer which is GINT_TO_POINTER of the return value
+	gpointer result = do_starnet(params);
+	return GPOINTER_TO_INT(result);
+}
+
+/* Idle function for generic_image_worker - single images */
+gboolean starnet_single_image_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	starnet_data *params = (starnet_data *)args->user;
+
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		// Save undo state with descriptive message
+		gchar *undo_msg = g_strdup_printf(_("StarNet: stretch=%s, upscale=%s, stride=%s"),
+			params->linear ? _("yes") : _("no"),
+			params->upscale ? _("yes") : _("no"),
+			params->customstride ? params->stride : _("default"));
+		g_free(undo_msg);
+
+		notify_gfit_modified();
+	}
+
+	// Free using the generic cleanup which will call the destructor
+	free_generic_img_args(args);
+	return FALSE;
+}
+
 
 #endif

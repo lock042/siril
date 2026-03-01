@@ -1,30 +1,14 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ * Refactored saturation using generic_image_worker
  */
 
 #include <stdlib.h>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/undo.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -35,7 +19,6 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
-#include "gui/registration_preview.h"
 
 #include "saturation.h"
 
@@ -44,46 +27,8 @@ static int satu_hue_type;
 static gboolean satu_show_preview;
 static int satu_update_preview();
 
-void satu_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
-	// If we are showing the preview, update it after the ROI change.
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = satu_update_preview;
-	param->show_preview = satu_show_preview;
-	notify_update((gpointer) param);
-}
-
-static void satu_startup() {
-	roi_supported(TRUE);
-	add_roi_callback(satu_change_between_roi_and_image);
-	copy_gfit_to_backup();
-	satu_amount = 0.0;
-	satu_hue_type = 6;
-}
-
-static void satu_close(gboolean revert) {
-	set_cursor_waiting(TRUE);
-	if (revert) {
-		if (satu_amount != 0.0) {
-			siril_preview_hide();
-		} else {
-			clear_backup();
-		}
-	} else {
-		undo_save_state(get_preview_gfit_backup(),
-				_("Saturation enhancement (amount=%4.2lf)"), satu_amount);
-	}
-	roi_supported(FALSE);
-	remove_roi_callback(satu_change_between_roi_and_image);
-	clear_backup();
-}
-
-static void apply_satu_changes() {
-	gboolean status = satu_amount != 0.0;
-	satu_close(!status);
-}
-
-void satu_set_hues_from_types(struct enhance_saturation_data *args, int type) {
+/* Helper to map hue types to degree ranges */
+void satu_set_hues_from_types(saturation_params *args, int type) {
 	switch (type) {
 		case 0:		// Pink-Red to Red-Orange
 			args->h_min = 346.0;
@@ -116,110 +61,34 @@ void satu_set_hues_from_types(struct enhance_saturation_data *args, int type) {
 	}
 }
 
-static int satu_process_all() {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-
-	set_cursor_waiting(TRUE);
-	if (satu_show_preview)
-		copy_backup_to_gfit();
-	else if (gui.roi.active)
-		restore_roi();
-
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
-	satu_set_hues_from_types(args, satu_hue_type);
-
-	args->input = gfit;
-	args->output = gfit;
-	args->coeff = satu_amount;
-	args->background_factor = background_factor;
-	args->for_preview = TRUE;
-	args->for_final = TRUE;
-
-	if (!start_in_new_thread(enhance_saturation, args))
-		free(args);
-
-	return 0;
-}
-
-static int satu_update_preview() {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-
-	set_cursor_waiting(TRUE);
-	if (satu_show_preview)
-		copy_backup_to_gfit();
-	fits *fit = gui.roi.active ? &gui.roi.fit : gfit;
-
-	struct enhance_saturation_data *args = calloc(1, sizeof(struct enhance_saturation_data));
-	satu_set_hues_from_types(args, satu_hue_type);
-
-	args->input = fit;
-	args->output = fit;
-	args->coeff = satu_amount;
-	args->background_factor = background_factor;
-	args->for_preview = TRUE;
-	args->for_final = FALSE;
-
-	if (!start_in_new_thread(enhance_saturation, args))
-		free(args);
-
-	return 0;
-}
-
-gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
-	satu_close(TRUE);
-	siril_close_dialog("satu_dialog");
-	return FALSE;
-}
-
-void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (satu_show_preview == FALSE || gui.roi.active) {
-		satu_process_all();
-	}
-
-	apply_satu_changes();
-	siril_close_dialog("satu_dialog");
-}
-
-void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
-	apply_satu_changes();
-}
-
-static int enhance_saturation_ushort(gpointer p) {
-	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
+/* Core Algorithm: USHORT */
+static int enhance_saturation_ushort(fits *fit, saturation_params *params) {
 	double bg = 0.0;
+	WORD *in[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	// Operate in-place
+	WORD *out[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
-	WORD *in[3] = { args->input->pdata[RLAYER], args->input->pdata[GLAYER],
-		args->input->pdata[BLAYER] };
-	WORD *out[3] = { args->output->pdata[RLAYER], args->output->pdata[GLAYER],
-		args->output->pdata[BLAYER] };
+	double h_min = params->h_min / 360.0;
+	double h_max = params->h_max / 360.0;
 
-	args->h_min /= 360.0;
-	args->h_max /= 360.0;
-	if (args->background_factor > 0.00) {
-		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
+	if (params->background_factor > 0.00) {
+		imstats *stat = statistics(NULL, -1, fit, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
-		bg = (stat->median + stat->sigma) * args->background_factor;
+		bg = (stat->median + stat->sigma) * params->background_factor;
 		bg /= stat->normValue;
 		free_stats(stat);
 	}
 	siril_debug_print("threshold for saturation: %f\n", bg);
 
-	gboolean loop_range = args->h_min > args->h_max;
-	double s_mult = 1.0 + args->coeff;
-	float h_min = args->h_min;
-	float h_max = args->h_max;
-	double norm = args->input->bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+	gboolean loop_range = h_min > h_max;
+	double s_mult = 1.0 + params->coeff;
+	double norm = fit->bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
 	double invnorm = 1.0 / norm;
-	size_t i, n = args->input->naxes[0] * args->input->naxes[1];
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
 #endif
@@ -237,9 +106,7 @@ static int enhance_saturation_ushort(gpointer p) {
 				if (h >= h_min && h <= h_max)
 					s *= s_mult;
 			}
-			if (s < 0.0) s = 0.0;
-			else if (s > 1.0) s = 1.0;
-
+			s = (s < 0.0) ? 0.0 : (s > 1.0) ? 1.0 : s;
 			hsl_to_rgb(h, s, l, &r, &g, &b);
 		}
 		out[RLAYER][i] = round_to_WORD(r * norm);
@@ -249,37 +116,35 @@ static int enhance_saturation_ushort(gpointer p) {
 	return 0;
 }
 
-static int enhance_saturation_float(gpointer p) {
-	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
+/* Core Algorithm: FLOAT */
+static int enhance_saturation_float(fits *fit, saturation_params *params) {
 	float bg = 0.0f;
+	float *in[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	// Operate in-place
+	float *out[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
-	float *in[3] = { args->input->fpdata[RLAYER], args->input->fpdata[GLAYER],
-		args->input->fpdata[BLAYER] };
-	float *out[3] = { args->output->fpdata[RLAYER], args->output->fpdata[GLAYER],
-		args->output->fpdata[BLAYER] };
+	float h_min = (float)params->h_min / 60.0f;
+	float h_max = (float)params->h_max / 60.0f;
 
-	args->h_min /= 60.0;
-	args->h_max /= 60.0;
-	if (args->background_factor > 0.00) {
-		imstats *stat = statistics(NULL, -1, args->input, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
+	if (params->background_factor > 0.00) {
+		imstats *stat = statistics(NULL, -1, fit, GLAYER, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
 		}
-		bg = (stat->median + stat->sigma) * args->background_factor;
-		bg /= stat->normValue;
+		bg = (float)((stat->median + stat->sigma) * params->background_factor);
+		bg /= (float)stat->normValue;
 		free_stats(stat);
 	}
 	siril_debug_print("threshold for saturation: %f\n", bg);
 
-	gboolean loop_range = args->h_min > args->h_max;
-	float s_mult = 1.f + args->coeff;
-	float h_min = args->h_min;
-	float h_max = args->h_max;
+	gboolean loop_range = h_min > h_max;
+	float s_mult = 1.f + (float)params->coeff;
 
-	size_t i, n = args->input->naxes[0] * args->input->naxes[1];
+	size_t i, n = fit->naxes[0] * fit->naxes[1];
+
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(dynamic, args->input->rx * 16)
+#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(dynamic, fit->rx * 16)
 #endif
 	for (i = 0; i < n; i++) {
 		float h, s, l;
@@ -295,9 +160,7 @@ static int enhance_saturation_float(gpointer p) {
 				if (h >= h_min && h <= h_max)
 					s *= s_mult;
 			}
-			if (s < 0.f) s = 0.f;
-			else if (s > 1.f) s = 1.f;
-
+			s = (s < 0.f) ? 0.f : (s > 1.f) ? 1.f : s;
 			hsl_to_rgb_float_sat(h, s, l, &r, &g, &b);
 		}
 		out[RLAYER][i] = r;
@@ -307,32 +170,153 @@ static int enhance_saturation_float(gpointer p) {
 	return 0;
 }
 
-gpointer enhance_saturation(gpointer p) {
-	struct enhance_saturation_data *args = (struct enhance_saturation_data *) p;
+/* The Generic Processing Hook */
+int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	saturation_params *params = (saturation_params *)args->user;
+	if (!params)
+		return 1;
 
-	int retval = -1;
-	if (args->input->type == DATA_USHORT) {
-		retval = enhance_saturation_ushort(args);
-	} else if (args->input->type == DATA_FLOAT) {
-		retval = enhance_saturation_float(args);
+	if (fit->type == DATA_USHORT) {
+		return enhance_saturation_ushort(fit, params);
+	} else if (fit->type == DATA_FLOAT) {
+		return enhance_saturation_float(fit, params);
 	}
-
-	if (!args->for_preview) {
-		char log[90];
-		sprintf(log, "Color saturation %d%%, threshold %.2f",
-			round_to_int(args->coeff * 100.0), args->background_factor);
-		args->output->history = g_slist_append(args->output->history, strdup(log));
-
-	}
-	if (args->for_final)
-		populate_roi();
-	notify_gfit_modified();
-
-	free(args);
-	return GINT_TO_POINTER(retval);
+	return 1;
 }
 
-/** callbacks **/
+static gboolean satu_preview_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	return FALSE;
+}
+
+static gboolean satu_apply_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	populate_roi();
+	if (args->retval == 0) {
+		notify_gfit_modified();
+	}
+	free_generic_img_args(args);
+	clear_backup();
+	return FALSE;
+}
+
+gchar* satu_log_hook(gpointer p, log_hook_detail detail) {
+	saturation_params *params = (saturation_params *) p;
+	return g_strdup_printf(_("Color saturation %d%%, threshold %.2f"),
+		round_to_int(params->coeff * 100.0), params->background_factor);
+}
+
+/* Helper to launch the worker */
+static int satu_process_with_worker(gboolean for_preview) {
+	saturation_params *params = calloc(1, sizeof(saturation_params));
+	if (!params) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	// Destructor required by generic_img_args
+	params->coeff = satu_amount;
+	params->background_factor = background_factor;
+	satu_set_hues_from_types(params, satu_hue_type);
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		free(params);
+		return 1;
+	}
+
+	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
+	args->mem_ratio = 1.0f;
+	args->image_hook = saturation_image_hook;
+	args->idle_function = for_preview ? satu_preview_idle : satu_apply_idle;
+	args->description = _("Saturation");
+	args->verbose = !for_preview;
+	args->user = params;
+	args->max_threads = com.max_thread;
+	args->for_preview = for_preview;
+	args->for_roi = gui.roi.active;
+	args->mask_aware = TRUE;
+	if (!for_preview)
+		args->log_hook = satu_log_hook;
+
+	if (for_preview)
+		generic_image_worker(args);
+	else
+		start_in_new_thread(generic_image_worker, args);
+	return 0;
+}
+
+static int satu_update_preview() {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")))) {
+		copy_backup_to_gfit();
+		return satu_process_with_worker(TRUE);
+	}
+	return 0;
+}
+
+void satu_change_between_roi_and_image() {
+	gui.roi.operation_supports_roi = TRUE;
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = satu_update_preview;
+	param->show_preview = satu_show_preview;
+	notify_update((gpointer) param);
+}
+
+static void satu_startup() {
+	roi_supported(TRUE);
+	add_roi_callback(satu_change_between_roi_and_image);
+	copy_gfit_to_backup();
+	satu_amount = 0.0;
+	satu_hue_type = 6;
+}
+
+static void satu_close(gboolean revert) {
+	set_cursor_waiting(TRUE);
+	if (revert) {
+		if (satu_amount != 0.0) {
+			copy_backup_to_gfit();
+			notify_gfit_modified();
+		}
+	}
+	roi_supported(FALSE);
+	remove_roi_callback(satu_change_between_roi_and_image);
+	clear_backup();
+	set_cursor_waiting(FALSE);
+}
+
+static void apply_satu_changes() {
+	gboolean status = satu_amount != 0.0;
+	satu_close(!status);
+}
+
+gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
+	satu_close(TRUE);
+	siril_close_dialog("satu_dialog");
+	return FALSE;
+}
+
+void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview"))))
+		copy_backup_to_gfit();
+
+	satu_process_with_worker(FALSE);
+	// Cleanup happens in idle function, close dialog now
+	siril_close_dialog("satu_dialog");
+}
+
+void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
+	apply_satu_changes();
+}
+
+/** callbacks - kept mostly the same, just update preview logic **/
 
 void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
 	satu_startup();
@@ -374,7 +358,6 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 		copy_backup_to_gfit();
 		notify_gfit_modified();
 		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -384,7 +367,6 @@ void apply_satu_cancel() {
 	siril_close_dialog("satu_dialog");
 }
 
-/*** adjusters **/
 void on_spin_satu_value_changed(GtkSpinButton *button, gpointer user_data) {
 	satu_amount = gtk_spin_button_get_value(button);
 
@@ -407,13 +389,11 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	satu_show_preview = gtk_toggle_button_get_active(button);
 	if (!satu_show_preview) {
-		/* if user click very fast */
 		waiting_for_thread();
 		copy_backup_to_gfit();
 		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
-
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = satu_update_preview;
 		param->show_preview = TRUE;

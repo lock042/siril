@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -900,13 +900,11 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	if (error) *error = PSF_NO_ERR;
-//	gboolean photometry_computed = FALSE; // This is never used except in the dead code commented out later
 
 	psf_star *psf = NULL;
 	if (!(psf = psf_minimiz_angle(z, bg, sat, convergence, from_peaker, for_photometry, phot_set, verbose, profile, error))) {
 		return NULL;
 	}
-//	photometry_computed = TRUE;
 
 	/* We quickly test the result. If it is bad we return NULL */
 	if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
@@ -916,25 +914,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 			*error = PSF_ERR_DIVERGED;
 		return NULL;
 	}
-
-/* This code is logically dead. Commenting out prior to removal.
- *	// Photometry
-	if (for_photometry && !photometry_computed &&
-			(!error || *error == PSF_NO_ERR || *error == PSF_ERR_DIVERGED)) {
-		psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
-		if (psf->phot) {
-			psf->mag = psf->phot->mag;
-			psf->s_mag = psf->phot->s_mag;
-			psf->SNR = psf->phot->SNR;
-			psf->phot_is_valid = psf->phot->valid;
-		}
-		else {
-			psf->phot_is_valid = FALSE;
-			psf->s_mag = 9.999;
-			psf->SNR = 0;
-		}
-	}
-*/
 	return psf;
 }
 
@@ -1034,12 +1013,12 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 	else {
 		g_snprintf(buffer2, 50, _(", %s channel"), chan);
 	}
-	msg = g_strdup_printf(_("PSF %s Result (%s%s):\n\n"
-				"Centroid Coordinates:\n\t\t%s\n\n"
+	msg = g_strdup_printf(_("PSF %s result (%s%s):\n\n"
+				"Centroid coordinates:\n\t\t%s\n\n"
 				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
-				"Background Value:\n\t\tB=%.6f\n\n"
-				"Maximal Intensity:\n\t\tA=%.6f\n\n"
+				"Background value:\n\t\tB=%.6f\n\n"
+				"Maximal intensity:\n\t\tA=%.6f\n\n"
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),

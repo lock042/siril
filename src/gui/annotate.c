@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -387,10 +387,29 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 				return;
 			}
 			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
-
 		}
+		// Allocate and initialize generic_img_args
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			free_conesearch_params(params_cone);
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		args->fit = gfit;
+		args->mem_ratio = 1.0f;
+		args->image_hook = conesearch_image_hook;
+		args->description = _("Cone search");
+		args->verbose = TRUE;
+		args->command_updates_gfit = FALSE;
+		args->command = TRUE;
+		args->user = params_cone;
+		args->log_hook = NULL;
 
-		execute_conesearch(params_cone);
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			siril_log_color_message(_("Error: failed to start conesearch image worker\n"), "red");
+			free_generic_img_args(args);
+			return;
+		}
 		break;
 	case SHOW_PAGE:
 		params_show = parse_show_ui();

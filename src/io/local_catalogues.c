@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -38,6 +38,7 @@
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "registration/matching/degtorad.h"
+#include "siril_catalogues.h"
 #include "local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
 #include <stdio.h>
@@ -803,10 +804,12 @@ int siril_catalog_get_stars_from_local_catalogues(siril_catalogue *siril_cat) {
 		siril_cat->cat_items[i].pmra = (double)stars[i].dRA;
 		siril_cat->cat_items[i].pmdec = (double)stars[i].dDec;
 		siril_cat->cat_items[i].mag = (float)stars[i].V * .001;
-		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO)
+		if (siril_cat->cat_index == CAT_LOCAL_GAIA_ASTRO) {
 			siril_cat->cat_items[i].teff = (float)(uint16_t)stars[i].B;
-		else
+		} else {
 			siril_cat->cat_items[i].bmag = (float)stars[i].B * .001;
+			siril_cat->cat_items[i].BV = siril_cat->cat_items[i].bmag - siril_cat->cat_items[i].mag;
+		}
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	free(stars);

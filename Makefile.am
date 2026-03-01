@@ -7,7 +7,8 @@ SUBDIRS = subprojects \
 	src \
 	data \
 	pixmaps \
-	platform-specific
+	platform-specific \
+	python_module
 
 # TODO add a conditionnal and a configure switch
 # to be able to choose the language. Also, this should

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -88,8 +88,8 @@ static int allocate_full_surface(struct image_view *view) {
 
 	// allocate the image surface if not already done or the same size
 	if (stride != view->full_surface_stride
-			|| gfit->ry != view->full_surface_height
-			|| !view->full_surface || !view->buf) {
+				|| gfit->ry != view->full_surface_height
+				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 		view->full_surface_stride = stride;
 		view->full_surface_height = gfit->ry;
@@ -104,7 +104,7 @@ static int allocate_full_surface(struct image_view *view) {
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
-				CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
+					CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
 		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
@@ -190,8 +190,103 @@ static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
-// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
+static void remap_mask(mask_t *mask) {
+	siril_debug_print("mask remap\n");
 
+	int vport = MASK_VPORT;
+	struct image_view *view = &gui.view[vport];
+	if (allocate_full_surface(view))
+		return;
+
+	// Cairo setup
+	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
+	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
+
+	// Mask setup
+	void *src_data = mask->data;
+	guint rx = gfit->rx;
+	guint ry = gfit->ry;
+	int bitpix = mask->bitpix;
+
+	// We switch ONCE. This requires duplicating the loop code,
+	// but ensures the tightest possible inner loops for the compiler to vectorize.
+	switch (bitpix) {
+		case 8: {
+			uint8_t *s8 = (uint8_t *)src_data;
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				// Pre-calculate pointers for this row
+				uint8_t *src_row = s8 + (y * rx);
+				// Vertical flip logic
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
+
+				for (guint x = 0; x < rx; x++) {
+					uint8_t val = src_row[x];
+					// Alpha is unused/ignored in Cairo RGB24 (upper 8 bits)
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
+			}
+			break;
+		}
+
+		case 16: {
+			uint16_t *s16 = (uint16_t *)src_data;
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				uint16_t *src_row = s16 + (y * rx);
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
+
+				for (guint x = 0; x < rx; x++) {
+					uint32_t val = ((uint32_t)src_row[x] * 255 + 32895) >> 16;
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
+			}
+			break;
+		}
+
+		case 32: {
+			float *sf = (float *)src_data;
+
+			#ifdef _OPENMP
+			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+			#endif
+			for (guint y = 0; y < ry; y++) {
+				float *src_row = sf + (y * rx);
+
+				// Destination pointer calculation (Vertical Flip)
+				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
+
+				for (guint x = 0; x < rx; x++) {
+					// Scale
+					float v = src_row[x] * UCHAR_MAX_SINGLE;
+
+					// Round & Clamp
+					uint8_t val = roundf_to_BYTE(v);
+
+					// 3. Pack to ARGB (Alpha unused)
+					dst_row[x] = (val << 16) | (val << 8) | val;
+				}
+			}
+			break;
+		}
+
+		default: {
+			siril_debug_print("Error: invalid mask bitpix\n");
+			break;
+		}
+	}
+
+	cairo_surface_flush(view->full_surface);
+	cairo_surface_mark_dirty(view->full_surface);
+	invalidate_image_render_cache(vport);
+	test_and_allocate_reference_image(vport);
+}
+
+// remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
@@ -279,40 +374,110 @@ static void remap(int vport) {
 	else
 		index = gui.remap_index[target_index];
 
+	// Check if mask overlay is active
+	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active && com.pref.gui.mask_tints_vports);
+	uint8_t *mask_u8 = NULL;
+	uint16_t *mask_u16 = NULL;
+	float *mask_f32 = NULL;
+	int mask_bitpix = 0;
+
+	if (apply_mask) {
+		mask_bitpix = gfit->mask->bitpix;
+		switch (mask_bitpix) {
+			case 8:
+				mask_u8 = (uint8_t *)gfit->mask->data;
+				break;
+			case 16:
+				mask_u16 = (uint16_t *)gfit->mask->data;
+				break;
+			case 32:
+				mask_f32 = (float *)gfit->mask->data;
+				break;
+			default:
+				apply_mask = FALSE; // Invalid bitpix, disable mask
+				break;
+		}
+	}
+
+	const guint width = gfit->rx;
+	const guint height = gfit->ry;
+
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (guint y = 0; y < gfit->ry; y++) {
-		guint src_i = y * gfit->rx;
-		guint dst_i = ((gfit->ry - 1 - y) * gfit->rx) * 4;
-		for (guint x = 0; x < gfit->rx; ++x, ++src_i, dst_i += 2) {
-			BYTE dst_pixel_value = 0;
+	for (guint y = 0; y < height; y++) {
+		const guint src_row_start = y * width;
+		const guint dst_row_start = (height - 1 - y) * width * 4;
+
+		for (guint x = 0; x < width; ++x) {
+			const guint src_i = src_row_start + x;
+			const guint dst_i = dst_row_start + x * 4;
+
+			BYTE dst_pixel_value;
 			if (gfit->type == DATA_USHORT) {
+				const WORD src_val = src[src_i];
 				if (hd_mode) {
-					dst_pixel_value = index[src[src_i] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
+					dst_pixel_value = index[src_val * gui.hd_remap_max / USHRT_MAX];
 				} else {
-					dst_pixel_value = index[src[src_i]];
+					dst_pixel_value = index[src_val];
 				}
-			} else if (gfit->type == DATA_FLOAT) {
+			} else { // DATA_FLOAT
 				if (hd_mode)
 					dst_pixel_value = index[float_to_max_range(fsrc[src_i], gui.hd_remap_max)];
 				else
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_i] * USHRT_MAX_SINGLE)];
 			}
-			dst_pixel_value = inverted ? UCHAR_MAX - dst_pixel_value : dst_pixel_value;
 
-			// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-			guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
-			switch (color) {
-				default:
-				case NORMAL_COLOR:
-					*(guint32*)(dst + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
-					break;
-				case RAINBOW_COLOR:
-					*(guint32*)(dst + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+			if (inverted)
+				dst_pixel_value = UCHAR_MAX - dst_pixel_value;
+
+			if (apply_mask) {
+				// Get mask value based on bitpix
+				BYTE mask_val;
+				if (mask_bitpix == 8) {
+					mask_val = mask_u8[src_i];
+				} else if (mask_bitpix == 16) {
+					mask_val = mask_u16[src_i] >> 8;
+				} else { // 32
+					mask_val = (BYTE)(mask_f32[src_i] * UCHAR_MAX);
+				}
+
+				const uint16_t inv_mask = UCHAR_MAX - mask_val;
+
+				if (color == RAINBOW_COLOR) {
+					// Rainbow with mask
+					const BYTE rainbow_r = rainbow_index[dst_pixel_value][0];
+					const BYTE rainbow_g = rainbow_index[dst_pixel_value][1];
+					const BYTE rainbow_b = rainbow_index[dst_pixel_value][2];
+
+					const uint16_t r_sum = inv_mask + rainbow_r;
+					const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
+					const BYTE g_val = (rainbow_g * mask_val) >> 8;
+					const BYTE b_val = (rainbow_b * mask_val) >> 8;
+
+					*(guint32*)(dst + dst_i) = r_val << 16 | g_val << 8 | b_val;
+				} else {
+					// Normal color with mask
+					const uint16_t r_sum = inv_mask + dst_pixel_value;
+					const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
+					const BYTE g_val = (dst_pixel_value * mask_val) >> 8;
+					const BYTE b_val = (dst_pixel_value * mask_val) >> 8;
+
+					*(guint32*)(dst + dst_i) = r_val << 16 | g_val << 8 | b_val;
+				}
+			} else {
+				// No mask
+				if (color == RAINBOW_COLOR) {
+					*(guint32*)(dst + dst_i) = rainbow_index[dst_pixel_value][0] << 16 |
+					                            rainbow_index[dst_pixel_value][1] << 8 |
+					                            rainbow_index[dst_pixel_value][2];
+				} else {
+					*(guint32*)(dst + dst_i) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+				}
 			}
 		}
 	}
+
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
@@ -343,6 +508,31 @@ static void remap_all_vports() {
 	rainbow_state = NULL;
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
+
+	// Check if mask overlay is active
+	gboolean apply_mask = (gfit->mask != NULL && gfit->mask_active && com.pref.gui.mask_tints_vports);
+	uint8_t *mask_u8 = NULL;
+	uint16_t *mask_u16 = NULL;
+	float *mask_f32 = NULL;
+	int mask_bitpix = 0;
+
+	if (apply_mask) {
+		mask_bitpix = gfit->mask->bitpix;
+		switch (mask_bitpix) {
+			case 8:
+				mask_u8 = (uint8_t *)gfit->mask->data;
+				break;
+			case 16:
+				mask_u16 = (uint16_t *)gfit->mask->data;
+				break;
+			case 32:
+				mask_f32 = (float *)gfit->mask->data;
+				break;
+			default:
+				apply_mask = FALSE; // Invalid bitpix, disable mask
+				break;
+		}
+	}
 
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
@@ -398,30 +588,67 @@ static void remap_all_vports() {
 	}
 
 	int norm = (int) get_normalized_value(gfit);
+	const guint width = gfit->rx;
+	const guint height = gfit->ry;
+
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
-			lock_display_transform();
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
-#endif
-		for (y = 0; y < gfit->ry; y++) {
-			guint x;
-			guint src_i = y * gfit->rx;
+		const gboolean do_transform = (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed));
 
-			// Set up a buffer so that the color space transform can be carried out on
-			//a whole row at a time using OpenMP to parallelize rows and the single
-			// threaded lcms2 context to give SIMD parallelisation within the rows
-			WORD *pixelbuf = malloc(gfit->rx * 3 * sizeof(WORD));
-			WORD *linebuf[3] = { pixelbuf, (pixelbuf + gfit->rx) , (pixelbuf + 2 * gfit->rx) };
-			BYTE *pixelbuf_byte = malloc(gfit->rx * 3);
-			BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + gfit->rx) , (pixelbuf_byte + 2 * gfit->rx) };
+		if (do_transform)
+			lock_display_transform();
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.max_thread)
+{
+		// Thread-local buffers - allocated once per thread
+		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		BYTE *pixelbuf_byte = malloc(width * 3);
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
+
+#pragma omp for schedule(static)
+#else
+		// Single-threaded: allocate once
+		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		BYTE *pixelbuf_byte = malloc(width * 3);
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
+#endif
+		for (y = 0; y < height; y++) {
+			guint x;
+			const guint src_i = y * width;
+
+			// Precompute mask values for entire row if mask is active
+			if (apply_mask) {
+
+				// Precompute mask values for entire row
+				if (mask_bitpix == 8) {
+#pragma omp simd
+					for (x = 0; x < width; ++x) {
+						mask_row[x] = mask_u8[src_i + x];
+					}
+				} else if (mask_bitpix == 16) {
+#pragma omp simd
+					for (x = 0; x < width; ++x) {
+						mask_row[x] = mask_u16[src_i + x] >> 8;
+					}
+				} else { // 32
+#pragma omp simd
+					for (x = 0; x < width; ++x) {
+						mask_row[x] = (BYTE)(mask_f32[src_i + x] * UCHAR_MAX);
+					}
+				}
+			}
+
 			if (gfit->type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 					float *source = fsrc[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < width ; x++)
 						line[x] = roundf_to_WORD(source[src_i + x] * USHRT_MAX_SINGLE);
 				}
 			} else if (norm == UCHAR_MAX) {
@@ -429,26 +656,26 @@ static void remap_all_vports() {
 					WORD *line = linebuf[c];
 					const WORD *source = src[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < width ; x++)
 						line[x] = source[src_i + x] << 8;
 				}
 			} else {
 				for (int c = 0 ; c < 3 ; c++)
 // No omp simd here as memcpy should already be highly optimized
-					memcpy(linebuf[c], src[c] + src_i, gfit->rx * sizeof(WORD));
+					memcpy(linebuf[c], src[c] + src_i, width * sizeof(WORD));
 			}
 			if (gfit->type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 #pragma omp simd
-					for (x = 0 ; x < gfit->rx ; x++)
+					for (x = 0 ; x < width ; x++)
 						line[x] = line[x] >> 8;
 				}
 			}
 			for (int c = 0 ; c < 3 ; c++) {
 				const int cc = gfit->color_managed ? c : 0;
 #pragma omp simd
-				for (x = 0; x < gfit->rx; ++x) {
+				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
 					if (gui.cut_over && val > gui.hi) {	// cut
 						linebuf_byte[c][x] = 0;
@@ -459,37 +686,100 @@ static void remap_all_vports() {
 						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
 				}
 			}
-			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, gfit->rx, 1, gfit->rx * 3, gfit->rx * 3, gfit->rx, gfit->rx);
+			if (do_transform) {
+				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
-			switch (color) {
-				case NORMAL_COLOR:
-#pragma omp simd collapse(2)
+
+			const guint dst_row_start = (height - 1 - y) * width * 4;
+
+			if (color == RAINBOW_COLOR) {
+				if (apply_mask) {
+					// Rainbow with mask
 					for (int c = 0 ; c < 3 ; c++) {
-						for (x = 0 ; x < gfit->rx ; x++) {
-							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-							guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
-							BYTE dst_pixel_value = linebuf_byte[c][x];
-							*(guint32*)(dst[c] + dst_index) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
+						const BYTE *line_byte = linebuf_byte[c];
+#pragma omp simd
+						for (x = 0 ; x < width ; x++) {
+							const guint dst_index = dst_row_start + x * 4;
+							const BYTE pixel_val = line_byte[x];
+							const BYTE mask_val = mask_row[x];
+
+							const BYTE rainbow_r = rainbow_index[pixel_val][0];
+							const BYTE rainbow_g = rainbow_index[pixel_val][1];
+							const BYTE rainbow_b = rainbow_index[pixel_val][2];
+
+							const uint16_t inv_mask = UCHAR_MAX - mask_val;
+							const uint16_t r_sum = inv_mask + rainbow_r;
+							const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
+							const BYTE g_val = (rainbow_g * mask_val) >> 8;
+							const BYTE b_val = (rainbow_b * mask_val) >> 8;
+
+							*(guint32*)(dst[c] + dst_index) = r_val << 16 | g_val << 8 | b_val;
 						}
 					}
-					break;
-				case RAINBOW_COLOR:
-#pragma omp simd collapse(2)
+				} else {
+					// Rainbow without mask
 					for (int c = 0 ; c < 3 ; c++) {
-						for (x = 0 ; x < gfit->rx ; x++) {
-							// Siril's FITS are stored bottom to top, so mapping needs to revert data order
-							guint dst_index = ((gfit->ry - 1 - y) * gfit->rx + x) * 4;
-							BYTE dst_pixel_value = linebuf_byte[c][x];
-							*(guint32*)(dst[c] + dst_index) = rainbow_index[dst_pixel_value][0] << 16 | rainbow_index[dst_pixel_value][1] << 8 | rainbow_index[dst_pixel_value][2];
+						const BYTE *line_byte = linebuf_byte[c];
+#pragma omp simd
+						for (x = 0 ; x < width ; x++) {
+							const guint dst_index = dst_row_start + x * 4;
+							const BYTE pixel_val = line_byte[x];
+							*(guint32*)(dst[c] + dst_index) = rainbow_index[pixel_val][0] << 16 |
+							                                   rainbow_index[pixel_val][1] << 8 |
+							                                   rainbow_index[pixel_val][2];
 						}
 					}
-					break;
+				}
+			} else {
+				// NORMAL_COLOR
+				if (apply_mask) {
+					// Normal with mask
+					for (int c = 0 ; c < 3 ; c++) {
+						const BYTE *line_byte = linebuf_byte[c];
+#pragma omp simd
+						for (x = 0 ; x < width ; x++) {
+							const guint dst_index = dst_row_start + x * 4;
+							const BYTE pixel_val = line_byte[x];
+							const BYTE mask_val = mask_row[x];
+
+							const uint16_t inv_mask = UCHAR_MAX - mask_val;
+							const uint16_t r_sum = inv_mask + pixel_val;
+							const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
+							const BYTE g_val = (pixel_val * mask_val) >> 8;
+							const BYTE b_val = (pixel_val * mask_val) >> 8;
+
+							*(guint32*)(dst[c] + dst_index) = r_val << 16 | g_val << 8 | b_val;
+						}
+					}
+				} else {
+					// Normal without mask
+					for (int c = 0 ; c < 3 ; c++) {
+						const BYTE *line_byte = linebuf_byte[c];
+#pragma omp simd
+						for (x = 0 ; x < width ; x++) {
+							const guint dst_index = dst_row_start + x * 4;
+							const BYTE pixel_val = line_byte[x];
+							*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
+						}
+					}
+				}
 			}
-			free(pixelbuf);
-			free(pixelbuf_byte);
 		}
-		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+#ifdef _OPENMP
+		// Clean up thread-local buffers
+		free(pixelbuf);
+		free(pixelbuf_byte);
+		if (mask_row)
+			free(mask_row);
+}
+#else
+		// Clean up single-threaded buffers
+		free(pixelbuf);
+		free(pixelbuf_byte);
+		if (mask_row)
+			free(mask_row);
+#endif
+		if (do_transform)
 			unlock_display_transform();
 	}
 	// flush to ensure all writing to the image was done and redraw the surface
@@ -2130,6 +2420,18 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 		GThread *thread = g_thread_new("redraw", redraw_idle_thread_func, GINT_TO_POINTER((int)doremap));
 		g_thread_join(thread);
 	}
+}
+
+gboolean redraw_mask_idle(gpointer p) {
+	if (gfit->mask && gfit->mask->data)
+		remap_mask(gfit->mask);
+	if (com.pref.gui.mask_tints_vports)
+		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
+	return FALSE;
+}
+
+void queue_redraw_mask() {
+	siril_add_idle(redraw_mask_idle, NULL);
 }
 
 void queue_redraw(remap_type doremap) {

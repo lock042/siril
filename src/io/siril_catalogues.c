@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -39,11 +39,12 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "gui/image_display.h"
+#include "gui/progress_and_log.h"
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
 
-static void free_conesearch_params(conesearch_params *params);
-static void free_conesearch_args(conesearch_args *args);
+void free_conesearch_params(void *p);
+void free_conesearch_args(void *p);
 
 // This list defines the columns that can possibly be found in any catalogue
 const gchar *cat_columns[] = {
@@ -202,19 +203,19 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 
 // This function returns the epoch of the catalog
 double siril_catalog_epoch(siril_cat_index cat) {
-	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP))
+	if ((cat == CAT_GAIADR3_DIRECT) || (cat == CAT_LOCAL_GAIA_ASTRO) || (cat == CAT_LOCAL_GAIA_XPSAMP) || (cat == CAT_REMOTE_GAIA_XPSAMP))
 		return J2016;
 	return J2000;
 }
 
 double siril_catalog_ra_multiplier(siril_cat_index cat) {
-	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP || cat == CAT_REMOTE_GAIA_XPSAMP)
 		return 360.0 / (double) INT32_MAX;
 	return 0.000001;
 }
 
 double siril_catalog_dec_multiplier(siril_cat_index cat) {
-	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP)
+	if (cat == CAT_LOCAL_GAIA_ASTRO || cat == CAT_LOCAL_GAIA_XPSAMP || (cat == CAT_REMOTE_GAIA_XPSAMP))
 		return 360.0 / (double) INT32_MAX;
 	return 0.00001;
 }
@@ -289,6 +290,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_LOCAL_GAIA_ASTRO:
 			return _("Gaia DR3 astrometry");
 		case CAT_LOCAL_GAIA_XPSAMP:
+		case CAT_REMOTE_GAIA_XPSAMP:
 			return _("Gaia DR3 xp_sampled");
 		case CAT_AN_MESSIER:
 			return "Messier";
@@ -334,6 +336,7 @@ gboolean is_star_catalogue(siril_cat_index Catalog) {
 		case CAT_AN_USER_SSO:
 		case CAT_LOCAL_GAIA_ASTRO:
 		case CAT_LOCAL_GAIA_XPSAMP:
+		case CAT_REMOTE_GAIA_XPSAMP:
 			return TRUE;
 	default:
 		return FALSE;
@@ -516,7 +519,6 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	g_free(siril_cat->IAUcode);
 	g_free(siril_cat->header);
 	free(siril_cat);
-	siril_cat = NULL;
 }
 
 // frees the member cat_items of a catalogue
@@ -1090,8 +1092,10 @@ static gboolean end_conesearch(gpointer p) {
 			}
 		}
 	}
-	return end_generic(NULL);
+//	return end_generic(NULL); // don't call this as it calls stop_processing_thread which causes a deadlock
+	set_cursor_waiting(FALSE);
 	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
+	return FALSE;
 }
 
 // Conesearch command related functions
@@ -1113,6 +1117,57 @@ int check_conesearch_args(conesearch_args *args) {
 	return 0;
 }
 
+int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	conesearch_params *params = (conesearch_params *)args->user;
+
+	if (!has_wcs(fit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return 1;
+	}
+
+	// Preparing the catalogue query
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(fit, params->cat, params->limit_mag);
+	siril_cat->phot = params->photometric;
+	if (params->cat == CAT_IMCCE) {
+		if (params->obscode) {
+			siril_cat->IAUcode = g_strdup(params->obscode);
+			if (params->default_obscode_used) {
+				siril_log_message(_("Using default observatory code %s\n"), params->obscode);
+			}
+		} else {
+			siril_cat->IAUcode = g_strdup("500");
+			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
+		}
+	} else if (params->obscode) {
+		g_free(params->obscode);
+		params->obscode = NULL;
+	}
+	if (params->cat == CAT_LOCAL_TRIX)
+		siril_cat->trixel = params->trixel;
+
+	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
+
+	conesearch_args *cone_args = init_conesearch_args();
+	cone_args->fit = fit;
+	cone_args->siril_cat = siril_cat;
+	cone_args->has_GUI = !com.script;
+	cone_args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
+	cone_args->display_tag = (params->display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_tag;
+	cone_args->outfilename = g_strdup(params->outfilename);
+	cone_args->compare = params->compare;
+
+	if (check_conesearch_args(cone_args)) {
+		free_conesearch_args(cone_args);
+		return 1;
+	}
+
+	// Call the worker directly
+	int retval = GPOINTER_TO_INT(conesearch_worker(cone_args));
+	// Cleanup of the conesearch_args is done by conesearch_worker
+	return retval;
+}
+
+/*
 int execute_conesearch(conesearch_params *params) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -1161,7 +1216,7 @@ int execute_conesearch(conesearch_params *params) {
 	}
 	return CMD_OK;
 }
-
+*/
 int execute_show_command(show_params *params) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -1280,7 +1335,7 @@ gpointer conesearch_worker(gpointer p) {
 
 	// Prepare the temporary annotation catalogue if GUI or output file is requested
 	if (args->has_GUI || args->outfilename) {
-		temp_cat = siril_catalog_new(CAT_AN_USER_TEMP);
+		temp_cat = siril_catalog_new(siril_cat->cat_index);
 		if (!temp_cat) {
 			PRINT_ALLOC_ERR;
 			retval = 1;
@@ -1324,21 +1379,15 @@ gpointer conesearch_worker(gpointer p) {
 		{
 			continue;
 		}
-		// If GUI is active, copy the item into the temporary catalogue
-		if (args->has_GUI) {
+		// If GUI is active or output file is requested, copy the item into the temporary catalogue
+		if (args->has_GUI || args->outfilename) {
 			siril_catalogue_copy_item(&siril_cat->cat_items[i],
 									  &temp_cat->cat_items[j]);
 			if (stardiam)
 				temp_cat->cat_items[j].diameter = stardiam;
-			if (hide_display_tag) {
+			if (siril_cat->cat_index == CAT_PGC) {
 				g_free(temp_cat->cat_items[j].name);
-				temp_cat->cat_items[j].name = NULL;
-			} else {
-				if (siril_cat->cat_index == CAT_PGC) {
-					g_free(temp_cat->cat_items[j].name);
-					temp_cat->cat_items[j].name = g_strdup_printf("PGC %s",
-																  siril_cat->cat_items[i].name);
-				}
+				temp_cat->cat_items[j].name = g_strdup_printf("PGC %s", siril_cat->cat_items[i].name);
 			}
 		}
 		if (args->display_log) {
@@ -1385,7 +1434,7 @@ gpointer conesearch_worker(gpointer p) {
 			double y = siril_cat->cat_items[i].y;
 			rectangle area = { 0 };
 			cat_item tmp = { .x = x, .y = y };
-			if (make_selection_around_a_star(&tmp, &area, args->fit)) {
+			if (make_selection_around_a_star(&tmp, &area, args->fit, NULL)) {
 				siril_debug_print("star %d is outside image or too close to border\n", i);
 				continue;
 			}
@@ -1471,6 +1520,16 @@ gpointer conesearch_worker(gpointer p) {
 			siril_log_message(_("Failed to save list to %s\n"), args->outfilename);
 		}
 	}
+	// The catalogue has been written, we can now remove the names if needed for display
+	if (args->has_GUI) {
+		temp_cat->cat_index = CAT_AN_USER_TEMP;
+		if (hide_display_tag) {
+			for (int i = 0; i < temp_cat->nbitems; i++) {
+				g_free(temp_cat->cat_items[i].name);
+				temp_cat->cat_items[i].name = NULL;
+			}
+		}
+	}
 
 	retval = 0;
 
@@ -1492,7 +1551,7 @@ gpointer conesearch_worker(gpointer p) {
 		dyf = NULL;
 	}
 
-	exit_conesearch:
+exit_conesearch:
 	{
 		gboolean go_idle = args->has_GUI;
 		if ((retval || !args->has_GUI) && temp_cat) {
@@ -1506,6 +1565,7 @@ gpointer conesearch_worker(gpointer p) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);
 		}
@@ -1620,22 +1680,34 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	return results;
 }
 
+void free_sky_object_query(void *p) {
+	sky_object_query_args *args = (sky_object_query_args *) p;
+	if (!args)
+		return;
+	g_free(args->name);
+	g_free(args->prefix);
+	siril_catalog_free_item(args->item);
+	free(args->item);
+	free(args);
+}
+
 sky_object_query_args *init_sky_object_query() {
 	sky_object_query_args *new_query = calloc(1, sizeof(sky_object_query_args));
 	if (!new_query) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
+	new_query->destroy_fn = free_sky_object_query;
 	new_query->server = -1;
 	return new_query;
 }
 
-void free_sky_object_query(sky_object_query_args *args) {
+void free_conesearch_args(void *p) {
+	conesearch_args *args = (conesearch_args *) p;
 	if (!args)
 		return;
-	g_free(args->name);
-	g_free(args->prefix);
-	siril_catalog_free_item(args->item);
+	siril_catalog_free(args->siril_cat);
+	g_free(args->outfilename);
 	free(args);
 }
 
@@ -1645,19 +1717,22 @@ conesearch_args *init_conesearch_args() {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
+	args->destroy_fn = free_conesearch_args;
 	return args;
 }
 
-static void free_conesearch_args(conesearch_args *args) {
-	if (!args)
+void free_conesearch_params(void *p) {
+	conesearch_params *params = (conesearch_params *) p;
+	if (!params)
 		return;
-	siril_catalog_free(args->siril_cat);
-	g_free(args->outfilename);
-	free(args);
+	g_free(params->obscode);
+	g_free(params->outfilename);
+	free(params); // Changed from g_free in line with the change to init_conesearch_params
 }
 
 conesearch_params *init_conesearch_params() {
-	conesearch_params *params = g_new0(conesearch_params, 1);
+	conesearch_params *params = calloc(sizeof(conesearch_params), 1); // Changed from g_new0 for compatibility with generic_image_worker
+	params->destroy_fn = free_conesearch_params;
 	params->limit_mag = -1.0f;
 	params->photometric = FALSE;
 	params->display_tag = BOOL_NOT_SET;
@@ -1673,12 +1748,3 @@ conesearch_params *init_conesearch_params() {
 	}
 	return params;
 }
-
-static void free_conesearch_params(conesearch_params *params) {
-	if (!params)
-		return;
-	g_free(params->obscode);
-	g_free(params->outfilename);
-	g_free(params); // was alloced with gnew0
-}
-

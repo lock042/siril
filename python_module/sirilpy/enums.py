@@ -1,5 +1,5 @@
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -170,6 +170,11 @@ class _Command(IntEnum):
     SET_IMAGE_FILENAME = 84
     GET_SIRIL_LOG = 85
     SAVE_IMAGE_FILE = 86
+    GET_IMAGE_MASK = 87
+    SET_IMAGE_MASK = 88
+    SET_IMAGE_MASK_STATE = 89
+    GET_IMAGE_MASK_STATE = 90
+    MASK_UPDATE_POLYGON = 91
     ERROR = 0xFF
 
 @unique

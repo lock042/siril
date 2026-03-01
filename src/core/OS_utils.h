@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -53,6 +53,8 @@ gchar *find_executable_in_path(const char *exe_name, const char *path);
 #endif
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
+
+gchar *get_siril_version_string();
 
 #ifdef __cplusplus
 }

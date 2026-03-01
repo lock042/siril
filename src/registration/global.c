@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -406,6 +406,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		} else {
 			regargs->imgparam[out_index].rx = fit->rx;
 			regargs->imgparam[out_index].ry = fit->ry;
+			regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+			regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+			regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+			regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+			regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+			regargs->regparam[out_index].H = H;
 		}
 	}
 

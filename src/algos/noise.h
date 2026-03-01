@@ -5,6 +5,7 @@
 
 /* Noise data from GUI */
 struct noise_data {
+	destructor destroy_fn;
 	gboolean display_start_end;
 	gboolean display_results;
 	gboolean use_idle; // will free this struct, display things and call stop_processing_thread()

@@ -19,6 +19,7 @@ struct extract_channels_data {
 typedef float ccm[3][3]; // Color Conversion Matrix
 
 struct ccm_data {
+	destructor destroy_fn;
 	ccm matrix;
 	float power;
 	fits *fit;
@@ -53,6 +54,7 @@ void rgb_to_yuvf(float red, float green, float blue, float *y, float *u, float *
 void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blue);
 
 double BV_to_T(double BV);
+double T_to_BV(double T);
 
 float x1931(float w);
 float y1931(float w);
@@ -74,5 +76,9 @@ void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 int calibrate(fits *fit, int layer, double kw, double bg, double norm);
 int ccm_calc(fits *fit, ccm matrix, float power);
 void apply_ccm_to_sequence(struct ccm_data *ccm_args);
-
+void free_ccm_data(void *ptr);
+struct ccm_data *new_ccm_data();
+int ccm_process_with_worker(ccm matrix, float power);
+int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+gchar *ccm_log_hook(gpointer p, log_hook_detail detail);
 #endif

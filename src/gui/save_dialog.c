@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -532,69 +532,104 @@ static void initialize_data(gpointer p) {
 	args->checksum = gtk_toggle_button_get_active(checksum);
 }
 
+#ifdef HAVE_LIBJPEG
 static long calculate_jpeg_size(struct savedial_data *args) {
-	char const *tmp_dir = g_get_tmp_dir();
-	gchar *tmp_filename;
-	gchar *tmp_filename_template = (com.uniq->filename != NULL) ? g_path_get_basename(com.uniq->filename) : g_strdup(_("preview"));
-/* Due to a Windows behavior and Mingw temp file name,
- * we escapes the special characters by inserting a '\' before them */
-#ifdef _WIN32
-	gchar *tmp = g_build_filename(tmp_dir, tmp_filename_template, NULL);
-	tmp_filename = g_strescape(tmp, NULL);
-	g_free(tmp);
-#else
-    tmp_filename = g_build_filename(tmp_dir, tmp_filename_template, NULL);
-#endif
-	g_free(tmp_filename_template);
-	if (!g_str_has_suffix(tmp_filename, ".jpg") && (!g_str_has_suffix(tmp_filename, ".jpeg"))) {
-		tmp_filename = str_append(&tmp_filename, ".jpg");
-	}
-	if (g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
-		if (g_unlink(tmp_filename)) {
-			siril_debug_print("Failed to remove existing temporary file");
-			g_free(tmp_filename);
-			return -1;
-		}
-	}
-	// Save JPEG to temporary file
-	if (savejpg(tmp_filename, gfit, args->quality, FALSE)) {
-		siril_debug_print("Failed to save JPEG to temporary file");
-		g_free(tmp_filename);
-		return -1;
-	}
-	// Get file size
-	GStatBuf stat_buf;
-	goffset file_size = 0L;
-	if (g_stat(tmp_filename, &stat_buf) == 0) {
-		file_size = stat_buf.st_size;
-	} else {
-		g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
-	}
-	if (g_unlink(tmp_filename)) {
-		siril_debug_print("g_unlink() failed\n");
-		g_free(tmp_filename);
-	}
-	return (long) file_size;
+    gchar *tmp_template;
+    int fd;
+    long file_size = -1;
+
+    /* Build a secure temporary filename template */
+    tmp_template = g_build_filename(
+        g_get_tmp_dir(),
+        "siril-preview-XXXXXX.jpg",
+        NULL
+    );
+
+    fd = g_mkstemp(tmp_template);
+    if (fd == -1) {
+        g_warning("Failed to create temporary file: %s", g_strerror(errno));
+        g_free(tmp_template);
+        return -1;
+    }
+
+    /* We only need the filename; savejpg() will reopen it */
+    close(fd);
+
+    /* Save JPEG */
+    if (savejpg(tmp_template, gfit, args->quality, FALSE)) {
+        siril_debug_print("Failed to save JPEG to temporary file");
+        goto cleanup;
+    }
+
+    /* Get file size */
+    GStatBuf stat_buf;
+    if (g_stat(tmp_template, &stat_buf) == 0) {
+        file_size = (long) stat_buf.st_size;
+    } else {
+        g_warning("Unable to stat '%s': %s", tmp_template, g_strerror(errno));
+    }
+
+cleanup:
+    if (g_unlink(tmp_template) != 0) {
+        siril_debug_print("g_unlink() failed for temp file\n");
+    }
+
+    g_free(tmp_template);
+    return file_size;
 }
 
+struct jpeg_size_result {
+    struct savedial_data *args;
+    gchar *txt;
+};
+
 static gboolean end_calculate_jpeg_size(gpointer p) {
-	struct savedial_data *args = (struct savedial_data *) p;
-	stop_processing_thread();
-	set_cursor_waiting(FALSE);
-	g_free(args->copyright);
-	g_free(args->description);
-	free(args);
-	return FALSE;
+    struct jpeg_size_result *res = p;
+
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget("size_estimate_entry")),
+        res->txt
+    );
+
+    stop_processing_thread();
+    set_cursor_waiting(FALSE);
+
+    g_free(res->txt);
+    g_free(res->args->copyright);
+    g_free(res->args->description);
+    free(res->args);
+    g_free(res);
+
+    return FALSE;
 }
 
 static gpointer calculate_jpeg_size_thread(gpointer p) {
-	struct savedial_data *args = (struct savedial_data *) p;
-	long file_size = calculate_jpeg_size(args);
-	gchar *txt = g_format_size_full(file_size, G_FORMAT_SIZE_IEC_UNITS);
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), txt);
-	siril_add_idle(end_calculate_jpeg_size, args);
+    struct savedial_data *args = p;
+    long file_size = calculate_jpeg_size(args);
+
+    struct jpeg_size_result *res = g_new0(struct jpeg_size_result, 1);
+    res->args = args;
+    res->txt = g_format_size_full(file_size, G_FORMAT_SIZE_IEC_UNITS);
+
+    siril_add_idle(end_calculate_jpeg_size, res);
+    return NULL;
+}
+
+#else
+
+static gboolean end_calculate_jpeg_size(gpointer p) {
+    stop_processing_thread();
+    set_cursor_waiting(FALSE);
+    return FALSE;
+}
+
+static gpointer calculate_jpeg_size_thread(gpointer p) {
+	printf("Should not happen\n");
+	siril_add_idle(end_calculate_jpeg_size, NULL);
 	return NULL;
 }
+
+#endif
 
 static gpointer mini_save_dialog(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;

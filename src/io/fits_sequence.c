@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -361,7 +361,8 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 
 	if (internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix, buffer, layer, area))
 		return 1;
-	flip_buffer(fitseq->bitpix, buffer, area);
+	if (!flip_buffer(fitseq->bitpix, buffer, area))
+		return 1;
 	return 0;
 }
 

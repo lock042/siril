@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,13 @@
 #define SRC_CORE_INITFILE_H_
 
 #include <glib.h>
+
+// Structure to store config files with their versions
+typedef struct {
+	gchar *filename;
+	int major;
+	int minor;
+} ConfigFile;
 
 enum token_index {
 	WD = 0,		/* Working Directory */

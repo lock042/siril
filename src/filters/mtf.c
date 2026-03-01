@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2025 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
  * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -348,8 +348,6 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 			for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
 				lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params[chan]));
 			}
-			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -361,8 +359,6 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 	}
 	else if (from->type == DATA_FLOAT) {
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
