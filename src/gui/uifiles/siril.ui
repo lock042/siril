@@ -2745,6 +2745,21 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="calibrate_mag_button">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Calibrate magnitudes of the image using stars detected from the catalogue</property>
+            <property name="action-name">win.catmag</property>
+            <property name="text" translatable="yes">Calibrate magnitudes ...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="nina_button">
             <property name="visible">True</property>
             <property name="can-focus">True</property>

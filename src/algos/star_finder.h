@@ -77,7 +77,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args);
 gpointer findstar_worker(gpointer p);
 int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose);
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry);
-float measure_image_FWHM(fits *fit, int channel);
+float measure_image_FWHM(fits *fit, int channel, int *nbstars);
 struct starfinder_data *findstar_image_worker(const struct starfinder_data *findstar_args, int o, int i, fits *fit, rectangle *_, int threads);
 
 #endif

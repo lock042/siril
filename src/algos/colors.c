@@ -662,6 +662,21 @@ double BV_to_T(double BV) {
 	return T;
 }
 
+// from https://github.com/sczesla/PyAstronomy/blob/master/PyAstronomy/pyasl/asl/aslExt_1/ballesterosBV_T.py
+double T_to_BV(double T) {
+    double _a = 0.92;
+    double _b = 1.7;
+    double _c = 0.62;
+    double z = T / 4600.0;
+    double ap = z * _a * _a;
+    double bp = _a * _c * z + _b * _a * z - 2.0 * _a;
+    double cp = _b * _c * z - _c - _b;
+
+    double sqrtarg = bp * bp - 4.0 * ap * cp;
+    double bv1 = (-bp + sqrt(sqrtarg)) / (2.0 * ap);
+    return bv1;
+}
+
 // CIE XYZ Color Matching Functions
 float x1931(float w) {
 	int index = w - 360;

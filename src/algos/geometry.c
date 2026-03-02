@@ -35,6 +35,7 @@
 #include "opencv/opencv.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
 #include "gui/image_display.h"
@@ -1195,7 +1196,7 @@ int crop(fits *fit, rectangle *bounds) {
 			bounds->y = round_down_to_multiple(bounds->y, 6);
 			bounds->w = round_down_to_multiple(bounds->w, 6);
 			bounds->h = round_down_to_multiple(bounds->h, 6);
-			if(bounds->w < 2)
+			if (bounds->w < 2)
 				bounds->w = 2;
 			if (bounds->h < 2)
 				bounds->h = 2;
@@ -1205,7 +1206,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
-	gboolean wcs = has_wcs(fit);
+	const gboolean wcs = has_wcs(fit);
 	if (wcs)
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 
@@ -1271,6 +1272,89 @@ int crop_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	free(data);
 	return retval;
+}
+
+int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, double margin_asec, int minsize, fits *fit) {
+        int x1, y1, x2, y2, retval;
+        double dx1, dy1, dx2, dy2;
+        siril_debug_print("Requesting crop around (%.6f, %.6f) and (%.6f, %.6f), margin %.1f\" or %d pix, minsize %d\n", ra1, dec1, ra2, dec2, margin_asec, margin_px, minsize);
+        if (margin_asec != DBL_MAX) {
+                margin_px = round_to_int(margin_asec / (get_wcs_image_resolution(fit) * 3600.0));
+                siril_debug_print("margin in pixels: %d\n", margin_px);
+        }
+        retval = wcs2pix(fit, ra1, dec1, &dx1, &dy1);
+        retval += wcs2pix(fit, ra2, dec2, &dx2, &dy2);
+        if (retval) {
+                siril_log_message(_("The specified coordinates are not in the image\n"));
+                return 1;
+        }
+        fits_to_display(dx1, dy1, &dx1, &dy1, fit->ry);
+        fits_to_display(dx2, dy2, &dx2, &dy2, fit->ry);
+        rectangle area;
+        if (dx1 > dx2) {
+                x1 = (int)ceil(dx1);
+                x2 = (int)floor(dx2);
+                if (margin_px != INT_MAX) {
+                        x1 += margin_px;
+                        x2 -= margin_px;
+                }
+                area.x = x2;
+                area.w = x1 - x2 + 1;
+        } else {
+                x2 = (int)ceil(dx2);
+                x1 = (int)floor(dx1);
+                if (margin_px != INT_MAX) {
+                        x1 -= margin_px;
+                        x2 += margin_px;
+                }
+                area.x = x1;
+                area.w = x2 - x1 + 1;
+        }
+        if (dy1 > dy2) {
+                y1 = (int)ceil(dy1);
+                y2 = (int)floor(dy2);
+                if (margin_px != INT_MAX) {
+                        y1 += margin_px;
+                        y2 -= margin_px;
+                }
+                area.y = y2;
+                area.h = y1 - y2 + 1;
+        } else {
+                y2 = (int)ceil(dy2);
+                y1 = (int)floor(dy1);
+                if (margin_px != INT_MAX) {
+                        y1 -= margin_px;
+                        y2 += margin_px;
+                }
+                area.y = y1;
+                area.h = y2 - y1 + 1;
+        }
+        siril_debug_print("Before checking size: (%d, %d) to (%d, %d)\n", x1, y1, x2, y2);
+
+        // grow area from the centre if it's too small
+        if (area.w < minsize) {
+                area.x = area.x + area.w / 2 - minsize / 2;
+                area.w = minsize;
+        }
+        if (area.h < minsize) {
+                area.y = area.y + area.h / 2 - minsize / 2;
+                area.h = minsize;
+        }
+        enforce_area_in_fits(fit, &area);
+
+        siril_log_message(_("Cropping image to pixel coordinates (%d, %d), size %d x %d\n"),
+                        area.x, area.y, area.w, area.h);
+
+        if (crop(fit, &area)) {
+                siril_log_color_message(_("Cropping failed\n"), "red");
+                return -1;
+        }
+
+        char log[90];
+        sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+                        area.x, area.y, area.w, area.h);
+        fit->history = g_slist_append(fit->history, strdup(log));
+        return 0;
 }
 
 int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
@@ -1533,7 +1617,7 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	return fits_binning(fit, params->factor, params->mean);
 }
 
-static gboolean crop_gui_updates(gpointer user) {
+gboolean crop_gui_updates(gpointer user) {
 	clear_stars_list(TRUE);
 	delete_selected_area();
 	reset_display_offset();

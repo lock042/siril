@@ -791,6 +791,10 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	siril_open_dialog("compstars");
 }
 
+void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("catmag");
+}
+
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
 }

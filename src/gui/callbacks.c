@@ -1630,6 +1630,7 @@ static void load_accels() {
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
 		"win.compstars",              "<Primary><Shift>b", NULL,
+		"win.catmag",                 "<Primary><Shift>m", NULL,
 		"win.nina_light_curve",       "<Primary><Shift>n", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
