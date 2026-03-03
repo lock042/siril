@@ -3,6 +3,7 @@ siril-1.4.3
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
+* Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 
 siril-1.4.2
 18/02/26
