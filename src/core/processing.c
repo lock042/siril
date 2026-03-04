@@ -1715,15 +1715,21 @@ gpointer generic_image_worker(gpointer p) {
 	assert(args->fit);
 	assert(args->image_hook);
 
+	fits *orig = NULL; // reference in case we need it for the undo state
 	gboolean verbose = args->verbose || !args->for_preview;
 	gchar *history = NULL;
 	gchar *summary = NULL;
+	fits *argfit = args->fit;
+	gboolean argpreview = args->for_preview;
+	gboolean arg_custom_undo = args->custom_undo;
+	gboolean arg_update_gfit = args->command_updates_gfit;
+	gboolean undo_state = FALSE;
+	gchar* desc = g_strdup(args->description);
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
-	fits *orig = NULL; // reference in case we need it for the undo state
 
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
@@ -1736,12 +1742,12 @@ gpointer generic_image_worker(gpointer p) {
 		if (!orig) {
 			PRINT_ALLOC_ERR;
 			args->retval = 1;
-			goto the_end_no_orig;
+			goto the_end;
 		}
 		if (copyfits(args->fit, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
 			siril_log_color_message(_("Failed to copy original image.\n"), "red");
 			args->retval = 1;
-			goto the_end_no_orig;
+			goto the_end;
 		}
 	}
 
@@ -1771,57 +1777,30 @@ gpointer generic_image_worker(gpointer p) {
 		siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
 		args->retval = 1;
 	} else {
+		args->retval = 0;
 		// Blend according to the mask
 		if (using_mask) {
 			siril_debug_print("Applying mask blend...\n");
 			blend_fits_with_mask(args->fit, orig);
 		}
+
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		if (!args->for_preview)
-			siril_log_message("%s\n", history); // Log the full detailed description
-
 		// If we are being run from the GUI and not just updating a preview, set the undo state
-		if (args->fit == gfit && !(args->custom_undo || args->for_preview || args->command)) {
+		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || args->command);
+		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
-			if (orig)
-				undo_save_state(orig, summary); // We just use the short description for the undo state
-			g_free(summary); // free the message
-			g_free(history); // free the full description, we don't need it in this case
-		} else {
-			// Update the HISTORY card if it wasn't updated by undo_save_state'
-			if ((args->custom_undo)) {
-				// Do nothing, the custom undo will handle it
-				g_free(history);
-			} else if (args->command_updates_gfit) {
-				args->fit->history = g_slist_append(args->fit->history, history);
-				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
-				update_fits_header(args->fit); // update the header so the history is up to date and correctly ordered
-			} else {
-				g_free(history);
-			}
-		}
-		if (verbose) {
-			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
-			gettimeofday(&t_end, NULL);
-			show_time(t_start, t_end);
-		}
 	}
 
-the_end:
-	// Always clean up orig if it was allocated
-	if (orig) clearfits(orig);
-	free(orig);
+the_end:;
 
-the_end_no_orig:
-	if (args->retval) {
+	int retval = args->retval;
+	if (retval) {
 		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
 	} else {
 		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
 	}
-
-	int retval = args->retval;
 
 	if (args->command) {
 		// commands do not use custom idles and the generic ones must run synchronously
@@ -1835,6 +1814,37 @@ the_end_no_orig:
 	} else {
 		siril_add_idle(end_generic_image_update_gfit, args);
 	}
+
+	// Everything below here must avoid using args as it will be cleared in the idle function
+	// We do other widget updates here after the idle has been added, so that we don't get
+	// early redraws
+
+	if (!argpreview && !retval)
+		siril_log_message("%s\n", history); // Log the full detailed description
+
+	if (!retval) {
+		if (undo_state && orig) {
+			undo_save_state(orig, summary); // We just use the short description for the undo state
+		} else {
+			// Update the HISTORY card if it wasn't updated by undo_save_state'
+			if (!arg_custom_undo && arg_update_gfit) {
+				argfit->history = g_slist_append(argfit->history, history);
+				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
+				update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
+			}
+		}
+	}
+	if (verbose) {
+		siril_log_color_message(_("%s %s.\n"), "green", desc, retval ? _("failed") : _("succeeded"));
+		gettimeofday(&t_end, NULL);
+		show_time(t_start, t_end);
+	}
+	// Clean up
+	g_free(summary); // free the message
+	g_free(history);
+	g_free(desc);
+	if (orig) clearfits(orig);
+	free(orig);
 
 	return GINT_TO_POINTER(retval);
 }
