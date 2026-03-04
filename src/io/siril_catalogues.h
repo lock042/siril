@@ -173,19 +173,21 @@ typedef struct {
 	float x, y;	// image coordinates
 	float x1, y1;	// second star image coordinates (for constellations)
 	uint64_t index; // index in the Gaia results table when using CAT_GAIADR3_DIRECT for SPCC
-	float BV; // B ,agnitude - V magnitude, used in PCC
+	float BV; // B magnitude - V magnitude, used in PCC
 	gboolean included; // flag to remove items from the list without deleting them (to be used by platesolve/pcc)
 } cat_item;
 
 typedef struct {
+	/* input */
 	siril_cat_index cat_index;
 	double center_ra;
 	double center_dec;
 	double radius; // fov radius (in arcmin)
 	double limitmag; // limiting magnitude
-	GDateTime *dateobs; // date-obs in JD
+	GDateTime *dateobs;
 	gchar *IAUcode; // observatory code
 	gboolean phot; // TRUE if can be used for photometry
+	/* output */
 	cat_item *cat_items;
 	int nbitems; // the number of items stored
 	int nbincluded; // the number of items included after projection

@@ -215,6 +215,7 @@ src_files = [
   'gui/background_extraction.c',
   'gui/callbacks.c',
   'gui/colors.c',
+  'gui/catmag.c',
   'gui/compstars.c',
   'gui/conversion.c',
   'gui/curves.c',

@@ -469,3 +469,34 @@ void notify_gfit_modified() {
 
 	gui_function(end_gfit_operation, NULL);
 }
+
+gboolean enforce_area_in_fits(fits *fit, rectangle *area) {
+        gboolean has_crossed = FALSE;
+        int rx = fit->rx, ry = fit->ry;
+        if (area->w > rx) {
+                area->w = rx;
+                has_crossed = TRUE;
+        }
+        if (area->h > ry) {
+                area->h = ry;
+                has_crossed = TRUE;
+        }
+        if (area->x < 0) {
+                area->x = 0;
+                has_crossed = TRUE;
+        }
+        if (area->y < 0) {
+                area->y = 0;
+                has_crossed = TRUE;
+        }
+        if (area->x + area->w > rx) {
+                area->x = rx - area->w;
+                has_crossed = TRUE;
+        }
+        if (area->y + area->h > ry) {
+                area->y = ry - area->h;
+                has_crossed = TRUE;
+        }
+        return has_crossed;
+}
+

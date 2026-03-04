@@ -99,6 +99,53 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.2" type="stable" date="2026-02-18">
+      <url type="details">https://siril.org/download/1.4.2</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series. This version focuses on bug fixes, UI improvements,
+          Python scripting enhancements, and catalogue system optimizations.
+        </p>
+        <ul>
+          <li>Fixed crash in RGB composition when aligning RGB while L is loaded but not checked</li>
+          <li>Fixed data entry typos in Messier.csv</li>
+          <li>Fixed crash resulting from GTK code used in command functions</li>
+          <li>Reimplemented drag and drop and improved UI for GtkFileChooserButton</li>
+          <li>Added local caching of index ranges from remote SPCC catalogue and improved HTTP checks</li>
+          <li>Enabled Python methods to work with sequence frames as well as single images</li>
+          <li>Added new Windows build environment (UCRT64) to support up to 8192 files in a sequence</li>
+          <li>Improved robustness of Python virtual environment creation</li>
+          <li>Enhanced GPU detection and capabilities in sirilpy.gpuhelper</li>
+          <li>Added support for passing a list of sequence frame numbers to sirilpy.set_seq_frame_incl</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.1" type="stable" date="2025-01-05">
+      <url type="details">https://siril.org/download/1.4.1</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.0 series. This version focuses on build system
+          improvements, Python scripting fixes, and catalogue system enhancements.
+        </p>
+        <ul>
+          <li>
+            Fixed build error when compiled without libgit2, libjpeg and libcurl
+          </li>
+          <li>
+            Fixed issue with the tkfilebrowser submodule if duplicate filenames or bookmarks are present
+          </li>
+          <li>
+            Fixed too-strict condition and off-by-one error in sirilpy
+          </li>
+          <li>
+            Fixed sirilpy.FFit class data setter
+          </li>
+          <li>
+            Fixed remote catalogue to avoid dependency on Gaia Archive
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.0" type="stable" date="2025-12-05">
       <url type="details">https://siril.org/download/1.4.0</url>
       <description>

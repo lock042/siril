@@ -20,4 +20,6 @@ void adjust_cutoff_from_updated_gfit();		// was level_adjust(), deprecated too
 gboolean end_gfit_operation(gpointer data);
 void notify_gfit_modified();		// to be called after all gfit modifications
 
+gboolean enforce_area_in_fits(fits *fit, rectangle *area);
+
 #endif
