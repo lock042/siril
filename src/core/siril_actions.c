@@ -55,7 +55,6 @@
 #include "gui/sequence_list.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
-#include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"

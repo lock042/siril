@@ -68,6 +68,13 @@
                 <property name="title" translatable="yes" context="shortcut window">Zoom to 100%</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;H</property>
+                <property name="title" translatable="yes" context="shortcut window">Hide / Show histogram</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>

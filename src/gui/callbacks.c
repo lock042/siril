@@ -1631,6 +1631,7 @@ static void load_accels() {
 
 		"win.annotate-dialog",        "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
+		"win.histo_display",          "<Primary>h", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
 		"win.compstars",              "<Primary><Shift>b", NULL,
