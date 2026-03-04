@@ -19,7 +19,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/utils.h"
-#include "io/single_image.h"
 #include "histo_display.h"
 #include <math.h>
 
@@ -1007,8 +1006,8 @@ static gboolean on_histogram_motion_notify(GtkWidget *widget, GdkEventMotion *ev
 			/* Mouse outside histogram - check for cursor change */
 			if (cursor_state.active) {
 				cursor_state.active = FALSE;
-				gtk_widget_queue_draw(widget);
 			}
+			gtk_widget_queue_draw(widget);
 
 			/* Update cursor based on position */
 			update_cursor(widget, event->x, event->y);
@@ -1313,6 +1312,8 @@ void init_histogram_overlay(void) {
 	histo_state.r_area = lookup_widget("drawingarear");
 	histo_state.g_area = lookup_widget("drawingareag");
 	histo_state.b_area = lookup_widget("drawingareab");
+
+	histo_state.logarithmic = (com.pref.gui.display_histogram_mode == LOG_DISPLAY);
 
 	/* Log which widgets were found */
 	if (!histo_state.rgb_area)
