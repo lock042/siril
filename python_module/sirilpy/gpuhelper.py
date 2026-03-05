@@ -9,7 +9,6 @@ installation and testing of GPU-related modules.
 Initial scope is ONNX, torch and jax
 """
 
-from __future__ import annotations
 import re
 import os
 import sys
@@ -20,16 +19,14 @@ import platform
 import tempfile
 import importlib
 import subprocess
-from typing import TYPE_CHECKING, Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any
 from packaging import version as pkg_version
 import requests
 import numpy as np
 from .version import __version__
 from .utility import ensure_installed, _check_package_installed, _install_package, \
                      SuppressedStderr
-if TYPE_CHECKING:
-    import torch
-    
+
 def _detect_cuda_version(system) -> Optional[str]:
     """
     Detects the CUDA version by parsing the output of 'nvcc -v'.
