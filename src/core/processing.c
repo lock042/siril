@@ -32,7 +32,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/processing_thread.h"
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/command_line_processor.h"

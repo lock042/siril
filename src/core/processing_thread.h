@@ -1,12 +1,8 @@
 /*
  * processing_thread.h — persistent single-worker-thread job queue
  *
- * Replaces the ad-hoc com.thread / com.run_thread / stop_processing_thread /
- * waiting_for_thread state machine.  Drop this header where processing.h
- * previously declared those symbols; everything else in processing.h stays.
- *
- * Design invariants
- * -----------------
+ * Design intent
+ * -------------
  * 1. One persistent worker thread runs for the lifetime of the application.
  *    Jobs are serialised through a FIFO queue; there is never more than one
  *    job executing at a time.
@@ -24,8 +20,10 @@
  *    should migrate to processing_is_job_active(); get_thread_run() is kept for
  *    the cancel-poll semantics used inside worker functions.
  *
- * 4. stop_processing_thread() does UI/child-list cleanup only.  It never joins
- *    or blocks.  Calling it from an idle callback (end_generic_*) or directly
+ * 4. stop_processing_thread() only does child-list cleanup and cursor reset.
+ *    (Eventually cursor reset should probably go into the generic idle as well, but
+ *    stop_processing_thread is a good catch-all to guarantee it gets reset.) It never
+ *    joins or blocks.  Calling it from an idle callback (end_generic_*) or directly
  *    from a worker job function is always safe.
  */
 
@@ -34,6 +32,9 @@
 
 #include <glib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* --------------------------------------------------------------------------
  * Types
  * -------------------------------------------------------------------------- */
@@ -118,9 +119,9 @@ void processing_wait_for_job (ProcessingJob *job);
  *   Replaces the "is something running?" use of get_thread_run() in
  *   processcommand's wait loop and GUI button-sensitivity checks.
  */
-void     processing_request_cancel  (void);
-gboolean get_thread_run             (void);   /* workers only: !cancel_flag */
-gboolean processing_is_job_active   (void);   /* external: job executing?   */
+void     processing_request_cancel (void);
+gboolean get_thread_run (void);
+gboolean processing_is_job_active (void);
 
 
 /* --------------------------------------------------------------------------
@@ -147,7 +148,10 @@ gboolean processing_in_worker_thread (void);
  * Return values match the old API:
  *   0 → success (Python now owns the slot)
  *   1 → busy or already reserved
- *   2 → an image-processing dialog is open
+ *   2 → an image-processing dialog is open TODO: with this improved thread
+ *       control mechanism do we stll need to worry about image processing
+ *       dialogs being open when python claims the thread (or multiple image
+ *       processing dialogs being open simultaneously)?
  */
 int  claim_thread_for_python (void);
 void python_releases_thread  (void);
@@ -168,10 +172,6 @@ void python_releases_thread  (void);
  * In the new model start_in_reserved_thread is identical to start_in_new_thread
  * because the single-worker queue provides the "only one at a time" guarantee
  * implicitly.
- *
- * Returns FALSE only if the python reservation is active and the call originates
- * from the GTK main thread (blocking there would deadlock the idle dispatcher).
- * In all other cases returns TRUE.
  */
 gboolean start_in_new_thread      (ProcessingFunc func, gpointer data);
 gboolean start_in_reserved_thread (ProcessingFunc func, gpointer data);
@@ -180,13 +180,15 @@ gboolean start_in_reserved_thread (ProcessingFunc func, gpointer data);
  * waiting_for_thread()
  *
  * Returns the job's return value with CMD_NOTIFY_GFIT_MODIFIED stripped, or 0.
+ * TODO: once all image operations are migrated to generic_image_worker, there
+ * will no longer be a need for the CMD_NOTIFY_GFIT_MODIFIED status.
  *
  * · Script / python-command context: start_in_new_thread already blocked, so
  *   this is a fast retrieval of the cached result — no additional waiting.
  * · Non-GTK background thread (e.g. processcommand wait_for_completion path):
  *   blocks until the active job finishes.
  * · GTK main thread: returns 0 immediately to avoid deadlocking the idle
- *   dispatcher (the cmd_NOTIFY_GFIT_MODIFIED path only ever calls this when no
+ *   dispatcher (the CMD_NOTIFY_GFIT_MODIFIED path only ever calls this when no
  *   async job is in flight anyway).
  */
 gpointer waiting_for_thread (void);
@@ -216,13 +218,13 @@ void set_thread_run (gboolean b);
  * to prevent concurrent submissions without running on the worker thread.
  * reserve_thread() is an atomic test-and-set; returns FALSE if already active.
  */
-gboolean reserve_thread  (void);
-void     unreserve_thread (void);
+gboolean reserve_thread (void);
+void unreserve_thread (void);
 
-/*
- * end_generic — unchanged idle-function helper, kept here for co-location.
- * Calls stop_processing_thread() then clears the wait cursor.
- */
 gboolean end_generic (gpointer arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SIRIL_PROCESSING_THREAD_H */

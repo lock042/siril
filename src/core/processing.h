@@ -4,6 +4,7 @@
 #include "sequence_filtering.h"
 #include "io/fits_sequence.h" // for fitseq
 #include "io/ser.h" // for struct ser_struct
+#include "processing_thread.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,6 +183,7 @@ struct generic_img_args {
 	 * caller and by convention MUST have a destructor as its
 	 first member, which is called in free_generic_img_args()
 	 */
+
 	gpointer user;
 	int max_threads; // number of threads to use for the operation
 	gboolean for_preview; // if TRUE, this is a preview operation and should not save undo
@@ -227,18 +229,8 @@ int multi_prepare(struct generic_seq_args *args);
 int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
 int multi_finalize(struct generic_seq_args *args);
 
-gboolean start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
-gpointer waiting_for_thread();
-void stop_processing_thread();
-gboolean get_thread_run();
-
-gboolean start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
-gboolean reserve_thread();
-void unreserve_thread();
 
 // Functions to allow a python script to block other tasks from claiming the thread
-int claim_thread_for_python();
-void python_releases_thread();
 void check_python_flag();
 
 void kill_all_python_scripts(); // Used to prepare for resetting the venv
@@ -246,7 +238,6 @@ void kill_all_python_scripts(); // Used to prepare for resetting the venv
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 
-gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data);
 
