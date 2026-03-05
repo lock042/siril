@@ -958,12 +958,14 @@ class RegData:
         Deserialize a binary response into a RegData object.
 
         Args:
-            data (bytes): Binary data to unpack
+            data (bytes): Binary data to unpack.
 
-        Returns: RegData object
+        Returns:
+            RegData: The deserialized RegData object.
 
-        Raises: SirilError if the received data doesn't match the expected size'
-                struct.error If unpacking fails
+        Raises:
+            SirilError: If the received data doesn't match the expected size.
+            struct.error: If unpacking fails.
         """
         # Calculate expected size
         format_string = '!5dQ9d2Q'
