@@ -65,6 +65,7 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
+#include "core/processing_thread.h"
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
@@ -292,6 +293,7 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
+	processing_system_init();
 	initialize_default_settings();	// com.pref
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));

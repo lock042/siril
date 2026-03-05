@@ -625,14 +625,10 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		}
 
 		if (wait_for_completion && ret != CMD_NO_WAIT) {
-			while (get_thread_run()) {
-				if (waiting_for_thread()) {
-					ret = CMD_GENERIC_ERROR;  // Command failed during execution
-					break;
-				}
-				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
-				remove_child_from_children((GPid) -2); // remove processing thread from list
-			}
+			remove_child_from_children((GPid) -2);   /* tidy child list first    */
+			gpointer job_retval = waiting_for_thread();
+			if (GPOINTER_TO_INT(job_retval))
+				ret = CMD_GENERIC_ERROR;
 		}
 		free(myline);
 	}

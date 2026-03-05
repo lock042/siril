@@ -127,20 +127,18 @@ static void rotate_gui(fits *fit) {
 }
 
 /* Idle function for fast rotation */
-static gboolean fast_rotation_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
+static gboolean fast_rotation_idle(gpointer p)
+{
+    struct generic_img_args *args = (struct generic_img_args *)p;
 
-	stop_processing_thread();
+    if (args->retval == 0) {
+        notify_gfit_modified();   /* resets viewport, remaps, redraws,
+                                     refreshes previews — all in one call  */
+        update_zoom_label();      /* reads the now-correct zoom state       */
+    }
 
-	if (args->retval == 0) {
-		update_zoom_label();
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
+    free_generic_img_args(args);
+    return FALSE;
 }
 
 void siril_rotate90() {
