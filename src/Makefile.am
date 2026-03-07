@@ -288,8 +288,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/git_gui.c \
-	src/gui/histo_display.c \
-	src/gui/histo_display.h \
+	gui/histo_display.c \
+	gui/histo_display.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/keywords_tree.c \

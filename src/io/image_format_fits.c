@@ -2381,6 +2381,8 @@ void copy_fits_metadata(fits *from, fits *to) {
 		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
 	}
 
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
+
 	if (from->keywords.wcslib) {
 		int status = -1;
 		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
@@ -2393,6 +2395,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	if (from->unknown_keys) {
 		to->unknown_keys = g_strdup(from->unknown_keys);
 	}
+
 	// Set boolean flags
 //	to->pixelkey = (from->keywords.pixel_size_x > 0.);
 //	to->focalkey = (from->keywords.focal_length > 0.);
@@ -2401,9 +2404,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->focalkey = from->focalkey;
 
 	// copy from->history?
-
 }
-
 
 int copy_fits_from_file(const char *source, const char *destination) {
 	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */

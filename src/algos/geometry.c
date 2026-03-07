@@ -885,6 +885,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 	set_mask_active(fit, FALSE);
 	struct timeval t_start, t_end;
 
+	// given how long flipping an image takes, I think we can remove all the verbose code, also because of the weird naming of horizontal and vertical mirrors
 	if (verbose) {
 		siril_log_color_message(_("Horizontal mirror: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
@@ -912,7 +913,8 @@ void mirrorx(fits *fit, gboolean verbose) {
 		sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	}
 	apply_flip_to_gps_data(fit);
-	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
+
+	fit->history = g_slist_append(fit->history, strdup("Top-down mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
