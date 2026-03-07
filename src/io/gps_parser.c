@@ -435,8 +435,6 @@ struct gps_rs_data *clone_gps_data(struct gps_rs_data *in) {
 	return out;
 }
 
-
-
 /* gets QHY GPS metadata from first image row and updates the header with extracted data */
 int gps_extract_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
                 rectangle *_, int threads) {

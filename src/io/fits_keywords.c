@@ -832,8 +832,8 @@ int save_history_keywords(fits *fit) {
 	return status;
 }
 
-/* NINA + QHY specific timing headers for rolling shutter cameras, call after DATE-OBS and exposure have been read */
-void read_qhy_gps_data(fits *fit) {
+/* NINA + QHY specific timing headers for rolling shutter cameras, call after DATE-OBS, exposure and binning have been read */
+static void read_qhy_gps_data(fits *fit) {
         int status = 0;
         double exposure;
         fits_read_key(fit->fptr, TDOUBLE, "QHY_EXP", &exposure, NULL, &status);
@@ -1026,23 +1026,6 @@ int read_fits_keywords(fits *fit) {
 
 	read_fits_date_obs_header(fit); // handle very special case
 
-	read_qhy_gps_data(fit); // sets fit->gps_data for rolling shutter cameras
-        if (!fit->keywords.gps_data) {
-                // maybe it's a global shutter GPS camera?
-                status = 0;
-                fits_read_key(fit->fptr, TINT, "DATE-GPS", &(fit->keywords.date_and_exp_from_gps), NULL, &status);
-                if (status || !fit->keywords.date_and_exp_from_gps) {
-                        // first time opening the image, check if it has all the GPS headers (not the
-			// pixel metadata) and update DATE-OBS and EXPTIME with them, mark it done with
-			// DATE-GPS
-                        struct _qhy_struct qhy_header = { 0 };
-                        if (!parse_gps_from_header(fit, NULL, &qhy_header)) {
-                                update_fit_from_qhy_header(fit, &qhy_header);
-                                release_qhy_struct(&qhy_header);
-                        }
-                }
-        }
-
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
 	// Loop through each keyword
@@ -1221,6 +1204,24 @@ int read_fits_keywords(fits *fit) {
 			current_key->special_handler_read(fit, comment, current_key);
 		}
 	}
+
+	read_qhy_gps_data(fit); // sets fit->gps_data for rolling shutter cameras
+        if (!fit->keywords.gps_data) {
+                // maybe it's a global shutter GPS camera?
+                status = 0;
+                fits_read_key(fit->fptr, TINT, "DATE-GPS", &(fit->keywords.date_and_exp_from_gps), NULL, &status);
+                if (status || !fit->keywords.date_and_exp_from_gps) {
+                        // first time opening the image, check if it has all the GPS headers (not the
+			// pixel metadata) and update DATE-OBS and EXPTIME with them, mark it done with
+			// DATE-GPS
+                        struct _qhy_struct qhy_header = { 0 };
+                        if (!parse_gps_from_header(fit, NULL, &qhy_header)) {
+                                update_fit_from_qhy_header(fit, &qhy_header);
+                                release_qhy_struct(&qhy_header);
+                        }
+                }
+        }
+
 
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {

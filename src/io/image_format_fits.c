@@ -1298,6 +1298,14 @@ void clearfits_header(fits *fit) {
 		g_date_time_unref(fit->keywords.date);
 		fit->keywords.date = NULL;
 	}
+	if (fit->keywords.gps_data) {
+		if (fit->keywords.gps_data->end_vsync_date) {
+			g_date_time_unref(fit->keywords.gps_data->end_vsync_date);
+			fit->keywords.gps_data->end_vsync_date = NULL;
+		}
+		free(fit->keywords.gps_data);
+		fit->keywords.gps_data = NULL;
+	}
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
@@ -2084,6 +2092,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->history = NULL;
 		to->keywords.date = NULL;
 		to->keywords.date_obs = NULL;
+		to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 		to->icc_profile = NULL;
 		to->color_managed = FALSE;
 		to->keywords.wcslib = NULL;
@@ -2270,6 +2279,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->history = NULL;
 	to->keywords.date = NULL;
 	to->keywords.date_obs = NULL;
+	to->keywords.gps_data = clone_gps_data(from->keywords.gps_data);
 	/* Note: extracting one channel of a multi-channel FITS poses a color management challenge:
 	 * the original FITS would have had a 3-channel ICC profile (eg linear RGB) which would
 	 * expect 3-channel data at the transform endpoint. Now we only have 1 channel of the 3.
@@ -2565,6 +2575,7 @@ static void fits_flip_top_to_bottom_float(fits *fit) {
 	free(swapline);
 }
 
+// only flips data, not metadata!
 void fits_flip_top_to_bottom(fits *fit) {
 	if (fit->type == DATA_USHORT)
 		fits_flip_top_to_bottom_ushort(fit);

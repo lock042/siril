@@ -35,6 +35,7 @@
 #include "opencv/opencv.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/gps_parser.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -878,83 +879,20 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	return 0;
 }
 
-static void mirrorx_ushort(fits *fit, gboolean verbose) {
-	int line, axis;
-	WORD *swapline, *src, *dst;
-	struct timeval t_start, t_end;
-
-	if (verbose) {
-		siril_log_color_message(_("Horizontal mirror: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
-
-	size_t line_size = fit->rx * sizeof(WORD);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->pdata[axis] + line * fit->rx;
-			dst = fit->pdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-}
-
-static void mirrorx_float(fits *fit, gboolean verbose) {
-	int line, axis;
-	float *swapline, *src, *dst;
+void mirrorx(fits *fit, gboolean verbose) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gboolean tmp_mask_active = fit->mask_active;
+	set_mask_active(fit, FALSE);
 	struct timeval t_start, t_end;
 
 	if (verbose) {
 		siril_log_color_message(_("Horizontal mirror: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
 	}
-
-	size_t line_size = fit->rx * sizeof(float);
-	swapline = malloc(line_size);
-	if (!swapline) {
-		PRINT_ALLOC_ERR;
-		return;
-	}
-
-	for (axis = 0; axis < fit->naxes[2]; axis++) {
-		for (line = 0; line < fit->ry / 2; line++) {
-			src = fit->fpdata[axis] + line * fit->rx;
-			dst = fit->fpdata[axis] + (fit->ry - line - 1) * fit->rx;
-
-			memcpy(swapline, src, line_size);
-			memcpy(src, dst, line_size);
-			memcpy(dst, swapline, line_size);
-		}
-	}
-	free(swapline);
+	fits_flip_top_to_bottom(fit);
 	if (verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
-	}
-}
-
-void mirrorx(fits *fit, gboolean verbose) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
-	gboolean tmp_mask_active = fit->mask_active;
-	set_mask_active(fit, FALSE);
-
-	if (fit->type == DATA_USHORT) {
-		mirrorx_ushort(fit, verbose);
-	} else if (fit->type == DATA_FLOAT) {
-		mirrorx_float(fit, verbose);
 	}
 
 	if (fit->mask) {
@@ -973,6 +911,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 	else {
 		sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	}
+	apply_flip_to_gps_data(fit);
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
