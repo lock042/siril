@@ -468,9 +468,10 @@ void notify_gfit_modified() {
 
 void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
-	invalidate_gfit_histogram();
+	// The following are only required in GUI mode
 	if (!com.headless) {
-		remap_all();
+		invalidate_gfit_histogram();
+		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		init_layers_hi_and_lo_values(gui.sliders);
 	}
 }
