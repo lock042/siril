@@ -894,6 +894,7 @@ static void check_gfit_is_ours() {
 	set_cutoff_sliders_values();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
@@ -1068,6 +1069,7 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 		GtkNotebook *notebook = (GtkNotebook *) lookup_widget("notebook1");
 		gtk_notebook_set_current_page(notebook, 3);
 		gui.cvport = 3;
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		update_display_selection();
 		update_display_fwhm();
@@ -1725,8 +1727,8 @@ static void update_result(int and_refresh) {
 		colors_align_and_compose();
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
+		notify_gfit_data_modified();
 		notify_gfit_modified();
-		redraw(REMAP_ALL);
 	}
 }
 

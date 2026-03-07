@@ -2373,6 +2373,19 @@ void copy_roi_into_gfit() {
 	}
 }
 
+void remap_all() {
+	stf_computed = FALSE;
+	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
+		for (int i = 0; i < gfit->naxes[2]; i++) {
+			remap(i);
+		}
+	} else {
+		remap_all_vports();
+	}
+	if (gfit->naxis == 3)
+		remaprgb();
+}
+
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
@@ -2384,16 +2397,6 @@ void redraw(remap_type doremap) {
 			invalidate_image_render_cache(-1);
 			break;
 		case REMAP_ALL:
-			stf_computed = FALSE;
-			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < gfit->naxes[2]; i++) {
-					remap(i);
-				}
-			} else {
-				remap_all_vports();
-			}
-			if (gfit->naxis == 3)
-				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
 			break;
@@ -2426,6 +2429,7 @@ gboolean redraw_mask_idle(gpointer p) {
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
 	if (com.pref.gui.mask_tints_vports)
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	return FALSE;
 }

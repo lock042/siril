@@ -559,6 +559,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	if (!profiles_identical(old_monitor, gui.icc.monitor)) {
 		refresh_icc_transforms();
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 	}
 	cmsCloseProfile(old_monitor);
@@ -582,6 +583,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_toggle_button_set_active(togglebutton, FALSE);
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 }
@@ -657,7 +659,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			siril_log_message(_("Output device proofing profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
 			g_mutex_unlock(&soft_proof_profile_mutex);
 			refresh_icc_transforms();
-			queue_redraw(REMAP_ALL);
+			notify_gfit_data_modified();
+			redraw(REMAP_ALL);
 			return;
 		} else {
 			if (!no_file) {
@@ -670,7 +673,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	}
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	refresh_icc_transforms();
-	queue_redraw(REMAP_ALL);
+	notify_gfit_data_modified();
+	redraw(REMAP_ALL);
 }
 
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {

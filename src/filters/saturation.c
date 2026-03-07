@@ -357,7 +357,6 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
 		notify_gfit_modified();
-		redraw(REMAP_ALL);
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -391,6 +390,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (!satu_show_preview) {
 		waiting_for_thread();
 		copy_backup_to_gfit();
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();

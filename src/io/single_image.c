@@ -344,6 +344,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	close_tab(NULL);
 	init_right_tab(NULL);
 
+	remap_all();
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	return FALSE;
@@ -365,6 +366,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	close_tab(NULL);
 	init_right_tab(NULL);
 
+	remap_all();
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 	return FALSE;
@@ -427,9 +429,7 @@ int single_image_is_loaded() {
 /**************** updating the single image *******************/
 
 /* generic idle function for end of operation on gfit */
-gboolean end_gfit_operation(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
+gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	// this function should not contain anything required by the execution
 	// of the operation because it won't be run in headless
 
@@ -446,7 +446,6 @@ gboolean end_gfit_operation(gpointer data) {
 	display_filename();
 
 	// compute new min and max if needed for display and update sliders
-	init_layers_hi_and_lo_values(gui.sliders);
 	set_cutoff_sliders_values();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
@@ -464,10 +463,16 @@ gboolean end_gfit_operation(gpointer data) {
  * end of a processing operation, not for previews */
 void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
+	gui_function(end_gfit_operation, NULL);
+}
+
+void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
-
-	gui_function(end_gfit_operation, NULL);
+	if (!com.headless) {
+		remap_all();
+		init_layers_hi_and_lo_values(gui.sliders);
+	}
 }
 
 gboolean enforce_area_in_fits(fits *fit, rectangle *area) {

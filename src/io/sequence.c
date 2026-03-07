@@ -627,6 +627,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
 	gui_function(init_right_tab, NULL);
 
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	drawPlot();
 	return FALSE;

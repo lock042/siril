@@ -83,9 +83,8 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(gfit, _("Linear Match"));
 		if (!find_linear_coeff(gfit, &ref, low, high, a, b, &error)) {
 			apply_linear_to_fits(gfit, a, b);
-
+			notify_gfit_data_modified();
 			notify_gfit_modified();
-			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot compute linear coefficients."),

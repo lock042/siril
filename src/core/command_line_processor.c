@@ -275,7 +275,6 @@ static gboolean end_script(gpointer p) {
 	gui_function(set_GUI_CWD, NULL);
 	gui_function(update_MenuItem, NULL);
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	update_zoom_label();
 	update_display_fwhm();
@@ -397,6 +396,7 @@ gpointer execute_script(gpointer p) {
 
 	if (!com.headless) {
 		com.script = FALSE;
+		notify_gfit_data_modified();
 		gui_function(end_script, NULL);
 	}
 

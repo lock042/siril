@@ -457,23 +457,6 @@ int process_unclip(int nb) {
 	return CMD_OK;
 }
 
-// TODO: check this against the new denoise idles
-/*
-static gboolean end_denoise(gpointer p) {
-	stop_processing_thread();
-	struct denoise_args *args = (struct denoise_args *) p;
-	if (!args->previewing) {
-		copy_gfit_to_backup();
-		populate_roi();
-	}
-	notify_gfit_modified();
-	queue_redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-	free(args);
-	return FALSE;
-}*/
-
 gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	denoise_args *args = (denoise_args *) p;
 

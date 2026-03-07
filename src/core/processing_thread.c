@@ -118,6 +118,7 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
 	g_private_set(&worker_tls, GINT_TO_POINTER(1));
 
 	for (;;) {
+
 		/* ── Wait for a job ──────────────────────────────────────────── */
 		g_mutex_lock(&queue_mutex);
 		while (worker_running && g_queue_is_empty(&job_queue))
@@ -169,11 +170,16 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
 		g_atomic_int_set(&job_active_flag, 0);
 
 		g_mutex_lock(&queue_mutex);
-		active_job           = NULL;
-		pending_result       = job->result;
-		pending_result_valid = TRUE;
-		g_cond_broadcast(&queue_cond);   /* wake waiting_for_thread callers
-											and claim_thread_for_python      */
+		active_job = NULL;
+		/* Only cache the result for blocking (script/python-command) jobs.
+		* Fire-and-forget jobs have no caller waiting on pending_result, and
+		* overwriting it would corrupt the result of a subsequent blocking
+		* job whose waiting_for_thread() call consumes it.               */
+		if (!job->fire_and_forget) {
+			pending_result       = job->result;
+			pending_result_valid = TRUE;
+		}
+		g_cond_broadcast(&queue_cond);
 		g_mutex_unlock(&queue_mutex);
 
 		/* Unblock any thread that called processing_wait_for_job() or the
@@ -411,13 +417,32 @@ void python_releases_thread(void) {
 
 gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
 	/*
-	* Attempt to submit.  processing_submit_job returns NULL in two cases:
-	*   a) re-entrant / already_in_a_thread path → ran synchronously, OK
-	*   b) Python reservation + GTK main thread   → could not submit, FAIL
-	* We distinguish them via processing_in_worker_thread().
+	* Re-entrant submissions (from within a running job) bypass all guards:
+	* processing_submit_job will run func() synchronously in that case.
 	*/
 	if (!processing_in_worker_thread()) {
-		/* Check for the GTK-main + python-reserved rejection case. */
+
+		/* ── Busy guard ──────────────────────────────────────────────────
+		*
+		* In the old design start_in_new_thread refused to start if
+		* com.run_thread was set.  We restore that invariant: only one job
+		* may be active at a time from the perspective of the external API.
+		* This prevents rapid GUI triggers (e.g. multiple menu clicks) from
+		* stacking up jobs that operate on the same gfit with arguments
+		* captured at different points in time, producing dimension
+		* mismatches and corrupted state in the worker (manifests as
+		* "unknown interpolation type" from OpenCV for rotation jobs).
+		*
+		* We test job_active_flag rather than the queue length because a
+		* queued-but-not-yet-started job is just as problematic as one
+		* already running.
+		*/
+		if (processing_is_job_active()) {
+			fprintf(stderr, "The processing thread is busy, stop it first.\n");
+			return FALSE;
+		}
+
+		/* ── Python-reservation gate ─────────────────────────────────── */
 		if (g_main_context_is_owner(g_main_context_default())) {
 			g_mutex_lock(&queue_mutex);
 			gboolean reserved = python_reserved;
@@ -428,15 +453,20 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
 				return FALSE;
 			}
 		}
+
+		/*
+		* Mark the slot active immediately, before the job reaches the
+		* worker.  This closes the window between pushing to the queue and
+		* the worker's own g_atomic_int_set, during which a second rapid
+		* caller could pass the busy guard above.  The worker will set it
+		* again before executing; the double-set is harmless.
+		*/
+		g_atomic_int_set(&job_active_flag, 1);
 	}
 
 	if (!com.headless)
 		set_cursor_waiting(TRUE);
 
-	/*
-	* Register a fake child entry so the Cancel button can find and abort
-	* this job (kill_child_process looks for GPid == -2 with INT_PROC_THREAD).
-	*/
 	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread"))
 		siril_log_color_message(
 			_("Warning: failed to add processing thread to child list\n"),

@@ -155,8 +155,8 @@ int rgb_align(int m) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 	} else {
 		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		notify_gfit_data_modified();
 		notify_gfit_modified();
-		redraw(REMAP_ALL);
 	}
 	siril_log_message(_("Aligned RGB channels\n"));
 	set_cursor_waiting(FALSE);

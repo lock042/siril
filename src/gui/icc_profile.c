@@ -768,7 +768,9 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 		gui.rendering_mode = prior_rendering_mode;
 		set_display_mode();
 	}
-	if (mode_changed)
+	if (mode_changed) {
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
+	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
 }

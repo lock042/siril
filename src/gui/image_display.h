@@ -18,7 +18,9 @@ void initialize_image_display();
 
 void copy_roi_into_gfit();
 
-void redraw(remap_type doremap);	// redraw the image, possibly with a remap
+void remap_all();
+void notify_gfit_data_modified(); // do the remap (this must happen in the data processing code, not in GUI updates)
+void redraw(remap_type doremap);	// redraw the image
 void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
 gboolean redraw_mask_idle(gpointer p);

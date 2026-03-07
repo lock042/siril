@@ -1603,6 +1603,9 @@ gpointer generic_image_worker(gpointer p) {
 			blend_fits_with_mask(args->fit, orig);
 		}
 
+		// Carry out data updates (statistics, histograms, upate Cairo buffers if headless)
+		notify_gfit_data_modified();
+
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory

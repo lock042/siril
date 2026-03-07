@@ -49,7 +49,6 @@ static gboolean rotation_idle(gpointer p) {
 		gui_function(new_selection_zone, NULL);
 
 		update_zoom_label();
-		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 		notify_gfit_modified();
 	}
@@ -272,7 +271,7 @@ static gboolean mirror_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
 		gui_function(redraw_previews, NULL);
 		notify_gfit_modified();
 	}
@@ -662,8 +661,8 @@ static gboolean crop_idle(gpointer p) {
 		delete_selected_area();
 		reset_display_offset();
 		update_zoom_label();
+		notify_gfit_data_modified();
 		notify_gfit_modified();
-		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
 			queue_redraw_mask();

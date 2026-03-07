@@ -423,7 +423,6 @@ static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	g_free(args->type);
 	g_free(args->modulus);

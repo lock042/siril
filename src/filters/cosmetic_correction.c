@@ -451,7 +451,6 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
 	notify_gfit_modified();
-	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 

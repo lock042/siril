@@ -287,6 +287,7 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -319,6 +320,7 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);

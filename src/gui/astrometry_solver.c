@@ -457,10 +457,12 @@ gboolean end_plate_solver(gpointer p) {
 		refresh_annotations(FALSE);
 		close_astrometry_dialog();
 		/* ****** */
-		if (args->image_flipped)
+		if (args->image_flipped) {
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
-		else
+		} else {
 			redraw(REDRAW_OVERLAY);
+		}
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);
