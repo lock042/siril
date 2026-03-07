@@ -1232,30 +1232,36 @@ class SirilInterface:
         Only a single PSFStar is returned: if there are more than one in the
         selection, the first one identified by Siril's internal star detection
         algorithm is returned.
-        **Update**: from sirilpy 1.0.4 this method uses Siril's photometry functions to
-        try to provide photometrically accurate values for PSFStar.mag, PSFStar.s_mag
-        and PSFStar.SNR. If photometry succeeded and no saturated pixels were detected
-        then PSFStar.phot_is_valid will be True, otherwise it will be False.
+
+        .. versionchanged:: 1.0.4
+            This method now uses Siril's photometry functions to provide
+            photometrically accurate values for ``PSFStar.mag``, ``PSFStar.s_mag``
+            and ``PSFStar.SNR``. If photometry succeeded and no saturated pixels
+            were detected, ``PSFStar.phot_is_valid`` will be ``True``, otherwise
+            ``False``.
+
         Args:
             shape: Optional list of [x, y, w, h] specifying the selection to
                 retrieve from. w x h must not exceed 300 px x 300 px.
-                If provided, looks for a star in the specified selection
+                If provided, looks for a star in the specified selection.
                 If None, looks for a star in the selection already made in
                 Siril, if one is made.
             channel: Optional int specifying the channel to retrieve from.
-                    If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
-                    channel is omitted the current viewport will be used if
-                    in GUI mode, or if not in GUI mode the method will fall back
-                    to channel 0
+                If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                channel is omitted the current viewport will be used if
+                in GUI mode, or if not in GUI mode the method will fall back
+                to channel 0.
             assume_centred: Optional bool specifying whether to assume the star
-                        is already centred in the selection. Defaults to False.
+                is already centred in the selection. Defaults to False.
+
         Returns:
             PSFStar: the PSFStar object representing the star model, or None if
-                    no star is detected in the selection.
+                no star is detected in the selection.
+
         Raises:
-            ValueError: If an invalid shape is provided,
-            NoImageError: If no image is loaded,
-            SirilConnectionError: If a communication error occurs,
+            ValueError: If an invalid shape is provided.
+            NoImageError: If no image is loaded.
+            SirilConnectionError: If a communication error occurs.
             SirilError: If any other error occurred during execution.
         """
         try:
@@ -4767,14 +4773,15 @@ class SirilInterface:
 
         Args:
             iccprofile (bytes): The ICC profile to send to Siril. This will
-            replace an existing ICC profile, if one is set. If None,
-            any existing image ICC profile will be removed.
+                replace an existing ICC profile, if one is set. If None,
+                any existing image ICC profile will be removed.
 
-        Returns: True if the command succeeded, otherwise False
+        Returns:
+            bool: True if the command succeeded, otherwise False.
 
         Raises:
-            NoImageError: if no image is loaded in Siril,
-            ValueError: if iccprofile is not valid type,
+            NoImageError: if no image is loaded in Siril.
+            ValueError: if iccprofile is not valid type.
             SirilError: if there was a Siril error in handling the command.
         """
         try:
