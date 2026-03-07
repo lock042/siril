@@ -203,7 +203,9 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("export_button", "export_dark.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf_dark.svg");
-} else {
+
+		update_theme_button("histo_button", "histo_dark.svg");
+	} else {
 		update_theme_button("annotate_button", "astrometry.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid.svg");
 		update_theme_button("photometry_button", "photometry.svg");
@@ -219,6 +221,8 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("export_button", "export.svg");
 
 		update_theme_button("histoToolAutoStretch", "mtf.svg");
+
+		update_theme_button("histo_button", "histo.svg");
 	}
 }
 
@@ -1627,6 +1631,7 @@ static void load_accels() {
 
 		"win.annotate-dialog",        "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
+		"win.histo_display",          "<Primary>h", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
 		"win.compstars",              "<Primary><Shift>b", NULL,
@@ -2064,6 +2069,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 	gui_ready = TRUE;
+
+	printf("RGB vport widget: %p\nRed vport widget: %p\n", lookup_widget("drawingareargb"), lookup_widget("drawingarear"));
 }
 
 /*****************************************************************************

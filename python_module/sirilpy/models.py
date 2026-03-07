@@ -354,7 +354,7 @@ class FFit:
     bitpix: Optional[BitpixType] = None #: FITS header specification of the image data type.
     orig_bitpix: Optional[BitpixType] = None #: FITS header specification of the original image data type.
     naxis: int = 0 #: The number of axes (2 for a mono image, 3 for a RGB image). Corresponds to the FITS kwyword NAXIS.
-    _naxes: Tuple[int, int, int] = (0, 0, 0) #: A tuple holding the image dimensions.
+    _naxes: Tuple[int, int, int] = (0, 0, 0) #: A tuple holding the image dimensions in Siril order (w, h, c).
 
     keywords: FKeywords = field(default_factory=FKeywords) #: A FKeywords object containing FITS header keywords.
     checksum: bool = False #: Whether Siril will write FITS data checksums for this file.
@@ -410,8 +410,8 @@ class FFit:
             if len(shape) == 2:
                 self._naxes = (shape[1], shape[0], 1)  # width, height, 1 channel
             elif len(shape) == 3:
-                if shape[2] not in (1, 3):
-                    raise ValueError(_("Third dimension must be 1 or 3"))
+                if shape[0] not in (1, 3):
+                    raise ValueError(_("First dimension must be 1 or 3"))
                 self._naxes = (shape[2], shape[1], shape[0])  # width, height, channels
             else:
                 raise ValueError(_("Data must be 2D or 3D"))
@@ -958,12 +958,14 @@ class RegData:
         Deserialize a binary response into a RegData object.
 
         Args:
-            data (bytes): Binary data to unpack
+            data (bytes): Binary data to unpack.
 
-        Returns: RegData object
+        Returns:
+            RegData: The deserialized RegData object.
 
-        Raises: SirilError if the received data doesn't match the expected size'
-                struct.error If unpacking fails
+        Raises:
+            SirilError: If the received data doesn't match the expected size.
+            struct.error: If unpacking fails.
         """
         # Calculate expected size
         format_string = '!5dQ9d2Q'
