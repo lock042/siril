@@ -1117,6 +1117,7 @@ int crop(fits *fit, rectangle *bounds) {
 	int cfa = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern); // we don't need the validated value here because we just want to know if it's CFA, XTRANS or NONE
 	switch (cfa) {
 		case BAYER_FILTER_NONE:
+			apply_crop_to_gps_data(fit, bounds); // this is only for mono images
 			break;
 		case BAYER_FILTER_RGGB: // Fallthrough intentional
 		case BAYER_FILTER_BGGR:
