@@ -81,6 +81,7 @@ static gboolean time_is_accurate(int shifted_flag) {
 }
 
 void print_qhy_data(struct _qhy_struct *qhy) {
+	// I don't think these need translation
 	siril_log_message("sequence number: %u\n", qhy->sequence_number);
 	siril_log_message("image dimensions: %hu x %hu\n", qhy->image_width, qhy->image_height);
 	siril_log_message("lat/long: %f, %f\n", qhy->latitude, qhy->longitude);
@@ -91,7 +92,7 @@ void print_qhy_data(struct _qhy_struct *qhy) {
 	siril_log_message("start date: %s\n", date_str);
 	g_free(date_str);
 
-	siril_log_message("end flagd: receiver is %s\n",
+	siril_log_message("end flag: receiver is %s\n",
 			receiver_status(qhy->end_flag, qhy->flags_are_shifted));
 	date_str = date_time_to_FITS_date(qhy->end);
 	siril_log_message("end date: %s\n", date_str);
@@ -120,7 +121,7 @@ int parse_gps_image(fits *fit, struct _qhy_struct *qhy_header) {
 	/* we read the metadata from the extra row in the image, not from text drawn in
 	 * pixels, and we update the FITS header with it */
 	if (fit->type != DATA_USHORT || !fit->data || fit->naxes[0] < 128) {
-		siril_log_message("GPS metadata can only be extracted on RAW images\n");
+		siril_log_message(_("GPS metadata can only be extracted on RAW images\n"));
 		return -1;
 	}
 #if 0
@@ -197,7 +198,7 @@ int parse_gps_image(fits *fit, struct _qhy_struct *qhy_header) {
 			js_end - js_start > round_to_int(fit->keywords.exposure) + 1 ||
 			js_end - js_start < 0 ||
 			offset_s < -900 || offset_s > 900) { // allow 15 minutes of clock offset
-		siril_log_message("Extracted metadata seems incorrect, assuming this is not an image containing some\n");
+		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
 		return 1;
 	}
 	return 0;
@@ -260,15 +261,15 @@ int parse_gps_from_header(fits *fit, const char *filename, struct _qhy_struct *q
 			calculated_exposure > round_to_int(fit->keywords.exposure) + 1 ||
 			calculated_exposure < 0 ||
 			offset_s < -900 || offset_s > 900) { // allow 15 minutes of clock offset
-		siril_log_message("Extracted metadata seems incorrect, ignoring\n");
+		siril_log_message(_("Extracted metadata seems incorrect, ignoring\n"));
 		return 1;
 	}
 	if (calculated_exposure == 0 && fit->keywords.exposure > 0.001) {
-		siril_log_message("Exposures don't match: %.3f from GPS, %f in header\n", calculated_exposure, fit->keywords.exposure);
+		siril_log_message(_("Exposures don't match: %.3f from GPS, %f in header\n"), calculated_exposure, fit->keywords.exposure);
 		return 1;
 	}
 	if (!time_is_accurate(qhy_header->start_flag) || !time_is_accurate(qhy_header->end_flag)) {
-		siril_log_message("Time is reported inaccurate, not using GPS data\n");
+		siril_log_message(("Time is reported inaccurate, not using GPS data\n"));
 		return 1;
 	}
 	return 0;
@@ -318,13 +319,13 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 	GTimeSpan exposure = g_date_time_difference(qhy_header->end, qhy_header->start);
 	double real_exposure = exposure / 1000000.0;
 	if (real_exposure > 900.0) {
-		siril_log_message("Extracted metadata seems incorrect, assuming this is not an image containing some\n");
+		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
 		return 1;
 	}
 
 	if (real_exposure != 0.0) {
 		if (fabs((fit->keywords.exposure + real_exposure) / (2.0 * real_exposure) - 1.0) > 0.05)
-			siril_log_message("Discrepancy in configured (%.3f) and actual exposure (%.4f)\n", fit->keywords.exposure, real_exposure);
+			siril_log_message(_("Discrepancy in configured (%.3f) and actual exposure (%.4f)\n"), fit->keywords.exposure, real_exposure);
 	}
 	fit->keywords.exposure = real_exposure;
 
@@ -363,7 +364,7 @@ static gboolean readout_is_by_row_pairs(struct gps_rs_data *data) {	// = non-2CM
 GDateTime *get_timestamp_for_pixel(struct gps_rs_data *data, enum timestamp_type type, int x, int y) {
 	if (!data) return NULL;
 	if (!time_is_accurate(data->flag)) {
-		siril_log_message("GPS timestamp will not be used because it's not locked (flag=%d)\n", data->flag);
+		siril_log_message(_("GPS timestamp will not be used because it's not locked (flag=%d)\n"), data->flag);
 		return NULL;
 	}
 	/* compute Y in bin1 FITS coordinates */

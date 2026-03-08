@@ -191,6 +191,7 @@ src/io/conversion.c
 src/io/films.c
 src/io/fits_keywords.c
 src/io/fits_sequence.c
+src/io/gps_parser.c
 src/io/healpix/healpix.cpp
 src/io/image_format_fits.c
 src/io/image_formats_internal.c

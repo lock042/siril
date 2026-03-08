@@ -14440,11 +14440,14 @@ int process_gps(int nb) {
 		siril_log_message(_("Error parsing arguments, aborting.\n"));
 		return CMD_ARG_ERROR;
 	}
+	// else, no argument, extract metadata and crop
 	struct generic_seq_args args = { 0 };
 	args.user = GINT_TO_POINTER(crop_rows);
 	int retval = gps_extract_image_hook(&args, 0, 0, gfit, NULL, MULTI_THREADED);
-	if (!retval)
+	if (!retval) {
+		siril_log_message(_("Successfully extracted metadata and cropped %d rows of the image\n"), crop_rows);
 		notify_gfit_modified();
+	}
 	else retval = CMD_INVALID_IMAGE;
 	return retval;
 }
