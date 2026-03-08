@@ -696,6 +696,8 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
+	apply_binning_to_gps_data(fit);
+
 	if (fit->mask) {
 		if (bin_mask(fit->mask, old_rx, old_ry, factor, mean)) {
 			siril_log_color_message(_("Error binning mask\n"), "red");
