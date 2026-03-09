@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-01-13 13:33+0000\n"
+"PO-Revision-Date: 2026-02-16 21:00+0000\n"
 "Last-Translator: Rodolfo Oscar Vallejos <rodolfo.os.vallejos@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/es/>\n"
@@ -14815,6 +14815,9 @@ msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
 msgstr ""
+"Deshabilite la configuración debayer-on-open: esta opción debe estar "
+"deshabilitada para poder abrir imágenes monocromáticas en la herramienta de "
+"composición.\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
@@ -23452,9 +23455,9 @@ msgid "Error initialising CURL handle for range request.\n"
 msgstr ""
 
 #: src/core/siril_networking.c:363
-#, fuzzy, c-format
+#, c-format
 msgid "Error fetching URL: %s\n"
-msgstr "Error abriendo fichero"
+msgstr "Error al obtener la URL: %s\n"
 
 #: src/core/siril_networking.c:423
 msgid ""

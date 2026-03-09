@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-01-15 07:07+0000\n"
+"PO-Revision-Date: 2026-02-15 13:28+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -8491,6 +8491,9 @@ msgid ""
 "Type here to filter the list of scripts. The search matches any part of the "
 "script name. Filtering is case-insensitive and updates instantly as you type."
 msgstr ""
+"Начните печатать, чтобы отфильтровать список сценариев. Поиск выполняется по "
+"любой части названия сценария. Фильтрация нечувствительна к регистру и "
+"обновляется по мере ввода."
 
 #: src/gui/uifiles/settings_window.ui:5203
 msgid ""
@@ -14112,7 +14115,7 @@ msgstr "Вращение (%.1f°)"
 #: src/algos/geometry.c:948
 #, c-format
 msgid "Rotation (%.1fdeg, cropped=%s, clamped=%s, %s interpolation)"
-msgstr "Вращение (%.1lf°, кадрирование=%s, фиксация=%s, интерполяция %s)"
+msgstr "Вращение (%.1f°, кадрирование=%s, фиксация=%s, интерполяция %s)"
 
 #: src/algos/geometry.c:949
 msgid "TRUE"
@@ -14893,6 +14896,9 @@ msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
 msgstr ""
+"Отключение настройки дебайеризации при открытии: эту настройку необходимо "
+"отключить, чтобы открывать монохромные изображения в инструменте совмещения."
+"\n"
 
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
@@ -17618,12 +17624,12 @@ msgstr ""
 "Нельзя вычислить статистику перекрытий если не включен -maximize. Отключаем\n"
 
 #: src/core/command.c:11054 src/gui/stacking.c:150
-#, fuzzy
 msgid ""
 "Weighting by noise is allowed only if normalization has been activated, "
 "ignoring weights.\n"
 msgstr ""
-"Присвоение веса возможно только при включённой нормализации, игнорируем.\n"
+"Присвоение веса по шуму возможно только при включённой нормализации, "
+"игнорируем веса.\n"
 
 #: src/core/command.c:11058 src/gui/stacking.c:163
 #, fuzzy
@@ -23708,7 +23714,7 @@ msgstr "Обработка изображения..."
 #: src/core/processing.c:1584
 #, c-format
 msgid "%s image processing failed.\n"
-msgstr "Обработка изображения %d не удалась.\n"
+msgstr "Обработка изображения %s не удалась.\n"
 
 #: src/core/processing.c:1591
 #, fuzzy, c-format
@@ -24490,7 +24496,6 @@ msgid "color management soft proofing intent"
 msgstr "тип программной цветопробы при управлении цветом"
 
 #: src/core/settings.c:528
-#, fuzzy
 msgid "color management export intent"
 msgstr "тип цветопередачи для экспорта при управлении цветом"
 
@@ -24500,17 +24505,14 @@ msgstr ""
 "при экспорте нецветоуправляемых изображений по умолчанию используется sRGB"
 
 #: src/core/settings.c:530
-#, fuzzy
 msgid "color management working gamut"
 msgstr "рабочий цветовой охват при управлении цветом"
 
 #: src/core/settings.c:531
-#, fuzzy
 msgid "color management export profile for 8bit files"
 msgstr "профиль для экспорта 8-битных файлов для управления цветом"
 
 #: src/core/settings.c:532
-#, fuzzy
 msgid "color management export profile for 16bit files"
 msgstr "профиль для экспорта 16-битных файлов для управления цветом"
 
@@ -24834,16 +24836,15 @@ msgid "Error configuring CURL with CA bundle.\n"
 msgstr "Ошибка при настройке CURL с помощью пакета CA.\n"
 
 #: src/core/siril_networking.c:247 src/core/siril_networking.c:335
-#, fuzzy, c-format
+#, c-format
 msgid "HTTP range request failed with code %ld for URL %s\n"
-msgstr ""
-"Не удалось получить. Код %ld\n"
-"%s\n"
+msgstr "Не удалось выполнить запрос диапазона HTTP с кодом %ld для URL %s\n"
 
 #: src/core/siril_networking.c:255 src/core/siril_networking.c:343
-#, fuzzy, c-format
+#, c-format
 msgid "URL range request failed. libcurl error: %s\n"
-msgstr "Не удалось получить URL. Ошибка libcurl: [%ld]\n"
+msgstr ""
+"Не удалось выполнить запрос диапазона URL-адресов. Ошибка libcurl: %s]\n"
 
 #: src/core/siril_networking.c:274
 #, fuzzy
@@ -24955,7 +24956,7 @@ msgstr "Ошибка разбора JSON из URL: неверный формат
 
 #: src/core/siril_update.c:632
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
-msgstr "Ошибка получения или разбора файл JSON уведомлений Siril из URL\n"
+msgstr "Ошибка получения или разбора файла JSON уведомлений Siril из URL\n"
 
 #: src/core/siril_update.c:640
 #, c-format
@@ -25009,19 +25010,16 @@ msgid "Error parsing SPCC mirrors JSON: No valid mirrors found\n"
 msgstr ""
 
 #: src/core/siril_update.c:788
-#, fuzzy
 msgid "Error fetching or parsing SPCC mirrors JSON file from URL\n"
-msgstr "Ошибка получения или разбора файл JSON уведомлений Siril из URL\n"
+msgstr "Ошибка получения или разбора файл JSON зеркал SPCC из URL\n"
 
 #: src/core/siril_update.c:827
-#, fuzzy
 msgid "Siril is in offline mode, cannot check SPCC mirrors.\n"
-msgstr ""
-"Ошибка: Siril в режиме без доступа к сети, нельзя проверить обновления.\n"
+msgstr "Siril в режиме без доступа к сети, нельзя проверить зеркала SPCC.\n"
 
 #: src/core/siril_update.c:840
 msgid "Checking SPCC mirrors...\n"
-msgstr ""
+msgstr "Проверка зеркал SPCC...\n"
 
 #: src/core/undo.c:59
 #, c-format
@@ -27580,9 +27578,8 @@ msgid "Not a valid sequence for cropping.\n"
 msgstr "Недопустимая последовательность для кадрирования.\n"
 
 #: src/gui/merge_cfa.c:217
-#, fuzzy
 msgid "Error: input sequence CFA marker not found"
-msgstr "Ошибка: нет загруженных последовательностей.\n"
+msgstr "Ошибка: не найден маркер входящей последовательности CFA"
 
 #: src/gui/merge_cfa.c:221
 #, c-format
@@ -27603,9 +27600,8 @@ msgid "Error: images are not all loaded"
 msgstr "Ошибка: не все изображения загружены"
 
 #: src/gui/merge_cfa.c:350
-#, fuzzy
 msgid "Merge CFA cannot proceed"
-msgstr "Совмещение каналов CFA…"
+msgstr "Нельзя продолжить совмещение CFA"
 
 #: src/gui/mouse_action_functions.c:318
 msgid "This action opens a new image if there is no image currently loaded"
@@ -28095,47 +28091,45 @@ msgstr ""
 "одиночный файл FITS."
 
 #: src/gui/photometric_cc.c:114
-#, fuzzy
 msgid "Checking SPCC remote catalogue status..."
-msgstr "Проверка статуса архива Gaia..."
+msgstr "Проверка статуса удалённого каталога SPCC..."
 
 #. Failed to fetch status
 #: src/gui/photometric_cc.c:121
 msgid "The Gaia remote SPCC catalogue is not responding."
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia не отвечает."
 
 #: src/gui/photometric_cc.c:127
 #, c-format
 msgid "Gaia remote SPCC catalogue available, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia доступен, ответ %d мс"
 
 #: src/gui/photometric_cc.c:131
 #, c-format
 msgid "Gaia remote SPCC catalogue slow, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia работает медленно, ответ %d мс"
 
 #: src/gui/photometric_cc.c:135
 #, c-format
 msgid "Gaia remote SPCC catalogue very slow, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia работает очень медленно, ответ %d мс"
 
 #: src/gui/photometric_cc.c:179
 #, c-format
 msgid "Mirror %s: Not responding\n"
-msgstr ""
+msgstr "Зеркало %s: не отвечает\n"
 
 #: src/gui/photometric_cc.c:188
 #, c-format
 msgid "Primary SPCC catalogue set to: %s (%d working mirrors available)\n"
-msgstr ""
+msgstr "Основной каталог SPCC установлен в: %s (доступно рабочих зеркал %d)\n"
 
 #: src/gui/photometric_cc.c:200
-#, fuzzy
 msgid ""
 "Siril is offline or built without networking. The remote Gaia catalogue is "
 "unavailable.\n"
 msgstr ""
-"Siril отключен от сети или собран без поддержки сети. Архив Gaia "
+"Siril отключен от сети или собран без поддержки сети. Удалённый каталог Gaia "
 "недоступен.\n"
 
 #: src/gui/photometric_cc.c:212
@@ -30081,10 +30075,8 @@ msgid "Failed to read data entries via HTTP\n"
 msgstr "Не удалось прочитать записи данных.\n"
 
 #: src/io/healpix/healpix.cpp:389 src/io/healpix/healpix.cpp:988
-#, fuzzy
 msgid "Error initialising CURL handle\n"
-msgstr ""
-"Ошибка при инициализации дескриптора CURL, функциональность URL недоступна.\n"
+msgstr "Ошибка при инициализации дескриптора CURL\n"
 
 #: src/io/healpix/healpix.cpp:415
 #, c-format
@@ -30092,14 +30084,14 @@ msgid "Mirror %s failed, trying alternatives...\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:426 src/io/healpix/healpix.cpp:482
-#, fuzzy, c-format
+#, c-format
 msgid "Trying mirror: %s\n"
-msgstr "Входящая строка: %s\n"
+msgstr "Пробуем зеркало: %s\n"
 
 #: src/io/healpix/healpix.cpp:434 src/io/healpix/healpix.cpp:494
-#, fuzzy, c-format
+#, c-format
 msgid "Switched to working mirror: %s\n"
-msgstr "Текущая рабочая директория: '%s'\n"
+msgstr "Переключен на рабочее зеркало: %s\n"
 
 #. All mirrors failed
 #: src/io/healpix/healpix.cpp:441
@@ -30154,13 +30146,12 @@ msgid "Warning: No data retrieved for chunk %d\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:1131
-#, fuzzy
 msgid ""
 "Error: Siril was compiled without libcurl support. Remote catalogue access "
 "is unavailable.\n"
 msgstr ""
-"Siril скомпилирован без поддержки libgit2. Удалённые репозитории не могут "
-"быть получены автоматически...\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Доступ к удалённым "
+"каталогам невозможен.\n"
 
 #: src/io/image_format_fits.c:367
 #, c-format
