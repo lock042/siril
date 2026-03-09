@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-01-15 07:07+0000\n"
+"PO-Revision-Date: 2026-02-15 10:02+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -8476,6 +8476,9 @@ msgid ""
 "Type here to filter the list of scripts. The search matches any part of the "
 "script name. Filtering is case-insensitive and updates instantly as you type."
 msgstr ""
+"Начните печатать, чтобы отфильтровать список сценариев. Поиск выполняется по "
+"любой части названия сценария. Фильтрация нечувствительна к регистру и "
+"обновляется по мере ввода."
 
 #: src/gui/uifiles/settings_window.ui:5207
 msgid ""
@@ -14821,15 +14824,17 @@ msgstr ""
 "превысить 8).\n"
 
 #: src/compositing/compositing.c:318
-#, fuzzy
 msgid "Invalid file type for compositing\n"
-msgstr "Неверный файл FITS или шаблон для дебайеризации\n"
+msgstr "Неверный тип файла для совмещения\n"
 
 #: src/compositing/compositing.c:635
 msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
 msgstr ""
+"Отключение настройки дебайеризации при открытии: эту настройку необходимо "
+"отключить, чтобы открывать монохромные изображения в инструменте совмещения."
+"\n"
 
 #: src/compositing/compositing.c:748
 msgid "Deep Sky (two-step global star registration)"
@@ -15269,9 +15274,9 @@ msgid "unreleased %s %s-%s for %s (%s %s)"
 msgstr ""
 
 #: src/core/OS_utils.c:1132
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s for %s (%s %s)"
-msgstr "Изображение: %s\n"
+msgstr "%s %s для %s (%s %s)"
 
 #: src/core/OS_utils.c:1136
 #, c-format
@@ -15279,9 +15284,9 @@ msgid "unreleased %s %s-%s for %s (%s)"
 msgstr ""
 
 #: src/core/OS_utils.c:1139
-#, fuzzy, c-format
+#, c-format
 msgid "%s %s for %s (%s)"
-msgstr "Изображение: %s\n"
+msgstr "%s %s для %s (%s)"
 
 #: src/core/arithm.c:187
 msgid "Cannot divide by zero, aborting."
@@ -16847,13 +16852,12 @@ msgstr ""
 "Сортировка по дате невозможна, файл %s не содержит DATE-OBS, не сортируем\n"
 
 #: src/core/command.c:7518
-#, fuzzy
 msgid ""
 "Too many files: you should use the 'convert' command and pass the argument "
 "-fitseq to convert your sequence to fitseq format.\n"
 msgstr ""
-"Необходимо передать дополнительный аргумент -fitseq для конвертации "
-"последовательности в формат fitseq.\n"
+"Слишком много файлов: вам следует использовать команду \"convert\" с "
+"аргументом -fitseq для преобразования последовательности в формат fitseq.\n"
 
 #: src/core/command.c:7524
 #, c-format
@@ -17235,12 +17239,12 @@ msgstr ""
 "Нельзя вычислить статистику перекрытий если не включен -maximize. Отключаем\n"
 
 #: src/core/command.c:8759 src/gui/stacking.c:150
-#, fuzzy
 msgid ""
 "Weighting by noise is allowed only if normalization has been activated, "
 "ignoring weights.\n"
 msgstr ""
-"Присвоение веса возможно только при включённой нормализации, игнорируем.\n"
+"Присвоение веса по шуму возможно только при включённой нормализации, "
+"игнорируем веса.\n"
 
 #: src/core/command.c:8763 src/gui/stacking.c:163
 #, fuzzy
@@ -24056,7 +24060,6 @@ msgid "color management soft proofing intent"
 msgstr "тип программной цветопробы при управлении цветом"
 
 #: src/core/settings.c:528
-#, fuzzy
 msgid "color management export intent"
 msgstr "тип цветопередачи для экспорта при управлении цветом"
 
@@ -24066,17 +24069,14 @@ msgstr ""
 "при экспорте нецветоуправляемых изображений по умолчанию используется sRGB"
 
 #: src/core/settings.c:530
-#, fuzzy
 msgid "color management working gamut"
 msgstr "рабочий цветовой охват при управлении цветом"
 
 #: src/core/settings.c:531
-#, fuzzy
 msgid "color management export profile for 8bit files"
 msgstr "профиль для экспорта 8-битных файлов для управления цветом"
 
 #: src/core/settings.c:532
-#, fuzzy
 msgid "color management export profile for 16bit files"
 msgstr "профиль для экспорта 16-битных файлов для управления цветом"
 
@@ -24400,22 +24400,19 @@ msgid "Error configuring CURL with CA bundle.\n"
 msgstr "Ошибка при настройке CURL с помощью пакета CA.\n"
 
 #: src/core/siril_networking.c:251
-#, fuzzy, c-format
+#, c-format
 msgid "HTTP range request failed with code %ld for URL %s\n"
-msgstr ""
-"Не удалось получить. Код %ld\n"
-"%s\n"
+msgstr "Не удалось выполнить запрос диапазона HTTP с кодом %ld для URL %s\n"
 
 #: src/core/siril_networking.c:259
-#, fuzzy, c-format
+#, c-format
 msgid "URL range request failed. libcurl error: %s\n"
-msgstr "Не удалось получить URL. Ошибка libcurl: [%ld]\n"
+msgstr ""
+"Не удалось выполнить запрос диапазона URL-адресов. Ошибка libcurl: %s]\n"
 
 #: src/core/siril_networking.c:274
-#, fuzzy
 msgid "Error initialising CURL handle.\n"
-msgstr ""
-"Ошибка при инициализации дескриптора CURL, функциональность URL недоступна.\n"
+msgstr "Ошибка при инициализации дескриптора CURL.\n"
 
 #: src/core/siril_networking.c:297
 #, c-format
@@ -24521,7 +24518,7 @@ msgstr "Ошибка разбора JSON из URL: неверный формат
 
 #: src/core/siril_update.c:654
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
-msgstr "Ошибка получения или разбора файл JSON уведомлений Siril из URL\n"
+msgstr "Ошибка получения или разбора файла JSON уведомлений Siril из URL\n"
 
 #: src/core/siril_update.c:662
 #, c-format
@@ -24576,19 +24573,16 @@ msgid "Error parsing SPCC mirrors JSON: No valid mirrors found\n"
 msgstr ""
 
 #: src/core/siril_update.c:810
-#, fuzzy
 msgid "Error fetching or parsing SPCC mirrors JSON file from URL\n"
-msgstr "Ошибка получения или разбора файл JSON уведомлений Siril из URL\n"
+msgstr "Ошибка получения или разбора файл JSON зеркал SPCC из URL\n"
 
 #: src/core/siril_update.c:849
-#, fuzzy
 msgid "Siril is in offline mode, cannot check SPCC mirrors.\n"
-msgstr ""
-"Ошибка: Siril в режиме без доступа к сети, нельзя проверить обновления.\n"
+msgstr "Siril в режиме без доступа к сети, нельзя проверить зеркала SPCC.\n"
 
 #: src/core/siril_update.c:862
 msgid "Checking SPCC mirrors...\n"
-msgstr ""
+msgstr "Проверка зеркал SPCC...\n"
 
 #: src/core/undo.c:59
 #, c-format
@@ -26549,9 +26543,8 @@ msgid "Bilateral filter: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 msgstr "Билатеральный фильтр: (d=%2.2f, sigma_col=%2.2f, sigma_spatial=%2.2f)"
 
 #: src/gui/epf.c:171
-#, fuzzy
 msgid "Error, no guide image loaded."
-msgstr "Ошибка: нет загруженных последовательностей.\n"
+msgstr "Ошибка, опорное изображение не загружено."
 
 #: src/gui/epf.c:295 src/gui/epf.c:302 src/gui/merge_cfa.c:98
 #: src/gui/merge_cfa.c:112 src/gui/merge_cfa.c:125 src/gui/merge_cfa.c:138
@@ -27052,9 +27045,8 @@ msgid "Not a valid sequence for cropping.\n"
 msgstr "Недопустимая последовательность для кадрирования.\n"
 
 #: src/gui/merge_cfa.c:217
-#, fuzzy
 msgid "Error: input sequence CFA marker not found"
-msgstr "Ошибка: нет загруженных последовательностей.\n"
+msgstr "Ошибка: не найден маркер входящей последовательности CFA"
 
 #: src/gui/merge_cfa.c:221
 #, c-format
@@ -27075,9 +27067,8 @@ msgid "Error: images are not all loaded"
 msgstr "Ошибка: не все изображения загружены"
 
 #: src/gui/merge_cfa.c:350
-#, fuzzy
 msgid "Merge CFA cannot proceed"
-msgstr "Совмещение каналов CFA…"
+msgstr "Нельзя продолжить совмещение CFA"
 
 #: src/gui/mouse_action_functions.c:318
 msgid "This action opens a new image if there is no image currently loaded"
@@ -27565,47 +27556,45 @@ msgstr ""
 "одиночный файл FITS."
 
 #: src/gui/photometric_cc.c:114
-#, fuzzy
 msgid "Checking SPCC remote catalogue status..."
-msgstr "Проверка статуса архива Gaia..."
+msgstr "Проверка статуса удалённого каталога SPCC..."
 
 #. Failed to fetch status
 #: src/gui/photometric_cc.c:121
 msgid "The Gaia remote SPCC catalogue is not responding."
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia не отвечает."
 
 #: src/gui/photometric_cc.c:127
 #, c-format
 msgid "Gaia remote SPCC catalogue available, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia доступен, ответ %d мс"
 
 #: src/gui/photometric_cc.c:131
 #, c-format
 msgid "Gaia remote SPCC catalogue slow, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia работает медленно, ответ %d мс"
 
 #: src/gui/photometric_cc.c:135
 #, c-format
 msgid "Gaia remote SPCC catalogue very slow, response %d ms"
-msgstr ""
+msgstr "Удалённый каталог SPCC Gaia работает очень медленно, ответ %d мс"
 
 #: src/gui/photometric_cc.c:179
 #, c-format
 msgid "Mirror %s: Not responding\n"
-msgstr ""
+msgstr "Зеркало %s: не отвечает\n"
 
 #: src/gui/photometric_cc.c:188
 #, c-format
 msgid "Primary SPCC catalogue set to: %s (%d working mirrors available)\n"
-msgstr ""
+msgstr "Основной каталог SPCC установлен в: %s (доступно рабочих зеркал %d)\n"
 
 #: src/gui/photometric_cc.c:200
-#, fuzzy
 msgid ""
 "Siril is offline or built without networking. The remote Gaia catalogue is "
 "unavailable.\n"
 msgstr ""
-"Siril отключен от сети или собран без поддержки сети. Архив Gaia "
+"Siril отключен от сети или собран без поддержки сети. Удалённый каталог Gaia "
 "недоступен.\n"
 
 #: src/gui/photometric_cc.c:212
@@ -29569,14 +29558,12 @@ msgid "Fetching index to cache\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:440
-#, fuzzy
 msgid "Failed to download index via HTTP\n"
-msgstr "Не удалось прочитать записи данных.\n"
+msgstr "Загрузка индекса через HTTP не удалась\n"
 
 #: src/io/healpix/healpix.cpp:447
-#, fuzzy
 msgid "Failed to write index cache file\n"
-msgstr "Не удалось прочитать файл изображения"
+msgstr "Не удалось записать кэш-файл индекса\n"
 
 #. At this point, the cache file is guaranteed to exist.
 #: src/io/healpix/healpix.cpp:458
@@ -29584,15 +29571,13 @@ msgid "Loading index from cache\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:462
-#, fuzzy
 msgid "Failed to read index cache file\n"
-msgstr "Не удалось прочитать файл изображения"
+msgstr "Не удалось прочитать кэш-файл индекса\n"
 
 #. Process each healpixel range
 #: src/io/healpix/healpix.cpp:470
-#, fuzzy
 msgid "Fetching data\n"
-msgstr "Укладка"
+msgstr "Получение данных\n"
 
 #: src/io/healpix/healpix.cpp:500
 #, c-format
@@ -29605,10 +29590,8 @@ msgid "Failed to read data entries via HTTP\n"
 msgstr "Не удалось прочитать записи данных.\n"
 
 #: src/io/healpix/healpix.cpp:536 src/io/healpix/healpix.cpp:1064
-#, fuzzy
 msgid "Error initialising CURL handle\n"
-msgstr ""
-"Ошибка при инициализации дескриптора CURL, функциональность URL недоступна.\n"
+msgstr "Ошибка при инициализации дескриптора CURL\n"
 
 #: src/io/healpix/healpix.cpp:561
 #, c-format
@@ -29616,14 +29599,14 @@ msgid "Mirror %s failed, trying alternatives...\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:572 src/io/healpix/healpix.cpp:627
-#, fuzzy, c-format
+#, c-format
 msgid "Trying mirror: %s\n"
-msgstr "Входящая строка: %s\n"
+msgstr "Пробуем зеркало: %s\n"
 
 #: src/io/healpix/healpix.cpp:580 src/io/healpix/healpix.cpp:639
-#, fuzzy, c-format
+#, c-format
 msgid "Switched to working mirror: %s\n"
-msgstr "Текущая рабочая директория: '%s'\n"
+msgstr "Переключен на рабочее зеркало: %s\n"
 
 #. All mirrors failed
 #: src/io/healpix/healpix.cpp:587
@@ -29678,13 +29661,12 @@ msgid "Warning: No data retrieved for chunk %d\n"
 msgstr ""
 
 #: src/io/healpix/healpix.cpp:1207
-#, fuzzy
 msgid ""
 "Error: Siril was compiled without libcurl support. Remote catalogue access "
 "is unavailable.\n"
 msgstr ""
-"Siril скомпилирован без поддержки libgit2. Удалённые репозитории не могут "
-"быть получены автоматически...\n"
+"Ошибка: Siril скомпилирован без поддержки libcurl. Доступ к удалённым "
+"каталогам невозможен.\n"
 
 #: src/io/image_format_fits.c:367
 #, c-format
@@ -31448,9 +31430,10 @@ msgstr ""
 
 #. Handle error retrieving dimensions
 #: src/io/siril_pythoncommands.c:787
-#, fuzzy
 msgid "Failed to set selection - no image or sequence frame loaded"
-msgstr "Не удалось установить выделение — изображение не загружено"
+msgstr ""
+"Не удалось установить выделение — не загружено изображение или кадр "
+"последовательности"
 
 #: src/io/siril_pythoncommands.c:803
 #, c-format
@@ -32154,34 +32137,41 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_pythonmodule.c:2650
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Python validation failed.\n"
 "\n"
 "%s\n"
-msgstr "Ошибка: не удалось выделить память.\n"
+msgstr ""
+"ОШИБКА: не удалось выполнить проверку Python.\n"
+"\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2678
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Failed to execute venv creation command.\n"
 "%s\n"
-msgstr "Ошибка в команде создания venv: %s\n"
+msgstr ""
+"ОШИБКА: не удалось выполнить команду создания вирт. окружения.\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2687
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ERROR: Failed to create virtual environment.\n"
 "%s\n"
-msgstr "Не удалось создать виртуальное окружение: %s\n"
+msgstr ""
+"ОШИБКА: Не удалось создать виртуальное окружение.\n"
+"%s\n"
 
 #: src/io/siril_pythonmodule.c:2691
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Python error output:\n"
 "%s\n"
 msgstr ""
-"Python stderr:\n"
+"Вывод ошибки Python:\n"
 "%s\n"
 
 #: src/io/siril_pythonmodule.c:2741
@@ -32190,14 +32180,13 @@ msgid "Failed to initialize Python virtual environment: %s\n"
 msgstr "Не удалось инициализировать виртуальное окружения Python: %s\n"
 
 #: src/io/siril_pythonmodule.c:2753
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to prepare virtual environment: %s\n"
-msgstr "Не удалось подготовить виртуальное окружение\n"
+msgstr "Не удалось подготовить виртуальное окружение: %s\n"
 
 #: src/io/siril_pythonmodule.c:2808
-#, fuzzy
 msgid "Python initialization already in progress\n"
-msgstr "Вращательный градиент применяется…"
+msgstr "Инициализация Python уже выполняется\n"
 
 #: src/io/siril_pythonmodule.c:2850 src/io/siril_pythonmodule.c:2858
 #, c-format
@@ -32229,9 +32218,8 @@ msgid "Error: Python worker thread not available.\n"
 msgstr "Ошибка: рабочий поток Python недоступен.\n"
 
 #: src/io/siril_pythonmodule.c:3015
-#, fuzzy
 msgid "Error: failed to get environment variables.\n"
-msgstr "Ошибка: не удалось создать соединение Python.\n"
+msgstr "Ошибка: не удалось получить переменные окружения.\n"
 
 #: src/io/siril_pythonmodule.c:3079
 msgid "Error finding venv python path, unable to spawn python.\n"
@@ -32594,9 +32582,9 @@ msgid "print the copyright"
 msgstr "вывести данные об авторских правах"
 
 #: src/main-cli.c:172
-#, fuzzy, c-format
+#, c-format
 msgid "Welcome to %s - CLI\n"
-msgstr "Приветствуем в %s v%s\n"
+msgstr "Приветствуем в %s - CLI\n"
 
 #: src/main-cli.c:183 src/main.c:354
 #, c-format
@@ -32652,9 +32640,9 @@ msgid "Initializing FFTW multithreading support...\n"
 msgstr "Включается мультипотоковая поддержка FFTW...\n"
 
 #: src/main.c:343
-#, fuzzy, c-format
+#, c-format
 msgid "Welcome to %s - GUI\n"
-msgstr "Приветствуем в %s v%s\n"
+msgstr "Приветствуем в %s - Граф. интерфейс\n"
 
 #: src/opencv/opencv.cpp:111
 #, c-format

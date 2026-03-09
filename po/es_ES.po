@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-01-13 13:33+0000\n"
+"PO-Revision-Date: 2026-02-16 21:00+0000\n"
 "Last-Translator: Rodolfo Oscar Vallejos <rodolfo.os.vallejos@gmail.com>\n"
 "Language-Team: Spanish <https://weblate.siril.org/projects/siril/software/"
 "siril/es/>\n"
@@ -14744,15 +14744,17 @@ msgid ""
 msgstr ""
 
 #: src/compositing/compositing.c:318
-#, fuzzy
 msgid "Invalid file type for compositing\n"
-msgstr "No se puede realizar el debayer\n"
+msgstr "Tipo de archivo inválido para la composición\n"
 
 #: src/compositing/compositing.c:635
 msgid ""
 "Disabling debayer-on-open setting: this must be unset in order to open "
 "monochrome images in the compositing tool.\n"
 msgstr ""
+"Deshabilite la configuración debayer-on-open: esta opción debe estar "
+"deshabilitada para poder abrir imágenes monocromáticas en la herramienta de "
+"composición.\n"
 
 #: src/compositing/compositing.c:748
 #, fuzzy
@@ -15178,7 +15180,7 @@ msgstr "Limitando procesado a 1900 MiB (sistema de 32 bits)\n"
 #: src/core/OS_utils.c:1129
 #, c-format
 msgid "unreleased %s %s-%s for %s (%s %s)"
-msgstr ""
+msgstr "%s %s-%s inéditos para %s (%s %s)"
 
 #: src/core/OS_utils.c:1132
 #, fuzzy, c-format
@@ -22983,9 +22985,9 @@ msgid "Error initialising CURL handle.\n"
 msgstr "Error al leer una de las áreas de imagen\n"
 
 #: src/core/siril_networking.c:297
-#, fuzzy, c-format
+#, c-format
 msgid "Error fetching URL: %s\n"
-msgstr "Error abriendo fichero"
+msgstr "Error al obtener la URL: %s\n"
 
 #: src/core/siril_networking.c:389
 msgid ""
