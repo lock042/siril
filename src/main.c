@@ -371,15 +371,6 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Initializing sequences..."), 0.15);
 	initialize_sequence(&com.seq, TRUE);
 
-	gchar *version_string = get_siril_version_string();
-	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
-	g_free(version_string);
-
-	/* initialize converters (utilities used for different image types importing) */
-	if (!com.headless)
-		update_splash_progress(_("Loading image converters..."), 0.20);
-	gchar *supported_files = initialize_converters();
-
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
 	}
@@ -397,6 +388,12 @@ static void siril_app_activate(GApplication *application) {
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
+
+	/* initialize converters (utilities used for different image types importing) */
+	if (!com.headless)
+		update_splash_progress(_("Loading image converters..."), 0.20);
+	gchar *supported_files = initialize_converters();
+
 
 	if (main_option_directory) {
 		gchar *cwd_forced;
@@ -419,6 +416,7 @@ static void siril_app_activate(GApplication *application) {
 			siril_change_dir(siril_get_startup_dir(), NULL);
 		}
 	}
+
 
 	if (!com.headless)
 		update_splash_progress(_("Initializing processors..."), 0.35);

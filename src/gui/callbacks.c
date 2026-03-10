@@ -1960,6 +1960,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
 	gtk_widget_hide(page);
 
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+	g_free(version_string);
+
 	/* initialize scripts and SPCC in threads:
 	 * 1) initialize the scripts menu / SPCC widgets
 	 * 2) sync the scripts repositories
