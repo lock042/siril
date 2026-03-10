@@ -408,7 +408,7 @@ void apply_crop_to_gps_data(fits *fit, rectangle *bounds) {
 	fit->keywords.gps_data->ry = bounds->h;
 }
 
-// to call after changing fit->row_order
+// to call after changing fit->keywords.row_order
 void apply_flip_to_gps_data(fits *fit) {
 	if (!fit->keywords.gps_data)
 		return;
@@ -416,7 +416,7 @@ void apply_flip_to_gps_data(fits *fit) {
 	siril_debug_print("Image is now %s\n", fit->keywords.row_order);
 }
 
-// to call after changing fit->binning_x
+// to call after changing fit->keywords.binning_x
 void apply_binning_to_gps_data(fits *fit) {
 	if (!fit->keywords.gps_data)
 		return;

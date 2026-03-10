@@ -911,9 +911,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 
 	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
 		sprintf(fit->keywords.row_order, "TOP-DOWN");
-	else {
-		sprintf(fit->keywords.row_order, "BOTTOM-UP");
-	}
+	else	sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	apply_flip_to_gps_data(fit);
 
 	fit->history = g_slist_append(fit->history, strdup("Top-down mirror"));

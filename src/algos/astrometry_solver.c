@@ -49,6 +49,7 @@
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/gps_parser.h"
 #include "io/path_parse.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
@@ -1080,6 +1081,12 @@ gpointer plate_solver(gpointer p) {
 		if (args->verbose)
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
+		// code also run in mirrorx:
+		if (!strcmp(args->fit->keywords.row_order, "BOTTOM-UP"))
+			sprintf(args->fit->keywords.row_order, "TOP-DOWN");
+		else	sprintf(args->fit->keywords.row_order, "BOTTOM-UP");
+		apply_flip_to_gps_data(args->fit);
+		/////////////////////////////
 		flip_bottom_up_astrometry_data(args->fit);
 		update_wcsdata_after_ps(args);
 		args->image_flipped = TRUE;
