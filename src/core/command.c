@@ -14445,7 +14445,7 @@ int process_gps(int nb) {
 	args.user = GINT_TO_POINTER(crop_rows);
 	int retval = gps_extract_image_hook(&args, 0, 0, gfit, NULL, MULTI_THREADED);
 	if (!retval) {
-		siril_log_message(_("Successfully extracted metadata and cropped %d rows of the image\n"), crop_rows);
+		siril_log_message(_("Successfully extracted metadata and cropped %d row(s) of the image\n"), crop_rows);
 		notify_gfit_modified();
 	}
 	else retval = CMD_INVALID_IMAGE;

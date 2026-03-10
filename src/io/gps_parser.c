@@ -318,23 +318,23 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 
 	GTimeSpan exposure = g_date_time_difference(qhy_header->end, qhy_header->start);
 	double real_exposure = exposure / 1000000.0;
-	if (real_exposure > 900.0) {
+	if (real_exposure > 1801.0) {
 		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
 		return 1;
 	}
 
-	if (real_exposure != 0.0) {
-		if (fabs((fit->keywords.exposure + real_exposure) / (2.0 * real_exposure) - 1.0) > 0.05)
-			siril_log_message(_("Discrepancy in configured (%.3f) and actual exposure (%.4f)\n"), fit->keywords.exposure, real_exposure);
+	if (real_exposure > 0.0) {
+		if (fabs((fit->keywords.exposure + real_exposure) / (2.0 * real_exposure) - 1.0) > 0.05) {
+			siril_log_message(_("Discrepancy in configured (%.3f) and actual exposure (%.4f), likely caused by a bad calibration, discarding data\n"), fit->keywords.exposure, real_exposure);
+			return 1;
+		}
+	} else {
+		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
+		return 1;
 	}
 	fit->keywords.exposure = real_exposure;
 
 	if (fit->keywords.date_obs && qhy_header->start) {
-		gchar *date = date_time_to_date(fit->keywords.date_obs);
-		double time1 = get_decimal_hours(fit->keywords.date_obs);
-		double time2 = get_decimal_hours(qhy_header->start);
-		siril_debug_print("D,%s,%f,%f,%f\n", date, time1, time2, (time1 - time2) * 3600.0);
-		g_free(date);
 		g_date_time_unref(fit->keywords.date_obs);
 		fit->keywords.date_obs = g_date_time_ref(qhy_header->start);
 	}
@@ -342,7 +342,14 @@ int update_fit_from_qhy_header(fits *fit, struct _qhy_struct *qhy_header) {
 		fit->keywords.date_obs = g_date_time_ref(qhy_header->start);
 	}
 
-	siril_debug_print("DATE-OBS and EXPTIME overwritten by GPS metadata\n");
+	BYTE sflag = qhy_header->flags_are_shifted ? qhy_header->start_flag : (qhy_header->start_flag & 48) >> 4;
+	BYTE eflag = qhy_header->flags_are_shifted ? qhy_header->end_flag : (qhy_header->end_flag & 48) >> 4;
+	BYTE nflag = qhy_header->flags_are_shifted ? qhy_header->now_flag : (qhy_header->now_flag& 48) >> 4;
+	gboolean is_locked = sflag == 3 && eflag == 3 && nflag == 3 &&
+		qhy_header->count_of_PPS > 9999000 && qhy_header->count_of_PPS < 10000000;
+	if (is_locked)
+		siril_log_message(_("DATE-OBS and EXPTIME overwritten by GPS metadata. GPS_* keys untouched\n"));
+	else siril_log_color_message(_("DATE-OBS and EXPTIME overwritten by GPS metadata, but GPS was not locked. GPS_* keys untouched\n"), "salmon");
 	fit->keywords.date_and_exp_from_gps = TRUE;
 	fit->history = g_slist_append(fit->history, strdup("DATE-OBS and EXPTIME overwritten by GPS metadata"));
 	return 0;
