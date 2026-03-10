@@ -163,10 +163,6 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-	gchar *version_string = get_siril_version_string();
-	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
-	g_free(version_string);
-
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
 	}
@@ -178,6 +174,10 @@ static void siril_app_activate(GApplication *application) {
 
 	if (com.pref.lang)
 		language_init(com.pref.lang);
+
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
+	g_free(version_string);
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
