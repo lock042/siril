@@ -339,6 +339,16 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
+	if (checkinitfile()) {
+		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
+		exit(EXIT_FAILURE);
+	}
+
+	// After this point com.pref is populated
+	siril_language_parser_init();
+	if (com.pref.lang)
+		language_init(com.pref.lang);
+
 	gchar *version_string = get_siril_version_string();
 	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
 	g_free(version_string);
@@ -349,16 +359,6 @@ static void siril_app_activate(GApplication *application) {
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
 	}
-
-	if (checkinitfile()) {
-		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
-		exit(EXIT_FAILURE);
-	}
-
-	// After this point com.pref is populated
-	siril_language_parser_init();
-	if (com.pref.lang)
-		language_init(com.pref.lang);
 
 	if (main_option_directory) {
 		gchar *cwd_forced;

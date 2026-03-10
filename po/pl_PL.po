@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2025-02-08 15:43+0000\n"
+"PO-Revision-Date: 2026-03-09 21:56+0000\n"
 "Last-Translator: Marcin Greń <marcin.gren@hotmail.com>\n"
 "Language-Team: Polish <https://weblate.siril.org/projects/siril/software/"
 "siril/pl/>\n"
@@ -9130,9 +9130,8 @@ msgid ""
 "processed together."
 msgstr ""
 "Zaznacz to, aby utworzyć kilka plików SER zamiast pojedynczego pliku SER dla "
-"wszystkich elementów wejściowych. Użyj tego, jeśli elementy wejściowe "
-"(filmy) nie mają tego samego rozmiaru obrazu lub nie mogą być przetwarzane "
-"razem."
+"wszystkich elementów wejściowych. Użyj tego, jeśli elementy wejściowe (filmy)"
+" nie mają tego samego rozmiaru obrazu lub nie mogą być przetwarzane razem."
 
 #: src/gui/uifiles/siril.ui:3933
 msgid "Symbolic Link"
@@ -10572,8 +10571,8 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "Suma: To jest najprostsza metoda.\n"
-"Wartości pikseli są dodawane w obrazie znormalizowanym do wartości 16-"
-"bitowych.\n"
+"Wartości pikseli są dodawane w obrazie znormalizowanym do wartości "
+"16-bitowych.\n"
 "Zwiększa stosunek sygnału do szumu (SNR) jako pierwiastek kwadratowy z "
 "liczby obrazów.\n"
 "\n"
@@ -15689,23 +15688,23 @@ msgstr "Przytnij: wartości x i y muszą być wartościami dodatnimi.\n"
 #, fuzzy
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:6229
 #, fuzzy
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:6235
 #, fuzzy
 msgid "The third argument is larger than the number of images.\n"
 msgstr ""
-"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus "
-"jeden.\n"
+"Pierwszy argument musi zawierać się pomiędzy 0 a liczbą obrazów minus jeden."
+"\n"
 
 #: src/core/command.c:6236
 #, fuzzy, c-format
@@ -24959,9 +24958,9 @@ msgid ""
 msgstr ""
 "Rejestracja jednej gwiazdy: jest to najprostsza metoda rejestrowania obrazów "
 "w głębokiego nieba. Ponieważ tylko jedna gwiazda zostaje użyta do "
-"rejestracją, obrazy są wyrównane za pomocą przesunięcia (przy ułamku "
-"piksela). Nie wykonuje się obrotu ani skalowania. Przesunięcia w precyzji "
-"pikseli są zapisywane w pliku seq."
+"rejestracją, obrazy są wyrównane za pomocą przesunięcia (przy ułamku piksela)"
+". Nie wykonuje się obrotu ani skalowania. Przesunięcia w precyzji pikseli są "
+"zapisywane w pliku seq."
 
 #: src/gui/registration.c:58
 #, fuzzy
@@ -27368,8 +27367,8 @@ msgstr "Ta operacja nie jest obsługiwana w sekwencjach AVI (seq_open_image)\n"
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
-"Ta operacja nie jest obsługiwana w wewnętrznych sekwencjach "
-"(seq_open_image)\n"
+"Ta operacja nie jest obsługiwana w wewnętrznych sekwencjach (seq_open_image)"
+"\n"
 
 #: src/io/sequence.c:1705
 #, c-format
@@ -27734,8 +27733,7 @@ msgstr "Ostrzeżenie: brak znaczników czasowych w sekwencji SER.\n"
 #: src/io/ser.c:603
 #, fuzzy
 msgid "Warning: timestamps in the SER file are all identical.\n"
-msgstr ""
-"Ostrzeżenie: wszystkie znaczniki czasu w sekwencji SER są identyczne.\n"
+msgstr "Ostrzeżenie: wszystkie znaczniki czasu w sekwencji SER są identyczne.\n"
 
 #: src/io/ser.c:605
 #, fuzzy
