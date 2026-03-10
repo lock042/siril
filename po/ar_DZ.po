@@ -8,16 +8,17 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2016-11-20 10:20+0100\n"
-"Last-Translator: زنادي أمين <amine-zennadi@hotmail.com>\n"
-"Language-Team: \n"
+"PO-Revision-Date: 2026-03-10 06:58+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Arabic (Algeria) <https://weblate.siril.org/projects/siril/"
+"software/siril-1-6/ar_DZ/>\n"
 "Language: ar_DZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.11\n"
-"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
-"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -5838,8 +5839,8 @@ msgid ""
 "are the translation relative to the reference image."
 msgstr ""
 "قائمة من الصور في تسلسل ، مع دولتهم و نوعية المعلومات . نوعية FWHM عند "
-"استخدام تسجيل PSF ، وذلك أقل من الأفضل ، و مقدر التدرج للتسجيل تجهيز "
-"الدوائر ، أعلى و أفضل. X و Y الأعمدة هي الترجمة المتعلقة صورة المرجعية."
+"استخدام تسجيل PSF ، وذلك أقل من الأفضل ، و مقدر التدرج للتسجيل تجهيز الدوائر "
+"، أعلى و أفضل. X و Y الأعمدة هي الترجمة المتعلقة صورة المرجعية."
 
 #: src/gui/uifiles/seqlist_dialog.ui:109
 #, fuzzy
@@ -8875,8 +8876,8 @@ msgid ""
 "Colour image target also applies to the debayer result for conversion."
 msgstr ""
 "ديبايير قناة واحدة الصور (فرنكات الجماعة المالية الأفريقية تنسيق) باستخدام "
-"تخطيط مصفوفة باير في الإعدادات. ينطبق أيضا على صورة فتح، ليس فقط من "
-"التحويل.\n"
+"تخطيط مصفوفة باير في الإعدادات. ينطبق أيضا على صورة فتح، ليس فقط من التحويل."
+"\n"
 "فقط للصور RAW ويناسب الإدخال والأفلام SER.\n"
 "لون الصورة الهدف ينطبق أيضا على النتيجة دبير للتحويل."
 
@@ -9209,9 +9210,8 @@ msgid ""
 msgstr ""
 "الطرح الظلام يمكن أن يكون الأمثل اختياريا بحيث يتم التقليل من الضوضاء في "
 "الصورة الناتجة (ضوء إطار ناقص إطار الظلام) عن طريق تطبيق معامل إلى الإطار "
-"الظلام. هذا الخيار مفيد عندما لم تتخذ الإطارات الداكنة في أفضل الظروف. "
-"تحذير: لا ينطبق الأمثل الظلام على سيد الظلام إذا لم يتم طرح السيد والتحيز "
-"سابقا."
+"الظلام. هذا الخيار مفيد عندما لم تتخذ الإطارات الداكنة في أفضل الظروف. تحذير:"
+" لا ينطبق الأمثل الظلام على سيد الظلام إذا لم يتم طرح السيد والتحيز سابقا."
 
 #: src/gui/uifiles/siril.ui:4880
 #, fuzzy
@@ -9649,8 +9649,8 @@ msgid ""
 "parallelized, it will run on one CPU core only."
 msgstr ""
 "استخدم هذا الخيار لاستخدام موقف النجم الموجود في الصورة السابقة كمركز جديد "
-"لتسجيل الصورة الحالية. وهذا يسمح للمنطقة التحديد ليكون أصغر حجما، تسجيل "
-"أسرع، وتمثل الانجراف أو الصور مع عدد كبير من النجوم. تحذير: تمكين هذا الخيار "
+"لتسجيل الصورة الحالية. وهذا يسمح للمنطقة التحديد ليكون أصغر حجما، تسجيل أسرع،"
+" وتمثل الانجراف أو الصور مع عدد كبير من النجوم. تحذير: تمكين هذا الخيار "
 "يتطلب التسجيل للا أن يكون بشكل متوازي، فستعمل على حدة المعالجة المركزية "
 "الأساسية واحدة فقط."
 
@@ -11773,10 +11773,9 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"الاحداثيات النقطه الوسطى: X0 =% 2fpx Y0 =% 2fpx كاملة العرض نصف الحد "
-"الأقصى:. FWHMx =% 2F% الصورة FWHMy =% 2F% الصورة زاوية:.% القيمة 0.2fdeg "
-"الخلفية: B =% 6F الكثافة القصوى: A = % .6f حجم (% ق): م =% 2F RMSE:. RMSE =% "
-"3E"
+"الاحداثيات النقطه الوسطى: X0 =% 2fpx Y0 =% 2fpx كاملة العرض نصف الحد الأقصى:"
+". FWHMx =% 2F% الصورة FWHMy =% 2F% الصورة زاوية:.% القيمة 0.2fdeg الخلفية: B "
+"=% 6F الكثافة القصوى: A = % .6f حجم (% ق): م =% 2F RMSE:. RMSE =% 3E"
 
 #: src/algos/PSF.c:1025
 #, fuzzy
@@ -26620,8 +26619,8 @@ msgid ""
 "Wrong magic cookie in PNM file, ASCII types and b&w bitmaps are not "
 "supported.\n"
 msgstr ""
-"غير معتمدة الخطأ الكعكة السحر في ملف PNM، وأنواع ASCII وB & W الصور "
-"النقطية.\n"
+"غير معتمدة الخطأ الكعكة السحر في ملف PNM، وأنواع ASCII وB & W الصور النقطية."
+"\n"
 
 #: src/io/image_formats_internal.c:571
 msgid "Error reading 8-bit PPM image data.\n"
@@ -26658,8 +26657,8 @@ msgstr "تسجيل NetBMP: الملف%s، طبقة% دينار (ق)، و% %ux%u 
 #: src/io/image_formats_internal.c:914
 msgid "Wrong magic cookie in PIC file. This image is not supported.\n"
 msgstr ""
-"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه "
-"الصورة.\n"
+"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه الصورة."
+"\n"
 
 #: src/io/image_formats_internal.c:955
 #, c-format
@@ -27177,8 +27176,8 @@ msgid ""
 "The sequence %s doesn't start at the frame number %d with the specified "
 "fixed size index (%d). Cannot load.\n"
 msgstr ""
-"لا يبدأ تسلسل%s في الإطار رقم %d مع مؤشر حجم ثابت محدد (%d). لا يمكن "
-"التحميل.\n"
+"لا يبدأ تسلسل%s في الإطار رقم %d مع مؤشر حجم ثابت محدد (%d). لا يمكن التحميل."
+"\n"
 
 #: src/io/sequence.c:225
 #, fuzzy, c-format
@@ -27624,8 +27623,8 @@ msgstr "تم إصلاح ملف SER ...\n"
 #, fuzzy
 msgid "Writing a 32-bit image to SER files is not supported.\n"
 msgstr ""
-"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه "
-"الصورة.\n"
+"الكعكة السحرية خطأ في ملف الموافقة المسبقة عن علم. لا يتم اعتماد هذه الصورة."
+"\n"
 
 #: src/io/ser.c:601
 msgid "Warning: no timestamps stored in the SER file.\n"
