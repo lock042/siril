@@ -295,7 +295,9 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
+	fprintf(stdout, "Initializing processing thread...\n");
 	processing_system_init();
+
 	initialize_default_settings();	// com.pref
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
@@ -742,6 +744,10 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	// Shut down the processing thread
+	processing_system_shutdown();
+
 #ifdef HAVE_LIBGIT2
 	git_libgit2_shutdown();
 #endif

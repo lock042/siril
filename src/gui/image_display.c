@@ -2428,9 +2428,10 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 gboolean redraw_mask_idle(gpointer p) {
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
-	if (com.pref.gui.mask_tints_vports)
+	if (com.pref.gui.mask_tints_vports) {
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
+	}
 	return FALSE;
 }
 

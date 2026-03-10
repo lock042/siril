@@ -137,6 +137,10 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
+
+	fprintf(stdout, "Initializing processing thread...\n");
+	processing_system_init();
+
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup
 #endif
@@ -406,6 +410,9 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	// Shut down the processing thread
+	processing_system_shutdown();
 
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 

@@ -2323,10 +2323,12 @@ gboolean restore_paned_position(gpointer user_data) {
 }
 
 void gtk_main_quit() {
-	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
+	// Don't call processing_system_shutdown(); the user wants to quit the program so we do so immediately
+	// whereas processing_system_shutdown() will wait for the next call to get_thread_run()
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
+	writeinitfile();		// save settings (like window positions)
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	cleanup_common_profiles(); // close lcms2 data structures
