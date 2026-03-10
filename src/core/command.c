@@ -2523,7 +2523,7 @@ int process_ghs(int nb, int stretchtype) {
 	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	free(params);
-	if (gui.roi.active)
+	if (!com.script && gui.roi.active)
 		populate_roi();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }

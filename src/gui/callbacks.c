@@ -334,7 +334,7 @@ void roi_supported(gboolean state) {
 	// Provide a one-time notification about ROI support
 	if (state && gui.roi.active && com.pref.gui.enable_roi_warning)
 		roi_info_message_if_needed();
-	redraw(REDRAW_OVERLAY);
+	queue_redraw(REDRAW_OVERLAY);
 }
 
 static GMutex roi_mutex;
@@ -375,13 +375,13 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	if (gui.roi.active) {
+	if (!com.headless && gui.roi.active) {
 		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
 		cancel_pending_update();
 		copy_backup_to_gfit();
 		clearfits(&gui.roi.fit);
 		memset(&gui.roi, 0, sizeof(roi_t));
-		redraw(REDRAW_OVERLAY);
+		queue_redraw(REDRAW_OVERLAY); // use queue_redraw() in case called from a non-GTK thread
 		// Call any callbacks that need calling
 		call_roi_callbacks();
 		g_mutex_unlock(&roi_mutex);
@@ -602,7 +602,7 @@ gboolean set_display_mode_idle(gpointer user_data) {
 void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
-	redraw(REMAP_ALL);
+	redraw(REMAP_ALL); // only called from the GTK action, so safe to assume we are in the GTK thread
 	gui_function(redraw_previews, NULL);
 }
 
