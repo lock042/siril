@@ -143,7 +143,10 @@ siril_common_SOURCES = \
 	core/pipe.h \
 	core/preprocess.c \
 	core/preprocess.h \
+	core/processing_thread.c \
+	core/processing_thread.h \
 	core/processing.c \
+	core/processing.h \
 	core/sequence_filtering.c \
 	core/sequence_filtering.h \
 	core/settings.c \

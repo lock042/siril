@@ -101,6 +101,7 @@ src/core/masks.c
 src/core/pipe.c
 src/core/preprocess.c
 src/core/processing.c
+src/core/processing_thread.c
 src/core/sequence_filtering.c
 src/core/settings.c
 src/core/siril.c
