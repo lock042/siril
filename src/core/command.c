@@ -375,7 +375,7 @@ int process_satu(int nb) {
 	char log[90];
 	sprintf(log, "Color saturation %d%%, threshold %.2f",
 		round_to_int(coeff * 100.0), background_factor);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 	siril_log_message(_("%s\n"), log);
 
 	return CMD_OK;
@@ -1682,7 +1682,7 @@ static int gauss_image_hook(struct generic_img_args *args, fits *fit, int thread
 	// Add to history
 	char log[90];
 	sprintf(log, "Gaussian filtering, sigma: %.2f", data->sigma);
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return retval;
 }
@@ -2100,7 +2100,7 @@ int process_epf(int nb) {
 	} else {
 		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
 	}
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -2865,7 +2865,7 @@ static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int 
 	// Add to history
 	char log[90];
 	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", data->sigma, data->multi);
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return retval;
 }
@@ -3176,14 +3176,14 @@ int process_ccm(int nb) {
 		// Build history log
 		char log[256];
 		snprintf(log, 255, "Color correction matrix applied:");
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 		snprintf(log, 255, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
 					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
 					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 		snprintf(log, 255, "Power: %.4f", args->power);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 		free(prefix);
 
@@ -3610,7 +3610,7 @@ int process_mtf(int nb) {
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
 			inverse ? "Inverse midtones" : "Midtones",
 			params.shadows, params.midtones, params.highlights);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	return CMD_OK;
 }
@@ -3701,7 +3701,7 @@ int process_ghs(int nb, int stretchtype) {
 			sprintf(log, "GHS BP shift (new BP: %.3f)", params->BP);
 			break;
 	}
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	if (gui.roi.active)
 		populate_roi();
@@ -3891,7 +3891,7 @@ int process_autoghs(int nb) {
 	char log[100];
 	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
 			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	return CMD_OK;
 }
@@ -4206,7 +4206,7 @@ int process_asinh(int nb) {
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 	siril_log_message(log);
 
 	return CMD_OK;
@@ -6941,7 +6941,7 @@ static int thresh_image_hook(struct generic_img_args *args, fits *fit, int threa
 	} else {
 		sprintf(log, "Image clamped to [min, %d]", data->hi);
 	}
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return 0;
 }
@@ -12499,7 +12499,7 @@ int process_rgbcomp(int nb) {
 		if (had_an_rgb_image)
 			merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, NULL);
 		else merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, &g, &b, NULL);
-		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
+		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("LRGB composition"));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
@@ -12530,7 +12530,7 @@ int process_rgbcomp(int nb) {
 		rgb_extract_last_options(next_arg, &result_filename, "composed_rgb", &do_sum);
 
 		merge_fits_headers_to_result(rgbptr, do_sum, &r, &g, &b, NULL);
-		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
+		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
 			rgb.fpdata[RLAYER][i] = r.fdata[i];
