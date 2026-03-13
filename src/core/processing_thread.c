@@ -411,6 +411,12 @@ void python_releases_thread(void) {
 	set_cursor_waiting(FALSE);
 }
 
+gboolean processing_is_reserved_for_python(void) {
+	g_mutex_lock(&queue_mutex);
+	gboolean reserved = python_reserved;
+	g_mutex_unlock(&queue_mutex);
+	return reserved;
+}
 /*****************************************************************************
 *    C O M P A T I B I L I T Y   W R A P P E R S
 *****************************************************************************/

@@ -133,8 +133,12 @@ int rgb_align(int m) {
 		regargs.type = SHIFT_TRANSFORMATION;
 	else
 		regargs.type = HOMOGRAPHY_TRANSFORMATION;
-	com.run_thread = TRUE;	// fix for the canceling check in processing
 
+	if (!reserve_thread()) {
+		siril_log_message(_("A processing operation is already running.\n"));
+		set_cursor_waiting(FALSE);
+		return 1;
+	}
 	retval1 = method->method_ptr(&regargs);
 	free(regargs.imgparam);
 	regargs.imgparam = NULL;
@@ -143,13 +147,12 @@ int rgb_align(int m) {
 	if (retval1) {
 		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);
 		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE;	// fix for the cancelling check in processing
+		unreserve_thread();
 		return retval1;
 	}
 	retval2 = register_apply_reg(&regargs);
-	compose(); // Register_apply_reg has already done the alignment for us
-
-	com.run_thread = FALSE;	// fix for the canceling check in processing
+	compose();
+	unreserve_thread();
 
 	if (retval2) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);

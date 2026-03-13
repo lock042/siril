@@ -1308,8 +1308,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		regargs.type = SHIFT_TRANSFORMATION;
 	else
 		regargs.type = HOMOGRAPHY_TRANSFORMATION;
-	com.run_thread = TRUE; // fix for the cancelling check in processing
 
+	if (!reserve_thread()) {
+		siril_log_message(_("A processing operation is already running.\n"));
+		set_cursor_waiting(FALSE);
+		return;
+	}
 	// Update the spinbutton values if we are doing manual reg
 	// This avoids GTK calls from threads
 	if (method->method_ptr == register_manual) {
@@ -1334,7 +1338,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	if (ret1) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE; // fix for the cancelling check in processing
+		unreserve_thread();
 		return;
 	}
 	// Second step - apply registration
@@ -1355,7 +1359,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			                          "in which case the images must be re-loaded to retry "
 			                          "alignment.)"), _("Proceed"))) {
 			set_cursor_waiting(FALSE);
-			com.run_thread = FALSE; // fix for the cancelling check in processing
+			unreserve_thread();
 			return;
 		}
 	}
@@ -1372,12 +1376,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	if (ret2) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE; // fix for the cancelling check in processing
+		unreserve_thread();
 		return;
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
-	com.run_thread = FALSE; // fix for the cancelling check in processing
+	unreserve_thread();
 
 	/* display the values */
 	if (method->method_ptr != register_manual) {

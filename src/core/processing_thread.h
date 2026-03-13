@@ -155,7 +155,7 @@ gboolean processing_in_worker_thread (void);
  */
 int  claim_thread_for_python (void);
 void python_releases_thread  (void);
-
+gboolean processing_is_reserved_for_python(void);
 
 /* --------------------------------------------------------------------------
  * Compatibility wrappers  (same signatures as before)

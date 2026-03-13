@@ -1288,7 +1288,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		if (timer > timeout) {
 			ret = SOLVE_NEAR_TIMEOUT;
 		}
-		if (!com.run_thread) {
+		if (!processing_is_job_active()) {
 			ret = SOLVE_CANCELLED;
 		}
 		g_thread_pool_free(pool, TRUE, TRUE);

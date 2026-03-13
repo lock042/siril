@@ -714,7 +714,7 @@ gpointer convert_thread_worker(gpointer p) {
 			open_next_input_seq(&convert);
 		}
 		// reader is freed elsewhere
-	} while (com.run_thread);
+	} while (get_thread_run());
 	siril_debug_print("conversion scheduling loop finished, waiting for first read task to signal\n");
 	g_mutex_lock(&args->pool_mutex);
 	while (convert.first <= 0) {

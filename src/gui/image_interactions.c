@@ -703,7 +703,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 
 	/* don't change cursor if thread is running or if Python
 	 claims the thread */
-	if (get_thread_run() || com.python_claims_thread) return FALSE;
+	if (get_thread_run() || processing_is_reserved_for_python()) return FALSE;
 
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
@@ -756,7 +756,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run() || com.python_claims_thread) {
+		if (get_thread_run() || processing_is_reserved_for_python()) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */
@@ -768,7 +768,7 @@ void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run() || com.python_claims_thread) {
+		if (get_thread_run() || processing_is_reserved_for_python()) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */

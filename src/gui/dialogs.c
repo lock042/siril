@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing_thread.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/message_dialog.h"
@@ -149,7 +150,7 @@ void siril_open_dialog(gchar *id) {
 
 	// We cannot open the dialog if a python script claims the thread, to prevent conflict over
 	// updating gfit
-	if (entry.type == IMAGE_PROCESSING_DIALOG && com.python_claims_thread) {
+	if (entry.type == IMAGE_PROCESSING_DIALOG && processing_is_reserved_for_python()) {
 		queue_error_message_dialog(_("Error"), _("Error: cannot open an image processing dialog while a Python script claims the processing thread. "
 									"Wait for the Python script to finish processing first."));
 		return;
