@@ -209,6 +209,7 @@ preferences pref_init = {
 	.astrometry = {
 		.update_default_scale = TRUE,
 		.percent_scale_range = 20,
+		.gaia_cache_duration = 90,
 		.sip_correction_order = 3,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
@@ -428,7 +429,7 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
-
+	{ "astrometry", "gaia_cache_duration", STYPE_INT, N_("Lifetime in days of items in Gaia online cache"), &com.pref.astrometry.gaia_cache_duration, { .range_int = { 7, 3650 } } },
 	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
 	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },

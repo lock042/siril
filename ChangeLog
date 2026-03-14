@@ -3,7 +3,8 @@ siril-1.5.0
 
 **Improvements**
 * Introduce generic_image_worker to standardize image operations (!965)
-* Added splashscreen at startup (!975)
+* Adding splashscreen at startup (!975)
+* Add caching of online GAIA database (!985)
 * Added image masks (!981)
 * Added eqcrop command (!889)
 * Added catmag command (!888)

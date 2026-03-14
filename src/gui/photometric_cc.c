@@ -38,6 +38,7 @@
 #include "gui/dialogs.h"
 #include "io/local_catalogues.h"
 #include "io/healpix/healpix_cat.h"
+#include "io/healpix/fluxcache_cat.h"
 #include "photometric_cc.h"
 
 #define MIN_PLOT 336.0
@@ -82,6 +83,7 @@ void reset_spcc_filters() {
 }
 
 void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
+	flux_cache_close_all();
 	siril_close_dialog("s_pcc_dialog");
 }
 

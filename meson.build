@@ -48,6 +48,7 @@ have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
+enable_sqlite    = get_option('sqlite')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
@@ -469,6 +470,11 @@ if enable_libcurl
   libcurl_dep = dependency('libcurl', required : true)
 endif
 
+sqlite_dep = no_dep
+if enable_sqlite
+  sqlite_dep = dependency('sqlite3', version: '>= 3.0')
+endif
+
 criterion_dep = no_dep
 if enable_criterion
   criterion_dep = dependency('criterion', required : true)
@@ -667,6 +673,12 @@ else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
+if sqlite_dep.found()
+  conf_data.set('HAVE_SQLITE', true, description : 'Using SQLite.')
+else
+  conf_data.set('HAVE_SQLITE', false, description : 'Using SQLite.')
+endif
+
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
 
 ## Git configuration
@@ -687,6 +699,7 @@ externals_dep = declare_dependency(
     gtk_dep,
     lcms_dep,
     libcurl_dep,
+    sqlite_dep,
     libgit2_dep,
     gsl_dep,
     opencv4_dep,
@@ -789,6 +802,7 @@ summary(
     'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
+    'sqlite'            : sqlite_dep.found(),
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )

@@ -70,6 +70,7 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+#include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -2637,6 +2638,20 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}
+}
+
+void on_clean_gaia_cache_clicked(GtkButton *button, gpointer user_data) {
+	gchar *msg = g_strdup_printf(_("You are about to clean your Gaia online cache to remove any "
+				"entries that have not been accessed for %d days. "
+				"This operation cannot be undone."), com.pref.astrometry.gaia_cache_duration);
+
+	int confirm = siril_confirm_dialog(_("Cache Cleaner"), msg, _("Proceed"));
+	g_free(msg);
+	if (!confirm) {
+		return;
+	}
+
+	flux_cache_purge(com.pref.astrometry.gaia_cache_duration);
 }
 
 void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
