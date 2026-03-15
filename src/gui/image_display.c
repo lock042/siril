@@ -84,6 +84,7 @@ static GtkSpinButton *tri_cut_spin_step = NULL;
 static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
+	g_mutex_lock(&gui.cairo_mutex);
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx);
 
 	// allocate the image surface if not already done or the same size
@@ -98,6 +99,7 @@ static int allocate_full_surface(struct image_view *view) {
 			PRINT_ALLOC_ERR;
 			if (view->buf)
 				free(view->buf);
+			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 		view->buf = tmp;
@@ -109,9 +111,11 @@ static int allocate_full_surface(struct image_view *view) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
 			view->full_surface = NULL;
+			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	return 0;
 }
 
@@ -135,13 +139,16 @@ static void remaprgb(void) {
 	if (allocate_full_surface(rgbview))
 		return;
 
-	// WARNING : this assumes that R, G and B buffers are already allocated and mapped
-	// it seems ok, but one can probably imagine situations where it segfaults
+	// WARNING: source pointers are captured inside the lock to avoid a race
+	// with a concurrent allocate_full_surface() call that could realloc view->buf
+	// between allocate_full_surface()'s internal unlock and here.
+	g_mutex_lock(&gui.cairo_mutex);
 	bufr = (const guint32*) gui.view[RED_VPORT].buf;
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
 	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
 	if (bufr == NULL || bufg == NULL || bufb == NULL) {
 		siril_debug_print("remaprgb: gray buffers not allocated for display\n");
+		g_mutex_unlock(&gui.cairo_mutex);
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
@@ -154,10 +161,11 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-// flush to ensure all writing to the image was done and redraw the surface
+	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
 	invalidate_image_render_cache(RGB_VPORT);
+	g_mutex_unlock(&gui.cairo_mutex);
 }
 
 void allocate_hd_remap_indices() {
@@ -198,6 +206,7 @@ static void remap_mask(mask_t *mask) {
 	if (allocate_full_surface(view))
 		return;
 
+	g_mutex_lock(&gui.cairo_mutex);
 	// Cairo setup
 	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
 	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
@@ -267,7 +276,7 @@ static void remap_mask(mask_t *mask) {
 					// Round & Clamp
 					uint8_t val = roundf_to_BYTE(v);
 
-					// 3. Pack to ARGB (Alpha unused)
+					// Pack to ARGB (Alpha unused)
 					dst_row[x] = (val << 16) | (val << 8) | val;
 				}
 			}
@@ -283,6 +292,7 @@ static void remap_mask(mask_t *mask) {
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
 	invalidate_image_render_cache(vport);
+	g_mutex_unlock(&gui.cairo_mutex);
 	test_and_allocate_reference_image(vport);
 }
 
@@ -355,6 +365,8 @@ static void remap(int vport) {
 
 	src = gfit->pdata[vport];
 	fsrc = gfit->fpdata[vport];
+
+	g_mutex_lock(&gui.cairo_mutex);
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
@@ -482,6 +494,8 @@ static void remap(int vport) {
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
 	invalidate_image_render_cache(vport);
+	g_mutex_unlock(&gui.cairo_mutex);
+
 	test_and_allocate_reference_image(vport);
 }
 
@@ -579,13 +593,19 @@ static void remap_all_vports() {
 
 	last_mode = gui.rendering_mode;
 
+	// Allocate surfaces and capture src/fsrc outside the lock; dst pointers are
+	// captured below, inside the lock, to avoid stale pointer races: a concurrent
+	// allocate_full_surface() could realloc view->buf between the internal unlock
+	// inside allocate_full_surface() and the cairo_mutex acquisition below.
 	for (int i = 0 ; i < 3 ; i++) {
 		src[i] = gfit->pdata[i];
 		fsrc[i] = gfit->fpdata[i];
 		if (allocate_full_surface(view[i]))
 			return;
-		dst[i] = view[i]->buf;
 	}
+	g_mutex_lock(&gui.cairo_mutex);
+	for (int i = 0 ; i < 3 ; i++)
+		dst[i] = view[i]->buf;
 
 	int norm = (int) get_normalized_value(gfit);
 	const guint width = gfit->rx;
@@ -789,6 +809,8 @@ static void remap_all_vports() {
 		invalidate_image_render_cache(vport);
 		test_and_allocate_reference_image(vport);
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
+
 }
 
 static int make_hd_index_for_current_display(int vport) {
@@ -1055,6 +1077,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 }
 
 static void draw_vport(const draw_data_t* dd) {
+	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
 		cairo_surface_t *target = cairo_get_target(dd->cr);
@@ -1064,6 +1087,7 @@ static void draw_vport(const draw_data_t* dd) {
 			siril_debug_print("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
 			cairo_surface_destroy(view->disp_surface);
 			view->disp_surface = NULL;
+			g_mutex_unlock(&gui.cairo_mutex);
 			return;
 		}
 		view->view_width = dd->window_width;
@@ -1090,6 +1114,8 @@ static void draw_vport(const draw_data_t* dd) {
 
 	// prepare the display matrix for remaining drawing (selection, stars, ...)
 	cairo_transform(dd->cr, &gui.display_matrix);
+	g_mutex_unlock(&gui.cairo_mutex);
+
 }
 
 static void draw_main_image(const draw_data_t* dd) {
