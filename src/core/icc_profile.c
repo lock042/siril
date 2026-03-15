@@ -60,7 +60,6 @@ struct cm_struct {
 };
 
 static gboolean cm_worker(gpointer user_data) {
-//	g_assert(g_main_context_is_owner(g_main_context_default()));
 	struct cm_struct *data = (struct cm_struct*) user_data;
 	fits *fit = data->fit;
 	gboolean active = data->active;
@@ -99,10 +98,10 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
 	if (fit == gfit && !com.script) {
-		if (com.python_script) {
-			execute_idle_and_wait_for_it(cm_worker, &data);
-		} else {
+		if (g_main_context_is_owner(g_main_context_default())) {
 			cm_worker(&data);
+		} else {
+			execute_idle_and_wait_for_it(cm_worker, &data);
 		}
 	}
 }
