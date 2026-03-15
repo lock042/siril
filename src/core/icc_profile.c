@@ -60,6 +60,7 @@ struct cm_struct {
 };
 
 static gboolean cm_worker(gpointer user_data) {
+	g_assert(g_main_context_is_owner(g_main_context_default()));
 	struct cm_struct *data = (struct cm_struct*) user_data;
 	fits *fit = data->fit;
 	gboolean active = data->active;
