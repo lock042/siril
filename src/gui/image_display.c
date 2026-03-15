@@ -69,7 +69,7 @@ static display_mode last_mode;
 
 /* STF (auto-stretch) data */
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
-struct mtf_params stf[3];
+static struct mtf_params stf[3];
 
 /* widgets for draw_reg_data*/
 GtkComboBox *seqcombo;
@@ -92,17 +92,26 @@ static int allocate_full_surface(struct image_view *view) {
 				|| gfit->ry != view->full_surface_height
 				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
-		view->full_surface_stride = stride;
-		view->full_surface_height = gfit->ry;
+
 		guchar *tmp = realloc(view->buf, stride * gfit->ry * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
-			if (view->buf)
-				free(view->buf);
+			free(view->buf);
+			view->buf = NULL;
+			if (view->full_surface) {
+				cairo_surface_destroy(view->full_surface);
+				view->full_surface = NULL;
+			}
+			view->full_surface_stride = 0;
+			view->full_surface_height = 0;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 		view->buf = tmp;
+		// Only update dimension fields once the allocation succeeded
+		view->full_surface_stride = stride;
+		view->full_surface_height = gfit->ry;
+
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
@@ -111,6 +120,10 @@ static int allocate_full_surface(struct image_view *view) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
 			view->full_surface = NULL;
+			free(view->buf);
+			view->buf = NULL;
+			view->full_surface_stride = 0;
+			view->full_surface_height = 0;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
@@ -139,9 +152,9 @@ static void remaprgb(void) {
 	if (allocate_full_surface(rgbview))
 		return;
 
-	// WARNING: source pointers are captured inside the lock to avoid a race
-	// with a concurrent allocate_full_surface() call that could realloc view->buf
-	// between allocate_full_surface()'s internal unlock and here.
+	// Source pointers are captured inside the lock to avoid a race with a
+	// concurrent allocate_full_surface() realloc between its internal unlock
+	// and the lock acquisition below.
 	g_mutex_lock(&gui.cairo_mutex);
 	bufr = (const guint32*) gui.view[RED_VPORT].buf;
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
@@ -164,8 +177,10 @@ static void remaprgb(void) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
-	invalidate_image_render_cache(RGB_VPORT);
 	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
+	invalidate_image_render_cache(RGB_VPORT);
 }
 
 void allocate_hd_remap_indices() {
@@ -179,6 +194,7 @@ void allocate_hd_remap_indices() {
 			gui.use_hd_remap = FALSE;
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("autohd_item")), FALSE);
 			hd_remap_indices_cleanup();
+			return;
 		}
 	}
 }
@@ -291,8 +307,10 @@ static void remap_mask(mask_t *mask) {
 
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
-	invalidate_image_render_cache(vport);
 	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
+	invalidate_image_render_cache(vport);
 	test_and_allocate_reference_image(vport);
 }
 
@@ -493,9 +511,10 @@ static void remap(int vport) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
-	invalidate_image_render_cache(vport);
 	g_mutex_unlock(&gui.cairo_mutex);
 
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
+	invalidate_image_render_cache(vport);
 	test_and_allocate_reference_image(vport);
 }
 
@@ -593,10 +612,10 @@ static void remap_all_vports() {
 
 	last_mode = gui.rendering_mode;
 
-	// Allocate surfaces and capture src/fsrc outside the lock; dst pointers are
-	// captured below, inside the lock, to avoid stale pointer races: a concurrent
-	// allocate_full_surface() could realloc view->buf between the internal unlock
-	// inside allocate_full_surface() and the cairo_mutex acquisition below.
+	// Allocate surfaces and capture src/fsrc outside the lock.
+	// dst[] pointers are captured below, inside the lock, to prevent a stale-
+	// pointer race: a concurrent allocate_full_surface() could realloc view->buf
+	// between its internal unlock and the cairo_mutex acquisition below.
 	for (int i = 0 ; i < 3 ; i++) {
 		src[i] = gfit->pdata[i];
 		fsrc[i] = gfit->fpdata[i];
@@ -611,6 +630,9 @@ static void remap_all_vports() {
 	const guint width = gfit->rx;
 	const guint height = gfit->ry;
 
+	// Shared flag for per-thread allocation failures; checked after the parallel block.
+	gboolean alloc_error = FALSE;
+
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
 		const gboolean do_transform = (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed));
@@ -619,23 +641,36 @@ static void remap_all_vports() {
 			lock_display_transform();
 
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread)
+#pragma omp parallel num_threads(com.max_thread) shared(alloc_error)
 {
 		// Thread-local buffers - allocated once per thread
 		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width), (pixelbuf + 2 * width) };
 		BYTE *pixelbuf_byte = malloc(width * 3);
-		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width), (pixelbuf_byte + 2 * width) };
 		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
 
+		if (!pixelbuf || !pixelbuf_byte || (apply_mask && !mask_row)) {
+			PRINT_ALLOC_ERR;
+#pragma omp atomic write
+			alloc_error = TRUE;
+		} else {
 #pragma omp for schedule(static)
 #else
 		// Single-threaded: allocate once
 		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width), (pixelbuf + 2 * width) };
 		BYTE *pixelbuf_byte = malloc(width * 3);
-		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width), (pixelbuf_byte + 2 * width) };
 		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
+
+		if (!pixelbuf || !pixelbuf_byte || (apply_mask && !mask_row)) {
+			PRINT_ALLOC_ERR;
+			free(pixelbuf);
+			free(pixelbuf_byte);
+			free(mask_row);
+			alloc_error = TRUE;
+		} else {
 #endif
 		for (y = 0; y < height; y++) {
 			guint x;
@@ -785,32 +820,44 @@ static void remap_all_vports() {
 				}
 			}
 		}
+		// Close the else-branch of the allocation check, then free buffers.
+		// In the OpenMP path free() is called by every thread for its own
+		// allocations; free(NULL) is safe for the error path where some
+		// allocations may have failed.
+		}
 #ifdef _OPENMP
-		// Clean up thread-local buffers
 		free(pixelbuf);
 		free(pixelbuf_byte);
-		if (mask_row)
-			free(mask_row);
+		free(mask_row);
 }
 #else
-		// Clean up single-threaded buffers
 		free(pixelbuf);
 		free(pixelbuf_byte);
-		if (mask_row)
-			free(mask_row);
+		free(mask_row);
 #endif
 		if (do_transform)
 			unlock_display_transform();
 	}
-	// flush to ensure all writing to the image was done and redraw the surface
+
+	// Bail out cleanly if any thread's allocation failed
+	if (alloc_error) {
+		g_mutex_unlock(&gui.cairo_mutex);
+		return;
+	}
+
+	// flush to ensure all writing to the image was done and redraw the surfaces
 	for (int vport = 0 ; vport < 3 ; vport++) {
 		cairo_surface_flush(view[vport]->full_surface);
 		cairo_surface_mark_dirty(view[vport]->full_surface);
-		invalidate_image_render_cache(vport);
-		test_and_allocate_reference_image(vport);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
+	// invalidate_image_render_cache is self-locking; both it and
+	// test_and_allocate_reference_image must be called after our unlock
+	for (int vport = 0 ; vport < 3 ; vport++) {
+		invalidate_image_render_cache(vport);
+		test_and_allocate_reference_image(vport);
+	}
 }
 
 static int make_hd_index_for_current_display(int vport) {
@@ -1119,7 +1166,11 @@ static void draw_vport(const draw_data_t* dd) {
 }
 
 static void draw_main_image(const draw_data_t* dd) {
-	if (gui.view[dd->vport].buf) {
+	g_mutex_lock(&gui.cairo_mutex);
+	gboolean has_buf = (gui.view[dd->vport].buf != NULL);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	if (has_buf) {
 		draw_vport(dd);
 	} else {
 		draw_empty_image(dd);
@@ -1500,8 +1551,9 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 40);
+		cairo_set_font_size(cr, 40.0 / dd->zoom);
 		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
+		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
 		cairo_stroke(cr);
 	}
 
@@ -1531,7 +1583,7 @@ static void draw_stars(const draw_data_t* dd) {
 						2. * M_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-				cairo_set_font_size(cr, 40);
+				cairo_set_font_size(cr, 40.0 / dd->zoom);
 				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);
 				if (i == 0) {
 					cairo_show_text(cr, "V");
@@ -2298,13 +2350,13 @@ double get_zoom_val() {
 	return min(wtmp, htmp);
 }
 
-// passing -1 means invalidate all
 static void invalidate_image_render_cache(int vport) {
 	/* the render cache is a surface containing the rendering of the image
 	 * from the mapped buffers to the drawing area.
 	 * If some of the parameters change, the cache must be invalidated to
 	 * redraw the image: image content, image mapping, widget dimensions.
 	 */
+	g_mutex_lock(&gui.cairo_mutex);
 	for (int i = 0; i < MAXVPORT; i++) {
 		if (vport >= 0 && i != vport)
 			continue;
@@ -2314,6 +2366,7 @@ static void invalidate_image_render_cache(int vport) {
 		gui.view[i].view_height = -1;
 		gui.view[i].view_width = -1;
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
