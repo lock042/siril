@@ -21,6 +21,7 @@
 #define SRC_CORE_OS_UTILS_H_
 
 #include <glib.h>
+#include <gio/gio.h>
 
 #ifdef __cplusplus
 extern "C" {
