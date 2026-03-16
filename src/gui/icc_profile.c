@@ -342,6 +342,7 @@ FINISH:
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
+	notify_gfit_data_modified();
 	notify_gfit_modified();
 }
 
@@ -358,6 +359,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
+	notify_gfit_data_modified();
 	notify_gfit_modified();
 
 }
@@ -399,6 +401,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	refresh_icc_transforms();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
+	notify_gfit_data_modified();
 	notify_gfit_modified();
 }
 
