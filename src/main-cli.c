@@ -205,6 +205,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	log_num_procs();
+
 	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();

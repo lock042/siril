@@ -22,11 +22,17 @@
 
 #include <glib.h>
 
-#include "core/siril.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct {
+	int glib_num_proc;
+	int omp_num_proc;
+	int cgroups_num_proc;
+	int supports_nesting;
+} NumProcsInfo;
+
 
 gboolean is_space_disk_available(const gchar *disk);
 gboolean update_displayed_memory(gpointer data);
@@ -39,6 +45,7 @@ void log_used_mem(gchar *when);
 int get_available_cpu_cgroups();
 
 void init_num_procs();
+void log_num_procs();
 
 long get_pathmax(void);
 

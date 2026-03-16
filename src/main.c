@@ -99,7 +99,9 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 
 	force_paned_restore();
 
-	return FALSE; // run once
+	g_idle_add(first_start_cb, NULL);
+
+	return G_SOURCE_REMOVE;
 }
 
 /* the global variables of the whole project */
@@ -358,6 +360,8 @@ static void siril_app_activate(GApplication *application) {
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
 #endif
 
+	init_num_procs();
+
 	if (!com.headless)
 		update_splash_progress(_("Initializing random number generator..."), 0.05);
 	siril_initialize_rng();
@@ -416,11 +420,6 @@ static void siril_app_activate(GApplication *application) {
 			siril_change_dir(siril_get_startup_dir(), NULL);
 		}
 	}
-
-
-	if (!com.headless)
-		update_splash_progress(_("Initializing processors..."), 0.35);
-	init_num_procs();
 
 	if (!com.headless)
 		update_splash_progress(_("Initializing Python environment..."), 0.40);
@@ -514,6 +513,13 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless) {
 		update_splash_progress(_("Initializing interface components..."), 0.90);
 		gtk_builder_connect_signals(gui.builder, NULL);
+
+		gchar *version_string = get_siril_version_string();
+		siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+		g_free(version_string);
+
+		log_num_procs();
+
 		initialize_all_GUI(supported_files);
 
 		/* Show "Ready!" message then close splash and show window after 200ms */
