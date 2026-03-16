@@ -58,34 +58,58 @@ void free_wcs(fits *fit) {
 }
 
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
-	if (status)
-		*status = 1;
-	if (!wcssrc)
-		return NULL;
-	wcsprm_t *wcsdst = NULL;
-	int axes[2], nsub;
-	nsub = 2;
-	axes[0] = WCSSUB_LONGITUDE;
-	axes[1] = WCSSUB_LATITUDE;
-	wcsdst = calloc(1, sizeof(wcsprm_t));
+	if (status) *status = 1;
+	if (!wcssrc) return NULL;
+
+	wcsprm_t *wcsdst = calloc(1, sizeof(wcsprm_t));
 	if (!wcsdst) {
 		PRINT_ALLOC_ERR;
-		if (status)
-			*status = WCSERR_MEMORY;
+		if (status) *status = WCSERR_MEMORY;
 		return NULL;
 	}
 	wcsdst->flag = -1;
-	int statuscpy = wcssub(0, wcssrc, &nsub, axes, wcsdst);
+
+	// Workaround: wcslib bug/ABI mismatch in disinit causes heap overflow
+	// when distortion (SIP) is present. Pass a shallow copy of wcssrc with
+	// dispre/disseq nulled out to wcscopy, then copy distortions separately
+	// via discpy. This avoids mutating wcssrc (which would not be thread-safe).
+	wcsprm_t wcssrc_nodis = *wcssrc;  // shallow copy on stack, wcssrc untouched
+	wcssrc_nodis.lin.dispre = NULL;
+	wcssrc_nodis.lin.disseq = NULL;
+
+	int statuscpy = wcscopy(1, &wcssrc_nodis, wcsdst);
 	if (statuscpy) {
-		if (status)
-			*status = statuscpy;
+		if (status) *status = statuscpy;
 		wcsfree(wcsdst);
+		free(wcsdst);
 		return NULL;
 	}
+
+	// Copy distortions separately from original source
+	if (wcssrc->lin.dispre) {
+		wcsdst->lin.dispre = calloc(1, sizeof(struct disprm));
+		if (wcsdst->lin.dispre) {
+			wcsdst->lin.dispre->flag = -1;
+			if (discpy(1, wcssrc->lin.dispre, wcsdst->lin.dispre)) {
+				free(wcsdst->lin.dispre);
+				wcsdst->lin.dispre = NULL;
+			}
+		}
+	}
+	if (wcssrc->lin.disseq) {
+		wcsdst->lin.disseq = calloc(1, sizeof(struct disprm));
+		if (wcsdst->lin.disseq) {
+			wcsdst->lin.disseq->flag = -1;
+			if (discpy(1, wcssrc->lin.disseq, wcsdst->lin.disseq)) {
+				free(wcsdst->lin.disseq);
+				wcsdst->lin.disseq = NULL;
+			}
+		}
+	}
+
 	wcsdst->flag = 0;
 	wcsset(wcsdst);
-	if (status)
-		*status = 0;
+	if (status) *status = 0;
 	return wcsdst;
 }
 
