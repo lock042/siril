@@ -894,6 +894,7 @@ struct guiinf {
 	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
 	GdkRGBA poly_ink; // Color and alpha for drawing polygons
 	gboolean poly_fill; // Whether to fill drawn polygons
+	GMutex cairo_mutex; // control access to Cairo buffers
 };
 
 struct common_icc {
