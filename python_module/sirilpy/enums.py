@@ -13,9 +13,8 @@ from enum import IntEnum, unique
 @unique
 class DialogID(IntEnum):
     """
-    Represents Siril dialogs. This MUST be kept in sync with SirilDialogEntry entries in src/gui/dialogs.c
+    Represents Siril dialogs.
     """
-#    AAVSO_DIALOG = 0
     ANNOTATE_DIALOG = 1
     ASINH_DIALOG = 2
     ASTROMETRY_DIALOG = 3
@@ -32,8 +31,6 @@ class DialogID(IntEnum):
     CROP_DIALOG = 14
     CURVES_DIALOG = 15
     CUT_DIALOG = 16
-#    CUT_COORDS_DIALOG = 17
-#    CUT_SPECTROSCOPY_DIALOG = 18
     BDECONV_DIALOG = 19
     DIALOG_FFT = 20
     DIALOG_STAR_REMIX = 21
@@ -48,7 +45,6 @@ class DialogID(IntEnum):
     LINEARMATCH_DIALOG = 30
     MEDIAN_DIALOG = 31
     MERGE_CFA_DIALOG = 32
-#    MOUSE_ACTIONS_DIALOG = 33
     NINA_LIGHT_CURVE = 34
     PIXEL_MATH_DIALOG = 35
     RESAMPLE_DIALOG = 36
@@ -57,7 +53,6 @@ class DialogID(IntEnum):
     S_PCC_DIALOG = 39
     SATU_DIALOG = 40
     SCNR_DIALOG = 41
-#    SETTINGS_WINDOW = 42
     SEQLIST_DIALOG = 43
     SPLIT_CFA_DIALOG = 44
     STARNET_DIALOG = 45
