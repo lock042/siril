@@ -20,6 +20,14 @@
 #ifndef SRC_GUI_SIRIL_WINDOW_H_
 #define SRC_GUI_SIRIL_WINDOW_H_
 
+typedef enum {
+    ACTION_SUCCESS = 0,
+    ACTION_NOT_FOUND = 1,
+    ACTION_DISABLED = 2,
+    ACTION_WINDOW_MISSING = 3,
+	ACTION_NULL_DATA = 4
+} ActionResult;
+
 void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_wcs_disto_proc_actions(GtkApplicationWindow *window, gboolean enable);
@@ -35,5 +43,8 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_map_actions(GtkApplicationWindow *window);
+void activate_action_if_enabled(const char *name);
+ActionResult queue_activate_action_if_enabled(const char *name);
+
 
 #endif /* SRC_GUI_SIRIL_WINDOW_H_ */
