@@ -142,6 +142,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">2</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_gaia_cache_duration">
+    <property name="lower">7</property>
+    <property name="upper">3650</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
     <property name="lower">1</property>
     <property name="upper">50</property>
@@ -1574,6 +1581,44 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <packing>
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+				    <child>
+				      <object class="GtkLabel" id="gaia_cache_duration_label">
+					<property name="visible">True</property>
+					<property name="halign">start</property>
+					<property name="label" translatable="yes">Online Gaia Cache Duration (days):</property>
+				      </object>
+				      <packing>
+					<property name="left-attach">0</property>
+                                       	<property name="top-attach">3</property>
+				      </packing>
+				    </child>
+				    <child>
+				      <object class="GtkSpinButton" id="gaia_cache_duration">
+					<property name="visible">True</property>
+					<property name="can-focus">True</property>
+					<property name="halign">start</property>
+					<property name="width-chars">6</property>
+					<property name="adjustment">adj_gaia_cache_duration</property>
+				      </object>
+				      <packing>
+					<property name="left-attach">1</property>
+                                       	<property name="top-attach">3</property>
+				      </packing>
+				    </child>
+				    <child>
+                                      <object class="GtkButton" id="clean_gaia_cache">
+                                        <property name="label" translatable="yes">Clean Cache</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Clean the Gaia online cache</property>
+                                        <signal name="clicked" handler="on_clean_gaia_cache_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+					<property name="left-attach">2</property>
+                                       	<property name="top-attach">3</property>
                                       </packing>
                                     </child>
                                   </object>

@@ -84,6 +84,12 @@ option('libcurl',
  description: 'Use libcurl for web access',
 )
 
+option('sqlite',
+ type: 'boolean',
+ value: true,
+ description: 'Use SQLite for caching online GAIA database',
+)
+
 option('criterion',
  type : 'boolean',
  value : false,

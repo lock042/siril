@@ -167,13 +167,6 @@ static void siril_app_activate(GApplication *application) {
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
-	gchar *version_string = get_siril_version_string();
-	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
-	g_free(version_string);
-
-	/* initialize converters (utilities used for different image types importing) */
-	gchar *supported_files = initialize_converters();
-
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
 	}
@@ -185,6 +178,13 @@ static void siril_app_activate(GApplication *application) {
 
 	if (com.pref.lang)
 		language_init(com.pref.lang);
+
+	gchar *version_string = get_siril_version_string();
+	siril_log_message(_("Welcome to %s - CLI\n"), version_string);
+	g_free(version_string);
+
+	/* initialize converters (utilities used for different image types importing) */
+	gchar *supported_files = initialize_converters();
 
 	if (main_option_directory) {
 		gchar *cwd_forced;
@@ -209,9 +209,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	initialize_python_venv_in_thread();
-	initialize_profiles_and_transforms(); // color management
-	initialize_spcc_mirrors();
+	log_num_procs();
+	siril_log_message(_("Supported file types: %s\n"), supported_files);
 
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -247,6 +246,10 @@ static void siril_app_activate(GApplication *application) {
 		pipe_start(main_option_rpipe_path, main_option_wpipe_path);
 		read_pipe(main_option_rpipe_path);
 	}
+
+	initialize_python_venv_in_thread();
+	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
 
 	g_free(supported_files);
 }

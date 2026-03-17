@@ -1,8 +1,6 @@
 #ifndef SRC_IO_SIRIL_PYTHONMODULE_H
 #define SRC_IO_SIRIL_PYTHONMODULE_H
 
-// Status codes for command responses
-#include <sys/cdefs.h>
 // siril_plot_data
 #include "io/siril_plot.h"
 

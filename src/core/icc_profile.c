@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
-#include "gui/callbacks.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"

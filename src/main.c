@@ -100,7 +100,9 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 
 	force_paned_restore();
 
-	return FALSE; // run once
+	g_idle_add(first_start_cb, NULL);
+
+	return G_SOURCE_REMOVE;
 }
 
 /* the global variables of the whole project */
@@ -362,6 +364,8 @@ static void siril_app_activate(GApplication *application) {
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
 #endif
 
+	init_num_procs();
+
 	if (!com.headless)
 		update_splash_progress(_("Initializing random number generator..."), 0.05);
 	siril_initialize_rng();
@@ -374,15 +378,6 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless)
 		update_splash_progress(_("Initializing sequences..."), 0.15);
 	initialize_sequence(&com.seq, TRUE);
-
-	gchar *version_string = get_siril_version_string();
-	siril_log_message(_("Welcome to %s - GUI\n"), version_string);
-	g_free(version_string);
-
-	/* initialize converters (utilities used for different image types importing) */
-	if (!com.headless)
-		update_splash_progress(_("Loading image converters..."), 0.20);
-	gchar *supported_files = initialize_converters();
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
@@ -401,6 +396,12 @@ static void siril_app_activate(GApplication *application) {
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
+
+	/* initialize converters (utilities used for different image types importing) */
+	if (!com.headless)
+		update_splash_progress(_("Loading image converters..."), 0.20);
+	gchar *supported_files = initialize_converters();
+
 
 	if (main_option_directory) {
 		gchar *cwd_forced;
@@ -423,19 +424,6 @@ static void siril_app_activate(GApplication *application) {
 			siril_change_dir(siril_get_startup_dir(), NULL);
 		}
 	}
-
-	if (!com.headless)
-		update_splash_progress(_("Initializing processors..."), 0.35);
-	init_num_procs();
-
-	if (!com.headless)
-		update_splash_progress(_("Initializing Python environment..."), 0.40);
-	initialize_python_venv_in_thread();
-
-	if (!com.headless)
-		update_splash_progress(_("Loading color profiles..."), 0.45);
-	initialize_profiles_and_transforms(); // color management
-	initialize_spcc_mirrors();
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -520,12 +508,24 @@ static void siril_app_activate(GApplication *application) {
 	if (!com.headless) {
 		update_splash_progress(_("Initializing interface components..."), 0.90);
 		gtk_builder_connect_signals(gui.builder, NULL);
+
+		gchar *version_string = get_siril_version_string();
+		siril_log_message(_("Welcome to %s - GUI\n"), version_string);
+		g_free(version_string);
+
+		log_num_procs();
+		siril_log_message(_("Supported file types: %s\n"), supported_files);
 		initialize_all_GUI(supported_files);
 
 		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);
 		g_timeout_add(200, close_splash_and_show_window_cb, NULL);
 	}
+
+	/* last initialization because now, GUI is built and logs can be displayed */
+	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
+	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
 }
