@@ -10,6 +10,9 @@ siril-1.5.0
 * Added catmag command (!888)
 * Add draggable histogram overlay with cursor tracking (!986)
 
+**Fixes**
+* Fixed Windows pipes naming (!996)
+
 siril-1.4.3
 --/--/--
 
