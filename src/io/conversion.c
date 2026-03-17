@@ -250,7 +250,6 @@ gchar *initialize_converters() {
 	string = g_string_append(string, ".");
 	text = g_string_free(string, FALSE);
 
-	siril_log_message(_("Supported file types: %s\n"), text);
 	return text;
 }
 
