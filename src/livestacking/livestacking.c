@@ -803,7 +803,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (first_stacking_result) {
 				/* number of channels may have changed */
 				com.seq.current = RESULT_IMAGE;
-				com.uniq->nb_layers = gfit->naxes[2];
+				com.uniq->chans = gfit->naxes[2];
 				com.uniq->fit = gfit;
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;

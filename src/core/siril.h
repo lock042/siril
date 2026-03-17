@@ -482,13 +482,34 @@ struct sequ {
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve
 };
 
-/* this struct is used to manage data associated with a single image loaded, outside a sequence */
 typedef struct {
-	char *filename;		// the name of the file
-	gboolean fileexist;// flag of existing file
-	char *comment;		// comment on how the file got there (user load, result...)
-	int nb_layers;		// number of layers embedded in each image file
-	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
+	char       *filename;
+	gboolean    fileexist;
+	char       *comment;
+
+	/* ---- Layer list --------------------------------------------------- */
+	GSList     *layers;             /* Ordered list of flis_layer_t*.
+									Sorted ascending by layer_order
+									for compositing; lowest order is
+									the base layer (defines canvas).   */
+	gint        active_layer;       /* Index into layers of the layer
+									currently bound to gfit.           */
+	gint        next_item_id;       /* Next ITEM_ID to assign.  Init to 1;
+									increment after each allocation.   */
+
+	/* ---- Channel count of the active layer ---------------------------- */
+	int         chans;              /* Number of channels in the active
+									layer: 1 for mono, 3 for RGB.
+									Formerly nb_layers — renamed for
+									clarity.  Derived from:
+									active flis_layer_t->fit->naxes[2]
+									Keep in sync when active_layer
+									changes.                           */
+
+	/* ---- Retained for backward compatibility -------------------------- */
+	fits       *fit;                /* == active flis_layer_t->fit.
+									Keep in sync when active_layer
+									changes.  Equals gfit.            */
 } single;
 
 typedef struct {

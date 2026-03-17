@@ -415,7 +415,7 @@ static gboolean end_stacking(gpointer p) {
 		 * which is quite slow */
 		com.uniq = calloc(1, sizeof(single));
 		com.uniq->comment = strdup(_("Stacking result image"));
-		com.uniq->nb_layers = gfit->naxes[2];
+		com.uniq->chans = gfit->naxes[2];
 		com.uniq->fit = gfit;
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);

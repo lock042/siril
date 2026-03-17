@@ -48,6 +48,7 @@
 #include "algos/siril_wcs.h"
 #include "io/fits_keywords.h"
 #include "image_format_fits.h"
+#include "image_format_flis.h"
 
 #define RECIPSQRT2 0.70710678f // 1/sqrt(2) as float
 
@@ -1200,6 +1201,31 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		free(name);
 		return status;
 	}
+
+	/* Detect FLIS: check for FLIS = T in HDU 1.
+	 * siril_fits_open_diskfile_img() has already positioned at HDU 1
+	 * (the primary thumbnail), so we can probe the keyword directly.
+	 * If confirmed, close the file and delegate entirely to load_flis(),
+	 * which populates com.uniq and sets gfit to the active layer.
+	 * Note: load_flis() does not populate the caller's fit* directly;
+	 * if fit == gfit (the normal "load current image" call site) the
+	 * caller's pointer will be correct after load_flis() returns.
+	 * Callers using a fit* other than gfit should not load FLIS files
+	 * through readfits(). */
+	{
+		int flis_flag = 0;
+		int flis_status = 0;
+		fits_read_key(fit->fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+		if (flis_status == 0 && flis_flag) {
+			status = 0;
+			fits_close_file(fit->fptr, &status);
+			fit->fptr = NULL;
+			free(name);
+			siril_log_message(_("Detected FLIS file, loading with FLIS loader: %s\n"), filename);
+			return load_flis(filename);
+		}
+	}
+
 	free(name);
 
 	status = read_fits_metadata(fit);
@@ -3525,7 +3551,7 @@ int save_wcs_fits(fits *f, const gchar *name) {
 
 	if (g_unlink(name))
 		siril_debug_print("g_unlink() failed\n");
-	
+
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
@@ -3704,7 +3730,7 @@ int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, 
 	} else {
 		fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, drizz, NULL, &status);
 	}
-	
+
 	if (status) {
 		report_fits_error(status);
 		return 1;

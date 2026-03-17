@@ -177,6 +177,7 @@ src_files = [
   'io/healpix/healpix.cpp',
   'io/healpix/fluxcache.cpp',
   'io/image_format_fits.c',
+  'io/image_format_flis.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
   'io/local_catalogues.c',
