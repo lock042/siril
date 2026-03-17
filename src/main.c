@@ -421,15 +421,6 @@ static void siril_app_activate(GApplication *application) {
 		}
 	}
 
-	if (!com.headless)
-		update_splash_progress(_("Initializing Python environment..."), 0.40);
-	initialize_python_venv_in_thread();
-
-	if (!com.headless)
-		update_splash_progress(_("Loading color profiles..."), 0.45);
-	initialize_profiles_and_transforms(); // color management
-	initialize_spcc_mirrors();
-
 	if (com.headless) {
 		if (main_option_script) {
 			GInputStream *input_stream = NULL;
@@ -519,13 +510,18 @@ static void siril_app_activate(GApplication *application) {
 		g_free(version_string);
 
 		log_num_procs();
-
+		siril_log_message(_("Supported file types: %s\n"), supported_files);
 		initialize_all_GUI(supported_files);
 
 		/* Show "Ready!" message then close splash and show window after 200ms */
 		update_splash_progress(_("Ready!"), 1.0);
 		g_timeout_add(200, close_splash_and_show_window_cb, NULL);
 	}
+
+	/* last initialization because now, GUI is built and logs can be displayed */
+	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
+	initialize_python_venv_in_thread();
 
 	g_free(supported_files);
 }
