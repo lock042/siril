@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-03-10 07:00+0000\n"
-"Last-Translator: Kei Mizuta <kmzt1013@gmail.com>\n"
+"PO-Revision-Date: 2026-03-15 08:01+0000\n"
+"Last-Translator: KOIZUMI Satoru <koizumistr@minos.ocn.ne.jp>\n"
 "Language-Team: Japanese <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ja/>\n"
 "Language: ja_JP\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -491,9 +491,8 @@ msgid "Apply requested annotation."
 msgstr "マニュアル整列"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "画像整列"
+msgstr "カタログ: "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -1395,9 +1394,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/background_extraction_dialog.ui:514
-#, fuzzy
 msgid "Interpolation Method"
-msgstr "補間: "
+msgstr "補間方法"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:536
 msgid ""
@@ -2226,27 +2224,23 @@ msgstr ""
 
 #: src/gui/uifiles/color_calibration.ui:195
 #: src/gui/uifiles/s_pcc_dialog.ui:1235
-#, fuzzy
 msgid "x coordinate of the start of the background selection"
-msgstr "極座標の中心の X 座標."
+msgstr "背景選択領域の開始点のx座標"
 
 #: src/gui/uifiles/color_calibration.ui:213
 #: src/gui/uifiles/s_pcc_dialog.ui:1253
-#, fuzzy
 msgid "y coordinate of the start of the background selection"
-msgstr "極座標の中心の X 座標."
+msgstr "背景選択領域の開始点のy座標"
 
 #: src/gui/uifiles/color_calibration.ui:230
 #: src/gui/uifiles/s_pcc_dialog.ui:1271
-#, fuzzy
 msgid "Width of the background selection"
-msgstr "Background Extraction…"
+msgstr "背景選択領域の幅"
 
 #: src/gui/uifiles/color_calibration.ui:247
 #: src/gui/uifiles/s_pcc_dialog.ui:1289
-#, fuzzy
 msgid "Height of the background selection"
-msgstr "Background Extraction…"
+msgstr "背景選択領域の高さ"
 
 #: src/gui/uifiles/color_calibration.ui:264
 #: src/gui/uifiles/color_calibration.ui:653
@@ -2266,11 +2260,12 @@ msgid ""
 "You must specify a selection that represents the true background of the "
 "image, trying to exclude all stars or other stellar objects."
 msgstr ""
+"星やその他の天体をすべて除外して、画像の真の背景を表す領域を指定してください"
+"。"
 
 #: src/gui/uifiles/color_calibration.ui:305
-#, fuzzy
 msgid "Background Neutralization"
-msgstr "Background Extraction…"
+msgstr "背景の均一化"
 
 #: src/gui/uifiles/color_calibration.ui:309
 msgid ""
@@ -2286,7 +2281,7 @@ msgstr "リファレンス背景"
 
 #: src/gui/uifiles/color_calibration.ui:364
 msgid "Manual White Balance"
-msgstr ""
+msgstr "手動ホワイトバランス"
 
 #: src/gui/uifiles/color_calibration.ui:368
 msgid ""
@@ -7955,7 +7950,7 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:688 src/gui/uifiles/siril.ui:7610
 #: src/gui/plot.c:933 src/gui/plot.c:934
 msgid "Registration"
-msgstr "整列"
+msgstr "見当合わせ"
 
 #: src/gui/uifiles/siril.ui:718 src/gui/uifiles/siril.ui:797
 msgid "Selection"
@@ -9293,9 +9288,8 @@ msgid "Calibration"
 msgstr "補正"
 
 #: src/gui/uifiles/siril.ui:5469
-#, fuzzy
 msgid "Registration channel: "
-msgstr "整列 layer: "
+msgstr "見当合わせチャンネル: "
 
 #: src/gui/uifiles/siril.ui:5481
 msgid ""
@@ -9406,9 +9400,8 @@ msgid "Hit this button for star detection settings"
 msgstr "星の検出設定はこのボタンを押す"
 
 #: src/gui/uifiles/siril.ui:5669
-#, fuzzy
 msgid "2pass registration"
-msgstr "マニュアル整列"
+msgstr "2パス見当合わせ"
 
 #: src/gui/uifiles/siril.ui:5673
 msgid ""
@@ -9513,11 +9506,12 @@ msgid "Prefix: "
 msgstr "プレフィックス: "
 
 #: src/gui/uifiles/siril.ui:6004
-#, fuzzy
 msgid ""
 "Prefix of the sequence resulting from the registration. Only the seq file is "
 "created, not new images."
-msgstr "整列の結果得られた画像のファイル名プレフィックス."
+msgstr ""
+"見当合わせの結果得られたシーケンスのプレフィックス。seqファイルのみが作成され"
+"、新しい画像は作られない。"
 
 #: src/gui/uifiles/siril.ui:6060
 #, fuzzy
@@ -9589,15 +9583,15 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6351
 msgid "Registration method:"
-msgstr "整列方法:"
+msgstr "見当合わせの方法:"
 
 #: src/gui/uifiles/siril.ui:6384
 msgid "Register all images from sequence"
-msgstr "シーケンス内のすべての画像を整列"
+msgstr "シーケンスからすべての画像の見当合わせをする"
 
 #: src/gui/uifiles/siril.ui:6385
 msgid "Register selected images only"
-msgstr "選択された画像のみ整列"
+msgstr "選択された画像のみ見当合わせをする"
 
 #: src/gui/uifiles/siril.ui:6406
 #, fuzzy
@@ -18700,10 +18694,12 @@ msgid ""
 "Forbids images to be saved with 32 bits per channel on processing, use 16 "
 "bits instead"
 msgstr ""
+"処理時に画像をチャンネルあたり32ビットで保存することを禁止し、代わりに16"
+"ビットを使用する"
 
 #: src/core/command_def.h:183
 msgid "Allows images to be saved with 32 bits per channel on processing"
-msgstr ""
+msgstr "処理時に、画像をチャンネルあたり32ビットで保存できるようにする"
 
 #: src/core/command_def.h:184
 msgid ""
@@ -18718,6 +18714,15 @@ msgid ""
 "For example, \"setcompress 1 -type=rice 16\" sets the rice compression with "
 "a quantization of 16"
 msgstr ""
+"画像を圧縮するかどうかを指定する。\n"
+"\n"
+"<b>0</b>は圧縮しないことを意味し、<b>1</b>は圧縮を有効にする。\n"
+"圧縮を有効にする場合、オプション <b>-type=</b>に圧縮方式"
+"（\"rice\"、\"gzip1\"、\"gzip2\"）を明示的に指定することが必要。\n"
+"圧縮に関連して、量子化値は [0, 256] の範囲内であることが必要。\n"
+"\n"
+"例えば、\"setcompress 1 -type=rice 16\"と指定すると、量子化値 16 の rice 圧縮"
+"が設定される"
 
 #: src/core/command_def.h:185
 msgid ""
@@ -18729,6 +18734,12 @@ msgid ""
 "available, so this should mostly be used to limit processing power. This is "
 "reset on every Siril run. See also SETMEM"
 msgstr ""
+"計算に使用する処理スレッドの数を指定する。\n"
+"\n"
+"システムに存在する仮想スレッド数（CPUコア数）まで設定可能。"
+"ハイパースレッディング（Intel HT）が有効な場合は、この2倍まで設定できる。"
+"デフォルト値は利用可能なスレッドの最大数であるため、主に処理能力を制限するた"
+"めに使用すべき。この設定はSirilの実行ごとにリセットされる。SETMEMも参照のこと"
 
 #: src/core/command_def.h:186
 msgid ""
@@ -18794,6 +18805,14 @@ msgid ""
 "supported, leading to system crash. A fixed amount of memory can also be set "
 "in the generic settings, with SET, instead of a ratio"
 msgstr ""
+"空きメモリに対する使用メモリの比率を新たに設定する。\n"
+"\n"
+"<b>ratio</b> の値は、マシンの他の動作状況に応じて、0.05 から 2 の間で設定する"
+"。比率を高く設定すると siril の処理速度は向上するが、使用メモリの比率を 1 よ"
+"り高く設定すると、ディスク上のメモリを使用することになる。これは非常に低速で"
+"あり、推奨されない。場合によってはサポートされていないこともあり、"
+"システムクラッシュの原因となる可能性がある。比率の代わりに、汎用設定で SET を"
+"使用して固定量のメモリを設定することも可能。"
 
 #: src/core/command_def.h:190
 msgid ""
@@ -19081,23 +19100,22 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:208
-#, fuzzy
 msgid ""
 "Replaces values below <b>level</b> in the loaded image with <b>level</b>"
-msgstr "« level » 以下の値を « level » に置き換える"
+msgstr "読み込んだ画像の<b>level</b>より小さい値を<b>level</b>に置き換える"
 
 #: src/core/command_def.h:209
-#, fuzzy
 msgid ""
 "Replaces values above <b>level</b> in the loaded image with <b>level</b>"
-msgstr "« level » 以上の値を « level » に置き換える"
+msgstr "読み込んだ画像の<b>level</b>より大きい値を<b>level</b>に置き換える"
 
 #: src/core/command_def.h:210
-#, fuzzy
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b> in the loaded image"
-msgstr "« lo » 以下の値を « lo » に置き換え, « hi » 以上の値を « hi » に置き換える"
+msgstr ""
+"読み込んだ画像の<b>lo</b>より小さい値を<b>lo</b>に置き換え、<b>hi</b>より大き"
+"い以上の値を<b>hi</b>に置き換える"
 
 #: src/core/command_def.h:211
 msgid ""
@@ -19217,9 +19235,8 @@ msgid "current working directory is invalid"
 msgstr "現在の作業ディレクトリは無効です"
 
 #: src/core/command_line_processor.c:58
-#, fuzzy
 msgid "command cannot be used in a script"
-msgstr "このコマンドはスクリプト: %s では使用不可能\n"
+msgstr "コマンドがスクリプト内で使用できない"
 
 #: src/core/command_line_processor.c:60
 #, fuzzy
@@ -19227,9 +19244,8 @@ msgid "invalid number of arguments"
 msgstr "層の数: "
 
 #: src/core/command_line_processor.c:62
-#, fuzzy
 msgid "invalid arguments"
-msgstr "FITS ファイル %s を開けない\n"
+msgstr "無効な引数"
 
 #: src/core/command_line_processor.c:64
 #, fuzzy
@@ -19288,9 +19304,8 @@ msgid "command is only for OSC CFA images"
 msgstr "このコマンドはスクリプト: %s では使用不可能\n"
 
 #: src/core/command_line_processor.c:89
-#, fuzzy
 msgid "file not found"
-msgstr "No rejection"
+msgstr "ファイルが見つからない"
 
 #: src/core/command_line_processor.c:91
 #, fuzzy
@@ -22668,7 +22683,7 @@ msgstr ""
 #: src/gui/colors.c:147
 #, fuzzy
 msgid "Background neutralization"
-msgstr "Background Extraction…"
+msgstr "背景の均一化"
 
 #: src/gui/colors.c:172 src/gui/colors.c:269
 msgid "Make a selection of the white reference area"
