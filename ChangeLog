@@ -10,15 +10,14 @@ siril-1.5.0
 * Added catmag command (!888)
 * Add draggable histogram overlay with cursor tracking (!986)
 
-**Fixes**
-* Fixed Windows pipes naming (!996)
-
 siril-1.4.3
 --/--/--
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
+* Fixed use-after-free error that caused a crash if the python module fails to install
+* Fixed Windows pipes naming (#1921)
 
 siril-1.4.2
 --/--/--
