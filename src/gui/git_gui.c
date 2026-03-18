@@ -1,28 +1,28 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- *
- *
- * FITS sequences are not a sequence of FITS files but a FITS file containing a
- * sequence. It simply has as many elements in the third dimension as the
- * number of images in the sequence multiplied by the number of channels per
- * image. Given its use of the third dimension, it's sometimes called FITS cube.
- */
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*
+*
+* FITS sequences are not a sequence of FITS files but a FITS file containing a
+* sequence. It simply has as many elements in the third dimension as the
+* number of images in the sequence multiplied by the number of channels per
+* image. Given its use of the third dimension, it's sometimes called FITS cube.
+*/
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
@@ -45,7 +45,6 @@ static gboolean filter_enabled = FALSE;
 static GtkTreeModelFilter *filter_model = NULL;
 static GtkTreeModelSort *sort_model = NULL;
 
-
 static const char *bg_color[] = {"WhiteSmoke", "#1B1B1B"};
 
 enum {
@@ -55,8 +54,40 @@ enum {
 	COLUMN_SCRIPTPATH,   // full path to populate into the scripts menu
 	COLUMN_BGCOLOR,      // background color
 	COLUMN_TYPE,         // string, type of script
+	COLUMN_STARTUP,      // gboolean - run this script on application startup
+	COLUMN_IS_PYTHON,    // gboolean - whether this script is Python (for startup toggle sensitivity)
 	N_COLUMNS
 };
+
+static gboolean script_is_startup_capable(const gchar *path) {
+	FILE *f = g_fopen(path, "r");
+	if (!f)
+		return FALSE;
+
+	gchar line[512];
+	gboolean result = FALSE;
+
+	while (fgets(line, sizeof(line), f)) {
+		/* Strip the trailing newline for cleanliness */
+		gsize len = strlen(line);
+		if (len > 0 && line[len - 1] == '\n')
+			line[--len] = '\0';
+
+		if (line[0] != '#') {
+			/* First non-comment line — stop searching */
+			break;
+		}
+
+		/* Comment line: check for STARTUP_CAPABLE anywhere after the # */
+		if (strstr(line, "STARTUP_CAPABLE")) {
+			result = TRUE;
+			break;
+		}
+	}
+
+	fclose(f);
+	return result;
+}
 
 static void get_list_store() {
 	if (list_store == NULL) {
@@ -136,6 +167,7 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 			// here we populate the GtkTreeView from GSList gui.repo_scripts
 			const gchar *category;
 			gboolean included = FALSE;
+			gboolean startup = FALSE;
 			gboolean core = FALSE;
 			if (test_last_subdir((gchar *)iterator->data, "preprocessing")) {
 				category = _("Preprocessing");
@@ -173,11 +205,15 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 			gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 			gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
 			const gchar *scripttype;
+			gboolean startup_capable = FALSE;
 			if (g_str_has_suffix(scriptname, SCRIPT_EXT))
 				scripttype = _("Siril Script File");
-			else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT))
+			else if (g_str_has_suffix(scriptname, PYSCRIPT_EXT) || g_str_has_suffix(scriptname, PYCSCRIPT_EXT)) {
 				scripttype = _("Python script");
-			else scripttype = NULL;
+				/* Only read the file if it's a Python script — SSF scripts
+				* are never startup-capable so there's no point opening them. */
+				startup_capable = script_is_startup_capable(scriptpath);
+			} else scripttype = NULL;
 
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", scriptpath);
@@ -192,6 +228,19 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 					}
 				}
 			}
+
+			// Check whether the script appears in the startup_scripts list
+			if (!startup_capable && !core) {
+				startup = FALSE; // can't be in startup list if not startup-capable
+			} else if (!startup && !core) {
+				for (iterator2 = com.pref.startup_scripts; iterator2;
+					iterator2 = iterator2->next) {
+					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
+						startup = TRUE;
+					}
+				}
+			}
+
 			if (!core) {
 				gtk_list_store_append(list_store, &iter);
 				gtk_list_store_set(list_store, &iter,
@@ -201,13 +250,15 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 					COLUMN_SELECTED, included,
 					COLUMN_SCRIPTPATH, scriptpath,
 					COLUMN_BGCOLOR, bg_color[color],
+					COLUMN_STARTUP, startup,
+					COLUMN_IS_PYTHON, startup_capable,
 					-1);
 				// Free dynamically allocated category if it's not one of the static strings
 				if (category != _("Preprocessing") &&
-				    category != _("Processing") &&
-				    category != _("Utility") &&
-				    category != _("Core") &&
-				    category != _("Other")) {
+					category != _("Processing") &&
+					category != _("Utility") &&
+					category != _("Core") &&
+					category != _("Other")) {
 					g_free((gchar *)category);
 				}
 			}
@@ -232,7 +283,7 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 
 
 /* called on preference window loading.
- * It is executed safely in the GTK thread if as_idle is true. */
+* It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_tree(gboolean as_idle) {
 
 	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
@@ -270,7 +321,7 @@ static void on_script_revision_spin_value_changed(GtkSpinButton *spin, gpointer 
 }
 
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                                       GtkTreeViewColumn *column, gpointer user_data) {
+									GtkTreeViewColumn *column, gpointer user_data) {
 	gchar *scriptname = NULL, *scriptpath = NULL;
 	gchar *contents = NULL;
 	gsize length;
@@ -376,7 +427,7 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 				// Create TextView with ScrolledWindow for commit message
 				GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 				gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
-											  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+											GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 				gtk_widget_set_size_request(scrolled_window, -1, 100); // ~5 lines height
 
 				GtkWidget *message_textview = gtk_text_view_new();
@@ -516,21 +567,97 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	notify_script_update();
 }
 
+/*
+* TODO: when we add script metadata, we should check and only allow scripts to be added at startup if they have
+* correct metadata.
+*/
+void on_script_list_startup_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
+	gboolean val;
+	GtkTreeIter iter, filter_iter, child_iter;
+	GtkTreePath *path;
+	GtkTreeModel *model;
+	gchar *script_path = NULL;
+
+	path = gtk_tree_path_new_from_string(char_path);
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+
+	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE) {
+		gtk_tree_path_free(path);
+		return;
+	}
+
+	gtk_tree_path_free(path);
+
+	/* Ignore non-startup capable scripts — only they support startup execution */
+	gboolean startup_capable = FALSE;
+	gtk_tree_model_get(model, &iter, COLUMN_IS_PYTHON, &startup_capable, -1);
+	if (!startup_capable) {
+		gtk_tree_path_free(path);   /* path was already freed above — remove this line if restructuring */
+		return;
+	}
+
+	/* Read the stored full path and the current toggle state */
+	gtk_tree_model_get(model, &iter, COLUMN_SCRIPTPATH, &script_path, -1);
+	gtk_tree_model_get(model, &iter, COLUMN_STARTUP, &val, -1);
+
+	/* Walk the sort - filter - list_store chain to update the backing store */
+	if (GTK_IS_TREE_MODEL_SORT(model)) {
+		gtk_tree_model_sort_convert_iter_to_child_iter(GTK_TREE_MODEL_SORT(model), &filter_iter, &iter);
+		if (GTK_IS_TREE_MODEL_FILTER(gtk_tree_model_sort_get_model(GTK_TREE_MODEL_SORT(model)))) {
+			GtkTreeModelFilter *filter = GTK_TREE_MODEL_FILTER(
+				gtk_tree_model_sort_get_model(GTK_TREE_MODEL_SORT(model)));
+			gtk_tree_model_filter_convert_iter_to_child_iter(filter, &child_iter, &filter_iter);
+			gtk_list_store_set(list_store, &child_iter, COLUMN_STARTUP, !val, -1);
+		}
+	} else {
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_STARTUP, !val, -1);
+	}
+
+	/* Resolve to a canonical path for storage */
+	gchar *canonical_path = g_canonicalize_filename(script_path, NULL);
+	g_free(script_path);
+
+	if (!val) {
+		/* Toggle is now ON — add canonical path if not already present */
+		if (!g_slist_find_custom(com.pref.startup_scripts, canonical_path,
+								(GCompareFunc)g_strcmp0)) {
+#ifdef DEBUG_GITSCRIPTS
+			printf("Adding startup script: %s\n", canonical_path);
+#endif
+			com.pref.startup_scripts = g_slist_prepend(com.pref.startup_scripts, canonical_path);
+		} else {
+			g_free(canonical_path);
+		}
+	} else {
+		/* Toggle is now OFF — remove from list */
+		GSList *found = g_slist_find_custom(com.pref.startup_scripts, canonical_path,
+											(GCompareFunc)g_strcmp0);
+		if (found) {
+#ifdef DEBUG_GITSCRIPTS
+			printf("Removing startup script: %s\n", canonical_path);
+#endif
+			g_free(found->data);
+			com.pref.startup_scripts = g_slist_delete_link(com.pref.startup_scripts, found);
+		}
+		g_free(canonical_path);
+	}
+}
+
 void on_disable_gitscripts() {
-	// Clear the actual list_store, not the filter
 	com.pref.use_scripts_repository = FALSE;
 	if (list_store) {
 		gtk_list_store_clear(list_store);
 	}
-
 	gui_repo_scripts_mutex_lock();
 	g_slist_free_full(gui.repo_scripts, g_free);
 	gui_repo_scripts_mutex_unlock();
-
 	gui.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
 		g_slist_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
+	if (com.pref.startup_scripts)
+		g_slist_free_full(com.pref.startup_scripts, g_free);
+	com.pref.startup_scripts = NULL;
 	g_thread_unref(g_thread_new("refresh_script_menu", refresh_script_menu_in_thread, GINT_TO_POINTER(1)));
 }
 
@@ -570,7 +697,7 @@ void hide_git_widgets() {
 // warnings, even though the widgets are hidden with libgit2 disabled
 
 void on_pref_use_gitscripts_toggled(GtkToggleButton *button,
-                                    gpointer user_data) {
+									gpointer user_data) {
 	return;
 }
 
@@ -579,12 +706,17 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
-                                GtkTreeViewColumn *column, gpointer user_data) {
+								GtkTreeViewColumn *column, gpointer user_data) {
 	return;
 }
 
 void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
-                                   gchar *char_path, gpointer user_data) {
+								gchar *char_path, gpointer user_data) {
+	return;
+}
+
+void on_script_list_startup_toggled(GtkCellRendererToggle *cell_renderer,
+									gchar *char_path, gpointer user_data) {
 	return;
 }
 

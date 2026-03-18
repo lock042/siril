@@ -197,6 +197,10 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <column type="gchararray"/>
       <!-- column-name type -->
       <column type="gchararray"/>
+      <!-- column-name run_on_startup -->
+      <column type="gboolean"/>
+      <!-- column-name is_python -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkAdjustment" id="xbayeroff_adj">
@@ -5205,7 +5209,8 @@ Activating the repository will take place immediately, so that you can select sc
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">List of available scripts. Selected scripts will be made available via the Scripts menu. Double-click a row to open the script in the Script Editor. (This can be used to make and save local changes to a script.)
-To open an older revision (e.g. to get an older version after a bad script update) right click on a row.</property>
+To open an older revision (e.g. to get an older version after a bad script update) right click on a row.
+Some python scripts can be selected to run at startup. These have toggles in the "At startup" column: scripts that are not designated for running at startup do not show a toggle.</property>
                                                 <property name="hscroll-policy">natural</property>
                                                 <property name="vscroll-policy">natural</property>
                                                 <property name="model">liststore_script_repo</property>
@@ -5278,6 +5283,40 @@ To open an older revision (e.g. to get an older version after a bad script updat
                                                       <attributes>
                                                         <attribute name="cell-background">4</attribute>
                                                         <attribute name="active">2</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkTreeViewColumn" id="script_repo_treeview_startup">
+                                                    <property name="resizable">True</property>
+                                                    <property name="alignment">0.5</property>
+                                                    <property name="expand">True</property>
+                                                    <property name="title" translatable="yes">Startup</property>
+                                                    <property name="clickable">True</property>
+                                                    <property name="sort-column-id">6</property>
+                                                    <child>
+                                                      <object class="GtkCellRendererToggle" id="cellrenderertoggle_startup">
+                                                        <property name="xalign">0.5</property>
+                                                        <signal name="toggled" handler="on_script_list_startup_toggled" swapped="no"/>
+                                                      </object>
+                                                      <cell-packing>
+                                                        <property name="expand">True</property>
+                                                      </cell-packing>
+                                                      <attributes>
+                                                        <attribute name="cell-background">4</attribute>
+                                                        <attribute name="active">6</attribute>
+                                                        <attribute name="activatable">7</attribute>
+                                                        <attribute name="visible">7</attribute>
+                                                      </attributes>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkCellRendererText">
+                                                        <property name="xalign">0.5</property>
+                                                        <property name="text">&#xA0;</property>
+                                                      </object>
+                                                      <attributes>
+                                                        <attribute name="cell-background">4</attribute>
                                                       </attributes>
                                                     </child>
                                                   </object>

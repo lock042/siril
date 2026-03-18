@@ -48,6 +48,7 @@
 #include "io/single_image.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
 #include "image_display.h"
 #include "image_interactions.h"
@@ -1675,6 +1676,23 @@ gpointer initialize_scripts(gpointer user_data) {
 		gui_mutex_unlock();
 	}
 	return GINT_TO_POINTER(0);
+}
+gboolean first_start_cb(gpointer user_data) {
+	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
+		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
+		writeinitfile();
+
+		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
+		int ret = siril_confirm_dialog(ver,
+				_("Hello, this is the first time you use this new version of Siril. Please, have a seat and take the time "
+				  "to watch the short introduction we have prepared for you. "
+				  "Be aware you can replay this introduction at any times in the Miscellaneous tab of the preferences dialog box."),
+				_("See Introduction"));
+		if (ret)
+			start_intro_script();
+		g_free(ver);
+	}
+	return G_SOURCE_REMOVE;
 }
 
 void initialize_all_GUI(gchar *supported_files) {

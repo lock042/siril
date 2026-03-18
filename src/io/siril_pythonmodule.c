@@ -2721,6 +2721,44 @@ cleanup:
 	return success;
 }
 
+static void execute_startup_scripts(void) {
+	if (!com.pref.startup_scripts)
+		return;
+
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	for (GSList *iter = com.pref.startup_scripts; iter; iter = iter->next) {
+		const gchar *script_path = (const gchar *)iter->data;
+		if (!script_path)
+			continue;
+
+		/* Defensive: only execute Python scripts. The preference list should
+		* only ever contain Python scripts (enforced at toggle time), but this
+		* guard makes the function safe if the list is ever populated by other
+		* means, e.g. a future config-file import. */
+		if (!g_str_has_suffix(script_path, PYSCRIPT_EXT) &&
+			!g_str_has_suffix(script_path, PYCSCRIPT_EXT)) {
+			siril_log_color_message(
+				_("Startup script skipped (not a Python script): %s\n"),
+				"salmon", script_path);
+			continue;
+		}
+
+		siril_log_message(_("Running startup script: %s\n"), script_path);
+
+		/* execute_python_script() takes ownership of script_name and may free
+		* it in both success and error paths, so pass a private copy rather
+		* than the GSList's own pointer. */
+		execute_python_script(g_strdup(script_path),
+							TRUE,                    /* from_file    */
+							FALSE,                   /* sync         */
+							NULL,                    /* argv_script  */
+							FALSE,                   /* is_temp_file */
+							FALSE,                   /* from_cli     */
+							FALSE);
+	}
+}
+
 gboolean python_venv_idle(gpointer user_data) {
 //	g_thread_unref(com.python_init_thread);
 	com.python_init_thread = NULL;
@@ -2792,10 +2830,12 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-	if (!com.headless)
+	if (!com.headless) {
 		gdk_threads_add_idle(python_venv_idle, NULL);
-	else
+		execute_startup_scripts(); // execute any scripts marked as execute-at-startup
+	} else {
 		python_venv_idle(NULL);
+	}
 	return GINT_TO_POINTER(0);
 }
 
