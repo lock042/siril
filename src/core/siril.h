@@ -981,6 +981,7 @@ struct cominf {
 };
 
 #ifndef MAIN
+extern GApplication *application;
 extern guiinfo gui;
 extern cominfo com;		// the main data struct
 extern fits *gfit;		// currently loaded image

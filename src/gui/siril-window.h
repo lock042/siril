@@ -43,6 +43,6 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_map_actions(GtkApplicationWindow *window);
-ActionResult queue_activate_action_if_enabled(const char *name);
+ActionResult queue_activate_action_if_enabled(const char *name, const gboolean appmap);
 
 #endif /* SRC_GUI_SIRIL_WINDOW_H_ */
