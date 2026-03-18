@@ -13,54 +13,72 @@ from enum import IntEnum, unique
 @unique
 class DialogID(IntEnum):
     """
-    Represents Siril dialogs.
+    Represents Siril dialogs. The index number is immmutable, it will not necessarily
+    remain in order as the enum is sorted into alphabetical order.
+
+    Fields:
+
+    value (int): the value field should be passed to SirilInterface.open_dialog()
+
+    dialog_type (str): the dialog_type field categorises the dialogs. Possible values
+                       are: "info", "metadata", "processing", "science"
+
+    label (str): the label field provides a user-comprehensible label for the dialog.
+
     """
-    ANNOTATE_DIALOG = 1
-    ASINH_DIALOG = 2
-    ASTROMETRY_DIALOG = 3
-    DENOISE_DIALOG = 4
-    BACKGROUND_EXTRACTION_DIALOG = 5
-    BINXY_DIALOG = 6
-    CANON_FIXBANDING_DIALOG = 7
-    CCM_DIALOG = 8
-    CLAHE_DIALOG = 9
-    COMPOSITION_DIALOG = 10
-    COMPSTARS = 11
-    COLOR_CALIBRATION = 12
-    COSMETIC_DIALOG = 13
-    CROP_DIALOG = 14
-    CURVES_DIALOG = 15
-    CUT_DIALOG = 16
-    BDECONV_DIALOG = 19
-    DIALOG_FFT = 20
-    DIALOG_STAR_REMIX = 21
-    EDGE_DIALOG = 22
-    EPF_DIALOG = 23
-    EXTRACT_CHANNEL_DIALOG = 24
-    EXTRACT_WAVELETS_LAYERS_DIALOG = 25
-    FILE_INFORMATION = 26
-    HISTOGRAM_DIALOG = 27
-    KEYWORDS_DIALOG = 28
-    ICC_DIALOG = 29
-    LINEARMATCH_DIALOG = 30
-    MEDIAN_DIALOG = 31
-    MERGE_CFA_DIALOG = 32
-    NINA_LIGHT_CURVE = 34
-    PIXEL_MATH_DIALOG = 35
-    RESAMPLE_DIALOG = 36
-    RGRADIENT_DIALOG = 37
-    ROTATION_DIALOG = 38
-    S_PCC_DIALOG = 39
-    SATU_DIALOG = 40
-    SCNR_DIALOG = 41
-    SEQLIST_DIALOG = 43
-    SPLIT_CFA_DIALOG = 44
-    STARNET_DIALOG = 45
-    STARS_LIST_WINDOW = 46
-    STAT_WINDOW = 47
-    UNPURPLE_DIALOG = 48
-    WAVELETS_DIALOG = 49
-    PCC_DIALOG = 50
+    def __new__(cls, value, dialog_type, label):
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.dialog_type = dialog_type
+        obj.label = label
+        return obj
+
+    ABERRATION_DIALOG = (22, "info", "Aberration Inspector")
+    ANNOTATE_DIALOG = (1, "info", "Annotate Objects")
+    ASINH_DIALOG = (2, "processing", "Asinh Stretch")
+    ASTROMETRY_DIALOG = (3, "processing", "Plate Solve")
+    DENOISE_DIALOG = (4, "processing", "Siril Denoise")
+    BACKGROUND_EXTRACTION_DIALOG = (5, "processing", "Siril Background Extraction")
+    BINXY_DIALOG = (6, "processing", "Binning")
+    CANON_FIXBANDING_DIALOG = (7, "processing", "Banding Reduction")
+    CCM_DIALOG = (8, "processing", "Color Conversion Matrix")
+    CLAHE_DIALOG = (9, "processing", "CLAHE")
+    COMPOSITION_DIALOG = (10, "processing", "RGB Composition")
+    COMPSTARS_DIALOG = (11, "science", "Companion Stars")
+    COLOR_CALIBRATION = (12, "processing", "Color Calibration")
+    COSMETIC_DIALOG = (13, "processing", "Cosmetic Correction")
+    CURVES_DIALOG = (15, "processing", "Curves Tool")
+    CUT_DIALOG = (16, "info", "Intensity Profiling")
+    DECONV_DIALOG = (19, "processing", "Deconvolution")
+    DIALOG_FFT = (20, "processing", "Fourier Transform")
+    DIALOG_STAR_REMIX = (21, "processing", "Star Recomposition")
+    EPF_DIALOG = (23, "processing", "Edge Preserving Filters")
+    EXTRACT_CHANNEL_DIALOG = (24, "processing", "Extract Channels")
+    EXTRACT_WAVELETS_LAYERS_DIALOG = (25, "processing", "Extract Wavelets")
+    FILE_INFORMATION = (26, "info", "Image Information")
+    GHT_DIALOG = (14, "processing", "Generalized Hyperbolic Transformation")
+    HISTOGRAM_DIALOG = (27, "processing", "Histogram Transformation")
+    KEYWORDS_DIALOG = (28, "metadata", "FITS Header")
+    ICC_DIALOG = (29, "metadata", "Color Management")
+    LINEARMATCH_DIALOG = (30, "processing", "Linear Match")
+    MEDIAN_DIALOG = (31, "processing", "Median Filter")
+    MERGE_CFA_DIALOG = (32, "processing", "Merge CFA Channels")
+    NINA_LIGHT_CURVE = (34, "science", "NINA Light Curve")
+    PCC_DIALOG = (50, "processing", "Photometric Color Calibration")
+    PIXEL_MATH_DIALOG = (35, "processing", "PixelMath")
+    RESAMPLE_DIALOG = (36, "processing", "Resample")
+    RGRADIENT_DIALOG = (37, "processing", "Rotational Gradient")
+    ROTATION_DIALOG = (38, "processing", "Rotation and Cropping")
+    S_PCC_DIALOG = (39, "processing", "Spectrophotometric Color Calibration")
+    SATU_DIALOG = (40, "processing", "Saturation")
+    SCNR_DIALOG = (41, "processing", "Remove Green Noise")
+    SEQLIST_DIALOG = (43, "info", "Sequence Frame List")
+    SPLIT_CFA_DIALOG = (44, "processing", "Split CFA Channels")
+    STARNET_DIALOG = (45, "processing", "Starnet")
+    STARS_LIST_WINDOW = (46, "info", "Dynamic PSF")
+    STAT_WINDOW = (47, "info", "Statistics")
+    UNPURPLE_DIALOG = (48, "processing", "Unpurple Filter")
+    WAVELETS_DIALOG = (49, "processing", "Wavelets")
 
 @unique
 class STFType(IntEnum):
