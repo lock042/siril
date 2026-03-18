@@ -205,9 +205,8 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	initialize_python_venv_in_thread();
-	initialize_profiles_and_transforms(); // color management
-	initialize_spcc_mirrors();
+	log_num_procs();
+	siril_log_message(_("Supported file types: %s\n"), supported_files);
 
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -243,6 +242,10 @@ static void siril_app_activate(GApplication *application) {
 		pipe_start(main_option_rpipe_path, main_option_wpipe_path);
 		read_pipe(main_option_rpipe_path);
 	}
+
+	initialize_python_venv_in_thread();
+	initialize_profiles_and_transforms(); // color management
+	initialize_spcc_mirrors();
 
 	g_free(supported_files);
 }
