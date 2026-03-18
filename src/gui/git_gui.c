@@ -46,7 +46,6 @@ static GtkTreeModelFilter *filter_model = NULL;
 static GtkTreeModelSort *sort_model = NULL;
 
 static const char *bg_color[] = {"WhiteSmoke", "#1B1B1B"};
-static const char *startup_na_bg_color[] = {"#B0B0B0", "#3A3A3A"};
 
 enum {
 	COLUMN_CATEGORY = 0, // string
@@ -57,7 +56,6 @@ enum {
 	COLUMN_TYPE,         // string, type of script
 	COLUMN_STARTUP,      // gboolean - run this script on application startup
 	COLUMN_IS_PYTHON,    // gboolean - whether this script is Python (for startup toggle sensitivity)
-	COLUMN_STARTUP_CELL_BG, // background color for the startup toggle cell only
 	N_COLUMNS
 };
 
@@ -254,7 +252,6 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 					COLUMN_BGCOLOR, bg_color[color],
 					COLUMN_STARTUP, startup,
 					COLUMN_IS_PYTHON, startup_capable,
-					COLUMN_STARTUP_CELL_BG, startup_capable ? bg_color[color] : startup_na_bg_color[color],
 					-1);
 				// Free dynamically allocated category if it's not one of the static strings
 				if (category != _("Preprocessing") &&
