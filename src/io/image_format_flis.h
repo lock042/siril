@@ -217,4 +217,258 @@ void flis_free_layers(single *uniq);
  */
 void uniq_set_active_layer(single *uniq, gint index);
 
+/* -----------------------------------------------------------------------
+ * Layer lookup helpers
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_active_layer:
+ *
+ * Returns the flis_layer_t* for the currently active layer in com.uniq,
+ * or NULL if no layers are loaded.
+ */
+flis_layer_t *flis_active_layer(void);
+
+/**
+ * flis_layer_get_by_id:
+ * @item_id: the stable ITEM_ID to look up.
+ *
+ * Returns the flis_layer_t* with the given item_id, or NULL if not found.
+ */
+flis_layer_t *flis_layer_get_by_id(gint item_id);
+
+/**
+ * flis_layer_get_index:
+ * @layer: layer pointer to locate.
+ *
+ * Returns the 0-based index of @layer in com.uniq->layers, or -1 if not
+ * found.
+ */
+gint flis_layer_get_index(const flis_layer_t *layer);
+
+/**
+ * flis_layer_count:
+ *
+ * Returns the number of layers in com.uniq->layers, or 0 if com.uniq is
+ * NULL.
+ */
+gint flis_layer_count(void);
+
+/* -----------------------------------------------------------------------
+ * Stack management
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_add:
+ * @fit:  Pixel data for the new layer.  Ownership is transferred.
+ * @name: Layer name; copied internally.  May be NULL (defaults to "Layer").
+ *
+ * Creates a new flis_layer_t, assigns the next available item_id, places
+ * it above all existing layers (highest layer_order + FLIS_ORDER_STEP),
+ * appends it to com.uniq->layers (which remains sorted), and sets it as
+ * the active layer.
+ *
+ * Returns: pointer to the newly created layer, or NULL on failure.
+ */
+flis_layer_t *flis_layer_add(fits *fit, const gchar *name);
+
+/**
+ * flis_layer_remove:
+ * @layer: layer to remove and free.
+ *
+ * Removes @layer from com.uniq->layers and frees it.  If the removed layer
+ * was the active layer, the active layer is moved to the layer below it
+ * (or above if it was the base layer).  Fails if only one layer remains or
+ * if @layer is locked.
+ *
+ * Returns: 0 on success, non-zero on error.
+ */
+int flis_layer_remove(flis_layer_t *layer);
+
+/**
+ * flis_layer_duplicate:
+ * @layer: layer to duplicate.
+ *
+ * Creates a deep copy of @layer (pixel data, layer mask, processing mask,
+ * all metadata).  The duplicate receives a new item_id and a layer_order
+ * one step above @layer.  The duplicate is inserted into com.uniq->layers
+ * and set as the active layer.
+ *
+ * Returns: pointer to the duplicate layer, or NULL on failure.
+ */
+flis_layer_t *flis_layer_duplicate(const flis_layer_t *layer);
+
+/**
+ * flis_layer_move_up:
+ * @layer: layer to move.
+ *
+ * Increases this layer's stacking position by one step (swaps layer_order
+ * with the next-higher neighbour).  "Up" means rendered on top of more
+ * layers.  No-op if @layer is already at the top of the stack.  Fails if
+ * @layer is locked.
+ *
+ * Returns: 0 on success, 1 if already at top, negative on error.
+ */
+int flis_layer_move_up(flis_layer_t *layer);
+
+/**
+ * flis_layer_move_down:
+ * @layer: layer to move.
+ *
+ * Decreases this layer's stacking position by one step (swaps layer_order
+ * with the next-lower neighbour).  No-op if @layer is the base layer.
+ * Fails if @layer is locked.
+ *
+ * Returns: 0 on success, 1 if already at bottom, negative on error.
+ */
+int flis_layer_move_down(flis_layer_t *layer);
+
+/* -----------------------------------------------------------------------
+ * Compositing properties
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_set_blend_mode:
+ * @layer: target layer.
+ * @mode:  new blend mode.
+ *
+ * Returns: 0 on success, non-zero if @layer is locked.
+ */
+int flis_layer_set_blend_mode(flis_layer_t *layer, flis_blend_mode_t mode);
+
+/**
+ * flis_layer_set_opacity:
+ * @layer:   target layer.
+ * @opacity: new opacity, clamped to [0.0, 1.0].
+ *
+ * Returns: 0 on success, non-zero if @layer is locked.
+ */
+int flis_layer_set_opacity(flis_layer_t *layer, gfloat opacity);
+
+/**
+ * flis_layer_set_visible:
+ * @layer:   target layer.
+ * @visible: new visibility state.
+ *
+ * Visibility may be toggled even on a locked layer (it is a display
+ * property, not a data property).
+ *
+ * Returns: 0 on success.
+ */
+int flis_layer_set_visible(flis_layer_t *layer, gboolean visible);
+
+/* -----------------------------------------------------------------------
+ * Layer name and lock
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_set_name:
+ * @layer: target layer.
+ * @name:  new name; copied internally.
+ *
+ * Returns: 0 on success, non-zero if @layer is locked.
+ */
+int flis_layer_set_name(flis_layer_t *layer, const gchar *name);
+
+/**
+ * flis_layer_set_locked:
+ * @layer:  target layer.
+ * @locked: TRUE to lock, FALSE to unlock.
+ *
+ * Lock state may always be changed regardless of current lock state.
+ *
+ * Returns: 0 on success.
+ */
+int flis_layer_set_locked(flis_layer_t *layer, gboolean locked);
+
+/* -----------------------------------------------------------------------
+ * Layer mask (LMASK) operations
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_set_lmask:
+ * @layer: target layer.
+ * @lmask: new layer mask.  Ownership is transferred.  Must have the same
+ *         spatial dimensions as @layer->fit.  If NULL, any existing layer
+ *         mask is removed (equivalent to flis_layer_remove_lmask()).
+ *
+ * Any previously attached layer mask is freed before the new one is set.
+ *
+ * Returns: 0 on success, non-zero if @layer is locked or dimensions
+ *          do not match.
+ */
+int flis_layer_set_lmask(flis_layer_t *layer, layermask_t *lmask);
+
+/**
+ * flis_layer_remove_lmask:
+ * @layer: target layer.
+ *
+ * Removes and frees the layer mask attached to @layer, if any.
+ *
+ * Returns: 0 on success, non-zero if @layer is locked.
+ */
+int flis_layer_remove_lmask(flis_layer_t *layer);
+
+/**
+ * flis_layer_move_lmask:
+ * @from: source layer whose lmask will be detached.
+ * @to:   destination layer that will receive the lmask.
+ *
+ * Transfers the layer mask from @from to @to.  The transfer is refused if:
+ *   - @from has no layer mask
+ *   - @from or @to is locked
+ *   - the mask dimensions do not match @to->fit's spatial dimensions
+ * Any existing lmask on @to is freed before the transfer.
+ *
+ * Returns: 0 on success, non-zero on any of the above errors.
+ */
+int flis_layer_move_lmask(flis_layer_t *from, flis_layer_t *to);
+
+/* -----------------------------------------------------------------------
+ * Mono layer tinting
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_set_tint:
+ * @layer: target layer.  Must be a MONO layer (fit->naxes[2] == 1).
+ * @r, @g, @b: tint colour components, normalised to [0.0, 1.0].
+ *
+ * Sets the LAYER_COLOR tint applied to this mono layer when compositing
+ * into an RGB stack (FLIS spec Section 6.5).
+ *
+ * Returns: 0 on success, non-zero if @layer is locked or is not MONO.
+ */
+int flis_layer_set_tint(flis_layer_t *layer, double r, double g, double b);
+
+/**
+ * flis_layer_clear_tint:
+ * @layer: target layer.
+ *
+ * Removes the tint from a mono layer, reverting to neutral broadcast
+ * (all three RGB channels receive equal weight).
+ *
+ * Returns: 0 on success, non-zero if @layer is locked.
+ */
+int flis_layer_clear_tint(flis_layer_t *layer);
+
+/* -----------------------------------------------------------------------
+ * Timestamp utility (also useful for callers updating layer data
+ * programmatically)
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_layer_touch_modified:
+ * @layer: layer to timestamp.
+ *
+ * Sets layer->modified to the current UTC time in ISO 8601 format.
+ * Called internally by all mutating layer functions.
+ */
+void flis_layer_touch_modified(flis_layer_t *layer);
+
+/* -----------------------------------------------------------------------
+ * Convenience: layer_order gap between adjacent layers on creation.
+ * Gaps allow insertion without renumbering existing layers.
+ * ----------------------------------------------------------------------- */
+#define FLIS_ORDER_STEP 10
+
 #endif /* IMAGE_FORMAT_FLIS_H */
