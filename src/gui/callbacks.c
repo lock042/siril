@@ -48,6 +48,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
 #include "image_display.h"
 #include "image_interactions.h"
@@ -1933,7 +1934,6 @@ gboolean first_start_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
-
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
@@ -2076,8 +2076,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 	gui_ready = TRUE;
-
-	printf("RGB vport widget: %p\nRed vport widget: %p\n", lookup_widget("drawingareargb"), lookup_widget("drawingarear"));
 }
 
 /*****************************************************************************
