@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/message_dialog.h"
@@ -109,6 +110,14 @@ static SirilDialogEntry get_entry_by_id(gchar *id) {
 	return empty;
 }
 
+int number_of_dialogs() {
+	return G_N_ELEMENTS(entries);
+}
+
+gchar *get_dialog_identifier_by_id(int index) {
+	return entries[index].identifier;
+}
+
 static GtkWidget *get_widget_by_id(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.get_window)
@@ -176,6 +185,15 @@ void siril_open_dialog(gchar *id) {
 		siril_debug_print("### Opening imgproc dialog: %s\n", entry.identifier);
 		processing_dialog_is_opened = TRUE;
 	}
+}
+
+static gboolean queue_open_dialog_idle(gpointer id) {
+	siril_open_dialog((gchar*) id);
+	return FALSE;
+}
+
+void queue_siril_open_dialog(gchar *id) {
+	siril_add_idle(queue_open_dialog_idle, (void*) id);
 }
 
 void siril_close_dialog(gchar *id) {

@@ -89,7 +89,8 @@ from .enums import (
     SirilVport,
     ImageType,
     STFType,
-    SlidersMode
+    SlidersMode,
+    DialogID
 )
 from .models import (
     ImageStats,
@@ -193,6 +194,7 @@ __all__ = [
     'ImageType',
     'STFType',
     'SlidersMode',
+    'DialogID',
     '_'
 ]
 
