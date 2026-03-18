@@ -5491,14 +5491,18 @@ class SirilInterface:
         Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
 
         Args:
-            dialog (DialogID.value): Specifies the dialog to open.
+            dialog (DialogID): Specifies the dialog to open.
 
         Raises:
+            ValueError: if the parameter is not a DialogID.
             SirilError: if the method is called headless or an error occurs.
         """
 
+        if not isinstance(dialog, DialogID):
+            raise TypeError(f"dialog must be a DialogID, got {type(dialog).__name__}")
+
         # Convert dialog ID to network byte order bytes
-        dialog_payload = struct.pack('!I', dialog)  # '!I' for network byte order uint32_t
+        dialog_payload = struct.pack('!I', dialog.value)  # '!I' for network byte order uint32_t
 
         response = self._request_data(_Command.OPEN_DIALOG, payload=dialog_payload)
 

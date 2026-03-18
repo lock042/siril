@@ -240,6 +240,7 @@ class _Command(IntEnum):
     SET_IMAGE_FILENAME = 84
     GET_SIRIL_LOG = 85
     SAVE_IMAGE_FILE = 86
+    OPEN_DIALOG = 87
     ERROR = 0xFF
 
 @unique
