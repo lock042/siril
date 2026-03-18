@@ -75,6 +75,7 @@
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
+GApplication *application = NULL;	// the GApplication pointer
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -348,7 +349,7 @@ static void siril_macos_setenv(const char *progname) {
 
 
 int main(int argc, char *argv[]) {
-	GApplication *app;
+	GApplication *app = NULL;
 	const gchar *dir;
 	gint status;
 	com.headless = TRUE;
@@ -392,7 +393,7 @@ int main(int argc, char *argv[]) {
 #else
 	app = g_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #endif
-
+	application = G_APPLICATION(app); // This is the pointer accessible from other files
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	//g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
 

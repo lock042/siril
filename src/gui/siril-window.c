@@ -194,6 +194,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 
 typedef struct {
     const char *action_name;   // the action to activate
+    const gboolean appmap;          // whether the action is in the app GActionMap
     int result;                // filled by idle callback
 } ActionIdleData;
 
@@ -204,15 +205,21 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 		data->result = ACTION_NULL_DATA;
 		return FALSE;
 	}
-	GtkWidget *win = lookup_widget("control_window");
 
-	if (!win) {
-		siril_log_color_message(_("activate_action_if_enabled(): control_window not found"), "red");
-		data->result = ACTION_WINDOW_MISSING;
-		return FALSE;
+	GAction *action;
+
+	if (data->appmap) {
+		action = g_action_map_lookup_action(G_ACTION_MAP(application), data->action_name);
+	} else {
+		GtkWidget *win = lookup_widget("control_window");
+		if (!win) {
+			siril_log_color_message(_("activate_action_if_enabled(): control_window not found"), "red");
+			data->result = ACTION_WINDOW_MISSING;
+			return FALSE;
+		}
+		action = g_action_map_lookup_action(G_ACTION_MAP(win), data->action_name);
 	}
 
-	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(win), data->action_name);
 	if (!action) {
 		siril_log_color_message(_("activate_action_if_enabled(): action '%s' not found"), "red", data->action_name);
 		data->result = ACTION_NOT_FOUND;
@@ -230,9 +237,13 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	return FALSE; // idle finished
 }
 
-ActionResult queue_activate_action_if_enabled(const char *name) {
+ActionResult queue_activate_action_if_enabled(const char *name, const gboolean appmap) {
+	if (!name)
+		return ACTION_NOT_FOUND;
+
 	ActionIdleData data = {
 		.action_name = name,
+		.appmap = appmap,
 		.result = ACTION_NOT_FOUND  // default
 	};
 

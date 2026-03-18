@@ -3429,6 +3429,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					break;
 				} else {
 					const gchar *action_name;
+					gboolean appmap = FALSE;
 					switch (index) {
 						case ANNOTATE_DIALOG:
 							action_name = "annotate-dialog";
@@ -3567,11 +3568,29 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							break;
 						case PCC_DIALOG:
 							action_name="pcc_processing";
+							break;
+						case PREFS_DIALOG:
+							action_name="preferences";
+							appmap = TRUE;
+							break;
+						case OPEN_DIALOG:
+							action_name="open";
+							appmap = TRUE;
+							break;
+						case SAVEAS_DIALOG:
+							action_name="save-as";
+							appmap = TRUE;
+							break;
+						case ABOUT_DIALOG:
+							action_name="about";
+							appmap = TRUE;
+							break;
 						default:
+							action_name=NULL;
 							g_warning("Unhandled DialogID: %d", index);
 							break;
 					}
-					ActionResult result = queue_activate_action_if_enabled(action_name);
+					ActionResult result = queue_activate_action_if_enabled(action_name, appmap);
 					const char* error_msg;
 					switch (result) {
 						case ACTION_SUCCESS:
