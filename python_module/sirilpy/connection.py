@@ -31,7 +31,7 @@ from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, Siri
         STFType, SlidersMode, DialogID
 from .utility import truncate_utf8, parse_fits_header
 
-DEFAULT_TIMEOUT = 10.
+DEFAULT_TIMEOUT = 60.
 
 if os.name == 'nt':
     import win32file
