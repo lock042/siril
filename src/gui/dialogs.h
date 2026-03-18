@@ -20,7 +20,10 @@ struct _SirilDialogEntry {
 	void (*apply_function)(void);	// if has_preview
 };
 
+int number_of_dialogs();
+gchar *get_dialog_identifier_by_id(int index);
 void siril_open_dialog(gchar *id);
+void queue_siril_open_dialog(gchar *id);
 void siril_close_dialog(gchar *id);
 void siril_close_preview_dialogs();
 gboolean siril_widget_hide_on_delete(GtkWidget *widget);

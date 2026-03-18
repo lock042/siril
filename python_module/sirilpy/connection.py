@@ -28,7 +28,7 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport, \
-        STFType, SlidersMode
+        STFType, SlidersMode, DialogID
 from .utility import truncate_utf8, parse_fits_header
 
 DEFAULT_TIMEOUT = 10.
@@ -5485,3 +5485,29 @@ class SirilInterface:
                     self._execute_command(_Command.RELEASE_SHM, shm_header_info)
                 except Exception:
                     pass
+
+    def open_dialog(self, dialog: DialogID):
+        """
+        Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
+
+        Args:
+            dialog (DialogID): Specifies the dialog to open.
+
+        Raises:
+            SirilError: if the method is called headless or an error occurs.
+        """
+
+        # Convert dialog ID to network byte order bytes
+        dialog_payload = struct.pack('!I', dialog)  # '!I' for network byte order uint32_t
+
+        response = self._request_data(_Command.OPEN_DIALOG, payload=dialog_payload)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            filename = response.decode('utf-8').rstrip('\x00')
+            return filename
+        except Exception as e:
+            raise SirilError(f"Error in open_dialog(): {e}") from e
