@@ -3430,9 +3430,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				} else {
 					const gchar *action_name;
 					switch (index) {
-//						case AAVSO_DIALOG:
-//							action_name = "aavso_dialog";
-//							break;
 						case ANNOTATE_DIALOG:
 							action_name = "annotate-dialog";
 							break;
@@ -3472,20 +3469,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case COSMETIC_DIALOG:
 							action_name = "cosmetic-processing";
 							break;
-						case CROP_DIALOG:
-							// Weird name but this is rotate and crop
-							action_name = "rotation-processing";
-							break;
 						case CURVES_DIALOG:
 							action_name = "curves-processing";
 							break;
 						case CUT_DIALOG:
 							action_name = "cut";
 							break;
-//						case CUT_COORDS_DIALOG:
-//							break;
-//						case CUT_SPECTROSCOPY_DIALOG:
-//							break;
 						case BDECONV_DIALOG:
 							action_name="deconvolution-processing";
 							break;
@@ -3510,6 +3499,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case FILE_INFORMATION:
 							action_name="image-information";
 							break;
+						case GHT_DIALOG:
+							action_name = "payne-processing";
+							break;
 						case HISTOGRAM_DIALOG:
 							action_name="histo-processing";
 							break;
@@ -3528,9 +3520,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case MERGE_CFA_DIALOG:
 							action_name="merge-cfa-processing";
 							break;
-//						case MOUSE_ACTIONS_DIALOG:
-//							action_name="";
-//							break;
 						case NINA_LIGHT_CURVE:
 							action_name="nina_light_curve";
 							break;
@@ -3547,7 +3536,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							action_name="rotation-processing";
 							break;
 						case S_PCC_DIALOG:
-							action_name="spcc-processing"; // TODO: add pcc-processing
+							action_name="spcc-processing";
 							break;
 						case SATU_DIALOG:
 							action_name="saturation-processing";
@@ -3555,9 +3544,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case SCNR_DIALOG:
 							action_name="remove-green-processing";
 							break;
-//						case SETTINGS_WINDOW:
-//							action_name="";
-//							break;
 						case SEQLIST_DIALOG:
 							action_name="seq-list";
 							break;

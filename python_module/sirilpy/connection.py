@@ -5491,7 +5491,7 @@ class SirilInterface:
         Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
 
         Args:
-            dialog (DialogID): Specifies the dialog to open.
+            dialog (DialogID.value): Specifies the dialog to open.
 
         Raises:
             SirilError: if the method is called headless or an error occurs.

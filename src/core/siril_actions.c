@@ -775,14 +775,6 @@ void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("pixel_math_dialog");
-}static void
-activate_if_enabled(GActionMap *map, const char *name)
-{
-    GAction *action = g_action_map_lookup_action(map, name);
-
-    if (action && g_action_get_enabled(action)) {
-        g_action_activate(action, NULL);
-    }
 }
 
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
