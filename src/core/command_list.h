@@ -150,6 +150,7 @@ static command commands[] = {
 						"platesolve ... [-limitmag=[+-]] [-catalog=] [-nocrop]\n"
 						"platesolve ... [-localasnet [-blindpos] [-blindres]]", process_platesolve, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]] [-nosum]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
+	{"point", 0, "point [{ -middle | -end }]", process_pointing, STR_POINTING, FALSE, REQ_CMD_SEQUENCE | REQ_CMD_SINGLE_IMAGE},
 //	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y [-bgremove [-bgpoly=] ] ] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -280,6 +281,7 @@ static command commands[] = {
 	{"trixel", 0, "trixel [-p]", process_trixel, STR_TRIXEL, TRUE, REQ_CMD_NONE | REQ_CMD_NO_THREAD},
 
 	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"unpoint", 0, "unpoint", process_pointing, STR_UNPOINT, FALSE, REQ_CMD_SEQUENCE | REQ_CMD_SINGLE_IMAGE},
 	{"unpurple", 0, "unpurple [-starmask] [-blue=value] [-thresh=value] [-mask]", process_unpurple, STR_UNPURPLE, TRUE, REQ_CMD_SINGLE_IMAGE|REQ_CMD_FOR_RGB},
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},

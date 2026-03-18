@@ -155,6 +155,7 @@ int	process_parse(int nb);
 int	process_pcc(int nb);
 int	process_platesolve(int nb);
 int	process_pm(int nb);
+int	process_pointing(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
 int	process_pwd(int nb);

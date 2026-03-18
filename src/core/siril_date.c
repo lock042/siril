@@ -142,6 +142,10 @@ GDateTime* Julian_to_date_time(gdouble jd) {
 	return date_with_seconds;
 }
 
+double julian_date_difference_sec(double end, double start) {
+	return (end - start) * 86400.0;
+}
+
 /**
  * Build filename in the iso8601 format
  * @return a newly allocated string formatted in ISO 8601 format

@@ -54,6 +54,7 @@
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h"
+#include "core/siril_date.h"
 #include "core/undo.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
@@ -15193,3 +15194,90 @@ int process_mask_from_color(int nb) {
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
 }
+
+static enum { TIME_START, TIME_MIDDLE, TIME_END } log_time = TIME_START;
+
+static void pointing_selection_cb() {
+	static gboolean had_selection = FALSE;
+	siril_debug_print("selection: %d, %d, had: %d\n", com.selection.x, com.selection.y, had_selection);
+	if (com.selection.x == 0 && com.selection.y == 0)
+		return;
+	if (!has_wcs(gfit)) {
+		siril_log_color_message(_("Image is not plate solved!\n"), "red");
+		return;
+	}
+	if (com.selection.w == 0 || com.selection.h == 0) {
+		if (!had_selection) {
+			double world_x, world_y;
+			pix2wcs(gfit, com.selection.x, gfit->ry - com.selection.y - 1, &world_x, &world_y);
+			/* the big problem is to choose the date source: DATE-OBS? Julian? GPS?
+			 * for stacks, only the julian dates would work, so if they're there, it's
+			 * probably a stack and we use them. Otherwise if GPS is there, use it, then use
+			 * DATE-OBS + exposure */
+			// TODO: update after GPS timing merge
+			gboolean has_julian = gfit->keywords.expstart > 0.0 && gfit->keywords.expend > 0.0;
+			// avoid log messages in the middle of command outputs
+			if (has_julian)
+				siril_debug_print("assuming this is a stacked image, using Julian start and end dates to infer exposure length\n");
+			GDateTime *date;
+			double exposure = has_julian ? julian_date_difference_sec(gfit->keywords.expend, gfit->keywords.expstart) : gfit->keywords.exposure;
+			switch (log_time) {
+				default:
+				case TIME_START:
+					date = g_date_time_ref(gfit->keywords.date_obs);
+					break;
+				case TIME_MIDDLE:
+					date = g_date_time_add_seconds(gfit->keywords.date_obs, exposure / 2);
+					break;
+				case TIME_END:
+					date = g_date_time_add_seconds(gfit->keywords.date_obs, exposure);
+					break;
+			}
+			gchar *date_str = date_time_to_FITS_date(date);
+			// # P,image,date,ra,dec,pixel_x,pixel_y
+			siril_log_message("P,%d,%s,%f,%f,%d,%d\n",
+					single_image_is_loaded() ? -1 : com.seq.imgparam[com.seq.current].filenum,
+					date_str, world_x, world_y, com.selection.x, com.selection.y);
+			g_free(date_str);
+			g_date_time_unref(date);
+		}
+		else had_selection = FALSE;
+	}
+	else had_selection = TRUE;
+}
+
+int process_pointing(int nb) {
+	static gboolean registered = FALSE;
+	gboolean start = (word[0][0] == 'p');
+	if (start) {
+		if (!has_wcs(gfit)) {
+			siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+			return CMD_FOR_PLATE_SOLVED;
+		}
+		if (nb > 1 && !g_strcmp0(word[1], "-end")) {
+			log_time = TIME_END;
+		}
+		else if (nb > 1 && !g_strcmp0(word[1], "-middle")) {
+			log_time = TIME_MIDDLE;
+		}
+		else {
+			log_time = TIME_START;
+		}
+		if (!registered) {
+			register_selection_update_callback(pointing_selection_cb);
+			registered = TRUE;
+		}
+		const char *str_log_time = log_time == TIME_START ? _("start") : (log_time == TIME_MIDDLE ? _("middle") : _("end"));
+		siril_log_message(_("Starting pointing logging with %s of exposure dates\n"), str_log_time);
+		siril_log_message("# P,image,date,ra,dec,pixel_x,pixel_y\n");
+	} else {
+		if (!registered) {
+			siril_log_message("pointing mode was not active\n");
+			return CMD_OK;
+		}
+		unregister_selection_update_callback(pointing_selection_cb);
+		registered = FALSE;
+	}
+	return CMD_OK;
+}
+
