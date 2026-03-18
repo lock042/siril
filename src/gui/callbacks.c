@@ -48,6 +48,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
 #include "image_display.h"
 #include "image_interactions.h"
