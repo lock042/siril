@@ -664,6 +664,7 @@ static void siril_macos_setenv(const char *progname) {
 int main(int argc, char *argv[]) {
 	const gchar *dir;
 	gint status;
+	GtkApplication *app;
 	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)

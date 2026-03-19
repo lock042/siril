@@ -71,12 +71,8 @@
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
-<<<<<<< HEAD
 fits *gfit = NULL;	// currently loaded image
-=======
-fits gfit;	// currently loaded image
 GApplication *application = NULL;	// the GApplication pointer
->>>>>>> 5b6ccdbe9 (Update SirilInterface.open_dialog to add app.actions)
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
