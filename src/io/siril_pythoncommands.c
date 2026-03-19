@@ -3566,9 +3566,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						case CURVES_DIALOG:
 							action_name = "curves-processing";
 							break;
-						case CUT_DIALOG:
-							action_name = "cut";
-							break;
 						case BDECONV_DIALOG:
 							action_name="deconvolution-processing";
 							break;
@@ -3661,6 +3658,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							break;
 						case PCC_DIALOG:
 							action_name="pcc_processing";
+							break;
+						case CWD_DIALOG:
+							action_name="cwd";
 							break;
 						case PREFS_DIALOG:
 							action_name="preferences";
