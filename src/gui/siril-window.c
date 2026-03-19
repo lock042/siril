@@ -206,7 +206,7 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 		return FALSE;
 	}
 
-	GAction *action;
+	GAction *action = NULL;
 
 	if (data->appmap) {
 		action = g_action_map_lookup_action(G_ACTION_MAP(application), data->action_name);
