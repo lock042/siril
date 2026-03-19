@@ -108,7 +108,6 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
 fits *gfit = NULL;	// currently loaded image
-GApplication *application = NULL;	// the GtkApplication pointer
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -662,9 +661,9 @@ static void siril_macos_setenv(const char *progname) {
 
 
 int main(int argc, char *argv[]) {
+	GtkApplication *app;
 	const gchar *dir;
 	gint status;
-	GtkApplication *app;
 	gfit = calloc(1, sizeof(fits));
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
@@ -712,7 +711,7 @@ int main(int argc, char *argv[]) {
 #else
 	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 #endif
-	application = G_APPLICATION(app); // This is the pointer accessible from other files
+
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
