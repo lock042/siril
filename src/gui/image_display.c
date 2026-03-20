@@ -2989,7 +2989,8 @@ void redraw(remap_type doremap) {
 	 * redraw_idle(), and no other GTK callback can interleave with it. */
 	fits *saved_gfit = NULL;
 	if (doremap == REMAP_ALL && is_current_image_flis()) {
-		if (flis_composite_dirty) {
+		//if (flis_composite_dirty) {
+		if (TRUE) {
 			if (flis_composite_build()) {
 				siril_log_color_message(
 				    _("FLIS: composite build failed, displaying active layer\n"),
