@@ -41,6 +41,7 @@
 #include "core/siril_app_dirs.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
+#include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
@@ -238,29 +239,22 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
                        has_mask ? _("Present") : _("None"));
     gtk_widget_set_sensitive(fw("flis_mask_move_btn"), has_mask);
 
-    /* Tint section — only meaningful for mono layers */
+    /* Tint section — always visible, but insensitive for RGB layers */
     gboolean mono = (layer->fit && layer->fit->naxes[2] == 1);
-    GtkWidget *tint_frame = fw("flis_tint_frame");
-    if (mono) {
-        gtk_widget_show(tint_frame);
-
-        gboolean has_tint = layer->has_tint;
-        gtk_toggle_button_set_active(
-            GTK_TOGGLE_BUTTON(fw("flis_tint_check")), has_tint);
-        gtk_widget_set_sensitive(fw("flis_tint_color_btn"), has_tint);
-
-        if (has_tint) {
-            GdkRGBA colour = {
-                layer->layer_tint.r,
-                layer->layer_tint.g,
-                layer->layer_tint.b,
-                1.0
-            };
-            gtk_color_chooser_set_rgba(
-                GTK_COLOR_CHOOSER(fw("flis_tint_color_btn")), &colour);
-        }
-    } else {
-        gtk_widget_hide(tint_frame);
+    gboolean has_tint = mono && layer->has_tint;
+    gtk_widget_set_sensitive(fw("flis_tint_frame"), mono);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(fw("flis_tint_check")), has_tint);
+    gtk_widget_set_sensitive(fw("flis_tint_color_btn"), mono && has_tint);
+    if (has_tint) {
+        GdkRGBA colour = {
+            layer->layer_tint.r,
+            layer->layer_tint.g,
+            layer->layer_tint.b,
+            1.0
+        };
+        gtk_color_chooser_set_rgba(
+            GTK_COLOR_CHOOSER(fw("flis_tint_color_btn")), &colour);
     }
 
     flis_updating = FALSE;
@@ -285,8 +279,10 @@ static void flis_toolbar_sensitivity_update(void) {
     /* Operations on a selected layer */
     gtk_widget_set_sensitive(fw("flis_remove_btn"),
                              is_flis && have_sel && n > 1);
+    /* Duplicate is available whenever an image is loaded: for a plain FITS
+     * it promotes to FLIS first, then duplicates the base layer. */
     gtk_widget_set_sensitive(fw("flis_duplicate_btn"),
-                             is_flis && have_sel);
+                             have_image && (have_sel || !is_flis));
 
     /* Move buttons: only active if there is a layer above/below */
     gboolean can_up = FALSE, can_down = FALSE;
@@ -615,6 +611,22 @@ G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
 G_MODULE_EXPORT void on_flis_duplicate_layer_clicked(GtkButton *btn,
                                                      gpointer   data) {
     (void)btn; (void)data;
+
+    /* If a plain FITS is loaded, promote it to a single-layer FLIS first
+     * so that flis_layer_duplicate() has a valid layer stack to work with.
+     * This mirrors the behaviour of the Add button. */
+    if (!is_current_image_flis()) {
+        if (!com.uniq || !com.uniq->fit) return;
+        if (flis_promote_from_gfit(_("Background"))) {
+            siril_log_color_message(
+                _("FLIS: failed to convert image to FLIS\n"), "red");
+            return;
+        }
+        /* After promotion there is exactly one layer; select it so that
+         * flis_layer_duplicate() below has a valid flis_selected. */
+        flis_selected = flis_active_layer();
+    }
+
     if (!flis_selected) return;
 
     flis_layer_t *dup = flis_layer_duplicate(flis_selected);
@@ -864,10 +876,34 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
  * Tint signal handlers
  * ========================================================================= */
 
+/*
+ * Returns TRUE if the FLIS composite will produce RGB output — i.e. if any
+ * visible layer is either an RGB layer or a mono layer with a tint set.
+ * A pure mono stack with no tints composites to mono; the moment any tint
+ * is enabled the composite becomes RGB and the channel tabs must be updated.
+ *
+ * Called before and after a tint change to detect a colour-model transition
+ * so that close_tab() / init_right_tab() are only triggered when necessary,
+ * avoiding redundant GUI redraws.
+ */
+static gboolean flis_composite_will_be_rgb(void) {
+    if (!com.uniq || !com.uniq->layers) return FALSE;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit || !lay->visible) continue;
+        if (lay->fit->naxes[2] >= 3) return TRUE;   /* RGB layer */
+        if (lay->has_tint)           return TRUE;   /* tinted mono */
+    }
+    return FALSE;
+}
+
 G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
                                           gpointer         data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
+
+    /* Snapshot the composite colour model before the change */
+    gboolean was_rgb = flis_composite_will_be_rgb();
 
     gboolean enable = gtk_toggle_button_get_active(btn);
     gtk_widget_set_sensitive(fw("flis_tint_color_btn"), enable);
@@ -882,6 +918,24 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
         flis_layer_set_tint(flis_selected,
                             colour.red, colour.green, colour.blue);
     }
+
+    /* Update the channel tab strip only when the composite colour model
+     * has actually changed (mono→RGB or RGB→mono).  Calling close_tab()
+     * unconditionally would cause unnecessary redraws on every tint toggle
+     * in an already-RGB stack. */
+    gboolean now_rgb = flis_composite_will_be_rgb();
+    if (now_rgb != was_rgb) {
+        /* com.uniq->chans is set from the active layer's naxes[2] by
+         * uniq_set_active_layer(), which is always 1 for a mono layer.
+         * close_tab() reads this value to decide whether to show colour
+         * tabs, so we must update it to reflect the composite output before
+         * calling it — otherwise it will always see 1 and hide the tabs. */
+        if (com.uniq)
+            com.uniq->chans = now_rgb ? 3 : 1;
+        close_tab(NULL);
+        init_right_tab(NULL);
+    }
+
     flis_invalidate_composite();
     queue_redraw(REMAP_ALL);
 }

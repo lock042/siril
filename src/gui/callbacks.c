@@ -1549,7 +1549,7 @@ gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
-	if (com.seq.nb_layers == 1 || gfit->naxes[2] == 1) {
+	if (com.seq.nb_layers == 1 || (!com.uniq && gfit->naxes[2] == 1) || (com.uniq && com.uniq->chans == 1)) {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_hide(page);
 		page = gtk_notebook_get_nth_page(Color_Layers, GREEN_VPORT);

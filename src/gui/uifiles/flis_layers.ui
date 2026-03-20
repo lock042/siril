@@ -248,6 +248,7 @@
                 <child>
                   <object class="GtkComboBoxText" id="flis_blend_combo">
                     <property name="hexpand">True</property>
+                    <property name="tooltip-text" translatable="yes">Blending mode. For tinted mono narrowband layers over a broadband base, Screen is recommended (adds emission without clipping). Normal with reduced opacity also works well for controlled mixing.</property>
                     <items>
                       <item translatable="yes">Normal</item>
                       <item translatable="yes">Multiply</item>
@@ -352,12 +353,11 @@
               <packing><property name="expand">False</property></packing>
             </child>
 
-            <!-- Tint section — shown only for mono layers -->
+            <!-- Tint section — always visible; insensitive for RGB layers -->
             <child>
               <object class="GtkFrame" id="flis_tint_frame">
                 <property name="label" translatable="yes">Tint (mono layer)</property>
                 <property name="shadow-type">etched-in</property>
-                <property name="no-show-all">True</property>
                 <child>
                   <object class="GtkBox">
                     <property name="orientation">horizontal</property>
