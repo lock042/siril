@@ -9,6 +9,13 @@ typedef enum {
 	REMAP_ALL       // the image data changed, remap and render all
 } remap_type;
 
+/* FLIS composite cache control — defined in image_display.c.
+ * flis_invalidate_composite() must be called whenever any layer property
+ * changes.  flis_composite_free() must be called when a FLIS file is
+ * closed (done automatically by free_image_data() in single_image.c). */
+void flis_invalidate_composite(void);
+void flis_composite_free(void);
+
 void check_gfit_profile_identical_to_monitor();
 
 void allocate_hd_remap_indices();

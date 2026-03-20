@@ -1,22 +1,22 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <math.h>
 #include <ctype.h>
@@ -38,6 +38,7 @@
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "gui/image_interactions.h"
 #include "gui/registration_preview.h"
@@ -57,7 +58,7 @@
 #include "image_display.h"
 
 /* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
- * transform */
+* transform */
 static cmsBool identical = FALSE;
 
 #define ANGLE_TOP 315. * DEGTORAD
@@ -82,6 +83,393 @@ static GtkToggleButton *tri_cut_toggle = NULL;
 static GtkSpinButton *tri_cut_spin_step = NULL;
 
 static void invalidate_image_render_cache(int vport);
+
+/*****************************************************************************
+* FLIS composite cache                                                      *
+*                                                                           *
+* The display pipeline works entirely in terms of a single fits* (gfit).   *
+* For FLIS files the pipeline is unchanged: before REMAP_ALL we build a    *
+* composited float RGB fits* from all visible layers and temporarily swap   *
+* gfit to point at it for the duration of the remap.  The composite is     *
+* cached and rebuilt only when flis_composite_dirty is set.                *
+*                                                                           *
+* Call flis_invalidate_composite() whenever any property of any layer      *
+* changes (pixel data, blend mode, opacity, visibility, lmask, ordering).  *
+*****************************************************************************/
+
+/* Composite cache --------------------------------------------------------- */
+
+static fits    *flis_display_composite = NULL;
+static gboolean flis_composite_dirty   = TRUE;
+
+void flis_invalidate_composite(void) {
+	flis_composite_dirty = TRUE;
+}
+
+void flis_composite_free(void) {
+	if (flis_display_composite) {
+		clearfits(flis_display_composite);
+		free(flis_display_composite);
+		flis_display_composite = NULL;
+	}
+	flis_composite_dirty = TRUE;
+}
+
+/* Blend mode helpers (per-channel, linear [0,1] float) ------------------- */
+
+static inline float flis_clamp01(float v) {
+	return v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+}
+
+/* Per-channel blend operations: return the blended value before alpha
+* compositing.  Caller applies:  out = blend(s,d)*a + d*(1-a)             */
+static inline float flis_blend_ch(flis_blend_mode_t mode, float s, float d) {
+	switch (mode) {
+		case FLIS_BLEND_NORMAL:
+			return s;
+		case FLIS_BLEND_MULTIPLY:
+			return s * d;
+		case FLIS_BLEND_SCREEN:
+			return 1.f - (1.f - s) * (1.f - d);
+		case FLIS_BLEND_OVERLAY:
+			return d < 0.5f ? 2.f * s * d
+							: 1.f - 2.f * (1.f - s) * (1.f - d);
+		case FLIS_BLEND_SOFT_LIGHT: {
+			/* W3C formula */
+			float b;
+			if (s <= 0.5f)
+				b = d - (1.f - 2.f * s) * d * (1.f - d);
+			else if (d <= 0.25f)
+				b = d + (2.f * s - 1.f) *
+						(((16.f * d - 12.f) * d + 4.f) * d - d);
+			else
+				b = d + (2.f * s - 1.f) * (sqrtf(d) - d);
+			return b;
+		}
+		case FLIS_BLEND_HARD_LIGHT:
+			return s < 0.5f ? 2.f * s * d
+							: 1.f - 2.f * (1.f - s) * (1.f - d);
+		case FLIS_BLEND_COLOR_DODGE:
+			return s >= 1.f ? 1.f : fminf(d / (1.f - s), 1.f);
+		case FLIS_BLEND_COLOR_BURN:
+			return s <= 0.f ? 0.f : 1.f - fminf((1.f - d) / s, 1.f);
+		case FLIS_BLEND_DARKEN:
+			return fminf(s, d);
+		case FLIS_BLEND_LIGHTEN:
+			return fmaxf(s, d);
+		case FLIS_BLEND_DIFFERENCE:
+			return fabsf(s - d);
+		case FLIS_BLEND_EXCLUSION:
+			return s + d - 2.f * s * d;
+		/* HSL modes handled at the pixel level in the row loop below */
+		default:
+			return s;
+	}
+}
+
+/* RGB ↔ HSL (all in [0,1]) for HSL-family blend modes ------------------- */
+
+static void flis_rgb_to_hsl(float r, float g, float b,
+							float *h, float *s, float *l) {
+	float maxc = fmaxf(r, fmaxf(g, b));
+	float minc = fminf(r, fminf(g, b));
+	float delta = maxc - minc;
+	*l = (maxc + minc) * 0.5f;
+	if (delta < 1e-6f) { *h = *s = 0.f; return; }
+	*s = delta / (1.f - fabsf(2.f * *l - 1.f));
+	if      (maxc == r) *h = fmodf((g - b) / delta, 6.f) / 6.f;
+	else if (maxc == g) *h = ((b - r) / delta + 2.f)     / 6.f;
+	else                *h = ((r - g) / delta + 4.f)     / 6.f;
+	if (*h < 0.f) *h += 1.f;
+}
+
+static void flis_hsl_to_rgb(float h, float s, float l,
+							float *r, float *g, float *b) {
+	float c = (1.f - fabsf(2.f * l - 1.f)) * s;
+	float x = c * (1.f - fabsf(fmodf(h * 6.f, 2.f) - 1.f));
+	float m = l - c * 0.5f;
+	int   seg = (int)(h * 6.f) % 6;
+	float r1, g1, b1;
+	switch (seg) {
+		case 0: r1=c; g1=x; b1=0; break;
+		case 1: r1=x; g1=c; b1=0; break;
+		case 2: r1=0; g1=c; b1=x; break;
+		case 3: r1=0; g1=x; b1=c; break;
+		case 4: r1=x; g1=0; b1=c; break;
+		default:r1=c; g1=0; b1=x; break;
+	}
+	*r = r1 + m; *g = g1 + m; *b = b1 + m;
+}
+
+/* Luminosity of an RGB triple (perceptual weights) */
+static inline float flis_lum(float r, float g, float b) {
+	return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+}
+
+/* Clip-and-scale to keep in gamut after HSL composition */
+static void flis_clip_color(float *r, float *g, float *b) {
+	float l = flis_lum(*r, *g, *b);
+	float n = fminf(*r, fminf(*g, *b));
+	float x = fmaxf(*r, fmaxf(*g, *b));
+	if (n < 0.f) {
+		*r = l + (*r - l) * l / (l - n);
+		*g = l + (*g - l) * l / (l - n);
+		*b = l + (*b - l) * l / (l - n);
+	}
+	if (x > 1.f) {
+		*r = l + (*r - l) * (1.f - l) / (x - l);
+		*g = l + (*g - l) * (1.f - l) / (x - l);
+		*b = l + (*b - l) * (1.f - l) / (x - l);
+	}
+}
+
+/* Apply an HSL-family blend mode to a whole pixel (src and dst are RGB).
+* Result is written back into *dr, *dg, *db.  Alpha compositing is done
+* by the caller.                                                           */
+static void flis_blend_hsl_pixel(flis_blend_mode_t mode,
+								float sr, float sg, float sb,
+								float dr, float dg, float db,
+								float *or, float *og, float *ob) {
+	float sh, ss, sl, dh, ds, dl;
+	flis_rgb_to_hsl(sr, sg, sb, &sh, &ss, &sl);
+	flis_rgb_to_hsl(dr, dg, db, &dh, &ds, &dl);
+
+	float rh, rs, rl;
+	switch (mode) {
+		case FLIS_BLEND_HUE:
+			rh = sh; rs = ds; rl = dl; break;
+		case FLIS_BLEND_SATURATION:
+			rh = dh; rs = ss; rl = dl; break;
+		case FLIS_BLEND_COLOR:
+			rh = sh; rs = ss; rl = dl; break;
+		case FLIS_BLEND_LUMINOSITY:
+			rh = dh; rs = ds; rl = sl; break;
+		default:
+			*or = dr; *og = dg; *ob = db; return;
+	}
+	flis_hsl_to_rgb(rh, rs, rl, or, og, ob);
+	flis_clip_color(or, og, ob);
+}
+
+/* Determine whether a blend mode requires whole-pixel (HSL) treatment */
+static inline gboolean flis_is_hsl_mode(flis_blend_mode_t mode) {
+	return mode == FLIS_BLEND_HUE        ||
+		mode == FLIS_BLEND_SATURATION ||
+		mode == FLIS_BLEND_COLOR      ||
+		mode == FLIS_BLEND_LUMINOSITY;
+}
+
+/* -------------------------------------------------------------------------
+* flis_composite_build
+*
+* Composites all visible FLIS layers into flis_display_composite.
+*
+* Output: float RGB [0,1], same dimensions as canvas (base layer).
+* Layer data may be float or USHORT, mono or RGB.
+* Layer masks are 8-bit greyscale.
+* All blending is performed in linear [0,1] float.
+* ------------------------------------------------------------------------- */
+static int flis_composite_build(void) {
+	if (!com.uniq || !com.uniq->layers) return 1;
+	siril_debug_print("Compositing FLIS\n");
+
+	/* The list is sorted ascending by layer_order; index 0 is the base */
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	if (!base || !base->fit) return 1;
+
+	const guint W  = base->fit->rx;
+	const guint H  = base->fit->ry;
+	const size_t N = (size_t)W * H;
+
+	/* (Re)allocate the composite buffer when needed.
+	*
+	* We need a fresh buffer whenever:
+	*   (a) no composite exists yet, or
+	*   (b) the canvas dimensions have changed (crop, upscale, etc.)
+	*
+	* In both cases we free the old buffer and allocate a correctly-sized
+	* one.  When the dimensions are unchanged we reuse the existing buffer
+	* to avoid an unnecessary malloc/free cycle, but we still zero it and
+	* update all metadata and fpdata pointers so the function is safe to
+	* call after any kind of change.
+	*/
+	const gboolean need_realloc = (!flis_display_composite         ||
+								!flis_display_composite->fdata  ||
+								flis_display_composite->rx != W ||
+								flis_display_composite->ry != H);
+
+	if (need_realloc) {
+		/* flis_composite_free() handles the NULL case gracefully */
+		flis_composite_free();
+		flis_display_composite = calloc(1, sizeof(fits));
+		if (!flis_display_composite) { PRINT_ALLOC_ERR; return 1; }
+		flis_display_composite->fdata = malloc(N * 3 * sizeof(float));
+		if (!flis_display_composite->fdata) {
+			PRINT_ALLOC_ERR;
+			free(flis_display_composite);
+			flis_display_composite = NULL;
+			return 1;
+		}
+	}
+
+	fits *out = flis_display_composite;
+
+	/* Zero the pixel buffer — always, not just on fresh allocation.
+	* Layers with visibility=FALSE leave their region at 0 (black),
+	* and the base layer overwrites the whole buffer anyway, but zeroing
+	* avoids any possibility of stale data from a previous composite. */
+	memset(out->fdata, 0, N * 3 * sizeof(float));
+
+	/* Always (re)set all geometry and pointer fields.  This is cheap and
+	* ensures correctness even if a size change slipped through without
+	* triggering need_realloc (e.g. a future code path that modifies rx/ry
+	* in place without reallocating). */
+	out->fpdata[RLAYER] = out->fdata;
+	out->fpdata[GLAYER] = out->fdata + N;
+	out->fpdata[BLAYER] = out->fdata + N * 2;
+	out->type        = DATA_FLOAT;
+	out->bitpix      = FLOAT_IMG;
+	out->orig_bitpix = FLOAT_IMG;
+	out->naxis       = 3;
+	out->naxes[0]    = W;
+	out->naxes[1]    = H;
+	out->naxes[2]    = 3;
+	out->rx          = W;
+	out->ry          = H;
+
+	/* Copy ICC profile from base layer so the display pipeline applies it */
+	if (out->icc_profile) {
+		cmsCloseProfile(out->icc_profile);
+		out->icc_profile = NULL;
+		color_manage(out, FALSE);
+	}
+	if (base->fit->icc_profile && base->fit->color_managed) {
+		out->icc_profile = copyICCProfile(base->fit->icc_profile);
+		color_manage(out, TRUE);
+	}
+
+	float *out_r = out->fpdata[RLAYER];
+	float *out_g = out->fpdata[GLAYER];
+	float *out_b = out->fpdata[BLAYER];
+
+	/* ------------------------------------------------------------------ */
+	/* Iterate layers bottom to top                                        */
+	/* ------------------------------------------------------------------ */
+	gboolean first_layer = TRUE;
+
+	for (GSList *node = com.uniq->layers; node; node = node->next) {
+		flis_layer_t *lay = (flis_layer_t *)node->data;
+		if (!lay || !lay->fit || !lay->visible) continue;
+
+		fits           *lfit  = lay->fit;
+		layermask_t    *lmask = lay->lmask;
+		const gboolean  mono  = (lfit->naxes[2] == 1);
+		const gboolean  is_float = (lfit->type == DATA_FLOAT);
+		flis_blend_mode_t mode   = lay->blend_mode;
+		const float      global_opacity = lay->opacity;
+		const gboolean   hsl_mode = flis_is_hsl_mode(mode);
+
+		/* Tint factors for mono layers (default: neutral 1,1,1) */
+		float tr = 1.f, tg = 1.f, tb = 1.f;
+		if (mono && lay->has_tint) {
+			tr = (float)lay->layer_tint.r;
+			tg = (float)lay->layer_tint.g;
+			tb = (float)lay->layer_tint.b;
+		}
+
+		/* Source channel pointers (mono reuses R for all three) */
+		float *src_r_f = NULL, *src_g_f = NULL, *src_b_f = NULL;
+		WORD  *src_r_w = NULL, *src_g_w = NULL, *src_b_w = NULL;
+		if (is_float) {
+			src_r_f = lfit->fpdata[RLAYER];
+			src_g_f = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[GLAYER];
+			src_b_f = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[BLAYER];
+		} else {
+			src_r_w = lfit->pdata[RLAYER];
+			src_g_w = mono ? lfit->pdata[RLAYER] : lfit->pdata[GLAYER];
+			src_b_w = mono ? lfit->pdata[RLAYER] : lfit->pdata[BLAYER];
+		}
+
+		/* LMASK data (NULL if no layer mask) */
+		const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (guint y = 0; y < H; y++) {
+			const size_t row = (size_t)y * W;
+			for (guint x = 0; x < W; x++) {
+				const size_t i = row + x;
+
+				/* Effective alpha: global opacity × lmask factor */
+				float alpha = global_opacity;
+				if (mask_data)
+					alpha *= mask_data[i] * (1.f / 255.f);
+
+				/* Source pixel, expanded to float RGB */
+				float sr, sg, sb;
+				if (is_float) {
+					sr = src_r_f[i];
+					sg = src_g_f[i];
+					sb = src_b_f[i];
+				} else {
+					sr = src_r_w[i] * (1.f / 65535.f);
+					sg = src_g_w[i] * (1.f / 65535.f);
+					sb = src_b_w[i] * (1.f / 65535.f);
+				}
+				/* Apply tint to mono source */
+				if (mono) {
+					sb = sr * tb;
+					sg = sr * tg;
+					sr = sr * tr;
+				}
+
+				if (first_layer) {
+					/* Base layer: write directly, no blending needed */
+					out_r[i] = flis_clamp01(sr);
+					out_g[i] = flis_clamp01(sg);
+					out_b[i] = flis_clamp01(sb);
+				} else {
+					float dr = out_r[i];
+					float dg = out_g[i];
+					float db = out_b[i];
+
+					float br, bg, bb; /* blended result before alpha-over */
+					if (hsl_mode) {
+						flis_blend_hsl_pixel(mode,
+											sr, sg, sb,
+											dr, dg, db,
+											&br, &bg, &bb);
+					} else {
+						br = flis_blend_ch(mode, sr, dr);
+						bg = flis_blend_ch(mode, sg, dg);
+						bb = flis_blend_ch(mode, sb, db);
+					}
+
+					/* Porter-Duff 'over': out = blend*a + dst*(1-a) */
+					out_r[i] = flis_clamp01(br * alpha + dr * (1.f - alpha));
+					out_g[i] = flis_clamp01(bg * alpha + dg * (1.f - alpha));
+					out_b[i] = flis_clamp01(bb * alpha + db * (1.f - alpha));
+				}
+			}
+		}
+
+		first_layer = FALSE;
+	}
+
+	/* If no visible layer was processed, leave the composite black */
+	flis_composite_dirty = FALSE;
+	siril_debug_print("FLIS composite rebuilt (%ux%u)\n", W, H);
+	return 0;
+}
+
+/* Public: is a FLIS composite currently active?
+* Defined in image_format_flis.c; declared in image_format_flis.h.
+* Use is_current_image_flis() everywhere rather than testing com.uniq
+* directly, so the definition of "a FLIS file is loaded" stays in one
+* place. */
+
+
 
 static int allocate_full_surface(struct image_view *view) {
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx);
@@ -469,8 +857,8 @@ static void remap(int vport) {
 				// No mask
 				if (color == RAINBOW_COLOR) {
 					*(guint32*)(dst + dst_i) = rainbow_index[dst_pixel_value][0] << 16 |
-					                            rainbow_index[dst_pixel_value][1] << 8 |
-					                            rainbow_index[dst_pixel_value][2];
+												rainbow_index[dst_pixel_value][1] << 8 |
+												rainbow_index[dst_pixel_value][2];
 				} else {
 					*(guint32*)(dst + dst_i) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
 				}
@@ -725,8 +1113,8 @@ static void remap_all_vports() {
 							const guint dst_index = dst_row_start + x * 4;
 							const BYTE pixel_val = line_byte[x];
 							*(guint32*)(dst[c] + dst_index) = rainbow_index[pixel_val][0] << 16 |
-							                                   rainbow_index[pixel_val][1] << 8 |
-							                                   rainbow_index[pixel_val][2];
+															rainbow_index[pixel_val][1] << 8 |
+															rainbow_index[pixel_val][2];
 						}
 					}
 				}
@@ -803,10 +1191,10 @@ static int make_hd_index_for_current_display(int vport) {
 	}
 
 	/* initialization of data required to build the remap_index
-	 *
-	 * The HD remap curve is only used with STF rendering mode
-	 * as it is the only mode that results in a slope steep enough
-	 * to cause noticeable quantization of levels */
+	*
+	* The HD remap curve is only used with STF rendering mode
+	* as it is the only mode that results in a slope steep enough
+	* to cause noticeable quantization of levels */
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
 	siril_debug_print("Rebuilding HD remap_index\n");
@@ -941,10 +1329,10 @@ static int make_index_for_rainbow(BYTE index[][3]) {
 }
 
 /*****************************************************************************
- * ^ ^ ^ above:     R E M A P P I N G     I M A G E     D A T A        ^ ^ ^ *
- *                                                                           *
- * v v v below:          R E D R A W I N G     W I D G E T S           v v v *
- *****************************************************************************/
+* ^ ^ ^ above:     R E M A P P I N G     I M A G E     D A T A        ^ ^ ^ *
+*                                                                           *
+* v v v below:          R E D R A W I N G     W I D G E T S           v v v *
+*****************************************************************************/
 
 typedef struct label_point_struct {
 	double x, y, ra, dec, angle;
@@ -1003,7 +1391,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 #ifdef SIRIL_UNSTABLE
 
 	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
-			    "<small>%c%s</small>\n"
+				"<small>%c%s</small>\n"
 				"<small>commit <tt>%s</tt></small>\n"
 				"<small>Please test bugs against "
 				"latest git master branch\n"
@@ -1327,10 +1715,10 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								polygon->color.red,
+						polygon->color.green,
+						polygon->color.blue,
+						polygon->color.alpha);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
@@ -1340,20 +1728,20 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_fill_preserve(cr);
 			// Draw the outline
 			cairo_set_source_rgba(cr,
-								  polygon->color.red * 0.8, // Slightly darker outline if filled
-						 polygon->color.green * 0.8,
-						 polygon->color.blue * 0.8,
-						 polygon->color.alpha);
+								polygon->color.red * 0.8, // Slightly darker outline if filled
+						polygon->color.green * 0.8,
+						polygon->color.blue * 0.8,
+						polygon->color.alpha);
 			cairo_stroke(cr);
 			cairo_restore(cr);
 		} else {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								polygon->color.red,
+						polygon->color.green,
+						polygon->color.blue,
+						polygon->color.alpha);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
@@ -1380,16 +1768,16 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_set_source_rgba(cr, 0, 0, 0, 0.5);  // Darken the background
 			cairo_rectangle(cr,
 							center_x - text_extents.width/2 - padding,
-				   center_y - text_extents.height/2 - padding,
-				   text_extents.width + 2*padding,
-				   text_extents.height + 2*padding);
+				center_y - text_extents.height/2 - padding,
+				text_extents.width + 2*padding,
+				text_extents.height + 2*padding);
 			cairo_fill(cr);
 
 			// Draw the text
 			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);  // White text
 			cairo_move_to(cr,
-						  center_x - text_extents.width/2,
-				 center_y + text_extents.height/2);
+						center_x - text_extents.width/2,
+				center_y + text_extents.height/2);
 			cairo_show_text(cr, polygon->legend);
 			cairo_restore(cr);
 		}
@@ -2256,8 +2644,8 @@ void initialize_image_display() {
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
- * size in argument and the image size in gfit->
- * Should not be called before displaying the main gray window when using zoom to fit */
+* size in argument and the image size in gfit->
+* Should not be called before displaying the main gray window when using zoom to fit */
 double get_zoom_val() {
 	int window_width, window_height;
 	if (gui.zoom_value > 0.)
@@ -2275,10 +2663,10 @@ double get_zoom_val() {
 // passing -1 means invalidate all
 static void invalidate_image_render_cache(int vport) {
 	/* the render cache is a surface containing the rendering of the image
-	 * from the mapped buffers to the drawing area.
-	 * If some of the parameters change, the cache must be invalidated to
-	 * redraw the image: image content, image mapping, widget dimensions.
-	 */
+	* from the mapped buffers to the drawing area.
+	* If some of the parameters change, the cache must be invalidated to
+	* redraw the image: image content, image mapping, widget dimensions.
+	*/
 	for (int i = 0; i < MAXVPORT; i++) {
 		if (vport >= 0 && i != vport)
 			continue;
@@ -2377,6 +2765,31 @@ void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
+
+	/* FLIS mode: build the layer composite and temporarily substitute it
+	* for gfit so the existing remap pipeline processes the composited
+	* image unchanged.  gfit is restored after remapping so all science
+	* operations (statistics, histogram, tools) continue to see the
+	* active layer's data.
+	*
+	* The swap is safe because redraw() runs on the GTK main thread via
+	* redraw_idle(), and no other GTK callback can interleave with it. */
+	fits *saved_gfit = NULL;
+	if (doremap == REMAP_ALL && is_current_image_flis()) {
+		if (flis_composite_dirty) {
+			if (flis_composite_build()) {
+				siril_log_color_message(
+					_("FLIS: composite build failed, displaying active layer\n"),
+					"salmon");
+				/* Fall through: gfit (active layer) is used as-is */
+			}
+		}
+		if (flis_display_composite) {
+			saved_gfit = gfit;
+			gfit = flis_display_composite;
+		}
+	}
+
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
@@ -2400,6 +2813,11 @@ void redraw(remap_type doremap) {
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");
 	}
+
+	/* Restore gfit to the active layer before any further code runs */
+	if (saved_gfit)
+		gfit = saved_gfit;
+
 	request_gtk_redraw_of_cvport();
 }
 

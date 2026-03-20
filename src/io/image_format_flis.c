@@ -1358,6 +1358,16 @@ gint flis_layer_count(void) {
 	return (gint)g_slist_length(com.uniq->layers);
 }
 
+gboolean is_current_image_flis(void) {
+	/* A FLIS file is loaded when com.uniq->layers is non-NULL.
+	* This list is populated exclusively by load_flis() and cleared by
+	* flis_free_layers().  A regular FITS image loaded via readfits()
+	* never touches com.uniq->layers, so this test is unambiguous.
+	* Layer count is intentionally not checked: a single-layer FLIS is
+	* still a FLIS and must go through the composite path. */
+	return com.uniq != NULL && com.uniq->layers != NULL;
+}
+
 /* ===================================================================== */
 /* Timestamp                                                             */
 /* ===================================================================== */

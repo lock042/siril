@@ -254,6 +254,23 @@ gint flis_layer_get_index(const flis_layer_t *layer);
  */
 gint flis_layer_count(void);
 
+/**
+ * is_current_image_flis:
+ *
+ * Returns TRUE if a FLIS file is currently loaded (com.uniq->layers is
+ * non-NULL).  Returns FALSE for a regular FITS image or when no image is
+ * loaded.
+ *
+ * This is the canonical test for "are we in FLIS mode?".  Use it
+ * everywhere rather than inspecting com.uniq directly, so the definition
+ * stays in one place.  In particular:
+ *   - image_display.c uses it to decide whether to build a composite
+ *   - UI code uses it to enable/disable layer-related widgets and menus
+ *   - Tool and processing code uses it to refuse operations that are not
+ *     meaningful on a layered image (e.g. direct gfit pixel modification)
+ */
+gboolean is_current_image_flis(void);
+
 /* -----------------------------------------------------------------------
  * Stack management
  * ----------------------------------------------------------------------- */

@@ -12272,6 +12272,7 @@ int process_capabilities(int nb) {
 #endif
 
 	siril_log_message("Can read and write FITS files\n");
+	siril_log_message("Can read and write FLIS (FITS Layered Image Specification) files\n");
 	siril_log_message("Can read and write SER files\n");
 	siril_log_message("Can read and write BMP files\n");
 	siril_log_message("Can read and write NetPBM files\n");
