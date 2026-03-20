@@ -38,6 +38,7 @@
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
+#include "gui/flis_gui.h"
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
 #include "gui/python_gui.h"
@@ -2010,6 +2011,10 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Initialize ROI settings */
 	update_roi_config();
+
+	/* Initialize FLIS GUI signal handlers */
+	flis_gui_init();
+	flis_gui_open();
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);

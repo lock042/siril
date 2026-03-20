@@ -1,21 +1,21 @@
 /*
-* This file is part of Siril, an astronomy image processor.
-* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-* Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
-* Reference site is https://siril.org
-*
-* Siril is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Siril is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <string.h>
@@ -37,6 +37,7 @@
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
+#include "gui/flis_gui.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
@@ -55,19 +56,19 @@
 #include "core/processing.h"
 
 /* Closes and frees resources attached to the single image opened in gfit->
-* If a sequence is loaded and one of its images is displayed, nothing is done.
-*/
+ * If a sequence is loaded and one of its images is displayed, nothing is done.
+ */
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
 	/* We need to clear display and soft proofing transforms and a few other
-	* color management data */
+	 * color management data */
 
 	siril_debug_print("MODE: closing single image\n");
 	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
-	* with previews
-	*/
+	 * with previews
+	 */
 	on_clear_roi();
 	free_image_data();
 }
@@ -143,6 +144,7 @@ static gboolean free_image_data_gui(gpointer p) {
 	}
 	clear_previews();
 	free_reference_image();
+	flis_gui_update();
 	siril_debug_print("free_image_data_gui() complete\n");
 	return FALSE;
 }
@@ -151,7 +153,7 @@ static gboolean free_image_data_gui(gpointer p) {
 void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
-	* shouldn't it be used here instead of gfit? */
+	 * shouldn't it be used here instead of gfit? */
 	cmsCloseProfile(gfit->icc_profile);
 	gfit->icc_profile = NULL;
 	reset_icc_transforms();
@@ -161,11 +163,18 @@ void free_image_data() {
 	invalidate_gfit_histogram();
 
 	if (com.uniq) {
-		/* If a FLIS file was loaded, free the layer stack first.
-		* flis_free_layers() also frees the composite cache and clears
-		* com.uniq->layers, so the bare free() below is then safe. */
 		if (is_current_image_flis()) {
 			flis_composite_free();
+			/* gfit is reassigned by uniq_set_active_layer() to point at
+			 * the active layer's heap-allocated fits*.  clearfits(gfit)
+			 * at the end of this function is responsible for cleaning it
+			 * up.  NULL out the active layer's fit pointer here so that
+			 * flis_layer_free() does not free it first, which would leave
+			 * clearfits(gfit) operating on already-freed memory and
+			 * corrupt the heap. */
+			flis_layer_t *active = flis_active_layer();
+			if (active && active->fit == gfit)
+				active->fit = NULL;
 			flis_free_layers(com.uniq);
 		}
 		free(com.uniq->filename);
@@ -175,8 +184,8 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 	/* this function frees resources used in the GUI, some of these resources
-	* need to be handled in the GTK+ main thread, so we use an idle function
-	* to deal with them */
+	 * need to be handled in the GTK+ main thread, so we use an idle function
+	 * to deal with them */
 
 	if (!com.headless) {
 		if (com.script || com.python_command) {
@@ -197,16 +206,16 @@ static gboolean end_read_single_image(gpointer p) {
 }
 
 /**
-* Reads an image from disk and stores it in the user allocated destination
-* fits.
-* @param filename
-* @param dest
-* @param realname_out argument can be NULL, and if not, it is set to the
-* real file name of the loaded file, since the given filename can be without
-* extension.
-* @param is_sequence is set to TRUE if the loaded image is in fact a SER or AVI sequence. Can be NULL
-* @return 0 on success
-*/
+ * Reads an image from disk and stores it in the user allocated destination
+ * fits.
+ * @param filename
+ * @param dest
+ * @param realname_out argument can be NULL, and if not, it is set to the
+ * real file name of the loaded file, since the given filename can be without
+ * extension.
+ * @param is_sequence is set to TRUE if the loaded image is in fact a SER or AVI sequence. Can be NULL
+ * @return 0 on success
+ */
 int read_single_image(const char *filename, fits *dest, char **realname_out,
 		gboolean allow_sequences, gboolean *is_sequence, gboolean allow_dialogs,
 		gboolean force_float) {
@@ -275,18 +284,18 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 }
 
 /* This function is used to load a single image, meaning outside a sequence,
-* whether a sequence is loaded or not, whether an image was already loaded or
-* not. The opened file is available in the usual global variable for current
-* image, gfit->
-*/
+ * whether a sequence is loaded or not, whether an image was already loaded or
+ * not. The opened file is available in the usual global variable for current
+ * image, gfit->
+ */
 int open_single_image(const char* filename) {
 	int retval = 0;
 	char *realname = NULL;
 	gboolean is_single_sequence;
 
 	/* Check we aren't running a processing thread otherwise it will clobber gfit
-	* when it finishes and cause a segfault.
-	*/
+	 * when it finishes and cause a segfault.
+	 */
 	if ((retval = get_thread_run())) {
 		siril_log_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
 	}
@@ -311,16 +320,16 @@ int open_single_image(const char* filename) {
 		siril_debug_print("Loading image OK, now displaying\n");
 
 		/* Now initializing com struct.
-		* For a FLIS file, load_flis() has already allocated com.uniq and
-		* populated com.uniq->layers; create_uniq_from_gfit() must not be
-		* called or it will overwrite com.uniq and leak the layer stack. */
+		 * For a FLIS file, load_flis() has already allocated com.uniq and
+		 * populated com.uniq->layers; create_uniq_from_gfit() must not be
+		 * called or it will overwrite com.uniq and leak the layer stack. */
 		com.seq.current = UNRELATED_IMAGE;
 		if (!is_current_image_flis()) {
 			create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		} else {
 			/* com.uniq->filename was set by load_flis() from the path it
-			* received; update it with the resolved realname so it matches
-			* what every other load path stores. */
+			 * received; update it with the resolved realname so it matches
+			 * what every other load path stores. */
 			g_free(com.uniq->filename);
 			com.uniq->filename = realname;
 			com.uniq->fileexist = TRUE;
@@ -340,7 +349,7 @@ int open_single_image(const char* filename) {
 gboolean open_single_image_from_gfit(gpointer user_data) {
 	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
-	* code based on seq_load_image or set_seq (sequence.c) */
+	 * code based on seq_load_image or set_seq (sequence.c) */
 
 	initialize_display_mode();
 
@@ -366,14 +375,15 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	init_right_tab(NULL);
 
 	update_gfit_histogram_if_needed();
+	flis_gui_update();
 	redraw(REMAP_ALL);
 	return FALSE;
 }
 
 gboolean update_single_image_from_gfit(gpointer user_data) {
 	/* a variation on open_single_image_from_gfit that only
-	does the things necessary when key aspects may have
-	changed (eg changed number of channels, bitpix etc.)*/
+	 does the things necessary when key aspects may have
+	 changed (eg changed number of channels, bitpix etc.)*/
 
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
@@ -392,7 +402,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
-* the values are stored in fit->min[layer] and fit->max[layer] */
+ * the values are stored in fit->min[layer] and fit->max[layer] */
 int image_find_minmax(fits *fit) {
 	int layer;
 	if (fit->maxi > 0.0)
@@ -423,11 +433,11 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
 }
 
 /* gfit has been loaded, now we copy the hi and lo values into the com.uniq or com.seq layers.
-* gfit->hi and gfit->lo may only be available in some FITS files; if they are not available, the
-* min and max value for the layer is used.
-* If gfit changed, its hi and lo values need to be updated, and they are taken from min and
-* max.
-*/
+ * gfit->hi and gfit->lo may only be available in some FITS files; if they are not available, the
+ * min and max value for the layer is used.
+ * If gfit changed, its hi and lo values need to be updated, and they are taken from min and
+ * max.
+ */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
 	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
@@ -482,7 +492,7 @@ gboolean end_gfit_operation(gpointer data) {
 }
 
 /* to be called after each operation that modifies the content of gfit, at the
-* end of a processing operation, not for previews */
+ * end of a processing operation, not for previews */
 void notify_gfit_modified() {
 	siril_debug_print("end of gfit operation\n");
 	invalidate_stats_from_fit(gfit);
@@ -492,31 +502,31 @@ void notify_gfit_modified() {
 }
 
 gboolean enforce_area_in_fits(fits *fit, rectangle *area) {
-		gboolean has_crossed = FALSE;
-		int rx = fit->rx, ry = fit->ry;
-		if (area->w > rx) {
-				area->w = rx;
-				has_crossed = TRUE;
-		}
-		if (area->h > ry) {
-				area->h = ry;
-				has_crossed = TRUE;
-		}
-		if (area->x < 0) {
-				area->x = 0;
-				has_crossed = TRUE;
-		}
-		if (area->y < 0) {
-				area->y = 0;
-				has_crossed = TRUE;
-		}
-		if (area->x + area->w > rx) {
-				area->x = rx - area->w;
-				has_crossed = TRUE;
-		}
-		if (area->y + area->h > ry) {
-				area->y = ry - area->h;
-				has_crossed = TRUE;
-		}
-		return has_crossed;
+        gboolean has_crossed = FALSE;
+        int rx = fit->rx, ry = fit->ry;
+        if (area->w > rx) {
+                area->w = rx;
+                has_crossed = TRUE;
+        }
+        if (area->h > ry) {
+                area->h = ry;
+                has_crossed = TRUE;
+        }
+        if (area->x < 0) {
+                area->x = 0;
+                has_crossed = TRUE;
+        }
+        if (area->y < 0) {
+                area->y = 0;
+                has_crossed = TRUE;
+        }
+        if (area->x + area->w > rx) {
+                area->x = rx - area->w;
+                has_crossed = TRUE;
+        }
+        if (area->y + area->h > ry) {
+                area->y = ry - area->h;
+                has_crossed = TRUE;
+        }
+        return has_crossed;
 }
