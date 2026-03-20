@@ -1,22 +1,22 @@
 /*
-* This file is part of Siril, an astronomy image processor.
-* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-* Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
-* Reference site is https://siril.org
-*
-* Siril is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Siril is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Siril. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <math.h>
 #include <ctype.h>
@@ -58,7 +58,7 @@
 #include "image_display.h"
 
 /* is gfit->icc_profile identical to the monitor profile, if so we can avoid the
-* transform */
+ * transform */
 static cmsBool identical = FALSE;
 
 #define ANGLE_TOP 315. * DEGTORAD
@@ -85,17 +85,17 @@ static GtkSpinButton *tri_cut_spin_step = NULL;
 static void invalidate_image_render_cache(int vport);
 
 /*****************************************************************************
-* FLIS composite cache                                                      *
-*                                                                           *
-* The display pipeline works entirely in terms of a single fits* (gfit).   *
-* For FLIS files the pipeline is unchanged: before REMAP_ALL we build a    *
-* composited float RGB fits* from all visible layers and temporarily swap   *
-* gfit to point at it for the duration of the remap.  The composite is     *
-* cached and rebuilt only when flis_composite_dirty is set.                *
-*                                                                           *
-* Call flis_invalidate_composite() whenever any property of any layer      *
-* changes (pixel data, blend mode, opacity, visibility, lmask, ordering).  *
-*****************************************************************************/
+ * FLIS composite cache                                                      *
+ *                                                                           *
+ * The display pipeline works entirely in terms of a single fits* (gfit).   *
+ * For FLIS files the pipeline is unchanged: before REMAP_ALL we build a    *
+ * composited float RGB fits* from all visible layers and temporarily swap   *
+ * gfit to point at it for the duration of the remap.  The composite is     *
+ * cached and rebuilt only when flis_composite_dirty is set.                *
+ *                                                                           *
+ * Call flis_invalidate_composite() whenever any property of any layer      *
+ * changes (pixel data, blend mode, opacity, visibility, lmask, ordering).  *
+ *****************************************************************************/
 
 /* Composite cache --------------------------------------------------------- */
 
@@ -103,371 +103,584 @@ static fits    *flis_display_composite = NULL;
 static gboolean flis_composite_dirty   = TRUE;
 
 void flis_invalidate_composite(void) {
-	flis_composite_dirty = TRUE;
+    flis_composite_dirty = TRUE;
 }
 
 void flis_composite_free(void) {
-	if (flis_display_composite) {
-		clearfits(flis_display_composite);
-		free(flis_display_composite);
-		flis_display_composite = NULL;
-	}
-	flis_composite_dirty = TRUE;
+    if (flis_display_composite) {
+        clearfits(flis_display_composite);
+        free(flis_display_composite);
+        flis_display_composite = NULL;
+    }
+    flis_composite_dirty = TRUE;
 }
 
-/* Blend mode helpers (per-channel, linear [0,1] float) ------------------- */
+/* =========================================================================
+ * FLIS compositing inner-loop macros
+ *
+ * Option B: the blend mode switch is hoisted above all pixel loops.
+ *   Each case of FLIS_DISPATCH expands to a dedicated inner loop whose
+ *   body is a pure arithmetic expression with no branches.  The compiler
+ *   can auto-vectorise each instantiation independently.
+ *
+ * Option C: masked and unmasked loops are separate macro expansions.
+ *   Neither contains a per-pixel branch for the mask check.
+ *
+ * Variable conventions inside macro bodies (underscore prefix avoids
+ * clashing with outer-scope names):
+ *   _y, _x, _i, _row  -- loop indices and pixel offset
+ *   _alpha             -- per-pixel effective alpha (masked variant only)
+ *   _c, _k             -- used in the USHORT conversion pass
+ *
+ * Blend expression variables (declared inside each inner loop):
+ *   sr, sg, sb  -- source pixel RGB [0,1] after tint applied
+ *   dr, dg, db  -- destination pixel RGB [0,1] from previous composite
+ *
+ * Tint scalars TR/TG/TB are loop-invariant float constants.  For RGB or
+ * untinted mono layers they are 1.f, which the compiler folds so that
+ * pre_r[_i]*1.f compiles to a plain load.
+ * ========================================================================= */
 
-static inline float flis_clamp01(float v) {
-	return v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
-}
+/* OMP pragma helpers -- emit nothing when OpenMP is not compiled in */
+#ifdef _OPENMP
+#  define FLIS_OMP_PAR_FOR \
+     _Pragma("omp parallel for num_threads(com.max_thread) schedule(static)")
+#  define FLIS_OMP_SIMD          _Pragma("omp simd")
+#  define FLIS_OMP_PAR_FOR_SIMD \
+     _Pragma("omp parallel for simd num_threads(com.max_thread) schedule(static)")
+#else
+#  define FLIS_OMP_PAR_FOR
+#  define FLIS_OMP_SIMD
+#  define FLIS_OMP_PAR_FOR_SIMD
+#endif
 
-/* Per-channel blend operations: return the blended value before alpha
-* compositing.  Caller applies:  out = blend(s,d)*a + d*(1-a)             */
-static inline float flis_blend_ch(flis_blend_mode_t mode, float s, float d) {
-	switch (mode) {
-		case FLIS_BLEND_NORMAL:
-			return s;
-		case FLIS_BLEND_MULTIPLY:
-			return s * d;
-		case FLIS_BLEND_SCREEN:
-			return 1.f - (1.f - s) * (1.f - d);
-		case FLIS_BLEND_OVERLAY:
-			return d < 0.5f ? 2.f * s * d
-							: 1.f - 2.f * (1.f - s) * (1.f - d);
-		case FLIS_BLEND_SOFT_LIGHT: {
-			/* W3C formula */
-			float b;
-			if (s <= 0.5f)
-				b = d - (1.f - 2.f * s) * d * (1.f - d);
-			else if (d <= 0.25f)
-				b = d + (2.f * s - 1.f) *
-						(((16.f * d - 12.f) * d + 4.f) * d - d);
-			else
-				b = d + (2.f * s - 1.f) * (sqrtf(d) - d);
-			return b;
-		}
-		case FLIS_BLEND_HARD_LIGHT:
-			return s < 0.5f ? 2.f * s * d
-							: 1.f - 2.f * (1.f - s) * (1.f - d);
-		case FLIS_BLEND_COLOR_DODGE:
-			return s >= 1.f ? 1.f : fminf(d / (1.f - s), 1.f);
-		case FLIS_BLEND_COLOR_BURN:
-			return s <= 0.f ? 0.f : 1.f - fminf((1.f - d) / s, 1.f);
-		case FLIS_BLEND_DARKEN:
-			return fminf(s, d);
-		case FLIS_BLEND_LIGHTEN:
-			return fmaxf(s, d);
-		case FLIS_BLEND_DIFFERENCE:
-			return fabsf(s - d);
-		case FLIS_BLEND_EXCLUSION:
-			return s + d - 2.f * s * d;
-		/* HSL modes handled at the pixel level in the row loop below */
-		default:
-			return s;
-	}
-}
+/* Clamp to [0,1] via fminf/fmaxf -- these map to VMINPS/VMAXPS on AVX */
+#define FLIS_C01(v)  fminf(fmaxf((v), 0.f), 1.f)
 
-/* RGB ↔ HSL (all in [0,1]) for HSL-family blend modes ------------------- */
+/* Porter-Duff 'over': blended*alpha + dst*(1-alpha) */
+#define FLIS_OVER(b, d, a)  FLIS_C01((b) * (a) + (d) * (1.f - (a)))
+
+/* Soft-light sub-expressions (W3C formula, two nested ternaries).
+ * Both sqrtf branches are computed by the SIMD unit and blended with
+ * a select; this is vectorisable on all modern ISAs. */
+#define FLIS_SL_D(d) \
+    ((d) <= 0.25f ? (((16.f*(d) - 12.f)*(d) + 4.f)*(d)) : sqrtf(d))
+#define FLIS_SL(s, d) \
+    ((s) <= 0.5f \
+        ? (d) - (1.f - 2.f*(s))*(d)*(1.f-(d)) \
+        : (d) + (2.f*(s) - 1.f)*(FLIS_SL_D(d) - (d)))
+
+/* Color-dodge and color-burn with division-by-zero guard */
+#define FLIS_DODGE(s, d) \
+    ((s) >= 1.f ? 1.f : fminf((d) / (1.f - (s)), 1.f))
+#define FLIS_BURN(s, d) \
+    ((s) <= 0.f ? 0.f : 1.f - fminf((1.f - (d)) / (s), 1.f))
+
+/* -------------------------------------------------------------------------
+ * Base layer loop -- write source to output with no blending.
+ * Used only for the lowest visible layer; alpha is not applied.
+ * ------------------------------------------------------------------------- */
+#define FLIS_BASE_LOOP(TR, TG, TB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (guint _y = 0; _y < H; _y++) { \
+        const size_t _row = (size_t)_y * W; \
+        FLIS_OMP_SIMD \
+        for (guint _x = 0; _x < W; _x++) { \
+            const size_t _i = _row + _x; \
+            out_r[_i] = FLIS_C01(pre_r[_i] * (TR)); \
+            out_g[_i] = FLIS_C01(pre_g[_i] * (TG)); \
+            out_b[_i] = FLIS_C01(pre_b[_i] * (TB)); \
+        } \
+    } \
+} while (0)
+
+/* -------------------------------------------------------------------------
+ * Channel-wise blend loops.
+ *
+ * Two variants: unmasked (constant alpha = global_opacity) and masked
+ * (per-pixel alpha = global_opacity x mask_data[_i]/255).
+ *
+ * BR, BG, BB are blend expressions in terms of sr/dr, sg/dg, sb/db.
+ * TR, TG, TB are tint scalars (1.f for RGB or untinted mono).
+ *
+ * The inner loop is tagged with omp simd.  Each instantiation from
+ * FLIS_DISPATCH is a distinct, branchless loop body that the compiler
+ * can vectorise independently.
+ * ------------------------------------------------------------------------- */
+#define FLIS_BLEND_LOOP(TR, TG, TB, BR, BG, BB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (guint _y = 0; _y < H; _y++) { \
+        const size_t _row = (size_t)_y * W; \
+        FLIS_OMP_SIMD \
+        for (guint _x = 0; _x < W; _x++) { \
+            const size_t _i = _row + _x; \
+            const float sr = pre_r[_i] * (TR); \
+            const float sg = pre_g[_i] * (TG); \
+            const float sb = pre_b[_i] * (TB); \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            out_r[_i] = FLIS_OVER((BR), dr, global_opacity); \
+            out_g[_i] = FLIS_OVER((BG), dg, global_opacity); \
+            out_b[_i] = FLIS_OVER((BB), db, global_opacity); \
+        } \
+    } \
+} while (0)
+
+#define FLIS_BLEND_LOOP_MASKED(TR, TG, TB, BR, BG, BB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (guint _y = 0; _y < H; _y++) { \
+        const size_t _row = (size_t)_y * W; \
+        FLIS_OMP_SIMD \
+        for (guint _x = 0; _x < W; _x++) { \
+            const size_t _i = _row + _x; \
+            const float _alpha = global_opacity \
+                                 * (mask_data[_i] * INV_UCHAR_MAX_SINGLE); \
+            const float sr = pre_r[_i] * (TR); \
+            const float sg = pre_g[_i] * (TG); \
+            const float sb = pre_b[_i] * (TB); \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            out_r[_i] = FLIS_OVER((BR), dr, _alpha); \
+            out_g[_i] = FLIS_OVER((BG), dg, _alpha); \
+            out_b[_i] = FLIS_OVER((BB), db, _alpha); \
+        } \
+    } \
+} while (0)
+
+/* -------------------------------------------------------------------------
+ * HSL-family blend loops.
+ *
+ * HSL modes (Hue, Saturation, Color, Luminosity) require the full RGB
+ * triple and involve RGB<->HSL conversions, so they cannot be vectorised
+ * per-channel.  The inner loop calls flis_blend_hsl_pixel() which carries
+ * its own mode switch (only 4 cases).  The masked/unmasked split (Option C)
+ * still removes the per-pixel mask branch.
+ * ------------------------------------------------------------------------- */
+#define FLIS_HSL_LOOP(TR, TG, TB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (guint _y = 0; _y < H; _y++) { \
+        const size_t _row = (size_t)_y * W; \
+        for (guint _x = 0; _x < W; _x++) { \
+            const size_t _i = _row + _x; \
+            const float sr = pre_r[_i] * (TR); \
+            const float sg = pre_g[_i] * (TG); \
+            const float sb = pre_b[_i] * (TB); \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            float br, bg, bb; \
+            flis_blend_hsl_pixel(mode, sr, sg, sb, dr, dg, db, \
+                                 &br, &bg, &bb); \
+            out_r[_i] = FLIS_OVER(br, dr, global_opacity); \
+            out_g[_i] = FLIS_OVER(bg, dg, global_opacity); \
+            out_b[_i] = FLIS_OVER(bb, db, global_opacity); \
+        } \
+    } \
+} while (0)
+
+#define FLIS_HSL_LOOP_MASKED(TR, TG, TB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (guint _y = 0; _y < H; _y++) { \
+        const size_t _row = (size_t)_y * W; \
+        for (guint _x = 0; _x < W; _x++) { \
+            const size_t _i = _row + _x; \
+            const float _alpha = global_opacity \
+                                 * (mask_data[_i] * INV_UCHAR_MAX_SINGLE); \
+            const float sr = pre_r[_i] * (TR); \
+            const float sg = pre_g[_i] * (TG); \
+            const float sb = pre_b[_i] * (TB); \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            float br, bg, bb; \
+            flis_blend_hsl_pixel(mode, sr, sg, sb, dr, dg, db, \
+                                 &br, &bg, &bb); \
+            out_r[_i] = FLIS_OVER(br, dr, _alpha); \
+            out_g[_i] = FLIS_OVER(bg, dg, _alpha); \
+            out_b[_i] = FLIS_OVER(bb, db, _alpha); \
+        } \
+    } \
+} while (0)
+
+/* -------------------------------------------------------------------------
+ * FLIS_DISPATCH -- hoisted blend mode switch (Option B).
+ *
+ * Called once per layer.  Selects the masked or unmasked loop variant
+ * (Option C) and then the blend-mode-specific inner loop.  Each case
+ * expands to a fully inlined, branchless, SIMD-vectorisable loop body.
+ *
+ * TR, TG, TB: tint scalars passed through to the inner loops.
+ * ------------------------------------------------------------------------- */
+#define FLIS_DISPATCH(TR, TG, TB) \
+do { \
+    if (mask_data) { \
+        switch (mode) { \
+            case FLIS_BLEND_NORMAL: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, sr,sg,sb); break; \
+            case FLIS_BLEND_MULTIPLY: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    sr*dr, sg*dg, sb*db); break; \
+            case FLIS_BLEND_SCREEN: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    1.f-(1.f-sr)*(1.f-dr), \
+                    1.f-(1.f-sg)*(1.f-dg), \
+                    1.f-(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_OVERLAY: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    dr<0.5f?2.f*sr*dr:1.f-2.f*(1.f-sr)*(1.f-dr), \
+                    dg<0.5f?2.f*sg*dg:1.f-2.f*(1.f-sg)*(1.f-dg), \
+                    db<0.5f?2.f*sb*db:1.f-2.f*(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_SOFT_LIGHT: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    FLIS_SL(sr,dr), FLIS_SL(sg,dg), FLIS_SL(sb,db)); break; \
+            case FLIS_BLEND_HARD_LIGHT: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    sr<0.5f?2.f*sr*dr:1.f-2.f*(1.f-sr)*(1.f-dr), \
+                    sg<0.5f?2.f*sg*dg:1.f-2.f*(1.f-sg)*(1.f-dg), \
+                    sb<0.5f?2.f*sb*db:1.f-2.f*(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_COLOR_DODGE: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    FLIS_DODGE(sr,dr), \
+                    FLIS_DODGE(sg,dg), \
+                    FLIS_DODGE(sb,db)); break; \
+            case FLIS_BLEND_COLOR_BURN: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    FLIS_BURN(sr,dr), \
+                    FLIS_BURN(sg,dg), \
+                    FLIS_BURN(sb,db)); break; \
+            case FLIS_BLEND_DARKEN: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    fminf(sr,dr), fminf(sg,dg), fminf(sb,db)); break; \
+            case FLIS_BLEND_LIGHTEN: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    fmaxf(sr,dr), fmaxf(sg,dg), fmaxf(sb,db)); break; \
+            case FLIS_BLEND_DIFFERENCE: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    fabsf(sr-dr), fabsf(sg-dg), fabsf(sb-db)); break; \
+            case FLIS_BLEND_EXCLUSION: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, \
+                    sr+dr-2.f*sr*dr, \
+                    sg+dg-2.f*sg*dg, \
+                    sb+db-2.f*sb*db); break; \
+            default: \
+                FLIS_BLEND_LOOP_MASKED(TR,TG,TB, sr,sg,sb); break; \
+        } \
+    } else { \
+        switch (mode) { \
+            case FLIS_BLEND_NORMAL: \
+                FLIS_BLEND_LOOP(TR,TG,TB, sr,sg,sb); break; \
+            case FLIS_BLEND_MULTIPLY: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    sr*dr, sg*dg, sb*db); break; \
+            case FLIS_BLEND_SCREEN: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    1.f-(1.f-sr)*(1.f-dr), \
+                    1.f-(1.f-sg)*(1.f-dg), \
+                    1.f-(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_OVERLAY: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    dr<0.5f?2.f*sr*dr:1.f-2.f*(1.f-sr)*(1.f-dr), \
+                    dg<0.5f?2.f*sg*dg:1.f-2.f*(1.f-sg)*(1.f-dg), \
+                    db<0.5f?2.f*sb*db:1.f-2.f*(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_SOFT_LIGHT: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    FLIS_SL(sr,dr), FLIS_SL(sg,dg), FLIS_SL(sb,db)); break; \
+            case FLIS_BLEND_HARD_LIGHT: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    sr<0.5f?2.f*sr*dr:1.f-2.f*(1.f-sr)*(1.f-dr), \
+                    sg<0.5f?2.f*sg*dg:1.f-2.f*(1.f-sg)*(1.f-dg), \
+                    sb<0.5f?2.f*sb*db:1.f-2.f*(1.f-sb)*(1.f-db)); break; \
+            case FLIS_BLEND_COLOR_DODGE: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    FLIS_DODGE(sr,dr), \
+                    FLIS_DODGE(sg,dg), \
+                    FLIS_DODGE(sb,db)); break; \
+            case FLIS_BLEND_COLOR_BURN: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    FLIS_BURN(sr,dr), \
+                    FLIS_BURN(sg,dg), \
+                    FLIS_BURN(sb,db)); break; \
+            case FLIS_BLEND_DARKEN: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    fminf(sr,dr), fminf(sg,dg), fminf(sb,db)); break; \
+            case FLIS_BLEND_LIGHTEN: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    fmaxf(sr,dr), fmaxf(sg,dg), fmaxf(sb,db)); break; \
+            case FLIS_BLEND_DIFFERENCE: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    fabsf(sr-dr), fabsf(sg-dg), fabsf(sb-db)); break; \
+            case FLIS_BLEND_EXCLUSION: \
+                FLIS_BLEND_LOOP(TR,TG,TB, \
+                    sr+dr-2.f*sr*dr, \
+                    sg+dg-2.f*sg*dg, \
+                    sb+db-2.f*sb*db); break; \
+            default: \
+                FLIS_BLEND_LOOP(TR,TG,TB, sr,sg,sb); break; \
+        } \
+    } \
+} while (0)
+
+/* =========================================================================
+ * HSL helper functions -- kept as regular functions because HSL conversions
+ * are not vectorisable per-channel and the function-call overhead is
+ * negligible relative to the conversion cost.
+ * ========================================================================= */
 
 static void flis_rgb_to_hsl(float r, float g, float b,
-							float *h, float *s, float *l) {
-	float maxc = fmaxf(r, fmaxf(g, b));
-	float minc = fminf(r, fminf(g, b));
-	float delta = maxc - minc;
-	*l = (maxc + minc) * 0.5f;
-	if (delta < 1e-6f) { *h = *s = 0.f; return; }
-	*s = delta / (1.f - fabsf(2.f * *l - 1.f));
-	if      (maxc == r) *h = fmodf((g - b) / delta, 6.f) / 6.f;
-	else if (maxc == g) *h = ((b - r) / delta + 2.f)     / 6.f;
-	else                *h = ((r - g) / delta + 4.f)     / 6.f;
-	if (*h < 0.f) *h += 1.f;
+                             float *h, float *s, float *l) {
+    float maxc = fmaxf(r, fmaxf(g, b));
+    float minc = fminf(r, fminf(g, b));
+    float delta = maxc - minc;
+    *l = (maxc + minc) * 0.5f;
+    if (delta < 1e-6f) { *h = *s = 0.f; return; }
+    *s = delta / (1.f - fabsf(2.f * *l - 1.f));
+    if      (maxc == r) *h = fmodf((g - b) / delta, 6.f) / 6.f;
+    else if (maxc == g) *h = ((b - r) / delta + 2.f)     / 6.f;
+    else                *h = ((r - g) / delta + 4.f)     / 6.f;
+    if (*h < 0.f) *h += 1.f;
 }
 
 static void flis_hsl_to_rgb(float h, float s, float l,
-							float *r, float *g, float *b) {
-	float c = (1.f - fabsf(2.f * l - 1.f)) * s;
-	float x = c * (1.f - fabsf(fmodf(h * 6.f, 2.f) - 1.f));
-	float m = l - c * 0.5f;
-	int   seg = (int)(h * 6.f) % 6;
-	float r1, g1, b1;
-	switch (seg) {
-		case 0: r1=c; g1=x; b1=0; break;
-		case 1: r1=x; g1=c; b1=0; break;
-		case 2: r1=0; g1=c; b1=x; break;
-		case 3: r1=0; g1=x; b1=c; break;
-		case 4: r1=x; g1=0; b1=c; break;
-		default:r1=c; g1=0; b1=x; break;
-	}
-	*r = r1 + m; *g = g1 + m; *b = b1 + m;
+                             float *r, float *g, float *b) {
+    float c = (1.f - fabsf(2.f * l - 1.f)) * s;
+    float x = c * (1.f - fabsf(fmodf(h * 6.f, 2.f) - 1.f));
+    float m = l - c * 0.5f;
+    int   seg = (int)(h * 6.f) % 6;
+    float r1, g1, b1;
+    switch (seg) {
+        case 0: r1=c; g1=x; b1=0.f; break;
+        case 1: r1=x; g1=c; b1=0.f; break;
+        case 2: r1=0.f; g1=c; b1=x; break;
+        case 3: r1=0.f; g1=x; b1=c; break;
+        case 4: r1=x; g1=0.f; b1=c; break;
+        default:r1=c; g1=0.f; b1=x; break;
+    }
+    *r = r1 + m; *g = g1 + m; *b = b1 + m;
 }
 
-/* Luminosity of an RGB triple (perceptual weights) */
 static inline float flis_lum(float r, float g, float b) {
-	return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+    return 0.2126f * r + 0.7152f * g + 0.0722f * b;
 }
 
-/* Clip-and-scale to keep in gamut after HSL composition */
 static void flis_clip_color(float *r, float *g, float *b) {
-	float l = flis_lum(*r, *g, *b);
-	float n = fminf(*r, fminf(*g, *b));
-	float x = fmaxf(*r, fmaxf(*g, *b));
-	if (n < 0.f) {
-		*r = l + (*r - l) * l / (l - n);
-		*g = l + (*g - l) * l / (l - n);
-		*b = l + (*b - l) * l / (l - n);
-	}
-	if (x > 1.f) {
-		*r = l + (*r - l) * (1.f - l) / (x - l);
-		*g = l + (*g - l) * (1.f - l) / (x - l);
-		*b = l + (*b - l) * (1.f - l) / (x - l);
-	}
+    float l = flis_lum(*r, *g, *b);
+    float n = fminf(*r, fminf(*g, *b));
+    float x = fmaxf(*r, fmaxf(*g, *b));
+    if (n < 0.f) {
+        float d = l - n;
+        *r = l + (*r - l) * l / d;
+        *g = l + (*g - l) * l / d;
+        *b = l + (*b - l) * l / d;
+    }
+    if (x > 1.f) {
+        float d = x - l;
+        *r = l + (*r - l) * (1.f - l) / d;
+        *g = l + (*g - l) * (1.f - l) / d;
+        *b = l + (*b - l) * (1.f - l) / d;
+    }
 }
 
-/* Apply an HSL-family blend mode to a whole pixel (src and dst are RGB).
-* Result is written back into *dr, *dg, *db.  Alpha compositing is done
-* by the caller.                                                           */
 static void flis_blend_hsl_pixel(flis_blend_mode_t mode,
-								float sr, float sg, float sb,
-								float dr, float dg, float db,
-								float *or, float *og, float *ob) {
-	float sh, ss, sl, dh, ds, dl;
-	flis_rgb_to_hsl(sr, sg, sb, &sh, &ss, &sl);
-	flis_rgb_to_hsl(dr, dg, db, &dh, &ds, &dl);
-
-	float rh, rs, rl;
-	switch (mode) {
-		case FLIS_BLEND_HUE:
-			rh = sh; rs = ds; rl = dl; break;
-		case FLIS_BLEND_SATURATION:
-			rh = dh; rs = ss; rl = dl; break;
-		case FLIS_BLEND_COLOR:
-			rh = sh; rs = ss; rl = dl; break;
-		case FLIS_BLEND_LUMINOSITY:
-			rh = dh; rs = ds; rl = sl; break;
-		default:
-			*or = dr; *og = dg; *ob = db; return;
-	}
-	flis_hsl_to_rgb(rh, rs, rl, or, og, ob);
-	flis_clip_color(or, og, ob);
-}
-
-/* Determine whether a blend mode requires whole-pixel (HSL) treatment */
-static inline gboolean flis_is_hsl_mode(flis_blend_mode_t mode) {
-	return mode == FLIS_BLEND_HUE        ||
-		mode == FLIS_BLEND_SATURATION ||
-		mode == FLIS_BLEND_COLOR      ||
-		mode == FLIS_BLEND_LUMINOSITY;
+                                 float sr, float sg, float sb,
+                                 float dr, float dg, float db,
+                                 float *or, float *og, float *ob) {
+    float sh, ss, sl, dh, ds, dl;
+    flis_rgb_to_hsl(sr, sg, sb, &sh, &ss, &sl);
+    flis_rgb_to_hsl(dr, dg, db, &dh, &ds, &dl);
+    float rh, rs, rl;
+    switch (mode) {
+        case FLIS_BLEND_HUE:
+            rh = sh; rs = ds; rl = dl; break;
+        case FLIS_BLEND_SATURATION:
+            rh = dh; rs = ss; rl = dl; break;
+        case FLIS_BLEND_COLOR:
+            rh = sh; rs = ss; rl = dl; break;
+        case FLIS_BLEND_LUMINOSITY:
+            rh = dh; rs = ds; rl = sl; break;
+        default:
+            *or = dr; *og = dg; *ob = db; return;
+    }
+    flis_hsl_to_rgb(rh, rs, rl, or, og, ob);
+    flis_clip_color(or, og, ob);
 }
 
 /* -------------------------------------------------------------------------
-* flis_composite_build
-*
-* Composites all visible FLIS layers into flis_display_composite.
-*
-* Output: float RGB [0,1], same dimensions as canvas (base layer).
-* Layer data may be float or USHORT, mono or RGB.
-* Layer masks are 8-bit greyscale.
-* All blending is performed in linear [0,1] float.
-* ------------------------------------------------------------------------- */
+ * flis_composite_build
+ *
+ * Composites all visible FLIS layers into flis_display_composite.
+ *
+ * Output: float RGB [0,1], same dimensions as the base layer (canvas).
+ * Layer data may be float or USHORT, mono or RGB.
+ * Layer masks are 8-bit greyscale (LMASK type).
+ * All blending is performed in linear [0,1] float.
+ *
+ * The blend mode switch is hoisted above pixel loops (Option B).
+ * Masked and unmasked paths are separately compiled (Option C).
+ * USHORT sources are converted to float once per layer, not per pixel.
+ * The inner loops are tagged with omp simd for auto-vectorisation.
+ * ------------------------------------------------------------------------- */
 static int flis_composite_build(void) {
-	if (!com.uniq || !com.uniq->layers) return 1;
-	siril_debug_print("Compositing FLIS\n");
+    if (!com.uniq || !com.uniq->layers) return 1;
 
-	/* The list is sorted ascending by layer_order; index 0 is the base */
-	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-	if (!base || !base->fit) return 1;
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    if (!base || !base->fit) return 1;
 
-	const guint W  = base->fit->rx;
-	const guint H  = base->fit->ry;
-	const size_t N = (size_t)W * H;
+    const guint W  = base->fit->rx;
+    const guint H  = base->fit->ry;
+    const size_t N = (size_t)W * H;
 
-	/* (Re)allocate the composite buffer when needed.
-	*
-	* We need a fresh buffer whenever:
-	*   (a) no composite exists yet, or
-	*   (b) the canvas dimensions have changed (crop, upscale, etc.)
-	*
-	* In both cases we free the old buffer and allocate a correctly-sized
-	* one.  When the dimensions are unchanged we reuse the existing buffer
-	* to avoid an unnecessary malloc/free cycle, but we still zero it and
-	* update all metadata and fpdata pointers so the function is safe to
-	* call after any kind of change.
-	*/
-	const gboolean need_realloc = (!flis_display_composite         ||
-								!flis_display_composite->fdata  ||
-								flis_display_composite->rx != W ||
-								flis_display_composite->ry != H);
+    const gboolean need_realloc = (!flis_display_composite         ||
+                                   !flis_display_composite->fdata  ||
+                                   flis_display_composite->rx != W ||
+                                   flis_display_composite->ry != H);
 
-	if (need_realloc) {
-		/* flis_composite_free() handles the NULL case gracefully */
-		flis_composite_free();
-		flis_display_composite = calloc(1, sizeof(fits));
-		if (!flis_display_composite) { PRINT_ALLOC_ERR; return 1; }
-		flis_display_composite->fdata = malloc(N * 3 * sizeof(float));
-		if (!flis_display_composite->fdata) {
-			PRINT_ALLOC_ERR;
-			free(flis_display_composite);
-			flis_display_composite = NULL;
-			return 1;
-		}
-	}
+    if (need_realloc) {
+        flis_composite_free();
+        flis_display_composite = calloc(1, sizeof(fits));
+        if (!flis_display_composite) { PRINT_ALLOC_ERR; return 1; }
+        flis_display_composite->fdata = malloc(N * 3 * sizeof(float));
+        if (!flis_display_composite->fdata) {
+            PRINT_ALLOC_ERR;
+            free(flis_display_composite);
+            flis_display_composite = NULL;
+            return 1;
+        }
+    }
 
-	fits *out = flis_display_composite;
+    fits *out = flis_display_composite;
 
-	/* Zero the pixel buffer — always, not just on fresh allocation.
-	* Layers with visibility=FALSE leave their region at 0 (black),
-	* and the base layer overwrites the whole buffer anyway, but zeroing
-	* avoids any possibility of stale data from a previous composite. */
-	memset(out->fdata, 0, N * 3 * sizeof(float));
+    memset(out->fdata, 0, N * 3 * sizeof(float));
 
-	/* Always (re)set all geometry and pointer fields.  This is cheap and
-	* ensures correctness even if a size change slipped through without
-	* triggering need_realloc (e.g. a future code path that modifies rx/ry
-	* in place without reallocating). */
-	out->fpdata[RLAYER] = out->fdata;
-	out->fpdata[GLAYER] = out->fdata + N;
-	out->fpdata[BLAYER] = out->fdata + N * 2;
-	out->type        = DATA_FLOAT;
-	out->bitpix      = FLOAT_IMG;
-	out->orig_bitpix = FLOAT_IMG;
-	out->naxis       = 3;
-	out->naxes[0]    = W;
-	out->naxes[1]    = H;
-	out->naxes[2]    = 3;
-	out->rx          = W;
-	out->ry          = H;
+    out->fpdata[RLAYER] = out->fdata;
+    out->fpdata[GLAYER] = out->fdata + N;
+    out->fpdata[BLAYER] = out->fdata + N * 2;
+    out->type        = DATA_FLOAT;
+    out->bitpix      = FLOAT_IMG;
+    out->orig_bitpix = FLOAT_IMG;
+    out->naxis       = 3;
+    out->naxes[0]    = W;
+    out->naxes[1]    = H;
+    out->naxes[2]    = 3;
+    out->rx          = W;
+    out->ry          = H;
 
-	/* Copy ICC profile from base layer so the display pipeline applies it */
-	if (out->icc_profile) {
-		cmsCloseProfile(out->icc_profile);
-		out->icc_profile = NULL;
-		color_manage(out, FALSE);
-	}
-	if (base->fit->icc_profile && base->fit->color_managed) {
-		out->icc_profile = copyICCProfile(base->fit->icc_profile);
-		color_manage(out, TRUE);
-	}
+    if (out->icc_profile) {
+        cmsCloseProfile(out->icc_profile);
+        out->icc_profile = NULL;
+        color_manage(out, FALSE);
+    }
+    if (base->fit->icc_profile && base->fit->color_managed) {
+        out->icc_profile = copyICCProfile(base->fit->icc_profile);
+        color_manage(out, TRUE);
+    }
 
-	float *out_r = out->fpdata[RLAYER];
-	float *out_g = out->fpdata[GLAYER];
-	float *out_b = out->fpdata[BLAYER];
+    float *out_r = out->fpdata[RLAYER];
+    float *out_g = out->fpdata[GLAYER];
+    float *out_b = out->fpdata[BLAYER];
 
-	/* ------------------------------------------------------------------ */
-	/* Iterate layers bottom to top                                        */
-	/* ------------------------------------------------------------------ */
-	gboolean first_layer = TRUE;
+    gboolean first_layer = TRUE;
 
-	for (GSList *node = com.uniq->layers; node; node = node->next) {
-		flis_layer_t *lay = (flis_layer_t *)node->data;
-		if (!lay || !lay->fit || !lay->visible) continue;
+    for (GSList *node = com.uniq->layers; node; node = node->next) {
+        flis_layer_t *lay = (flis_layer_t *)node->data;
+        if (!lay || !lay->fit || !lay->visible) continue;
 
-		fits           *lfit  = lay->fit;
-		layermask_t    *lmask = lay->lmask;
-		const gboolean  mono  = (lfit->naxes[2] == 1);
-		const gboolean  is_float = (lfit->type == DATA_FLOAT);
-		flis_blend_mode_t mode   = lay->blend_mode;
-		const float      global_opacity = lay->opacity;
-		const gboolean   hsl_mode = flis_is_hsl_mode(mode);
+        fits              *lfit          = lay->fit;
+        layermask_t       *lmask         = lay->lmask;
+        const gboolean     mono          = (lfit->naxes[2] == 1);
+        const gboolean     is_float      = (lfit->type == DATA_FLOAT);
+        const gboolean     hsl_mode      = (lay->blend_mode == FLIS_BLEND_HUE        ||
+                                            lay->blend_mode == FLIS_BLEND_SATURATION  ||
+                                            lay->blend_mode == FLIS_BLEND_COLOR       ||
+                                            lay->blend_mode == FLIS_BLEND_LUMINOSITY);
+        flis_blend_mode_t  mode          = lay->blend_mode;
+        const float        global_opacity = lay->opacity;
 
-		/* Tint factors for mono layers (default: neutral 1,1,1) */
-		float tr = 1.f, tg = 1.f, tb = 1.f;
-		if (mono && lay->has_tint) {
-			tr = (float)lay->layer_tint.r;
-			tg = (float)lay->layer_tint.g;
-			tb = (float)lay->layer_tint.b;
-		}
+        /* Pre-compute source float pointers.
+         *
+         * For float source: use fpdata directly (zero allocation, zero copy).
+         * For USHORT source: convert once to a temporary float buffer using a
+         * vectorised parallel pass, then blend from that buffer.
+         *
+         * Mono sources use a single plane; all three pre_* pointers are set to
+         * the same array.  Tint (tr/tg/tb) then differentiates the channels
+         * during the blend loop via a scalar broadcast multiply.              */
+        float        *float_buf = NULL;
+        const float  *pre_r, *pre_g, *pre_b;
 
-		/* Source channel pointers (mono reuses R for all three) */
-		float *src_r_f = NULL, *src_g_f = NULL, *src_b_f = NULL;
-		WORD  *src_r_w = NULL, *src_g_w = NULL, *src_b_w = NULL;
-		if (is_float) {
-			src_r_f = lfit->fpdata[RLAYER];
-			src_g_f = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[GLAYER];
-			src_b_f = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[BLAYER];
-		} else {
-			src_r_w = lfit->pdata[RLAYER];
-			src_g_w = mono ? lfit->pdata[RLAYER] : lfit->pdata[GLAYER];
-			src_b_w = mono ? lfit->pdata[RLAYER] : lfit->pdata[BLAYER];
-		}
+        if (is_float) {
+            pre_r = lfit->fpdata[RLAYER];
+            pre_g = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[GLAYER];
+            pre_b = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[BLAYER];
+        } else {
+            const size_t n_planes = mono ? 1 : 3;
+            float_buf = malloc(N * n_planes * sizeof(float));
+            if (!float_buf) { PRINT_ALLOC_ERR; continue; }
 
-		/* LMASK data (NULL if no layer mask) */
-		const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
+            const WORD *sw[3] = {
+                lfit->pdata[RLAYER],
+                mono ? lfit->pdata[RLAYER] : lfit->pdata[GLAYER],
+                mono ? lfit->pdata[RLAYER] : lfit->pdata[BLAYER]
+            };
+            for (size_t _c = 0; _c < n_planes; _c++) {
+                float      *fw  = float_buf + _c * N;
+                const WORD *src = sw[_c];
+                FLIS_OMP_PAR_FOR_SIMD
+                for (size_t _k = 0; _k < N; _k++)
+                    fw[_k] = src[_k] * INV_USHRT_MAX_SINGLE;
+            }
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (guint y = 0; y < H; y++) {
-			const size_t row = (size_t)y * W;
-			for (guint x = 0; x < W; x++) {
-				const size_t i = row + x;
+            pre_r = float_buf;
+            pre_g = mono ? float_buf : float_buf + N;
+            pre_b = mono ? float_buf : float_buf + N * 2;
+        }
 
-				/* Effective alpha: global opacity × lmask factor */
-				float alpha = global_opacity;
-				if (mask_data)
-					alpha *= mask_data[i] * (1.f / 255.f);
+        /* Tint scalars.  For RGB layers or untinted mono layers these are 1.f
+         * and the compiler folds pre_r[_i]*1.f to a plain load in each
+         * instantiated loop body.                                             */
+        const float tr = (mono && lay->has_tint) ? (float)lay->layer_tint.r : 1.f;
+        const float tg = (mono && lay->has_tint) ? (float)lay->layer_tint.g : 1.f;
+        const float tb = (mono && lay->has_tint) ? (float)lay->layer_tint.b : 1.f;
 
-				/* Source pixel, expanded to float RGB */
-				float sr, sg, sb;
-				if (is_float) {
-					sr = src_r_f[i];
-					sg = src_g_f[i];
-					sb = src_b_f[i];
-				} else {
-					sr = src_r_w[i] * (1.f / 65535.f);
-					sg = src_g_w[i] * (1.f / 65535.f);
-					sb = src_b_w[i] * (1.f / 65535.f);
-				}
-				/* Apply tint to mono source */
-				if (mono) {
-					sb = sr * tb;
-					sg = sr * tg;
-					sr = sr * tr;
-				}
+        const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
 
-				if (first_layer) {
-					/* Base layer: write directly, no blending needed */
-					out_r[i] = flis_clamp01(sr);
-					out_g[i] = flis_clamp01(sg);
-					out_b[i] = flis_clamp01(sb);
-				} else {
-					float dr = out_r[i];
-					float dg = out_g[i];
-					float db = out_b[i];
+        if (first_layer) {
+            FLIS_BASE_LOOP(tr, tg, tb);
+            first_layer = FALSE;
+        } else if (hsl_mode) {
+            /* HSL modes: not vectorisable per-channel; separate masked/unmasked
+             * paths still remove the per-pixel mask branch (Option C).        */
+            if (mask_data) {
+                FLIS_HSL_LOOP_MASKED(tr, tg, tb);
+            } else {
+                FLIS_HSL_LOOP(tr, tg, tb);
+            }
+        } else {
+            /* Channel-wise modes: blend mode switch hoisted above pixel loops
+             * (Option B); masked/unmasked paths compiled separately (Option C).
+             * Each instantiated inner loop is branchless and SIMD-vectorisable.*/
+            FLIS_DISPATCH(tr, tg, tb);
+        }
 
-					float br, bg, bb; /* blended result before alpha-over */
-					if (hsl_mode) {
-						flis_blend_hsl_pixel(mode,
-											sr, sg, sb,
-											dr, dg, db,
-											&br, &bg, &bb);
-					} else {
-						br = flis_blend_ch(mode, sr, dr);
-						bg = flis_blend_ch(mode, sg, dg);
-						bb = flis_blend_ch(mode, sb, db);
-					}
+        free(float_buf);  /* no-op for float sources (float_buf == NULL) */
+    }
 
-					/* Porter-Duff 'over': out = blend*a + dst*(1-a) */
-					out_r[i] = flis_clamp01(br * alpha + dr * (1.f - alpha));
-					out_g[i] = flis_clamp01(bg * alpha + dg * (1.f - alpha));
-					out_b[i] = flis_clamp01(bb * alpha + db * (1.f - alpha));
-				}
-			}
-		}
-
-		first_layer = FALSE;
-	}
-
-	/* If no visible layer was processed, leave the composite black */
-	flis_composite_dirty = FALSE;
-	siril_debug_print("FLIS composite rebuilt (%ux%u)\n", W, H);
-	return 0;
+    flis_composite_dirty = FALSE;
+    siril_debug_print("FLIS composite rebuilt (%ux%u)\n", W, H);
+    return 0;
 }
 
 /* Public: is a FLIS composite currently active?
-* Defined in image_format_flis.c; declared in image_format_flis.h.
-* Use is_current_image_flis() everywhere rather than testing com.uniq
-* directly, so the definition of "a FLIS file is loaded" stays in one
-* place. */
+ * Defined in image_format_flis.c; declared in image_format_flis.h.
+ * Use is_current_image_flis() everywhere rather than testing com.uniq
+ * directly, so the definition of "a FLIS file is loaded" stays in one
+ * place. */
 
 
 
@@ -857,8 +1070,8 @@ static void remap(int vport) {
 				// No mask
 				if (color == RAINBOW_COLOR) {
 					*(guint32*)(dst + dst_i) = rainbow_index[dst_pixel_value][0] << 16 |
-												rainbow_index[dst_pixel_value][1] << 8 |
-												rainbow_index[dst_pixel_value][2];
+					                            rainbow_index[dst_pixel_value][1] << 8 |
+					                            rainbow_index[dst_pixel_value][2];
 				} else {
 					*(guint32*)(dst + dst_i) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
 				}
@@ -1113,8 +1326,8 @@ static void remap_all_vports() {
 							const guint dst_index = dst_row_start + x * 4;
 							const BYTE pixel_val = line_byte[x];
 							*(guint32*)(dst[c] + dst_index) = rainbow_index[pixel_val][0] << 16 |
-															rainbow_index[pixel_val][1] << 8 |
-															rainbow_index[pixel_val][2];
+							                                   rainbow_index[pixel_val][1] << 8 |
+							                                   rainbow_index[pixel_val][2];
 						}
 					}
 				}
@@ -1191,10 +1404,10 @@ static int make_hd_index_for_current_display(int vport) {
 	}
 
 	/* initialization of data required to build the remap_index
-	*
-	* The HD remap curve is only used with STF rendering mode
-	* as it is the only mode that results in a slope steep enough
-	* to cause noticeable quantization of levels */
+	 *
+	 * The HD remap curve is only used with STF rendering mode
+	 * as it is the only mode that results in a slope steep enough
+	 * to cause noticeable quantization of levels */
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
 	siril_debug_print("Rebuilding HD remap_index\n");
@@ -1329,10 +1542,10 @@ static int make_index_for_rainbow(BYTE index[][3]) {
 }
 
 /*****************************************************************************
-* ^ ^ ^ above:     R E M A P P I N G     I M A G E     D A T A        ^ ^ ^ *
-*                                                                           *
-* v v v below:          R E D R A W I N G     W I D G E T S           v v v *
-*****************************************************************************/
+ * ^ ^ ^ above:     R E M A P P I N G     I M A G E     D A T A        ^ ^ ^ *
+ *                                                                           *
+ * v v v below:          R E D R A W I N G     W I D G E T S           v v v *
+ *****************************************************************************/
 
 typedef struct label_point_struct {
 	double x, y, ra, dec, angle;
@@ -1391,7 +1604,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 #ifdef SIRIL_UNSTABLE
 
 	msg = g_strdup_printf(_("<big>Unstable Development Version</big>\n\n"
-				"<small>%c%s</small>\n"
+			    "<small>%c%s</small>\n"
 				"<small>commit <tt>%s</tt></small>\n"
 				"<small>Please test bugs against "
 				"latest git master branch\n"
@@ -1715,10 +1928,10 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								polygon->color.red,
-						polygon->color.green,
-						polygon->color.blue,
-						polygon->color.alpha);
+								  polygon->color.red,
+						 polygon->color.green,
+						 polygon->color.blue,
+						 polygon->color.alpha);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
@@ -1728,20 +1941,20 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_fill_preserve(cr);
 			// Draw the outline
 			cairo_set_source_rgba(cr,
-								polygon->color.red * 0.8, // Slightly darker outline if filled
-						polygon->color.green * 0.8,
-						polygon->color.blue * 0.8,
-						polygon->color.alpha);
+								  polygon->color.red * 0.8, // Slightly darker outline if filled
+						 polygon->color.green * 0.8,
+						 polygon->color.blue * 0.8,
+						 polygon->color.alpha);
 			cairo_stroke(cr);
 			cairo_restore(cr);
 		} else {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								polygon->color.red,
-						polygon->color.green,
-						polygon->color.blue,
-						polygon->color.alpha);
+								  polygon->color.red,
+						 polygon->color.green,
+						 polygon->color.blue,
+						 polygon->color.alpha);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
@@ -1768,16 +1981,16 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_set_source_rgba(cr, 0, 0, 0, 0.5);  // Darken the background
 			cairo_rectangle(cr,
 							center_x - text_extents.width/2 - padding,
-				center_y - text_extents.height/2 - padding,
-				text_extents.width + 2*padding,
-				text_extents.height + 2*padding);
+				   center_y - text_extents.height/2 - padding,
+				   text_extents.width + 2*padding,
+				   text_extents.height + 2*padding);
 			cairo_fill(cr);
 
 			// Draw the text
 			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);  // White text
 			cairo_move_to(cr,
-						center_x - text_extents.width/2,
-				center_y + text_extents.height/2);
+						  center_x - text_extents.width/2,
+				 center_y + text_extents.height/2);
 			cairo_show_text(cr, polygon->legend);
 			cairo_restore(cr);
 		}
@@ -2644,8 +2857,8 @@ void initialize_image_display() {
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
-* size in argument and the image size in gfit->
-* Should not be called before displaying the main gray window when using zoom to fit */
+ * size in argument and the image size in gfit->
+ * Should not be called before displaying the main gray window when using zoom to fit */
 double get_zoom_val() {
 	int window_width, window_height;
 	if (gui.zoom_value > 0.)
@@ -2663,10 +2876,10 @@ double get_zoom_val() {
 // passing -1 means invalidate all
 static void invalidate_image_render_cache(int vport) {
 	/* the render cache is a surface containing the rendering of the image
-	* from the mapped buffers to the drawing area.
-	* If some of the parameters change, the cache must be invalidated to
-	* redraw the image: image content, image mapping, widget dimensions.
-	*/
+	 * from the mapped buffers to the drawing area.
+	 * If some of the parameters change, the cache must be invalidated to
+	 * redraw the image: image content, image mapping, widget dimensions.
+	 */
 	for (int i = 0; i < MAXVPORT; i++) {
 		if (vport >= 0 && i != vport)
 			continue;
@@ -2767,20 +2980,20 @@ void redraw(remap_type doremap) {
 		copy_roi_into_gfit();
 
 	/* FLIS mode: build the layer composite and temporarily substitute it
-	* for gfit so the existing remap pipeline processes the composited
-	* image unchanged.  gfit is restored after remapping so all science
-	* operations (statistics, histogram, tools) continue to see the
-	* active layer's data.
-	*
-	* The swap is safe because redraw() runs on the GTK main thread via
-	* redraw_idle(), and no other GTK callback can interleave with it. */
+	 * for gfit so the existing remap pipeline processes the composited
+	 * image unchanged.  gfit is restored after remapping so all science
+	 * operations (statistics, histogram, tools) continue to see the
+	 * active layer's data.
+	 *
+	 * The swap is safe because redraw() runs on the GTK main thread via
+	 * redraw_idle(), and no other GTK callback can interleave with it. */
 	fits *saved_gfit = NULL;
 	if (doremap == REMAP_ALL && is_current_image_flis()) {
 		if (flis_composite_dirty) {
 			if (flis_composite_build()) {
 				siril_log_color_message(
-					_("FLIS: composite build failed, displaying active layer\n"),
-					"salmon");
+				    _("FLIS: composite build failed, displaying active layer\n"),
+				    "salmon");
 				/* Fall through: gfit (active layer) is used as-is */
 			}
 		}
