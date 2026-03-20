@@ -49,6 +49,7 @@
 #include "core/masks.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
+#include "gui/image_display.h"
 #include "image_format_fits.h"
 #include "image_format_flis.h"
 
@@ -1272,7 +1273,7 @@ int load_flis(const gchar *filename) {
 * Emit an ISO 8601 UTC timestamp string into a heap-allocated gchar*.
 * Returns a g_malloc'd string; caller must g_free().
 */
-static gchar *flis_now_iso8601(void) {
+gchar *flis_now_iso8601(void) {
 	GDateTime *now = g_date_time_new_now_utc();
 	gchar *s = g_date_time_format_iso8601(now);
 	g_date_time_unref(now);
@@ -1698,4 +1699,45 @@ int flis_layer_clear_tint(flis_layer_t *layer) {
 	layer->layer_tint = (flis_tint_t){ 1.0, 1.0, 1.0 };
 	flis_layer_touch_modified(layer);
 	return 0;
+}
+
+int flis_promote_from_gfit(const gchar *name) {
+    if (!com.uniq) {
+        siril_log_message(_("FLIS: flis_promote_from_gfit — no image loaded\n"));
+        return 1;
+    }
+    if (is_current_image_flis()) {
+        siril_log_message(_("FLIS: flis_promote_from_gfit — image is already a FLIS\n"));
+        return 1;
+    }
+    if (!gfit || (!gfit->fdata && !gfit->data)) {
+        siril_log_message(_("FLIS: flis_promote_from_gfit — gfit has no pixel data\n"));
+        return 1;
+    }
+
+    /* Seed the item ID counter. calloc in create_uniq_from_gfit() leaves
+     * it at 0; FLIS item IDs must be >= 1. */
+    com.uniq->next_item_id = 1;
+
+    /* Wrap gfit as the base layer.  Ownership of the fits* transfers to
+     * the layer; flis_layer_free() will clearfits()+free() it. */
+    flis_layer_t *base = flis_layer_new(gfit, name ? name : "Background");
+    if (!base) return 1;
+
+    base->item_id     = com.uniq->next_item_id++;
+    base->layer_order = FLIS_ORDER_STEP;   /* first slot: 10 */
+    base->created     = flis_now_iso8601();
+    base->modified    = g_strdup(base->created);
+
+    com.uniq->layers = g_slist_prepend(NULL, base);
+    uniq_set_active_layer(com.uniq, 0);
+
+    /* com.uniq->fit still points at gfit (now via the layer); no change
+     * needed there.  com.uniq->filename and fileexist are already correct
+     * from create_uniq_from_gfit().  Mark the composite dirty so the next
+     * redraw regenerates it. */
+    flis_invalidate_composite();
+
+    siril_log_message(_("FLIS: promoted loaded image to single-layer FLIS\n"));
+    return 0;
 }
