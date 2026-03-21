@@ -549,10 +549,12 @@ G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
     flis_properties_panel_update(layer);
     flis_toolbar_sensitivity_update();
 
-    /* Redraw so the display reflects the newly active layer.  The composite
-     * itself does not change on a simple layer selection (all visible layers
-     * are always composited), but this ensures the display is always current
-     * and responsive when the user interacts with the panel. */
+    /* Update mask tab visibility and tint for the newly active layer.
+     * show_or_hide_mask_tab() checks gfit->mask, which uniq_set_active_layer()
+     * has already updated to point at this layer's fits*. */
+    show_or_hide_mask_tab();
+
+    /* Redraw so the display reflects the newly active layer. */
     if (is_current_image_flis() && !flis_updating)
         queue_redraw(REMAP_ALL);
 }

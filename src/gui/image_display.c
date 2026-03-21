@@ -3009,6 +3009,14 @@ void redraw(remap_type doremap) {
 			saved_gfit = gfit;
 			gfit = flis_display_composite;
 
+			/* For mask tint rendering: remap_all_vports() and remap() check
+			 * gfit->mask for the tint overlay, but the composite has no mask.
+			 * Copy the active layer's mask pointer onto the composite so the
+			 * tint renders correctly.  The pointer is cleared after remapping
+			 * so the composite does not take ownership of the mask. */
+			gfit->mask        = saved_gfit->mask;
+			gfit->mask_active = saved_gfit->mask_active;
+
 			invalidate_stats_from_fit(gfit);
 			init_layers_hi_and_lo_values(gui.sliders);
 		}
@@ -3039,8 +3047,13 @@ void redraw(remap_type doremap) {
 	}
 
 	/* Restore gfit to the active layer before any further code runs */
-	if (saved_gfit)
+	if (saved_gfit) {
+		/* Clear the borrowed mask pointer from the composite — the composite
+		 * does not own the mask and must not free or reference it. */
+		gfit->mask        = NULL;
+		gfit->mask_active = FALSE;
 		gfit = saved_gfit;
+	}
 
 	request_gtk_redraw_of_cvport();
 }
