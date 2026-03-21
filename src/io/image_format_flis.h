@@ -67,6 +67,19 @@ typedef struct {
     double r, g, b;
 } flis_tint_t;
 
+/* flis_layer_props_t — lightweight snapshot of all non-pixel layer properties.
+ * Used by the undo mechanism for property-only undo states that require no
+ * swap file.  See undo_save_flis_layer_props() in undo.c. */
+typedef struct flis_layer_props_t {
+    flis_blend_mode_t blend_mode;
+    gfloat            opacity;
+    gboolean          visible;
+    gboolean          locked;
+    gboolean          has_tint;
+    flis_tint_t       tint;
+    gchar             name[33];   /* matches max-length in the UI */
+} flis_layer_props_t;
+
 /* -----------------------------------------------------------------------
  * Layer mask — lightweight structure for a greyscale opacity or processing
  * mask.  Does not carry FITS headers or science metadata; just the pixel

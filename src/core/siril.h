@@ -740,12 +740,16 @@ typedef struct _child_info {
 	GDateTime *datetime; // start time of program - distinguishes between multiple children with the same argv0
 } child_info;
 
+/* Forward declaration — full definition is in io/image_format_flis.h */
+typedef struct flis_layer_props_t flis_layer_props_t;
+
 struct historic_struct {
 	char *filename;
 	char *mask_filename;
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	gint flis_layer_id;
+	flis_layer_props_t *layer_props;
 	data_type type;
 	uint8_t mask_bitpix;
 	wcs_info wcsdata;

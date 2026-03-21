@@ -28,6 +28,14 @@
  * saved from a plain FITS image (not a FLIS layer). */
 #define FLIS_UNDO_LAYER_NONE  (-1)
 
+/* Forward declarations for FLIS types used in function signatures below.
+ * Full definitions are in io/image_format_flis.h.
+ * The tag on flis_layer_props_t must match the tagged struct definition there.
+ * siril.h also forward-declares flis_layer_props_t; both declarations are
+ * compatible because they name the same struct tag. */
+typedef struct _flis_layer_t      flis_layer_t;
+typedef struct flis_layer_props_t flis_layer_props_t;
+
 /*
  * IMPORTANT — siril.h change required
  * =====================================
@@ -80,4 +88,34 @@ gboolean redo_in_thread(gpointer user_data);
  */
 void flis_undo_purge_layer(gint item_id);
 
+/**
+ * undo_save_flis_layer_props:
+ * @layer:   the FLIS layer whose properties are to be snapshotted.
+ * @message: undo label shown in the tooltip (printf-style format string).
+ *
+ * Saves a lightweight property-only undo state for the given layer.
+ * No pixel swap file is written; only the layer's blend mode, opacity,
+ * visibility, lock, tint, and name are stored.
+ *
+ * Call this from property-change handlers in flis_gui.c BEFORE applying
+ * the change, so the saved state represents the pre-change values.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...);
+
+/**
+ * undo_save_flis_layer_props_snapshot:
+ * @item_id:  the layer's stable item_id.
+ * @props:    pre-built snapshot of the layer properties at the desired point.
+ * @message:  undo label.
+ *
+ * Variant of undo_save_flis_layer_props() that takes an already-built
+ * flis_layer_props_t snapshot rather than reading from the live layer.
+ * Used by the opacity drag-end path to record the pre-drag state after
+ * the drag is complete, without polluting history with every tick value.
+ */
+int undo_save_flis_layer_props_snapshot(gint item_id,
+                                        const flis_layer_props_t *props,
+                                        const char *message);
 #endif /* UNDO_H_ */

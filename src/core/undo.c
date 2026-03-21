@@ -35,8 +35,8 @@
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
-#include "gui/flis_gui.h"
 #include "gui/histogram.h"
+#include "gui/flis_gui.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
@@ -174,6 +174,8 @@ static int undo_remove_item(historic *histo, int index) {
 	memset(histo[index].history, 0, FLEN_VALUE);
 	histo[index].mask_bitpix = 0;
 	histo[index].flis_layer_id = FLIS_UNDO_LAYER_NONE;
+	g_free(histo[index].layer_props);
+	histo[index].layer_props = NULL;
 	return 0;
 }
 
@@ -424,6 +426,31 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 }
 
 static int undo_get_data(fits *fit, historic *hist) {
+	/* Property-only undo state: no pixel swap file, just layer properties */
+	if (!hist->filename && hist->layer_props) {
+		if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE || !is_current_image_flis())
+			return 1;
+		flis_layer_t *layer = flis_layer_get_by_id(hist->flis_layer_id);
+		if (!layer) {
+			siril_log_color_message(
+				_("Undo: target layer (id %d) no longer exists\n"),
+				"salmon", hist->flis_layer_id);
+			return 1;
+		}
+		const flis_layer_props_t *p = hist->layer_props;
+		/* Apply properties directly, bypassing the mutating functions that
+		 * would call flis_layer_touch_modified() and save a new undo state */
+		layer->blend_mode = p->blend_mode;
+		layer->opacity    = p->opacity;
+		layer->visible    = p->visible;
+		layer->locked     = p->locked;
+		layer->has_tint   = p->has_tint;
+		layer->layer_tint = p->tint;
+		g_free(layer->layer_name);
+		layer->layer_name = g_strdup(p->name);
+		return 0;
+	}
+
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
@@ -510,6 +537,83 @@ int undo_save_state(fits *fit, const char *message, ...) {
 	return 0;
 }
 
+/* Shared inner implementation — takes an already-built props snapshot and
+ * adds it to the ring buffer.  Used by both undo_save_flis_layer_props()
+ * (which builds the snapshot from the live layer) and the opacity drag-end
+ * path in flis_gui.c (which builds the snapshot at drag-start). */
+static int undo_push_flis_layer_props(gint item_id,
+                                      const flis_layer_props_t *props,
+                                      const char *histo) {
+	flis_layer_props_t *copy = g_new(flis_layer_props_t, 1);
+	*copy = *props;
+
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+
+	/* Discard any redo states above hist_display */
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+
+	/* Handle ring-buffer wrap */
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+
+	historic *h = &com.history[com.hist_current];
+	memset(h, 0, sizeof(*h));
+	h->filename       = NULL;
+	h->layer_props    = copy;
+	h->flis_layer_id  = item_id;
+	snprintf(h->history, FLEN_VALUE, "%s", histo ? histo : "");
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+
+	gui_function(update_MenuItem, NULL);
+	return 0;
+}
+
+int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...) {
+	if (!layer || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	flis_layer_props_t props;
+	props.blend_mode = layer->blend_mode;
+	props.opacity    = layer->opacity;
+	props.visible    = layer->visible;
+	props.locked     = layer->locked;
+	props.has_tint   = layer->has_tint;
+	props.tint       = layer->layer_tint;
+	g_strlcpy(props.name,
+	          layer->layer_name ? layer->layer_name : "", sizeof(props.name));
+
+	return undo_push_flis_layer_props(layer->item_id, &props, histo);
+}
+
+int undo_save_flis_layer_props_snapshot(gint item_id,
+                                        const flis_layer_props_t *props,
+                                        const char *message) {
+	if (!is_current_image_flis() || !single_image_is_loaded()) return 1;
+	return undo_push_flis_layer_props(item_id, props, message);
+}
+
 /* Switch the active FLIS layer to match a historic state, so that
  * undo_get_data() restores pixel data into the correct layer's fits*.
  *
@@ -579,7 +683,21 @@ int undo_display_data(int dir) {
 			siril_preview_hide();
 			on_clear_roi();
 			if (com.hist_current == com.hist_display) {
-				undo_save_state(gfit, NULL);
+				/* We are at the tip of the history — save a "redo target" state
+				 * before stepping back.  For props-only undo states the auto-save
+				 * must also be props-only; a pixel-only save from undo_save_state()
+				 * would not capture the current blend mode / opacity / etc., leaving
+				 * redo unable to restore them. */
+				historic *next = &com.history[com.hist_display - 1];
+				if (next->layer_props && !next->filename && is_current_image_flis()) {
+					flis_layer_t *active = flis_layer_get_by_id(next->flis_layer_id);
+					if (active)
+						undo_save_flis_layer_props(active, NULL);
+					else
+						undo_save_state(gfit, NULL);
+				} else {
+					undo_save_state(gfit, NULL);
+				}
 				com.hist_display--;
 			}
 			com.hist_display--;

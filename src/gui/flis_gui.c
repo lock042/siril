@@ -468,6 +468,7 @@ static void on_row_visibility_toggled(GtkToggleButton *btn,
     if (!layer) return;
 
     gboolean active = gtk_toggle_button_get_active(btn);
+    undo_save_flis_layer_props(layer, _("Layer visibility"));
     flis_layer_set_visible(layer, active);
 
     /* Flip the button icon */
@@ -491,6 +492,7 @@ static void on_row_lock_toggled(GtkToggleButton *btn,
     if (!layer) return;
 
     gboolean locked = gtk_toggle_button_get_active(btn);
+    undo_save_flis_layer_props(layer, _("Layer lock"));
     flis_layer_set_locked(layer, locked);
 
     const gchar *icon_name = locked
@@ -602,7 +604,8 @@ G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
         flis_selected->layer_name ? flis_selected->layer_name : _("Layer"));
     gtk_message_dialog_format_secondary_text(
         GTK_MESSAGE_DIALOG(dlg),
-        _("This operation cannot be undone."));
+        _("Pixel-level undo states for this layer will be discarded. "
+          "States for other layers are preserved."));
     gint response = gtk_dialog_run(GTK_DIALOG(dlg));
     gtk_widget_destroy(dlg);
     if (response != GTK_RESPONSE_OK) return;
@@ -610,11 +613,13 @@ G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
     flis_layer_t *to_remove = flis_selected;
     flis_selected = NULL;
 
-    flis_undo_purge_layer(to_remove->item_id); // Added as part of layer structure undo impl.
+    /* Purge undo states for this layer BEFORE destroying it so item_id is
+     * still valid.  Other layers' states are preserved. */
+    flis_undo_purge_layer(to_remove->item_id);
+
     if (flis_layer_remove(to_remove)) return; /* error already logged */
 
-//    flis_undo_notify_structural_change(); // Removed as part of layer structure undo implementation
-	flis_invalidate_composite();
+    flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
 }
@@ -686,6 +691,7 @@ static void flis_apply_name_entry(void) {
 
     const gchar *text = gtk_entry_get_text(
                             GTK_ENTRY(fw("flis_name_entry")));
+    undo_save_flis_layer_props(flis_selected, _("Layer name"));
     if (flis_layer_set_name(flis_selected, text) == 0) {
         /* Update the name label in the list row without a full rebuild */
         GtkListBox    *list = GTK_LIST_BOX(fw("flis_layer_list"));
@@ -725,6 +731,7 @@ G_MODULE_EXPORT void on_flis_blend_mode_changed(GtkComboBox *combo,
     gint idx = gtk_combo_box_get_active(combo);
     if (idx < 0 || idx >= N_BLEND_MODES) return;
 
+    undo_save_flis_layer_props(flis_selected, _("Blend mode"));
     flis_layer_set_blend_mode(flis_selected, blend_mode_map[idx]);
     flis_invalidate_composite();
     queue_redraw(REMAP_ALL);
@@ -733,6 +740,43 @@ G_MODULE_EXPORT void on_flis_blend_mode_changed(GtkComboBox *combo,
 /* Opacity: connect to the GtkAdjustment value-changed signal in code so
  * it fires exactly once regardless of which widget (scale or spin) was
  * used. Connected in flis_gui_open(). */
+/* Opacity debouncing state. */
+static gint               flis_opacity_drag_id       = FLIS_UNDO_LAYER_NONE;
+static flis_layer_props_t flis_opacity_drag_snapshot;
+
+static gboolean on_flis_opacity_scale_press(GtkWidget *widget,
+                                            GdkEventButton *event,
+                                            gpointer data) {
+    (void)widget; (void)event; (void)data;
+    if (!flis_selected) return FALSE;
+
+    flis_opacity_drag_id                   = flis_selected->item_id;
+    flis_opacity_drag_snapshot.blend_mode  = flis_selected->blend_mode;
+    flis_opacity_drag_snapshot.opacity     = flis_selected->opacity;
+    flis_opacity_drag_snapshot.visible     = flis_selected->visible;
+    flis_opacity_drag_snapshot.locked      = flis_selected->locked;
+    flis_opacity_drag_snapshot.has_tint    = flis_selected->has_tint;
+    flis_opacity_drag_snapshot.tint        = flis_selected->layer_tint;
+    g_strlcpy(flis_opacity_drag_snapshot.name,
+              flis_selected->layer_name ? flis_selected->layer_name : "",
+              sizeof(flis_opacity_drag_snapshot.name));
+    return FALSE;
+}
+
+static gboolean on_flis_opacity_scale_release(GtkWidget *widget,
+                                              GdkEventButton *event,
+                                              gpointer data) {
+    (void)widget; (void)event; (void)data;
+    if (flis_opacity_drag_id == FLIS_UNDO_LAYER_NONE) return FALSE;
+
+    if (flis_selected && flis_selected->item_id == flis_opacity_drag_id)
+        undo_save_flis_layer_props_snapshot(flis_opacity_drag_id,
+                                            &flis_opacity_drag_snapshot,
+                                            _("Opacity"));
+    flis_opacity_drag_id = FLIS_UNDO_LAYER_NONE;
+    return FALSE;
+}
+
 static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
@@ -741,6 +785,13 @@ static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     flis_layer_set_opacity(flis_selected, (gfloat)(pct / 100.0));
     flis_invalidate_composite();
     queue_redraw(REMAP_ALL);
+}
+
+static void on_flis_opacity_spin_commit(GtkSpinButton *spin, gpointer data) {
+    (void)spin; (void)data;
+    if (flis_updating || !flis_selected) return;
+    if (flis_opacity_drag_id != FLIS_UNDO_LAYER_NONE) return;
+    undo_save_flis_layer_props(flis_selected, _("Opacity"));
 }
 
 /* =========================================================================
@@ -916,16 +967,15 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
     (void)data;
     if (flis_updating || !flis_selected) return;
 
-    /* Snapshot the composite colour model before the change */
     gboolean was_rgb = flis_composite_will_be_rgb();
 
+    undo_save_flis_layer_props(flis_selected, _("Tint"));
     gboolean enable = gtk_toggle_button_get_active(btn);
     gtk_widget_set_sensitive(fw("flis_tint_color_btn"), enable);
 
     if (!enable) {
         flis_layer_clear_tint(flis_selected);
     } else {
-        /* Apply the current color button value as the initial tint */
         GdkRGBA colour;
         gtk_color_chooser_get_rgba(
             GTK_COLOR_CHOOSER(fw("flis_tint_color_btn")), &colour);
@@ -933,17 +983,8 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
                             colour.red, colour.green, colour.blue);
     }
 
-    /* Update the channel tab strip only when the composite colour model
-     * has actually changed (mono→RGB or RGB→mono).  Calling close_tab()
-     * unconditionally would cause unnecessary redraws on every tint toggle
-     * in an already-RGB stack. */
     gboolean now_rgb = flis_composite_will_be_rgb();
     if (now_rgb != was_rgb) {
-        /* com.uniq->chans is set from the active layer's naxes[2] by
-         * uniq_set_active_layer(), which is always 1 for a mono layer.
-         * close_tab() reads this value to decide whether to show colour
-         * tabs, so we must update it to reflect the composite output before
-         * calling it — otherwise it will always see 1 and hide the tabs. */
         if (com.uniq)
             com.uniq->chans = now_rgb ? 3 : 1;
         close_tab(NULL);
@@ -961,6 +1002,7 @@ G_MODULE_EXPORT void on_flis_tint_color_set(GtkColorButton *btn,
 
     GdkRGBA colour;
     gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(btn), &colour);
+    undo_save_flis_layer_props(flis_selected, _("Tint colour"));
     flis_layer_set_tint(flis_selected,
                         colour.red, colour.green, colour.blue);
     flis_invalidate_composite();
@@ -1027,6 +1069,19 @@ void flis_gui_init(void) {
     if (adj)
         g_signal_connect(adj, "value-changed",
                          G_CALLBACK(on_flis_opacity_adj_changed), NULL);
+
+    GtkWidget *scale = lookup_widget("flis_opacity_scale");
+    if (scale) {
+        g_signal_connect(scale, "button-press-event",
+                         G_CALLBACK(on_flis_opacity_scale_press), NULL);
+        g_signal_connect(scale, "button-release-event",
+                         G_CALLBACK(on_flis_opacity_scale_release), NULL);
+    }
+
+    GtkWidget *spin = lookup_widget("flis_opacity_spin");
+    if (spin)
+        g_signal_connect(spin, "value-changed",
+                         G_CALLBACK(on_flis_opacity_spin_commit), NULL);
 }
 
 void flis_gui_open(void) {
