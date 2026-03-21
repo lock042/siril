@@ -28,10 +28,10 @@ from .exceptions import SirilError, DataError, SirilConnectionError, CommandErro
 from .models import ImageStats, FKeywords, FFit, PSFStar, BGSample, RegData, ImgData, \
         DistoData, Sequence, SequenceType, Polygon, ImageAnalysis
 from .enums import _Command, _Status, CommandStatus, _ConfigType, LogColor, SirilVport, \
-        STFType, SlidersMode
+        STFType, SlidersMode, DialogID
 from .utility import truncate_utf8, parse_fits_header
 
-DEFAULT_TIMEOUT = 10.
+DEFAULT_TIMEOUT = 60.
 
 if os.name == 'nt':
     import win32file
@@ -5861,3 +5861,33 @@ class SirilInterface:
             SirilError: on any failure
         """
         self._mask_update_polygon(poly, False)
+
+     def open_dialog(self, dialog: DialogID):
+        """
+        Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
+
+        Args:
+            dialog (DialogID): Specifies the dialog to open.
+
+        Raises:
+            ValueError: if the parameter is not a DialogID.
+            SirilError: if the method is called headless or an error occurs.
+        """
+
+        if not isinstance(dialog, DialogID):
+            raise TypeError(f"dialog must be a DialogID, got {type(dialog).__name__}")
+
+        # Convert dialog ID to network byte order bytes
+        dialog_payload = struct.pack('!I', dialog.value)  # '!I' for network byte order uint32_t
+
+        response = self._request_data(_Command.OPEN_DIALOG, payload=dialog_payload)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            filename = response.decode('utf-8').rstrip('\x00')
+            return filename
+        except Exception as e:
+            raise SirilError(f"Error in open_dialog(): {e}") from e

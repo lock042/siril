@@ -83,6 +83,11 @@ int pipe_create(char *r_path_option, char *w_path_option) {
 	if (hPipe_w != INVALID_HANDLE_VALUE || hPipe_r != INVALID_HANDLE_VALUE)
 		return 0;
 
+	if (r_path_option && r_path_option[0] != '\0')
+		lpszPipename_r = r_path_option;
+	if (w_path_option && w_path_option[0] != '\0')
+		lpszPipename_w = w_path_option;
+
 	hPipe_w = CreateNamedPipe(
 			lpszPipename_w,           // pipe name
 			PIPE_ACCESS_OUTBOUND,     // write access

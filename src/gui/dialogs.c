@@ -118,6 +118,10 @@ static SirilDialogEntry get_entry_by_id(gchar *id) {
 	return empty;
 }
 
+int number_of_dialogs() {
+	return G_N_ELEMENTS(entries);
+}
+
 static GtkWidget *get_widget_by_id(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.get_window)

@@ -125,6 +125,8 @@ static void update_astrometry_preferences() {
 		com.pref.catalogue_paths[5] = newpath;
 	}
 
+	com.pref.astrometry.gaia_cache_duration = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")));
+
 	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
 	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")));
 	com.pref.astrometry.radius_degrees = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")));
@@ -727,6 +729,7 @@ void update_preferences_from_model() {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")), pref->astrometry.gaia_cache_duration);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")), pref->astrometry.percent_scale_range);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")), pref->astrometry.radius_degrees);
@@ -810,7 +813,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 512 ? 2 : (pref->gui.thumbnail_size == 256 ? 1 : 0));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_tint")), pref->gui.mask_tints_vports);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_ui_mask_tint")), pref->gui.mask_tints_vports);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_bitpix")), pref->default_mask_bitpix == 8 ? 0 : pref->default_mask_bitpix == 16 ? 1 : pref->default_mask_bitpix == 32 ? 2 : 3);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
@@ -996,6 +999,12 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	hide_git_widgets();
 #else
 	fill_script_repo_tree(FALSE);
+#endif
+#ifndef HAVE_SQLITE
+	// Hide UI for cache if we don't have SQLite
+	gtk_widget_set_visible(lookup_widget("gaia_cache_duration_label"), FALSE);
+	gtk_widget_set_visible(lookup_widget("gaia_cache_duration"), FALSE);
+	gtk_widget_set_visible(lookup_widget("clean_gaia_cache"), FALSE);
 #endif
 }
 

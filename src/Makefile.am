@@ -556,7 +556,9 @@ siril_common_SOURCES += \
 	core/exif.cpp \
 	core/exif.h \
 	io/kstars/htmesh_wrapper.cpp \
-	io/kstars/htmesh_wrapper.h
+	io/kstars/htmesh_wrapper.h \
+	io/healpix/fluxcache.cpp \
+	io/healpix/fluxcache.h
 
 siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \

@@ -914,7 +914,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 	else	sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	apply_flip_to_gps_data(fit);
 
-	fit->history = g_slist_append(fit->history, strdup("Top-down mirror"));
+	fit->history = g_slist_append(fit->history, g_strdup("Top-down mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
@@ -960,7 +960,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
-	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
+	fit->history = g_slist_append(fit->history, g_strdup("Left-right mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
@@ -1204,7 +1204,7 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		char log[90];
 		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
 				c_args->area.x, c_args->area.y, c_args->area.w, c_args->area.h);
-		fit->history = g_slist_append(fit->history, strdup(log));
+		fit->history = g_slist_append(fit->history, g_strdup(log));
 	}
 	return ret;
 }
@@ -1295,7 +1295,7 @@ int eqcrop(double ra1, double dec1, double ra2, double dec2, int margin_px, doub
         char log[90];
         sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
                         area.x, area.y, area.w, area.h);
-        fit->history = g_slist_append(fit->history, strdup(log));
+        fit->history = g_slist_append(fit->history, g_strdup(log));
         return 0;
 }
 

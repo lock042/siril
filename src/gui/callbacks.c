@@ -47,8 +47,8 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
-#include "io/siril_pythonmodule.h"
 #include "io/siril_git.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
 #include "image_display.h"
 #include "image_interactions.h"
@@ -70,6 +70,7 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+#include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item", "softproof_item"};
@@ -1910,6 +1911,23 @@ gpointer initialize_scripts(gpointer user_data) {
 	}
 	return GINT_TO_POINTER(0);
 }
+gboolean first_start_cb(gpointer user_data) {
+	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
+		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
+		writeinitfile();
+
+		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
+		int ret = siril_confirm_dialog(ver,
+				_("Hello, this is the first time you use this new version of Siril. Please, have a seat and take the time "
+				  "to watch the short introduction we have prepared for you. "
+				  "Be aware you can replay this introduction at any times in the Miscellaneous tab of the preferences dialog box."),
+				_("See Introduction"));
+		if (ret)
+			start_intro_script();
+		g_free(ver);
+	}
+	return G_SOURCE_REMOVE;
+}
 
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
@@ -1959,6 +1977,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
 	gtk_widget_hide(page);
+
 
 	/* initialize scripts and SPCC in threads:
 	 * 1) initialize the scripts menu / SPCC widgets
@@ -2043,23 +2062,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.measure_start = (point){ -1., -1. };
 	gui.measure_end = (point){ -1., -1. };
 
-	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
-		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
-		writeinitfile();
-
-		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
-
-		int ret = siril_confirm_dialog(ver,
-				_("Hello, this is the first time you use this new version of Siril. Please, have a seat and take the time "
-						"to watch the short introduction we have prepared for you. "
-						"Be aware you can replay this introduction at any times in the Miscellaneous tab of the preferences dialog box."),
-						_("See Introduction"));
-		if (ret)
-			start_intro_script();
-
-		g_free(ver);
-	}
-
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
 
@@ -2069,8 +2071,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
 	gui_ready = TRUE;
-
-	printf("RGB vport widget: %p\nRed vport widget: %p\n", lookup_widget("drawingareargb"), lookup_widget("drawingarear"));
 }
 
 /*****************************************************************************
@@ -2633,6 +2633,20 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}
+}
+
+void on_clean_gaia_cache_clicked(GtkButton *button, gpointer user_data) {
+	gchar *msg = g_strdup_printf(_("You are about to clean your Gaia online cache to remove any "
+				"entries that have not been accessed for %d days. "
+				"This operation cannot be undone."), com.pref.astrometry.gaia_cache_duration);
+
+	int confirm = siril_confirm_dialog(_("Cache Cleaner"), msg, _("Proceed"));
+	g_free(msg);
+	if (!confirm) {
+		return;
+	}
+
+	flux_cache_purge(com.pref.astrometry.gaia_cache_duration);
 }
 
 void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {

@@ -14,6 +14,7 @@
 #include "core/siril_networking.h"
 #include "io/local_catalogues.h"
 #include "io/siril_catalogues.h"
+#include "io/healpix/fluxcache.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -31,6 +32,8 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <optional>
+#include <string_view>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
@@ -39,11 +42,11 @@ extern "C" {
 #include "core/siril_app_dirs.h"
 }
 
-#define HEALPIX_DEBUG
+//#define HEALPIX_DEBUG
 
 #define ZENODO_GAIA_XPSAMP_RECORD_ID "YOUR_RECORD_ID_HERE"
 
-extern const char* spcc_mirrors[];
+extern const char** spcc_mirrors;
 
 // Enum for Gaia version designator
 enum class GaiaVersion {
@@ -66,16 +69,16 @@ enum class CatalogueType {
 // Struct for the Healpix catalogue header
 #pragma pack(push, 1)  // Ensure no padding between members
 typedef struct HealpixCatHeader {
-    std::string title;          // 48 bytes: Catalogue title
-    GaiaVersion gaia_version;   // 1 byte: Gaia version designator
-    uint8_t healpix_level;      // 1 byte: Healpix indexing level N
-    CatalogueType cat_type;     // 1 byte: Catalogue type
-    uint8_t chunked;            // 1 byte to indicate whether the catalogue is chunked or not. Zero = monolithic, non-zero = chunked
-    uint8_t chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
-    uint32_t chunk_healpix;     // for chunked catalogues, the chunk-level healpixel covered by this file
-    uint32_t chunk_first_healpixel; // for chunked catalogues, the index-level healpixel number of the first healpixel in the catalogue
-    uint32_t chunk_last_healpixel; // for chunked catalogues, the index-level healpixel number of the last healpixel in the catalogue
-    std::array<uint8_t, 63> spare; // 64 bytes reserved for future use
+   char title[48];          // 48 bytes: Catalogue title
+   uint8_t  gaia_version;   // 1 byte: Gaia version designator
+   uint8_t  healpix_level;      // 1 byte: Healpix indexing level N
+   uint8_t  cat_type;     // 1 byte: Catalogue type
+   uint8_t  chunked;            // 1 byte to indicate whether the catalogue is chunked or not. Zero = monolithic, non-zero = chunked
+   uint8_t  chunk_level;        // for chunked catalogues, the Healpix level it waas chunked at
+   uint32_t chunk_healpix;     // for chunked catalogues, the chunk-level healpixel covered by this file
+   uint32_t chunk_first_healpixel; // for chunked catalogues, the index-level healpixel number of the first healpixel in the catalogue
+   uint32_t chunk_last_healpixel; // for chunked catalogues, the index-level healpixel number of the last healpixel in the catalogue
+   uint8_t  spare[63]; // 63 bytes reserved for future use
 } HealpixCatHeader;
 #pragma pack(pop)
 
@@ -217,93 +220,88 @@ static bool header_compatible(HealpixCatHeader& a, HealpixCatHeader& b) {
     return same_version && same_chunk_level && same_index_level;
 }
 
-#ifdef HAVE_LIBCURL
+// Function to read the Healpix catalogue header
+static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
+    HealpixCatHeader header{};
 
-// Function to read header via HTTP range request using Siril's networking
-static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const std::string& url, int* error_status) {
-    HealpixCatHeader header = {
-        "",
-        static_cast<GaiaVersion>(0),
-        0,
-        static_cast<CatalogueType>(0),
-        0,
-        0,
-        0,
-        0,
-        0,
-        {}
-    };
-
+    // Initialize error status
     if (error_status) {
         *error_status = 0;
     }
 
-    gsize response_length;
-    int error;
-    char* buffer = fetch_url_range_with_curl((void*)curl, url.c_str(), 0, 128, &response_length, &error, FALSE);
-
-    if (error || !buffer || response_length < 128) {
+    // Open file in binary mode
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
         if (error_status) {
-            *error_status = -1;
+            *error_status = -1; // File open error
         }
-        free(buffer);
         return header;
     }
 
-    try {
-        size_t offset = 0;
-
-        // Read title (48 bytes)
-        char title_buffer[48] = {0};
-        memcpy(title_buffer, buffer + offset, 48);
-        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
-        offset += 48;
-
-        // Read remaining fields
-        memcpy(&header.gaia_version, buffer + offset, 1); offset += 1;
-        memcpy(&header.healpix_level, buffer + offset, 1); offset += 1;
-        memcpy(&header.cat_type, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunked, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunk_level, buffer + offset, 1); offset += 1;
-        memcpy(&header.chunk_healpix, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.chunk_first_healpixel, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.chunk_last_healpixel, buffer + offset, sizeof(uint32_t)); offset += sizeof(uint32_t);
-        memcpy(&header.spare, buffer + offset, 63);
-
-        free(buffer);
-    }
-    catch (const std::exception&) {
-        if (error_status) {
-            *error_status = -3;
-        }
-        free(buffer);
-        return header;
+    // Read the header
+    file.read(reinterpret_cast<char*>(&header), sizeof(header));
+    if (!file) {
+        *error_status = READ_ERROR;
+        return {};
     }
 
     return header;
 }
 
-// Get Siril data directory and ensure the relevant subdir exists
-static std::filesystem::path get_or_create_cache_dir() {
-	std::filesystem::path target_path;
+#ifdef HAVE_LIBCURL
+static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const std::string& url, int* error_status) {
+    if (error_status) *error_status = 0;
 
-    const char *uddir = siril_get_user_data_dir();
-    std::filesystem::path siril_subdir = std::filesystem::path(uddir) / "siril_cat1_healpix8_xpsamp";
-    try {
-        if (!std::filesystem::exists(siril_subdir)) {
-		std::filesystem::create_directories(siril_subdir);
+    // Setup Cache Path
+    auto tempdir = FluxCache::get_or_create_cache_dir();
+    std::string filename = url.substr(url.find_last_of("/\\") + 1);
+    std::string cache_path = (tempdir / (filename + ".header")).string();
+
+    const size_t HEADER_SIZE = 128;
+
+    bool cache_exists = false;
+    std::error_code ec;
+
+    // Validate the cache file
+    if (std::filesystem::exists(cache_path, ec)) {
+        if (std::filesystem::file_size(cache_path, ec) == HEADER_SIZE) {
+            cache_exists = true;
+        } else {
+            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
+                                "salmon", cache_path.c_str());
+            std::filesystem::remove(cache_path, ec);
         }
-        return siril_subdir;
-    } catch (const std::filesystem::filesystem_error& e) {
-        siril_debug_print(_("Can't create directory %s, falling back to system temp\n"), 
-			siril_subdir.string().c_str() );
-        return std::filesystem::temp_directory_path();
     }
+
+    // Download if it doesn't exist
+    if (!cache_exists) {
+        siril_debug_print(_("Fetching header to cache: %s\n"), filename.c_str());
+
+        gsize response_length;
+        int error;
+        char* buffer = fetch_url_range_with_curl((void*)curl, url.c_str(), 0, HEADER_SIZE, &response_length, &error, FALSE);
+
+        if (error || !buffer || response_length < HEADER_SIZE) {
+            if (error_status) *error_status = -1;
+            free(buffer);
+            return {}; // Return empty header
+        }
+
+        // Save to disk
+        std::ofstream out(cache_path, std::ios::binary);
+        if (out.good()) {
+            out.write(buffer, HEADER_SIZE);
+            out.close();
+        }
+        free(buffer);
+    }
+
+    return read_healpix_cat_header(cache_path, error_status);
 }
 
 template<typename EntryType>
 
-static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
+static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* curl,
                                                   const std::string& base_url,
                                                   const std::string& filename,
                                                   std::vector<HealPixelRange>& healpixel_ranges,
@@ -313,12 +311,16 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
     uint32_t nside = 1 << header.healpix_level;
     uint32_t n_healpixels = 12 * nside * nside;
 
+    // Do not mutate caller-owned ranges when converting to chunk-local IDs
+    std::vector<HealPixelRange> local_ranges = healpixel_ranges;
+
+    // Convert to chunk local range IDs if necessary
     if (header.chunked) {
         uint32_t nside_chunks = 1 << header.chunk_level;
         uint32_t n_chunks = 12 * nside_chunks * nside_chunks;
         n_healpixels /= n_chunks;
 
-        for (auto& range : healpixel_ranges) {
+        for (auto& range : local_ranges) {
             range.start_id -= header.chunk_first_healpixel;
             range.end_id -= header.chunk_first_healpixel;
         }
@@ -327,16 +329,23 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
     size_t INDEX_SIZE = n_healpixels * sizeof(uint32_t);
     std::string full_url = base_url + "/" + filename;
 
-    auto tempdir = get_or_create_cache_dir();
-    std::string cache_path = (tempdir / (filename + ".cache")).string();
+    auto tempdir = FluxCache::get_or_create_cache_dir();
+    std::string cache_path = (tempdir / (filename + ".index")).string();
 
     // Load or download index
     std::vector<uint32_t> full_index(n_healpixels);
 
     bool cache_exists = false;
-    {
-        std::ifstream f(cache_path, std::ios::binary);
-        cache_exists = f.good();
+    std::error_code ec;
+    if (std::filesystem::exists(cache_path, ec)) {
+        // Check if the size on disk matches our expected index size
+        if (std::filesystem::file_size(cache_path, ec) == INDEX_SIZE) {
+            cache_exists = true;
+        } else {
+            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
+                                "salmon", cache_path.c_str());
+            std::filesystem::remove(cache_path, ec);
+        }
     }
 
     // Ensure cache exists; if not, fetch and create it
@@ -358,7 +367,7 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
 
         if (error || !buffer || response_length != INDEX_SIZE) {
             siril_log_color_message(_("Failed to download index via HTTP\n"), "red");
-            return results;
+            return std::nullopt;
         }
 
         // Write buffer to cache file
@@ -366,7 +375,7 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
         if (!out.good()) {
             siril_log_color_message(_("Failed to write index cache file\n"), "red");
             free(buffer);
-            return results;
+            return std::nullopt;
         }
 
         out.write(buffer, INDEX_SIZE);
@@ -380,22 +389,21 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
     std::ifstream in(cache_path, std::ios::binary);
     if (!in.good()) {
         siril_log_color_message(_("Failed to read index cache file\n"), "red");
-        return results;
+        return std::nullopt;
     }
 
     in.read(reinterpret_cast<char*>(full_index.data()), INDEX_SIZE);
     in.close();
 
     // Process each healpixel range
-    siril_debug_print(_("Fetching data\n"));
-    for (const auto& range : healpixel_ranges) {
+    for (const auto& range : local_ranges) {
         uint32_t start_healpixel = range.start_id;
         uint32_t end_healpixel = range.end_id;
 
         if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
             siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
             results.clear();
-            return results;
+            return std::nullopt;
         }
 
         // Index lookup from cached index
@@ -403,38 +411,82 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
         uint32_t index_end   = full_index[end_healpixel];
 
         size_t num_records = index_end - index_start;
+	char* data_buffer = nullptr;
 
-        size_t data_start_pos =
-            HEADER_SIZE + INDEX_SIZE + index_start * sizeof(EntryType);
+	// Only fetch via HTTP if there's something to fetch
+	if (num_records > 0) {
 
-        size_t data_length = num_records * sizeof(EntryType);
+            size_t data_start_pos =
+                HEADER_SIZE + INDEX_SIZE + index_start * sizeof(EntryType);
 
-        // Fetch data entries via HTTP
-        gsize data_response_length;
-        int data_error;
+            size_t data_length = num_records * sizeof(EntryType);
 
-        siril_debug_print(_("Fetching range %zu - %zu\n"), data_start_pos, data_length);
-        char* data_buffer = fetch_url_range_with_curl(
-            (void*)curl,
-            full_url.c_str(),
-            data_start_pos,
-            data_length,
-            &data_response_length,
-            &data_error,
-            FALSE
-        );
+            // Fetch data entries via HTTP
+            gsize data_response_length;
+            int data_error;
 
-        if (data_error || !data_buffer) {
-            siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
-            results.clear();
-            return results;
+            siril_debug_print(_("Fetching range %zu - %zu\n"), data_start_pos, data_length);
+            data_buffer = fetch_url_range_with_curl(
+                (void*)curl,
+                full_url.c_str(),
+                data_start_pos,
+                data_length,
+                &data_response_length,
+                &data_error,
+                FALSE
+            );
+
+            if (data_error || !data_buffer) {
+                siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
+                results.clear();
+                return std::nullopt;
+            }
+
+           std::vector<EntryType> buffer(num_records);
+           memcpy(buffer.data(), data_buffer, data_response_length);
+           results.insert(results.end(), buffer.begin(), buffer.end());
+	}
+
+	// Get our data cache regardless. We always want to write a cache entry even if there's no data
+	auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, header.chunk_healpix);
+        std::vector<FluxCache::CacheSegment> segments;
+
+	// Unfortunately, the binary data does not contain the healpix id so we need process it
+	// to split it into healpixel chunks before we pass to the cache
+        uint32_t range_base_record = (range.start_id == 0) ? 0 : full_index[range.start_id - 1];
+        for (uint32_t local_hp = range.start_id; local_hp <= range.end_id; ++local_hp) {
+            // Get the offsets from the local index
+            uint32_t p_start = (local_hp == 0) ? 0 : full_index[local_hp - 1];
+            uint32_t p_end   = full_index[local_hp];
+            uint32_t count   = p_end - p_start;
+
+            // Convert local_hp to global_hp if the file is chunked
+            uint32_t global_hp = local_hp;
+            if (header.chunked) {
+                global_hp += header.chunk_first_healpixel;
+            }
+
+            if (count > 0 && data_buffer) {
+                // Calculate byte offset into the data_buffer
+                size_t byte_offset = (p_start - range_base_record) * sizeof(EntryType);
+                segments.push_back({global_hp, data_buffer + byte_offset, count * sizeof(EntryType)});
+            } else {
+                segments.push_back({global_hp, nullptr, 0});
+	    }
         }
 
-        std::vector<EntryType> buffer(num_records);
-        memcpy(buffer.data(), data_buffer, data_response_length);
+	// Commit to cache
+	if (!segments.empty()) {
+            siril_debug_print(_("Committing %zu pixels (%zu total records) to SQLite cache\n"),
+                              segments.size(), num_records);
+            cache->setCacheEntry(segments);
+        } else {
+            // Shouldn't happen
+            siril_debug_print(_("No data found in range %u-%u to cache.\n"), start_healpixel, end_healpixel);
+        }
+
         free(data_buffer);
 
-        results.insert(results.end(), buffer.begin(), buffer.end());
     }
 
     return results;
@@ -442,6 +494,8 @@ static std::vector<EntryType> query_catalog_http_with_curl(CURL* curl,
 
 
 // Original template function now wraps the new one with a temporary CURL handle
+// TODO: Is this required?
+/*
 template<typename EntryType>
 static std::vector<EntryType> query_catalog_http(const std::string& base_url,
                                                   const std::string& filename,
@@ -457,15 +511,15 @@ static std::vector<EntryType> query_catalog_http(const std::string& base_url,
     curl_easy_cleanup(curl);
     return results;
 }
+*/
 
 /**
  * Try fetching from the current mirror, and if it fails, try other mirrors
  * Updates com.spcc_remote_catalogue to the working mirror
  * Returns true if a working mirror was found, false otherwise
  */
-static bool try_mirrors_and_update(CURL* curl, const char* path_suffix,
+static bool read_healpix_cat_header_http_with_fallback(CURL* curl, const char* path_suffix,
                                    HealpixCatHeader* header_out, int* error_status) {
-    extern const char* spcc_mirrors[];
 
     // First try the current mirror
     std::string current_url = std::string(com.spcc_remote_catalogue) + "/" + path_suffix;
@@ -519,17 +573,15 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
                                     const std::string& filename,
                                     const std::vector<HealPixelRange>& healpixel_ranges,
                                     const HealpixCatHeader& header) {
-    extern const char* spcc_mirrors[];
-    std::vector<EntryType> results;
 
     // Try current mirror first - make a copy since the function modifies ranges
     std::vector<HealPixelRange> ranges_copy = healpixel_ranges;
     std::string base_url(com.spcc_remote_catalogue);
-    results = query_catalog_http_with_curl<EntryType>(curl, base_url, filename,
+    auto response = query_catalog_http_with_curl<EntryType>(curl, base_url, filename,
                                                       ranges_copy, header);
 
-    if (!results.empty()) {
-        return results;  // Success with current mirror
+    if (response.has_value()) {
+        return response.value();  // Success with current mirror
     }
 
     // Current mirror failed, try alternatives
@@ -547,94 +599,25 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
 
         // Make a fresh copy of the original ranges for each attempt
         ranges_copy = healpixel_ranges;
-        results = query_catalog_http_with_curl<EntryType>(curl, test_base_url, filename,
+        auto response = query_catalog_http_with_curl<EntryType>(curl, test_base_url, filename,
                                                           ranges_copy, header);
 
-        if (!results.empty()) {
+        if (response.has_value()) {
             // This mirror works! Update the global setting
             g_free(com.spcc_remote_catalogue);
             com.spcc_remote_catalogue = g_strdup(spcc_mirrors[i]);
             siril_log_color_message(_("Switched to working mirror: %s\n"),
                                    "green", com.spcc_remote_catalogue);
-            return results;
+            return response.value();
         }
     }
 
     // All mirrors failed
     siril_log_color_message(_("All catalogue mirrors failed for query.\n"), "red");
-    return results;  // Return empty vector
+    return {};  // Return empty vector
 }
 
 #endif
-
-// Function to read the Healpix catalogue header
-static HealpixCatHeader read_healpix_cat_header(const std::string& filename, int* error_status) {
-    HealpixCatHeader header = {
-        "",                     // title: empty string
-        static_cast<GaiaVersion>(0),  // gaia_version: zero
-        0,                      // healpix_level
-        static_cast<CatalogueType>(0), // cat_type
-        0,                      // chunked
-        0,                      // chunk_level
-        0,                      // chunk_healpix
-        0,                      // chunk_first_healpixel
-        0,                      // chunk_last_healpixel
-        {}                      // spare: zero-initialized array
-    };
-
-    // Initialize error status
-    if (error_status) {
-        *error_status = 0;
-    }
-
-    // Open file in binary mode
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        if (error_status) {
-            *error_status = -1; // File open error
-        }
-        return header;
-    }
-
-    try {
-        // Read the fixed-size string (48 bytes)
-        char title_buffer[48] = {0};
-        file.read(title_buffer, 48);
-        if (file.fail()) {
-            if (error_status) {
-                *error_status = -2; // Read error
-            }
-            return header;
-        }
-        header.title = std::string(title_buffer, strnlen(title_buffer, 48));
-
-        // Read the remaining POD members
-        file.read(reinterpret_cast<char*>(&header.gaia_version), 1);
-        file.read(reinterpret_cast<char*>(&header.healpix_level), 1);
-        file.read(reinterpret_cast<char*>(&header.cat_type), 1);
-        file.read(reinterpret_cast<char*>(&header.chunked), 1);
-        file.read(reinterpret_cast<char*>(&header.chunk_level), 1);
-        file.read(reinterpret_cast<char*>(&header.chunk_healpix), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.chunk_first_healpixel), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.chunk_last_healpixel), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&header.spare), 63);
-
-        if (file.fail()) {
-            if (error_status) {
-                *error_status = -2; // Read error
-            }
-            return header;
-        }
-    }
-    catch (const std::exception&) {
-        if (error_status) {
-            *error_status = -3; // Exception during read
-        }
-        return header;
-    }
-
-    return header;
-}
 
 
 #ifdef HEALPIX_DEBUG
@@ -670,7 +653,7 @@ static void show_healpixel_entries(uint32_t healpixel_id) {
 
         std::cout << "Numrecords = " << entries.size() << std::endl;
         // Print catalog information (matching Python output)
-        std::cout << "Catalogue Title: " << header.title << std::endl;
+        std::cout << "Catalogue Title: " << std::string_view(header.title, strnlen(header.title, sizeof(header.title))) << std::endl;
         std::cout << "Gaia Version: " << static_cast<int>(header.gaia_version) << std::endl;
         std::cout << "Healpix Level: " << static_cast<int>(header.healpix_level) << std::endl;
         std::cout << "Catalogue Type: " << static_cast<int>(header.cat_type) << std::endl;
@@ -1045,7 +1028,7 @@ extern "C" {
         double phi = ra_rad;
         double radius_h = pow(sin(0.5 * radius_rad), 2);
 
-        // Initialize CURL handle for all requests
+        // Initialize CURL handle for first chunk request
         CURL* curl = curl_easy_init();
         if (!curl) {
             siril_log_color_message(_("Error initialising CURL handle\n"), "red");
@@ -1059,12 +1042,15 @@ extern "C" {
 
         int status = 0;
         HealpixCatHeader header;
-        if (!try_mirrors_and_update(curl, first_chunk_filename.c_str(), &header, &status)) {
+        if (!read_healpix_cat_header_http_with_fallback(curl, first_chunk_filename.c_str(), &header, &status)) {
             curl_easy_cleanup(curl);
             *stars = nullptr;
             *nb_stars = 0;
             return 1;
         }
+	
+        // Clean up CURL handle
+        curl_easy_cleanup(curl);
 
         T_Healpix_Base<int> healpix_base(header.healpix_level, NEST);
         pointing point(theta, phi);
@@ -1086,55 +1072,113 @@ extern "C" {
 
         std::vector<std::vector<SourceEntryXPsamp>> results_in_chunks(chunk_indices.size());
 
+	// Fetch data from each chunk in its own thread
         bool file_error = false;
+	#pragma omp parallel for shared(file_error) num_threads(4)
         for (size_t i = 0; i < chunk_indices.size(); ++i) {
+	    if (file_error) continue; // so unstarted threads quit immediately
+
             const int chunk_id = chunk_indices[i];
             const std::vector<int>& chunk_pixels = chunked_pixel_indices[i];
 
-            std::vector<HealPixelRange> healpixel_ranges = create_healpixel_ranges(chunk_pixels);
+	    // Look to see if we have our data already cached
+            auto cache = FluxCache::getCache(header.chunk_level, header.healpix_level, chunk_id);
+            std::vector<int> remaining_pixels;
+            std::vector<SourceEntryXPsamp> results_for_this_chunk;
+
+	    int cache_count = 0;
+            for (int hp : chunk_pixels) {
+                std::vector<char> cached_blob;
+                if (cache->getCacheEntry(static_cast<uint32_t>(hp), cached_blob)) {
+		    if (!cached_blob.empty()) {
+                        // Cache Hit: Cast and append
+		        // the cached_blob might be empty. We'll still record a hit but won't append "nothing"
+                        const SourceEntryXPsamp* entries = reinterpret_cast<const SourceEntryXPsamp*>(cached_blob.data());
+                        size_t count = cached_blob.size() / sizeof(SourceEntryXPsamp);
+                        results_for_this_chunk.insert(results_for_this_chunk.end(), entries, entries + count);
+		    }
+		    cache_count++;
+                } else {
+                    // Cache Miss: Must fetch via HTTP
+                    remaining_pixels.push_back(hp);
+                }
+            }
+
+#ifdef HAVE_SQLITE
+            siril_log_message(_("Chunk %d: %d healpixels from cache, %zu to fetch from remote\n"), 
+                              chunk_id, cache_count, remaining_pixels.size());
+#endif
+
+            // If everything was in the cache, we can skip the HTTP logic entirely
+            if (remaining_pixels.empty()) {
+                results_in_chunks[i] = std::move(results_for_this_chunk);
+                continue; 
+            }
+	    
+	    // Thread local curl instance
+            CURL* thread_curl = curl_easy_init();
+            if (!thread_curl) {
+                #pragma omp atomic write
+                file_error = true;
+                continue;
+            }
+	    
+	    // Create ranges only for what we DON'T have
+            std::vector<HealPixelRange> healpixel_ranges = create_healpixel_ranges(remaining_pixels);
+
 
             gchar *filename = g_strdup_printf("siril_cat%u_healpix%u_xpsamp_%d.dat",
                                              header.chunk_level, header.healpix_level, chunk_id);
             std::string chunk_filename(filename);
             g_free(filename);
 
-            // Verify chunk header with fallback - this helps catch if a mirror
-            // has incomplete data
+	    // Get our chunk header. This has chunk specific info in it
             std::string chunk_url = std::string(com.spcc_remote_catalogue) + "/" + chunk_filename;
             int chunk_status = 0;
-            HealpixCatHeader this_header = read_healpix_cat_header_http_with_curl(curl, chunk_url, &chunk_status);
+            HealpixCatHeader this_header = read_healpix_cat_header_http_with_curl(thread_curl, chunk_url, &chunk_status);
 
             // If initial header read fails, try other mirrors
             if (chunk_status != 0) {
-                if (!try_mirrors_and_update(curl, chunk_filename.c_str(), &this_header, &chunk_status)) {
+                if (!read_healpix_cat_header_http_with_fallback(thread_curl, chunk_filename.c_str(), &this_header, &chunk_status)) {
                     siril_log_color_message(_("Failed to read header for chunk %d from any mirror\n"),
                                           "red", chunk_id);
+                    #pragma omp atomic write
                     file_error = true;
-                    break;
+                    curl_easy_cleanup(thread_curl);
+                    continue;
                 }
             }
 
+            // Verify chunk header - this helps catch if a mirror has incomplete data
             if (!header_compatible(header, this_header)) {
                 siril_log_color_message(_("Error: catalog header values for chunk %d are incompatible\n"),
                                        "red", chunk_id);
+                #pragma omp atomic write
                 file_error = true;
-                break;
+                curl_easy_cleanup(thread_curl);
+                continue;
             }
 
-            // Query with automatic fallback
-            results_in_chunks[i] = query_catalog_http_with_fallback<SourceEntryXPsamp>(
-                curl, chunk_filename, healpixel_ranges, this_header);
+            // Fetch the data ranges using the thread local curl instance
+	    std::vector<SourceEntryXPsamp> remote_results = query_catalog_http_with_fallback<SourceEntryXPsamp>(
+                thread_curl, chunk_filename, healpixel_ranges, this_header);
+	    
+	    // Combine cached and remote results
+            results_for_this_chunk.insert(results_for_this_chunk.end(),
+                                          remote_results.begin(), remote_results.end());
+            results_in_chunks[i] = std::move(results_for_this_chunk);
 
             if (results_in_chunks[i].empty() && !chunk_pixels.empty()) {
                 // Query returned nothing but we expected data - this might indicate failure
                 siril_log_color_message(_("Warning: No data retrieved for chunk %d\n"),
                                        "salmon", chunk_id);
             }
+
+	    // Clean up thread local curl
+            curl_easy_cleanup(thread_curl);
         }
 
-        // Clean up CURL handle
-        curl_easy_cleanup(curl);
-
+	// Fail if we have an unrecoverable error
         if (file_error) {
             *stars = nullptr;
             *nb_stars = 0;

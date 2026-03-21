@@ -1828,7 +1828,7 @@ the_end:;
 		} else {
 			// Update the HISTORY card if it wasn't updated by undo_save_state'
 			if (!arg_custom_undo && arg_update_gfit) {
-				argfit->history = g_slist_append(argfit->history, history);
+				argfit->history = g_slist_append(argfit->history, g_strdup(history));
 				// args->fit->history now owns the allocated memory, we must not free it if this codepath is taken
 				update_fits_header(argfit); // update the header so the history is up to date and correctly ordered
 			}

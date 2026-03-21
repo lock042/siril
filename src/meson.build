@@ -176,6 +176,7 @@ src_files = [
   'io/FITS_symlink.c',
   'io/gps_parser.c',
   'io/healpix/healpix.cpp',
+  'io/healpix/fluxcache.cpp',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',

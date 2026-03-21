@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+gboolean first_start_cb(gpointer user_data);
+
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
 gboolean launch_clipboard_survey(gpointer user_data);
