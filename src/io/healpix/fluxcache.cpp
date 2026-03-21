@@ -52,7 +52,7 @@ bool FluxCache::getCacheEntry(uint32_t hp_id, std::vector<char>& out_data) { ret
 void FluxCache::setCacheEntry(const std::vector<CacheSegment>& segments) { }
 void FluxCache::purge(int days) { }
 FluxCacheStats FluxCache::getDatabaseStats() { return {0, 0, 0}; }
-std::vector<int> FluxCache::getCachedHealpixelIds() { return {} };
+std::vector<int> FluxCache::getCachedHealpixelIds() { return {}; };
 
 std::shared_ptr<FluxCache> FluxCache::getCache(uint32_t c_lvl, uint32_t h_lvl, uint32_t chunk_id) {
     // Return a dummy object so calling code doesn't crash on null
