@@ -750,6 +750,11 @@ struct historic_struct {
 	int rx, ry, nchans;
 	gint flis_layer_id;
 	flis_layer_props_t *layer_props;
+	gchar  *lmask_filename;   /* swap file path, or NULL for "no mask" state */
+	gint    lmask_layer_id;   /* item_id of the layer; FLIS_UNDO_LAYER_NONE if unused */
+	size_t  lmask_w;
+	size_t  lmask_h;
+	guint8  lmask_bitpix;
 	data_type type;
 	uint8_t mask_bitpix;
 	wcs_info wcsdata;

@@ -176,6 +176,16 @@ static int undo_remove_item(historic *histo, int index) {
 	histo[index].flis_layer_id = FLIS_UNDO_LAYER_NONE;
 	g_free(histo[index].layer_props);
 	histo[index].layer_props = NULL;
+	if (histo[index].lmask_filename) {
+		if (g_unlink(histo[index].lmask_filename))
+			siril_debug_print("g_unlink() of lmask swap failed\n");
+		g_free(histo[index].lmask_filename);
+		histo[index].lmask_filename = NULL;
+	}
+	histo[index].lmask_layer_id = FLIS_UNDO_LAYER_NONE;
+	histo[index].lmask_w      = 0;
+	histo[index].lmask_h      = 0;
+	histo[index].lmask_bitpix = 0;
 	return 0;
 }
 
@@ -451,6 +461,77 @@ static int undo_get_data(fits *fit, historic *hist) {
 		return 0;
 	}
 
+	/* Layer mask (lmask) undo state: restore or remove the layer mask.
+	 * lmask_layer_id != FLIS_UNDO_LAYER_NONE identifies a lmask state.
+	 * lmask_filename == NULL means the saved state had NO mask (used when
+	 * undoing an add-mask: we remove the mask to restore the prior state).
+	 * lmask_filename != NULL means the saved state had a mask (used when
+	 * undoing a remove-mask: we restore the mask from the swap file). */
+	if (!hist->filename && !hist->layer_props &&
+	    hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+
+		flis_layer_t *layer = flis_layer_get_by_id(hist->lmask_layer_id);
+		if (!layer) {
+			siril_log_color_message(
+				_("Undo: target layer (id %d) no longer exists\n"),
+				"salmon", hist->lmask_layer_id);
+			return 1;
+		}
+
+		if (!hist->lmask_filename) {
+			/* Saved state had no mask — remove current mask */
+			flis_layer_remove_lmask(layer);
+			return 0;
+		}
+
+		/* Saved state had a mask — restore it from the swap file */
+		size_t npix = hist->lmask_w * hist->lmask_h;
+		size_t elem_size;
+		switch (hist->lmask_bitpix) {
+			case 8:  elem_size = sizeof(uint8_t); break;
+			case 16: elem_size = sizeof(uint16_t); break;
+			case 32: elem_size = sizeof(float); break;
+			default:
+				siril_log_color_message(
+					_("Undo: invalid lmask bitpix %d\n"),
+					"salmon", (int)hist->lmask_bitpix);
+				return 1;
+		}
+
+		int fd = g_open(hist->lmask_filename, O_RDONLY | O_BINARY, 0);
+		if (fd == -1) {
+			siril_log_color_message(
+				_("Undo: cannot open lmask swap file %s\n"),
+				"red", hist->lmask_filename);
+			return 1;
+		}
+
+		size_t total = npix * elem_size;
+		void *buf = malloc(total);
+		if (!buf) { PRINT_ALLOC_ERR; g_close(fd, NULL); return 1; }
+
+		if ((size_t)read(fd, buf, total) < total) {
+			siril_log_color_message(
+				_("Undo: short read on lmask swap file\n"), "red");
+			free(buf); g_close(fd, NULL); return 1;
+		}
+		g_close(fd, NULL);
+
+		layermask_t *lm = calloc(1, sizeof(layermask_t));
+		if (!lm) { PRINT_ALLOC_ERR; free(buf); return 1; }
+		lm->w      = hist->lmask_w;
+		lm->h      = hist->lmask_h;
+		lm->bitpix = hist->lmask_bitpix;
+		lm->data   = buf;
+
+		if (flis_layer_set_lmask(layer, lm)) {
+			layermask_free(lm);
+			return 1;
+		}
+		return 0;
+	}
+
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
@@ -614,6 +695,123 @@ int undo_save_flis_layer_props_snapshot(gint item_id,
 	return undo_push_flis_layer_props(item_id, props, message);
 }
 
+/* undo_save_flis_lmask:
+ *
+ * Saves the current layer-mask state of @layer as an undo entry.
+ * Call this BEFORE making any change to layer->lmask.
+ *
+ * If @layer currently has no mask, an "empty mask" marker is stored —
+ * on undo, the current mask (whatever it is at that point) will be removed.
+ * If @layer currently has a mask, its pixel data is written to a swap file —
+ * on undo, the mask is restored from that file.
+ *
+ * This handles three operations:
+ *   add mask:    call before setting the new mask — saves "no mask" marker
+ *   remove mask: call before removing — saves current mask pixels
+ *   move mask:   call on BOTH source and destination layers before the move
+ */
+
+int undo_save_flis_lmask(flis_layer_t *layer, const char *message) {
+	if (!layer || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+
+	/* Discard any redo states above hist_display */
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+
+	/* Handle ring-buffer wrap */
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+
+	historic *h = &com.history[com.hist_current];
+	memset(h, 0, sizeof(*h));
+	h->filename       = NULL;
+	h->layer_props    = NULL;
+	h->flis_layer_id  = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id = layer->item_id;
+	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
+
+	if (!layer->lmask || !layer->lmask->data) {
+		/* Layer currently has no mask — store the "no mask" marker */
+		h->lmask_filename = NULL;
+		h->lmask_w        = 0;
+		h->lmask_h        = 0;
+		h->lmask_bitpix   = 0;
+	} else {
+		/* Write the current mask pixels to a swap file */
+		layermask_t *lm = layer->lmask;
+
+		size_t elem_size;
+		switch (lm->bitpix) {
+			case 8:  elem_size = sizeof(uint8_t);  break;
+			case 16: elem_size = sizeof(uint16_t); break;
+			case 32: elem_size = sizeof(float);    break;
+			default:
+				siril_log_color_message(
+					_("FLIS undo: unsupported lmask bitpix %d\n"),
+					"red", (int)lm->bitpix);
+				memset(h, 0, sizeof(*h));
+				h->flis_layer_id  = FLIS_UNDO_LAYER_NONE;
+				h->lmask_layer_id = FLIS_UNDO_LAYER_NONE;
+				return 1;
+		}
+
+		gchar *nameBuff = g_build_filename(
+		    com.pref.swap_dir, "siril_lmsk-XXXXXX", NULL);
+		int fd = g_mkstemp(nameBuff);
+		if (fd < 1) {
+			siril_log_message(
+				_("File I/O Error: Unable to create lmask swap file in %s: [%s]\n"),
+				com.pref.swap_dir, strerror(errno));
+			g_free(nameBuff);
+			memset(h, 0, sizeof(*h));
+			h->flis_layer_id  = FLIS_UNDO_LAYER_NONE;
+			h->lmask_layer_id = FLIS_UNDO_LAYER_NONE;
+			return 1;
+		}
+
+		size_t total = lm->w * lm->h * elem_size;
+		errno = 0;
+		if (write(fd, lm->data, total) == -1) {
+			siril_log_message(
+				_("File I/O Error: Unable to write lmask swap file: [%s]\n"),
+				strerror(errno));
+			g_close(fd, NULL);
+			g_unlink(nameBuff);
+			g_free(nameBuff);
+			memset(h, 0, sizeof(*h));
+			h->flis_layer_id  = FLIS_UNDO_LAYER_NONE;
+			h->lmask_layer_id = FLIS_UNDO_LAYER_NONE;
+			return 1;
+		}
+		g_close(fd, NULL);
+
+		h->lmask_filename = nameBuff;
+		h->lmask_w        = lm->w;
+		h->lmask_h        = lm->h;
+		h->lmask_bitpix   = lm->bitpix;
+	}
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+
+	gui_function(update_MenuItem, NULL);
+	return 0;
+}
+
 /* Switch the active FLIS layer to match a historic state, so that
  * undo_get_data() restores pixel data into the correct layer's fits*.
  *
@@ -621,6 +819,12 @@ int undo_save_flis_layer_props_snapshot(gint item_id,
  * target layer no longer exists (e.g. it was deleted after the state was
  * saved) — the caller should skip this history entry in that case. */
 static gboolean flis_undo_switch_layer(const historic *hist) {
+	/* Lmask-only states use lmask_layer_id and address the layer directly
+	 * in undo_get_data(); no gfit switch is needed. */
+	if (!hist->filename && !hist->layer_props &&
+	    hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE)
+		return TRUE;
+
 	if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE)
 		return TRUE; /* plain FITS state: nothing to do */
 
@@ -881,7 +1085,8 @@ void flis_undo_purge_layer(gint item_id) {
 	int purged = 0;
 	int i = 0;
 	while (i < com.hist_current) {
-		if (com.history[i].flis_layer_id == item_id) {
+		if (com.history[i].flis_layer_id == item_id ||
+		    com.history[i].lmask_layer_id == item_id) {
 			undo_remove_item(com.history, i);
 			/* Compact: shift everything above this slot down */
 			if (i < com.hist_current - 1)

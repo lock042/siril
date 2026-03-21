@@ -118,4 +118,19 @@ int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...);
 int undo_save_flis_layer_props_snapshot(gint item_id,
                                         const flis_layer_props_t *props,
                                         const char *message);
+/**
+ * undo_save_flis_lmask:
+ * @layer:   the FLIS layer whose lmask state is to be snapshotted.
+ * @message: undo label.
+ *
+ * Saves the current layer-mask state of @layer as an undo entry.
+ * Call this BEFORE any change to layer->lmask:
+ *   - Before adding a mask:   saves "no mask" marker; undo removes the mask.
+ *   - Before removing a mask: saves mask pixels to swap; undo restores them.
+ *   - Before moving a mask:   call on both source and destination layers.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int undo_save_flis_lmask(flis_layer_t *layer, const char *message);
+
 #endif /* UNDO_H_ */

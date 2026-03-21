@@ -815,6 +815,8 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
         gtk_widget_destroy(dlg);
         if (r != GTK_RESPONSE_OK) return;
 
+        /* Save mask pixels before removal so undo can restore them */
+        undo_save_flis_lmask(flis_selected, _("Remove layer mask"));
         flis_layer_remove_lmask(flis_selected);
     } else {
         /* Add mask from file */
@@ -855,6 +857,9 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
             memset(dst, 255, npix); /* fallback: white (fully opaque) */
         }
         clearfits(mf); free(mf);
+
+        /* Save "no mask" marker before adding, so undo removes the new mask */
+        undo_save_flis_lmask(flis_selected, _("Add layer mask"));
 
         if (flis_layer_set_lmask(flis_selected, lm)) {
             /* Error (e.g. size mismatch) was already logged */
@@ -927,6 +932,12 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
             gint target_id = atoi(id_str);
             flis_layer_t *dest = flis_layer_get_by_id(target_id);
             if (dest) {
+                /* Save both layers' mask states before the move.
+                 * Order matters: undo is LIFO, so we save dest first and
+                 * source second.  Undo then restores source first (mask
+                 * goes back to source) then dest (mask removed from dest). */
+                undo_save_flis_lmask(dest,          _("Move layer mask (dest)"));
+                undo_save_flis_lmask(flis_selected, _("Move layer mask (source)"));
                 flis_layer_move_lmask(flis_selected, dest);
                 flis_invalidate_composite();
                 flis_gui_update();
