@@ -35,11 +35,13 @@
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
+#include "gui/flis_gui.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/annotation_catalogues.h"
 #include "core/undo.h"
 #include "core/proto.h"
@@ -171,10 +173,12 @@ static int undo_remove_item(historic *histo, int index) {
 	}
 	memset(histo[index].history, 0, FLEN_VALUE);
 	histo[index].mask_bitpix = 0;
+	histo[index].flis_layer_id = FLIS_UNDO_LAYER_NONE;
 	return 0;
 }
 
-static void undo_add_item(fits *fit, char *filename, char *mask_filename, const char *histo) {
+static void undo_add_item(fits *fit, char *filename, char *mask_filename,
+                          const char *histo, gint flis_layer_id) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;
@@ -201,6 +205,7 @@ static void undo_add_item(fits *fit, char *filename, char *mask_filename, const 
 		siril_debug_print("could not copy wcslib struct\n");
 	com.history[com.hist_current].focal_length = fit->keywords.focal_length;
 	com.history[com.hist_current].icc_profile = copyICCProfile(fit->icc_profile);
+	com.history[com.hist_current].flis_layer_id = flis_layer_id;
 	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
 
 	if (com.hist_current == com.hist_size - 1) {
@@ -474,6 +479,17 @@ int undo_save_state(fits *fit, const char *message, ...) {
 			vsnprintf(histo, FLEN_VALUE, message, args);
 		}
 
+		/* For a FLIS image, record which layer this state belongs to using
+		 * the layer's stable item_id.  This allows undo to find and switch
+		 * to the correct layer even after the stack has been reordered.
+		 * For plain FITS images, flis_layer_id is set to FLIS_UNDO_LAYER_NONE. */
+		gint flis_layer_id = FLIS_UNDO_LAYER_NONE;
+		if (is_current_image_flis()) {
+			flis_layer_t *active = flis_active_layer();
+			if (active)
+				flis_layer_id = active->item_id;
+		}
+
 		if (undo_build_swapfile(fit, &filename)) {
 			va_end(args);
 			return 1;
@@ -485,13 +501,64 @@ int undo_save_state(fits *fit, const char *message, ...) {
 			return 1;
 		}
 
-		undo_add_item(fit, filename, mask_filename, histo);
+		undo_add_item(fit, filename, mask_filename, histo, flis_layer_id);
 
 		/* update menus */
 		gui_function(update_MenuItem, NULL);
 	}
 	va_end(args);
 	return 0;
+}
+
+/* Switch the active FLIS layer to match a historic state, so that
+ * undo_get_data() restores pixel data into the correct layer's fits*.
+ *
+ * Returns TRUE if the switch succeeded or was not needed, FALSE if the
+ * target layer no longer exists (e.g. it was deleted after the state was
+ * saved) — the caller should skip this history entry in that case. */
+static gboolean flis_undo_switch_layer(const historic *hist) {
+	if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE)
+		return TRUE; /* plain FITS state: nothing to do */
+
+	if (!is_current_image_flis() || !com.uniq) {
+		siril_log_color_message(
+			_("Undo: state was saved from a FLIS layer but no FLIS is loaded — skipping\n"),
+			"salmon");
+		return FALSE;
+	}
+
+	flis_layer_t *target = flis_layer_get_by_id(hist->flis_layer_id);
+	if (!target) {
+		siril_log_color_message(
+			_("Undo: target layer (id %d) no longer exists — state cannot be restored\n"),
+			"salmon", hist->flis_layer_id);
+		return FALSE;
+	}
+
+	gint idx = flis_layer_get_index(target);
+	if (idx < 0) {
+		siril_log_color_message(
+			_("Undo: could not locate target layer in stack — skipping\n"),
+			"salmon");
+		return FALSE;
+	}
+
+	/* Switch the active layer so gfit points at the target layer's fits* */
+	uniq_set_active_layer(com.uniq, idx);
+	return TRUE;
+}
+
+/* For FLIS images, init_right_tab() uses isrgb(gfit) to choose between
+ * RGB_VPORT and RED_VPORT, but gfit is always the active layer (mono).
+ * This wrapper uses com.uniq->chans, which we set to reflect the composite
+ * colour model before calling close_tab(), so the correct tab is activated. */
+static gboolean flis_init_right_tab(gpointer user_data) {
+	(void)user_data;
+	if (is_current_image_flis() && com.uniq)
+		activate_tab(com.uniq->chans >= 3 ? RGB_VPORT : RED_VPORT);
+	else
+		init_right_tab(NULL);
+	return FALSE;
 }
 
 int undo_display_data(int dir) {
@@ -517,7 +584,20 @@ int undo_display_data(int dir) {
 			}
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
+
+			if (!flis_undo_switch_layer(&com.history[com.hist_display])) {
+				/* Target layer gone; skip this state and step back one more */
+				siril_log_color_message(
+					_("Undo: skipped unreachable state\n"), "salmon");
+				break;
+			}
+
 			undo_get_data(gfit, &com.history[com.hist_display]);
+
+			/* Rebuild the FLIS composite since a layer's pixels changed */
+			if (is_current_image_flis())
+				flis_invalidate_composite();
+
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
@@ -528,7 +608,22 @@ int undo_display_data(int dir) {
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			refresh_annotations(TRUE);
-			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			/* Update com.uniq->chans to reflect the composite colour model
+			 * before close_tab() reads it — same correction as in
+			 * open_single_image_from_gfit(). */
+			if (is_current_image_flis() && com.uniq) {
+				gboolean composite_rgb = FALSE;
+				for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+					flis_layer_t *lay = (flis_layer_t *)l->data;
+					if (!lay || !lay->fit) continue;
+					if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+					if (lay->has_tint)           composite_rgb = TRUE;
+				}
+				com.uniq->chans = composite_rgb ? 3 : 1;
+			}
+			gui_function(close_tab, NULL);
+			gui_function(flis_init_right_tab, NULL);
+			flis_gui_update();
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
 				redraw(REMAP_ALL);
@@ -560,7 +655,19 @@ int undo_display_data(int dir) {
 			siril_preview_hide();
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
+
+			if (!flis_undo_switch_layer(&com.history[com.hist_display])) {
+				siril_log_color_message(
+					_("Redo: skipped unreachable state\n"), "salmon");
+				break;
+			}
+
 			undo_get_data(gfit, &com.history[com.hist_display]);
+
+			/* Rebuild the FLIS composite since a layer's pixels changed */
+			if (is_current_image_flis())
+				flis_invalidate_composite();
+
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			update_gfit_histogram_if_needed();
@@ -571,7 +678,21 @@ int undo_display_data(int dir) {
 				cmsDeleteTransform(gui.icc.proofing_transform);
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
-			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			/* Update com.uniq->chans to reflect the composite colour model
+			 * before close_tab() reads it. */
+			if (is_current_image_flis() && com.uniq) {
+				gboolean composite_rgb = FALSE;
+				for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+					flis_layer_t *lay = (flis_layer_t *)l->data;
+					if (!lay || !lay->fit) continue;
+					if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+					if (lay->has_tint)           composite_rgb = TRUE;
+				}
+				com.uniq->chans = composite_rgb ? 3 : 1;
+			}
+			gui_function(close_tab, NULL);
+			gui_function(flis_init_right_tab, NULL);
+			flis_gui_update();
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
 				redraw(REMAP_ALL);
@@ -613,6 +734,64 @@ int undo_flush() {
 	com.hist_current = 0;
 	com.hist_display = 0;
 	return 0;
+}
+
+/* flis_undo_purge_layer:
+ *
+ * Removes all undo/redo states that belong to the specified FLIS layer from
+ * the ring buffer and frees their swap files.  Called before a layer is
+ * permanently removed from the stack so that stale states referencing a
+ * now-nonexistent item_id do not clutter the history or trigger warnings.
+ *
+ * States belonging to all other layers are preserved unchanged.
+ *
+ * When states are purged from the middle of the ring buffer the entries are
+ * compacted: everything above the removed slot is shifted down by one so the
+ * buffer remains contiguous.  hist_current and hist_display are adjusted to
+ * match.
+ *
+ * This replaces the previous flis_undo_notify_structural_change() which
+ * flushed the entire history.  Add, duplicate, and reorder operations do
+ * not need to touch the history at all because:
+ *   - Add / duplicate: the new layer has no prior states (new item_id).
+ *   - Reorder: flis_layer_get_by_id() locates layers by ID not position,
+ *     so reordering is transparent to the undo mechanism.
+ */
+void flis_undo_purge_layer(gint item_id) {
+	if (!com.history || item_id == FLIS_UNDO_LAYER_NONE) return;
+
+	int purged = 0;
+	int i = 0;
+	while (i < com.hist_current) {
+		if (com.history[i].flis_layer_id == item_id) {
+			undo_remove_item(com.history, i);
+			/* Compact: shift everything above this slot down */
+			if (i < com.hist_current - 1)
+				memmove(&com.history[i], &com.history[i + 1],
+				        (com.hist_current - i - 1) * sizeof(*com.history));
+			/* Zero the vacated top slot */
+			memset(&com.history[com.hist_current - 1], 0,
+			       sizeof(*com.history));
+			com.history[com.hist_current - 1].flis_layer_id =
+			        FLIS_UNDO_LAYER_NONE;
+			com.hist_current--;
+			/* Clamp the display pointer in case it pointed into the
+			 * vacated region */
+			if (com.hist_display > com.hist_current)
+				com.hist_display = com.hist_current;
+			purged++;
+			/* Do not advance i: the slot we just vacated now holds the
+			 * next entry that needs checking */
+		} else {
+			i++;
+		}
+	}
+
+	if (purged) {
+		siril_debug_print("FLIS undo: purged %d state(s) for layer id %d\n",
+		                  purged, item_id);
+		gui_function(update_MenuItem, NULL);
+	}
 }
 
 void set_undo_redo_tooltip() {

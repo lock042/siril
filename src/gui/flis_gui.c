@@ -46,6 +46,7 @@
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
+#include "core/undo.h"
 #include "flis_gui.h"
 
 /* =========================================================================
@@ -531,6 +532,13 @@ G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
 
     flis_properties_panel_update(layer);
     flis_toolbar_sensitivity_update();
+
+    /* Redraw so the display reflects the newly active layer.  The composite
+     * itself does not change on a simple layer selection (all visible layers
+     * are always composited), but this ensures the display is always current
+     * and responsive when the user interacts with the panel. */
+    if (is_current_image_flis() && !flis_updating)
+        queue_redraw(REMAP_ALL);
 }
 
 /* =========================================================================
@@ -574,6 +582,7 @@ G_MODULE_EXPORT void on_flis_add_layer_clicked(GtkButton *btn,
     }
 
     flis_selected = new_layer;
+//    flis_undo_notify_structural_change(); // Removed as part of layer structure undo implementation
     flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
@@ -601,9 +610,11 @@ G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
     flis_layer_t *to_remove = flis_selected;
     flis_selected = NULL;
 
+    flis_undo_purge_layer(to_remove->item_id); // Added as part of layer structure undo impl.
     if (flis_layer_remove(to_remove)) return; /* error already logged */
 
-    flis_invalidate_composite();
+//    flis_undo_notify_structural_change(); // Removed as part of layer structure undo implementation
+	flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
 }
@@ -633,6 +644,7 @@ G_MODULE_EXPORT void on_flis_duplicate_layer_clicked(GtkButton *btn,
     if (!dup) return;
 
     flis_selected = dup;
+//    flis_undo_notify_structural_change();
     flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
@@ -644,6 +656,7 @@ G_MODULE_EXPORT void on_flis_move_up_clicked(GtkButton *btn,
     if (!flis_selected) return;
 
     if (flis_layer_move_up(flis_selected) == 0) {
+//        flis_undo_notify_structural_change();
         flis_invalidate_composite();
         flis_gui_update();
         queue_redraw(REMAP_ALL);
@@ -656,6 +669,7 @@ G_MODULE_EXPORT void on_flis_move_down_clicked(GtkButton *btn,
     if (!flis_selected) return;
 
     if (flis_layer_move_down(flis_selected) == 0) {
+//        flis_undo_notify_structural_change();
         flis_invalidate_composite();
         flis_gui_update();
         queue_redraw(REMAP_ALL);
@@ -1015,12 +1029,6 @@ void flis_gui_init(void) {
                          G_CALLBACK(on_flis_opacity_adj_changed), NULL);
 }
 
-void on_fits_layers_open(GtkDialog *dialog, gpointer user_data) {
-    gtk_widget_show_all(dialog);
-    gtk_window_present(GTK_WINDOW(dialog));
-    flis_layers_list_rebuild();
-}
-
 void flis_gui_open(void) {
     GtkWidget *win = lookup_widget("flis_layers_window");
     if (!win) {
@@ -1039,6 +1047,10 @@ void flis_gui_open(void) {
     GtkWindow *main_win = GTK_WINDOW(lookup_widget("control_window"));
     if (main_win)
         gtk_window_set_transient_for(GTK_WINDOW(win), main_win);
+
+    /* keep-above must be set in code; GTK's UI loader rejects it as a
+     * static property on GtkDialog. */
+    gtk_window_set_keep_above(GTK_WINDOW(win), TRUE);
 
     gtk_widget_show_all(win);
     gtk_window_present(GTK_WINDOW(win));

@@ -230,6 +230,33 @@ void uniq_set_active_layer(single *uniq, gint index);
 flis_layer_t *flis_active_layer(void);
 
 /**
+ * flis_active_layer_fit:
+ *
+ * Returns the fits* for the currently active FLIS layer, or NULL.
+ * Use this instead of gfit when you need a stable pointer to the active
+ * layer's pixel data that is unaffected by the gfit-to-composite swap
+ * that redraw() performs during FLIS rendering.
+ */
+fits *flis_active_layer_fit(void);
+
+/**
+ * flis_promote_from_gfit:
+ * @name: name for the base layer, or NULL to use "Background".
+ *
+ * Converts the currently loaded plain FITS image (com.uniq->layers == NULL)
+ * into a single-layer FLIS in memory by wrapping gfit as the base layer.
+ * After this call is_current_image_flis() returns TRUE and additional
+ * layers can be added with flis_layer_add().
+ *
+ * gfit must be heap-allocated (i.e. obtained via malloc/calloc, not a
+ * reference to a static struct) because flis_layer_free() will free it
+ * when the layer is destroyed.
+ *
+ * Returns: 0 on success, non-zero on error.
+ */
+int flis_promote_from_gfit(const gchar *name);
+
+/**
  * flis_layer_get_by_id:
  * @item_id: the stable ITEM_ID to look up.
  *
@@ -486,26 +513,6 @@ void flis_layer_touch_modified(flis_layer_t *layer);
  * Convenience: layer_order gap between adjacent layers on creation.
  * Gaps allow insertion without renumbering existing layers.
  * ----------------------------------------------------------------------- */
-
-gchar *flis_now_iso8601(void);
-
-/**
- * flis_promote_from_gfit:
- * @name: name for the base layer. If NULL, defaults to "Background".
- *
- * Converts the currently loaded plain FITS image (com.uniq->layers == NULL)
- * into a single-layer FLIS in memory, wrapping gfit as the base layer.
- * After this call, is_current_image_flis() returns TRUE and additional
- * layers can be added with flis_layer_add().
- *
- * gfit must be heap-allocated (i.e. the fits* was obtained via malloc/
- * calloc, not a reference to a static struct) because flis_layer_free()
- * will free it when the layer is destroyed.
- *
- * Returns: 0 on success, non-zero on error.
- */
-int flis_promote_from_gfit(const gchar *name);
-
 #define FLIS_ORDER_STEP 10
 
 #endif /* IMAGE_FORMAT_FLIS_H */

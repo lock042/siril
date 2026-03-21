@@ -745,6 +745,7 @@ struct historic_struct {
 	char *mask_filename;
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
+	gint flis_layer_id;
 	data_type type;
 	uint8_t mask_bitpix;
 	wcs_info wcsdata;

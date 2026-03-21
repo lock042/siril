@@ -373,7 +373,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 		gboolean composite_rgb = FALSE;
 		for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
 			flis_layer_t *lay = (flis_layer_t *)l->data;
-			if (!lay || !lay->fit || !lay->visible) continue;
+			if (!lay || !lay->fit) continue;
 			if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
 			if (lay->has_tint)           composite_rgb = TRUE;
 		}
@@ -407,7 +407,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 		gboolean composite_rgb = FALSE;
 		for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
 			flis_layer_t *lay = (flis_layer_t *)l->data;
-			if (!lay || !lay->fit || !lay->visible) continue;
+			if (!lay || !lay->fit) continue;
 			if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
 			if (lay->has_tint)           composite_rgb = TRUE;
 		}

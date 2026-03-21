@@ -34,6 +34,7 @@
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "io/annotation_catalogues.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
@@ -2977,24 +2978,39 @@ void copy_roi_into_gfit() {
 }
 
 void redraw(remap_type doremap) {
-	fits *ref = gfit;
 	if (com.script && !com.python_script) return;
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 
-	/* FLIS mode: build the layer composite. The remap pipeline will use
-	 * this for rendering to the Cairo buffer.
-	 */
+	/* FLIS mode: build the layer composite and temporarily substitute it
+	 * for gfit so the existing remap pipeline processes the composited
+	 * image unchanged.  gfit is restored after remapping so all science
+	 * operations (statistics, histogram, tools) continue to see the
+	 * active layer's data.
+	 *
+	 * The swap is safe because redraw() runs on the GTK main thread via
+	 * redraw_idle(), and no other GTK callback can interleave with it. */
+	fits *saved_gfit = NULL;
 	if (doremap == REMAP_ALL && is_current_image_flis()) {
-		//if (flis_composite_dirty) {
-		if (TRUE) {
-			if (flis_composite_build()) {
-				siril_log_color_message(
-				    _("FLIS: composite build failed, displaying active layer\n"),
-				    "salmon");
-			} else {
-				ref = flis_display_composite;
-			}
+		if (flis_composite_build()) {
+			siril_log_color_message(
+			    _("FLIS: composite build failed, displaying active layer\n"),
+			    "salmon");
+			/* Fall through: gfit (active layer) is used as-is */
+		}
+		if (flis_display_composite) {
+			/* Swap gfit to the composite BEFORE calling init_layers_hi_and_lo_values.
+			 * That function uses gfit implicitly; calling it before the swap would
+			 * calibrate gui.lo/hi to the active layer's statistics (mono), not the
+			 * composite's.  With a mismatched LUT, the composite display is identical
+			 * before and after operations on non-active layers — making undo/redo
+			 * appear non-functional.  Swapping first ensures the LUT always matches
+			 * the actual data being displayed. */
+			saved_gfit = gfit;
+			gfit = flis_display_composite;
+
+			invalidate_stats_from_fit(gfit);
+			init_layers_hi_and_lo_values(gui.sliders);
 		}
 	}
 
@@ -3007,13 +3023,13 @@ void redraw(remap_type doremap) {
 		case REMAP_ALL:
 			stf_computed = FALSE;
 			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < ref->naxes[2]; i++) {
+				for (int i = 0; i < gfit->naxes[2]; i++) {
 					remap(i);
 				}
 			} else {
 				remap_all_vports();
 			}
-			if (ref->naxes[2] == 3)
+			if (gfit->naxis == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
@@ -3021,6 +3037,11 @@ void redraw(remap_type doremap) {
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");
 	}
+
+	/* Restore gfit to the active layer before any further code runs */
+	if (saved_gfit)
+		gfit = saved_gfit;
+
 	request_gtk_redraw_of_cvport();
 }
 

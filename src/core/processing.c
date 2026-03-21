@@ -51,6 +51,7 @@
 #include "io/seqwriter.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
 
@@ -1553,6 +1554,8 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
+	if (is_current_image_flis())
+		flis_invalidate_composite();
 	show_or_hide_mask_tab();
 	queue_redraw_mask();
 	free_generic_mask_args(args);
@@ -1562,6 +1565,13 @@ gboolean end_generic_mask(gpointer p) {
 static gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
+	/* For FLIS images, the operation modified one layer's pixel data.
+	 * Invalidate the composite so the next redraw rebuilds it from the
+	 * updated layer.  This must happen BEFORE notify_gfit_modified() so
+	 * that when end_gfit_operation calls init_layers_hi_and_lo_values it
+	 * operates on up-to-date composite statistics. */
+	if (is_current_image_flis())
+		flis_invalidate_composite();
 	notify_gfit_modified();
 	if (gfit->mask)
 		queue_redraw_mask();
@@ -1787,8 +1797,12 @@ gpointer generic_image_worker(gpointer p) {
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		// If we are being run from the GUI and not just updating a preview, set the undo state
-		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || args->command);
+		// If we are being run from the GUI and not just updating a preview, set the undo state.
+		// For FLIS images, gfit is a mutable global that redraw() temporarily swaps to the composite
+		// buffer; comparing args->fit == gfit in the worker thread is a race condition.  Instead,
+		// compare against the active layer's fits* which is stable for the duration of the operation.
+		fits *active_fit = is_current_image_flis() ? flis_active_layer_fit() : gfit;
+		undo_state = args->fit == active_fit && !(args->custom_undo || args->for_preview || args->command);
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1885,7 +1899,7 @@ gpointer generic_mask_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing mask..."), 0.1f);
 
-	if (args->fit == gfit && !args->command) {
+	if (args->fit == (is_current_image_flis() ? flis_active_layer_fit() : gfit) && !args->command) {
 		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
 		undo_save_state(gfit, undo_msg);
 		g_free(undo_msg);
