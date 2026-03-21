@@ -234,6 +234,8 @@ void uniq_set_active_layer(single *uniq, gint index);
  * Layer lookup helpers
  * ----------------------------------------------------------------------- */
 
+void flis_sort_layer_stack(void);
+
 /**
  * flis_active_layer:
  *

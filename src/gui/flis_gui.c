@@ -361,7 +361,9 @@ static void flis_layers_list_rebuild(void) {
 
     gtk_widget_show_all(GTK_WIDGET(list));
 
-    /* Re-select the previously selected layer, or default to the topmost */
+    /* Re-select the previously selected layer, or default to the topmost.
+     * flis_updating suppresses on_flis_layer_row_selected during the
+     * programmatic selection, so we must manually sync gfit afterwards. */
     flis_updating = TRUE;
     if (row_to_select) {
         gtk_list_box_select_row(list, row_to_select);
@@ -374,6 +376,18 @@ static void flis_layers_list_rebuild(void) {
         }
     }
     flis_updating = FALSE;
+
+    /* Sync gfit with the newly selected layer.  on_flis_layer_row_selected
+     * was suppressed by flis_updating above, so uniq_set_active_layer was
+     * not called.  Without this, gfit keeps pointing at whichever layer was
+     * active before the rebuild (typically the base layer from load_flis),
+     * and every subsequent operation modifies the wrong layer regardless of
+     * which one is visually selected in the panel. */
+    if (flis_selected && com.uniq) {
+        gint idx = flis_layer_get_index(flis_selected);
+        if (idx >= 0)
+            uniq_set_active_layer(com.uniq, idx);
+    }
 
     flis_properties_panel_update(flis_selected);
     flis_toolbar_sensitivity_update();
@@ -584,7 +598,6 @@ G_MODULE_EXPORT void on_flis_add_layer_clicked(GtkButton *btn,
     }
 
     flis_selected = new_layer;
-//    flis_undo_notify_structural_change(); // Removed as part of layer structure undo implementation
     flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
@@ -649,7 +662,6 @@ G_MODULE_EXPORT void on_flis_duplicate_layer_clicked(GtkButton *btn,
     if (!dup) return;
 
     flis_selected = dup;
-//    flis_undo_notify_structural_change();
     flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
@@ -660,8 +672,17 @@ G_MODULE_EXPORT void on_flis_move_up_clicked(GtkButton *btn,
     (void)btn; (void)data;
     if (!flis_selected) return;
 
+    /* Save atomic reorder state before the swap — find the neighbour that
+     * will swap layer_order with flis_selected (the one above it in the
+     * sorted list, i.e. at index + 1). */
+    gint idx = flis_layer_get_index(flis_selected);
+    flis_layer_t *neighbor = (idx >= 0)
+        ? (flis_layer_t *)g_slist_nth_data(com.uniq->layers, (guint)(idx + 1))
+        : NULL;
+    if (neighbor)
+        undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer up"));
+
     if (flis_layer_move_up(flis_selected) == 0) {
-//        flis_undo_notify_structural_change();
         flis_invalidate_composite();
         flis_gui_update();
         queue_redraw(REMAP_ALL);
@@ -673,8 +694,15 @@ G_MODULE_EXPORT void on_flis_move_down_clicked(GtkButton *btn,
     (void)btn; (void)data;
     if (!flis_selected) return;
 
+    /* Neighbour is the layer below (index - 1). */
+    gint idx = flis_layer_get_index(flis_selected);
+    flis_layer_t *neighbor = (idx > 0)
+        ? (flis_layer_t *)g_slist_nth_data(com.uniq->layers, (guint)(idx - 1))
+        : NULL;
+    if (neighbor)
+        undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer down"));
+
     if (flis_layer_move_down(flis_selected) == 0) {
-//        flis_undo_notify_structural_change();
         flis_invalidate_composite();
         flis_gui_update();
         queue_redraw(REMAP_ALL);
@@ -737,11 +765,12 @@ G_MODULE_EXPORT void on_flis_blend_mode_changed(GtkComboBox *combo,
     queue_redraw(REMAP_ALL);
 }
 
-/* Opacity: connect to the GtkAdjustment value-changed signal in code so
- * it fires exactly once regardless of which widget (scale or spin) was
- * used. Connected in flis_gui_open(). */
-/* Opacity debouncing state. */
-static gint               flis_opacity_drag_id       = FLIS_UNDO_LAYER_NONE;
+/* Opacity debouncing state.
+ * The GtkAdjustment fires value-changed on every drag tick; saving one undo
+ * state per tick would flood the ring buffer.  Instead we snapshot the
+ * pre-drag props on scale button-press and commit a single state on
+ * button-release. */
+static gint             flis_opacity_drag_id    = FLIS_UNDO_LAYER_NONE;
 static flis_layer_props_t flis_opacity_drag_snapshot;
 
 static gboolean on_flis_opacity_scale_press(GtkWidget *widget,
@@ -750,13 +779,14 @@ static gboolean on_flis_opacity_scale_press(GtkWidget *widget,
     (void)widget; (void)event; (void)data;
     if (!flis_selected) return FALSE;
 
-    flis_opacity_drag_id                   = flis_selected->item_id;
-    flis_opacity_drag_snapshot.blend_mode  = flis_selected->blend_mode;
-    flis_opacity_drag_snapshot.opacity     = flis_selected->opacity;
-    flis_opacity_drag_snapshot.visible     = flis_selected->visible;
-    flis_opacity_drag_snapshot.locked      = flis_selected->locked;
-    flis_opacity_drag_snapshot.has_tint    = flis_selected->has_tint;
-    flis_opacity_drag_snapshot.tint        = flis_selected->layer_tint;
+    /* Capture the full props at drag-start so we save one clean undo state */
+    flis_opacity_drag_id              = flis_selected->item_id;
+    flis_opacity_drag_snapshot.blend_mode = flis_selected->blend_mode;
+    flis_opacity_drag_snapshot.opacity    = flis_selected->opacity;
+    flis_opacity_drag_snapshot.visible    = flis_selected->visible;
+    flis_opacity_drag_snapshot.locked     = flis_selected->locked;
+    flis_opacity_drag_snapshot.has_tint   = flis_selected->has_tint;
+    flis_opacity_drag_snapshot.tint       = flis_selected->layer_tint;
     g_strlcpy(flis_opacity_drag_snapshot.name,
               flis_selected->layer_name ? flis_selected->layer_name : "",
               sizeof(flis_opacity_drag_snapshot.name));
@@ -769,6 +799,7 @@ static gboolean on_flis_opacity_scale_release(GtkWidget *widget,
     (void)widget; (void)event; (void)data;
     if (flis_opacity_drag_id == FLIS_UNDO_LAYER_NONE) return FALSE;
 
+    /* Only commit if the layer is still the same one we started on */
     if (flis_selected && flis_selected->item_id == flis_opacity_drag_id)
         undo_save_flis_layer_props_snapshot(flis_opacity_drag_id,
                                             &flis_opacity_drag_snapshot,
@@ -777,6 +808,12 @@ static gboolean on_flis_opacity_scale_release(GtkWidget *widget,
     return FALSE;
 }
 
+/* Opacity: connect to the GtkAdjustment value-changed signal in code so
+ * it fires exactly once regardless of which widget (scale or spin) was
+ * used.  Connected in flis_gui_init().
+ * Note: undo state is NOT saved here — it is saved by the scale press/release
+ * handlers above (one state per drag gesture).  Spinner changes save via
+ * on_flis_opacity_spin_value_changed, connected in flis_gui_init(). */
 static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
@@ -787,11 +824,16 @@ static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     queue_redraw(REMAP_ALL);
 }
 
+/* Spinner-specific value-changed: fires on commit (Enter / focus-out), not
+ * on every keypress, so saving a single undo state here is correct. */
 static void on_flis_opacity_spin_commit(GtkSpinButton *spin, gpointer data) {
     (void)spin; (void)data;
     if (flis_updating || !flis_selected) return;
+    /* The drag-snapshot path handles the scale; here we handle the spinner.
+     * If a drag is in progress (drag_id is set), don't double-save. */
     if (flis_opacity_drag_id != FLIS_UNDO_LAYER_NONE) return;
     undo_save_flis_layer_props(flis_selected, _("Opacity"));
+    /* Actual value change already applied by on_flis_opacity_adj_changed */
 }
 
 /* =========================================================================
@@ -932,12 +974,9 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
             gint target_id = atoi(id_str);
             flis_layer_t *dest = flis_layer_get_by_id(target_id);
             if (dest) {
-                /* Save both layers' mask states before the move.
-                 * Order matters: undo is LIFO, so we save dest first and
-                 * source second.  Undo then restores source first (mask
-                 * goes back to source) then dest (mask removed from dest). */
-                undo_save_flis_lmask(dest,          _("Move layer mask (dest)"));
-                undo_save_flis_lmask(flis_selected, _("Move layer mask (source)"));
+                /* Single atomic undo state — records both layer IDs so undo
+                 * reverses the move in one step with no broken intermediate. */
+                undo_save_flis_lmask_move(flis_selected, dest, _("Move layer mask"));
                 flis_layer_move_lmask(flis_selected, dest);
                 flis_invalidate_composite();
                 flis_gui_update();
@@ -978,6 +1017,7 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
     (void)data;
     if (flis_updating || !flis_selected) return;
 
+    /* Snapshot the composite colour model before the change */
     gboolean was_rgb = flis_composite_will_be_rgb();
 
     undo_save_flis_layer_props(flis_selected, _("Tint"));
@@ -987,6 +1027,7 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
     if (!enable) {
         flis_layer_clear_tint(flis_selected);
     } else {
+        /* Apply the current color button value as the initial tint */
         GdkRGBA colour;
         gtk_color_chooser_get_rgba(
             GTK_COLOR_CHOOSER(fw("flis_tint_color_btn")), &colour);
@@ -994,8 +1035,17 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
                             colour.red, colour.green, colour.blue);
     }
 
+    /* Update the channel tab strip only when the composite colour model
+     * has actually changed (mono→RGB or RGB→mono).  Calling close_tab()
+     * unconditionally would cause unnecessary redraws on every tint toggle
+     * in an already-RGB stack. */
     gboolean now_rgb = flis_composite_will_be_rgb();
     if (now_rgb != was_rgb) {
+        /* com.uniq->chans is set from the active layer's naxes[2] by
+         * uniq_set_active_layer(), which is always 1 for a mono layer.
+         * close_tab() reads this value to decide whether to show colour
+         * tabs, so we must update it to reflect the composite output before
+         * calling it — otherwise it will always see 1 and hide the tabs. */
         if (com.uniq)
             com.uniq->chans = now_rgb ? 3 : 1;
         close_tab(NULL);
@@ -1081,6 +1131,8 @@ void flis_gui_init(void) {
         g_signal_connect(adj, "value-changed",
                          G_CALLBACK(on_flis_opacity_adj_changed), NULL);
 
+    /* Opacity scale: capture pre-drag state on press, commit one undo state
+     * on release — avoids flooding history with every drag tick. */
     GtkWidget *scale = lookup_widget("flis_opacity_scale");
     if (scale) {
         g_signal_connect(scale, "button-press-event",
@@ -1089,6 +1141,7 @@ void flis_gui_init(void) {
                          G_CALLBACK(on_flis_opacity_scale_release), NULL);
     }
 
+    /* Spinner commit: fires on Enter / focus-out, not on every keypress */
     GtkWidget *spin = lookup_widget("flis_opacity_spin");
     if (spin)
         g_signal_connect(spin, "value-changed",

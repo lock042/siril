@@ -39,26 +39,29 @@ typedef struct flis_layer_props_t flis_layer_props_t;
 /*
  * IMPORTANT — siril.h change required
  * =====================================
- * The `historic` struct in siril.h must have the following field added:
+ * The `historic` struct in siril.h must have the following fields added:
  *
- *   gint flis_layer_id;
+ *   gint               flis_layer_id;   (already added)
+ *   flis_layer_props_t *layer_props;    (already added)
+ *   gchar             *lmask_filename;  (already added)
+ *   gint               lmask_layer_id;  (already added)
+ *   size_t             lmask_w;         (already added)
+ *   size_t             lmask_h;         (already added)
+ *   guint8             lmask_bitpix;    (already added)
+ *   gint               lmask_dest_layer_id; ← ADD THESE
+ *   gint               reorder_layer_a_id;
+ *   gint               reorder_layer_a_order;
+ *   gint               reorder_layer_b_id;
+ *   gint               reorder_layer_b_order;
  *
- * This field stores the item_id of the FLIS layer that was active when
- * the undo state was saved.  It is set to FLIS_UNDO_LAYER_NONE (-1) for
- * states saved from plain FITS images.  Because item_ids are stable and
- * never reused within a session, the undo mechanism can locate the correct
- * layer even after the stack has been reordered.
+ * `layer_props` is non-NULL only for property-only undo states (no swap
+ * file).  When non-NULL and `filename` is NULL, undo_get_data() restores
+ * only the layer properties rather than pixel data.
  *
- * Suggested placement immediately after mask_bitpix:
+ * Suggested placement immediately after flis_layer_id:
  *
- *   typedef struct {
- *       char  *filename;
- *       char  *mask_filename;
- *       int    mask_bitpix;
- *       gint   flis_layer_id;   ← ADD THIS
- *       int    rx, ry;
- *       ...
- *   } historic;
+ *   gint               flis_layer_id;
+ *   flis_layer_props_t *layer_props;    ← ADD THIS
  */
 
 gboolean is_undo_available(void);
@@ -118,6 +121,7 @@ int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...);
 int undo_save_flis_layer_props_snapshot(gint item_id,
                                         const flis_layer_props_t *props,
                                         const char *message);
+
 /**
  * undo_save_flis_lmask:
  * @layer:   the FLIS layer whose lmask state is to be snapshotted.
@@ -132,5 +136,31 @@ int undo_save_flis_layer_props_snapshot(gint item_id,
  * Returns 0 on success, non-zero on failure.
  */
 int undo_save_flis_lmask(flis_layer_t *layer, const char *message);
+
+/**
+ * undo_save_flis_lmask_move:
+ * @source: the layer currently holding the mask (before the move).
+ * @dest:   the layer that will receive the mask.
+ * @message: undo label.
+ *
+ * Saves an atomic undo state for a mask move.  A single ring-buffer entry
+ * records both layer IDs; undo reverses the move in one step with no broken
+ * intermediate state.  Call BEFORE flis_layer_move_lmask(source, dest).
+ */
+int undo_save_flis_lmask_move(flis_layer_t *source, flis_layer_t *dest,
+                               const char *message);
+
+/**
+ * undo_save_flis_layer_reorder:
+ * @layer_a: the layer being moved (flis_selected).
+ * @layer_b: the layer it will swap order with.
+ * @message: undo label.
+ *
+ * Saves an atomic undo state for a layer reorder (move-up / move-down).
+ * Records the current layer_order of both layers before the swap.
+ * Call BEFORE flis_layer_move_up() or flis_layer_move_down().
+ */
+int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
+                                  const char *message);
 
 #endif /* UNDO_H_ */

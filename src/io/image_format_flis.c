@@ -46,10 +46,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/masks.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
 #include "core/icc_profile.h"
+#include "core/masks.h"
+#include "gui/image_display.h"
 #include "image_format_fits.h"
 #include "image_format_flis.h"
 
@@ -1311,6 +1311,14 @@ static void flis_resort_layers(flis_layer_t *keep_active) {
         if (idx >= 0)
             uniq_set_active_layer(com.uniq, idx);
     }
+}
+
+/* Public wrapper used by the undo mechanism to re-sort after restoring
+ * layer_order values directly. */
+void flis_sort_layer_stack(void) {
+    if (!com.uniq || !com.uniq->layers) return;
+    flis_layer_t *active = flis_active_layer();
+    flis_resort_layers(active);
 }
 
 /*

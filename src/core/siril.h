@@ -755,6 +755,11 @@ struct historic_struct {
 	size_t  lmask_w;
 	size_t  lmask_h;
 	guint8  lmask_bitpix;
+	gint    lmask_dest_layer_id;
+	gint    reorder_layer_a_id;
+	gint    reorder_layer_a_order;
+	gint    reorder_layer_b_id;
+	gint    reorder_layer_b_order;
 	data_type type;
 	uint8_t mask_bitpix;
 	wcs_info wcsdata;

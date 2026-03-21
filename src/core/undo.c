@@ -182,10 +182,15 @@ static int undo_remove_item(historic *histo, int index) {
 		g_free(histo[index].lmask_filename);
 		histo[index].lmask_filename = NULL;
 	}
-	histo[index].lmask_layer_id = FLIS_UNDO_LAYER_NONE;
+	histo[index].lmask_layer_id  = FLIS_UNDO_LAYER_NONE;
+	histo[index].lmask_dest_layer_id = FLIS_UNDO_LAYER_NONE;
 	histo[index].lmask_w      = 0;
 	histo[index].lmask_h      = 0;
 	histo[index].lmask_bitpix = 0;
+	histo[index].reorder_layer_a_id    = FLIS_UNDO_LAYER_NONE;
+	histo[index].reorder_layer_a_order = 0;
+	histo[index].reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
+	histo[index].reorder_layer_b_order = 0;
 	return 0;
 }
 
@@ -461,12 +466,42 @@ static int undo_get_data(fits *fit, historic *hist) {
 		return 0;
 	}
 
-	/* Layer mask (lmask) undo state: restore or remove the layer mask.
-	 * lmask_layer_id != FLIS_UNDO_LAYER_NONE identifies a lmask state.
-	 * lmask_filename == NULL means the saved state had NO mask (used when
-	 * undoing an add-mask: we remove the mask to restore the prior state).
-	 * lmask_filename != NULL means the saved state had a mask (used when
-	 * undoing a remove-mask: we restore the mask from the swap file). */
+	/* Atomic layer-mask move state: lmask_layer_id = source, lmask_dest_layer_id = dest.
+	 * Restore by moving the mask in the reverse direction (dest → source). */
+	if (!hist->filename && !hist->layer_props &&
+	    hist->lmask_layer_id  != FLIS_UNDO_LAYER_NONE &&
+	    hist->lmask_dest_layer_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *src  = flis_layer_get_by_id(hist->lmask_layer_id);
+		flis_layer_t *dest = flis_layer_get_by_id(hist->lmask_dest_layer_id);
+		if (!src || !dest) {
+			siril_log_color_message(
+				_("Undo: layer for mask move no longer exists\n"), "salmon");
+			return 1;
+		}
+		/* dest currently holds the mask; move it back to src */
+		flis_layer_move_lmask(dest, src);
+		return 0;
+	}
+
+	/* Layer reorder state: swap the saved layer_order values back and re-sort. */
+	if (!hist->filename && !hist->layer_props &&
+	    hist->reorder_layer_a_id != FLIS_UNDO_LAYER_NONE) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *a = flis_layer_get_by_id(hist->reorder_layer_a_id);
+		flis_layer_t *b = flis_layer_get_by_id(hist->reorder_layer_b_id);
+		if (!a || !b) {
+			siril_log_color_message(
+				_("Undo: layer for reorder no longer exists\n"), "salmon");
+			return 1;
+		}
+		a->layer_order = hist->reorder_layer_a_order;
+		b->layer_order = hist->reorder_layer_b_order;
+		flis_sort_layer_stack();
+		return 0;
+	}
+
+	/* Layer mask (lmask) add/remove state */
 	if (!hist->filename && !hist->layer_props &&
 	    hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
 		if (!is_current_image_flis()) return 1;
@@ -710,7 +745,6 @@ int undo_save_flis_layer_props_snapshot(gint item_id,
  *   remove mask: call before removing — saves current mask pixels
  *   move mask:   call on BOTH source and destination layers before the move
  */
-
 int undo_save_flis_lmask(flis_layer_t *layer, const char *message) {
 	if (!layer || !is_current_image_flis() || !single_image_is_loaded())
 		return 1;
@@ -812,6 +846,98 @@ int undo_save_flis_lmask(flis_layer_t *layer, const char *message) {
 	return 0;
 }
 
+/* undo_save_flis_lmask_move:
+ *
+ * Saves an atomic undo state for a mask-move operation.  A single entry
+ * records both the source and destination layer IDs so undo restores the
+ * mask to its original layer in one step, with no broken intermediate state.
+ * No swap file is written — the mask data stays alive in memory.
+ *
+ * Call this BEFORE flis_layer_move_lmask(source, dest).
+ */
+int undo_save_flis_lmask_move(flis_layer_t *source, flis_layer_t *dest,
+                               const char *message) {
+	if (!source || !dest || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+
+	historic *h = &com.history[com.hist_current];
+	memset(h, 0, sizeof(*h));
+	h->flis_layer_id       = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id      = source->item_id;
+	h->lmask_dest_layer_id = dest->item_id;
+	h->lmask_filename      = NULL;   /* no swap file needed */
+	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
+}
+
+/* undo_save_flis_layer_reorder:
+ *
+ * Saves an atomic undo state for a layer reorder (move-up / move-down).
+ * Records the current layer_order of both layers before the swap so that
+ * undo can restore both values atomically without a broken intermediate.
+ *
+ * Call this BEFORE flis_layer_move_up() or flis_layer_move_down(), passing
+ * the layer being moved as layer_a and its swap partner as layer_b.
+ */
+int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
+                                  const char *message) {
+	if (!layer_a || !layer_b || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+
+	historic *h = &com.history[com.hist_current];
+	memset(h, 0, sizeof(*h));
+	h->flis_layer_id        = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id       = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id   = layer_a->item_id;
+	h->reorder_layer_a_order= layer_a->layer_order;
+	h->reorder_layer_b_id   = layer_b->item_id;
+	h->reorder_layer_b_order= layer_b->layer_order;
+	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
+}
+
 /* Switch the active FLIS layer to match a historic state, so that
  * undo_get_data() restores pixel data into the correct layer's fits*.
  *
@@ -819,10 +945,9 @@ int undo_save_flis_lmask(flis_layer_t *layer, const char *message) {
  * target layer no longer exists (e.g. it was deleted after the state was
  * saved) — the caller should skip this history entry in that case. */
 static gboolean flis_undo_switch_layer(const historic *hist) {
-	/* Lmask-only states use lmask_layer_id and address the layer directly
-	 * in undo_get_data(); no gfit switch is needed. */
-	if (!hist->filename && !hist->layer_props &&
-	    hist->lmask_layer_id != FLIS_UNDO_LAYER_NONE)
+	/* Atomic lmask-move, lmask add/remove, and reorder states all address
+	 * layers directly by ID in undo_get_data(); no gfit switch needed. */
+	if (!hist->filename && !hist->layer_props)
 		return TRUE;
 
 	if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE)
@@ -887,18 +1012,46 @@ int undo_display_data(int dir) {
 			siril_preview_hide();
 			on_clear_roi();
 			if (com.hist_current == com.hist_display) {
-				/* We are at the tip of the history — save a "redo target" state
-				 * before stepping back.  For props-only undo states the auto-save
-				 * must also be props-only; a pixel-only save from undo_save_state()
-				 * would not capture the current blend mode / opacity / etc., leaving
-				 * redo unable to restore them. */
+				/* We are at the tip of the history — save a matching "redo target"
+				 * state before stepping back.  The saved type must mirror the state
+				 * being undone so redo can restore it correctly. */
 				historic *next = &com.history[com.hist_display - 1];
-				if (next->layer_props && !next->filename && is_current_image_flis()) {
-					flis_layer_t *active = flis_layer_get_by_id(next->flis_layer_id);
-					if (active)
-						undo_save_flis_layer_props(active, NULL);
-					else
+				gboolean is_flis = is_current_image_flis();
+
+				if (!next->filename && is_flis) {
+					if (next->layer_props) {
+						/* Props-only state */
+						flis_layer_t *active = flis_layer_get_by_id(next->flis_layer_id);
+						if (active)
+							undo_save_flis_layer_props(active, NULL);
+						else
+							undo_save_state(gfit, NULL);
+					} else if (next->lmask_dest_layer_id != FLIS_UNDO_LAYER_NONE) {
+						/* Atomic mask-move state: save reverse direction */
+						flis_layer_t *src  = flis_layer_get_by_id(next->lmask_layer_id);
+						flis_layer_t *dest = flis_layer_get_by_id(next->lmask_dest_layer_id);
+						if (src && dest)
+							undo_save_flis_lmask_move(dest, src, NULL);
+						else
+							undo_save_state(gfit, NULL);
+					} else if (next->reorder_layer_a_id != FLIS_UNDO_LAYER_NONE) {
+						/* Reorder state: save current positions of both layers */
+						flis_layer_t *a = flis_layer_get_by_id(next->reorder_layer_a_id);
+						flis_layer_t *b = flis_layer_get_by_id(next->reorder_layer_b_id);
+						if (a && b)
+							undo_save_flis_layer_reorder(a, b, NULL);
+						else
+							undo_save_state(gfit, NULL);
+					} else if (next->lmask_layer_id != FLIS_UNDO_LAYER_NONE) {
+						/* Lmask add/remove state */
+						flis_layer_t *layer = flis_layer_get_by_id(next->lmask_layer_id);
+						if (layer)
+							undo_save_flis_lmask(layer, NULL);
+						else
+							undo_save_state(gfit, NULL);
+					} else {
 						undo_save_state(gfit, NULL);
+					}
 				} else {
 					undo_save_state(gfit, NULL);
 				}
@@ -1086,7 +1239,10 @@ void flis_undo_purge_layer(gint item_id) {
 	int i = 0;
 	while (i < com.hist_current) {
 		if (com.history[i].flis_layer_id == item_id ||
-		    com.history[i].lmask_layer_id == item_id) {
+		    com.history[i].lmask_layer_id == item_id ||
+		    com.history[i].lmask_dest_layer_id == item_id ||
+		    com.history[i].reorder_layer_a_id == item_id ||
+		    com.history[i].reorder_layer_b_id == item_id) {
 			undo_remove_item(com.history, i);
 			/* Compact: shift everything above this slot down */
 			if (i < com.hist_current - 1)
