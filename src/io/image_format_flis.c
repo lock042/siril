@@ -357,7 +357,7 @@ static int write_thumbnail_hdu(fitsfile *fptr, const fits *base_fit,
 	long naxes[3] = { tw, th, nchans };
 
 	/* Resize the primary HDU to hold the thumbnail */
-	if (fits_resize_img(fptr, BYTE_IMG, naxis, naxes, &status)) {
+	if (fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)) {
 		report_fits_error(status);
 		free(thumb);
 		return 1;

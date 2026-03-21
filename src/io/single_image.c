@@ -36,8 +36,8 @@
 #include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/icc_profile.h"
 #include "gui/flis_gui.h"
+#include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
 #include "gui/registration_preview.h"
@@ -165,13 +165,9 @@ void free_image_data() {
 	if (com.uniq) {
 		if (is_current_image_flis()) {
 			flis_composite_free();
-			/* gfit is reassigned by uniq_set_active_layer() to point at
-			 * the active layer's heap-allocated fits*.  clearfits(gfit)
-			 * at the end of this function is responsible for cleaning it
-			 * up.  NULL out the active layer's fit pointer here so that
-			 * flis_layer_free() does not free it first, which would leave
-			 * clearfits(gfit) operating on already-freed memory and
-			 * corrupt the heap. */
+			/* gfit points at the active layer's fits* (set by
+			 * uniq_set_active_layer).  NULL it out before flis_layer_free()
+			 * runs so that clearfits(gfit) below remains the sole owner. */
 			flis_layer_t *active = flis_active_layer();
 			if (active && active->fit == gfit)
 				active->fit = NULL;
@@ -327,9 +323,6 @@ int open_single_image(const char* filename) {
 		if (!is_current_image_flis()) {
 			create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		} else {
-			/* com.uniq->filename was set by load_flis() from the path it
-			 * received; update it with the resolved realname so it matches
-			 * what every other load path stores. */
 			g_free(com.uniq->filename);
 			com.uniq->filename = realname;
 			com.uniq->fileexist = TRUE;
@@ -344,6 +337,7 @@ int open_single_image(const char* filename) {
 	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
+
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
 gboolean open_single_image_from_gfit(gpointer user_data) {
@@ -371,6 +365,21 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	/* update menus */
 	update_MenuItem(NULL);
 
+	/* For a FLIS image, com.uniq->chans reflects the active layer's channel
+	 * count, which is 1 for mono even when tinted layers make the composite
+	 * RGB.  close_tab() reads chans to decide which viewport tabs to show,
+	 * so update it to reflect the composite output before calling it. */
+	if (is_current_image_flis() && com.uniq) {
+		gboolean composite_rgb = FALSE;
+		for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+			flis_layer_t *lay = (flis_layer_t *)l->data;
+			if (!lay || !lay->fit || !lay->visible) continue;
+			if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+			if (lay->has_tint)           composite_rgb = TRUE;
+		}
+		com.uniq->chans = composite_rgb ? 3 : 1;
+	}
+
 	close_tab(NULL);
 	init_right_tab(NULL);
 
@@ -392,6 +401,18 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	set_cutoff_sliders_values();
 
 	set_precision_switch(NULL); // set precision on screen
+
+	/* Same composite colour model check as open_single_image_from_gfit */
+	if (is_current_image_flis() && com.uniq) {
+		gboolean composite_rgb = FALSE;
+		for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+			flis_layer_t *lay = (flis_layer_t *)l->data;
+			if (!lay || !lay->fit || !lay->visible) continue;
+			if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+			if (lay->has_tint)           composite_rgb = TRUE;
+		}
+		com.uniq->chans = composite_rgb ? 3 : 1;
+	}
 
 	close_tab(NULL);
 	init_right_tab(NULL);

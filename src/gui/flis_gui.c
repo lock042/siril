@@ -1015,6 +1015,12 @@ void flis_gui_init(void) {
                          G_CALLBACK(on_flis_opacity_adj_changed), NULL);
 }
 
+void on_fits_layers_open(GtkDialog *dialog, gpointer user_data) {
+    gtk_widget_show_all(dialog);
+    gtk_window_present(GTK_WINDOW(dialog));
+    flis_layers_list_rebuild();
+}
+
 void flis_gui_open(void) {
     GtkWidget *win = lookup_widget("flis_layers_window");
     if (!win) {
@@ -1024,25 +1030,17 @@ void flis_gui_open(void) {
         return;
     }
 
-    /* Position beside the main window on first show */
-    if (!gtk_widget_get_visible(win)) {
-        GtkWindow *main_win = GTK_WINDOW(lookup_widget("control_window"));
-        if (main_win) {
-            gint x, y, w, h;
-            gtk_window_get_position(main_win, &x, &y);
-            gtk_window_get_size(main_win, &w, &h);
-            gtk_window_move(GTK_WINDOW(win), x + w + 8, y);
-        }
-    }
+    /* Set the transient parent every time we open the dialog.  This tells
+     * the window manager which application window the dialog belongs to,
+     * which (combined with keep-above=True in the UI file) ensures it
+     * floats above the main window without covering other applications.
+     * Doing this every time handles the case where the main window is
+     * re-created (rare but possible). */
+    GtkWindow *main_win = GTK_WINDOW(lookup_widget("control_window"));
+    if (main_win)
+        gtk_window_set_transient_for(GTK_WINDOW(win), main_win);
 
-    /* gtk_widget_show_all() is required to realise all child widgets on
-     * first open.  gtk_window_present() alone only raises/focuses an
-     * already-visible window and does not trigger a full realise-and-draw
-     * of unrealised children. */
     gtk_widget_show_all(win);
     gtk_window_present(GTK_WINDOW(win));
-
-    /* Rebuild now — the window is fully realised after show_all, so all
-     * child widgets (listbox, labels, buttons) render immediately. */
     flis_layers_list_rebuild();
 }

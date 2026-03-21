@@ -723,13 +723,14 @@ void check_gfit_profile_identical_to_monitor() {
 }
 
 static void remaprgb(void) {
+	fits *ref = com.uniq->layers && flis_display_composite ? flis_display_composite : gfit;
 	guint32 *dst;
 	const guint32 *bufr, *bufg, *bufb;
 	gint i;
 	int nbdata;
 
 	siril_debug_print("remaprgb\n");
-	if (!isrgb(gfit))
+	if (!isrgb(ref))
 		return;
 
 	struct image_view *rgbview = &gui.view[RGB_VPORT];
@@ -746,7 +747,7 @@ static void remaprgb(void) {
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
-	nbdata = gfit->rx * gfit->ry;	// source images are 32-bit RGBA
+	nbdata = ref->rx * ref->ry;	// source images are 32-bit RGBA
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -918,15 +919,15 @@ static void remap(int vport) {
 	inverted = g_variant_get_boolean(neg_state);
 	g_variant_unref(neg_state);
 	neg_state = NULL;
-
+	fits *ref = com.uniq->layers && flis_display_composite ? flis_display_composite : gfit;
 	if (gui.rendering_mode == HISTEQ_DISPLAY) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
 		gsl_histogram *histo;
-		compute_histo_for_fit(gfit);
+		compute_histo_for_fit(ref);
 		histo = com.layers_hist[vport];
 		hist_nb_bins = gsl_histogram_bins(histo);
-		nb_pixels = (double)(gfit->rx * gfit->ry);
+		nb_pixels = (double)(ref->rx * ref->ry);
 		// build the remap_index
 		index = gui.remap_index[0];
 		index[0] = 0;
@@ -942,11 +943,11 @@ static void remap(int vport) {
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
-				find_unlinked_midtones_balance_default(gfit, stf);
-			else find_linked_midtones_balance_default(gfit, stf);
+				find_unlinked_midtones_balance_default(ref, stf);
+			else find_linked_midtones_balance_default(ref, stf);
 			stf_computed = TRUE;
 		}
-		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && ref->type == DATA_FLOAT) {
 			make_hd_index_for_current_display(vport);
 		}
 		else
@@ -954,8 +955,8 @@ static void remap(int vport) {
 		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
-	src = gfit->pdata[vport];
-	fsrc = gfit->fpdata[vport];
+	src = ref->pdata[vport];
+	fsrc = ref->fpdata[vport];
 	dst = view->buf;
 
 	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
@@ -1000,8 +1001,8 @@ static void remap(int vport) {
 		}
 	}
 
-	const guint width = gfit->rx;
-	const guint height = gfit->ry;
+	const guint width = ref->rx;
+	const guint height = ref->ry;
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -1015,7 +1016,7 @@ static void remap(int vport) {
 			const guint dst_i = dst_row_start + x * 4;
 
 			BYTE dst_pixel_value;
-			if (gfit->type == DATA_USHORT) {
+			if (ref->type == DATA_USHORT) {
 				const WORD src_val = src[src_i];
 				if (hd_mode) {
 					dst_pixel_value = index[src_val * gui.hd_remap_max / USHRT_MAX];
@@ -1116,6 +1117,7 @@ static void remap_all_vports() {
 	uint16_t *mask_u16 = NULL;
 	float *mask_f32 = NULL;
 	int mask_bitpix = 0;
+	fits *ref = com.uniq->layers && flis_display_composite ? flis_display_composite : gfit;
 
 	if (apply_mask) {
 		mask_bitpix = gfit->mask->bitpix;
@@ -1142,7 +1144,7 @@ static void remap_all_vports() {
 	WORD *src[3];
 	float *fsrc[3];
 
-	if (gfit->type == DATA_UNSUPPORTED) {
+	if (ref->type == DATA_UNSUPPORTED) {
 		siril_debug_print("data is not loaded yet\n");
 		return;
 	}
@@ -1168,10 +1170,10 @@ static void remap_all_vports() {
 	make_index_for_current_display(0);
 	index[0] = gui.remap_index[0];
 	if (gfit->color_managed) {
-		for (int i = 1 ; i < 3 ; i++) {
-			make_index_for_current_display(i);
-			index[i] = gui.remap_index[i];
-		}
+		make_index_for_current_display(1);
+		index[1] = gui.remap_index[1];
+		make_index_for_current_display(2);
+		index[2] = gui.remap_index[2];
 	}
 	unlock_display_transform();
 
@@ -1181,16 +1183,16 @@ static void remap_all_vports() {
 	last_mode = gui.rendering_mode;
 
 	for (int i = 0 ; i < 3 ; i++) {
-		src[i] = gfit->pdata[i];
-		fsrc[i] = gfit->fpdata[i];
+		src[i] = ref->pdata[i];
+		fsrc[i] = ref->fpdata[i];
 		if (allocate_full_surface(view[i]))
 			return;
 		dst[i] = view[i]->buf;
 	}
 
-	int norm = (int) get_normalized_value(gfit);
-	const guint width = gfit->rx;
-	const guint height = gfit->ry;
+	int norm = (int) get_normalized_value(ref);
+	const guint width = ref->rx;
+	const guint height = ref->ry;
 
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
@@ -1244,7 +1246,7 @@ static void remap_all_vports() {
 				}
 			}
 
-			if (gfit->type == DATA_FLOAT) {
+			if (ref->type == DATA_FLOAT) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 					float *source = fsrc[c];
@@ -1265,7 +1267,7 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, width * sizeof(WORD));
 			}
-			if (gfit->type == DATA_USHORT && norm == UCHAR_MAX) {
+			if (ref->type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
 #pragma omp simd
@@ -2975,19 +2977,14 @@ void copy_roi_into_gfit() {
 }
 
 void redraw(remap_type doremap) {
+	fits *ref = gfit;
 	if (com.script && !com.python_script) return;
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
 		copy_roi_into_gfit();
 
-	/* FLIS mode: build the layer composite and temporarily substitute it
-	 * for gfit so the existing remap pipeline processes the composited
-	 * image unchanged.  gfit is restored after remapping so all science
-	 * operations (statistics, histogram, tools) continue to see the
-	 * active layer's data.
-	 *
-	 * The swap is safe because redraw() runs on the GTK main thread via
-	 * redraw_idle(), and no other GTK callback can interleave with it. */
-	fits *saved_gfit = NULL;
+	/* FLIS mode: build the layer composite. The remap pipeline will use
+	 * this for rendering to the Cairo buffer.
+	 */
 	if (doremap == REMAP_ALL && is_current_image_flis()) {
 		//if (flis_composite_dirty) {
 		if (TRUE) {
@@ -2995,12 +2992,9 @@ void redraw(remap_type doremap) {
 				siril_log_color_message(
 				    _("FLIS: composite build failed, displaying active layer\n"),
 				    "salmon");
-				/* Fall through: gfit (active layer) is used as-is */
+			} else {
+				ref = flis_display_composite;
 			}
-		}
-		if (flis_display_composite) {
-			saved_gfit = gfit;
-			gfit = flis_display_composite;
 		}
 	}
 
@@ -3013,13 +3007,13 @@ void redraw(remap_type doremap) {
 		case REMAP_ALL:
 			stf_computed = FALSE;
 			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < gfit->naxes[2]; i++) {
+				for (int i = 0; i < ref->naxes[2]; i++) {
 					remap(i);
 				}
 			} else {
 				remap_all_vports();
 			}
-			if (gfit->naxis == 3)
+			if (ref->naxes[2] == 3)
 				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
@@ -3027,11 +3021,6 @@ void redraw(remap_type doremap) {
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");
 	}
-
-	/* Restore gfit to the active layer before any further code runs */
-	if (saved_gfit)
-		gfit = saved_gfit;
-
 	request_gtk_redraw_of_cvport();
 }
 

@@ -44,7 +44,9 @@ static GActionEntry win_entries[] = {
 	{ "prepro", tab_prepro_activate },
 	{ "plot", tab_plot_activate },
 	{ "stacking", tab_stacking_activate },
-	{ "logs", tab_logs_activate }
+	{ "logs", tab_logs_activate },
+
+	{ "layers", layers_tool_activate }
 };
 
 static GActionEntry image_entries[] = {

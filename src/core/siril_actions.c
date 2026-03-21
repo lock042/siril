@@ -995,3 +995,7 @@ void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpo
 void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("mask_thresholds_dialog");
 }
+
+void layers_tool_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("flis_layers_window");
+}
