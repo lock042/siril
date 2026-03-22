@@ -180,18 +180,16 @@ void flis_composite_free(void) {
 /* -------------------------------------------------------------------------
  * Unified blend loop macros — work for both full-canvas and sparse layers.
  *
- * Variables read from the surrounding scope of flis_composite_build:
- *   y0, y1   — intersection row range  (canvas coords; 0..H for full canvas)
- *   x0, x1   — intersection column range (canvas coords; 0..W for full canvas)
- *   oy, ox   — layer origin on the canvas (0,0 for full canvas)
- *   lW       — layer pixel width (= W for full canvas)
+ * Variables from the surrounding scope of flis_composite_build:
+ *   y0, y1  — intersection row range  (0..H for full-canvas)
+ *   x0, x1  — intersection col range  (0..W for full-canvas)
+ *   oy, ox  — layer origin on canvas  (0,0 for full-canvas)
+ *   lW      — layer pixel width       (= W for full-canvas)
  *
- * For a full-canvas layer: y0=0, y1=H, x0=0, x1=W, ox=0, oy=0, lW=W.
- * The index _li = (_y-oy)*lW+(x0-ox)+_dx = _y*W+_dx = _i exactly,
- * so the compiler generates identical code to the previous dense macros.
- *
- * The inner loop over _dx is stride-1 in both source (_li) and destination
- * (_i) so `#pragma omp simd` vectorises it normally.
+ * Zero-pixel convention: source pixels where all channels are 0 are "no
+ * data" (rotation/undistortion borders).  _valid zeroes the alpha
+ * branchlessly for such pixels, leaving the destination unchanged.
+ * FLIS_BASE_LOOP is exempt — zero base pixels initialise the canvas.
  * ------------------------------------------------------------------------- */
 #define FLIS_BASE_LOOP(TR, TG, TB) \
 do { \
@@ -210,12 +208,6 @@ do { \
     } \
 } while (0)
 
-/* -------------------------------------------------------------------------
- * Channel-wise blend loops (unmasked and masked).
- *
- * BR, BG, BB are blend expressions in terms of sr/dr, sg/dg, sb/db.
- * TR, TG, TB are tint scalars (1.f for RGB or untinted mono).
- * ------------------------------------------------------------------------- */
 #define FLIS_BLEND_LOOP(TR, TG, TB, BR, BG, BB) \
 do { \
     FLIS_OMP_PAR_FOR \
@@ -229,12 +221,13 @@ do { \
             const float sr = pre_r[_li] * (TR); \
             const float sg = pre_g[_li] * (TG); \
             const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
-            out_r[_i] = FLIS_OVER((BR), dr, global_opacity); \
-            out_g[_i] = FLIS_OVER((BG), dg, global_opacity); \
-            out_b[_i] = FLIS_OVER((BB), db, global_opacity); \
+            out_r[_i] = FLIS_OVER((BR), dr, global_opacity * _valid); \
+            out_g[_i] = FLIS_OVER((BG), dg, global_opacity * _valid); \
+            out_b[_i] = FLIS_OVER((BB), db, global_opacity * _valid); \
         } \
     } \
 } while (0)
@@ -249,11 +242,13 @@ do { \
         for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
             const size_t _li   = _lrow + (size_t)_dx; \
             const size_t _i    = _crow + (size_t)_dx; \
-            const float _alpha = global_opacity \
-                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE); \
             const float sr = pre_r[_li] * (TR); \
             const float sg = pre_g[_li] * (TG); \
             const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
+            const float _alpha = global_opacity \
+                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE) \
+                                 * _valid; \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -264,9 +259,6 @@ do { \
     } \
 } while (0)
 
-/* -------------------------------------------------------------------------
- * HSL-family blend loops (not vectorisable per-channel).
- * ------------------------------------------------------------------------- */
 #define FLIS_HSL_LOOP(TR, TG, TB) \
 do { \
     FLIS_OMP_PAR_FOR \
@@ -279,15 +271,16 @@ do { \
             const float sr = pre_r[_li] * (TR); \
             const float sg = pre_g[_li] * (TG); \
             const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
             float br, bg, bb; \
             flis_blend_hsl_pixel(mode, sr, sg, sb, dr, dg, db, \
                                  &br, &bg, &bb); \
-            out_r[_i] = FLIS_OVER(br, dr, global_opacity); \
-            out_g[_i] = FLIS_OVER(bg, dg, global_opacity); \
-            out_b[_i] = FLIS_OVER(bb, db, global_opacity); \
+            out_r[_i] = FLIS_OVER(br, dr, global_opacity * _valid); \
+            out_g[_i] = FLIS_OVER(bg, dg, global_opacity * _valid); \
+            out_b[_i] = FLIS_OVER(bb, db, global_opacity * _valid); \
         } \
     } \
 } while (0)
@@ -301,11 +294,13 @@ do { \
         for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
             const size_t _li   = _lrow + (size_t)_dx; \
             const size_t _i    = _crow + (size_t)_dx; \
-            const float _alpha = global_opacity \
-                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE); \
             const float sr = pre_r[_li] * (TR); \
             const float sg = pre_g[_li] * (TG); \
             const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
+            const float _alpha = global_opacity \
+                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE) \
+                                 * _valid; \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -651,9 +646,6 @@ static int flis_composite_build(void) {
             pre_b = mono ? float_buf : float_buf + N * 2;
         }
 
-        /* Tint scalars.  For RGB layers or untinted mono layers these are 1.f
-         * and the compiler folds pre_r[_li]*1.f to a plain load in each
-         * instantiated loop body.                                             */
         const float tr = (mono && lay->has_tint) ? (float)lay->layer_tint.r : 1.f;
         const float tg = (mono && lay->has_tint) ? (float)lay->layer_tint.g : 1.f;
         const float tb = (mono && lay->has_tint) ? (float)lay->layer_tint.b : 1.f;
@@ -661,22 +653,20 @@ static int flis_composite_build(void) {
         const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
 
         /* Intersection of the layer rectangle with the canvas.
-         * position_x/y are stored in FITS convention: origin at bottom-left,
-         * y increases upward.  Convert position_y to a top-down canvas row:
-         *   oy_td = H - position_y - lH
-         * For a full-canvas layer: position_x=0, position_y=0, lW=W, lH=H
-         * → oy_td = H - 0 - H = 0, so y0=0, y1=H — identical to before.  */
-        const gint ox   = lay->position_x;
+         * position_y is in FITS convention (origin bottom-left), convert to
+         * top-down canvas row: oy = H - position_y - lH.
+         * For full-canvas: ox=0, oy=0, lW=W, lH=H → x0=0,x1=W,y0=0,y1=H. */
+        const gint  ox  = lay->position_x;
         const guint lW  = (guint)lfit->rx;
         const guint lH  = (guint)lfit->ry;
-        const gint oy   = (gint)H - lay->position_y - (gint)lH;
-        const gint x0   = MAX(0,      ox);
-        const gint x1   = MIN((gint)W, ox + (gint)lW);
-        const gint y0   = MAX(0,      oy);
-        const gint y1   = MIN((gint)H, oy + (gint)lH);
+        const gint  oy  = (gint)H - lay->position_y - (gint)lH;
+        const gint  x0  = MAX(0,      ox);
+        const gint  x1  = MIN((gint)W, ox + (gint)lW);
+        const gint  y0  = MAX(0,      oy);
+        const gint  y1  = MIN((gint)H, oy + (gint)lH);
 
         if (x0 >= x1 || y0 >= y1) {
-            /* Layer entirely outside the canvas — skip */
+            /* Layer entirely outside the canvas */
             if (first_layer) first_layer = FALSE;
             free(float_buf);
             continue;
@@ -2794,23 +2784,17 @@ static void draw_analysis(const draw_data_t* dd) {
 }
 
 /* Draw a grey dashed outline around the active FLIS layer when it is not the
- * base layer and its dimensions differ from the canvas (i.e. it is sparse).
- * Coordinates are in image-pixel space — the display matrix handles zoom/pan.
- */
+ * base layer and its dimensions or offset differ from the canvas. */
 static void draw_flis_layer_frame(const draw_data_t *dd) {
 	if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
-
-	/* Need at least two layers to have a non-base active layer */
 	if (!com.uniq->layers->next) return;
 
 	flis_layer_t *active = flis_active_layer();
 	if (!active || !active->fit) return;
 
-	/* Base layer is the first in the sorted list */
 	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
 	if (active == base) return;
 
-	/* Only draw if the layer is sparse (different size or offset) */
 	if (active->position_x == 0 && active->position_y == 0 &&
 	    (guint)active->fit->rx == (guint)base->fit->rx &&
 	    (guint)active->fit->ry == (guint)base->fit->ry)
@@ -2933,17 +2917,19 @@ double get_zoom_val() {
 	/* else if zoom is < 0, it means fit to window */
 	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
+	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
+		return 1.0;
 	fits *fit = gfit;
 	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
 		flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-		fit = base->fit;
+		if (base && base->fit)
+			fit = base->fit;
 	}
-	if (fit->rx == 0 || fit->ry == 0 || window_height <= 1 || window_width <= 1)
+	if (fit->rx == 0 || fit->ry == 0)
 		return 1.0;
 	double wtmp = (double) window_width / (double) fit->rx;
 	double htmp = (double) window_height / (double) fit->ry;
 	return min(wtmp, htmp);
-
 }
 
 // passing -1 means invalidate all
