@@ -1774,6 +1774,20 @@ gpointer generic_image_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing image..."), 0.1f);
 
+	/* Snapshot the active FLIS layer's offset BEFORE the hook runs.
+	 * Operations like crop may call flis_update_layer_offset_after_crop()
+	 * inside the hook, mutating position_x/y.  undo_save_state() is called
+	 * after the hook, so any snapshot taken there sees the post-op value.
+	 * We patch the undo state's position fields immediately after saving. */
+	gint flis_pre_pos_x = 0, flis_pre_pos_y = 0;
+	if (is_current_image_flis()) {
+		flis_layer_t *_active = flis_active_layer();
+		if (_active) {
+			flis_pre_pos_x = _active->position_x;
+			flis_pre_pos_y = _active->position_y;
+		}
+	}
+
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
 		siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
@@ -1827,6 +1841,12 @@ the_end:;
 	if (!retval) {
 		if (undo_state && orig) {
 			undo_save_state(orig, summary); // We just use the short description for the undo state
+			/* Overwrite the position that undo_save_state stored (which
+			 * reflects the post-op value) with the pre-op snapshot. */
+			if (is_current_image_flis() && com.history && com.hist_current > 0) {
+				com.history[com.hist_current - 1].flis_position_x = flis_pre_pos_x;
+				com.history[com.hist_current - 1].flis_position_y = flis_pre_pos_y;
+			}
 		} else {
 			// Update the HISTORY card if it wasn't updated by undo_save_state'
 			if (!arg_custom_undo && arg_update_gfit) {

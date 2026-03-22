@@ -48,11 +48,13 @@ typedef struct flis_layer_props_t flis_layer_props_t;
  *   size_t             lmask_w;         (already added)
  *   size_t             lmask_h;         (already added)
  *   guint8             lmask_bitpix;    (already added)
- *   gint               lmask_dest_layer_id; ← ADD THESE
- *   gint               reorder_layer_a_id;
- *   gint               reorder_layer_a_order;
- *   gint               reorder_layer_b_id;
- *   gint               reorder_layer_b_order;
+ *   gint               lmask_dest_layer_id; (already added)
+ *   gint               reorder_layer_a_id;  (already added)
+ *   gint               reorder_layer_a_order; (already added)
+ *   gint               reorder_layer_b_id;  (already added)
+ *   gint               reorder_layer_b_order; (already added)
+ *   gint               flis_position_x; ← ADD THESE
+ *   gint               flis_position_y;
  *
  * `layer_props` is non-NULL only for property-only undo states (no swap
  * file).  When non-NULL and `filename` is NULL, undo_get_data() restores

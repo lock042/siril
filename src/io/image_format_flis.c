@@ -1351,6 +1351,52 @@ fits *flis_active_layer_fit(void) {
     return lay ? lay->fit : NULL;
 }
 
+/* flis_update_layer_offset_after_crop:
+ *
+ * Must be called immediately after a crop operation has been applied to gfit
+ * (i.e. after the pixel data has been trimmed and gfit->rx/ry updated) when
+ * a FLIS image is loaded.
+ *
+ * @sel_x, @sel_y: top-left of the crop selection in canvas coordinates
+ *                 (i.e. com.selection.x and com.selection.y before the crop)
+ *
+ * Two cases:
+ *
+ * 1. Base layer cropped: the canvas itself shrinks.  All non-base layers
+ *    have their offsets reduced by (sel_x, sel_y) so they remain correctly
+ *    positioned relative to the new canvas origin.
+ *
+ * 2. Non-base layer cropped: the layer's pixel data is now the selection
+ *    area.  Its position on the canvas is the selection top-left, so set
+ *    position_x = sel_x, position_y = sel_y.
+ */
+void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    flis_layer_t *active = flis_active_layer();
+    if (!active) return;
+
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+    if (active == base) {
+        /* Base layer cropped: adjust all non-base layer offsets */
+        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            lay->position_x -= sel_x;
+            lay->position_y -= sel_y;
+        }
+    } else {
+        /* Non-base layer cropped: the data now sits at (sel_x, sel_y) */
+        active->position_x = sel_x;
+        active->position_y = sel_y;
+    }
+
+    flis_invalidate_composite();
+    siril_debug_print("FLIS: layer offsets updated after crop (sel %d,%d)\n",
+                      sel_x, sel_y);
+}
+
 int flis_promote_from_gfit(const gchar *name) {
     if (!com.uniq) {
         siril_log_message(_("FLIS: flis_promote_from_gfit — no image loaded\n"));

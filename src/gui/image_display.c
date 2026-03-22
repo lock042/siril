@@ -178,48 +178,57 @@ void flis_composite_free(void) {
     ((s) <= 0.f ? 0.f : 1.f - fminf((1.f - (d)) / (s), 1.f))
 
 /* -------------------------------------------------------------------------
- * Base layer loop -- write source to output with no blending.
- * Used only for the lowest visible layer; alpha is not applied.
+ * Unified blend loop macros — work for both full-canvas and sparse layers.
+ *
+ * Variables read from the surrounding scope of flis_composite_build:
+ *   y0, y1   — intersection row range  (canvas coords; 0..H for full canvas)
+ *   x0, x1   — intersection column range (canvas coords; 0..W for full canvas)
+ *   oy, ox   — layer origin on the canvas (0,0 for full canvas)
+ *   lW       — layer pixel width (= W for full canvas)
+ *
+ * For a full-canvas layer: y0=0, y1=H, x0=0, x1=W, ox=0, oy=0, lW=W.
+ * The index _li = (_y-oy)*lW+(x0-ox)+_dx = _y*W+_dx = _i exactly,
+ * so the compiler generates identical code to the previous dense macros.
+ *
+ * The inner loop over _dx is stride-1 in both source (_li) and destination
+ * (_i) so `#pragma omp simd` vectorises it normally.
  * ------------------------------------------------------------------------- */
 #define FLIS_BASE_LOOP(TR, TG, TB) \
 do { \
     FLIS_OMP_PAR_FOR \
-    for (guint _y = 0; _y < H; _y++) { \
-        const size_t _row = (size_t)_y * W; \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
         FLIS_OMP_SIMD \
-        for (guint _x = 0; _x < W; _x++) { \
-            const size_t _i = _row + _x; \
-            out_r[_i] = FLIS_C01(pre_r[_i] * (TR)); \
-            out_g[_i] = FLIS_C01(pre_g[_i] * (TG)); \
-            out_b[_i] = FLIS_C01(pre_b[_i] * (TB)); \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li = _lrow + (size_t)_dx; \
+            const size_t _i  = _crow + (size_t)_dx; \
+            out_r[_i] = FLIS_C01(pre_r[_li] * (TR)); \
+            out_g[_i] = FLIS_C01(pre_g[_li] * (TG)); \
+            out_b[_i] = FLIS_C01(pre_b[_li] * (TB)); \
         } \
     } \
 } while (0)
 
 /* -------------------------------------------------------------------------
- * Channel-wise blend loops.
- *
- * Two variants: unmasked (constant alpha = global_opacity) and masked
- * (per-pixel alpha = global_opacity x mask_data[_i]/255).
+ * Channel-wise blend loops (unmasked and masked).
  *
  * BR, BG, BB are blend expressions in terms of sr/dr, sg/dg, sb/db.
  * TR, TG, TB are tint scalars (1.f for RGB or untinted mono).
- *
- * The inner loop is tagged with omp simd.  Each instantiation from
- * FLIS_DISPATCH is a distinct, branchless loop body that the compiler
- * can vectorise independently.
  * ------------------------------------------------------------------------- */
 #define FLIS_BLEND_LOOP(TR, TG, TB, BR, BG, BB) \
 do { \
     FLIS_OMP_PAR_FOR \
-    for (guint _y = 0; _y < H; _y++) { \
-        const size_t _row = (size_t)_y * W; \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
         FLIS_OMP_SIMD \
-        for (guint _x = 0; _x < W; _x++) { \
-            const size_t _i = _row + _x; \
-            const float sr = pre_r[_i] * (TR); \
-            const float sg = pre_g[_i] * (TG); \
-            const float sb = pre_b[_i] * (TB); \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li = _lrow + (size_t)_dx; \
+            const size_t _i  = _crow + (size_t)_dx; \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -233,16 +242,18 @@ do { \
 #define FLIS_BLEND_LOOP_MASKED(TR, TG, TB, BR, BG, BB) \
 do { \
     FLIS_OMP_PAR_FOR \
-    for (guint _y = 0; _y < H; _y++) { \
-        const size_t _row = (size_t)_y * W; \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
         FLIS_OMP_SIMD \
-        for (guint _x = 0; _x < W; _x++) { \
-            const size_t _i = _row + _x; \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li   = _lrow + (size_t)_dx; \
+            const size_t _i    = _crow + (size_t)_dx; \
             const float _alpha = global_opacity \
-                                 * (mask_data[_i] * INV_UCHAR_MAX_SINGLE); \
-            const float sr = pre_r[_i] * (TR); \
-            const float sg = pre_g[_i] * (TG); \
-            const float sb = pre_b[_i] * (TB); \
+                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE); \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -254,24 +265,20 @@ do { \
 } while (0)
 
 /* -------------------------------------------------------------------------
- * HSL-family blend loops.
- *
- * HSL modes (Hue, Saturation, Color, Luminosity) require the full RGB
- * triple and involve RGB<->HSL conversions, so they cannot be vectorised
- * per-channel.  The inner loop calls flis_blend_hsl_pixel() which carries
- * its own mode switch (only 4 cases).  The masked/unmasked split (Option C)
- * still removes the per-pixel mask branch.
+ * HSL-family blend loops (not vectorisable per-channel).
  * ------------------------------------------------------------------------- */
 #define FLIS_HSL_LOOP(TR, TG, TB) \
 do { \
     FLIS_OMP_PAR_FOR \
-    for (guint _y = 0; _y < H; _y++) { \
-        const size_t _row = (size_t)_y * W; \
-        for (guint _x = 0; _x < W; _x++) { \
-            const size_t _i = _row + _x; \
-            const float sr = pre_r[_i] * (TR); \
-            const float sg = pre_g[_i] * (TG); \
-            const float sb = pre_b[_i] * (TB); \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li = _lrow + (size_t)_dx; \
+            const size_t _i  = _crow + (size_t)_dx; \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -288,15 +295,17 @@ do { \
 #define FLIS_HSL_LOOP_MASKED(TR, TG, TB) \
 do { \
     FLIS_OMP_PAR_FOR \
-    for (guint _y = 0; _y < H; _y++) { \
-        const size_t _row = (size_t)_y * W; \
-        for (guint _x = 0; _x < W; _x++) { \
-            const size_t _i = _row + _x; \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li   = _lrow + (size_t)_dx; \
+            const size_t _i    = _crow + (size_t)_dx; \
             const float _alpha = global_opacity \
-                                 * (mask_data[_i] * INV_UCHAR_MAX_SINGLE); \
-            const float sr = pre_r[_i] * (TR); \
-            const float sg = pre_g[_i] * (TG); \
-            const float sb = pre_b[_i] * (TB); \
+                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE); \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
@@ -643,7 +652,7 @@ static int flis_composite_build(void) {
         }
 
         /* Tint scalars.  For RGB layers or untinted mono layers these are 1.f
-         * and the compiler folds pre_r[_i]*1.f to a plain load in each
+         * and the compiler folds pre_r[_li]*1.f to a plain load in each
          * instantiated loop body.                                             */
         const float tr = (mono && lay->has_tint) ? (float)lay->layer_tint.r : 1.f;
         const float tg = (mono && lay->has_tint) ? (float)lay->layer_tint.g : 1.f;
@@ -651,21 +660,38 @@ static int flis_composite_build(void) {
 
         const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
 
+        /* Intersection of the layer rectangle with the canvas.
+         * position_x/y are stored in FITS convention: origin at bottom-left,
+         * y increases upward.  Convert position_y to a top-down canvas row:
+         *   oy_td = H - position_y - lH
+         * For a full-canvas layer: position_x=0, position_y=0, lW=W, lH=H
+         * → oy_td = H - 0 - H = 0, so y0=0, y1=H — identical to before.  */
+        const gint ox   = lay->position_x;
+        const guint lW  = (guint)lfit->rx;
+        const guint lH  = (guint)lfit->ry;
+        const gint oy   = (gint)H - lay->position_y - (gint)lH;
+        const gint x0   = MAX(0,      ox);
+        const gint x1   = MIN((gint)W, ox + (gint)lW);
+        const gint y0   = MAX(0,      oy);
+        const gint y1   = MIN((gint)H, oy + (gint)lH);
+
+        if (x0 >= x1 || y0 >= y1) {
+            /* Layer entirely outside the canvas — skip */
+            if (first_layer) first_layer = FALSE;
+            free(float_buf);
+            continue;
+        }
+
         if (first_layer) {
             FLIS_BASE_LOOP(tr, tg, tb);
             first_layer = FALSE;
         } else if (hsl_mode) {
-            /* HSL modes: not vectorisable per-channel; separate masked/unmasked
-             * paths still remove the per-pixel mask branch (Option C).        */
             if (mask_data) {
                 FLIS_HSL_LOOP_MASKED(tr, tg, tb);
             } else {
                 FLIS_HSL_LOOP(tr, tg, tb);
             }
         } else {
-            /* Channel-wise modes: blend mode switch hoisted above pixel loops
-             * (Option B); masked/unmasked paths compiled separately (Option C).
-             * Each instantiated inner loop is branchless and SIMD-vectorisable.*/
             FLIS_DISPATCH(tr, tg, tb);
         }
 
@@ -2767,6 +2793,44 @@ static void draw_analysis(const draw_data_t* dd) {
 	}
 }
 
+/* Draw a grey dashed outline around the active FLIS layer when it is not the
+ * base layer and its dimensions differ from the canvas (i.e. it is sparse).
+ * Coordinates are in image-pixel space — the display matrix handles zoom/pan.
+ */
+static void draw_flis_layer_frame(const draw_data_t *dd) {
+	if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+	/* Need at least two layers to have a non-base active layer */
+	if (!com.uniq->layers->next) return;
+
+	flis_layer_t *active = flis_active_layer();
+	if (!active || !active->fit) return;
+
+	/* Base layer is the first in the sorted list */
+	flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+	if (active == base) return;
+
+	/* Only draw if the layer is sparse (different size or offset) */
+	if (active->position_x == 0 && active->position_y == 0 &&
+	    (guint)active->fit->rx == (guint)base->fit->rx &&
+	    (guint)active->fit->ry == (guint)base->fit->ry)
+		return;
+
+	cairo_t *cr = dd->cr;
+	static const double dash[] = { 6.0, 3.0 };
+	cairo_save(cr);
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash, 2, 0);
+	cairo_set_source_rgba(cr, 0.7, 0.7, 0.7, 0.9);
+	cairo_rectangle(cr,
+	                (double)active->position_x,
+	                (double)active->position_y,
+	                (double)active->fit->rx,
+	                (double)active->fit->ry);
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
 static void draw_regframe(const draw_data_t* dd) {
 	if (com.script || com.headless) return;
 	if (!sequence_is_loaded()) return;
@@ -3193,6 +3257,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* registration framing*/
 	draw_regframe(&dd);
+
+	/* FLIS sparse layer outline */
+	draw_flis_layer_frame(&dd);
 
 	/* RGB composition center points */
 	draw_rgb_centers(&dd);

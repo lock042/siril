@@ -760,6 +760,8 @@ struct historic_struct {
 	gint    reorder_layer_a_order;
 	gint    reorder_layer_b_id;
 	gint    reorder_layer_b_order;
+	gint   flis_position_x;   /* layer offset at time of save; 0 for plain FITS */
+	gint   flis_position_y;
 	data_type type;
 	uint8_t mask_bitpix;
 	wcs_info wcsdata;

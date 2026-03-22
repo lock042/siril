@@ -255,6 +255,23 @@ flis_layer_t *flis_active_layer(void);
 fits *flis_active_layer_fit(void);
 
 /**
+ * flis_update_layer_offset_after_crop:
+ * @sel_x: x coordinate of the crop selection top-left (canvas pixels)
+ * @sel_y: y coordinate of the crop selection top-left (canvas pixels)
+ *
+ * Updates FLIS layer offsets after a crop has been applied to gfit.
+ * Call this immediately after the crop operation, passing the selection
+ * origin that was in effect before the crop (i.e. com.selection.x/y).
+ *
+ * - Base layer cropped: all other layers' position_x/y are reduced by
+ *   (sel_x, sel_y) so they remain correctly placed on the new canvas.
+ * - Non-base layer cropped: that layer's position_x/y is set to (sel_x, sel_y).
+ *
+ * Invalidates the composite. No-op if no FLIS is loaded.
+ */
+void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y);
+
+/**
  * flis_promote_from_gfit:
  * @name: name for the base layer, or NULL to use "Background".
  *

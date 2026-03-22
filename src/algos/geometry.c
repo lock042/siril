@@ -34,6 +34,7 @@
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "io/sequence.h"
+#include "io/image_format_flis.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
@@ -1238,6 +1239,8 @@ int crop(fits *fit, rectangle *bounds) {
 		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
+	// This does nothing for non-FLIS images
+	flis_update_layer_offset_after_crop(bounds->x, bounds->y);
 	return 0;
 }
 

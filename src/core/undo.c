@@ -36,13 +36,13 @@
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/histogram.h"
-#include "gui/flis_gui.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/annotation_catalogues.h"
+#include "gui/flis_gui.h"
 #include "core/undo.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
@@ -174,6 +174,8 @@ static int undo_remove_item(historic *histo, int index) {
 	memset(histo[index].history, 0, FLEN_VALUE);
 	histo[index].mask_bitpix = 0;
 	histo[index].flis_layer_id = FLIS_UNDO_LAYER_NONE;
+	histo[index].flis_position_x = 0;
+	histo[index].flis_position_y = 0;
 	g_free(histo[index].layer_props);
 	histo[index].layer_props = NULL;
 	if (histo[index].lmask_filename) {
@@ -195,7 +197,8 @@ static int undo_remove_item(historic *histo, int index) {
 }
 
 static void undo_add_item(fits *fit, char *filename, char *mask_filename,
-                          const char *histo, gint flis_layer_id) {
+                          const char *histo, gint flis_layer_id,
+                          gint flis_pre_pos_x, gint flis_pre_pos_y) {
 
 	if (!com.history) {
 		com.hist_size = HISTORY_SIZE;
@@ -222,7 +225,10 @@ static void undo_add_item(fits *fit, char *filename, char *mask_filename,
 		siril_debug_print("could not copy wcslib struct\n");
 	com.history[com.hist_current].focal_length = fit->keywords.focal_length;
 	com.history[com.hist_current].icc_profile = copyICCProfile(fit->icc_profile);
-	com.history[com.hist_current].flis_layer_id = flis_layer_id;
+	com.history[com.hist_current].flis_layer_id  = flis_layer_id;
+	/* Position was snapshotted in undo_save_state before the operation ran */
+	com.history[com.hist_current].flis_position_x = flis_pre_pos_x;
+	com.history[com.hist_current].flis_position_y = flis_pre_pos_y;
 	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
 
 	if (com.hist_current == com.hist_size - 1) {
@@ -598,6 +604,18 @@ static int undo_get_data(fits *fit, historic *hist) {
 		retval = undo_get_mask_data(fit, hist);
 	}
 
+	/* Restore the layer offset if this state belongs to a FLIS layer.
+	 * This is needed for geometry operations (e.g. crop) that modify
+	 * both pixel dimensions and position_x/y. */
+	if (retval == 0 && hist->flis_layer_id != FLIS_UNDO_LAYER_NONE
+	    && is_current_image_flis()) {
+		flis_layer_t *lay = flis_layer_get_by_id(hist->flis_layer_id);
+		if (lay) {
+			lay->position_x = hist->flis_position_x;
+			lay->position_y = hist->flis_position_y;
+		}
+	}
+
 	return retval;
 }
 
@@ -625,12 +643,21 @@ int undo_save_state(fits *fit, const char *message, ...) {
 		/* For a FLIS image, record which layer this state belongs to using
 		 * the layer's stable item_id.  This allows undo to find and switch
 		 * to the correct layer even after the stack has been reordered.
-		 * For plain FITS images, flis_layer_id is set to FLIS_UNDO_LAYER_NONE. */
+		 * For plain FITS images, flis_layer_id is set to FLIS_UNDO_LAYER_NONE.
+		 *
+		 * Snapshot position_x/y here — before the swap file is built and
+		 * before any offset update (e.g. flis_update_layer_offset_after_crop)
+		 * can have run on the caller's side. undo_add_item uses these values
+		 * directly rather than re-reading from the live layer. */
 		gint flis_layer_id = FLIS_UNDO_LAYER_NONE;
+		gint flis_pre_pos_x = 0, flis_pre_pos_y = 0;
 		if (is_current_image_flis()) {
 			flis_layer_t *active = flis_active_layer();
-			if (active)
-				flis_layer_id = active->item_id;
+			if (active) {
+				flis_layer_id   = active->item_id;
+				flis_pre_pos_x  = active->position_x;
+				flis_pre_pos_y  = active->position_y;
+			}
 		}
 
 		if (undo_build_swapfile(fit, &filename)) {
@@ -644,7 +671,8 @@ int undo_save_state(fits *fit, const char *message, ...) {
 			return 1;
 		}
 
-		undo_add_item(fit, filename, mask_filename, histo, flis_layer_id);
+		undo_add_item(fit, filename, mask_filename, histo,
+		              flis_layer_id, flis_pre_pos_x, flis_pre_pos_y);
 
 		/* update menus */
 		gui_function(update_MenuItem, NULL);
