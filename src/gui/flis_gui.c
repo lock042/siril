@@ -181,11 +181,17 @@ static GtkWidget *flis_layer_row_new(flis_layer_t *layer) {
     gtk_widget_set_margin_start(type_lbl, 4);
     gtk_widget_set_margin_end(type_lbl, 2);
 
-    /* Layer mask indicator */
-    GtkWidget *mask_lbl = gtk_label_new(layer->lmask ? "▪M" : "");
+    /* Layer mask indicator — shows "⊟" (mask present) or "○" (no mask).
+     * Using a consistent symbol in both states avoids the confusing "M ▪M"
+     * appearance that arose from supplementing the colour-model badge. */
+    GtkWidget *mask_lbl = gtk_label_new(layer->lmask ? "⊟" : "○");
     gtk_widget_set_tooltip_text(mask_lbl,
         layer->lmask ? _("Layer mask present") : _("No layer mask"));
     gtk_widget_set_margin_end(mask_lbl, 4);
+    if (!layer->lmask) {
+        gtk_style_context_add_class(
+            gtk_widget_get_style_context(mask_lbl), "dim-label");
+    }
     g_object_set_data(G_OBJECT(row), "mask-label", mask_lbl);
 
     gtk_box_pack_start(GTK_BOX(hbox), vis_btn,  FALSE, FALSE, 0);

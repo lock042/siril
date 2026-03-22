@@ -383,8 +383,19 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	close_tab(NULL);
 	init_right_tab(NULL);
 
+	/* For a FLIS image whose composite is RGB (tinted mono or actual RGB
+	 * layers), activate the RGB viewport so the user sees the colour output
+	 * immediately rather than the first mono channel tab. */
+	if (is_current_image_flis() && com.uniq && com.uniq->chans >= 3)
+		activate_tab(RGB_VPORT);
+
 	update_gfit_histogram_if_needed();
 	flis_gui_update();
+
+	/* Auto-open the layers panel when a FLIS file is loaded. */
+	if (is_current_image_flis() && !com.headless)
+		siril_open_dialog("flis_layers_window");
+
 	redraw(REMAP_ALL);
 	return FALSE;
 }
