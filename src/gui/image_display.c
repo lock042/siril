@@ -2933,11 +2933,17 @@ double get_zoom_val() {
 	/* else if zoom is < 0, it means fit to window */
 	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
-	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
+	fits *fit = gfit;
+	if (is_current_image_flis()) {
+		flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+		fit = base->fit;
+	}
+	if (fit->rx == 0 || fit->ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
-	double wtmp = (double) window_width / (double) gfit->rx;
-	double htmp = (double) window_height / (double) gfit->ry;
+	double wtmp = (double) window_width / (double) fit->rx;
+	double htmp = (double) window_height / (double) fit->ry;
 	return min(wtmp, htmp);
+
 }
 
 // passing -1 means invalidate all
