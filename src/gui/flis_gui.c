@@ -469,6 +469,176 @@ static fits *flis_load_layer_file(const gchar *filename) {
 }
 
 /* =========================================================================
+ * Forward declarations
+ * ========================================================================= */
+
+/* Defined in Tint signal handlers section below */
+static gboolean flis_composite_will_be_rgb(void);
+
+/* =========================================================================
+ * generic_layer_worker user-data structs and hook functions
+ *
+ * Each operation that modifies the layer stack or composite and needs a
+ * queue_redraw() goes through generic_layer_worker so it does not race
+ * with redraw().  The pattern mirrors generic_image_worker:
+ *   1. GTK main thread: read widget state, save undo, allocate + fill args
+ *   2. start_in_new_thread(generic_layer_worker, args)
+ *   3. Worker thread: call layer_hook(args)
+ *   4. GTK idle (end_generic_layer or custom): invalidate composite, redraw
+ *
+ * Operations that do NOT need the worker:
+ *   - on_row_lock_toggled     — lock state doesn't affect composite/redraw
+ *   - flis_apply_name_entry   — name doesn't affect composite pixels
+ *   - on_flis_opacity_adj_changed — fires every drag tick; keep direct
+ * ========================================================================= */
+
+/* ---- Visibility ---- */
+typedef struct {
+    destructor  destroy_fn;
+    gboolean    visible;
+} flis_visibility_args_t;
+
+static int flis_visibility_hook(struct generic_layer_args *args) {
+    flis_visibility_args_t *a = args->user;
+    flis_layer_set_visible(args->layer, a->visible);
+    return 0;
+}
+
+/* ---- Blend mode ---- */
+typedef struct {
+    destructor         destroy_fn;
+    flis_blend_mode_t  mode;
+} flis_blend_args_t;
+
+static int flis_blend_hook(struct generic_layer_args *args) {
+    flis_blend_args_t *a = args->user;
+    flis_layer_set_blend_mode(args->layer, a->mode);
+    return 0;
+}
+
+/* ---- Move up / move down — no extra args needed ---- */
+static int flis_move_up_hook(struct generic_layer_args *args) {
+    return flis_layer_move_up(args->layer);
+}
+
+static int flis_move_down_hook(struct generic_layer_args *args) {
+    return flis_layer_move_down(args->layer);
+}
+
+/* ---- Lmask toggle: add (lm != NULL) or remove (lm == NULL) ---- */
+typedef struct {
+    destructor    destroy_fn;
+    layermask_t  *lm;   /* non-NULL = add, ownership taken by hook; NULL = remove */
+} flis_lmask_toggle_args_t;
+
+static void flis_lmask_toggle_destroy(void *p) {
+    flis_lmask_toggle_args_t *a = p;
+    /* lm is NULLed by the hook on success (ownership transferred).
+     * Free it only if the hook never ran or failed. */
+    if (a->lm) layermask_free(a->lm);
+    free(a);
+}
+
+static int flis_lmask_toggle_hook(struct generic_layer_args *args) {
+    flis_lmask_toggle_args_t *a = args->user;
+    if (a->lm) {
+        if (flis_layer_set_lmask(args->layer, a->lm)) return 1;
+        a->lm = NULL;  /* ownership transferred to the layer */
+    } else {
+        flis_layer_remove_lmask(args->layer);
+    }
+    return 0;
+}
+
+/* ---- Lmask move ---- */
+typedef struct {
+    destructor    destroy_fn;
+    flis_layer_t *dest;
+} flis_lmask_move_args_t;
+
+static int flis_lmask_move_hook(struct generic_layer_args *args) {
+    flis_lmask_move_args_t *a = args->user;
+    flis_layer_move_lmask(args->layer, a->dest);
+    return 0;
+}
+
+/* ---- Tint toggle — needs custom end idle for tab management ---- */
+typedef struct {
+    destructor  destroy_fn;
+    gboolean    enable;
+    double      r, g, b;
+    gboolean    was_rgb;
+} flis_tint_toggle_args_t;
+
+static int flis_tint_toggle_hook(struct generic_layer_args *args) {
+    flis_tint_toggle_args_t *a = args->user;
+    if (!a->enable)
+        flis_layer_clear_tint(args->layer);
+    else
+        flis_layer_set_tint(args->layer, a->r, a->g, a->b);
+    return 0;
+}
+
+/* Custom end idle for tint toggle: updates channel tabs when the composite
+ * colour model flips between mono and RGB. */
+static gboolean end_flis_tint_toggle(gpointer p) {
+    struct generic_layer_args *args = p;
+    flis_tint_toggle_args_t *a = args->user;
+    stop_processing_thread();
+
+    if (!args->retval && is_current_image_flis()) {
+        flis_invalidate_composite();
+        gboolean now_rgb = flis_composite_will_be_rgb();
+        if (now_rgb != a->was_rgb) {
+            if (com.uniq) com.uniq->chans = now_rgb ? 3 : 1;
+            close_tab(NULL);
+            init_right_tab(NULL);
+        }
+        flis_gui_update();
+        queue_redraw(REMAP_ALL);
+    }
+
+    free_generic_layer_args(args);
+    return FALSE;
+}
+
+/* ---- Tint colour ---- */
+typedef struct {
+    destructor  destroy_fn;
+    double      r, g, b;
+} flis_tint_color_args_t;
+
+static int flis_tint_color_hook(struct generic_layer_args *args) {
+    flis_tint_color_args_t *a = args->user;
+    flis_layer_set_tint(args->layer, a->r, a->g, a->b);
+    return 0;
+}
+
+/* Helper: allocate and launch a generic_layer_worker.
+ * Takes ownership of user_data (freed via destroy_fn or plain free).
+ * On thread-busy failure, frees args+user and returns FALSE. */
+static gboolean flis_launch_layer_op(flis_layer_t *layer,
+                                     int (*hook)(struct generic_layer_args *),
+                                     void *user_data,
+                                     const gchar *description,
+                                     gboolean updates_lmask,
+                                     gboolean (*idle_fn)(gpointer)) {
+    struct generic_layer_args *args = calloc(1, sizeof(struct generic_layer_args));
+    if (!args) { PRINT_ALLOC_ERR; return FALSE; }
+    args->layer        = layer;
+    args->layer_hook   = hook;
+    args->user         = user_data;
+    args->description  = (gchar *)description;
+    args->verbose      = TRUE;
+    args->updates_lmask= updates_lmask;
+    args->idle_function= idle_fn;
+    if (!start_in_new_thread(generic_layer_worker, args)) {
+        free_generic_layer_args(args);
+        return FALSE;
+    }
+    return TRUE;
+}
+/* =========================================================================
  * Per-row signal handlers (visibility and lock toggle buttons)
  * ========================================================================= */
 
@@ -482,18 +652,22 @@ static void on_row_visibility_toggled(GtkToggleButton *btn,
     if (!layer) return;
 
     gboolean active = gtk_toggle_button_get_active(btn);
-    undo_save_flis_layer_props(layer, _("Layer visibility"));
-    flis_layer_set_visible(layer, active);
 
-    /* Flip the button icon */
+    /* Flip the button icon immediately on the main thread (cosmetic only) */
     const gchar *icon_name = active
         ? (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-on")
         : (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-off");
     gtk_button_set_image(GTK_BUTTON(btn),
         gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR));
 
-    flis_invalidate_composite();
-    queue_redraw(REMAP_ALL);
+    undo_save_flis_layer_props(layer, _("Layer visibility"));
+
+    flis_visibility_args_t *user = calloc(1, sizeof(flis_visibility_args_t));
+    if (!user) { PRINT_ALLOC_ERR; return; }
+    user->visible = active;
+
+    flis_launch_layer_op(layer, flis_visibility_hook, user,
+                         _("Layer visibility"), FALSE, NULL);
 }
 
 static void on_row_lock_toggled(GtkToggleButton *btn,
@@ -519,9 +693,6 @@ static void on_row_lock_toggled(GtkToggleButton *btn,
     flis_toolbar_sensitivity_update();
 }
 
-/* =========================================================================
- * Layer list signal handlers
- * ========================================================================= */
 
 G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
                                                 GtkListBoxRow *row,
@@ -674,21 +845,15 @@ G_MODULE_EXPORT void on_flis_move_up_clicked(GtkButton *btn,
     (void)btn; (void)data;
     if (!flis_selected) return;
 
-    /* Save atomic reorder state before the swap — find the neighbour that
-     * will swap layer_order with flis_selected (the one above it in the
-     * sorted list, i.e. at index + 1). */
     gint idx = flis_layer_get_index(flis_selected);
     flis_layer_t *neighbor = (idx >= 0)
         ? (flis_layer_t *)g_slist_nth_data(com.uniq->layers, (guint)(idx + 1))
         : NULL;
-    if (neighbor)
-        undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer up"));
+    if (!neighbor) return;  /* already at top — nothing to do, no undo state */
 
-    if (flis_layer_move_up(flis_selected) == 0) {
-        flis_invalidate_composite();
-        flis_gui_update();
-        queue_redraw(REMAP_ALL);
-    }
+    undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer up"));
+    flis_launch_layer_op(flis_selected, flis_move_up_hook, NULL,
+                         _("Move layer up"), FALSE, NULL);
 }
 
 G_MODULE_EXPORT void on_flis_move_down_clicked(GtkButton *btn,
@@ -696,19 +861,15 @@ G_MODULE_EXPORT void on_flis_move_down_clicked(GtkButton *btn,
     (void)btn; (void)data;
     if (!flis_selected) return;
 
-    /* Neighbour is the layer below (index - 1). */
     gint idx = flis_layer_get_index(flis_selected);
     flis_layer_t *neighbor = (idx > 0)
         ? (flis_layer_t *)g_slist_nth_data(com.uniq->layers, (guint)(idx - 1))
         : NULL;
-    if (neighbor)
-        undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer down"));
+    if (!neighbor) return;  /* already at bottom */
 
-    if (flis_layer_move_down(flis_selected) == 0) {
-        flis_invalidate_composite();
-        flis_gui_update();
-        queue_redraw(REMAP_ALL);
-    }
+    undo_save_flis_layer_reorder(flis_selected, neighbor, _("Move layer down"));
+    flis_launch_layer_op(flis_selected, flis_move_down_hook, NULL,
+                         _("Move layer down"), FALSE, NULL);
 }
 
 /* =========================================================================
@@ -762,9 +923,13 @@ G_MODULE_EXPORT void on_flis_blend_mode_changed(GtkComboBox *combo,
     if (idx < 0 || idx >= N_BLEND_MODES) return;
 
     undo_save_flis_layer_props(flis_selected, _("Blend mode"));
-    flis_layer_set_blend_mode(flis_selected, blend_mode_map[idx]);
-    flis_invalidate_composite();
-    queue_redraw(REMAP_ALL);
+
+    flis_blend_args_t *user = calloc(1, sizeof(flis_blend_args_t));
+    if (!user) { PRINT_ALLOC_ERR; return; }
+    user->mode = blend_mode_map[idx];
+
+    flis_launch_layer_op(flis_selected, flis_blend_hook, user,
+                         _("Blend mode"), FALSE, NULL);
 }
 
 /* Opacity debouncing state.
@@ -848,7 +1013,7 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
     if (!flis_selected) return;
 
     if (flis_selected->lmask) {
-        /* Remove existing mask */
+        /* Remove existing mask — confirm first */
         GtkWidget *dlg = gtk_message_dialog_new(
             GTK_WINDOW(lookup_widget("flis_layers_window")),
             GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -859,11 +1024,18 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
         gtk_widget_destroy(dlg);
         if (r != GTK_RESPONSE_OK) return;
 
-        /* Save mask pixels before removal so undo can restore them */
         undo_save_flis_lmask(flis_selected, _("Remove layer mask"));
-        flis_layer_remove_lmask(flis_selected);
+
+        flis_lmask_toggle_args_t *user = calloc(1, sizeof(flis_lmask_toggle_args_t));
+        if (!user) { PRINT_ALLOC_ERR; return; }
+        user->destroy_fn = (destructor)flis_lmask_toggle_destroy;
+        user->lm = NULL;  /* NULL = remove */
+
+        flis_launch_layer_op(flis_selected, flis_lmask_toggle_hook, user,
+                             _("Remove layer mask"), TRUE, NULL);
     } else {
-        /* Add mask from file */
+        /* Add mask from file — file I/O and conversion happen on main thread
+         * (fast, one-off), then the actual lmask attachment goes to the worker. */
         gchar *filename = flis_choose_fits_file(
             GTK_WINDOW(lookup_widget("flis_layers_window")),
             _("Choose greyscale mask file"));
@@ -873,23 +1045,18 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
         g_free(filename);
         if (!mf) return;
 
-        /* Convert to 8-bit greyscale layermask_t */
         guint w = mf->rx, h = mf->ry;
         size_t npix = (size_t)w * h;
 
         layermask_t *lm = calloc(1, sizeof(layermask_t));
         if (!lm) { PRINT_ALLOC_ERR; clearfits(mf); free(mf); return; }
 
-        lm->w      = w;
-        lm->h      = h;
-        lm->bitpix = 8;
-        lm->data   = malloc(npix);
+        lm->w = w; lm->h = h; lm->bitpix = 8;
+        lm->data = malloc(npix);
         if (!lm->data) {
-            PRINT_ALLOC_ERR;
-            free(lm); clearfits(mf); free(mf); return;
+            PRINT_ALLOC_ERR; free(lm); clearfits(mf); free(mf); return;
         }
 
-        /* Scale the first channel to 8-bit */
         uint8_t *dst = (uint8_t *)lm->data;
         if (mf->type == DATA_FLOAT && mf->fdata) {
             for (size_t i = 0; i < npix; i++)
@@ -898,23 +1065,20 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
             for (size_t i = 0; i < npix; i++)
                 dst[i] = (uint8_t)(mf->data[i] >> 8);
         } else {
-            memset(dst, 255, npix); /* fallback: white (fully opaque) */
+            memset(dst, 255, npix);
         }
         clearfits(mf); free(mf);
 
-        /* Save "no mask" marker before adding, so undo removes the new mask */
         undo_save_flis_lmask(flis_selected, _("Add layer mask"));
 
-        if (flis_layer_set_lmask(flis_selected, lm)) {
-            /* Error (e.g. size mismatch) was already logged */
-            layermask_free(lm);
-            return;
-        }
-    }
+        flis_lmask_toggle_args_t *user = calloc(1, sizeof(flis_lmask_toggle_args_t));
+        if (!user) { PRINT_ALLOC_ERR; layermask_free(lm); return; }
+        user->destroy_fn = (destructor)flis_lmask_toggle_destroy;
+        user->lm = lm;  /* non-NULL = add; ownership transfers to hook */
 
-    flis_invalidate_composite();
-    flis_gui_update();
-    queue_redraw(REMAP_ALL);
+        flis_launch_layer_op(flis_selected, flis_lmask_toggle_hook, user,
+                             _("Add layer mask"), TRUE, NULL);
+    }
 }
 
 G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
@@ -976,13 +1140,14 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
             gint target_id = atoi(id_str);
             flis_layer_t *dest = flis_layer_get_by_id(target_id);
             if (dest) {
-                /* Single atomic undo state — records both layer IDs so undo
-                 * reverses the move in one step with no broken intermediate. */
                 undo_save_flis_lmask_move(flis_selected, dest, _("Move layer mask"));
-                flis_layer_move_lmask(flis_selected, dest);
-                flis_invalidate_composite();
-                flis_gui_update();
-                queue_redraw(REMAP_ALL);
+
+                flis_lmask_move_args_t *user = calloc(1, sizeof(flis_lmask_move_args_t));
+                if (user) {
+                    user->dest = dest;
+                    flis_launch_layer_op(flis_selected, flis_lmask_move_hook, user,
+                                         _("Move layer mask"), TRUE, NULL);
+                }
             }
         }
     }
@@ -1019,43 +1184,26 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
     (void)data;
     if (flis_updating || !flis_selected) return;
 
-    /* Snapshot the composite colour model before the change */
-    gboolean was_rgb = flis_composite_will_be_rgb();
-
     undo_save_flis_layer_props(flis_selected, _("Tint"));
+
     gboolean enable = gtk_toggle_button_get_active(btn);
     gtk_widget_set_sensitive(fw("flis_tint_color_btn"), enable);
 
-    if (!enable) {
-        flis_layer_clear_tint(flis_selected);
-    } else {
-        /* Apply the current color button value as the initial tint */
+    flis_tint_toggle_args_t *user = calloc(1, sizeof(flis_tint_toggle_args_t));
+    if (!user) { PRINT_ALLOC_ERR; return; }
+    user->enable  = enable;
+    user->was_rgb = flis_composite_will_be_rgb();
+    if (enable) {
         GdkRGBA colour;
         gtk_color_chooser_get_rgba(
             GTK_COLOR_CHOOSER(fw("flis_tint_color_btn")), &colour);
-        flis_layer_set_tint(flis_selected,
-                            colour.red, colour.green, colour.blue);
+        user->r = colour.red;
+        user->g = colour.green;
+        user->b = colour.blue;
     }
 
-    /* Update the channel tab strip only when the composite colour model
-     * has actually changed (mono→RGB or RGB→mono).  Calling close_tab()
-     * unconditionally would cause unnecessary redraws on every tint toggle
-     * in an already-RGB stack. */
-    gboolean now_rgb = flis_composite_will_be_rgb();
-    if (now_rgb != was_rgb) {
-        /* com.uniq->chans is set from the active layer's naxes[2] by
-         * uniq_set_active_layer(), which is always 1 for a mono layer.
-         * close_tab() reads this value to decide whether to show colour
-         * tabs, so we must update it to reflect the composite output before
-         * calling it — otherwise it will always see 1 and hide the tabs. */
-        if (com.uniq)
-            com.uniq->chans = now_rgb ? 3 : 1;
-        close_tab(NULL);
-        init_right_tab(NULL);
-    }
-
-    flis_invalidate_composite();
-    queue_redraw(REMAP_ALL);
+    flis_launch_layer_op(flis_selected, flis_tint_toggle_hook, user,
+                         _("Tint"), FALSE, end_flis_tint_toggle);
 }
 
 G_MODULE_EXPORT void on_flis_tint_color_set(GtkColorButton *btn,
@@ -1066,10 +1214,15 @@ G_MODULE_EXPORT void on_flis_tint_color_set(GtkColorButton *btn,
     GdkRGBA colour;
     gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(btn), &colour);
     undo_save_flis_layer_props(flis_selected, _("Tint colour"));
-    flis_layer_set_tint(flis_selected,
-                        colour.red, colour.green, colour.blue);
-    flis_invalidate_composite();
-    queue_redraw(REMAP_ALL);
+
+    flis_tint_color_args_t *user = calloc(1, sizeof(flis_tint_color_args_t));
+    if (!user) { PRINT_ALLOC_ERR; return; }
+    user->r = colour.red;
+    user->g = colour.green;
+    user->b = colour.blue;
+
+    flis_launch_layer_op(flis_selected, flis_tint_color_hook, user,
+                         _("Tint colour"), FALSE, NULL);
 }
 
 /* =========================================================================

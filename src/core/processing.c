@@ -40,6 +40,7 @@
 #include "core/undo.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/flis_gui.h"
 #include "gui/image_display.h"
 #include "io/single_image.h"
 #include "gui/progress_and_log.h"
@@ -1554,8 +1555,6 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
-	if (is_current_image_flis())
-		flis_invalidate_composite();
 	show_or_hide_mask_tab();
 	queue_redraw_mask();
 	free_generic_mask_args(args);
@@ -1565,13 +1564,6 @@ gboolean end_generic_mask(gpointer p) {
 static gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
-	/* For FLIS images, the operation modified one layer's pixel data.
-	 * Invalidate the composite so the next redraw rebuilds it from the
-	 * updated layer.  This must happen BEFORE notify_gfit_modified() so
-	 * that when end_gfit_operation calls init_layers_hi_and_lo_values it
-	 * operates on up-to-date composite statistics. */
-	if (is_current_image_flis())
-		flis_invalidate_composite();
 	notify_gfit_modified();
 	if (gfit->mask)
 		queue_redraw_mask();
@@ -1797,12 +1789,8 @@ gpointer generic_image_worker(gpointer p) {
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		// If we are being run from the GUI and not just updating a preview, set the undo state.
-		// For FLIS images, gfit is a mutable global that redraw() temporarily swaps to the composite
-		// buffer; comparing args->fit == gfit in the worker thread is a race condition.  Instead,
-		// compare against the active layer's fits* which is stable for the duration of the operation.
-		fits *active_fit = is_current_image_flis() ? flis_active_layer_fit() : gfit;
-		undo_state = args->fit == active_fit && !(args->custom_undo || args->for_preview || args->command);
+		// If we are being run from the GUI and not just updating a preview, set the undo state
+		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || args->command);
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1899,7 +1887,7 @@ gpointer generic_mask_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing mask..."), 0.1f);
 
-	if (args->fit == (is_current_image_flis() ? flis_active_layer_fit() : gfit) && !args->command) {
+	if (args->fit == gfit && !args->command) {
 		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
 		undo_save_state(gfit, undo_msg);
 		g_free(undo_msg);
@@ -1943,5 +1931,124 @@ the_end:
 		siril_add_idle(end_generic_mask, args);
 	}
 
+	return GINT_TO_POINTER(retval);
+}
+
+/* =========================================================================
+ * generic_layer_worker
+ *
+ * A processing-thread worker for FLIS layer operations: property changes
+ * (blend mode, opacity, visibility, name, tint), layer mask (lmask) add /
+ * remove / move, and layer reorder.  Follows the same pattern as
+ * generic_image_worker and generic_mask_worker.
+ *
+ * Responsibilities:
+ *   - Run layer_hook(args) on the processing thread (fast; no heavy I/O)
+ *   - On success: invalidate the FLIS composite, update the layers panel,
+ *     refresh the mask tab, and request a redraw — all via GTK-safe idles
+ *   - Honour the command / idle_function override paths for script use
+ *
+ * Undo handling:
+ *   Undo state is saved by the caller (flis_gui.c) BEFORE calling
+ *   start_in_new_thread(generic_layer_worker, args), exactly as the GUI
+ *   callbacks currently call undo_save_flis_layer_props() etc. before
+ *   performing the operation.  The worker itself does NOT save undo state.
+ *
+ * Lock / unlock layer:
+ *   These do not trigger a composite rebuild or redraw, so they do not
+ *   need to go through this worker.  The flis_gui.c callbacks may call
+ *   flis_layer_set_locked() directly on the GTK main thread.
+ * ========================================================================= */
+
+/** Free generic_layer_args structure */
+void free_generic_layer_args(struct generic_layer_args *args) {
+	if (!args)
+		return;
+	if (args->user)
+		destroy_any_args(args->user);
+	free(args);
+}
+
+/* Default end-idle for layer operations: invalidates the composite,
+ * updates the layers panel, refreshes the mask tab if the lmask changed,
+ * and requests a full redraw. */
+static gboolean end_generic_layer(gpointer p) {
+	struct generic_layer_args *args = (struct generic_layer_args *)p;
+	stop_processing_thread();
+
+	if (!args->retval && is_current_image_flis()) {
+		flis_invalidate_composite();
+
+		/* Refresh mask tab visibility: show_or_hide_mask_tab() checks
+		 * gfit->mask which reflects the active layer after uniq_set_active_layer.
+		 * Call it whenever an lmask may have changed. */
+		if (args->updates_lmask)
+			show_or_hide_mask_tab();
+
+		flis_gui_update();
+
+		if (args->updates_lmask && com.pref.gui.mask_tints_vports) {
+			/* Redraw mask viewport and tint the image viewports */
+			queue_redraw_mask();
+		} else {
+			queue_redraw(REMAP_ALL);
+		}
+	}
+
+	free_generic_layer_args(args);
+	return FALSE;
+}
+
+gpointer generic_layer_worker(gpointer p) {
+	struct generic_layer_args *args = (struct generic_layer_args *)p;
+	struct timeval t_start, t_end;
+
+	assert(args);
+	assert(args->layer_hook);
+
+	gboolean verbose = args->verbose;
+	gchar *desc = g_strdup(args->description);
+
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	args->retval = 0;
+
+	if (args->description && verbose) {
+		gchar *msg = g_strdup_printf(_("%s: processing layer...\n"), args->description);
+		siril_log_color_message(msg, "green");
+		g_free(msg);
+	}
+
+	set_progress_bar_data(_("Processing layer..."), 0.1f);
+
+	if (args->layer_hook(args)) {
+		siril_log_color_message(_("%s layer processing failed.\n"), "red", args->description);
+		args->retval = 1;
+	} else {
+		args->retval = 0;
+		if (args->description && verbose) {
+			siril_log_color_message(_("%s succeeded.\n"), "green", args->description);
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+	}
+
+	int retval = args->retval;
+
+	if (retval) {
+		set_progress_bar_data(_("Layer processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Layer processing succeeded."), PROGRESS_DONE);
+	}
+
+	if (args->command) {
+		execute_idle_and_wait_for_it(end_generic_layer, args);
+	} else if (args->idle_function) {
+		siril_add_idle(args->idle_function, args);
+	} else {
+		siril_add_idle(end_generic_layer, args);
+	}
+
+	g_free(desc);
 	return GINT_TO_POINTER(retval);
 }

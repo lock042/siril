@@ -287,6 +287,34 @@ gpointer generic_image_worker(gpointer p);
 /* Mask worker */
 gpointer generic_mask_worker(gpointer p);
 
+/* Forward declaration — full definition in io/image_format_flis.h.
+ * Avoids a circular header dependency since image_format_flis.h
+ * already includes core/processing.h. */
+typedef struct _flis_layer_t flis_layer_t;
+
+/* generic_layer_args — arguments for generic_layer_worker.
+ * Used for FLIS layer property changes, lmask add/remove/move, and reorder.
+ * Lock/unlock do not need this worker (no composite rebuild or redraw).
+ */
+struct generic_layer_args {
+    destructor     destroy_fn;     /* first field: NULL or points at a destructor */
+    flis_layer_t  *layer;          /* primary target layer (may be NULL for multi-layer ops) */
+    int          (*layer_hook)(struct generic_layer_args *args);
+    gchar        *(*log_hook)(gpointer user, int type); /* log_entry_type passed as int */
+    gpointer       user;           /* operation-specific data owned by caller */
+    gchar         *description;    /* human-readable label */
+    gboolean       verbose;
+    gboolean       command;        /* TRUE: called from script — use synchronous idle */
+    gboolean       updates_lmask;  /* TRUE: lmask changed → refresh mask tab and tint */
+    gboolean     (*idle_function)(gpointer p); /* override end idle; NULL → end_generic_layer */
+    float          mem_ratio;      /* reserved; set 0 to skip memory check */
+    int            max_threads;    /* reserved */
+    int            retval;         /* set by the hook; 0 = success */
+};
+
+gpointer generic_layer_worker(gpointer p);
+void     free_generic_layer_args(struct generic_layer_args *args);
+
 #ifdef __cplusplus
 }
 #endif
