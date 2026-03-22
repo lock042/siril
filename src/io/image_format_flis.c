@@ -1397,6 +1397,120 @@ void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y) {
                       sel_x, sel_y);
 }
 
+/* flis_update_layer_offset_after_resize:
+ *
+ * Must be called immediately after a resize operation has been applied to gfit
+ * (i.e. after the pixel data has been scaled and gfit->rx/ry updated) when
+ * a FLIS image is loaded.
+ *
+ * @old_rx, @old_ry: canvas dimensions before the resize
+ * @new_rx, @new_ry: canvas dimensions after the resize
+ *
+ * Two cases:
+ *
+ * 1. Base layer resized: the canvas itself scales.  All non-base layers have
+ *    their centres scaled proportionally so they remain at the same relative
+ *    position on the canvas.
+ *
+ * 2. Non-base layer resized: the layer's pixel data changes size but its
+ *    centre on the canvas stays fixed.  position_x/y are adjusted by half
+ *    the dimension delta so the centre is preserved.
+ */
+void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
+                                           gint new_rx, gint new_ry) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    flis_layer_t *active = flis_active_layer();
+    if (!active) return;
+
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+    if (active == base) {
+        /* Base layer resized: scale all non-base layer centres proportionally */
+        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            double cx = lay->position_x + lay->fit->rx / 2.0;
+            double cy = lay->position_y + lay->fit->ry / 2.0;
+            cx *= (double)new_rx / old_rx;
+            cy *= (double)new_ry / old_ry;
+            lay->position_x = (gint)round(cx - lay->fit->rx / 2.0);
+            lay->position_y = (gint)round(cy - lay->fit->ry / 2.0);
+        }
+    } else {
+        /* Non-base layer resized: preserve its centre on the canvas */
+        active->position_x += (old_rx - new_rx) / 2;
+        active->position_y += (old_ry - new_ry) / 2;
+    }
+
+    flis_invalidate_composite();
+    siril_debug_print("FLIS: layer offsets updated after resize (%dx%d -> %dx%d)\n",
+                      old_rx, old_ry, new_rx, new_ry);
+}
+
+/* flis_update_layer_offset_after_rotate:
+ *
+ * Must be called immediately after a rotation operation has been applied to
+ * gfit (i.e. after the pixel data has been transformed and gfit->rx/ry
+ * updated) when a FLIS image is loaded.
+ *
+ * @old_rx, @old_ry: canvas dimensions before the rotation
+ * @new_rx, @new_ry: canvas dimensions after the rotation
+ * @angle:           rotation angle in degrees (positive = CCW in Siril convention)
+ *
+ * Two cases:
+ *
+ * 1. Base layer rotated: the canvas itself rotates.  All non-base layers have
+ *    their centres rotated by the same angle around the old canvas centre and
+ *    then mapped into the new canvas.  (Their pixel data is not rotated.)
+ *
+ * 2. Non-base layer rotated: the layer's pixel data is rotated but its centre
+ *    on the canvas stays fixed.  position_x/y are adjusted by half the
+ *    dimension delta so the centre is preserved.
+ */
+void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
+                                           gint new_rx, gint new_ry,
+                                           double angle) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    flis_layer_t *active = flis_active_layer();
+    if (!active) return;
+
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+    if (active == base) {
+        /* Base layer rotated: rotate each non-base layer's centre position
+         * by the same angle around the old canvas centre, then map to the
+         * new canvas.  The layer pixel data itself is not rotated. */
+        double rad = angle * M_PI / 180.0;
+        double cos_a = cos(rad);
+        double sin_a = sin(rad);
+        double ocx = old_rx / 2.0;
+        double ocy = old_ry / 2.0;
+
+        for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            double cx = lay->position_x + lay->fit->rx / 2.0;
+            double cy = lay->position_y + lay->fit->ry / 2.0;
+            double dx = cx - ocx;
+            double dy = cy - ocy;
+            double new_cx = new_rx / 2.0 + dx * cos_a - dy * sin_a;
+            double new_cy = new_ry / 2.0 + dx * sin_a + dy * cos_a;
+            lay->position_x = (gint)round(new_cx - lay->fit->rx / 2.0);
+            lay->position_y = (gint)round(new_cy - lay->fit->ry / 2.0);
+        }
+    } else {
+        /* Non-base layer rotated: preserve its centre on the canvas */
+        active->position_x += (old_rx - new_rx) / 2;
+        active->position_y += (old_ry - new_ry) / 2;
+    }
+
+    flis_invalidate_composite();
+    siril_debug_print("FLIS: layer offsets updated after rotate (%.2f deg, %dx%d -> %dx%d)\n",
+                      angle, old_rx, old_ry, new_rx, new_ry);
+}
+
 int flis_promote_from_gfit(const gchar *name) {
     if (!com.uniq) {
         siril_log_message(_("FLIS: flis_promote_from_gfit — no image loaded\n"));

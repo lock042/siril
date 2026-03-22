@@ -272,6 +272,43 @@ fits *flis_active_layer_fit(void);
 void flis_update_layer_offset_after_crop(gint sel_x, gint sel_y);
 
 /**
+ * flis_update_layer_offset_after_resize:
+ * @old_rx: canvas width before resize
+ * @old_ry: canvas height before resize
+ * @new_rx: canvas width after resize
+ * @new_ry: canvas height after resize
+ *
+ * Updates FLIS layer offsets after a resize has been applied to gfit.
+ *
+ * - Base layer resized: all non-base layers' centres are scaled proportionally.
+ * - Non-base layer resized: that layer's centre on the canvas is preserved.
+ *
+ * Invalidates the composite. No-op if no FLIS is loaded.
+ */
+void flis_update_layer_offset_after_resize(gint old_rx, gint old_ry,
+                                           gint new_rx, gint new_ry);
+
+/**
+ * flis_update_layer_offset_after_rotate:
+ * @old_rx: canvas width before rotation
+ * @old_ry: canvas height before rotation
+ * @new_rx: canvas width after rotation
+ * @new_ry: canvas height after rotation
+ * @angle:  rotation angle in degrees (positive = CCW in Siril convention)
+ *
+ * Updates FLIS layer offsets after a rotation has been applied to gfit.
+ *
+ * - Base layer rotated: all non-base layers' centres are rotated by the same
+ *   angle around the canvas centre and mapped into the new canvas.
+ * - Non-base layer rotated: that layer's centre on the canvas is preserved.
+ *
+ * Invalidates the composite. No-op if no FLIS is loaded.
+ */
+void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
+                                           gint new_rx, gint new_ry,
+                                           double angle);
+
+/**
  * flis_promote_from_gfit:
  * @name: name for the base layer, or NULL to use "Background".
  *

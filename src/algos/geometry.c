@@ -778,6 +778,10 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	reset_wcsdata(image);
 	refresh_annotations(TRUE);
 
+	// This does nothing for non-FLIS images
+	if (retvalue == 0)
+		flis_update_layer_offset_after_resize(old_rx, old_ry, toX, toY);
+
 	return retvalue;
 }
 
@@ -835,6 +839,8 @@ int verbose_rotate_fast(fits *image, int angle) {
 		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
+	// This does nothing for non-FLIS images
+	flis_update_layer_offset_after_rotate(orig_rx, orig_ry, target_rx, target_ry, (double)angle);
 	return 0;
 }
 
@@ -876,6 +882,8 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
+	// This does nothing for non-FLIS images
+	flis_update_layer_offset_after_rotate(orig_rx, orig_ry, target_rx, target_ry, angle);
 	return 0;
 }
 
