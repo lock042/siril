@@ -1760,9 +1760,9 @@ static void draw_roi(const draw_data_t *dd) {
 
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		if ((com.selection.x + com.selection.w > gfit->rx) ||
-		(com.selection.y + com.selection.h > gfit->ry)) {
-			rectangle area = {0, 0, gfit->rx, gfit->ry};
+		if ((com.selection.x + com.selection.w > (gint)flis_canvas_rx()) ||
+		(com.selection.y + com.selection.h > (gint)flis_canvas_ry())) {
+			rectangle area = {0, 0, (gint)flis_canvas_rx(), (gint)flis_canvas_ry()};
 			memcpy(&com.selection, &area, sizeof(rectangle));
 		}
 		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
@@ -2141,8 +2141,8 @@ static void draw_stars(const draw_data_t* dd) {
 		/* draw a cross on excluded images */
 		if (com.seq.imgparam && com.seq.current >= 0 &&
 				!com.seq.imgparam[com.seq.current].incl) {
-			int w = dd->image_width > gfit->rx ? gfit->rx : dd->image_width;
-			int h = dd->image_height > gfit->ry ? gfit->ry : dd->image_height;
+			int w = dd->image_width;
+			int h = dd->image_height;
 			cairo_set_dash(cr, NULL, 0, 0);
 			cairo_set_source_rgb(cr, 1.0, 0.8, 0.7);
 			cairo_set_line_width(cr, 2.0 / dd->zoom);
@@ -2614,8 +2614,8 @@ static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	gdouble resolution = get_wcs_image_resolution(gfit);
 	if (resolution <= 0) return;
-	double width = (double) gfit->rx;
-	double height = (double) gfit->ry;
+	double width = (double) flis_canvas_rx();
+	double height = (double) flis_canvas_ry();
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
@@ -2776,7 +2776,7 @@ static void draw_analysis(const draw_data_t* dd) {
 		g_free(str);
 		/* fwhm center */
 		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
-		cairo_move_to(cr, gfit->rx / 2.0, (gfit->ry / 2.0) + size);
+		cairo_move_to(cr, flis_canvas_rx() / 2.0, (flis_canvas_ry() / 2.0) + size);
 		cairo_show_text(cr, str);
 		cairo_stroke(cr);
 		g_free(str);
@@ -3180,8 +3180,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 
 	dd.zoom = get_zoom_val();
-	dd.image_width = gfit->rx;
-	dd.image_height = gfit->ry;
+	dd.image_width = flis_canvas_rx();
+	dd.image_height = flis_canvas_ry();
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 
 	GVariant *state = g_action_get_state(action_neg);
@@ -3289,8 +3289,8 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	dd.window_width = gtk_widget_get_allocated_width(widget);
 	dd.window_height = gtk_widget_get_allocated_height(widget);
 	dd.zoom = get_zoom_val();
-	dd.image_width = gfit->rx;
-	dd.image_height = gfit->ry;
+	dd.image_width = flis_canvas_rx();
+	dd.image_height = flis_canvas_ry();
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 	dd.neg_view = g_variant_get_boolean(state);
 	g_variant_unref(state);

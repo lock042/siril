@@ -1441,9 +1441,7 @@ void update_histogram_display(void) {
 }
 
 /* Update cursor value from image coordinates (called on mouse motion) */
-void histogram_update_cursor_value(int x, int y) {
-	/* Calculate pixel index (y-axis is flipped in image coordinates) */
-	int index = gfit->rx * (gfit->ry - y - 1) + x;
+void histogram_update_cursor_value(size_t index) {
 
 	if (histo_state.mode_luminance && gfit->naxes[2] == 3) {
 		/* Luminance mode: calculate weighted average and store in R */

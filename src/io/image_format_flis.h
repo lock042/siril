@@ -309,6 +309,34 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
                                            double angle);
 
 /**
+ * flis_canvas_rx / flis_canvas_ry:
+ *
+ * Return the canvas (base-layer) width/height.  For non-FLIS images these
+ * simply return gfit->rx / gfit->ry, so callers can use them unconditionally.
+ */
+guint flis_canvas_rx(void);
+guint flis_canvas_ry(void);
+
+/**
+ * flis_canvas_to_pixel_index:
+ * @cx:        x coordinate in canvas display space (0 = left)
+ * @cy_disp:   y coordinate in canvas display space (0 = top)
+ * @canvas_ry: canvas height (pass flis_canvas_ry())
+ * @out_idx:   receives the flat array index within gfit->pdata / gfit->fpdata
+ *
+ * Converts a canvas display coordinate to a pixel array index inside the
+ * active layer (gfit).  For non-FLIS images, or when the base layer is
+ * active, this is the standard formula rx*(ry-1-cy)+cx.  For an offset
+ * non-base layer the layer-local coordinates are computed first.
+ *
+ * Returns TRUE if (cx, cy_disp) falls within the active layer's bounds and
+ * *out_idx has been written.  Returns FALSE if the point is outside the
+ * layer (the cursor is over the canvas but not over this layer's pixels).
+ */
+gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
+                                    size_t *out_idx);
+
+/**
  * flis_promote_from_gfit:
  * @name: name for the base layer, or NULL to use "Background".
  *

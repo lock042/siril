@@ -100,8 +100,8 @@ void invalidate_histogram_cache(void);
 /* Update histogram display */
 void update_histogram_display(void);
 
-/* Update cursor value from image coordinates (called on mouse motion) */
-void histogram_update_cursor_value(int x, int y);
+/* Update cursor value from a pre-computed layer-local pixel index */
+void histogram_update_cursor_value(size_t index);
 
 /* Clear cursor value marker */
 void histogram_clear_cursor_value(void);

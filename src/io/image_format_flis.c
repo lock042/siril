@@ -1511,6 +1511,47 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
                       angle, old_rx, old_ry, new_rx, new_ry);
 }
 
+guint flis_canvas_rx(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->rx;
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    return (base && base->fit) ? (guint)base->fit->rx : gfit->rx;
+}
+
+guint flis_canvas_ry(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->ry;
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    return (base && base->fit) ? (guint)base->fit->ry : gfit->ry;
+}
+
+gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
+                                    size_t *out_idx) {
+    gint pos_x = 0, pos_y = 0;
+
+    if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+        flis_layer_t *active = flis_active_layer();
+        flis_layer_t *base   = (flis_layer_t *)com.uniq->layers->data;
+        if (active && active != base) {
+            pos_x = active->position_x;
+            pos_y = active->position_y;
+        }
+    }
+
+    gint layer_rx     = (gint)gfit->rx;
+    gint layer_ry     = (gint)gfit->ry;
+    gint local_x      = cx - pos_x;
+    /* position_y is in FITS (bottom-up) coords; convert to a FITS y within
+     * the layer: fits_y_in_layer = canvas_fits_y - position_y
+     *                            = (canvas_ry - 1 - cy_disp) - position_y  */
+    gint local_fits_y = (gint)canvas_ry - 1 - cy_disp - pos_y;
+
+    if (local_x < 0 || local_x >= layer_rx ||
+        local_fits_y < 0 || local_fits_y >= layer_ry)
+        return FALSE;
+
+    *out_idx = (size_t)layer_rx * local_fits_y + local_x;
+    return TRUE;
+}
+
 int flis_promote_from_gfit(const gchar *name) {
     if (!com.uniq) {
         siril_log_message(_("FLIS: flis_promote_from_gfit — no image loaded\n"));

@@ -31,6 +31,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
 #include "gui/image_display.h"
@@ -297,22 +298,24 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
    Returns true if point was inside, false otherwise.
 */
 static gboolean clamp2image(pointi* pt) {
+	gint crx = (gint)flis_canvas_rx();
+	gint cry = (gint)flis_canvas_ry();
 	gboolean x_inside = FALSE;
 	if (pt->x < 0) {
 		pt->x = 0;
-	} else if (pt->x > gfit->rx) {
-		pt->x = gfit->rx - 1;
+	} else if (pt->x >= crx) {
+		pt->x = crx - 1;
 	} else {
-		x_inside = pt->x < gfit->rx;
+		x_inside = TRUE;
 	}
 
 	gboolean y_inside = FALSE;
 	if (pt->y < 0) {
 		pt->y = 0;
-	} else if (pt->y > gfit->ry) {
-		pt->y = gfit->ry - 1;
+	} else if (pt->y >= cry) {
+		pt->y = cry - 1;
 	} else {
-		y_inside = pt->y < gfit->ry;
+		y_inside = TRUE;
 	}
 	return x_inside && y_inside;
 }
@@ -350,6 +353,8 @@ GdkModifierType get_primary() {
 }
 
 void enforce_ratio_and_clamp() {
+	gint crx = (gint)flis_canvas_rx();
+	gint cry = (gint)flis_canvas_ry();
 	if (gui.ratio > 0.0
 		&& !(gui.freezeX && gui.freezeY)) {
 		// Enforce a ratio for the selection
@@ -367,19 +372,19 @@ void enforce_ratio_and_clamp() {
 		}
 
 		// clamp the selection dimensions
-		if (com.selection.w > gfit->rx) {
-			com.selection.w = gfit->rx;
+		if (com.selection.w > crx) {
+			com.selection.w = crx;
 			com.selection.h = round_to_int(com.selection.w / gui.ratio);
 		}
-		else if (com.selection.h > gfit->ry) {
-			com.selection.h = gfit->ry;
+		else if (com.selection.h > cry) {
+			com.selection.h = cry;
 			com.selection.w = round_to_int(com.selection.h * gui.ratio);
 		}
 	}
 
 	// clamp the selection inside the image (needed when enforcing a ratio or moving)
-	com.selection.x = set_int_in_interval(com.selection.x, 0, gfit->rx - com.selection.w);
-	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit->ry - com.selection.h);
+	com.selection.x = set_int_in_interval(com.selection.x, 0, crx - com.selection.w);
+	com.selection.y = set_int_in_interval(com.selection.y, 0, cry - com.selection.h);
 
 	// If the image is CFA ensure the selection is aligned to a Bayer repeat
 	// This ensures CFA statistics (for Bayer patterns) will be valid
@@ -483,10 +488,19 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gboolean inside = clamp2image(&zoomed);
 	//siril_debug_print("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
-	if (inside) {
-		histogram_update_cursor_value(zoomed.x, zoomed.y);
+
+	/* Compute layer-local pixel index early — needed by both the histogram
+	 * and the density label.  For an offset non-base FLIS layer the cursor
+	 * may be inside the canvas (inside==TRUE) but outside the layer. */
+	guint canvas_ry = flis_canvas_ry();
+	size_t pixel_idx = 0;
+	gboolean in_layer = inside &&
+	    flis_canvas_to_pixel_index(zoomed.x, zoomed.y, canvas_ry, &pixel_idx);
+
+	if (in_layer) {
+		histogram_update_cursor_value(pixel_idx);
 	} else {
-		/* Curseur hors de l'image, effacer la barre */
+		/* Cursor outside layer (or outside canvas): clear histogram marker */
 		histogram_clear_cursor_value();
 	}
 
@@ -511,18 +525,23 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			gui.measure_end.y = zoomed.y;
 			redraw(REDRAW_OVERLAY);
 		}
+
+		/* pixel_idx and in_layer already computed above */
+
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
-			if (gfit->type == DATA_USHORT) {
+			if (in_layer && gfit->type == DATA_USHORT) {
 				g_sprintf(buffer, "<span foreground=\"#FF0000\"><b>R=%.3lf%%</b></span>\n<span foreground=\"#00FF00\"><b>G=%.3lf%%</b></span>\n<span foreground=\"#0054FF\"><b>B=%.3lf%%</b></span>",
-						gfit->pdata[RLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-						gfit->pdata[GLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-						gfit->pdata[BLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0);
-			} else if (gfit->type == DATA_FLOAT) {
+						gfit->pdata[RLAYER][pixel_idx] / USHRT_MAX_DOUBLE * 100.0,
+						gfit->pdata[GLAYER][pixel_idx] / USHRT_MAX_DOUBLE * 100.0,
+						gfit->pdata[BLAYER][pixel_idx] / USHRT_MAX_DOUBLE * 100.0);
+			} else if (in_layer && gfit->type == DATA_FLOAT) {
 				g_sprintf(buffer, "<span foreground=\"#FF0000\"><b>R=%.3lf%%</b></span>\n<span foreground=\"#00FF00\"><b>G=%.3lf%%</b></span>\n<span foreground=\"#0054FF\"><b>B=%.3lf%%</b></span>",
-						gfit->fpdata[RLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0,
-						gfit->fpdata[GLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0,
-						gfit->fpdata[BLAYER][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x] * 100.0);
+						gfit->fpdata[RLAYER][pixel_idx] * 100.0,
+						gfit->fpdata[GLAYER][pixel_idx] * 100.0,
+						gfit->fpdata[BLAYER][pixel_idx] * 100.0);
+			} else {
+				buffer[0] = '\0';
 			}
 			gtk_label_set_markup(GTK_LABEL(lookup_widget("label-rgb")), buffer);
 		}
@@ -531,9 +550,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		int coords_width = 3;
 		int vport = select_vport(gui.cvport);
 
-		if (gfit->rx >= 1000 || gfit->ry >= 1000)
+		guint crx = flis_canvas_rx();
+		if (crx >= 1000 || canvas_ry >= 1000)
 			coords_width = 4;
-		if (gfit->rx >= 10000 || gfit->ry >= 10000)
+		if (crx >= 10000 || canvas_ry >= 10000)
 			coords_width = 5;
 		if (vport < MASK_VPORT) {
 			if (gfit->type == DATA_USHORT && gfit->pdata[vport] != NULL) {
@@ -550,8 +570,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					val_width = 5;
 				g_sprintf(format, format_base_ushort,
 						coords_width, coords_width, val_width);
-				if (gui.cvport < RGB_VPORT) {
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				if (gui.cvport < RGB_VPORT && in_layer) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->pdata[vport][pixel_idx]);
 				} else {
 					g_sprintf(buffer, format, zoomed.x, zoomed.y);
 				}
@@ -563,8 +583,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					format_base_float = "x: %%.%dd y: %%.%dd";
 				}
 				g_sprintf(format, format_base_float, coords_width, coords_width);
-				if (gui.cvport < RGB_VPORT) {
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				if (gui.cvport < RGB_VPORT && in_layer) {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit->fpdata[vport][pixel_idx]);
 				} else {
 					g_sprintf(buffer, format, zoomed.x, zoomed.y);
 				}
@@ -580,19 +600,21 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 					val_width = 5;
 				g_sprintf(format, format_base_ushort,
 						coords_width, coords_width, val_width);
-				if (gfit->mask->bitpix < 16) {
+				if (in_layer && gfit->mask->bitpix < 16) {
 					uint8_t* m = (uint8_t*) gfit->mask->data;
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
-				} else {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[pixel_idx]);
+				} else if (in_layer) {
 					uint16_t* m = (uint16_t*) gfit->mask->data;
-					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, m[pixel_idx]);
+				} else {
+					g_sprintf(buffer, format, zoomed.x, zoomed.y, 0);
 				}
 			} else if (gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
 				char *format_base_float;
 				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
 				g_sprintf(format, format_base_float, coords_width, coords_width);
 				float *m = (float*) gfit->mask->data;
-				g_sprintf(buffer, format, zoomed.x, zoomed.y, m[gfit->rx * (gfit->ry - zoomed.y - 1) + zoomed.x]);
+				g_sprintf(buffer, format, zoomed.x, zoomed.y, in_layer ? m[pixel_idx] : 0.f);
 			}
 		}
 
