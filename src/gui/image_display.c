@@ -2934,7 +2934,7 @@ double get_zoom_val() {
 	window_width = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
 	fits *fit = gfit;
-	if (is_current_image_flis()) {
+	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
 		flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
 		fit = base->fit;
 	}
