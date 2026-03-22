@@ -564,7 +564,8 @@ static gchar *get_remote_catalogue_cached_path(siril_catalogue *siril_cat, gbool
    Returns the path to the file (whether already cached or downloaded)
 */
 static gchar *download_catalog(siril_catalogue *siril_cat) {
-	gchar *str = NULL, *filepath = NULL, *url = NULL, *buffer = NULL;
+	gchar *filepath = NULL, *url = NULL;
+	char *buffer = NULL;
 	GError *error = NULL;
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
@@ -573,14 +574,12 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 
 	/* check if catalogue already exists in cache */
 	filepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
-	g_free(str);
 
 	if (catalog_is_in_cache) {
 		siril_log_message(_("Using already downloaded catalogue %s\n"), catalog_to_str(siril_cat->cat_index));
 		return filepath;
 	}
 	if (!filepath) { // if the path is NULL, an error was caught earlier, just free and abort
-		g_free(str);
 		return NULL;
 	}
 	if (!is_online()) {
@@ -632,7 +631,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 				break;
 		}
 		g_object_unref(output_stream);
-		g_free(buffer);
+		free(buffer);
 	} else { // remove the file from cache
 		remove_file = TRUE;
 		goto download_error;
@@ -658,7 +657,7 @@ download_error:
 	} else {
 		siril_log_color_message(_("Cannot create catalogue file %s (generic error)\n"), "red", filepath);
 	}
-	g_free(buffer);
+	free(buffer);
 	if (output_stream)
 		g_object_unref(output_stream);
 	if (file) {

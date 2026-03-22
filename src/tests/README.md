@@ -1,8 +1,6 @@
-#SIRIL test suites
-=====
+# SIRIL test suites
 
-##Prerequisites
--------
+## Prerequisites
 * First, you need to compile Siril
 
     mkdir _build
@@ -15,9 +13,9 @@
     
 
 
-##Running tests
-------
-###What are inside test directory?
+## Running tests
+
+### What are inside test directory?
 There are different kinds of files in this directory:
 - `compare_fits` is a program that can be used to compare FITS files, to verify
   that an algorithm always computes the same thing for example
@@ -29,12 +27,12 @@ siril's code and we don't want to pull all the files here, we had to redefine
 the functions used in the direct dependencies in dummy.c, they should not be
 used in the tests.
 
-###Using criterion
+### Using criterion
 
     meson test (or meson test -C _build from src)
     meson test -v
 
-###Using test script
+### Using test script
 
 To compile the test programs, compile siril with the autotools/make method,
 then run ./build.sh in src/tests.
