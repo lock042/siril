@@ -43,16 +43,22 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     return written;
 }
 
+static GMutex check_dl_mutex;
+
 gchar *check_or_download_test_file(const char *filename) {
+	g_mutex_lock(&check_dl_mutex);
 	const gchar *cache_dir_path = g_get_user_cache_dir();
 	gchar *test_files_dir_path = g_strdup_printf("%s/%s", cache_dir_path, TEST_FILES_DOWNLOAD_DIR);
 	gchar *file_path = g_strdup_printf("%s/%s", test_files_dir_path, filename);
-	if (is_readable_file(file_path))
+	if (is_readable_file(file_path)) {
+		g_mutex_unlock(&check_dl_mutex);
 		return file_path;
+	}
 	if (g_mkdir_with_parents(test_files_dir_path, 0700)) {
 		siril_debug_print("failed to create dir %s\n", test_files_dir_path);
 		g_free(test_files_dir_path);
 		g_free(file_path);
+		g_mutex_unlock(&check_dl_mutex);
 		return NULL;
 	}
 #ifdef HAVE_LIBCURL
@@ -60,6 +66,7 @@ gchar *check_or_download_test_file(const char *filename) {
 	FILE *dest_file = g_fopen(file_path, "wb");
 	if (!dest_file) {
 		perror("fopen");
+		g_mutex_unlock(&check_dl_mutex);
 		return NULL;
 	}
 	gchar *file_url = g_strdup_printf("%s/%s", TEST_FILES_BUCKET_URL, filename);
@@ -86,6 +93,7 @@ gchar *check_or_download_test_file(const char *filename) {
 #else
 	siril_debug_print("test file %s is missing and cannot be doawnloaded (libcurl missing)\n", file_path);
 #endif
+	g_mutex_unlock(&check_dl_mutex);
 	return file_path;
 }
 
@@ -192,10 +200,18 @@ void test_rsgps_binning() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 
+	int row = 500;
+	GDateTime *date_before = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, row);
 	cr_assert(fit.keywords.gps_data->binning == 2);
+
 	fits_binning(&fit, 2, TRUE);
+
 	cr_assert(fit.keywords.gps_data->binning == 4);
-	// TODO: compare timestamps before and after
+	GDateTime *date_after = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, row / 2);
+	siril_debug_print("timestamp change after binning: %s -> %s, diff = %f\n",
+			date_time_to_FITS_date(date_before), date_time_to_FITS_date(date_after),
+			timediff_in_s(date_before, date_after));
+	cr_assert(fabs(timediff_in_s(date_before, date_after)) < 1e-4);
 
 	clearfits(&fit);
 }
@@ -207,10 +223,15 @@ void test_rsgps_flip() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 
+	GDateTime *date_before0 = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 0);
+	GDateTime *date_before1 = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 3193);
 	cr_assert(fit.keywords.gps_data->top_down);
 	mirrorx(&fit, FALSE);
 	cr_assert(!fit.keywords.gps_data->top_down);
-	// TODO: compare timestamps before and after
+	GDateTime *date_after0 = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 0);
+	GDateTime *date_after1 = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 3193);
+	cr_assert(fabs(timediff_in_s(date_before0, date_after1)) < 1e-6);
+	cr_assert(fabs(timediff_in_s(date_before1, date_after0)) < 1e-6);
 
 	clearfits(&fit);
 }
@@ -222,12 +243,14 @@ void test_rsgps_crop() {
 	cr_assert(readfits(file_path, &fit, NULL, FALSE) == 0);
 	g_free(file_path);
 
+	GDateTime *date_before = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 500);
 	cr_assert(fit.keywords.gps_data->crop_offset_y == 0);
 	rectangle area = { 300, 500, 200, 200 };
 	crop(&fit, &area);
 	siril_debug_print("new offset: %d\n", fit.keywords.gps_data->crop_offset_y);
 	cr_assert(fit.keywords.gps_data->crop_offset_y == 3194 - 500 - 200);
-	// TODO: compare timestamps before and after
+	GDateTime *date_after = get_timestamp_for_pixel(fit.keywords.gps_data, EXP_MIDDLE, 0, 0);
+	cr_assert(fabs(timediff_in_s(date_before, date_after)) < 1e-6);
 
 	clearfits(&fit);
 }
