@@ -2014,7 +2014,6 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Initialize FLIS GUI signal handlers */
 	flis_gui_init();
-	flis_gui_open();
 
 	/* register some callbacks */
 	register_selection_update_callback(update_export_crop_label);

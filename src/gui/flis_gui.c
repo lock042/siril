@@ -1237,6 +1237,29 @@ G_MODULE_EXPORT gboolean on_flis_layers_window_delete_event(
     return TRUE; /* prevent actual destruction */
 }
 
+/* Fires every time the dialog is shown (gtk_widget_show / gtk_window_present).
+ * This is the right place for setup that must happen each time the panel
+ * becomes visible: setting the transient parent, keep-above, and rebuilding
+ * the layer list so it is always current. */
+G_MODULE_EXPORT void on_flis_layers_window_show(GtkWidget *widget,
+                                                gpointer   data) {
+    (void)data;
+    GtkWindow *win     = GTK_WINDOW(widget);
+    GtkWindow *main_win = GTK_WINDOW(lookup_widget("control_window"));
+
+    /* Ensure the dialog is always parented to the main window.  This scopes
+     * keep-above to the application rather than the whole desktop. */
+    if (main_win)
+        gtk_window_set_transient_for(win, main_win);
+
+    /* keep-above must be set in code; GTK's UI loader rejects it as a
+     * static property on GtkDialog. */
+    gtk_window_set_keep_above(win, TRUE);
+
+    /* Rebuild the layer list so it reflects the current image state. */
+    flis_layers_list_rebuild();
+}
+
 /* =========================================================================
  * Public API
  * ========================================================================= */
@@ -1308,25 +1331,11 @@ void flis_gui_open(void) {
     if (!win) {
         siril_log_color_message(
             _("FLIS GUI: layers window not found — "
-              "is flis_layers.glade included in the UI bundle?\n"), "red");
+              "is flis_layers.ui included in the UI bundle?\n"), "red");
         return;
     }
-
-    /* Set the transient parent every time we open the dialog.  This tells
-     * the window manager which application window the dialog belongs to,
-     * which (combined with keep-above=True in the UI file) ensures it
-     * floats above the main window without covering other applications.
-     * Doing this every time handles the case where the main window is
-     * re-created (rare but possible). */
-    GtkWindow *main_win = GTK_WINDOW(lookup_widget("control_window"));
-    if (main_win)
-        gtk_window_set_transient_for(GTK_WINDOW(win), main_win);
-
-    /* keep-above must be set in code; GTK's UI loader rejects it as a
-     * static property on GtkDialog. */
-    gtk_window_set_keep_above(GTK_WINDOW(win), TRUE);
-
-    gtk_widget_show_all(win);
+    /* The show signal handler (on_flis_layers_window_show) takes care of
+     * setting the transient parent, keep-above, and rebuilding the list. */
+    gtk_widget_show(win);
     gtk_window_present(GTK_WINDOW(win));
-    flis_layers_list_rebuild();
 }
