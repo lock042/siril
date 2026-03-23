@@ -1907,6 +1907,12 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
         return NULL;
     }
 
+    /* copyfits(CP_FORMAT) NULLs out pointer-typed header fields (date_obs,
+     * wcslib, unknown_keys) to avoid double-free.  Re-populate them with
+     * deep copies so the duplicate carries complete metadata, including the
+     * plate-solve solution needed for future co-registration. */
+    copy_fits_metadata(src->fit, new_fit);
+
     gchar *new_name = g_strdup_printf("%s copy",
                       src->layer_name ? src->layer_name : "Layer");
     flis_layer_t *dup = flis_layer_new(new_fit, new_name);

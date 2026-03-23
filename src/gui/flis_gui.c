@@ -817,6 +817,7 @@ G_MODULE_EXPORT void on_flis_add_layer_clicked(GtkButton *btn,
 
     if (!new_layer) {
         siril_log_color_message(_("FLIS: failed to add layer\n"), "red");
+        clearfits(f); free(f);
         return;
     }
 
