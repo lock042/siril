@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/file.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #if defined(HAVE_LIBCURL)
@@ -37,28 +39,52 @@
 
 #define TEST_FILES_BUCKET_URL "https://siril-share-public.s3.rbx.io.cloud.ovh.net"
 #define TEST_FILES_DOWNLOAD_DIR "siril/tests" // in user cache dir
+#define LOCK_FILE_FOR_DOWNLOAD "/tmp/siril-test-download.lock"
 
-size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t written = fwrite(ptr, size, nmemb, stream);
     return written;
 }
 
-static GMutex check_dl_mutex;
+static gboolean directory_created = FALSE;
 
-gchar *check_or_download_test_file(const char *filename) {
-	g_mutex_lock(&check_dl_mutex);
+/* each test runs in a separate process, we cannot use a mutex to protect check_or_download_test_file(),
+ * we use a file lock instead, which may not be portable. The other solution would be to make a function
+ * with all the test function and call this one instead in the single Test() */
+static void init_download() {
+	int fd_lock = open(LOCK_FILE_FOR_DOWNLOAD, O_RDWR | O_CREAT, 0640);
+	if (fd_lock < 0) {
+		siril_debug_print("could not create lock file\n");
+		return;
+	}
+	flock(fd_lock, LOCK_EX);
 	const gchar *cache_dir_path = g_get_user_cache_dir();
 	gchar *test_files_dir_path = g_strdup_printf("%s/%s", cache_dir_path, TEST_FILES_DOWNLOAD_DIR);
-	gchar *file_path = g_strdup_printf("%s/%s", test_files_dir_path, filename);
-	if (is_readable_file(file_path)) {
-		g_mutex_unlock(&check_dl_mutex);
-		return file_path;
-	}
 	if (g_mkdir_with_parents(test_files_dir_path, 0700)) {
 		siril_debug_print("failed to create dir %s\n", test_files_dir_path);
-		g_free(test_files_dir_path);
+	} else {
+		directory_created = TRUE;
+	}
+	g_free(test_files_dir_path);
+	flock(fd_lock, LOCK_UN);
+	close(fd_lock);
+}
+
+static gchar *check_or_download_test_file(const char *filename) {
+	int fd_lock = open(LOCK_FILE_FOR_DOWNLOAD, O_RDWR | O_CREAT, 0640);
+	flock(fd_lock, LOCK_EX);
+	const gchar *cache_dir_path = g_get_user_cache_dir();
+	gchar *file_path = g_strdup_printf("%s/%s/%s", cache_dir_path, TEST_FILES_DOWNLOAD_DIR, filename);
+	if (is_readable_file(file_path)) {
+		flock(fd_lock, LOCK_UN);
+		close(fd_lock);
+		return file_path;
+	}
+	if (!directory_created) {
+		siril_debug_print("cannot download to expected directory which creation failed\n");
 		g_free(file_path);
-		g_mutex_unlock(&check_dl_mutex);
+		flock(fd_lock, LOCK_UN);
+		close(fd_lock);
 		return NULL;
 	}
 #ifdef HAVE_LIBCURL
@@ -66,7 +92,9 @@ gchar *check_or_download_test_file(const char *filename) {
 	FILE *dest_file = g_fopen(file_path, "wb");
 	if (!dest_file) {
 		perror("fopen");
-		g_mutex_unlock(&check_dl_mutex);
+		siril_debug_print("failed to create file %s for downloads\n", file_path);
+		flock(fd_lock, LOCK_UN);
+		close(fd_lock);
 		return NULL;
 	}
 	gchar *file_url = g_strdup_printf("%s/%s", TEST_FILES_BUCKET_URL, filename);
@@ -79,7 +107,6 @@ gchar *check_or_download_test_file(const char *filename) {
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, dest_file);
 		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
 		CURLcode res = curl_easy_perform(curl);
-		/* always cleanup */
 		curl_easy_cleanup(curl);
 		if (res != CURLE_OK) {
 			siril_debug_print("failed to download from %s\n", file_url);
@@ -90,10 +117,12 @@ gchar *check_or_download_test_file(const char *filename) {
 	}
 	fclose(dest_file);
 	g_free(file_url);
+	//siril_debug_print("test file %s was downloaded\n", file_path);
 #else
 	siril_debug_print("test file %s is missing and cannot be doawnloaded (libcurl missing)\n", file_path);
 #endif
-	g_mutex_unlock(&check_dl_mutex);
+	flock(fd_lock, LOCK_UN);
+	close(fd_lock);
 	return file_path;
 }
 
@@ -255,6 +284,7 @@ void test_rsgps_crop() {
 	clearfits(&fit);
 }
 
+TestSuite(qhy_gps, .init = init_download);
 Test(qhy_gps, load) { test_rsgps_data_loading(); }
 Test(qhy_gps, metadata) { test_metadata_reading(); }
 Test(qhy_gps, rs_timestamp) { test_rsgps_timestamp_computation(); }

@@ -333,15 +333,12 @@ int is_readable_file(const char *filename) {
 	GStatBuf sts;
 	if (g_lstat(filename, &sts))
 		return 0;
-	if (S_ISREG (sts.st_mode)
+	return S_ISREG (sts.st_mode) ||
 #ifndef _WIN32
-			|| S_ISLNK(sts.st_mode)
+		S_ISLNK(sts.st_mode);
 #else
-		|| (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+		(GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT );
 #endif
-	)
-		return 1;
-	return 0;
 }
 
 /**
