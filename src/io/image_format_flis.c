@@ -46,6 +46,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
@@ -1161,12 +1162,6 @@ int load_flis(const gchar *filename) {
             continue;
         }
 
-        /* Assign the file-level ICC profile to each layer */
-        if (file_icc) {
-            f->icc_profile = copyICCProfile(file_icc);
-            color_manage(f, TRUE);
-        }
-
         flis_layer_t *layer = flis_layer_new(f, row->layer_name);
         if (!layer) { clearfits(f); free(f); continue; }
 
@@ -1183,6 +1178,34 @@ int load_flis(const gchar *filename) {
                                        (GCompareFunc)layer_order_cmp);
         g_hash_table_insert(id_map,
                             GINT_TO_POINTER(row->item_id), layer);
+    }
+
+    /* Assign the file-level ICC profile to the base layer only.
+     * The base layer is the first element of the sorted list (lowest
+     * layer_order).  For any non-base layer whose HDU happened to carry
+     * an embedded ICC profile, warn and discard it — ICC profiles are
+     * an image-level concept in FLIS, not a per-layer one. */
+    if (layers) {
+        flis_layer_t *base_lay = (flis_layer_t *)layers->data;
+        if (file_icc) {
+            if (base_lay->fit->icc_profile)
+                cmsCloseProfile(base_lay->fit->icc_profile);
+            base_lay->fit->icc_profile = copyICCProfile(file_icc);
+            base_lay->fit->color_managed = TRUE;
+        }
+        for (GSList *l = layers->next; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay || !lay->fit) continue;
+            if (lay->fit->icc_profile) {
+                siril_log_color_message(
+                    _("FLIS: non-base layer '%s' contained an ICC profile — "
+                      "ignored (ICC profiles are managed at image level)\n"),
+                    "salmon", lay->layer_name);
+                cmsCloseProfile(lay->fit->icc_profile);
+                lay->fit->icc_profile = NULL;
+            }
+            lay->fit->color_managed = FALSE;
+        }
     }
 
     /* Pass 2: LMASK and MASK rows */
@@ -1349,6 +1372,150 @@ flis_layer_t *flis_active_layer(void) {
 fits *flis_active_layer_fit(void) {
     flis_layer_t *lay = flis_active_layer();
     return lay ? lay->fit : NULL;
+}
+
+fits *flis_get_profiled_fit(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers)
+        return gfit;
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    return (base && base->fit) ? base->fit : gfit;
+}
+
+guint flis_composite_naxes2(void) {
+    /* The FLIS display composite is always built as RGB (3 channels),
+     * regardless of whether the individual layers are mono.  Return 3 for
+     * any FLIS image so that ICC profile channel-count checks are performed
+     * against the composite rather than the (potentially mono) base layer. */
+    if (is_current_image_flis())
+        return 3;
+    return gfit->naxes[2];
+}
+
+/* Luminance-weighted collapse of three planar channels into one.
+ * Uses Rec. 709 coefficients (0.2126 R + 0.7152 G + 0.0722 B). */
+static void collapse_rgb_to_mono_float(float *r, float *g, float *b,
+                                       float *out, size_t npixels) {
+    for (size_t i = 0; i < npixels; i++)
+        out[i] = 0.2126f * r[i] + 0.7152f * g[i] + 0.0722f * b[i];
+}
+
+static void collapse_rgb_to_mono_word(WORD *r, WORD *g, WORD *b,
+                                      WORD *out, size_t npixels) {
+    for (size_t i = 0; i < npixels; i++)
+        out[i] = (WORD)(0.2126f * r[i] + 0.7152f * g[i] + 0.0722f * b[i] + 0.5f);
+}
+
+void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+    if (!old_profile || !new_profile) return;
+
+    gboolean threaded = !get_thread_run();
+    cmsUInt32Number intent = com.pref.icc.processing_intent;
+
+    cmsUInt32Number rgb_float_type = get_planar_formatter_type(cmsSigRgbData, DATA_FLOAT, FALSE);
+    cmsUInt32Number rgb_word_type  = get_planar_formatter_type(cmsSigRgbData, DATA_USHORT, FALSE);
+
+    /* Build a single RGB→RGB transform, reused for every layer. */
+    cmsHTRANSFORM xform_float = cmsCreateTransformTHR(
+        threaded ? com.icc.context_threaded : com.icc.context_single,
+        old_profile, rgb_float_type, new_profile, rgb_float_type,
+        intent, com.icc.rendering_flags);
+    cmsHTRANSFORM xform_word = cmsCreateTransformTHR(
+        threaded ? com.icc.context_threaded : com.icc.context_single,
+        old_profile, rgb_word_type, new_profile, rgb_word_type,
+        intent, com.icc.rendering_flags);
+    /* Packed interleaved transform for tint vectors (3 floats, single pixel).
+     * The tint is defined as linear-light values, but we feed it through the
+     * same ICC transform as the image data.  For values at 0.0 and 1.0 this
+     * is exact; for intermediate values the TRC error is small and acceptable
+     * for typical narrowband tint ratios. */
+    cmsHTRANSFORM xform_tint = cmsCreateTransformTHR(
+        threaded ? com.icc.context_threaded : com.icc.context_single,
+        old_profile, TYPE_RGB_FLT, new_profile, TYPE_RGB_FLT,
+        intent, com.icc.rendering_flags);
+
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        fits *fit = lay->fit;
+        size_t npixels = (size_t)fit->rx * fit->ry;
+        cmsHTRANSFORM xform = (fit->type == DATA_FLOAT) ? xform_float : xform_word;
+        if (!xform) continue;
+
+        cmsUInt32Number dsize       = (fit->type == DATA_FLOAT) ? sizeof(float) : sizeof(WORD);
+        cmsUInt32Number bytesperline  = fit->rx * dsize;
+        cmsUInt32Number bytesperplane = npixels * dsize;
+
+        if (fit->naxes[2] >= 3) {
+            /* RGB layer: transform in-place. */
+            void *data = (fit->type == DATA_FLOAT) ? (void *)fit->fdata : (void *)fit->data;
+            cmsDoTransformLineStride(xform, data, data, fit->rx, fit->ry,
+                                     bytesperline, bytesperline,
+                                     bytesperplane, bytesperplane);
+        } else {
+            /* Mono layer: broadcast to 3 RGB planes, transform, collapse. */
+            void *tmp = g_malloc(npixels * 3 * dsize);
+            if (fit->type == DATA_FLOAT) {
+                float *mono  = fit->fdata;
+                float *tr    = (float *)tmp;
+                float *tg    = tr + npixels;
+                float *tb    = tg + npixels;
+                for (size_t i = 0; i < npixels; i++)
+                    tr[i] = tg[i] = tb[i] = mono[i];
+                cmsDoTransformLineStride(xform, tmp, tmp, fit->rx, fit->ry,
+                                         bytesperline, bytesperline,
+                                         bytesperplane, bytesperplane);
+                collapse_rgb_to_mono_float(tr, tg, tb, mono, npixels);
+            } else {
+                WORD *mono = fit->data;
+                WORD *tr   = (WORD *)tmp;
+                WORD *tg   = tr + npixels;
+                WORD *tb   = tg + npixels;
+                for (size_t i = 0; i < npixels; i++)
+                    tr[i] = tg[i] = tb[i] = mono[i];
+                cmsDoTransformLineStride(xform, tmp, tmp, fit->rx, fit->ry,
+                                         bytesperline, bytesperline,
+                                         bytesperplane, bytesperplane);
+                collapse_rgb_to_mono_word(tr, tg, tb, mono, npixels);
+            }
+            g_free(tmp);
+
+            /* Convert the tint to the new colorspace.  The tint encodes the
+             * colour direction of the layer in the source space; leaving it
+             * unchanged after an ICC conversion would produce the wrong hue
+             * (e.g. an sRGB-green tint rendered as Rec2020-green is far
+             * outside sRGB gamut and appears very wrong on a standard display).
+             */
+            if (lay->has_tint && xform_tint) {
+                float tint_in[3]  = { (float)lay->layer_tint.r,
+                                      (float)lay->layer_tint.g,
+                                      (float)lay->layer_tint.b };
+                float tint_out[3] = { 0.f, 0.f, 0.f };
+                cmsDoTransform(xform_tint, tint_in, tint_out, 1);
+                lay->layer_tint.r = (double)tint_out[0];
+                lay->layer_tint.g = (double)tint_out[1];
+                lay->layer_tint.b = (double)tint_out[2];
+            }
+        }
+    }
+
+    if (xform_float) cmsDeleteTransform(xform_float);
+    if (xform_word)  cmsDeleteTransform(xform_word);
+    if (xform_tint)  cmsDeleteTransform(xform_tint);
+
+    /* Update base layer: store new profile, clear non-base layers per invariant. */
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (l == com.uniq->layers) {
+            /* Base layer gets the new profile. */
+            if (lay->fit->icc_profile)
+                cmsCloseProfile(lay->fit->icc_profile);
+            lay->fit->icc_profile   = copyICCProfile(new_profile);
+            lay->fit->color_managed = TRUE;
+        }
+        /* Non-base layers already have icc_profile=NULL per invariant. */
+    }
 }
 
 /* flis_update_layer_offset_after_crop:
@@ -1658,6 +1825,36 @@ flis_layer_t *flis_layer_add(fits *fit, const gchar *name) {
     com.uniq->layers = g_slist_insert_sorted(com.uniq->layers, layer,
                                               (GCompareFunc)layer_order_cmp);
 
+    /* ICC profile: only the base layer holds the image's ICC profile.
+     * A layer added via flis_layer_add() is always placed at the top of
+     * the stack (highest layer_order), so it is never the base.  If its
+     * fits* carries a profile (e.g. loaded from a FITS file on disk),
+     * convert its pixels to the base layer's colour space first, then
+     * discard the per-layer profile. */
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+    if (layer != base && fit->icc_profile) {
+        if (base->fit->icc_profile &&
+            !profiles_identical(fit->icc_profile, base->fit->icc_profile)) {
+            gchar *src_desc = siril_color_profile_get_description(fit->icc_profile);
+            gchar *dst_desc = siril_color_profile_get_description(base->fit->icc_profile);
+            siril_log_message(
+                _("FLIS: converting new layer '%s' from '%s' to base layer profile '%s'\n"),
+                layer->layer_name, src_desc, dst_desc);
+            g_free(src_desc);
+            g_free(dst_desc);
+            /* Ensure color_managed is set so siril_colorspace_transform
+             * performs a real pixel conversion, not a mere profile assignment */
+            fit->color_managed = TRUE;
+            siril_colorspace_transform(fit, base->fit->icc_profile);
+            /* siril_colorspace_transform has now set fit->icc_profile to a
+             * copy of the base profile; fall through to discard it below */
+        }
+        if (fit->icc_profile)
+            cmsCloseProfile(fit->icc_profile);
+        fit->icc_profile   = NULL;
+        fit->color_managed = FALSE;
+    }
+
     /* Activate the newly added layer */
     gint idx = flis_layer_get_index(layer);
     uniq_set_active_layer(com.uniq, idx);
@@ -1764,6 +1961,23 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
     return dup;
 }
 
+/* Transfer the ICC profile and color_managed flag from old_base to new_base
+ * after a reorder changes which layer sits at the bottom of the stack.
+ * Ownership of the cmsHPROFILE handle is transferred (no copy made). */
+static void flis_transfer_icc_to_new_base(flis_layer_t *old_base,
+                                           flis_layer_t *new_base) {
+    /* Transfer ownership of the ICC profile handle — no copy needed.
+     * We set the fields directly rather than calling color_manage() because
+     * the image remains colour-managed throughout; we do not want to fire
+     * the GUI toolbar update that color_manage() would trigger if either
+     * fit happens to equal gfit. */
+    new_base->fit->icc_profile   = old_base->fit->icc_profile;
+    new_base->fit->color_managed = old_base->fit->color_managed;
+    old_base->fit->icc_profile   = NULL;
+    old_base->fit->color_managed = FALSE;
+    siril_debug_print("FLIS: ICC profile transferred from old base to new base\n");
+}
+
 int flis_layer_move_up(flis_layer_t *layer) {
     if (!com.uniq || !layer) return -1;
     if (flis_check_locked(layer, "move layer up")) return -1;
@@ -1777,12 +1991,19 @@ int flis_layer_move_up(flis_layer_t *layer) {
     flis_layer_t *neighbour = (flis_layer_t *)next->data;
     if (flis_check_locked(neighbour, "swap with locked layer above")) return -1;
 
+    flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;
+
     /* Swap the two layer_order values, then re-sort */
     gint tmp              = layer->layer_order;
     layer->layer_order    = neighbour->layer_order;
     neighbour->layer_order = tmp;
 
     flis_resort_layers(layer);
+
+    flis_layer_t *new_base = (flis_layer_t *)com.uniq->layers->data;
+    if (new_base != old_base)
+        flis_transfer_icc_to_new_base(old_base, new_base);
+
     flis_layer_touch_modified(layer);
     return 0;
 }
@@ -1800,11 +2021,18 @@ int flis_layer_move_down(flis_layer_t *layer) {
     if (!neighbour) return -1;
     if (flis_check_locked(neighbour, "swap with locked layer below")) return -1;
 
+    flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;
+
     gint tmp               = layer->layer_order;
     layer->layer_order     = neighbour->layer_order;
     neighbour->layer_order = tmp;
 
     flis_resort_layers(layer);
+
+    flis_layer_t *new_base = (flis_layer_t *)com.uniq->layers->data;
+    if (new_base != old_base)
+        flis_transfer_icc_to_new_base(old_base, new_base);
+
     flis_layer_touch_modified(layer);
     return 0;
 }

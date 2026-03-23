@@ -35,6 +35,7 @@
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "core/siril_log.h"
 
@@ -110,14 +111,16 @@ void set_source_information() {
 	GtkLabel* label = (GtkLabel*) lookup_widget("icc_current_profile_label");
 	GtkLabel* mfr_label = (GtkLabel*) lookup_widget("icc_mfr_label");
 	GtkLabel* copyright_label = (GtkLabel*) lookup_widget("icc_copyright_label");
-	if (!gfit->color_managed) {
+	/* For FLIS, use the base (profiled) layer; for other images this is gfit. */
+	fits *profiled = flis_get_profiled_fit();
+	if (!profiled->color_managed) {
 		siril_debug_print("Target image is not color managed\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
 		gtk_label_set_text(copyright_label, "");
 		return;
 	}
-	if (!gfit->icc_profile) {
+	if (!profiled->icc_profile) {
 		siril_debug_print("Target profile is NULL\n");
 		gtk_label_set_text(label, _("No ICC profile"));
 		gtk_label_set_text(mfr_label, "");
@@ -125,19 +128,19 @@ void set_source_information() {
 		return;
 	}
 	// Set description
-	gchar *buffer = siril_color_profile_get_description(gfit->icc_profile);
+	gchar *buffer = siril_color_profile_get_description(profiled->icc_profile);
 	if (buffer)
 		gtk_label_set_text(label, buffer);
 	free(buffer);
 
 	// Set manufacturer
-	buffer = siril_color_profile_get_manufacturer(gfit->icc_profile);
+	buffer = siril_color_profile_get_manufacturer(profiled->icc_profile);
 	if (buffer)
 		gtk_label_set_text(mfr_label, buffer);
 	free(buffer);
 
 	// Set copyright
-	buffer = siril_color_profile_get_copyright(gfit->icc_profile);
+	buffer = siril_color_profile_get_copyright(profiled->icc_profile);
 	if (buffer)
 		gtk_label_set_text(copyright_label, buffer);
 	free(buffer);
@@ -300,46 +303,52 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	on_clear_roi();
-	// We save the undo state as dealing with gfit
-	undo_save_state(gfit, _("Color profile assignment"));
+	/* For FLIS, operate on the base (profiled) layer rather than whatever
+	 * non-base layer gfit currently points to. */
+	fits *profiled = flis_get_profiled_fit();
+	undo_save_state(profiled, _("Color profile assignment"));
 
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 
 	// Handle initial assignment of an ICC profile
-	if (!gfit->color_managed || !gfit->icc_profile) {
-		if (gfit->icc_profile) {
-			cmsCloseProfile(gfit->icc_profile);
-			gfit->icc_profile = NULL;
+	if (!profiled->color_managed || !profiled->icc_profile) {
+		if (profiled->icc_profile) {
+			cmsCloseProfile(profiled->icc_profile);
+			profiled->icc_profile = NULL;
 		}
-		if (target_colorspace_channels > gfit->naxes[2]) {
+		/* For FLIS the profile applies to the composite (always RGB, 3 ch),
+		 * so use flis_composite_naxes2() rather than the base layer naxes[2]. */
+		if (target_colorspace_channels > flis_composite_naxes2()) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space has incorrect channels"), _("Mismatch in number of channels between the current image and the ICC profile. You cannot assign a RGB ICC profile to a mono image."));
 			return;
 		}
 		goto FINISH;
 	}
 
-	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit->icc_profile);
+	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(profiled->icc_profile);
 	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
-	if (gfit_colorspace_channels != target_colorspace_channels) {
+	/* For FLIS the profile applies to the RGB composite, so allow any
+	 * single→RGB or RGB→single transition at the FLIS level. */
+	if (gfit_colorspace_channels != target_colorspace_channels && !is_current_image_flis()) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
 		return;
 	}
-	if (gfit->icc_profile) {
-		cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = NULL;
+	if (profiled->icc_profile) {
+		cmsCloseProfile(profiled->icc_profile);
+		profiled->icc_profile = NULL;
 	}
 FINISH:
-	gfit->icc_profile = copyICCProfile(target);
-	if (gfit->icc_profile)
-		color_manage(gfit, TRUE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	profiled->icc_profile = copyICCProfile(target);
+	if (profiled->icc_profile)
+		color_manage(profiled, TRUE);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), profiled->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), profiled->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_modified();
@@ -347,15 +356,15 @@ FINISH:
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	on_clear_roi();
-	// We save the undo state as dealing with gfit
-	undo_save_state(gfit, _("Color profile removal"));
-	if (gfit->icc_profile) {
-		cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = NULL;
+	fits *profiled = flis_get_profiled_fit();
+	undo_save_state(profiled, _("Color profile removal"));
+	if (profiled->icc_profile) {
+		cmsCloseProfile(profiled->icc_profile);
+		profiled->icc_profile = NULL;
 	}
-	color_manage(gfit, FALSE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	color_manage(profiled, FALSE);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), profiled->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), profiled->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_modified();
@@ -368,7 +377,9 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	on_clear_roi();
-	if (!gfit->color_managed || !gfit->icc_profile) {
+	/* For FLIS, operate on the base (profiled) layer. */
+	fits *profiled = flis_get_profiled_fit();
+	if (!profiled->color_managed || !profiled->icc_profile) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No color profile set"), _("The current image has no color profile. You need to assign one first."));
 		return;
 	}
@@ -381,24 +392,49 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	}
 
 	// Do the transform
-	// We save the undo state if dealing with gfit
-	undo_save_state(gfit, _("Color profile conversion"));
+	undo_save_state(profiled, _("Color profile conversion"));
 	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
 	com.pref.icc.processing_intent = com.pref.icc.export_intent;
-	siril_colorspace_transform(gfit, target);
+	if (is_current_image_flis()) {
+		/* For FLIS: walk the layer stack, converting every layer's pixel data.
+		 * Mono layers are broadcast to RGB, transformed, then collapsed back
+		 * to luminance.  The base layer's profile is updated by the call. */
+		flis_convert_layers_icc(profiled->icc_profile, target);
+	} else {
+		siril_colorspace_transform(profiled, target);
+		/* siril_colorspace_transform already updates profiled->icc_profile,
+		 * but repeat explicitly for clarity. */
+		if (profiled->icc_profile)
+			cmsCloseProfile(profiled->icc_profile);
+		profiled->icc_profile = copyICCProfile(target);
+		if (profiled->icc_profile)
+			color_manage(profiled, TRUE);
+	}
 	com.pref.icc.processing_intent = temp_intent;
-
-	// Assign the new color space to gfit
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = copyICCProfile(target);
-	if (gfit->icc_profile)
-		color_manage(gfit, TRUE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), profiled->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
+	/* For FLIS, com.uniq->chans reflects the active layer's channel count
+	 * (1 for a mono base layer), not the composite colour model.  Update it
+	 * to reflect whether the composite is RGB before close_tab() reads it —
+	 * same correction as in open_single_image_from_gfit() and undo/redo. */
+	if (is_current_image_flis() && com.uniq) {
+		gboolean composite_rgb = FALSE;
+		for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+			flis_layer_t *lay = (flis_layer_t *)l->data;
+			if (!lay || !lay->fit || !lay->visible) continue;
+			if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+			if (lay->has_tint)           composite_rgb = TRUE;
+		}
+		com.uniq->chans = composite_rgb ? 3 : 1;
+	}
 	gui_function(close_tab, NULL);
-	gui_function(init_right_tab, NULL);
+	/* init_right_tab uses isrgb(gfit) which is FALSE for a mono FLIS base
+	 * layer.  For FLIS use com.uniq->chans (already correct above) instead. */
+	if (is_current_image_flis() && com.uniq)
+		activate_tab(com.uniq->chans >= 3 ? RGB_VPORT : RED_VPORT);
+	else
+		gui_function(init_right_tab, NULL);
 	notify_gfit_modified();
 }
 

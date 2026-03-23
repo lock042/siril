@@ -255,6 +255,51 @@ flis_layer_t *flis_active_layer(void);
 fits *flis_active_layer_fit(void);
 
 /**
+ * flis_get_profiled_fit:
+ *
+ * Returns the fits* that carries the authoritative ICC profile for the
+ * current image.  For a FLIS image this is the base layer's fits*; for a
+ * plain FITS image (or when no image is loaded) it returns gfit.
+ *
+ * Use this wherever you need "the image's colour profile" rather than
+ * "this particular layer's colour profile".  The ~200 per-layer call
+ * sites that use fit->icc_profile directly are correct as-is because
+ * non-base FLIS layers always have icc_profile == NULL.
+ */
+fits *flis_get_profiled_fit(void);
+
+/**
+ * flis_composite_naxes2:
+ *
+ * Returns the number of colour channels of the FLIS display composite.
+ * The composite is always built as an RGB image (3 channels) regardless of
+ * whether the individual layers are mono.  For non-FLIS images, returns
+ * gfit->naxes[2].
+ *
+ * Use this instead of profiled->naxes[2] / gfit->naxes[2] when you need
+ * the effective channel count for ICC profile channel-compatibility checks.
+ */
+guint flis_composite_naxes2(void);
+
+/**
+ * flis_convert_layers_icc:
+ * @old_profile: the ICC profile currently assigned to the FLIS image
+ * @new_profile:  the target ICC profile
+ *
+ * Converts the pixel data of every FLIS layer from @old_profile to
+ * @new_profile using the current processing intent.
+ *
+ * - RGB layers (naxes[2] >= 3) are transformed directly in-place.
+ * - Mono layers (naxes[2] == 1) are broadcast to three equal RGB planes,
+ *   transformed, then collapsed back to a single luminance-weighted channel
+ *   (Rec. 709 coefficients: 0.2126 R + 0.7152 G + 0.0722 B).
+ *
+ * After the call the base layer carries @new_profile; non-base layers retain
+ * icc_profile=NULL / color_managed=FALSE per the FLIS invariant.
+ */
+void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile);
+
+/**
  * flis_update_layer_offset_after_crop:
  * @sel_x: x coordinate of the crop selection top-left (canvas pixels)
  * @sel_y: y coordinate of the crop selection top-left (canvas pixels)
