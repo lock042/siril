@@ -259,6 +259,8 @@ do { \
     } \
 } while (0)
 
+/* HSL loop: opacity is passed into flis_blend_hsl_pixel and consumed there
+ * (component-space interpolation).  No outer FLIS_OVER is applied. */
 #define FLIS_HSL_LOOP(TR, TG, TB) \
 do { \
     FLIS_OMP_PAR_FOR \
@@ -275,12 +277,9 @@ do { \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
-            float br, bg, bb; \
-            flis_blend_hsl_pixel(mode, sr, sg, sb, dr, dg, db, \
-                                 &br, &bg, &bb); \
-            out_r[_i] = FLIS_OVER(br, dr, global_opacity * _valid); \
-            out_g[_i] = FLIS_OVER(bg, dg, global_opacity * _valid); \
-            out_b[_i] = FLIS_OVER(bb, db, global_opacity * _valid); \
+            flis_blend_hsl_pixel(mode, global_opacity * _valid, \
+                                 sr, sg, sb, dr, dg, db, \
+                                 &out_r[_i], &out_g[_i], &out_b[_i]); \
         } \
     } \
 } while (0)
@@ -304,12 +303,60 @@ do { \
             const float dr = out_r[_i]; \
             const float dg = out_g[_i]; \
             const float db = out_b[_i]; \
-            float br, bg, bb; \
-            flis_blend_hsl_pixel(mode, sr, sg, sb, dr, dg, db, \
-                                 &br, &bg, &bb); \
-            out_r[_i] = FLIS_OVER(br, dr, _alpha); \
-            out_g[_i] = FLIS_OVER(bg, dg, _alpha); \
-            out_b[_i] = FLIS_OVER(bb, db, _alpha); \
+            flis_blend_hsl_pixel(mode, _alpha, \
+                                 sr, sg, sb, dr, dg, db, \
+                                 &out_r[_i], &out_g[_i], &out_b[_i]); \
+        } \
+    } \
+} while (0)
+
+/* CHROMA loop: calls flis_blend_chroma_pixel which handles opacity
+ * via FLIS_OVER internally. */
+#define FLIS_CHROMA_LOOP(TR, TG, TB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li = _lrow + (size_t)_dx; \
+            const size_t _i  = _crow + (size_t)_dx; \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            flis_blend_chroma_pixel(global_opacity * _valid, \
+                                    sr, sg, sb, dr, dg, db, \
+                                    &out_r[_i], &out_g[_i], &out_b[_i]); \
+        } \
+    } \
+} while (0)
+
+#define FLIS_CHROMA_LOOP_MASKED(TR, TG, TB) \
+do { \
+    FLIS_OMP_PAR_FOR \
+    for (gint _y = y0; _y < y1; _y++) { \
+        const size_t _lrow = (size_t)(_y - oy) * lW + (size_t)(x0 - ox); \
+        const size_t _crow = (size_t)_y * W    + (size_t)x0; \
+        for (gint _dx = 0; _dx < (x1 - x0); _dx++) { \
+            const size_t _li   = _lrow + (size_t)_dx; \
+            const size_t _i    = _crow + (size_t)_dx; \
+            const float sr = pre_r[_li] * (TR); \
+            const float sg = pre_g[_li] * (TG); \
+            const float sb = pre_b[_li] * (TB); \
+            const float _valid = (float)((sr + sg + sb) > 0.f); \
+            const float _alpha = global_opacity \
+                                 * (mask_data[_li] * INV_UCHAR_MAX_SINGLE) \
+                                 * _valid; \
+            const float dr = out_r[_i]; \
+            const float dg = out_g[_i]; \
+            const float db = out_b[_i]; \
+            flis_blend_chroma_pixel(_alpha, \
+                                    sr, sg, sb, dr, dg, db, \
+                                    &out_r[_i], &out_g[_i], &out_b[_i]); \
         } \
     } \
 } while (0)
@@ -492,7 +539,25 @@ static void flis_clip_color(float *r, float *g, float *b) {
     }
 }
 
-static void flis_blend_hsl_pixel(flis_blend_mode_t mode,
+/* Shortest-path hue interpolation on the colour circle [0, 1). */
+static inline float flis_lerp_hue(float h0, float h1, float t) {
+    float d = h1 - h0;
+    if (d >  0.5f) d -= 1.f;
+    if (d < -0.5f) d += 1.f;
+    float h = h0 + d * t;
+    if (h <  0.f) h += 1.f;
+    if (h >= 1.f) h -= 1.f;
+    return h;
+}
+
+/* HSL blend modes — opacity is interpolated in HSL component space so that
+ * partial opacity gives a genuine mix of the HSL component rather than an
+ * RGB-space blend of the fully-replaced result.  At opacity == 1.0 the
+ * output is identical to the classical "replace one component" definition.
+ *
+ * The function writes the final composited pixel directly; the caller must
+ * NOT apply a further FLIS_OVER afterwards. */
+static void flis_blend_hsl_pixel(flis_blend_mode_t mode, float opacity,
                                  float sr, float sg, float sb,
                                  float dr, float dg, float db,
                                  float *or, float *og, float *ob) {
@@ -502,18 +567,50 @@ static void flis_blend_hsl_pixel(flis_blend_mode_t mode,
     float rh, rs, rl;
     switch (mode) {
         case FLIS_BLEND_HUE:
-            rh = sh; rs = ds; rl = dl; break;
+            rh = flis_lerp_hue(dh, sh, opacity); rs = ds;                    rl = dl; break;
         case FLIS_BLEND_SATURATION:
-            rh = dh; rs = ss; rl = dl; break;
+            rh = dh;                              rs = ds + (ss - ds) * opacity; rl = dl; break;
         case FLIS_BLEND_COLOR:
-            rh = sh; rs = ss; rl = dl; break;
+            rh = flis_lerp_hue(dh, sh, opacity); rs = ds + (ss - ds) * opacity; rl = dl; break;
         case FLIS_BLEND_LUMINOSITY:
-            rh = dh; rs = ds; rl = sl; break;
+            rh = dh;                              rs = ds;                    rl = dl + (sl - dl) * opacity; break;
         default:
             *or = dr; *og = dg; *ob = db; return;
     }
     flis_hsl_to_rgb(rh, rs, rl, or, og, ob);
     flis_clip_color(or, og, ob);
+}
+
+/* LRGB chroma-transfer blend mode (FLIS_BLEND_CHROMA).
+ *
+ * Takes the colour direction from the source (top) layer and scales it to
+ * match the luminance of the destination canvas.  This is the classical
+ * luma/chroma ratio method for LRGB composition in astrophotography:
+ *   result = source_rgb × (dest_luma / source_luma)
+ *
+ * BT.709 luma coefficients are used on the perceptually-stretched data
+ * as-is; formal linearisation is inappropriate here because the ICC profile
+ * on stretched astrophotography data is a consistency marker only.
+ *
+ * Opacity is applied via FLIS_OVER in RGB space after the transfer. */
+static void flis_blend_chroma_pixel(float opacity,
+                                    float sr, float sg, float sb,
+                                    float dr, float dg, float db,
+                                    float *or, float *og, float *ob) {
+    const float src_lum = flis_lum(sr, sg, sb);
+    const float dst_lum = flis_lum(dr, dg, db);
+    float br, bg, bb;
+    if (src_lum < 1e-6f) {
+        br = dr; bg = dg; bb = db;   /* no colour data — pass through dest */
+    } else {
+        const float scale = dst_lum / src_lum;
+        br = FLIS_C01(sr * scale);
+        bg = FLIS_C01(sg * scale);
+        bb = FLIS_C01(sb * scale);
+    }
+    *or = FLIS_OVER(br, dr, opacity);
+    *og = FLIS_OVER(bg, dg, opacity);
+    *ob = FLIS_OVER(bb, db, opacity);
 }
 
 /* -------------------------------------------------------------------------
@@ -604,6 +701,7 @@ static int flis_composite_build(void) {
                                             lay->blend_mode == FLIS_BLEND_SATURATION  ||
                                             lay->blend_mode == FLIS_BLEND_COLOR       ||
                                             lay->blend_mode == FLIS_BLEND_LUMINOSITY);
+        const gboolean     chroma_mode   = (lay->blend_mode == FLIS_BLEND_CHROMA);
         flis_blend_mode_t  mode          = lay->blend_mode;
         const float        global_opacity = lay->opacity;
 
@@ -680,6 +778,12 @@ static int flis_composite_build(void) {
                 FLIS_HSL_LOOP_MASKED(tr, tg, tb);
             } else {
                 FLIS_HSL_LOOP(tr, tg, tb);
+            }
+        } else if (chroma_mode) {
+            if (mask_data) {
+                FLIS_CHROMA_LOOP_MASKED(tr, tg, tb);
+            } else {
+                FLIS_CHROMA_LOOP(tr, tg, tb);
             }
         } else {
             FLIS_DISPATCH(tr, tg, tb);

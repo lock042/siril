@@ -141,6 +141,7 @@ static const struct { flis_blend_mode_t mode; const char *name; }
         { FLIS_BLEND_SATURATION,  "SATURATION"  },
         { FLIS_BLEND_COLOR,       "COLOR"       },
         { FLIS_BLEND_LUMINOSITY,  "LUMINOSITY"  },
+        { FLIS_BLEND_CHROMA,      "CHROMA"      },
     };
 
 static const char *blend_mode_to_str(flis_blend_mode_t mode) {

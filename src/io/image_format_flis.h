@@ -51,9 +51,15 @@ typedef enum {
     FLIS_BLEND_SATURATION  = 8192,
     FLIS_BLEND_COLOR       = 16384,
     FLIS_BLEND_LUMINOSITY  = 32768,
+    /* Luma/chroma ratio transfer — LRGB composition.
+     * Colour direction from the source (top) layer, luminance from the
+     * destination canvas.  Suitable for combining a narrowband colour layer
+     * with a luminance layer: place the colour layer on top in this mode.
+     * See FLIS spec Section 6.4 (mode name "CHROMA"). */
+    FLIS_BLEND_CHROMA      = 65536,
 } flis_blend_mode_t;
 
-#define FLIS_BLND_ALL 65535  /* bitmask declaring all 16 modes supported */
+#define FLIS_BLND_ALL 131071  /* bitmask declaring all 17 modes supported */
 
 /* -----------------------------------------------------------------------
  * Tint colour for MONO layers composited into an RGB stack.

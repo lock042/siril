@@ -86,6 +86,7 @@ static const flis_blend_mode_t blend_mode_map[] = {
     FLIS_BLEND_SATURATION,
     FLIS_BLEND_COLOR,
     FLIS_BLEND_LUMINOSITY,
+    FLIS_BLEND_CHROMA,
 };
 static const int N_BLEND_MODES =
     (int)(sizeof(blend_mode_map) / sizeof(blend_mode_map[0]));

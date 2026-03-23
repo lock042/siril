@@ -302,7 +302,7 @@
                       <object class="GtkComboBoxText" id="flis_blend_combo">
                         <property name="visible">True</property>
                         <property name="hexpand">True</property>
-                        <property name="tooltip-text" translatable="yes">Blending mode. For tinted mono narrowband layers over a broadband base, Screen is recommended (adds emission without clipping). Normal with reduced opacity also works well for controlled mixing.</property>
+                        <property name="tooltip-text" translatable="yes">Blending mode. For tinted mono narrowband layers over a broadband base, Screen is recommended (adds emission without clipping). Normal with reduced opacity also works well for controlled mixing. For LRGB composition, place the colour layer over the luminance layer and use LRGB Color mode.</property>
                         <items>
                           <item translatable="yes">Normal</item>
                           <item translatable="yes">Multiply</item>
@@ -320,6 +320,7 @@
                           <item translatable="yes">Saturation</item>
                           <item translatable="yes">Color</item>
                           <item translatable="yes">Luminosity</item>
+                          <item translatable="yes">LRGB Color</item>
                         </items>
                         <signal name="changed" handler="on_flis_blend_mode_changed"/>
                       </object>
