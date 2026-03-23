@@ -481,6 +481,18 @@
         <signal name="activate" handler="on_flis_export_layer_activate"/>
       </object>
     </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_register_layers_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Register layers…</property>
+        <signal name="activate" handler="on_flis_register_layers_activate"/>
+      </object>
+    </child>
   </object>
 
 </interface>

@@ -46,7 +46,10 @@
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "algos/siril_wcs.h"
+#include "registration/registration.h"
+#include "gui/message_dialog.h"
 #include "core/undo.h"
 #include "flis_gui.h"
 
@@ -1304,6 +1307,225 @@ G_MODULE_EXPORT void on_flis_export_layer_activate(GtkMenuItem *item,
             layer->layer_name ? layer->layer_name : _("layer"));
 
     g_free(path);
+}
+
+/* =========================================================================
+ * Layer registration
+ * ========================================================================= */
+
+/*
+ * Build and run a small modal dialog asking for:
+ *   • Registration method  (Deep Sky / DFT / KOMBAT)
+ *   • Output framing       (Active layer / Minimum / Centre of gravity)
+ *
+ * Returns GTK_RESPONSE_ACCEPT if the user clicked Register, otherwise cancel.
+ * Fills *method_out and *framing_out on accept.
+ */
+static gint flis_register_dialog(GtkWindow              *parent,
+                                  struct registration_method **method_out,
+                                  framing_type           *framing_out) {
+    /* Build the three methods we expose (same set as compositing.c). */
+    struct registration_method *methods[3];
+    methods[0] = new_reg_method(
+        _("Deep Sky (global star alignment)"),
+        &register_multi_step_global, REQUIRES_NO_SELECTION,
+        REGTYPE_DEEPSKY);
+    methods[1] = new_reg_method(
+        _("Planetary (DFT pattern alignment)"),
+        &register_shift_dft, REQUIRES_SQUARED_SELECTION,
+        REGTYPE_PLANETARY);
+    methods[2] = new_reg_method(
+        _("Planetary (KOMBAT pattern alignment)"),
+        &register_kombat, REQUIRES_ANY_SELECTION,
+        REGTYPE_PLANETARY);
+
+    GtkWidget *dlg = gtk_dialog_new_with_buttons(
+        _("Register FLIS Layers"), parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        _("Cancel"),   GTK_RESPONSE_CANCEL,
+        _("Register"), GTK_RESPONSE_ACCEPT,
+        NULL);
+    gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
+
+    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+    GtkWidget *grid    = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 6);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 12);
+    gtk_widget_set_margin_start(grid, 12);
+    gtk_widget_set_margin_end(grid, 12);
+    gtk_widget_set_margin_top(grid, 12);
+    gtk_widget_set_margin_bottom(grid, 12);
+    gtk_container_add(GTK_CONTAINER(content), grid);
+
+    /* Method row */
+    GtkWidget *lbl_method = gtk_label_new(_("Method"));
+    gtk_label_set_xalign(GTK_LABEL(lbl_method), 0.0);
+    GtkWidget *method_combo = gtk_combo_box_text_new();
+    for (int i = 0; i < 3; i++)
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(method_combo),
+                                       methods[i]->name);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(method_combo), 0);
+    gtk_widget_set_hexpand(method_combo, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), lbl_method,   0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), method_combo, 1, 0, 1, 1);
+
+    /* Framing row */
+    GtkWidget *lbl_framing  = gtk_label_new(_("Framing"));
+    gtk_label_set_xalign(GTK_LABEL(lbl_framing), 0.0);
+    GtkWidget *framing_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
+                                   _("Active layer (keep reference frame)"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
+                                   _("Minimum (intersection of all frames)"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
+                                   _("Centre of gravity"));
+    gtk_combo_box_set_active(GTK_COMBO_BOX(framing_combo), 0);
+    gtk_widget_set_hexpand(framing_combo, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), lbl_framing,   0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), framing_combo, 1, 1, 1, 1);
+
+    gtk_widget_show_all(dlg);
+    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        int mi = gtk_combo_box_get_active(GTK_COMBO_BOX(method_combo));
+        int fi = gtk_combo_box_get_active(GTK_COMBO_BOX(framing_combo));
+        *method_out  = methods[mi];
+        *framing_out = (fi == 0) ? FRAMING_CURRENT
+                     : (fi == 1) ? FRAMING_MIN
+                     :             FRAMING_COG;
+        /* free the two methods we won't use */
+        for (int i = 0; i < 3; i++)
+            if (i != mi) free(methods[i]);
+    } else {
+        for (int i = 0; i < 3; i++) free(methods[i]);
+    }
+
+    gtk_widget_destroy(dlg);
+    return response;
+}
+
+/*
+ * Register all FLIS layers against the currently selected layer (reference).
+ *
+ * Builds an internal sequence whose image 0 is always the reference layer,
+ * followed by all other visible layers in stack order.  After registration
+ * each layer's fits* is updated in-place by the generic sequence worker.
+ */
+G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
+                                                       gpointer     data) {
+    (void)item; (void)data;
+
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    gint n_layers = flis_layer_count();
+    if (n_layers < 2) {
+        siril_message_dialog(GTK_MESSAGE_WARNING, _("Register Layers"),
+            _("At least two layers are required for registration."));
+        return;
+    }
+
+    /* Check all layers are the same size — a prerequisite for registration. */
+    flis_layer_t *base_lay = (flis_layer_t *)com.uniq->layers->data;
+    guint ref_rx = base_lay->fit->rx;
+    guint ref_ry = base_lay->fit->ry;
+    for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (lay->fit->rx != ref_rx || lay->fit->ry != ref_ry) {
+            siril_message_dialog(GTK_MESSAGE_ERROR, _("Register Layers"),
+                _("All layers must be the same size before registration.\n"
+                  "Please ensure all layers have matching dimensions."));
+            return;
+        }
+    }
+
+    /* Show method / framing dialog. */
+    GtkWindow *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
+    struct registration_method *method = NULL;
+    framing_type framing = FRAMING_CURRENT;
+    if (flis_register_dialog(parent, &method, &framing) != GTK_RESPONSE_ACCEPT)
+        return;
+
+    /* Build an internal sequence.
+     * Put the currently selected layer (reference) at index 0; all others
+     * follow in ascending layer_order. */
+    sequence *seq = create_internal_sequence(n_layers);
+    seq->bitpix = base_lay->fit->bitpix;
+    seq->rx     = ref_rx;
+    seq->ry     = ref_ry;
+
+    int ref_seq_idx = 0;
+    int i = 0;
+    /* First pass: reference layer at slot 0 */
+    if (flis_selected) {
+        internal_sequence_set(seq, 0, flis_selected->fit);
+        i = 1;
+    }
+    /* Fill remaining slots in layer_order */
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (lay == flis_selected) continue;   /* already at slot 0 */
+        internal_sequence_set(seq, i++, lay->fit);
+    }
+    seq->reference_image = ref_seq_idx;  /* always 0 */
+
+    /* Registration arguments — mirror compositing.c on_button_align_clicked(). */
+    struct registration_args regargs = { 0 };
+    regargs.seq                  = seq;
+    regargs.layer                = 0;
+    regargs.reference_image      = ref_seq_idx;
+    regargs.run_in_thread        = FALSE;
+    regargs.interpolation        = OPENCV_LANCZOS4;
+    regargs.output_scale         = 1.f;
+    regargs.clamp                = TRUE;
+    regargs.framing              = framing;
+    regargs.max_stars_candidates = MAX_STARS_FITTED;
+    regargs.two_pass             = TRUE;
+    regargs.percent_moved        = 0.50f;
+    regargs.type = (method->method_ptr == register_shift_dft ||
+                    method->method_ptr == register_kombat)
+                   ? SHIFT_TRANSFORMATION : HOMOGRAPHY_TRANSFORMATION;
+    get_the_registration_area(&regargs, method);
+
+    set_cursor_waiting(TRUE);
+    set_progress_bar_data(_("Registering FLIS layers…"), PROGRESS_RESET);
+    com.run_thread = TRUE;
+
+    /* Step 1: compute registration transforms. */
+    int ret1 = method->method_ptr(&regargs);
+    free(regargs.imgparam); regargs.imgparam = NULL;
+    free(regargs.regparam); regargs.regparam = NULL;
+    free(method);
+
+    if (ret1) {
+        free_sequence(seq, TRUE);
+        com.run_thread = FALSE;
+        set_cursor_waiting(FALSE);
+        set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
+        return;
+    }
+
+    /* Step 2: apply transforms to the fits* in-place via the internal sequence. */
+    int ret2 = register_apply_reg(&regargs);
+    free(regargs.imgparam); regargs.imgparam = NULL;
+    free(regargs.regparam); regargs.regparam = NULL;
+
+    free_sequence(seq, TRUE);
+    com.run_thread = FALSE;
+    set_cursor_waiting(FALSE);
+
+    if (ret2) {
+        set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
+        return;
+    }
+
+    set_progress_bar_data(_("Layer registration complete."), PROGRESS_DONE);
+
+    /* Layers have been transformed in-place; invalidate the composite. */
+    flis_invalidate_composite();
+    queue_redraw(REMAP_ALL);
 }
 
 /* =========================================================================
