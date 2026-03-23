@@ -46,6 +46,7 @@
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
 #include "io/single_image.h"
+#include "algos/siril_wcs.h"
 #include "core/undo.h"
 #include "flis_gui.h"
 
@@ -291,6 +292,9 @@ static void flis_toolbar_sensitivity_update(void) {
     gtk_widget_set_sensitive(fw("flis_duplicate_btn"),
                              have_image && (have_sel || !is_flis));
 
+    /* Layer actions menu — enabled whenever a FLIS layer is selected */
+    gtk_widget_set_sensitive(fw("flis_layer_menu_btn"), is_flis && have_sel);
+
     /* Move buttons: only active if there is a layer above/below */
     gboolean can_up = FALSE, can_down = FALSE;
     if (is_flis && have_sel) {
@@ -424,6 +428,46 @@ static gchar *flis_choose_fits_file(GtkWindow *parent,
     gtk_file_filter_set_name(all, _("All files"));
     gtk_file_filter_add_pattern(all, "*");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), all);
+
+    gchar *filename = NULL;
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+    gtk_widget_destroy(dialog);
+    return filename;
+}
+
+/* Open a GTK file chooser for saving a FITS file.  suggested_name is the
+ * pre-filled leaf filename (no directory).  Returns a heap-allocated path
+ * the caller must g_free(), or NULL if the user cancelled. */
+static gchar *flis_choose_fits_save(GtkWindow   *parent,
+                                    const gchar *title,
+                                    const gchar *suggested_name) {
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(
+        title, parent, GTK_FILE_CHOOSER_ACTION_SAVE,
+        _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("Save"),   GTK_RESPONSE_ACCEPT,
+        NULL);
+    gtk_file_chooser_set_do_overwrite_confirmation(
+        GTK_FILE_CHOOSER(dialog), TRUE);
+
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, _("FITS images"));
+    gtk_file_filter_add_pattern(filter, "*.fit");
+    gtk_file_filter_add_pattern(filter, "*.fits");
+    gtk_file_filter_add_pattern(filter, "*.fts");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+    if (suggested_name)
+        gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog),
+                                          suggested_name);
+
+    /* Start in the same directory as the current image if possible */
+    if (com.uniq && com.uniq->filename) {
+        gchar *dir = g_path_get_dirname(com.uniq->filename);
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
+        g_free(dir);
+    }
 
     gchar *filename = NULL;
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
@@ -1161,6 +1205,107 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
 }
 
 /* =========================================================================
+ * Layer context menu
+ * ========================================================================= */
+
+/* Right-click on the layer list: select the row under the cursor and pop
+ * the context menu. */
+static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
+                                                 GdkEventButton *event,
+                                                 gpointer        data) {
+    (void)data;
+    if (event->type != GDK_BUTTON_PRESS || event->button != 3)
+        return GDK_EVENT_PROPAGATE;
+
+    GtkListBox    *list = GTK_LIST_BOX(widget);
+    GtkListBoxRow *row  = gtk_list_box_get_row_at_y(list, (gint)event->y);
+    if (row)
+        gtk_list_box_select_row(list, row);
+
+    GtkMenu *menu = GTK_MENU(lookup_widget("flis_layer_context_menu"));
+    if (menu && flis_selected)
+        gtk_menu_popup_at_pointer(menu, (GdkEvent *)event);
+
+    return GDK_EVENT_STOP;
+}
+
+/*
+ * Export the currently selected FLIS layer to a plain FITS file.
+ *
+ * The exported file gets:
+ *   • pixel data from the layer itself (shared read-only via shallow copy)
+ *   • FITS keywords (exposure, date, telescope, etc.) from the base layer,
+ *     which is the authoritative metadata source for the whole FLIS stack
+ *   • the base layer's ICC profile (borrowed; non-base layers carry no profile
+ *     per the FLIS invariant)
+ */
+G_MODULE_EXPORT void on_flis_export_layer_activate(GtkMenuItem *item,
+                                                    gpointer     data) {
+    (void)item; (void)data;
+    if (!flis_selected || !flis_selected->fit) return;
+
+    flis_layer_t *layer  = flis_selected;
+    GtkWindow    *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
+
+    gchar *suggested = g_strdup_printf("%s.fits",
+        (layer->layer_name && layer->layer_name[0])
+            ? layer->layer_name : _("layer"));
+    gchar *path = flis_choose_fits_save(parent,
+                                        _("Export Layer as FITS"),
+                                        suggested);
+    g_free(suggested);
+    if (!path) return;
+
+    /* Shallow-copy the layer's fits struct so fdata/data/naxes/bitpix etc.
+     * are correct.  We then overlay metadata from the base layer. */
+    fits export_fit = *layer->fit;
+
+    /* savefits creates a new fptr; null the borrowed one so there is no
+     * risk of accidentally closing the layer's open file handle. */
+    export_fit.fptr  = NULL;
+    export_fit.stats = NULL;   /* belongs to layer->fit, not needed for save */
+
+    /* Null out metadata fields that will be replaced by copy_fits_metadata()
+     * so there is no confusion about ownership. */
+    export_fit.keywords.date_obs = NULL;
+    export_fit.keywords.wcslib   = NULL;
+    export_fit.unknown_keys      = NULL;
+    export_fit.icc_profile       = NULL;
+    export_fit.color_managed     = FALSE;
+
+    /* Copy FITS keywords from the base (profiled) layer — it carries the
+     * authoritative header for the whole FLIS stack. */
+    fits *base_fit = flis_get_profiled_fit();
+    if (base_fit)
+        copy_fits_metadata(base_fit, &export_fit);
+
+    /* Borrow the base layer's ICC profile.  savefits only reads it (to
+     * embed the serialised bytes), so this is safe without duplication. */
+    if (base_fit && base_fit->icc_profile) {
+        export_fit.icc_profile   = base_fit->icc_profile;
+        export_fit.color_managed = base_fit->color_managed;
+    }
+
+    int ret = savefits(path, &export_fit);
+
+    /* Free only what copy_fits_metadata() allocated.  Never touch fdata/data
+     * — they belong to layer->fit.  icc_profile was borrowed, not duplicated. */
+    if (export_fit.keywords.date_obs)
+        g_date_time_unref(export_fit.keywords.date_obs);
+    if (export_fit.keywords.wcslib)
+        free_wcs(&export_fit);
+    if (export_fit.unknown_keys)
+        g_free(export_fit.unknown_keys);
+
+    if (ret != 0)
+        siril_log_color_message(
+            _("FLIS: failed to export layer \"%s\"\n"), "red",
+            layer->layer_name ? layer->layer_name : _("layer"));
+
+    g_free(path);
+}
+
+/* =========================================================================
  * Tint signal handlers
  * ========================================================================= */
 
@@ -1330,6 +1475,12 @@ void flis_gui_init(void) {
     if (spin)
         g_signal_connect(spin, "value-changed",
                          G_CALLBACK(on_flis_opacity_spin_commit), NULL);
+
+    /* Right-click on a layer row pops the context menu */
+    GtkWidget *list = lookup_widget("flis_layer_list");
+    if (list)
+        g_signal_connect(list, "button-press-event",
+                         G_CALLBACK(on_flis_layer_list_button_press), NULL);
 }
 
 void flis_gui_open(void) {

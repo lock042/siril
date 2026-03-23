@@ -216,6 +216,22 @@
                     <signal name="clicked" handler="on_flis_move_down_clicked"/>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkMenuButton" id="flis_layer_menu_btn">
+                    <property name="visible">True</property>
+                    <property name="tooltip-text" translatable="yes">Layer actions</property>
+                    <property name="relief">none</property>
+                    <property name="sensitive">False</property>
+                    <property name="popup">flis_layer_context_menu</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="icon-name">open-menu-symbolic</property>
+                        <property name="icon-size">1</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
               <packing><property name="expand">False</property></packing>
             </child>
@@ -454,5 +470,17 @@
       </object><!-- flis_dialog_vbox -->
     </child>
   </object><!-- flis_layers_window -->
+
+  <!-- Context menu for right-click on a layer row or the toolbar ⋮ button -->
+  <object class="GtkMenu" id="flis_layer_context_menu">
+    <property name="visible">True</property>
+    <child>
+      <object class="GtkMenuItem" id="flis_export_layer_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Export current layer as FITS…</property>
+        <signal name="activate" handler="on_flis_export_layer_activate"/>
+      </object>
+    </child>
+  </object>
 
 </interface>
