@@ -666,6 +666,12 @@ void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
 }
 
 void on_mask_clear_clicked(GtkButton *button, gpointer user_data) {
+	if (get_flis_show_layer_mask() && is_current_image_flis()) {
+		/* Route to layer mask removal via flis_gui */
+		flis_remove_selected_lmask();
+		return;
+	}
+
 	if (!gfit || !gfit->mask) {
 		return;
 	}
@@ -1610,8 +1616,52 @@ gboolean show_or_hide_mask_tab_idle(gpointer p) {
 	if (com.headless) return FALSE;
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
-	if (gfit->mask != NULL) {
+
+	gboolean has_proc_mask  = (gfit->mask != NULL);
+	gboolean has_layer_mask = FALSE;
+
+	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit) {
+				has_layer_mask = (lay->lmask != NULL);
+				break;
+			}
+		}
+	}
+
+	if (has_proc_mask || has_layer_mask) {
+		/* Auto-correct flis_show_layer_mask if the selected type is absent
+		 * (e.g. a layer mask was just added when no processing mask exists,
+		 * or was just removed leaving only a processing mask). */
+		if (is_current_image_flis()) {
+			if (!get_flis_show_layer_mask() && !has_proc_mask && has_layer_mask)
+				set_flis_show_layer_mask(TRUE);
+			else if (get_flis_show_layer_mask() && !has_layer_mask && has_proc_mask)
+				set_flis_show_layer_mask(FALSE);
+		}
+
 		gtk_widget_show(page);
+
+		/* Update the tab button label to reflect what is being shown */
+		GtkWidget *btn = lookup_widget("mask_menu_button");
+		if (btn) {
+			if (is_current_image_flis()) {
+				gtk_button_set_label(GTK_BUTTON(btn),
+				    get_flis_show_layer_mask() ? _("Layer Mask") : _("Processing Mask"));
+			} else {
+				gtk_button_set_label(GTK_BUTTON(btn), _("Mask"));
+			}
+		}
+
+		/* "Mask active" checkbox applies to the processing mask only;
+		 * hide it when the tab is showing a layer mask (the layer mask
+		 * active toggle lives in the Layers dialog instead). */
+		GtkWidget *enable_check = lookup_widget("mask_enable_check");
+		if (enable_check) {
+			gboolean showing_lmask = get_flis_show_layer_mask() && is_current_image_flis();
+			gtk_widget_set_visible(enable_check, !showing_lmask);
+		}
 	} else {
 		gtk_widget_hide(page);
 	}

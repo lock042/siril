@@ -461,12 +461,13 @@ static int undo_get_data(fits *fit, historic *hist) {
 		const flis_layer_props_t *p = hist->layer_props;
 		/* Apply properties directly, bypassing the mutating functions that
 		 * would call flis_layer_touch_modified() and save a new undo state */
-		layer->blend_mode = p->blend_mode;
-		layer->opacity    = p->opacity;
-		layer->visible    = p->visible;
-		layer->locked     = p->locked;
-		layer->has_tint   = p->has_tint;
-		layer->layer_tint = p->tint;
+		layer->blend_mode   = p->blend_mode;
+		layer->opacity      = p->opacity;
+		layer->visible      = p->visible;
+		layer->locked       = p->locked;
+		layer->has_tint     = p->has_tint;
+		layer->layer_tint   = p->tint;
+		layer->lmask_active = p->lmask_active;
 		g_free(layer->layer_name);
 		layer->layer_name = g_strdup(p->name);
 		return 0;
@@ -739,12 +740,13 @@ int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...) {
 	}
 
 	flis_layer_props_t props;
-	props.blend_mode = layer->blend_mode;
-	props.opacity    = layer->opacity;
-	props.visible    = layer->visible;
-	props.locked     = layer->locked;
-	props.has_tint   = layer->has_tint;
-	props.tint       = layer->layer_tint;
+	props.blend_mode   = layer->blend_mode;
+	props.opacity      = layer->opacity;
+	props.visible      = layer->visible;
+	props.locked       = layer->locked;
+	props.has_tint     = layer->has_tint;
+	props.tint         = layer->layer_tint;
+	props.lmask_active = layer->lmask_active;
 	g_strlcpy(props.name,
 	          layer->layer_name ? layer->layer_name : "", sizeof(props.name));
 

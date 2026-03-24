@@ -55,4 +55,13 @@ void flis_gui_update(void);
  */
 void flis_gui_update_from_idle(void);
 
+/**
+ * flis_remove_selected_lmask:
+ *
+ * Removes the layer mask from the currently selected layer, prompting for
+ * confirmation.  Saves an undo state before removal.  No-op if no layer is
+ * selected or it has no layer mask.  Must be called from the GTK main thread.
+ */
+void flis_remove_selected_lmask(void);
+
 #endif /* FLIS_GUI_H */

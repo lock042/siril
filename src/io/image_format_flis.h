@@ -83,6 +83,7 @@ typedef struct flis_layer_props_t {
     gboolean          locked;
     gboolean          has_tint;
     flis_tint_t       tint;
+    gboolean          lmask_active;
     gchar             name[33];   /* matches max-length in the UI */
 } flis_layer_props_t;
 
@@ -130,6 +131,9 @@ typedef struct _flis_layer_t {
     layermask_t      *lmask;         /* Layer mask (FLIS LMASK type):
                                         greyscale, same spatial size as
                                         fit.  NULL if not present.        */
+    gboolean          lmask_active;  /* TRUE: layer mask participates in
+                                        compositing (default TRUE when
+                                        mask is created).                 */
     /* Processing mask (FLIS MASK type) lives in fit->mask — unchanged.  */
 
     /* Compositing parameters */

@@ -2007,9 +2007,15 @@ static gboolean end_generic_layer(gpointer p) {
 
 		flis_gui_update();
 
-		if (args->updates_lmask && com.pref.gui.mask_tints_vports) {
-			/* Redraw mask viewport and tint the image viewports */
+		if (args->updates_lmask) {
+			/* Always redraw the mask viewport when the layer mask changes.
+			 * queue_redraw_mask() also triggers REMAP_ALL internally when
+			 * mask tints are enabled; call it unconditionally here and add
+			 * a separate REMAP_ALL only when tinting is off (composite may
+			 * be affected by the lmask change). */
 			queue_redraw_mask();
+			if (!com.pref.gui.mask_tints_vports)
+				queue_redraw(REMAP_ALL);
 		} else {
 			queue_redraw(REMAP_ALL);
 		}

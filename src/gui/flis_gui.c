@@ -125,6 +125,8 @@ static inline GObject *fo(const gchar *id) {
  * Declared here, defined below with other signal handlers. */
 static void on_row_visibility_toggled(GtkToggleButton *btn, gpointer data);
 static void on_row_lock_toggled(GtkToggleButton *btn, gpointer data);
+G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn, gpointer data);
+G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn, gpointer data);
 
 /* Create an icon-only toggle button for use in a layer row. */
 static GtkWidget *row_icon_toggle(const gchar *icon_on,
@@ -186,12 +188,20 @@ static GtkWidget *flis_layer_row_new(flis_layer_t *layer) {
     gtk_widget_set_margin_start(type_lbl, 4);
     gtk_widget_set_margin_end(type_lbl, 2);
 
-    /* Layer mask indicator — shows "⊟" (mask present) or "○" (no mask).
-     * Using a consistent symbol in both states avoids the confusing "M ▪M"
-     * appearance that arose from supplementing the colour-model badge. */
-    GtkWidget *mask_lbl = gtk_label_new(layer->lmask ? "⊟" : "○");
+    /* Layer mask indicator — shows "⊟" (mask present, bold if active) or
+     * "○" (no mask). */
+    GtkWidget *mask_lbl = gtk_label_new(NULL);
+    if (layer->lmask && layer->lmask_active)
+        gtk_label_set_markup(GTK_LABEL(mask_lbl), "<b>⊟</b>");
+    else if (layer->lmask)
+        gtk_label_set_text(GTK_LABEL(mask_lbl), "⊟");
+    else
+        gtk_label_set_text(GTK_LABEL(mask_lbl), "○");
     gtk_widget_set_tooltip_text(mask_lbl,
-        layer->lmask ? _("Layer mask present") : _("No layer mask"));
+        layer->lmask
+            ? (layer->lmask_active ? _("Layer mask present (active)")
+                                   : _("Layer mask present (inactive)"))
+            : _("No layer mask"));
     gtk_widget_set_margin_end(mask_lbl, 4);
     if (!layer->lmask) {
         gtk_style_context_add_class(
@@ -244,12 +254,43 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
     gtk_adjustment_set_value(adj, (gdouble)(layer->opacity * 100.f));
 
     /* Mask section */
-    gboolean has_mask = (layer->lmask != NULL);
+    gboolean has_lmask    = (layer->lmask != NULL);
+    gboolean has_procmask = (layer->fit && layer->fit->mask != NULL);
+    gboolean has_both     = has_lmask && has_procmask;
     gtk_button_set_label(GTK_BUTTON(fw("flis_mask_toggle_btn")),
-                         has_mask ? _("Remove") : _("Add…"));
-    gtk_label_set_text(GTK_LABEL(fw("flis_mask_status_label")),
-                       has_mask ? _("Present") : _("None"));
-    gtk_widget_set_sensitive(fw("flis_mask_move_btn"), has_mask);
+                         has_lmask ? _("Remove") : _("Add…"));
+    /* Status button: "Active" (bold) / "Inactive" / "None"; sensitive when mask present */
+    {
+        GtkWidget *status_btn = fw("flis_mask_status_btn");
+        if (has_lmask) {
+            GtkLabel *lbl = GTK_LABEL(gtk_bin_get_child(GTK_BIN(status_btn)));
+            if (layer->lmask_active)
+                gtk_label_set_markup(lbl, _("<b>Active</b>"));
+            else
+                gtk_label_set_text(lbl, _("Inactive"));
+        } else {
+            gtk_button_set_label(GTK_BUTTON(status_btn), _("None"));
+        }
+        gtk_widget_set_sensitive(status_btn, has_lmask);
+    }
+    gtk_widget_set_sensitive(fw("flis_mask_move_btn"), has_lmask);
+
+    /* Show the view-toggle row only when both mask types are present */
+    gtk_widget_set_visible(fw("flis_mask_view_row"), has_both);
+    if (has_both) {
+        /* Sync radio buttons to current display state; block signals to avoid
+         * triggering a redraw during the panel update. */
+        GtkWidget *proc_radio  = fw("flis_mask_view_proc_radio");
+        GtkWidget *layer_radio = fw("flis_mask_view_layer_radio");
+        g_signal_handlers_block_by_func(proc_radio,  on_flis_mask_view_toggled, NULL);
+        g_signal_handlers_block_by_func(layer_radio, on_flis_mask_view_toggled, NULL);
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(proc_radio),
+                                     !get_flis_show_layer_mask());
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(layer_radio),
+                                     get_flis_show_layer_mask());
+        g_signal_handlers_unblock_by_func(proc_radio,  on_flis_mask_view_toggled, NULL);
+        g_signal_handlers_unblock_by_func(layer_radio, on_flis_mask_view_toggled, NULL);
+    }
 
     /* Tint section — always visible, but insensitive for RGB layers */
     gboolean mono = (layer->fit && layer->fit->naxes[2] == 1);
@@ -432,6 +473,10 @@ static gchar *flis_choose_fits_file(GtkWindow *parent,
     gtk_file_filter_set_name(all, _("All files"));
     gtk_file_filter_add_pattern(all, "*");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), all);
+
+    /* Start in the current working directory */
+    if (com.wd)
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 
     gchar *filename = NULL;
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
@@ -774,9 +819,17 @@ G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
     flis_properties_panel_update(layer);
     flis_toolbar_sensitivity_update();
 
-    /* Update mask tab visibility and tint for the newly active layer.
-     * show_or_hide_mask_tab() checks gfit->mask, which uniq_set_active_layer()
-     * has already updated to point at this layer's fits*. */
+    /* Auto-select which mask type to display for the newly active layer:
+     * prefer processing mask if present; show layer mask only if it is the
+     * sole mask available.  This resets any manual toggle the user made on
+     * the previous layer, which is the least surprising behaviour. */
+    if (layer) {
+        gboolean has_proc  = (layer->fit && layer->fit->mask != NULL);
+        gboolean has_lmask = (layer->lmask != NULL);
+        set_flis_show_layer_mask(has_lmask && !has_proc);
+    }
+
+    /* Update mask tab visibility, title, and enable-check sensitivity. */
     show_or_hide_mask_tab();
 
     /* Redraw so the display reflects the newly active layer. */
@@ -1114,8 +1167,10 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
 
         uint8_t *dst = (uint8_t *)lm->data;
         if (mf->type == DATA_FLOAT && mf->fdata) {
-            for (size_t i = 0; i < npix; i++)
-                dst[i] = (uint8_t)(mf->fdata[i] * 255.f + 0.5f);
+            for (size_t i = 0; i < npix; i++) {
+                float v = mf->fdata[i] * 255.f + 0.5f;
+                dst[i] = v >= 255.f ? 255 : (v <= 0.f ? 0 : (uint8_t)v);
+            }
         } else if (mf->type == DATA_USHORT && mf->data) {
             for (size_t i = 0; i < npix; i++)
                 dst[i] = (uint8_t)(mf->data[i] >> 8);
@@ -1207,6 +1262,71 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
         }
     }
     gtk_widget_destroy(dlg);
+}
+
+/* =========================================================================
+ * Mask view toggle (processing mask ↔ layer mask)
+ * ========================================================================= */
+
+G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn,
+                                                gpointer         data) {
+    (void)data;
+    if (flis_updating) return;
+
+    GtkWidget *layer_radio = fw("flis_mask_view_layer_radio");
+    gboolean show_layer = gtk_toggle_button_get_active(
+                              GTK_TOGGLE_BUTTON(layer_radio));
+    set_flis_show_layer_mask(show_layer);
+
+    /* Update tab title and enable-check sensitivity */
+    show_or_hide_mask_tab();
+    /* Re-render the mask viewport and tint overlay */
+    queue_redraw_mask();
+}
+
+/* Toggle layer mask active/inactive */
+G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn,
+                                                          gpointer   data) {
+    (void)btn;
+    (void)data;
+    if (flis_updating || !flis_selected || !flis_selected->lmask) return;
+
+    undo_save_flis_layer_props(flis_selected,
+                               flis_selected->lmask_active
+                               ? _("Deactivate layer mask")
+                               : _("Activate layer mask"));
+    flis_selected->lmask_active = !flis_selected->lmask_active;
+    flis_layer_touch_modified(flis_selected);
+
+    /* Refresh UI and composite */
+    flis_gui_update();
+    redraw(REMAP_ALL);
+}
+
+/* flis_remove_selected_lmask — exported for use from callbacks.c */
+void flis_remove_selected_lmask(void) {
+    flis_layer_t *layer = flis_selected;
+    if (!layer || !layer->lmask) return;
+
+    GtkWidget *dlg = gtk_message_dialog_new(
+        GTK_WINDOW(lookup_widget("flis_layers_window")),
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
+        _("Remove the layer mask from \"%s\"?"),
+        layer->layer_name ? layer->layer_name : _("Layer"));
+    gint r = gtk_dialog_run(GTK_DIALOG(dlg));
+    gtk_widget_destroy(dlg);
+    if (r != GTK_RESPONSE_OK) return;
+
+    undo_save_flis_lmask(layer, _("Remove layer mask"));
+
+    flis_lmask_toggle_args_t *user = calloc(1, sizeof(flis_lmask_toggle_args_t));
+    if (!user) { PRINT_ALLOC_ERR; return; }
+    user->destroy_fn = (destructor)flis_lmask_toggle_destroy;
+    user->lm = NULL;  /* NULL = remove */
+
+    flis_launch_layer_op(layer, flis_lmask_toggle_hook, user,
+                         _("Remove layer mask"), TRUE, NULL);
 }
 
 /* =========================================================================

@@ -607,7 +607,8 @@ static int write_layer_hdu(fitsfile *fptr, flis_layer_t *layer) {
 static int write_mask_hdu(fitsfile *fptr, const layermask_t *mask,
                           gint flis_id, const char *flis_type,
                           const char *extname,
-                          int bitpix_fits, int cfitsio_type) {
+                          int bitpix_fits, int cfitsio_type,
+                          gboolean mask_active) {
     int status = 0;
     long naxes[2] = { (long)mask->w, (long)mask->h };
 
@@ -620,6 +621,13 @@ static int write_mask_hdu(fitsfile *fptr, const layermask_t *mask,
     fits_write_key(fptr, TINT,    "FLIS_ID",   &id,             "FLIS item ID",  &status);
     fits_write_key(fptr, TSTRING, "FLIS_TYPE", (void *)flis_type,"FLIS HDU type",&status);
     fits_write_key(fptr, TSTRING, "EXTNAME",   (void *)extname,  "Extension name",&status);
+
+    /* MASK_ACT: mask active flag — present in both LMASK and MASK HDUs */
+    {
+        int act = mask_active ? 1 : 0;
+        fits_write_key(fptr, TLOGICAL, "MASK_ACT", &act,
+                       "Mask active in compositing", &status);
+    }
 
     if (status) { report_fits_error(status); return 1; }
 
@@ -751,6 +759,21 @@ restore:
  * The file's active HDU is restored on return.
  * @expect_float: TRUE for processing masks (FLOAT_IMG), FALSE for layer masks (BYTE_IMG).
  */
+/* Read the MASK_ACT logical keyword from the given HDU index.
+ * Returns TRUE (active) if the keyword is absent or unreadable. */
+static gboolean read_mask_act_from_hdu(fitsfile *fptr, int hdu_index) {
+    int hdu_status = 0;
+    int orig_hdu;
+    fits_get_hdu_num(fptr, &orig_hdu);
+    int act_val = 1; /* default: active */
+    if (!fits_movabs_hdu(fptr, hdu_index, NULL, &hdu_status)) {
+        fits_read_key(fptr, TLOGICAL, "MASK_ACT", &act_val, NULL, &hdu_status);
+        hdu_status = 0;
+        fits_movabs_hdu(fptr, orig_hdu, NULL, &hdu_status);
+    }
+    return (act_val != 0);
+}
+
 static layermask_t *load_mask_from_hdu(fitsfile *fptr, int hdu_index,
                                        gboolean expect_float) {
     int status = 0;
@@ -817,13 +840,14 @@ flis_layer_t *flis_layer_new(fits *fit, const gchar *name) {
     flis_layer_t *layer = g_new0(flis_layer_t, 1);
     if (!layer) return NULL;
 
-    layer->fit        = fit;
-    layer->layer_name = g_strdup(name ? name : "Layer");
-    layer->blend_mode = FLIS_BLEND_NORMAL;
-    layer->opacity    = 1.0f;
-    layer->visible    = TRUE;
-    layer->has_tint   = FALSE;
-    layer->layer_tint = (flis_tint_t){ 1.0, 1.0, 1.0 };
+    layer->fit          = fit;
+    layer->layer_name   = g_strdup(name ? name : "Layer");
+    layer->blend_mode   = FLIS_BLEND_NORMAL;
+    layer->opacity      = 1.0f;
+    layer->visible      = TRUE;
+    layer->has_tint     = FALSE;
+    layer->layer_tint   = (flis_tint_t){ 1.0, 1.0, 1.0 };
+    layer->lmask_active = TRUE;
     /* item_id and layer_order must be set by the caller */
     return layer;
 }
@@ -881,13 +905,7 @@ int save_flis(const gchar *filename) {
         return 1;
     }
 
-    /* Ensure the filename has the .flis extension */
-    gchar *outpath;
-    if (g_str_has_suffix(filename, ".flis")) {
-        outpath = g_strdup(filename);
-    } else {
-        outpath = g_strdup_printf("%s.flis", filename);
-    }
+    gchar *outpath = g_strdup(filename);
 
     if (g_unlink(outpath))
         siril_debug_print("g_unlink() failed (may not exist)\n");
@@ -982,7 +1000,7 @@ int save_flis(const gchar *filename) {
             int lmask_id = lay->item_id + 10000;
             if (write_mask_hdu(fptr, lay->lmask, lmask_id,
                                FLIS_TYPE_LMASK, lname,
-                               BYTE_IMG, TBYTE)) {
+                               BYTE_IMG, TBYTE, lay->lmask_active)) {
                 siril_log_color_message(_("FLIS: failed writing layer mask for '%s'\n"),
                                         "salmon", lay->layer_name ? lay->layer_name : "?");
             }
@@ -1006,7 +1024,7 @@ int save_flis(const gchar *filename) {
             };
             if (write_mask_hdu(fptr, &tmp_lm, pmask_id,
                                FLIS_TYPE_MASK, mname,
-                               FLOAT_IMG, TFLOAT)) {
+                               FLOAT_IMG, TFLOAT, lay->fit->mask_active)) {
                 siril_log_color_message(_("FLIS: failed writing processing mask for '%s'\n"),
                                         "salmon", lay->layer_name ? lay->layer_name : "?");
             }
@@ -1229,7 +1247,8 @@ int load_flis(const gchar *filename) {
             layermask_t *lm = load_mask_from_hdu(fptr, row->hdu_index, FALSE);
             if (lm) {
                 layermask_free(parent->lmask); /* replace any existing */
-                parent->lmask = lm;
+                parent->lmask        = lm;
+                parent->lmask_active = read_mask_act_from_hdu(fptr, row->hdu_index);
             }
         } else { /* MASK — processing mask, float */
             layermask_t *pm = load_mask_from_hdu(fptr, row->hdu_index, TRUE);
@@ -1241,11 +1260,12 @@ int load_flis(const gchar *filename) {
                 }
                 mask_t *siril_mask = calloc(1, sizeof(mask_t));
                 if (siril_mask) {
-                    siril_mask->bitpix = 32;
-                    siril_mask->data   = pm->data;
-                    pm->data           = NULL; /* transfer ownership */
-                    parent->fit->mask  = siril_mask;
+                    siril_mask->bitpix   = 32;
+                    siril_mask->data     = pm->data;
+                    pm->data             = NULL; /* transfer ownership */
+                    parent->fit->mask    = siril_mask;
                 }
+                parent->fit->mask_active = read_mask_act_from_hdu(fptr, row->hdu_index);
                 layermask_free(pm);
             } else {
                 layermask_free(pm);

@@ -590,7 +590,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				}
 			}
 		} else if (vport == MASK_VPORT) {
-			if (gfit->mask->bitpix < 32 && gfit->mask->data != NULL) {
+			if (gfit->mask != NULL && gfit->mask->bitpix < 32 && gfit->mask->data != NULL) {
 				int val_width = 3;
 				char *format_base_ushort;
 				format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
@@ -609,12 +609,26 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				} else {
 					g_sprintf(buffer, format, zoomed.x, zoomed.y, 0);
 				}
-			} else if (gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
+			} else if (gfit->mask != NULL && gfit->mask->bitpix == 32 && gfit->mask->data != NULL) {
 				char *format_base_float;
 				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
 				g_sprintf(format, format_base_float, coords_width, coords_width);
 				float *m = (float*) gfit->mask->data;
 				g_sprintf(buffer, format, zoomed.x, zoomed.y, in_layer ? m[pixel_idx] : 0.f);
+			} else if (get_flis_show_layer_mask() && is_current_image_flis()
+			           && com.uniq && com.uniq->layers) {
+				/* Layer mask: always 8-bit uint */
+				for (GSList *node = com.uniq->layers; node; node = node->next) {
+					flis_layer_t *lay = (flis_layer_t *)node->data;
+					if (lay && lay->fit == gfit && lay->lmask && lay->lmask->data) {
+						g_sprintf(format, "x: %%.%dd y: %%.%dd (=%%.3d)",
+						          coords_width, coords_width);
+						uint8_t *m = (uint8_t *)lay->lmask->data;
+						g_sprintf(buffer, format, zoomed.x, zoomed.y,
+						          in_layer ? (int)m[pixel_idx] : 0);
+						break;
+					}
+				}
 			}
 		}
 

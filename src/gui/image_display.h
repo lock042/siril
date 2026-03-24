@@ -16,6 +16,11 @@ typedef enum {
 void flis_invalidate_composite(void);
 void flis_composite_free(void);
 
+/* Controls whether the mask viewport and tint show the active FLIS layer's
+ * layer mask (TRUE) or its processing mask (FALSE, default). */
+gboolean get_flis_show_layer_mask(void);
+void     set_flis_show_layer_mask(gboolean val);
+
 void check_gfit_profile_identical_to_monitor();
 
 void allocate_hd_remap_indices();

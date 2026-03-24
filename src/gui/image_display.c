@@ -107,6 +107,13 @@ static gboolean      flis_composite_dirty    = TRUE;
  * to address the mask through the layer's canvas offset instead of the raw
  * composite pixel index.  Always NULL outside of a redraw() call. */
 static flis_layer_t *flis_mask_source_layer  = NULL;
+/* When TRUE the mask viewport and tint overlay use the active FLIS layer's
+ * layer mask (lmask) rather than its processing mask.  Toggled from the
+ * Layers dialog when both masks are present; auto-selected on layer switch. */
+static gboolean      flis_show_layer_mask    = FALSE;
+
+gboolean get_flis_show_layer_mask(void) { return flis_show_layer_mask; }
+void     set_flis_show_layer_mask(gboolean val) { flis_show_layer_mask = val; }
 
 void flis_invalidate_composite(void) {
     flis_composite_dirty = TRUE;
@@ -753,7 +760,7 @@ static int flis_composite_build(void) {
         const float tg = (mono && lay->has_tint) ? (float)lay->layer_tint.g : 1.f;
         const float tb = (mono && lay->has_tint) ? (float)lay->layer_tint.b : 1.f;
 
-        const uint8_t *mask_data = lmask ? (const uint8_t *)lmask->data : NULL;
+        const uint8_t *mask_data = (lmask && lay->lmask_active) ? (const uint8_t *)lmask->data : NULL;
 
         /* Intersection of the layer rectangle with the canvas.
          * position_y is in FITS convention (origin bottom-left), convert to
@@ -3288,24 +3295,38 @@ void redraw(remap_type doremap) {
 
 			/* For mask tint rendering: remap_all_vports() and remap() check
 			 * gfit->mask for the tint overlay, but the composite has no mask.
-			 * Copy the active layer's mask pointer onto the composite so the
-			 * tint renders correctly.  The pointer is cleared after remapping
-			 * so the composite does not take ownership of the mask. */
-			gfit->mask        = saved_gfit->mask;
-			gfit->mask_active = saved_gfit->mask_active;
-
-			/* Set flis_mask_source_layer so remap functions can address
-			 * the mask through the layer's canvas offset when the sub-layer
-			 * is smaller than the composite. */
+			 * Borrow either the processing mask or the layer mask (depending on
+			 * flis_show_layer_mask) onto the composite so the tint renders
+			 * correctly.  The pointer is cleared after remapping so the
+			 * composite does not take ownership of the mask.
+			 *
+			 * tmp_lmask is stack-allocated and valid for the duration of
+			 * remap_all_vports() / remap() below — do not use after restore. */
+			static mask_t tmp_lmask;
 			flis_mask_source_layer = NULL;
-			if (saved_gfit->mask && saved_gfit->mask_active) {
-				for (GSList *node = com.uniq->layers; node; node = node->next) {
-					flis_layer_t *lay = (flis_layer_t *)node->data;
-					if (lay && lay->fit == saved_gfit) {
+			gfit->mask        = NULL;
+			gfit->mask_active = FALSE;
+
+			for (GSList *node = com.uniq->layers; node; node = node->next) {
+				flis_layer_t *lay = (flis_layer_t *)node->data;
+				if (!lay || lay->fit != saved_gfit)
+					continue;
+
+				if (flis_show_layer_mask && lay->lmask) {
+					/* Show layer mask as tint */
+					tmp_lmask.bitpix  = lay->lmask->bitpix;
+					tmp_lmask.data    = lay->lmask->data;
+					gfit->mask        = &tmp_lmask;
+					gfit->mask_active = lay->lmask_active;
+					flis_mask_source_layer = lay;
+				} else if (!flis_show_layer_mask && saved_gfit->mask) {
+					/* Show processing mask as tint */
+					gfit->mask        = saved_gfit->mask;
+					gfit->mask_active = saved_gfit->mask_active;
+					if (saved_gfit->mask_active)
 						flis_mask_source_layer = lay;
-						break;
-					}
 				}
+				break;
 			}
 
 			invalidate_stats_from_fit(gfit);
@@ -3370,8 +3391,19 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 }
 
 gboolean redraw_mask_idle(gpointer p) {
-	if (gfit->mask && gfit->mask->data)
+	/* Determine which mask to render in the mask viewport. */
+	if (flis_show_layer_mask && is_current_image_flis() && com.uniq && com.uniq->layers) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit && lay->lmask) {
+				mask_t tmp = { lay->lmask->bitpix, lay->lmask->data };
+				remap_mask(&tmp);
+				break;
+			}
+		}
+	} else if (gfit->mask && gfit->mask->data) {
 		remap_mask(gfit->mask);
+	}
 	if (com.pref.gui.mask_tints_vports)
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	return FALSE;

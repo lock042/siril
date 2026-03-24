@@ -375,36 +375,84 @@
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="orientation">horizontal</property>
-                        <property name="spacing">4</property>
-                        <property name="margin-start">4</property>
-                        <property name="margin-end">4</property>
-                        <property name="margin-top">4</property>
-                        <property name="margin-bottom">4</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">0</property>
+                        <!-- Row 1: status label + add/remove + move buttons -->
                         <child>
-                          <object class="GtkLabel" id="flis_mask_status_label">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="label" translatable="yes">None</property>
-                            <property name="hexpand">True</property>
-                            <property name="xalign">0</property>
-                            <style><class name="dim-label"/></style>
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">4</property>
+                            <property name="margin-start">4</property>
+                            <property name="margin-end">4</property>
+                            <property name="margin-top">4</property>
+                            <property name="margin-bottom">4</property>
+                            <child>
+                              <object class="GtkButton" id="flis_mask_status_btn">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">None</property>
+                                <property name="relief">none</property>
+                                <property name="hexpand">True</property>
+                                <property name="xalign">0</property>
+                                <property name="sensitive">False</property>
+                                <property name="tooltip-text" translatable="yes">Click to toggle layer mask active/inactive</property>
+                                <signal name="clicked" handler="on_flis_lmask_active_toggle_clicked"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="flis_mask_toggle_btn">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">Add...</property>
+                                <property name="tooltip-text" translatable="yes">Add layer mask from file, or remove existing mask</property>
+                                <signal name="clicked" handler="on_flis_mask_toggle_clicked"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="flis_mask_move_btn">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">Move...</property>
+                                <property name="sensitive">False</property>
+                                <property name="tooltip-text" translatable="yes">Move this layer mask to another compatible layer</property>
+                                <signal name="clicked" handler="on_flis_mask_move_clicked"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
+                        <!-- Row 2: view toggle — only shown when both mask types present -->
                         <child>
-                          <object class="GtkButton" id="flis_mask_toggle_btn">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">Add...</property>
-                            <property name="tooltip-text" translatable="yes">Add layer mask from file, or remove existing mask</property>
-                            <signal name="clicked" handler="on_flis_mask_toggle_clicked"/>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="flis_mask_move_btn">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">Move...</property>
-                            <property name="sensitive">False</property>
-                            <property name="tooltip-text" translatable="yes">Move this layer mask to another compatible layer</property>
-                            <signal name="clicked" handler="on_flis_mask_move_clicked"/>
+                          <object class="GtkBox" id="flis_mask_view_row">
+                            <property name="visible">False</property>
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">4</property>
+                            <property name="margin-start">4</property>
+                            <property name="margin-end">4</property>
+                            <property name="margin-bottom">4</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">View:</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkRadioButton" id="flis_mask_view_proc_radio">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">Processing</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                                <property name="tooltip-text" translatable="yes">Show the processing mask in the mask tab and as tint overlay</property>
+                                <signal name="toggled" handler="on_flis_mask_view_toggled"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkRadioButton" id="flis_mask_view_layer_radio">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">Layer</property>
+                                <property name="draw-indicator">True</property>
+                                <property name="group">flis_mask_view_proc_radio</property>
+                                <property name="tooltip-text" translatable="yes">Show the layer mask in the mask tab and as tint overlay</property>
+                                <signal name="toggled" handler="on_flis_mask_view_toggled"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
