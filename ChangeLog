@@ -8,7 +8,7 @@ siril-1.5.0
 * Added image masks (!981)
 * Added eqcrop command (!889)
 * Added catmag command (!888)
-* Add draggable histogram overlay with cursor tracking (!986)
+* Added draggable histogram overlay with cursor tracking (!986)
 
 siril-1.4.3
 --/--/--
@@ -19,6 +19,8 @@ siril-1.4.3
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
 * Fixed crash with Hubble images (#1932)
+* Added SirilInterface.open_dialog()
+* Allow certain python scripts to be run automatically at startup (!1001)
 
 siril-1.4.2
 02/18/26

@@ -20,11 +20,13 @@
 #include "core/proto.h"
 #include "core/undo.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/user_polygons.h"
+#include "gui/siril-window.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -3499,6 +3501,215 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = handle_mask_update_polygon_request(conn, info);
 			}
 			break;
+		}
+
+		case CMD_OPEN_DIALOG: {
+			DialogID index;
+			if (com.headless) {
+				const char* error_msg = _("SirilInterface.open_dialog() cannot be run headless");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (payload_length != 4) {
+				const char* error_msg = _("Incorrect command arguments");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			} else {
+				index = (DialogID) GUINT32_FROM_BE(*(int*) payload);
+				if (index < 0 || index >= number_of_dialogs()) {
+					const char* error_msg = _("Incorrect command arguments");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				} else {
+					const gchar *action_name;
+					gboolean appmap = FALSE;
+					switch (index) {
+						case ANNOTATE_DIALOG:
+							action_name = "annotate-dialog";
+							break;
+						case ASINH_DIALOG:
+							action_name = "asinh-processing";
+							break;
+						case ASTROMETRY_DIALOG:
+							action_name = "astrometry";
+							break;
+						case DENOISE_DIALOG:
+							action_name = "denoise-processing";
+							break;
+						case BACKGROUND_EXTRACTION_DIALOG:
+							action_name = "background-extr-processing";
+							break;
+						case BINXY_DIALOG:
+							action_name = "binning-processing";
+							break;
+						case CANON_FIXBANDING_DIALOG:
+							action_name = "fix-banding-processing";
+							break;
+						case CCM_DIALOG:
+							action_name = "ccm-processing";
+							break;
+						case CLAHE_DIALOG:
+							action_name = "clahe-processing";
+							break;
+						case COMPOSITION_DIALOG:
+							action_name = "rgb-compositing-processing";
+							break;
+						case COMPSTARS:
+							action_name = "compstars";
+							break;
+						case COLOR_CALIBRATION:
+							action_name = "color-calib-processing";
+							break;
+						case COSMETIC_DIALOG:
+							action_name = "cosmetic-processing";
+							break;
+						case CURVES_DIALOG:
+							action_name = "curves-processing";
+							break;
+						case BDECONV_DIALOG:
+							action_name="deconvolution-processing";
+							break;
+						case DIALOG_FFT:
+							action_name="fft-processing";
+							break;
+						case DIALOG_STAR_REMIX:
+							action_name="star-remix-processing";
+							break;
+						case EDGE_DIALOG:
+							action_name="ccd-inspector";
+							break;
+						case EPF_DIALOG:
+							action_name="epf-processing";
+							break;
+						case EXTRACT_CHANNEL_DIALOG:
+							action_name="split-channel-processing";
+							break;
+						case EXTRACT_WAVELETS_LAYERS_DIALOG:
+							action_name="split-wavelets-processing";
+							break;
+						case FILE_INFORMATION:
+							action_name="image-information";
+							break;
+						case GHT_DIALOG:
+							action_name = "payne-processing";
+							break;
+						case HISTOGRAM_DIALOG:
+							action_name="histo-processing";
+							break;
+						case KEYWORDS_DIALOG:
+							action_name="fits-header";
+							break;
+						case ICC_DIALOG:
+							action_name="icc-tool";
+							break;
+						case LINEARMATCH_DIALOG:
+							action_name="linearmatch-processing";
+							break;
+						case MEDIAN_DIALOG:
+							action_name="medianfilter-processing";
+							break;
+						case MERGE_CFA_DIALOG:
+							action_name="merge-cfa-processing";
+							break;
+						case NINA_LIGHT_CURVE:
+							action_name="nina_light_curve";
+							break;
+						case PIXEL_MATH_DIALOG:
+							action_name="pixel-math";
+							break;
+						case RESAMPLE_DIALOG:
+							action_name="resample-processing";
+							break;
+						case RGRADIENT_DIALOG:
+							action_name="rgradient-processing";
+							break;
+						case ROTATION_DIALOG:
+							action_name="rotation-processing";
+							break;
+						case S_PCC_DIALOG:
+							action_name="spcc-processing";
+							break;
+						case SATU_DIALOG:
+							action_name="saturation-processing";
+							break;
+						case SCNR_DIALOG:
+							action_name="remove-green-processing";
+							break;
+						case SEQLIST_DIALOG:
+							action_name="seq-list";
+							break;
+						case SPLIT_CFA_DIALOG:
+							action_name="split-cfa-processing";
+							break;
+						case STARNET_DIALOG:
+							action_name="starnet-processing";
+							break;
+						case STARS_LIST_WINDOW:
+							action_name="dyn-psf";
+							break;
+						case STAT_WINDOW:
+							action_name="statistics";
+							break;
+						case UNPURPLE_DIALOG:
+							action_name="unpurple-processing";
+							break;
+						case WAVELETS_DIALOG:
+							action_name="wavelets-processing";
+							break;
+						case PCC_DIALOG:
+							action_name="pcc_processing";
+							break;
+						case CWD_DIALOG:
+							action_name="cwd";
+							break;
+						case PREFS_DIALOG:
+							action_name="preferences";
+							appmap = TRUE;
+							break;
+						case OPEN_DIALOG:
+							action_name="open";
+							appmap = TRUE;
+							break;
+						case SAVEAS_DIALOG:
+							action_name="save-as";
+							appmap = TRUE;
+							break;
+						case ABOUT_DIALOG:
+							action_name="about";
+							appmap = TRUE;
+							break;
+						default:
+							action_name=NULL;
+							g_warning("Unhandled DialogID: %d", index);
+							break;
+					}
+					ActionResult result = queue_activate_action_if_enabled(action_name, appmap);
+					const char* error_msg;
+					switch (result) {
+						case ACTION_SUCCESS:
+							success = send_response(conn, STATUS_OK, NULL, 0);
+							break;
+						case ACTION_NOT_FOUND:
+							error_msg = _("Action not found");
+							success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+							break;
+						case ACTION_DISABLED:
+							error_msg = _("Action disabled");
+							success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+							break;
+						case ACTION_NULL_DATA:
+							error_msg = _("NULL data provided");
+							success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+							break;
+						case ACTION_WINDOW_MISSING:
+						default:
+							error_msg = _("Error: Window missing!");
+							success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+							break;
+					}
+					break;
+				}
+			}
 		}
 
 		default:
