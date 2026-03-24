@@ -69,15 +69,18 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 	}
 	wcsdst->flag = -1;
 
-	// Workaround: wcslib bug/ABI mismatch in disinit causes heap overflow
-	// when distortion (SIP) is present. Pass a shallow copy of wcssrc with
-	// dispre/disseq nulled out to wcscopy, then copy distortions separately
-	// via discpy. This avoids mutating wcssrc (which would not be thread-safe).
-	wcsprm_t wcssrc_nodis = *wcssrc;  // shallow copy on stack, wcssrc untouched
+	// Workaround: wcssub() triggers disinit() which overflows its allocation
+	// due to an ABI mismatch in wcslib when SIP distortions are present.
+	// Pass a shallow copy of wcssrc with dispre/disseq nulled out to wcssub(),
+	// then copy distortions separately via discpy(). Thread-safe: wcssrc is
+	// never mutated.
+	wcsprm_t wcssrc_nodis = *wcssrc;
 	wcssrc_nodis.lin.dispre = NULL;
 	wcssrc_nodis.lin.disseq = NULL;
 
-	int statuscpy = wcscopy(1, &wcssrc_nodis, wcsdst);
+	int nsub = 2;
+	int axes[2] = { WCSSUB_LONGITUDE, WCSSUB_LATITUDE };
+	int statuscpy = wcssub(0, &wcssrc_nodis, &nsub, axes, wcsdst);
 	if (statuscpy) {
 		if (status) *status = statuscpy;
 		wcsfree(wcsdst);
@@ -85,7 +88,7 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 		return NULL;
 	}
 
-	// Copy distortions separately from original source
+	// Copy forward distortion (pixel->world, SIP A/B terms)
 	if (wcssrc->lin.dispre) {
 		wcsdst->lin.dispre = calloc(1, sizeof(struct disprm));
 		if (wcsdst->lin.dispre) {
@@ -96,6 +99,7 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 			}
 		}
 	}
+	// Copy inverse distortion (world->pixel, SIP AP/BP terms)
 	if (wcssrc->lin.disseq) {
 		wcsdst->lin.disseq = calloc(1, sizeof(struct disprm));
 		if (wcsdst->lin.disseq) {
@@ -104,6 +108,25 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 				free(wcsdst->lin.disseq);
 				wcsdst->lin.disseq = NULL;
 			}
+		}
+	}
+
+	// If no inverse SIP terms (AP/BP) are present in the forward distortion
+	// model, strip it from the inverse path to avoid world->pixel returning
+	// wrong results with zero coefficients. pixel->world remains unaffected.
+	if (wcsdst->lin.dispre) {
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+		extract_SIP_order_and_matrices(wcsdst->lin.dispre, NULL, NULL, AP, BP);
+		gboolean has_inverse = FALSE;
+		for (int i = 0; i < MAX_SIP_SIZE && !has_inverse; i++)
+			for (int j = 0; j < MAX_SIP_SIZE && !has_inverse; j++)
+				if (AP[i][j] != 0. || BP[i][j] != 0.)
+					has_inverse = TRUE;
+		if (!has_inverse) {
+			disfree(wcsdst->lin.dispre);
+			free(wcsdst->lin.dispre);
+			wcsdst->lin.dispre = NULL;
 		}
 	}
 
