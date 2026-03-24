@@ -100,8 +100,13 @@ static void invalidate_image_render_cache(int vport);
 
 /* Composite cache --------------------------------------------------------- */
 
-static fits    *flis_display_composite = NULL;
-static gboolean flis_composite_dirty   = TRUE;
+static fits         *flis_display_composite  = NULL;
+static gboolean      flis_composite_dirty    = TRUE;
+/* Set by redraw() when the FLIS active sub-layer has a processing mask that
+ * differs in size from the composite.  Read by remap_vport/remap_all_vports
+ * to address the mask through the layer's canvas offset instead of the raw
+ * composite pixel index.  Always NULL outside of a redraw() call. */
+static flis_layer_t *flis_mask_source_layer  = NULL;
 
 void flis_invalidate_composite(void) {
     flis_composite_dirty = TRUE;
@@ -919,88 +924,136 @@ static void remap_mask(mask_t *mask) {
 
 	int vport = MASK_VPORT;
 	struct image_view *view = &gui.view[vport];
-	if (allocate_full_surface(view))
+
+	/* FLIS mode: if the mask belongs to a sub-layer that is smaller than
+	 * the composite, render it at canvas dimensions with the mask content
+	 * placed at the layer's canvas offset and 0xFF outside. */
+	gboolean flis_sublayer = FALSE;
+	gint  mask_ox = 0, mask_oy_top = 0;
+	guint mask_rx = gfit->rx, mask_ry = gfit->ry;   /* mask data dimensions */
+	guint canvas_rx = gfit->rx, canvas_ry = gfit->ry; /* surface dimensions  */
+
+	if (com.uniq && flis_display_composite) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit) {
+				canvas_rx   = (guint)flis_display_composite->rx;
+				canvas_ry   = (guint)flis_display_composite->ry;
+				mask_ox     = lay->position_x;
+				mask_oy_top = (gint)canvas_ry - lay->position_y - (gint)mask_ry;
+				flis_sublayer = TRUE;
+				break;
+			}
+		}
+	}
+
+	/* allocate_full_surface sizes the surface from gfit->rx/ry; temporarily
+	 * substitute the composite so the surface matches the canvas. */
+	fits *saved_gfit_local = NULL;
+	if (flis_sublayer) {
+		saved_gfit_local = gfit;
+		gfit = flis_display_composite;
+	}
+	if (allocate_full_surface(view)) {
+		if (saved_gfit_local) gfit = saved_gfit_local;
 		return;
+	}
+	if (saved_gfit_local) gfit = saved_gfit_local;
 
 	// Cairo setup
 	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
 	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
 
-	// Mask setup
 	void *src_data = mask->data;
-	guint rx = gfit->rx;
-	guint ry = gfit->ry;
 	int bitpix = mask->bitpix;
 
-	// We switch ONCE. This requires duplicating the loop code,
-	// but ensures the tightest possible inner loops for the compiler to vectorize.
-	switch (bitpix) {
-		case 8: {
-			uint8_t *s8 = (uint8_t *)src_data;
-			#ifdef _OPENMP
-			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-			#endif
-			for (guint y = 0; y < ry; y++) {
-				// Pre-calculate pointers for this row
-				uint8_t *src_row = s8 + (y * rx);
-				// Vertical flip logic
-				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
-
-				for (guint x = 0; x < rx; x++) {
-					uint8_t val = src_row[x];
-					// Alpha is unused/ignored in Cairo RGB24 (upper 8 bits)
-					dst_row[x] = (val << 16) | (val << 8) | val;
+	if (flis_sublayer) {
+		/* Fill the entire canvas with white, then draw the mask content at
+		 * its canvas offset.  White (0xFFFFFF) represents "no mask" and is
+		 * the least ambiguous fill for the border area outside the layer. */
+		const gint x0 = MAX(0, mask_ox);
+		const gint x1 = MIN((gint)canvas_rx, mask_ox + (gint)mask_rx);
+		const gint y0 = MAX(0, mask_oy_top);
+		const gint y1 = MIN((gint)canvas_ry, mask_oy_top + (gint)mask_ry);
+#ifdef _OPENMP
+		#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (guint y = 0; y < canvas_ry; y++) {
+			uint32_t *dst_row = (uint32_t *)(dst_base + ((canvas_ry - 1 - y) * dst_stride));
+			const gint iy = (gint)y;
+			if (iy < y0 || iy >= y1) {
+				for (guint x = 0; x < canvas_rx; x++)
+					dst_row[x] = 0xFFFFFF;
+			} else {
+				for (gint x = 0; x < x0; x++)
+					dst_row[x] = 0xFFFFFF;
+				const guint my = (guint)(iy - mask_oy_top);
+				for (gint x = x0; x < x1; x++) {
+					const guint mask_i = my * mask_rx + (guint)(x - mask_ox);
+					uint8_t v;
+					if (bitpix == 8)
+						v = ((uint8_t *)src_data)[mask_i];
+					else if (bitpix == 16)
+						v = (uint8_t)(((uint32_t)((uint16_t *)src_data)[mask_i] * 255 + 32895) >> 16);
+					else
+						v = roundf_to_BYTE(((float *)src_data)[mask_i] * UCHAR_MAX_SINGLE);
+					dst_row[x] = ((uint32_t)v << 16) | ((uint32_t)v << 8) | v;
 				}
+				for (guint x = (guint)x1; x < canvas_rx; x++)
+					dst_row[x] = 0xFFFFFF;
 			}
-			break;
 		}
-
-		case 16: {
-			uint16_t *s16 = (uint16_t *)src_data;
-			#ifdef _OPENMP
-			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-			#endif
-			for (guint y = 0; y < ry; y++) {
-				uint16_t *src_row = s16 + (y * rx);
-				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
-
-				for (guint x = 0; x < rx; x++) {
-					uint32_t val = ((uint32_t)src_row[x] * 255 + 32895) >> 16;
-					dst_row[x] = (val << 16) | (val << 8) | val;
+	} else {
+		/* Original path: mask is the same size as the canvas. */
+		switch (bitpix) {
+			case 8: {
+				uint8_t *s8 = (uint8_t *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (guint y = 0; y < canvas_ry; y++) {
+					uint8_t  *src_row = s8 + (y * canvas_rx);
+					uint32_t *dst_row = (uint32_t *)(dst_base + ((canvas_ry - 1 - y) * dst_stride));
+					for (guint x = 0; x < canvas_rx; x++) {
+						uint8_t val = src_row[x];
+						dst_row[x] = ((uint32_t)val << 16) | ((uint32_t)val << 8) | val;
+					}
 				}
+				break;
 			}
-			break;
-		}
-
-		case 32: {
-			float *sf = (float *)src_data;
-
-			#ifdef _OPENMP
-			#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-			#endif
-			for (guint y = 0; y < ry; y++) {
-				float *src_row = sf + (y * rx);
-
-				// Destination pointer calculation (Vertical Flip)
-				uint32_t *dst_row = (uint32_t *)(dst_base + ((ry - 1 - y) * dst_stride));
-
-				for (guint x = 0; x < rx; x++) {
-					// Scale
-					float v = src_row[x] * UCHAR_MAX_SINGLE;
-
-					// Round & Clamp
-					uint8_t val = roundf_to_BYTE(v);
-
-					// 3. Pack to ARGB (Alpha unused)
-					dst_row[x] = (val << 16) | (val << 8) | val;
+			case 16: {
+				uint16_t *s16 = (uint16_t *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (guint y = 0; y < canvas_ry; y++) {
+					uint16_t *src_row = s16 + (y * canvas_rx);
+					uint32_t *dst_row = (uint32_t *)(dst_base + ((canvas_ry - 1 - y) * dst_stride));
+					for (guint x = 0; x < canvas_rx; x++) {
+						uint32_t val = ((uint32_t)src_row[x] * 255 + 32895) >> 16;
+						dst_row[x] = (val << 16) | (val << 8) | val;
+					}
 				}
+				break;
 			}
-			break;
-		}
-
-		default: {
-			siril_debug_print("Error: invalid mask bitpix\n");
-			break;
+			case 32: {
+				float *sf = (float *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (guint y = 0; y < canvas_ry; y++) {
+					float    *src_row = sf + (y * canvas_rx);
+					uint32_t *dst_row = (uint32_t *)(dst_base + ((canvas_ry - 1 - y) * dst_stride));
+					for (guint x = 0; x < canvas_rx; x++) {
+						uint8_t val = roundf_to_BYTE(src_row[x] * UCHAR_MAX_SINGLE);
+						dst_row[x] = ((uint32_t)val << 16) | ((uint32_t)val << 8) | val;
+					}
+				}
+				break;
+			}
+			default:
+				siril_debug_print("Error: invalid mask bitpix\n");
+				break;
 		}
 	}
 
@@ -1123,6 +1176,22 @@ static void remap(int vport) {
 		}
 	}
 
+	/* In FLIS mode the composite (ref) is base-layer sized but the processing
+	 * mask was generated against the active sub-layer.  flis_mask_source_layer
+	 * is set by redraw() in this case; use it to address the mask through the
+	 * layer's canvas offset rather than with the composite pixel index. */
+	gboolean flis_sublayer_mask = (apply_mask && flis_mask_source_layer != NULL);
+	gint  mask_ox     = 0;
+	gint  mask_oy_top = 0;
+	guint mask_lW     = 0;
+	guint mask_lH     = 0;
+	if (flis_sublayer_mask) {
+		mask_ox     = flis_mask_source_layer->position_x;
+		mask_lW     = (guint)flis_mask_source_layer->fit->rx;
+		mask_lH     = (guint)flis_mask_source_layer->fit->ry;
+		mask_oy_top = (gint)ref->ry - flis_mask_source_layer->position_y - (gint)mask_lH;
+	}
+
 	const guint width = ref->rx;
 	const guint height = ref->ry;
 
@@ -1156,14 +1225,23 @@ static void remap(int vport) {
 				dst_pixel_value = UCHAR_MAX - dst_pixel_value;
 
 			if (apply_mask) {
-				// Get mask value based on bitpix
+				// Get mask value based on bitpix, accounting for FLIS sub-layer offset
 				BYTE mask_val;
-				if (mask_bitpix == 8) {
-					mask_val = mask_u8[src_i];
-				} else if (mask_bitpix == 16) {
-					mask_val = mask_u16[src_i] >> 8;
-				} else { // 32
-					mask_val = (BYTE)(mask_f32[src_i] * UCHAR_MAX);
+				if (flis_sublayer_mask) {
+					const gint mx = (gint)x - mask_ox;
+					const gint my = (gint)y - mask_oy_top;
+					if (mx >= 0 && mx < (gint)mask_lW && my >= 0 && my < (gint)mask_lH) {
+						const guint mask_i = (guint)my * mask_lW + (guint)mx;
+						if      (mask_bitpix == 8)  mask_val = mask_u8[mask_i];
+						else if (mask_bitpix == 16) mask_val = mask_u16[mask_i] >> 8;
+						else                         mask_val = (BYTE)(mask_f32[mask_i] * UCHAR_MAX);
+					} else {
+						mask_val = UCHAR_MAX; /* outside sub-layer bounds: no tint */
+					}
+				} else {
+					if      (mask_bitpix == 8)  mask_val = mask_u8[src_i];
+					else if (mask_bitpix == 16) mask_val = mask_u16[src_i] >> 8;
+					else                         mask_val = (BYTE)(mask_f32[src_i] * UCHAR_MAX);
 				}
 
 				const uint16_t inv_mask = UCHAR_MAX - mask_val;
@@ -1259,6 +1337,19 @@ static void remap_all_vports() {
 		}
 	}
 
+	/* FLIS sub-layer mask offset — see identical block in remap_vport. */
+	gboolean flis_sublayer_mask = (apply_mask && flis_mask_source_layer != NULL);
+	gint  mask_ox     = 0;
+	gint  mask_oy_top = 0;
+	guint mask_lW     = 0;
+	guint mask_lH     = 0;
+	if (flis_sublayer_mask) {
+		mask_ox     = flis_mask_source_layer->position_x;
+		mask_lW     = (guint)flis_mask_source_layer->fit->rx;
+		mask_lH     = (guint)flis_mask_source_layer->fit->ry;
+		mask_oy_top = (gint)ref->ry - flis_mask_source_layer->position_y - (gint)mask_lH;
+	}
+
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
 	guint y;
@@ -1348,22 +1439,35 @@ static void remap_all_vports() {
 
 			// Precompute mask values for entire row if mask is active
 			if (apply_mask) {
-
-				// Precompute mask values for entire row
-				if (mask_bitpix == 8) {
-#pragma omp simd
+				if (flis_sublayer_mask) {
+					/* Sub-layer mask: map each canvas pixel through the
+					 * layer's position offset; pixels outside the layer
+					 * bounds receive UCHAR_MAX (no tint). */
+					const gint my = (gint)y - mask_oy_top;
 					for (x = 0; x < width; ++x) {
-						mask_row[x] = mask_u8[src_i + x];
+						const gint mx = (gint)x - mask_ox;
+						if (mx >= 0 && mx < (gint)mask_lW && my >= 0 && my < (gint)mask_lH) {
+							const guint mask_i = (guint)my * mask_lW + (guint)mx;
+							if      (mask_bitpix == 8)  mask_row[x] = mask_u8[mask_i];
+							else if (mask_bitpix == 16) mask_row[x] = mask_u16[mask_i] >> 8;
+							else                         mask_row[x] = (BYTE)(mask_f32[mask_i] * UCHAR_MAX);
+						} else {
+							mask_row[x] = UCHAR_MAX;
+						}
 					}
-				} else if (mask_bitpix == 16) {
+				} else {
+					if (mask_bitpix == 8) {
 #pragma omp simd
-					for (x = 0; x < width; ++x) {
-						mask_row[x] = mask_u16[src_i + x] >> 8;
-					}
-				} else { // 32
+						for (x = 0; x < width; ++x)
+							mask_row[x] = mask_u8[src_i + x];
+					} else if (mask_bitpix == 16) {
 #pragma omp simd
-					for (x = 0; x < width; ++x) {
-						mask_row[x] = (BYTE)(mask_f32[src_i + x] * UCHAR_MAX);
+						for (x = 0; x < width; ++x)
+							mask_row[x] = mask_u16[src_i + x] >> 8;
+					} else { // 32
+#pragma omp simd
+						for (x = 0; x < width; ++x)
+							mask_row[x] = (BYTE)(mask_f32[src_i + x] * UCHAR_MAX);
 					}
 				}
 			}
@@ -3084,6 +3188,18 @@ void copy_roi_into_gfit() {
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
 	size_t npixels_gfit = gfit->rx * gfit->ry;
+	/* gui.roi.selection is in canvas coords; translate to layer-local for FLIS sub-layers */
+	rectangle lsel = gui.roi.selection;
+	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+		for (GSList *node = com.uniq->layers; node; node = node->next) {
+			flis_layer_t *lay = (flis_layer_t *)node->data;
+			if (lay && lay->fit == gfit) {
+				lsel.x -= lay->position_x;
+				lsel.y -= lay->position_y;
+				break;
+			}
+		}
+	}
 	if (gui.roi.fit.type != gfit->type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
 		if (gfit->type == DATA_FLOAT) {
@@ -3118,10 +3234,10 @@ void copy_roi_into_gfit() {
 #pragma omp parallel for schedule(static) collapse(2)
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+			for (uint32_t y = 0; y < (uint32_t)lsel.h ; y++) {
 				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
-				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
+				float *destindex = gfit->fdata + (c * npixels_gfit) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
+				memcpy(destindex, rowindex, lsel.w * sizeof(float));
 			}
 		}
 	} else {
@@ -3129,10 +3245,10 @@ void copy_roi_into_gfit() {
 #pragma omp parallel for schedule(static) collapse(2)
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
+			for (uint32_t y = 0; y < (uint32_t)lsel.h ; y++) {
 				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - gui.roi.selection.y - y - 1) * gfit->rx) + gui.roi.selection.x;
-				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
+				WORD *destindex = gfit->data + (npixels_gfit * c) + ((gfit->ry - lsel.y - y - 1) * gfit->rx) + lsel.x;
+				memcpy(destindex, rowindex, lsel.w * sizeof(WORD));
 			}
 		}
 	}
@@ -3178,6 +3294,20 @@ void redraw(remap_type doremap) {
 			gfit->mask        = saved_gfit->mask;
 			gfit->mask_active = saved_gfit->mask_active;
 
+			/* Set flis_mask_source_layer so remap functions can address
+			 * the mask through the layer's canvas offset when the sub-layer
+			 * is smaller than the composite. */
+			flis_mask_source_layer = NULL;
+			if (saved_gfit->mask && saved_gfit->mask_active) {
+				for (GSList *node = com.uniq->layers; node; node = node->next) {
+					flis_layer_t *lay = (flis_layer_t *)node->data;
+					if (lay && lay->fit == saved_gfit) {
+						flis_mask_source_layer = lay;
+						break;
+					}
+				}
+			}
+
 			invalidate_stats_from_fit(gfit);
 			init_layers_hi_and_lo_values(gui.sliders);
 		}
@@ -3214,6 +3344,7 @@ void redraw(remap_type doremap) {
 		gfit->mask        = NULL;
 		gfit->mask_active = FALSE;
 		gfit = saved_gfit;
+		flis_mask_source_layer = NULL;
 	}
 
 	request_gtk_redraw_of_cvport();
