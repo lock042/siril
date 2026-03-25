@@ -3018,6 +3018,8 @@ static void draw_flis_layer_frame(const draw_data_t *dd) {
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
 	cairo_set_dash(cr, dash, 2, 0);
 	cairo_set_source_rgba(cr, 0.7, 0.7, 0.7, 0.9);
+	/* position_y is in display coordinates (0 = top, increasing downward),
+	 * matching cairo's coordinate system after gui.display_matrix is applied. */
 	cairo_rectangle(cr,
 	                (double)active->position_x,
 	                (double)active->position_y,

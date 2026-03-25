@@ -704,6 +704,15 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.cut.cut_end.x = tmp.x;
 		gui.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
+	} else if (gui.flis_layer_dragging) {
+		flis_layer_t *active = flis_active_layer();
+		if (active) {
+			/* Both position_x and position_y are in display coordinates
+			 * (0,0 = top-left, y increasing downward), matching zoomed. */
+			active->position_x = gui.flis_drag_origin_x + (zoomed.x - gui.start.x);
+			active->position_y = gui.flis_drag_origin_y + (zoomed.y - gui.start.y);
+			redraw(REDRAW_OVERLAY);
+		}
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {
 			if (zoomed.x > gui.start.x) {

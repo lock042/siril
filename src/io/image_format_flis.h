@@ -85,6 +85,8 @@ typedef struct flis_layer_props_t {
     flis_tint_t       tint;
     gboolean          lmask_active;
     gchar             name[33];   /* matches max-length in the UI */
+    gint              position_x; /* display coordinates (0=left) */
+    gint              position_y; /* display coordinates (0=top) */
 } flis_layer_props_t;
 
 /* -----------------------------------------------------------------------

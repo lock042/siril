@@ -932,6 +932,11 @@ struct guiinf {
 	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
 	GdkRGBA poly_ink; // Color and alpha for drawing polygons
 	gboolean poly_fill; // Whether to fill drawn polygons
+
+	/* FLIS layer drag state */
+	gboolean flis_layer_dragging;   // TRUE while button is down in drag-layer mode
+	gint     flis_drag_origin_x;    // layer position_x at drag start
+	gint     flis_drag_origin_y;    // layer position_y at drag start (FITS convention)
 };
 
 struct common_icc {

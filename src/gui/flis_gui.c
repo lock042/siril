@@ -52,6 +52,7 @@
 #include "gui/message_dialog.h"
 #include "core/undo.h"
 #include "flis_gui.h"
+#include "gui/image_interactions.h"
 
 /* =========================================================================
  * State
@@ -127,6 +128,7 @@ static void on_row_visibility_toggled(GtkToggleButton *btn, gpointer data);
 static void on_row_lock_toggled(GtkToggleButton *btn, gpointer data);
 G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn, gpointer data);
 G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn, gpointer data);
+G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkCheckMenuItem *item, gpointer data);
 
 /* Create an icon-only toggle button for use in a layer row. */
 static GtkWidget *row_icon_toggle(const gchar *icon_on,
@@ -1425,6 +1427,14 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
             }
             gtk_widget_set_sensitive(merge_item, can_merge);
         }
+        /* Sync the "Move Layer" check item to the current mouse mode */
+        GtkCheckMenuItem *move_item = GTK_CHECK_MENU_ITEM(lookup_widget("flis_move_layer_item"));
+        if (move_item) {
+            g_signal_handlers_block_by_func(move_item, on_flis_move_layer_toggled, NULL);
+            gtk_check_menu_item_set_active(move_item,
+                mouse_status == MOUSE_ACTION_FLIS_DRAG_LAYER);
+            g_signal_handlers_unblock_by_func(move_item, on_flis_move_layer_toggled, NULL);
+        }
         gtk_menu_popup_at_pointer(menu, (GdkEvent *)event);
     }
 
@@ -1477,6 +1487,19 @@ G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) 
     flis_gui_update();
     show_or_hide_mask_tab();
     redraw(REMAP_ALL);
+}
+
+G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkCheckMenuItem *item, gpointer data) {
+    (void)data;
+    gboolean active = gtk_check_menu_item_get_active(item);
+    if (active) {
+        mouse_status = MOUSE_ACTION_FLIS_DRAG_LAYER;
+        set_cursor("grab");
+    } else {
+        mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+        gui.flis_layer_dragging = FALSE;
+        set_cursor("crosshair");
+    }
 }
 
 /*

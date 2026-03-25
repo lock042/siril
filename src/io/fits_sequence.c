@@ -47,6 +47,22 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	if (status || !nb_im)
 		return 1;
 
+	/* Check whether this is a FLIS file by reading the FLIS keyword from
+	 * HDU 1 (primary).  If so, suppress heterogeneity warnings — FLIS files
+	 * intentionally contain layers with different sizes and parameters. */
+	int flis_status = 0;
+	int flis_flag = 0;
+	fits_movabs_hdu(fptr, 1, NULL, &flis_status);
+	fits_read_key(fptr, TLOGICAL, "FLIS", &flis_flag, NULL, &flis_status);
+	gboolean is_flis = (flis_status == 0 && flis_flag);
+
+	/* FLIS files are not FITS sequences — return immediately so
+	 * fitseq_is_fitseq() returns FALSE and load_flis() handles them. */
+	if (is_flis) {
+		*nb_im = 0;
+		return 1;
+	}
+
 	if (hdus) {
 		*hdus = malloc(nb_hdu * sizeof(int));
 		if (!*hdus) {
@@ -96,7 +112,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
 					if (!g_str_has_prefix(extension, "ICCProfile"))
 						continue;
-					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
+					siril_log_message(_("Several images were found in the FITS file but they have different number of channels, which is not allowed.\n"));
 					status = 1;
 					break;
 				}

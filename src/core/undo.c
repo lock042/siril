@@ -468,6 +468,8 @@ static int undo_get_data(fits *fit, historic *hist) {
 		layer->has_tint     = p->has_tint;
 		layer->layer_tint   = p->tint;
 		layer->lmask_active = p->lmask_active;
+		layer->position_x   = p->position_x;
+		layer->position_y   = p->position_y;
 		g_free(layer->layer_name);
 		layer->layer_name = g_strdup(p->name);
 		return 0;
@@ -751,6 +753,8 @@ int undo_save_flis_layer_props(flis_layer_t *layer, const char *message, ...) {
 	props.has_tint     = layer->has_tint;
 	props.tint         = layer->layer_tint;
 	props.lmask_active = layer->lmask_active;
+	props.position_x   = layer->position_x;
+	props.position_y   = layer->position_y;
 	g_strlcpy(props.name,
 	          layer->layer_name ? layer->layer_name : "", sizeof(props.name));
 

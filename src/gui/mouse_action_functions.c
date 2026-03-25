@@ -34,6 +34,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "gui/open_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
@@ -166,6 +167,15 @@ void cache_widgets() {
 // this is required in order to avoid calling a NULL pointer if the mouse
 // action does not have any other function assigned.
 gboolean mouse_nullfunction(mouse_data *data) {
+	return TRUE;
+}
+
+static gboolean drag_flis_layer_release(mouse_data *data) {
+	if (!gui.flis_layer_dragging) return TRUE;
+	gui.flis_layer_dragging = FALSE;
+
+	/* Rebuild the composite with the new layer position */
+	notify_gfit_modified();
 	return TRUE;
 }
 
@@ -657,6 +667,19 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
 				register_release_callback(sample_mask_color_release, data->event->button);
+				break;
+			}
+			case MOUSE_ACTION_FLIS_DRAG_LAYER: {
+				if (!is_current_image_flis()) break;
+				flis_layer_t *active = flis_active_layer();
+				if (!active) break;
+				/* Save undo state BEFORE modifying position */
+				undo_save_flis_layer_props(active, _("Move layer"));
+				gui.flis_layer_dragging = TRUE;
+				gui.start = data->zoomed;
+				gui.flis_drag_origin_x = active->position_x;
+				gui.flis_drag_origin_y = active->position_y;
+				register_release_callback(drag_flis_layer_release, data->event->button);
 				break;
 			}
 			default: {
