@@ -24,11 +24,13 @@
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/flis_gui.h"
 #include "gui/histogram.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "masks_gui.h"
 #include "opencv/opencv.h"
 
@@ -53,10 +55,18 @@ static GtkWidget *combo_mask_from_stars_bitdepth = NULL;
 static GtkSpinButton *spin_mask_star_radius = NULL;
 static GtkSpinButton *spin_mask_feather = NULL;
 static GtkWidget *toggle_mask_stars_invert = NULL;
+static GtkWidget *stars_layer_mask_box = NULL;
+static GtkWidget *toggle_stars_layer_mask = NULL;
+static GtkComboBoxText *combo_stars_layer_mask = NULL;
 
 /* State for mask from image dialog */
 static gboolean mask_from_file_mode = FALSE;
 static gchar *selected_mask_filename = NULL;
+
+/* Static widget pointers for mask from image dialog - layer mask */
+static GtkWidget *image_layer_mask_box = NULL;
+static GtkWidget *toggle_image_layer_mask = NULL;
+static GtkComboBoxText *combo_image_layer_mask = NULL;
 
 /* Static widget pointers for color mask dialog */
 static GtkWidget *combo_color_mask_bitdepth = NULL;
@@ -67,6 +77,9 @@ static GtkScale *scale_lum_max = NULL;
 static GtkSpinButton *spin_color_feather = NULL;
 static GtkWidget *toggle_color_mask_invert = NULL;
 static GtkWidget *toggle_color_mask_cleanup = NULL;
+static GtkWidget *color_layer_mask_box = NULL;
+static GtkWidget *toggle_color_layer_mask = NULL;
+static GtkComboBoxText *combo_color_layer_mask = NULL;
 
 /* Store the selected color RGB values */
 static float selected_color_r = 1.0f;
@@ -115,8 +128,27 @@ void on_mask_from_image_dialog_show(GtkWidget *widget, gpointer user_data) {
 		spin_mask_channel = GTK_SPIN_BUTTON(lookup_widget("spin_mask_channel"));
 		toggle_mask_autostretch = lookup_widget("toggle_mask_autostretch");
 		toggle_mask_invert = lookup_widget("toggle_mask_invert");
+		image_layer_mask_box = lookup_widget("image_layer_mask_box");
+		toggle_image_layer_mask = lookup_widget("toggle_image_layer_mask");
+		combo_image_layer_mask = GTK_COMBO_BOX_TEXT(lookup_widget("combo_image_layer_mask"));
 
 		widgets_initialized = TRUE;
+	}
+
+	/* Show/hide layer mask section based on FLIS */
+	gboolean is_flis = is_current_image_flis();
+	if (image_layer_mask_box)
+		gtk_widget_set_visible(image_layer_mask_box, is_flis);
+	if (is_flis && toggle_image_layer_mask) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_image_layer_mask), FALSE);
+		/* In file mode, file dimensions are unknown until a file is chosen,
+		 * so show all layers and let the worker validate. */
+		flis_populate_layer_combo(combo_image_layer_mask, !mask_from_file_mode);
+		flis_combo_select_active_layer(combo_image_layer_mask);
+		if (combo_image_layer_mask)
+			gtk_widget_set_sensitive(GTK_WIDGET(combo_image_layer_mask), FALSE);
+		if (combo_mask_from_image_bitdepth)
+			gtk_widget_set_sensitive(combo_mask_from_image_bitdepth, TRUE);
 	}
 
 	/* Configure dialog based on mode */
@@ -260,13 +292,37 @@ void on_mask_file_chooser_clicked(GtkButton *button, gpointer user_data) {
 * Applies the mask creation operation based on the current settings.
 */
 void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
+	/* Determine if this should go to a layer mask */
+	gboolean use_layer_mask = toggle_image_layer_mask &&
+	    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_image_layer_mask));
+	gint target_layer_id = 0;
+
+	if (use_layer_mask) {
+		gchar *layer_name = combo_image_layer_mask ?
+		    gtk_combo_box_text_get_active_text(combo_image_layer_mask) : NULL;
+		if (!layer_name) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No layer selected"),
+			                     _("Please select a layer to create the layer mask in."));
+			return;
+		}
+		flis_layer_t *lay = flis_layer_get_by_name(layer_name);
+		g_free(layer_name);
+		if (!lay) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Layer not found"),
+			                     _("The selected layer could not be found."));
+			return;
+		}
+		target_layer_id = lay->item_id;
+	}
+
 	/* Get option flags */
 	gboolean autostretch = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_mask_autostretch));
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_mask_invert));
 
-	/* Get the bitdepth */
+	/* Get the bitdepth (forced 8-bit when targeting a layer mask) */
 	gint bitdepth_index = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_mask_from_image_bitdepth));
-	uint8_t bitdepth = (uint8_t) bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32;
+	uint8_t bitdepth = use_layer_mask ? 8 :
+	    (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
 
 	/* Variables for mask parameters */
 	gdouble weight_r = 0.0, weight_g = 0.0, weight_b = 0.0;
@@ -310,6 +366,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = target_layer_id;
 
 			start_in_new_thread(generic_mask_worker, args);
 		} else {
@@ -333,6 +390,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = target_layer_id;
 
 			start_in_new_thread(generic_mask_worker, args);
 		}
@@ -366,6 +424,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = target_layer_id;
 
 			start_in_new_thread(generic_mask_worker, args);
 		} else if (mask_type == 1) {
@@ -389,6 +448,7 @@ void on_mask_from_image_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->user = data;
 			args->mask_creation = TRUE;
 			args->max_threads = com.max_thread;
+			args->target_layer_id = target_layer_id;
 
 			start_in_new_thread(generic_mask_worker, args);
 		}
@@ -460,6 +520,14 @@ void on_combo_mask_luminance_type_changed(GtkComboBox *combo, gpointer user_data
 	}
 }
 
+void on_toggle_image_layer_mask_toggled(GtkToggleButton *btn, gpointer user_data) {
+	gboolean active = gtk_toggle_button_get_active(btn);
+	if (combo_image_layer_mask)
+		gtk_widget_set_sensitive(GTK_WIDGET(combo_image_layer_mask), active);
+	if (combo_mask_from_image_bitdepth)
+		gtk_widget_set_sensitive(combo_mask_from_image_bitdepth, !active);
+}
+
 /**
 * on_mask_from_stars_dialog_show:
 * @widget: The dialog widget
@@ -476,10 +544,24 @@ void on_mask_from_stars_dialog_show(GtkWidget *widget, gpointer user_data) {
 		spin_mask_star_radius = GTK_SPIN_BUTTON(lookup_widget("spin_mask_star_radius"));
 		spin_mask_feather = GTK_SPIN_BUTTON(lookup_widget("spin_mask_feather"));
 		toggle_mask_stars_invert = lookup_widget("toggle_mask_stars_invert");
+		stars_layer_mask_box = lookup_widget("stars_layer_mask_box");
+		toggle_stars_layer_mask = lookup_widget("toggle_stars_layer_mask");
+		combo_stars_layer_mask = GTK_COMBO_BOX_TEXT(lookup_widget("combo_stars_layer_mask"));
 
 		widgets_initialized = TRUE;
 	}
-	// TODO: initialize the bitdepth combo box based on the preference, when added
+
+	/* Show layer mask section only when a FLIS is loaded */
+	gboolean is_flis = is_current_image_flis();
+	if (stars_layer_mask_box)
+		gtk_widget_set_visible(stars_layer_mask_box, is_flis);
+	if (is_flis && toggle_stars_layer_mask) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_stars_layer_mask), FALSE);
+		flis_populate_layer_combo(combo_stars_layer_mask, TRUE);
+		flis_combo_select_active_layer(combo_stars_layer_mask);
+		if (combo_stars_layer_mask)
+			gtk_widget_set_sensitive(GTK_WIDGET(combo_stars_layer_mask), FALSE);
+	}
 }
 
 /**
@@ -494,6 +576,14 @@ void on_mask_from_stars_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("mask_from_stars_dialog");
 }
 
+void on_toggle_stars_layer_mask_toggled(GtkToggleButton *btn, gpointer user_data) {
+	gboolean active = gtk_toggle_button_get_active(btn);
+	if (combo_stars_layer_mask)
+		gtk_widget_set_sensitive(GTK_WIDGET(combo_stars_layer_mask), active);
+	if (combo_mask_from_stars_bitdepth)
+		gtk_widget_set_sensitive(combo_mask_from_stars_bitdepth, !active);
+}
+
 /**
 * on_mask_from_stars_apply_clicked:
 * @button: The button that was clicked
@@ -503,18 +593,42 @@ void on_mask_from_stars_close_clicked(GtkButton *button, gpointer user_data) {
 * Applies the mask creation operation from detected stars.
 */
 void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gfit->mask) {
-		set_mask_active( gfit, FALSE);
-		free_mask(gfit->mask);
-		gfit->mask = NULL;
+	/* Determine if this should go to a layer mask */
+	gboolean use_layer_mask = toggle_stars_layer_mask &&
+	    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_stars_layer_mask));
+	gint target_layer_id = 0;
+
+	if (use_layer_mask) {
+		gchar *layer_name = combo_stars_layer_mask ?
+		    gtk_combo_box_text_get_active_text(combo_stars_layer_mask) : NULL;
+		if (!layer_name) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No layer selected"),
+			                     _("Please select a layer to create the layer mask in."));
+			return;
+		}
+		flis_layer_t *lay = flis_layer_get_by_name(layer_name);
+		g_free(layer_name);
+		if (!lay) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Layer not found"),
+			                     _("The selected layer could not be found."));
+			return;
+		}
+		target_layer_id = lay->item_id;
+	} else {
+		if (gfit->mask) {
+			set_mask_active(gfit, FALSE);
+			free_mask(gfit->mask);
+			gfit->mask = NULL;
+		}
 	}
 
 	/* Get star radius (FWHM multiplier) */
 	gfloat star_radius = (gfloat) gtk_spin_button_get_value(spin_mask_star_radius);
 
-	/* Get the bitdepth */
+	/* Get the bitdepth (ignored when targeting layer mask) */
 	gint bitdepth_index = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_mask_from_stars_bitdepth));
-	uint8_t bitdepth = (uint8_t) bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32;
+	uint8_t bitdepth = use_layer_mask ? 8 :
+	    (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
 
 	/* Get feather radius */
 	gdouble feather_radius = gtk_spin_button_get_value(spin_mask_feather);
@@ -522,7 +636,8 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	/* Get invert option */
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_mask_stars_invert));
 
-	undo_save_state( gfit, _("Create mask from stars"));
+	if (!use_layer_mask)
+		undo_save_state(gfit, _("Create mask from stars"));
 
 	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
 	data->r = star_radius;
@@ -538,7 +653,9 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->description = _("Mask from stars");
 	args->verbose = TRUE;
 	args->user = data;
+	args->mask_creation = TRUE;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 
@@ -561,6 +678,8 @@ void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	if (get_flis_show_layer_mask() && is_current_image_flis())
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }
@@ -584,6 +703,8 @@ void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	if (get_flis_show_layer_mask() && is_current_image_flis())
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }
@@ -604,6 +725,8 @@ void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	if (get_flis_show_layer_mask() && is_current_image_flis())
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }
@@ -666,8 +789,25 @@ void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
 		spin_color_feather = GTK_SPIN_BUTTON(lookup_widget("spin_color_feather"));
 		toggle_color_mask_invert = lookup_widget("toggle_color_mask_invert");
 		toggle_color_mask_cleanup = lookup_widget("toggle_color_mask_cleanup");
+		color_layer_mask_box = lookup_widget("color_layer_mask_box");
+		toggle_color_layer_mask = lookup_widget("toggle_color_layer_mask");
+		combo_color_layer_mask = GTK_COMBO_BOX_TEXT(lookup_widget("combo_color_layer_mask"));
 
 		widgets_initialized = TRUE;
+	}
+
+	/* Show layer mask section only when a FLIS is loaded */
+	gboolean is_flis = is_current_image_flis();
+	if (color_layer_mask_box)
+		gtk_widget_set_visible(color_layer_mask_box, is_flis);
+	if (is_flis && toggle_color_layer_mask) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_color_layer_mask), FALSE);
+		flis_populate_layer_combo(combo_color_layer_mask, TRUE);
+		flis_combo_select_active_layer(combo_color_layer_mask);
+		if (combo_color_layer_mask)
+			gtk_widget_set_sensitive(GTK_WIDGET(combo_color_layer_mask), FALSE);
+		if (combo_color_mask_bitdepth)
+			gtk_widget_set_sensitive(combo_color_mask_bitdepth, TRUE);
 	}
 
 	/* Trigger initial draw */
@@ -706,6 +846,14 @@ void mask_color_handle_image_click(int x, int y) {
 	}
 }
 
+void on_toggle_color_layer_mask_toggled(GtkToggleButton *btn, gpointer user_data) {
+	gboolean active = gtk_toggle_button_get_active(btn);
+	if (combo_color_layer_mask)
+		gtk_widget_set_sensitive(GTK_WIDGET(combo_color_layer_mask), active);
+	if (combo_color_mask_bitdepth)
+		gtk_widget_set_sensitive(combo_color_mask_bitdepth, !active);
+}
+
 void on_mask_color_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("mask_from_color_dialog");
 }
@@ -722,8 +870,32 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
+	/* Determine if this should go to a layer mask */
+	gboolean use_layer_mask = toggle_color_layer_mask &&
+	    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_layer_mask));
+	gint target_layer_id = 0;
+
+	if (use_layer_mask) {
+		gchar *layer_name = combo_color_layer_mask ?
+		    gtk_combo_box_text_get_active_text(combo_color_layer_mask) : NULL;
+		if (!layer_name) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No layer selected"),
+			                     _("Please select a layer to create the layer mask in."));
+			return;
+		}
+		flis_layer_t *lay = flis_layer_get_by_name(layer_name);
+		g_free(layer_name);
+		if (!lay) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Layer not found"),
+			                     _("The selected layer could not be found."));
+			return;
+		}
+		target_layer_id = lay->item_id;
+	}
+
 	gint bitdepth_index = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_color_mask_bitdepth));
-	uint8_t bitdepth = (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
+	uint8_t bitdepth = use_layer_mask ? 8 :
+	    (uint8_t)(bitdepth_index == 0 ? 8 : bitdepth_index == 1 ? 16 : 32);
 	gint feather_radius = gtk_spin_button_get_value_as_int(spin_color_feather);
 	gboolean invert = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_invert));
 	gboolean cleanup = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_color_mask_cleanup));
@@ -774,7 +946,9 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->description = _("Mask from color");
 	args->verbose = TRUE;
 	args->user = data;
+	args->mask_creation = TRUE;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 
@@ -858,6 +1032,8 @@ void on_threshold_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->verbose = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	if (get_flis_show_layer_mask() && is_current_image_flis())
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }

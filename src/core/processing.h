@@ -210,6 +210,12 @@ struct generic_mask_args {
 	gpointer user;
 	gboolean mask_creation; // states if this is a mask creation operation (mask is active on completion if TRUE)
 	int max_threads; // number of threads to use for the operation
+	/** When set to a valid FLIS layer item_id (>= 1), the mask result is
+	 *  stored as the layer mask (lmask) of that layer instead of as a
+	 *  processing mask on args->fit.  Layer IDs start at 1, so the
+	 *  calloc zero (0) is safe as the "not set" sentinel — callers that
+	 *  want normal processing-mask behaviour need not set this field. */
+	gint target_layer_id;
 };
 
 void free_generic_img_args(struct generic_img_args *args);

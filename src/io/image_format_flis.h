@@ -415,6 +415,7 @@ int flis_promote_from_gfit(const gchar *name);
  * Returns the flis_layer_t* with the given item_id, or NULL if not found.
  */
 flis_layer_t *flis_layer_get_by_id(gint item_id);
+flis_layer_t *flis_layer_get_by_name(const gchar *name);
 
 /**
  * flis_layer_get_index:

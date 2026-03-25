@@ -715,9 +715,13 @@ static int undo_push_flis_layer_props(gint item_id,
 
 	historic *h = &com.history[com.hist_current];
 	memset(h, 0, sizeof(*h));
-	h->filename       = NULL;
-	h->layer_props    = copy;
-	h->flis_layer_id  = item_id;
+	h->filename              = NULL;
+	h->layer_props           = copy;
+	h->flis_layer_id         = item_id;
+	h->lmask_layer_id        = FLIS_UNDO_LAYER_NONE;
+	h->lmask_dest_layer_id   = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id    = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
 	snprintf(h->history, FLEN_VALUE, "%s", histo ? histo : "");
 
 	com.hist_current++;
@@ -802,10 +806,13 @@ int undo_save_flis_lmask(flis_layer_t *layer, const char *message) {
 
 	historic *h = &com.history[com.hist_current];
 	memset(h, 0, sizeof(*h));
-	h->filename       = NULL;
-	h->layer_props    = NULL;
-	h->flis_layer_id  = FLIS_UNDO_LAYER_NONE;
-	h->lmask_layer_id = layer->item_id;
+	h->filename              = NULL;
+	h->layer_props           = NULL;
+	h->flis_layer_id         = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id        = layer->item_id;
+	h->lmask_dest_layer_id   = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id    = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
 	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
 
 	if (!layer->lmask || !layer->lmask->data) {
@@ -909,10 +916,12 @@ int undo_save_flis_lmask_move(flis_layer_t *source, flis_layer_t *dest,
 
 	historic *h = &com.history[com.hist_current];
 	memset(h, 0, sizeof(*h));
-	h->flis_layer_id       = FLIS_UNDO_LAYER_NONE;
-	h->lmask_layer_id      = source->item_id;
-	h->lmask_dest_layer_id = dest->item_id;
-	h->lmask_filename      = NULL;   /* no swap file needed */
+	h->flis_layer_id         = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id        = source->item_id;
+	h->lmask_dest_layer_id   = dest->item_id;
+	h->lmask_filename        = NULL;   /* no swap file needed */
+	h->reorder_layer_a_id    = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
 	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
 
 	com.hist_current++;
@@ -954,18 +963,33 @@ int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
 
 	historic *h = &com.history[com.hist_current];
 	memset(h, 0, sizeof(*h));
-	h->flis_layer_id        = FLIS_UNDO_LAYER_NONE;
-	h->lmask_layer_id       = FLIS_UNDO_LAYER_NONE;
-	h->reorder_layer_a_id   = layer_a->item_id;
-	h->reorder_layer_a_order= layer_a->layer_order;
-	h->reorder_layer_b_id   = layer_b->item_id;
-	h->reorder_layer_b_order= layer_b->layer_order;
+	h->flis_layer_id         = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id        = FLIS_UNDO_LAYER_NONE;
+	h->lmask_dest_layer_id   = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id    = layer_a->item_id;
+	h->reorder_layer_a_order = layer_a->layer_order;
+	h->reorder_layer_b_id    = layer_b->item_id;
+	h->reorder_layer_b_order = layer_b->layer_order;
 	snprintf(h->history, FLEN_VALUE, "%s", message ? message : "");
 
 	com.hist_current++;
 	com.hist_display = com.hist_current;
 	gui_function(update_MenuItem, NULL);
 	return 0;
+}
+
+/* Returns TRUE if the currently active layer (gfit) has either a processing
+ * mask or a layer mask.  Used to decide whether to switch away from the mask
+ * tab after a pure FLIS structural undo/redo. */
+static gboolean flis_active_layer_has_any_mask(void) {
+	if (gfit && gfit->mask) return TRUE;
+	if (!is_current_image_flis() || !com.uniq) return FALSE;
+	for (GSList *l = com.uniq->layers; l; l = l->next) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (lay && lay->fit == gfit)
+			return (lay->lmask != NULL);
+	}
+	return FALSE;
 }
 
 /* Switch the active FLIS layer to match a historic state, so that
@@ -1126,8 +1150,20 @@ int undo_display_data(int dir) {
 				}
 				com.uniq->chans = composite_rgb ? 3 : 1;
 			}
-			gui_function(close_tab, NULL);
-			gui_function(flis_init_right_tab, NULL);
+			/* Reinitialise channel tabs when pixel data changed.  For pure
+			 * FLIS structural states (no swap file), only switch away from
+			 * the mask tab if no mask remains on the active layer — e.g.
+			 * when undoing mask creation.  If a mask still exists (e.g.
+			 * undoing a blur), stay on the mask tab.  Always update mask
+			 * tab visibility explicitly since close_tab() may be skipped. */
+			if (com.history[com.hist_display].filename) {
+				gui_function(close_tab, NULL);
+				gui_function(flis_init_right_tab, NULL);
+			} else {
+				show_or_hide_mask_tab();
+				if (!flis_active_layer_has_any_mask())
+					gui_function(flis_init_right_tab, NULL);
+			}
 			flis_gui_update();
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
@@ -1195,8 +1231,14 @@ int undo_display_data(int dir) {
 				}
 				com.uniq->chans = composite_rgb ? 3 : 1;
 			}
-			gui_function(close_tab, NULL);
-			gui_function(flis_init_right_tab, NULL);
+			if (com.history[com.hist_display].filename) {
+				gui_function(close_tab, NULL);
+				gui_function(flis_init_right_tab, NULL);
+			} else {
+				show_or_hide_mask_tab();
+				if (!flis_active_layer_has_any_mask())
+					gui_function(flis_init_right_tab, NULL);
+			}
 			flis_gui_update();
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE

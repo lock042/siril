@@ -1329,6 +1329,66 @@ void flis_remove_selected_lmask(void) {
                          _("Remove layer mask"), TRUE, NULL);
 }
 
+/* flis_get_selected_layer_id — exported, used by masks_gui.c */
+gint flis_get_selected_layer_id(void) {
+    if (!flis_selected || !is_current_image_flis()) return 0;
+    return flis_selected->item_id;
+}
+
+/* flis_populate_layer_combo — exported, used by masks_gui.c.
+ * When filter_by_canvas_size is TRUE, only layers whose pixel dimensions
+ * match gfit (the composited canvas) are included — masks are produced from
+ * the canvas so target layers must be the same size.  Pass FALSE when the
+ * mask source dimensions are not yet known (e.g. file-mode before a file
+ * has been selected). */
+void flis_populate_layer_combo(GtkComboBoxText *combo, gboolean filter_by_canvas_size) {
+    if (!combo) return;
+    gtk_combo_box_text_remove_all(combo);
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+    guint mask_rx = gfit->rx;
+    guint mask_ry = gfit->ry;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->layer_name || !lay->fit) continue;
+        if (filter_by_canvas_size &&
+            ((guint)lay->fit->rx != mask_rx || (guint)lay->fit->ry != mask_ry))
+            continue;
+        gtk_combo_box_text_append_text(combo, lay->layer_name);
+    }
+}
+
+/* flis_combo_select_active_layer — exported, used by masks_gui.c.
+ * Selects the entry in @combo whose text matches the active layer's name.
+ * No-op if the combo is empty or the active layer is not present in it
+ * (e.g. filtered out by canvas-size). */
+void flis_combo_select_active_layer(GtkComboBoxText *combo) {
+    if (!combo) return;
+    flis_layer_t *active = flis_active_layer();
+    if (!active || !active->layer_name) {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+        return;
+    }
+    GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(combo));
+    if (!model) return;
+    GtkTreeIter iter;
+    gint idx = 0;
+    if (gtk_tree_model_get_iter_first(model, &iter)) {
+        do {
+            gchar *text = NULL;
+            gtk_tree_model_get(model, &iter, 0, &text, -1);
+            gboolean match = text && g_strcmp0(text, active->layer_name) == 0;
+            g_free(text);
+            if (match) {
+                gtk_combo_box_set_active(GTK_COMBO_BOX(combo), idx);
+                return;
+            }
+            idx++;
+        } while (gtk_tree_model_iter_next(model, &iter));
+    }
+    /* Active layer not in combo (filtered out): fall back to first entry */
+    gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+}
+
 /* =========================================================================
  * Layer context menu
  * ========================================================================= */

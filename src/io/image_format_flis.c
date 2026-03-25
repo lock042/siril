@@ -1790,6 +1790,16 @@ flis_layer_t *flis_layer_get_by_id(gint item_id) {
     return NULL;
 }
 
+flis_layer_t *flis_layer_get_by_name(const gchar *name) {
+    if (!com.uniq || !name) return NULL;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay->layer_name && !g_strcmp0(lay->layer_name, name))
+            return lay;
+    }
+    return NULL;
+}
+
 gint flis_layer_get_index(const flis_layer_t *layer) {
     if (!com.uniq || !layer) return -1;
     gint i = 0;

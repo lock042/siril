@@ -14508,12 +14508,43 @@ int process_catmag_mono(int nb) {
 	return 0;
 }
 
+/* Helper shared by all mask-creation commands.
+ * Parses a "-layermask=<name>" argument: looks up the named layer,
+ * validates it exists and has the same dimensions as gfit.
+ * Returns the layer's item_id on success, or 0 on failure (logs error).
+ * The argument string is word[argidx] and must already match the prefix. */
+static gint parse_layermask_arg(const char *arg_str) {
+	if (!is_current_image_flis() || !com.uniq) {
+		siril_log_message(
+		    _("-layermask= requires a FLIS image to be loaded, aborting.\n"));
+		return 0;
+	}
+	const char *name = arg_str + strlen("-layermask=");
+	if (!*name) {
+		siril_log_message(_("-layermask= requires a layer name, aborting.\n"));
+		return 0;
+	}
+	flis_layer_t *lay = flis_layer_get_by_name(name);
+	if (!lay) {
+		siril_log_message(_("Layer mask: layer \"%s\" not found, aborting.\n"), name);
+		return 0;
+	}
+	if (!lay->fit || lay->fit->rx != (guint)gfit->rx || lay->fit->ry != (guint)gfit->ry) {
+		siril_log_message(
+		    _("Layer mask: layer \"%s\" dimensions do not match the canvas, aborting.\n"),
+		    name);
+		return 0;
+	}
+	return lay->item_id;
+}
+
 // Process functions refactored
 int process_mask_from_stars(int nb) {
 	int argidx = 1;
 	float r = 0.f, feather = 0.f;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
@@ -14544,15 +14575,18 @@ int process_mask_from_stars(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_arg(word[argidx]);
+			if (!target_layer_id) return CMD_ARG_ERROR;
+		}
 		argidx++;
 	}
 
 	mask_from_stars_data *data = calloc(1, sizeof(mask_from_stars_data));
-
 	data->r = r;
 	data->feather = feather;
 	data->invert = invert;
-	data->bitdepth = bitdepth;
+	data->bitdepth = target_layer_id ? 8 : bitdepth; /* lmasks are always 8-bit */
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
@@ -14566,6 +14600,7 @@ int process_mask_from_stars(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -14578,6 +14613,7 @@ int process_mask_from_channel(int nb) {
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
 	gchar *filename = NULL;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
@@ -14606,6 +14642,10 @@ int process_mask_from_channel(int nb) {
 		else if (g_str_has_prefix(word[argidx], "-filename=")) {
 			filename = word[argidx] + 10;
 		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_arg(word[argidx]);
+			if (!target_layer_id) return CMD_ARG_ERROR;
+		}
 		argidx++;
 	}
 
@@ -14615,11 +14655,10 @@ int process_mask_from_channel(int nb) {
 	}
 
 	mask_from_channel_data *data = calloc(1, sizeof(mask_from_channel_data));
-
 	data->channel = channel;
 	data->autostretch = autostretch;
 	data->invert = invert;
-	data->bitpix = (uint8_t)bitdepth;
+	data->bitpix = target_layer_id ? 8 : (uint8_t)bitdepth;
 	data->filename = filename;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
@@ -14634,6 +14673,7 @@ int process_mask_from_channel(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -14648,6 +14688,7 @@ int process_mask_from_lum(int nb) {
 	gboolean use_even = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
 	gchar *filename = NULL;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
@@ -14698,6 +14739,10 @@ int process_mask_from_lum(int nb) {
 		else if (g_str_has_prefix(word[argidx], "-filename=")) {
 			filename = word[argidx] + 10;
 		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_arg(word[argidx]);
+			if (!target_layer_id) return CMD_ARG_ERROR;
+		}
 		argidx++;
 	}
 
@@ -14742,7 +14787,7 @@ int process_mask_from_lum(int nb) {
 	data->invert = invert;
 	data->use_human = use_human;
 	data->use_even = use_even;
-	data->bitpix = (uint8_t)bitdepth;
+	data->bitpix = target_layer_id ? 8 : (uint8_t)bitdepth;
 	data->filename = filename;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
@@ -14757,6 +14802,7 @@ int process_mask_from_lum(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;
@@ -15103,11 +15149,17 @@ int process_mask_from_color(int nb) {
 	int feather_radius = 0;
 	gboolean invert = FALSE;
 	int bitdepth = com.pref.default_mask_bitpix;
+	gint target_layer_id = 0;
 	char *end;
 
 	while (argidx < nb) {
 		if (g_str_has_prefix(word[argidx], "-invert")) {
 			invert = TRUE;
+		}
+		else if (g_str_has_prefix(word[argidx], "-layermask=")) {
+			target_layer_id = parse_layermask_arg(word[argidx]);
+			if (target_layer_id < 0)
+				return CMD_ARG_ERROR;
 		}
 		else if (g_str_has_prefix(word[argidx], "-cr=")) {
 			char *arg = word[argidx] + 4;
@@ -15201,7 +15253,7 @@ int process_mask_from_color(int nb) {
 	data->lum_max = lum_max;
 	data->feather_radius = feather_radius;
 	data->invert = invert;
-	data->bitpix = (uint8_t)bitdepth;
+	data->bitpix = target_layer_id ? 8 : (uint8_t)bitdepth;
 
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit =  gfit;
@@ -15215,6 +15267,7 @@ int process_mask_from_color(int nb) {
 	args->mask_creation = TRUE;
 	args->user = data;
 	args->max_threads = com.max_thread;
+	args->target_layer_id = target_layer_id;
 
 	start_in_new_thread(generic_mask_worker, args);
 	return CMD_OK;

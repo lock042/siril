@@ -56,6 +56,8 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
+#include "gui/flis_gui.h"
+#include "io/image_format_flis.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
@@ -905,6 +907,11 @@ void mask_from_file_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (get_flis_show_layer_mask() && is_current_image_flis()) {
+		flis_remove_selected_lmask();
+		return;
+	}
+
 	if (!gfit || !gfit->mask) {
 		return;
 	}
@@ -920,7 +927,8 @@ void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!gfit || !gfit->mask || !gfit->mask->data) {
+	gboolean lmask_mode = get_flis_show_layer_mask() && is_current_image_flis();
+	if (!lmask_mode && (!gfit || !gfit->mask || !gfit->mask->data)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
 		                     _("There is no mask to autostretch."));
 		return;
@@ -933,6 +941,8 @@ void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpoin
 	args->description = _("Autostretch mask");
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
+	if (lmask_mode)
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }
@@ -950,7 +960,8 @@ void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!gfit || !gfit->mask || !gfit->mask->data) {
+	gboolean lmask_mode = get_flis_show_layer_mask() && is_current_image_flis();
+	if (!lmask_mode && (!gfit || !gfit->mask || !gfit->mask->data)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
 		                     _("There is no mask to invert."));
 		return;
@@ -965,6 +976,8 @@ void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 	args->verbose = TRUE;
 	args->user = NULL;
 	args->max_threads = com.max_thread;
+	if (lmask_mode)
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }
@@ -982,12 +995,16 @@ void mask_from_gradient_activate(GSimpleAction *action, GVariant *parameter, gpo
 		return;
 	}
 
+	gboolean lmask_mode = get_flis_show_layer_mask() && is_current_image_flis();
+
 	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
 	args->fit = gfit;
 	args->mask_hook = mask_from_gradient_hook;
 	args->description = _("Gradient of mask");
 	args->verbose = TRUE;
 	args->max_threads = com.max_thread;
+	if (lmask_mode)
+		args->target_layer_id = flis_get_selected_layer_id();
 
 	start_in_new_thread(generic_mask_worker, args);
 }

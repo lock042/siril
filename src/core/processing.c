@@ -1555,8 +1555,19 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
-	show_or_hide_mask_tab();
-	queue_redraw_mask();
+	if (is_current_image_flis() && args->target_layer_id > 0) {
+		/* Layer mask operation: switch mask tab to show new layer mask,
+		 * refresh the layer list indicator, and trigger a full composite
+		 * redraw plus a mask viewport update. */
+		set_flis_show_layer_mask(TRUE);
+		show_or_hide_mask_tab();
+		queue_redraw_mask();
+		queue_redraw(REMAP_ALL);
+		flis_gui_update_from_idle();
+	} else {
+		show_or_hide_mask_tab();
+		queue_redraw_mask();
+	}
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1890,28 +1901,92 @@ gpointer generic_mask_worker(gpointer p) {
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 
-	// Memory check
-	if (args->mem_ratio > 0.0f) {
-		if (default_mask_mem_hook(args)) {
+	/* Layer mask target detection.  Layer IDs start at 1; calloc default
+	 * of 0 means "no layer target" (normal processing mask). */
+	gboolean is_lmask_op = is_current_image_flis() && (args->target_layer_id > 0);
+	flis_layer_t *target_lay = is_lmask_op
+	                         ? flis_layer_get_by_id(args->target_layer_id) : NULL;
+	if (is_lmask_op && !target_lay) {
+		siril_log_color_message(_("Layer mask: target layer (id %d) not found.\n"),
+		                        "red", args->target_layer_id);
+		args->retval = 1;
+		goto the_end;
+	}
+	if (is_lmask_op && target_lay->fit &&
+	    ((guint)target_lay->fit->rx != (guint)args->fit->rx ||
+	     (guint)target_lay->fit->ry != (guint)args->fit->ry)) {
+		siril_log_color_message(
+		    _("Layer mask: target layer dimensions (%dx%d) do not match "
+		      "the canvas (%dx%d). Cannot create layer mask.\n"), "red",
+		    target_lay->fit->rx, target_lay->fit->ry,
+		    args->fit->rx, args->fit->ry);
+		args->retval = 1;
+		goto the_end;
+	}
+
+	/* For modification ops targeting a layer mask: temporarily install the
+	 * layer's lmask data as args->fit->mask so existing hooks work unchanged.
+	 * Ownership of the data is transferred to the temp wrapper; the original
+	 * lmask->data pointer is NULLed to prevent double-free if the hook
+	 * reallocates (e.g. mask_change_bitpix). */
+	mask_t *orig_fit_mask = NULL;
+	mask_t *temp_mask_wrap = NULL;
+	if (is_lmask_op && !args->mask_creation) {
+		orig_fit_mask = args->fit->mask;
+		if (target_lay->lmask && target_lay->lmask->data) {
+			/* Save undo state while lmask->data is still intact, before
+			 * ownership is transferred to the temp wrapper. */
+			if (args->fit == gfit && !args->command)
+				undo_save_flis_lmask(target_lay, args->description);
+
+			temp_mask_wrap = calloc(1, sizeof(mask_t));
+			if (!temp_mask_wrap) { PRINT_ALLOC_ERR; args->retval = 1; goto the_end; }
+			temp_mask_wrap->bitpix   = target_lay->lmask->bitpix;
+			temp_mask_wrap->data     = target_lay->lmask->data;
+			target_lay->lmask->data  = NULL; /* ownership transferred */
+			args->fit->mask = temp_mask_wrap;
+		} else {
+			/* No existing layer mask to operate on */
+			siril_log_color_message(
+			    _("Layer mask: no existing layer mask to modify on this layer.\n"), "red");
 			args->retval = 1;
 			goto the_end;
 		}
 	}
 
+	// Memory check
+	if (args->mem_ratio > 0.0f) {
+		if (default_mask_mem_hook(args)) {
+			args->retval = 1;
+			goto the_end_lmask_restore;
+		}
+	}
+
 	// Output print of operation description
 	if (args->description && verbose) {
-		gchar *desc = g_strdup_printf(_("%s: processing mask...\n"), args->description);
+		gchar *desc = g_strdup_printf(
+		    is_lmask_op ? _("%s: processing layer mask...\n")
+		               : _("%s: processing mask...\n"),
+		    args->description);
 		siril_log_color_message(desc, "green");
 		g_free(desc);
 	}
 
 	set_progress_bar_data(_("Processing mask..."), 0.1f);
 
+	/* Save undo state: creation ops (lmask_op or not) and non-lmask ops.
+	 * Modification lmask ops are handled above before temp_mask_wrap is set up. */
 	if (args->fit == gfit && !args->command) {
-		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
-		undo_save_state(gfit, undo_msg);
-		g_free(undo_msg);
+		if (is_lmask_op && args->mask_creation) {
+			undo_save_flis_lmask(target_lay, args->description);
+		} else if (!is_lmask_op) {
+			gchar *undo_msg = args->log_hook
+			    ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+			undo_save_state(gfit, undo_msg);
+			g_free(undo_msg);
+		}
 	}
+
 	// Call the mask processing hook
 	if (args->mask_hook(args)) {
 		siril_log_color_message(_("%s mask processing failed.\n"), "red", args->description);
@@ -1929,6 +2004,49 @@ gpointer generic_mask_worker(gpointer p) {
 		}
 	}
 
+	/* Post-hook: transfer result to target layer's lmask */
+	if (is_lmask_op && !args->retval && args->fit->mask && args->fit->mask->data) {
+		/* Layer masks are always 8-bit uint8; convert if the hook produced
+		 * a different bit depth (e.g. a 32-bit creation hook). */
+		if (args->fit->mask->bitpix != 8)
+			mask_change_bitpix(args->fit, 8);
+
+		layermask_t *lm = calloc(1, sizeof(layermask_t));
+		if (lm) {
+			lm->w      = (size_t)target_lay->fit->rx;
+			lm->h      = (size_t)target_lay->fit->ry;
+			lm->bitpix = 8;
+			lm->data   = args->fit->mask->data;
+			args->fit->mask->data = NULL; /* ownership transferred to lm */
+
+			/* For creation ops there is no restore block, so free the
+			 * mask_t shell here.  For modification ops, temp_mask_wrap
+			 * IS args->fit->mask and the restore block frees it. */
+			if (args->mask_creation) {
+				free(args->fit->mask);
+				args->fit->mask = NULL;
+			}
+
+			layermask_free(target_lay->lmask);
+			target_lay->lmask        = lm;
+			target_lay->lmask_active = TRUE;
+			flis_layer_touch_modified(target_lay);
+		} else {
+			PRINT_ALLOC_ERR;
+			args->retval = 1;
+		}
+	}
+
+the_end_lmask_restore:
+	/* Restore the processing mask for modification ops (creation ops leave
+	 * args->fit->mask NULL which is correct — no processing mask was changed). */
+	if (temp_mask_wrap) {
+		/* data was moved into new layermask_t (or freed on failure); just
+		 * free the wrapper shell and restore the original mask pointer. */
+		free(temp_mask_wrap);
+		args->fit->mask = orig_fit_mask;
+	}
+
 the_end:
 	if (args->retval) {
 		set_progress_bar_data(_("Mask processing failed. Check the log."), PROGRESS_RESET);
@@ -1938,7 +2056,8 @@ the_end:
 
 	int retval = args->retval;
 
-	if (args->mask_creation) {
+	if (args->mask_creation && !is_lmask_op) {
+		/* Only activate the processing mask for non-layer-mask creation ops */
 		set_mask_active(args->fit, TRUE);
 	}
 
