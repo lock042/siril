@@ -684,6 +684,20 @@ static gpointer mini_save_dialog(gpointer p) {
 				}
 				break;
 			}
+			/* For FLIS images saved as flat FITS: render the full composite
+			 * rather than saving just the active layer. */
+			if (is_current_image_flis() && com.uniq && com.uniq->layers) {
+				fits *composite = flis_render_layers(com.uniq->layers);
+				if (!composite) {
+					args->retval = 1;
+					break;
+				}
+				composite->bitpix = args->bitpix;
+				args->retval = savefits(args->filename, composite);
+				clearfits(composite);
+				free(composite);
+				break;
+			}
 			gfit->bitpix = args->bitpix;
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */

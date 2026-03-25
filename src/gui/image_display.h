@@ -16,6 +16,11 @@ typedef enum {
 void flis_invalidate_composite(void);
 void flis_composite_free(void);
 
+/* flis_render_layers: composites a GSList of flis_layer_t* into a newly
+ * allocated float-RGB fits*.  The caller must clearfits()+free() the result.
+ * Used by the display pipeline, merge-down, flatten, and flat-FITS save. */
+fits *flis_render_layers(GSList *layers);
+
 /* Controls whether the mask viewport and tint show the active FLIS layer's
  * layer mask (TRUE) or its processing mask (FALSE, default). */
 gboolean get_flis_show_layer_mask(void);

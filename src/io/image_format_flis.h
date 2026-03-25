@@ -483,6 +483,31 @@ flis_layer_t *flis_layer_add(fits *fit, const gchar *name);
 int flis_layer_remove(flis_layer_t *layer);
 
 /**
+ * flis_merge_down_layer:
+ * @top: the layer to merge downward.
+ *
+ * Composites @top onto the layer directly below it, stores the result in the
+ * lower layer, and deletes @top.  The lower layer retains its own blend mode,
+ * opacity, and masks.  @top's layer mask and processing mask are consumed by
+ * the render and removed with the layer.
+ *
+ * This is a destructive operation that purges the undo history for both layers.
+ * Returns: 0 on success, 1 on failure.
+ */
+int flis_merge_down_layer(flis_layer_t *top);
+
+/**
+ * flis_flatten_all:
+ *
+ * Composites all visible layers into the base layer, deletes all other layers,
+ * and clears all masks.  The base layer's blend mode is reset to Normal.
+ *
+ * This is a destructive operation that purges the entire undo history.
+ * Returns: 0 on success, 1 on failure.
+ */
+int flis_flatten_all(void);
+
+/**
  * flis_layer_duplicate:
  * @layer: layer to duplicate.
  *

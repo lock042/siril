@@ -50,6 +50,8 @@
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
 #include "core/masks.h"
+#include "core/undo.h"
+#include "algos/statistics.h"
 #include "gui/image_display.h"
 #include "image_format_fits.h"
 #include "image_format_flis.h"
@@ -1922,6 +1924,188 @@ int flis_layer_remove(flis_layer_t *layer) {
     siril_log_message(_("FLIS: removed layer '%s'\n"),
                       layer->layer_name ? layer->layer_name : "?");
     flis_layer_free(layer);
+    return 0;
+}
+
+/* -------------------------------------------------------------------------
+ * flis_layer_install_render
+ *
+ * Transfers ownership of all pixel data from @rendered (a float RGB fits*
+ * returned by flis_render_layers) into @lay->fit.  The layer's existing
+ * pixel buffers are freed.  ICC profile, keywords, mask, and all other
+ * metadata fields already on the layer's fit are preserved.  The @rendered
+ * shell is freed after the transfer.
+ * ------------------------------------------------------------------------- */
+static void flis_layer_install_render(flis_layer_t *lay, fits *rendered) {
+    fits *f = lay->fit;
+
+    /* Free existing pixel buffers */
+    if (f->fdata) { free(f->fdata); f->fdata = NULL; }
+    if (f->data)  { free(f->data);  f->data  = NULL; }
+    for (int i = 0; i < 3; i++) {
+        f->fpdata[i] = NULL;
+        f->pdata[i]  = NULL;
+    }
+
+    /* Transfer float RGB data ownership */
+    f->fdata       = rendered->fdata;
+    f->fpdata[0]   = rendered->fpdata[0];
+    f->fpdata[1]   = rendered->fpdata[1];
+    f->fpdata[2]   = rendered->fpdata[2];
+    f->type        = DATA_FLOAT;
+    f->bitpix      = FLOAT_IMG;
+    f->orig_bitpix = FLOAT_IMG;
+    f->naxis       = rendered->naxis;
+    f->naxes[0]    = rendered->naxes[0];
+    f->naxes[1]    = rendered->naxes[1];
+    f->naxes[2]    = rendered->naxes[2];
+    f->rx          = rendered->rx;
+    f->ry          = rendered->ry;
+
+    /* ICC profile: take from rendered composite (derived from base layer) */
+    if (f->icc_profile) { cmsCloseProfile(f->icc_profile); f->icc_profile = NULL; }
+    if (rendered->icc_profile) {
+        f->icc_profile = rendered->icc_profile;
+        rendered->icc_profile = NULL;
+        color_manage(f, TRUE);
+    } else {
+        color_manage(f, FALSE);
+    }
+
+    invalidate_stats_from_fit(f);
+
+    /* Null rendered's pointers before freeing to prevent double-free */
+    rendered->fdata = NULL;
+    rendered->fpdata[0] = rendered->fpdata[1] = rendered->fpdata[2] = NULL;
+    free(rendered);
+}
+
+/* -------------------------------------------------------------------------
+ * flis_merge_down_layer
+ *
+ * Merges @top onto the layer directly below it in the stack.  The top
+ * layer's compositing parameters (blend mode, opacity, layer mask) are
+ * applied during rendering and then the layer is deleted.  The target
+ * layer retains its own blend mode, opacity, and masks.
+ *
+ * This operation is destructive and purges the undo history for both layers.
+ * Returns 0 on success, 1 on failure.
+ * ------------------------------------------------------------------------- */
+int flis_merge_down_layer(flis_layer_t *top) {
+    if (!com.uniq || !top) return 1;
+    if (flis_check_locked(top, _("merge down"))) return 1;
+
+    /* Find the layer with the highest layer_order below top */
+    flis_layer_t *bottom = NULL;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || lay == top) continue;
+        if (lay->layer_order < top->layer_order) {
+            if (!bottom || lay->layer_order > bottom->layer_order)
+                bottom = lay;
+        }
+    }
+    if (!bottom) {
+        siril_log_color_message(_("Merge Down: no layer below the current layer.\n"),
+                                "salmon");
+        return 1;
+    }
+
+    /* Render [bottom, top] as a 2-layer composite */
+    GSList *tmp = g_slist_append(NULL, bottom);
+    tmp = g_slist_append(tmp, top);
+    fits *merged = flis_render_layers(tmp);
+    g_slist_free(tmp);
+    if (!merged) {
+        siril_log_color_message(_("Merge Down: rendering failed.\n"), "red");
+        return 1;
+    }
+
+    /* Destructive operation: purge undo history for both layers */
+    flis_undo_purge_layer(top->item_id);
+    flis_undo_purge_layer(bottom->item_id);
+
+    /* Clear the bottom layer's masks (consumed by the merge) */
+    if (bottom->fit->mask) { free_mask(bottom->fit->mask); bottom->fit->mask = NULL; }
+    layermask_free(bottom->lmask);
+    bottom->lmask = NULL;
+
+    /* Install merged pixels into the bottom layer */
+    flis_layer_install_render(bottom, merged);
+
+    /* Remove the top layer from the stack (flis_layer_free handles its masks) */
+    com.uniq->layers = g_slist_remove(com.uniq->layers, top);
+    flis_layer_free(top);
+
+    /* Make bottom the active layer */
+    gint idx = flis_layer_get_index(bottom);
+    if (idx >= 0)
+        uniq_set_active_layer(com.uniq, idx);
+
+    flis_invalidate_composite();
+
+    siril_log_message(_("FLIS: merged '%s' down into '%s'\n"),
+                      top->layer_name    ? top->layer_name    : "?",
+                      bottom->layer_name ? bottom->layer_name : "?");
+    return 0;
+}
+
+/* -------------------------------------------------------------------------
+ * flis_flatten_all
+ *
+ * Composites all visible layers into a single base layer.  All non-base
+ * layers are deleted; the base layer's blend mode is reset to Normal and
+ * all masks are cleared.
+ *
+ * This operation is destructive and purges the entire undo history.
+ * Returns 0 on success, 1 on failure.
+ * ------------------------------------------------------------------------- */
+int flis_flatten_all(void) {
+    if (!com.uniq || !com.uniq->layers) return 1;
+    if (flis_layer_count() <= 1) return 0; /* already flat */
+
+    /* Render all visible layers */
+    fits *flat = flis_render_layers(com.uniq->layers);
+    if (!flat) {
+        siril_log_color_message(_("Flatten: rendering failed.\n"), "red");
+        return 1;
+    }
+
+    /* Base layer is the first in the sorted list (lowest layer_order) */
+    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
+
+    /* Remove and free all layers except the base, purging their undo entries */
+    GSList *rest = g_slist_copy(com.uniq->layers->next);
+    for (GSList *l = rest; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        flis_undo_purge_layer(lay->item_id);
+        com.uniq->layers = g_slist_remove(com.uniq->layers, lay);
+        flis_layer_free(lay);
+    }
+    g_slist_free(rest);
+
+    /* Purge base's undo history too */
+    flis_undo_purge_layer(base->item_id);
+
+    /* Clear the base layer's masks */
+    if (base->fit->mask) { free_mask(base->fit->mask); base->fit->mask = NULL; }
+    layermask_free(base->lmask);
+    base->lmask = NULL;
+
+    /* Reset compositing parameters: base is now the sole layer */
+    base->blend_mode = FLIS_BLEND_NORMAL;
+    base->opacity    = 1.0f;
+    base->has_tint   = FALSE;
+    base->visible    = TRUE;
+
+    /* Install the flattened pixels */
+    flis_layer_install_render(base, flat);
+
+    uniq_set_active_layer(com.uniq, 0);
+    flis_invalidate_composite();
+
+    siril_log_message(_("FLIS: image flattened to single layer '%s'\n"),
+                      base->layer_name ? base->layer_name : "?");
     return 0;
 }
 

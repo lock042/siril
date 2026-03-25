@@ -1408,10 +1408,75 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
         gtk_list_box_select_row(list, row);
 
     GtkMenu *menu = GTK_MENU(lookup_widget("flis_layer_context_menu"));
-    if (menu && flis_selected)
+    if (menu && flis_selected) {
+        /* Merge Down is only available when a layer exists below the selection */
+        GtkWidget *merge_item = lookup_widget("flis_merge_down_item");
+        if (merge_item) {
+            gboolean can_merge = FALSE;
+            if (flis_selected && com.uniq) {
+                for (GSList *l = com.uniq->layers; l; l = l->next) {
+                    flis_layer_t *lay = (flis_layer_t *)l->data;
+                    if (lay && lay != flis_selected &&
+                        lay->layer_order < flis_selected->layer_order) {
+                        can_merge = TRUE;
+                        break;
+                    }
+                }
+            }
+            gtk_widget_set_sensitive(merge_item, can_merge);
+        }
         gtk_menu_popup_at_pointer(menu, (GdkEvent *)event);
+    }
 
     return GDK_EVENT_STOP;
+}
+
+G_MODULE_EXPORT void on_flis_merge_down_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!flis_selected || !is_current_image_flis()) return;
+
+    if (!siril_confirm_dialog(_("Merge Down"),
+            _("Merge the current layer onto the one below it?\n\n"
+              "This operation cannot be undone."),
+            _("Merge Down")))
+        return;
+
+    if (flis_merge_down_layer(flis_selected)) {
+        siril_message_dialog(GTK_MESSAGE_ERROR, _("Merge Down"),
+                             _("Merge Down failed."));
+        return;
+    }
+
+    flis_gui_update();
+    show_or_hide_mask_tab();
+    redraw(REMAP_ALL);
+}
+
+G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!is_current_image_flis()) return;
+
+    if (flis_layer_count() <= 1) {
+        siril_message_dialog(GTK_MESSAGE_INFO, _("Flatten Image"),
+                             _("The image already has only one layer."));
+        return;
+    }
+
+    if (!siril_confirm_dialog(_("Flatten Image"),
+            _("Flatten all visible layers into a single layer?\n\n"
+              "All masks will be removed and this operation cannot be undone."),
+            _("Flatten")))
+        return;
+
+    if (flis_flatten_all()) {
+        siril_message_dialog(GTK_MESSAGE_ERROR, _("Flatten Image"),
+                             _("Flatten failed."));
+        return;
+    }
+
+    flis_gui_update();
+    show_or_hide_mask_tab();
+    redraw(REMAP_ALL);
 }
 
 /*

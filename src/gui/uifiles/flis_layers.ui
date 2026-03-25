@@ -542,6 +542,25 @@
         <signal name="activate" handler="on_flis_register_layers_activate"/>
       </object>
     </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_merge_down_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Merge Down</property>
+        <signal name="activate" handler="on_flis_merge_down_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_flatten_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Flatten Image</property>
+        <signal name="activate" handler="on_flis_flatten_activate"/>
+      </object>
+    </child>
   </object>
 
 </interface>

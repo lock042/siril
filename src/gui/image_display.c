@@ -626,9 +626,15 @@ static void flis_blend_chroma_pixel(float opacity,
 }
 
 /* -------------------------------------------------------------------------
- * flis_composite_build
+ * flis_render_layers  (public) / flis_composite_build  (private wrapper)
  *
- * Composites all visible FLIS layers into flis_display_composite.
+ * flis_render_layers: composites a caller-supplied list of FLIS layers into
+ * a newly allocated float-RGB fits*.  This is the shared rendering kernel
+ * used by the display pipeline, merge-down, flatten, and the flat-FITS save
+ * path.  The caller owns the returned fits and must clearfits()+free() it.
+ *
+ * flis_composite_build: thin wrapper that calls flis_render_layers on the
+ * full com.uniq->layers list and installs the result as flis_display_composite.
  *
  * Output: float RGB [0,1], same dimensions as the base layer (canvas).
  * Layer data may be float or USHORT, mono or RGB.
@@ -640,35 +646,20 @@ static void flis_blend_chroma_pixel(float opacity,
  * USHORT sources are converted to float once per layer, not per pixel.
  * The inner loops are tagged with omp simd for auto-vectorisation.
  * ------------------------------------------------------------------------- */
-static int flis_composite_build(void) {
-    if (!com.uniq || !com.uniq->layers) return 1;
+fits *flis_render_layers(GSList *layers) {
+    if (!layers) return NULL;
 
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    if (!base || !base->fit) return 1;
+    flis_layer_t *base = (flis_layer_t *)layers->data;
+    if (!base || !base->fit) return NULL;
 
     const guint W  = base->fit->rx;
     const guint H  = base->fit->ry;
     const size_t N = (size_t)W * H;
 
-    const gboolean need_realloc = (!flis_display_composite         ||
-                                   !flis_display_composite->fdata  ||
-                                   flis_display_composite->rx != W ||
-                                   flis_display_composite->ry != H);
-
-    if (need_realloc) {
-        flis_composite_free();
-        flis_display_composite = calloc(1, sizeof(fits));
-        if (!flis_display_composite) { PRINT_ALLOC_ERR; return 1; }
-        flis_display_composite->fdata = malloc(N * 3 * sizeof(float));
-        if (!flis_display_composite->fdata) {
-            PRINT_ALLOC_ERR;
-            free(flis_display_composite);
-            flis_display_composite = NULL;
-            return 1;
-        }
-    }
-
-    fits *out = flis_display_composite;
+    fits *out = calloc(1, sizeof(fits));
+    if (!out) { PRINT_ALLOC_ERR; return NULL; }
+    out->fdata = malloc(N * 3 * sizeof(float));
+    if (!out->fdata) { PRINT_ALLOC_ERR; free(out); return NULL; }
 
     memset(out->fdata, 0, N * 3 * sizeof(float));
 
@@ -685,11 +676,6 @@ static int flis_composite_build(void) {
     out->rx          = W;
     out->ry          = H;
 
-    if (out->icc_profile) {
-        cmsCloseProfile(out->icc_profile);
-        out->icc_profile = NULL;
-        color_manage(out, FALSE);
-    }
     if (base->fit->icc_profile && base->fit->color_managed) {
         out->icc_profile = copyICCProfile(base->fit->icc_profile);
         color_manage(out, TRUE);
@@ -701,7 +687,7 @@ static int flis_composite_build(void) {
 
     gboolean first_layer = TRUE;
 
-    for (GSList *node = com.uniq->layers; node; node = node->next) {
+    for (GSList *node = layers; node; node = node->next) {
         flis_layer_t *lay = (flis_layer_t *)node->data;
         if (!lay || !lay->fit || !lay->visible) continue;
 
@@ -804,8 +790,18 @@ static int flis_composite_build(void) {
         free(float_buf);  /* no-op for float sources (float_buf == NULL) */
     }
 
+    return out;
+}
+
+static int flis_composite_build(void) {
+    if (!com.uniq || !com.uniq->layers) return 1;
+    fits *result = flis_render_layers(com.uniq->layers);
+    if (!result) return 1;
+    flis_composite_free();
+    flis_display_composite = result;
     flis_composite_dirty = FALSE;
-    siril_debug_print("FLIS composite rebuilt (%ux%u)\n", W, H);
+    siril_debug_print("FLIS composite rebuilt (%ux%u)\n",
+                      (guint)result->rx, (guint)result->ry);
     return 0;
 }
 
