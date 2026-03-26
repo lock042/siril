@@ -128,7 +128,7 @@ static void on_row_visibility_toggled(GtkToggleButton *btn, gpointer data);
 static void on_row_lock_toggled(GtkToggleButton *btn, gpointer data);
 G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn, gpointer data);
 G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn, gpointer data);
-G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkCheckMenuItem *item, gpointer data);
+G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data);
 
 /* Create an icon-only toggle button for use in a layer row. */
 static GtkWidget *row_icon_toggle(const gchar *icon_on,
@@ -338,6 +338,9 @@ static void flis_toolbar_sensitivity_update(void) {
      * it promotes to FLIS first, then duplicates the base layer. */
     gtk_widget_set_sensitive(fw("flis_duplicate_btn"),
                              have_image && (have_sel || !is_flis));
+
+    /* Drag-to-move toggle — enabled whenever a FLIS layer is selected */
+    gtk_widget_set_sensitive(fw("flis_drag_toggle_btn"), is_flis && have_sel);
 
     /* Layer actions menu — enabled whenever a FLIS layer is selected */
     gtk_widget_set_sensitive(fw("flis_layer_menu_btn"), is_flis && have_sel);
@@ -1427,13 +1430,13 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
             }
             gtk_widget_set_sensitive(merge_item, can_merge);
         }
-        /* Sync the "Move Layer" check item to the current mouse mode */
-        GtkCheckMenuItem *move_item = GTK_CHECK_MENU_ITEM(lookup_widget("flis_move_layer_item"));
-        if (move_item) {
-            g_signal_handlers_block_by_func(move_item, on_flis_move_layer_toggled, NULL);
-            gtk_check_menu_item_set_active(move_item,
+        /* Sync the "Move Layer" toggle button to the current mouse mode */
+        GtkToggleButton *drag_btn = GTK_TOGGLE_BUTTON(lookup_widget("flis_drag_toggle_btn"));
+        if (drag_btn) {
+            g_signal_handlers_block_by_func(drag_btn, on_flis_move_layer_toggled, NULL);
+            gtk_toggle_button_set_active(drag_btn,
                 mouse_status == MOUSE_ACTION_FLIS_DRAG_LAYER);
-            g_signal_handlers_unblock_by_func(move_item, on_flis_move_layer_toggled, NULL);
+            g_signal_handlers_unblock_by_func(drag_btn, on_flis_move_layer_toggled, NULL);
         }
         gtk_menu_popup_at_pointer(menu, (GdkEvent *)event);
     }
@@ -1489,9 +1492,9 @@ G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) 
     redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkCheckMenuItem *item, gpointer data) {
+G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data) {
     (void)data;
-    gboolean active = gtk_check_menu_item_get_active(item);
+    gboolean active = gtk_toggle_button_get_active(btn);
     if (active) {
         mouse_status = MOUSE_ACTION_FLIS_DRAG_LAYER;
         set_cursor("grab");
