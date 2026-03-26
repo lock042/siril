@@ -1011,18 +1011,38 @@ int save_flis(const gchar *filename) {
 
         /* --- Processing mask HDU (MASK) --- */
         if (lay->fit && lay->fit->mask) {
-            /* Processing masks in Siril are 32-bit float */
+            /* Processing masks are always written as float32 [0,1] in FLIS.
+             * mask_t.bitpix follows FITS convention (8/16/32 = bits per pixel),
+             * so convert uint8 or uint16 masks to float before writing. */
             mask_t *pmask = lay->fit->mask;
             gchar *mname = g_strdup_printf("%s Processing Mask",
                            lay->layer_name ? lay->layer_name : "Layer");
             int pmask_id = lay->item_id + 20000;
+            size_t npix = lay->fit->rx * lay->fit->ry;
 
-            /* Wrap in a layermask_t for the generic writer */
+            float *float_data = NULL;
+            void  *write_data = pmask->data;
+            if (pmask->bitpix != 32) {
+                float_data = malloc(npix * sizeof(float));
+                if (float_data) {
+                    if (pmask->bitpix == 8) {
+                        const uint8_t *src = (const uint8_t *)pmask->data;
+                        for (size_t i = 0; i < npix; i++)
+                            float_data[i] = src[i] * (1.0f / 255.0f);
+                    } else { /* 16 */
+                        const uint16_t *src = (const uint16_t *)pmask->data;
+                        for (size_t i = 0; i < npix; i++)
+                            float_data[i] = src[i] * (1.0f / 65535.0f);
+                    }
+                    write_data = float_data;
+                }
+            }
+
             layermask_t tmp_lm = {
                 .w      = lay->fit->rx,
                 .h      = lay->fit->ry,
                 .bitpix = 32,
-                .data   = pmask->data
+                .data   = write_data
             };
             if (write_mask_hdu(fptr, &tmp_lm, pmask_id,
                                FLIS_TYPE_MASK, mname,
@@ -1030,6 +1050,7 @@ int save_flis(const gchar *filename) {
                 siril_log_color_message(_("FLIS: failed writing processing mask for '%s'\n"),
                                         "salmon", lay->layer_name ? lay->layer_name : "?");
             }
+            free(float_data);
             g_free(mname);
         }
     }

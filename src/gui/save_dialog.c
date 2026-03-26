@@ -675,6 +675,14 @@ static gpointer mini_save_dialog(gpointer p) {
 			/* no break */
 		case TYPEFITS:
 			if (save_as_flis) {
+				/* If the image is a plain FITS (has a processing mask and the user
+				 * chose to preserve it), promote to single-layer FLIS first. */
+				if (!is_current_image_flis()) {
+					if (flis_promote_from_gfit(NULL)) {
+						args->retval = 1;
+						break;
+					}
+				}
 				/* Save the complete layer stack as a FLIS file */
 				args->retval = save_flis(args->filename);
 				if (!args->retval && single_image_is_loaded()) {
@@ -902,6 +910,34 @@ void on_header_save_as_button_clicked() {
 					if (!proceed)
 						return;
 				}
+			} else if ((type_of_image == TYPEFITS || type_of_image == TYPEUNDEF) &&
+			           gfit && gfit->mask) {
+				/* Plain FITS with a processing mask: offer to save as FLIS so the
+				 * mask is not silently discarded */
+				GtkWidget *dlg = gtk_message_dialog_new(
+					GTK_WINDOW(lookup_widget("control_window")),
+					GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+					GTK_MESSAGE_QUESTION,
+					GTK_BUTTONS_NONE,
+					_("Save image with processing mask"));
+				gtk_message_dialog_format_secondary_text(
+					GTK_MESSAGE_DIALOG(dlg),
+					_("This image has a processing mask which cannot be preserved "
+					  "in a plain FITS file. How would you like to save it?"));
+				gtk_dialog_add_button(GTK_DIALOG(dlg),
+					_("Save as FITS (discard mask)"), GTK_RESPONSE_NO);
+				gtk_dialog_add_button(GTK_DIALOG(dlg),
+					_("Save with mask as FLIS"),      GTK_RESPONSE_YES);
+				gtk_dialog_add_button(GTK_DIALOG(dlg),
+					_("Cancel"),                      GTK_RESPONSE_CANCEL);
+				gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_YES);
+
+				gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+				gtk_widget_destroy(dlg);
+
+				if (response == GTK_RESPONSE_CANCEL)
+					return;
+				save_as_flis = (response == GTK_RESPONSE_YES);
 			}
 
 			/* now it is not needed for some formats */

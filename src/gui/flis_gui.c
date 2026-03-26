@@ -837,6 +837,9 @@ G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
     /* Update mask tab visibility, title, and enable-check sensitivity. */
     show_or_hide_mask_tab();
 
+    /* Populate the mask tab for the newly active layer. */
+    queue_redraw_mask();
+
     /* Redraw so the display reflects the newly active layer. */
     if (is_current_image_flis() && !flis_updating)
         queue_redraw(REMAP_ALL);
