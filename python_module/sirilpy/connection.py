@@ -5862,7 +5862,7 @@ class SirilInterface:
         """
         self._mask_update_polygon(poly, False)
 
-     def open_dialog(self, dialog: DialogID):
+    def open_dialog(self, dialog: DialogID):
         """
         Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
 
