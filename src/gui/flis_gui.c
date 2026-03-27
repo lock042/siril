@@ -1468,6 +1468,20 @@ G_MODULE_EXPORT void on_flis_merge_down_activate(GtkMenuItem *item, gpointer dat
     redraw(REMAP_ALL);
 }
 
+G_MODULE_EXPORT void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!is_current_image_flis()) return;
+
+    if (flis_background_neutralise()) {
+        siril_message_dialog(GTK_MESSAGE_ERROR, _("Background Neutralise"),
+                             _("Background neutralisation failed."));
+        return;
+    }
+
+    flis_gui_update();
+    redraw(REMAP_ALL);
+}
+
 G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!is_current_image_flis()) return;

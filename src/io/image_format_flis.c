@@ -43,6 +43,10 @@
 #include <string.h>
 #include <math.h>
 #include <glib.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -2426,5 +2430,301 @@ int flis_layer_clear_tint(flis_layer_t *layer) {
     layer->has_tint   = FALSE;
     layer->layer_tint = (flis_tint_t){ 1.0, 1.0, 1.0 };
     flis_layer_touch_modified(layer);
+    return 0;
+}
+
+/* ===================================================================== */
+/* Background neutralisation across tinted mono layers                   */
+/* ===================================================================== */
+
+/*
+ * Solve T * a = b via the Moore-Penrose pseudoinverse.
+ *
+ * T is (3 × N) stored row-major: T_data[channel * N + layer].
+ * b is a 3-vector (the target, typically (1,1,1)).
+ * out_a receives the N-vector solution.
+ *
+ * Case N <= 3: SVD of T directly (3×N, M >= N).
+ * Case N >  3: SVD of T^T (N×3) — gives minimum-norm solution.
+ *
+ * Returns 0 on success, non-zero if the matrix is rank-deficient.
+ */
+static int pseudoinverse_solve(const double *T_data, int N,
+                                const double b[3], double *out_a) {
+    const double EPS_REL = 1e-9;
+    int ret = 0;
+
+    if (N <= 3) {
+        /* --- SVD of T (3×N) --- */
+        gsl_matrix *A    = gsl_matrix_alloc(3, N);
+        gsl_matrix *V    = gsl_matrix_alloc(N, N);
+        gsl_vector *S    = gsl_vector_alloc(N);
+        gsl_vector *work = gsl_vector_alloc(N);
+        gsl_vector *bv   = gsl_vector_alloc(3);
+        gsl_vector *tmp  = gsl_vector_alloc(N);
+        gsl_vector *av   = gsl_vector_alloc(N);
+
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < N; c++)
+                gsl_matrix_set(A, r, c, T_data[r * N + c]);
+        for (int r = 0; r < 3; r++)
+            gsl_vector_set(bv, r, b[r]);
+
+        gsl_linalg_SV_decomp(A, V, S, work);   /* A becomes U */
+
+        double s_max = gsl_vector_get(S, 0);
+        if (s_max < 1e-15) { ret = 1; goto cleanup_le3; }
+        double eps = EPS_REL * s_max;
+
+        /* tmp = U^T * b */
+        gsl_blas_dgemv(CblasTrans, 1.0, A, bv, 0.0, tmp);
+        /* apply S^+ */
+        for (int k = 0; k < N; k++) {
+            double sv = gsl_vector_get(S, k);
+            double t  = gsl_vector_get(tmp, k);
+            gsl_vector_set(tmp, k, (sv > eps) ? t / sv : 0.0);
+        }
+        /* a = V * tmp */
+        gsl_blas_dgemv(CblasNoTrans, 1.0, V, tmp, 0.0, av);
+
+        for (int i = 0; i < N; i++)
+            out_a[i] = gsl_vector_get(av, i);
+
+cleanup_le3:
+        gsl_matrix_free(A); gsl_matrix_free(V);
+        gsl_vector_free(S); gsl_vector_free(work);
+        gsl_vector_free(bv); gsl_vector_free(tmp); gsl_vector_free(av);
+
+    } else {
+        /* --- SVD of T^T (N×3) for minimum-norm solution --- */
+        gsl_matrix *A    = gsl_matrix_alloc(N, 3);
+        gsl_matrix *V    = gsl_matrix_alloc(3, 3);
+        gsl_vector *S    = gsl_vector_alloc(3);
+        gsl_vector *work = gsl_vector_alloc(3);
+        gsl_vector *bv   = gsl_vector_alloc(3);
+        gsl_vector *tmp  = gsl_vector_alloc(3);
+        gsl_vector *av   = gsl_vector_alloc(N);
+
+        /* A = T^T: A[i][c] = T[c][i] */
+        for (int r = 0; r < N; r++)
+            for (int c = 0; c < 3; c++)
+                gsl_matrix_set(A, r, c, T_data[c * N + r]);
+        for (int r = 0; r < 3; r++)
+            gsl_vector_set(bv, r, b[r]);
+
+        gsl_linalg_SV_decomp(A, V, S, work);   /* A becomes U_t */
+
+        double s_max = gsl_vector_get(S, 0);
+        if (s_max < 1e-15) { ret = 1; goto cleanup_gt3; }
+        double eps = EPS_REL * s_max;
+
+        /* tmp = V^T * b */
+        gsl_blas_dgemv(CblasTrans, 1.0, V, bv, 0.0, tmp);
+        /* apply S^+ */
+        for (int k = 0; k < 3; k++) {
+            double sv = gsl_vector_get(S, k);
+            double t  = gsl_vector_get(tmp, k);
+            gsl_vector_set(tmp, k, (sv > eps) ? t / sv : 0.0);
+        }
+        /* a = U_t * tmp */
+        gsl_blas_dgemv(CblasNoTrans, 1.0, A, tmp, 0.0, av);
+
+        for (int i = 0; i < N; i++)
+            out_a[i] = gsl_vector_get(av, i);
+
+cleanup_gt3:
+        gsl_matrix_free(A); gsl_matrix_free(V);
+        gsl_vector_free(S); gsl_vector_free(work);
+        gsl_vector_free(bv); gsl_vector_free(tmp); gsl_vector_free(av);
+    }
+
+    return ret;
+}
+
+/*
+ * Scale every pixel in a mono layer by the given factor, clamping to [0, 1]
+ * for float data or [0, USHRT_MAX] for uint16.
+ */
+static void scale_layer_pixels(fits *fit, double scale) {
+    size_t n = fit->rx * fit->ry;
+    if (fit->type == DATA_FLOAT && fit->fdata) {
+        float s = (float)scale;
+        float *p = fit->fpdata[0];
+        for (size_t i = 0; i < n; i++)
+            p[i] = CLAMP(p[i] * s, 0.0f, 1.0f);
+    } else if (fit->type == DATA_USHORT && fit->data) {
+        WORD *p = fit->pdata[0];
+        for (size_t i = 0; i < n; i++) {
+            double v = p[i] * scale;
+            p[i] = (WORD)(v >= USHRT_MAX ? USHRT_MAX : (v < 0.0 ? 0 : (WORD)v));
+        }
+    }
+}
+
+/*
+ * flis_background_neutralise — scale each mono layer so that the screen-blend
+ * composite has a neutral (equal-RGB) background.
+ *
+ * The algorithm (from the linear approximation for small background values):
+ *   M^c = Σ_i  s_i · m_i · T_i^c   (composite background in channel c)
+ *
+ * Setting M^R = M^G = M^B = M_target gives the 3×N linear system T·a = 1
+ * where a_i = s_i·m_i and T_i^c is the normalised tint of layer i.
+ * Solved via SVD pseudoinverse; normalised so that the overall composite
+ * brightness is preserved.
+ *
+ * Only mono (single-channel) layers participate; RGB layers are skipped.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int flis_background_neutralise(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+
+    /* --- Collect eligible layers (mono only) --- */
+    int total = g_slist_length(com.uniq->layers);
+    flis_layer_t **layers_arr = calloc(total, sizeof(flis_layer_t *));
+    double *medians = calloc(total, sizeof(double));
+    double *T_data  = calloc(3 * total, sizeof(double)); /* row-major [ch][layer] */
+    if (!layers_arr || !medians || !T_data) {
+        PRINT_ALLOC_ERR;
+        free(layers_arr); free(medians); free(T_data);
+        return 1;
+    }
+
+    int N = 0;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (lay->fit->naxes[2] != 1) continue;   /* skip RGB layers */
+        if (!lay->fit->fdata && !lay->fit->data)  continue;
+
+        /* Tint (already normalised [0,1]; default {1,1,1} for untinted) */
+        T_data[0 * total + N] = lay->layer_tint.r;
+        T_data[1 * total + N] = lay->layer_tint.g;
+        T_data[2 * total + N] = lay->layer_tint.b;
+
+        /* Background median (normalised to [0,1]) */
+        imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC, SINGLE_THREADED);
+        if (!st) { free(layers_arr); free(medians); free(T_data); return 1; }
+        double med = st->median;
+        free_stats(st);
+        if (lay->fit->type == DATA_USHORT)
+            med /= USHRT_MAX_DOUBLE;
+        medians[N] = med;
+
+        layers_arr[N] = lay;
+        N++;
+    }
+
+    if (N == 0) {
+        siril_log_color_message(_("FLIS: background neutralise — no eligible mono layers found\n"), "salmon");
+        free(layers_arr); free(medians); free(T_data);
+        return 1;
+    }
+
+    /* Compact T to N columns */
+    double *T = calloc(3 * N, sizeof(double));
+    if (!T) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T_data); return 1; }
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < N; i++)
+            T[c * N + i] = T_data[c * total + i];
+    free(T_data);
+
+    /* Compute old_bg: average composite background brightness before any scaling.
+     * This is the per-channel target we want to preserve after neutralisation. */
+    double old_bg = 0.0;
+    for (int i = 0; i < N; i++)
+        old_bg += medians[i] * (T[0*N+i] + T[1*N+i] + T[2*N+i]);
+    old_bg /= 3.0;
+
+    if (old_bg <= 0.0) {
+        siril_log_color_message(_("FLIS: background neutralise — background level is zero, nothing to do\n"), "salmon");
+        free(layers_arr); free(medians); free(T);
+        return 1;
+    }
+
+    /* --- Solve T · a = (1,1,1)^T for ALL layers simultaneously ---
+     *
+     * a_i = s_i · m_i is the target composite contribution of layer i.
+     * The actual scale factor is then s_i = old_bg · a_i / m_i.
+     *
+     * Key insight: even when a layer requires a_i < 0 (infeasible with positive
+     * scaling), the OTHER layers' coefficients from this global solve still correctly
+     * balance the channels where the infeasible layer has zero tint.  Re-solving
+     * after removing the infeasible layer destroys that balance.  Therefore we
+     * always apply the coefficients from this single global solve, and merely
+     * leave any infeasible layer unscaled.
+     */
+    double *a = calloc(N, sizeof(double));
+    if (!a) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T); return 1; }
+
+    const double b_unit[3] = { 1.0, 1.0, 1.0 };
+    if (pseudoinverse_solve(T, N, b_unit, a)) {
+        siril_log_color_message(_("FLIS: background neutralise — tint matrix is rank-deficient, cannot solve\n"), "salmon");
+        free(layers_arr); free(medians); free(T); free(a);
+        return 1;
+    }
+
+    /* Flag layers whose tint geometry requires a negative scale factor.
+     * These are left unscaled (s_i = 1).  The channels where such a layer has
+     * non-zero tint will not be fully neutralised; channels where it has zero
+     * tint are unaffected and will be correctly balanced by the other layers.
+     *
+     * Feasibility condition: the vector (1,1,1) must lie in the positive span of
+     * the tint vectors.  An infeasible layer is one whose tint "over-contributes"
+     * to some channels relative to what the other layers can compensate for.
+     * The fix is always to make the infeasible layer's tint more balanced across
+     * all three channels (ideally equal R=G=B, or at least no single channel
+     * significantly dominant). */
+    for (int i = 0; i < N; i++) {
+        if (a[i] <= 0.0 || medians[i] <= 0.0) {
+            const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
+
+            /* Find the dominant channel in this layer's tint */
+            double tr = T[0*N+i], tg = T[1*N+i], tb = T[2*N+i];
+            const char *dom = (tr >= tg && tr >= tb) ? "R"
+                            : (tg >= tr && tg >= tb) ? "G" : "B";
+            const char *low = (tr <= tg && tr <= tb) ? "R"
+                            : (tg <= tr && tg <= tb) ? "G" : "B";
+
+            siril_log_color_message(
+                _("FLIS: background neutralise — layer '%s' is incompatible with "
+                  "neutral balance (coefficient %.4f < 0).\n"
+                  "  Its tint (%s-dominant) cannot be compensated by the other layers.\n"
+                  "  To fix: change this layer's tint so that the %s component is "
+                  "increased (aim for equal R=G=B, or at least no dominant primary).\n"
+                  "  Example: for an SHO palette, assign each layer to a distinct "
+                  "primary (e.g. SII=#FF0000, Ha=#00FF00, OIII=#0000FF).\n"),
+                "salmon", name, a[i], dom, low);
+            a[i] = -1.0;  /* sentinel: leave unscaled */
+        }
+    }
+
+    /* --- Apply scale factors and report predicted composite --- */
+    siril_log_color_message(_("FLIS: background neutralise scale factors:\n"), "green");
+    double new_bg[3] = { 0.0, 0.0, 0.0 };
+    for (int i = 0; i < N; i++) {
+        const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
+        double s;
+        if (a[i] < 0.0) {
+            s = 1.0;
+            siril_log_color_message("  %-24s  ×1.0000  (left unscaled — tint infeasible)\n",
+                "salmon", name);
+        } else {
+            s = (old_bg * a[i]) / medians[i];
+            siril_log_color_message("  %-24s  ×%.4f  (median %.5f → %.5f)\n", "blue",
+                name, s, medians[i], medians[i] * s);
+            scale_layer_pixels(layers_arr[i]->fit, s);
+            invalidate_stats_from_fit(layers_arr[i]->fit);
+        }
+        for (int c = 0; c < 3; c++)
+            new_bg[c] += s * medians[i] * T[c * N + i];
+    }
+    siril_log_color_message(
+        _("FLIS: predicted composite background  R:%.5f  G:%.5f  B:%.5f  (target %.5f each)\n"),
+        "green", new_bg[0], new_bg[1], new_bg[2], old_bg);
+
+    free(layers_arr); free(medians); free(T); free(a);
+    flis_invalidate_composite();
     return 0;
 }

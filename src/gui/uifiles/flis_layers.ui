@@ -553,6 +553,13 @@
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="flis_background_neutralise_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Layers match…</property>
+        <signal name="activate" handler="on_flis_background_neutralise_activate"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkSeparatorMenuItem">
         <property name="visible">True</property>
       </object>

@@ -675,6 +675,17 @@ int flis_layer_set_tint(flis_layer_t *layer, double r, double g, double b);
  */
 int flis_layer_clear_tint(flis_layer_t *layer);
 
+/**
+ * flis_background_neutralise:
+ *
+ * Scales each mono layer so that the screen-blend composite has a neutral
+ * (equal-RGB) background.  Uses the linear approximation M^c = Σ s_i·m_i·T_i^c
+ * and solves the resulting 3×N system T·a = 1 via SVD pseudoinverse.
+ *
+ * Returns: 0 on success, non-zero on failure.
+ */
+int flis_background_neutralise(void);
+
 /* -----------------------------------------------------------------------
  * Timestamp utility (also useful for callers updating layer data
  * programmatically)
