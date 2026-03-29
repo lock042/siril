@@ -488,13 +488,37 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
 
 gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
 	/*
-	* In the old design start_in_reserved_thread allowed submission only when
-	* the slot was not already reserved.  In the new design the single-worker
-	* queue serialises everything; we simply delegate to start_in_new_thread.
-	* The "reserved" quality is implicit: there is always exactly one slot and
-	* it is always pre-allocated.
+	* The caller has already claimed the active slot via reserve_thread(), which
+	* sets job_active_flag = 1.  We must NOT delegate to start_in_new_thread()
+	* because that function's busy guard tests processing_is_job_active() and
+	* would immediately reject the submission with "The processing thread is
+	* busy" — even though the reservation was made legitimately.
+	*
+	* Instead we reproduce the submission path from start_in_new_thread while
+	* skipping only that guard.  We still honour the Python-reservation gate.
 	*/
-	return start_in_new_thread(func, data);
+
+	/* Python-reservation gate (GTK-main-thread path only — background threads
+	 * would have blocked in processing_submit_job if python_reserved). */
+	if (g_main_context_is_owner(g_main_context_default()) &&
+	    processing_is_reserved_for_python()) {
+		fprintf(stderr, "The processing thread is reserved by Python; "
+		        "cannot start a reserved job from the GTK main thread.\n");
+		return FALSE;
+	}
+
+	if (!com.headless)
+		set_cursor_waiting(TRUE);
+
+	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread"))
+		siril_log_color_message(
+			_("Warning: failed to add processing thread to child list\n"),
+			"salmon");
+
+	/* job_active_flag is already 1 from reserve_thread(); no need to set it
+	 * again.  The worker sets it once more before executing, which is harmless. */
+	processing_submit_job(func, data);
+	return TRUE;
 }
 
 gpointer waiting_for_thread(void) {
