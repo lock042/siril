@@ -291,8 +291,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/git_gui.c \
-	src/gui/histo_display.c \
-	src/gui/histo_display.h \
+	gui/histo_display.c \
+	gui/histo_display.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/keywords_tree.c \
@@ -557,7 +557,9 @@ siril_common_SOURCES += \
 	core/exif.cpp \
 	core/exif.h \
 	io/kstars/htmesh_wrapper.cpp \
-	io/kstars/htmesh_wrapper.h
+	io/kstars/htmesh_wrapper.h \
+	io/healpix/fluxcache.cpp \
+	io/healpix/fluxcache.h
 
 siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \

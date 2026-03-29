@@ -468,6 +468,7 @@ static gboolean end_save(gpointer p) {
 	gtk_entry_set_text(args->entry, "");
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
+	adjust_sellabel();
 	gui_function(set_precision_switch, NULL);
 	set_cursor_waiting(FALSE);
 	close_dialog();
