@@ -1603,16 +1603,15 @@ G_MODULE_EXPORT void on_flis_export_layer_activate(GtkMenuItem *item,
  * ========================================================================= */
 
 /*
- * Build and run a small modal dialog asking for:
- *   • Registration method  (Deep Sky / DFT / KOMBAT)
- *   • Output framing       (Active layer / Minimum / Centre of gravity)
+ * Build and run a small modal dialog asking for the registration method.
+ * Framing is always FRAMING_MAX (maximum bounding box), so there is no
+ * framing choice exposed to the user.
  *
  * Returns GTK_RESPONSE_ACCEPT if the user clicked Register, otherwise cancel.
- * Fills *method_out and *framing_out on accept.
+ * Fills *method_out on accept.
  */
 static gint flis_register_dialog(GtkWindow              *parent,
-                                  struct registration_method **method_out,
-                                  framing_type           *framing_out) {
+                                  struct registration_method **method_out) {
     /* Build the three methods we expose (same set as compositing.c). */
     struct registration_method *methods[3];
     methods[0] = new_reg_method(
@@ -1658,31 +1657,12 @@ static gint flis_register_dialog(GtkWindow              *parent,
     gtk_grid_attach(GTK_GRID(grid), lbl_method,   0, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), method_combo, 1, 0, 1, 1);
 
-    /* Framing row */
-    GtkWidget *lbl_framing  = gtk_label_new(_("Framing"));
-    gtk_label_set_xalign(GTK_LABEL(lbl_framing), 0.0);
-    GtkWidget *framing_combo = gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
-                                   _("Active layer (keep reference frame)"));
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
-                                   _("Minimum (intersection of all frames)"));
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(framing_combo),
-                                   _("Centre of gravity"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(framing_combo), 0);
-    gtk_widget_set_hexpand(framing_combo, TRUE);
-    gtk_grid_attach(GTK_GRID(grid), lbl_framing,   0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), framing_combo, 1, 1, 1, 1);
-
     gtk_widget_show_all(dlg);
     gint response = gtk_dialog_run(GTK_DIALOG(dlg));
 
     if (response == GTK_RESPONSE_ACCEPT) {
         int mi = gtk_combo_box_get_active(GTK_COMBO_BOX(method_combo));
-        int fi = gtk_combo_box_get_active(GTK_COMBO_BOX(framing_combo));
-        *method_out  = methods[mi];
-        *framing_out = (fi == 0) ? FRAMING_CURRENT
-                     : (fi == 1) ? FRAMING_MIN
-                     :             FRAMING_COG;
+        *method_out = methods[mi];
         /* free the two methods we won't use */
         for (int i = 0; i < 3; i++)
             if (i != mi) free(methods[i]);
@@ -1697,9 +1677,9 @@ static gint flis_register_dialog(GtkWindow              *parent,
 /*
  * Register all FLIS layers against the currently selected layer (reference).
  *
- * Builds an internal sequence whose image 0 is always the reference layer,
- * followed by all other visible layers in stack order.  After registration
- * each layer's fits* is updated in-place by the generic sequence worker.
+ * Always uses FRAMING_MAX so each layer is transformed into its own minimum
+ * bounding box.  After apply_reg the per-layer bounding-box offsets stored in
+ * regparam[i].H are used to set position_x/y relative to the canvas layer.
  */
 G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
                                                        gpointer     data) {
@@ -1714,53 +1694,51 @@ G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
         return;
     }
 
-    /* Check all layers are the same size — a prerequisite for registration. */
-    flis_layer_t *base_lay = (flis_layer_t *)com.uniq->layers->data;
-    guint ref_rx = base_lay->fit->rx;
-    guint ref_ry = base_lay->fit->ry;
-    for (GSList *l = com.uniq->layers->next; l; l = l->next) {
-        flis_layer_t *lay = (flis_layer_t *)l->data;
-        if (!lay || !lay->fit) continue;
-        if (lay->fit->rx != ref_rx || lay->fit->ry != ref_ry) {
-            siril_message_dialog(GTK_MESSAGE_ERROR, _("Register Layers"),
-                _("All layers must be the same size before registration.\n"
-                  "Please ensure all layers have matching dimensions."));
-            return;
-        }
-    }
-
-    /* Show method / framing dialog. */
+    /* Show method dialog (framing is always FRAMING_MAX). */
     GtkWindow *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
     struct registration_method *method = NULL;
-    framing_type framing = FRAMING_CURRENT;
-    if (flis_register_dialog(parent, &method, &framing) != GTK_RESPONSE_ACCEPT)
+    if (flis_register_dialog(parent, &method) != GTK_RESPONSE_ACCEPT)
         return;
 
-    /* Build an internal sequence.
-     * Put the currently selected layer (reference) at index 0; all others
-     * follow in ascending layer_order. */
-    sequence *seq = create_internal_sequence(n_layers);
-    seq->bitpix = base_lay->fit->bitpix;
-    seq->rx     = ref_rx;
-    seq->ry     = ref_ry;
+    /* The canvas (base) layer is the first layer in the stack.
+     * The registration reference is the currently selected layer, or the
+     * canvas layer if nothing is selected. */
+    flis_layer_t *canvas_lay = (flis_layer_t *)com.uniq->layers->data;
+    flis_layer_t *ref_lay    = flis_selected ? flis_selected : canvas_lay;
 
-    int ref_seq_idx = 0;
-    int i = 0;
-    /* First pass: reference layer at slot 0 */
-    if (flis_selected) {
-        internal_sequence_set(seq, 0, flis_selected->fit);
-        i = 1;
-    }
-    /* Fill remaining slots in layer_order */
+    /* Build an internal sequence.
+     * Slot 0 = registration reference; remaining slots follow GSList order,
+     * skipping the reference.  Track which slot the canvas layer lands in. */
+    sequence *seq = create_internal_sequence(n_layers);
+    seq->bitpix = ref_lay->fit->bitpix;
+    seq->rx     = ref_lay->fit->rx;
+    seq->ry     = ref_lay->fit->ry;
+
+    const int ref_seq_idx = 0;
+    int canvas_seq_idx = (ref_lay == canvas_lay) ? 0 : -1;
+
+    /* Reference at slot 0 */
+    internal_sequence_set(seq, 0, ref_lay->fit);
+    seq->imgparam[0].rx = ref_lay->fit->rx;
+    seq->imgparam[0].ry = ref_lay->fit->ry;
+
+    int i = 1;
+    gboolean is_variable = FALSE;
     for (GSList *l = com.uniq->layers; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (!lay || !lay->fit) continue;
-        if (lay == flis_selected) continue;   /* already at slot 0 */
+        if (lay == ref_lay) continue;
+        if (lay == canvas_lay) canvas_seq_idx = i;
+        if (lay->fit->rx != ref_lay->fit->rx || lay->fit->ry != ref_lay->fit->ry)
+            is_variable = TRUE;
+        seq->imgparam[i].rx = lay->fit->rx;
+        seq->imgparam[i].ry = lay->fit->ry;
         internal_sequence_set(seq, i++, lay->fit);
     }
-    seq->reference_image = ref_seq_idx;  /* always 0 */
+    seq->reference_image = ref_seq_idx;
+    seq->is_variable     = is_variable;
 
-    /* Registration arguments — mirror compositing.c on_button_align_clicked(). */
+    /* Registration arguments. */
     struct registration_args regargs = { 0 };
     regargs.seq                  = seq;
     regargs.layer                = 0;
@@ -1769,7 +1747,7 @@ G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
     regargs.interpolation        = OPENCV_LANCZOS4;
     regargs.output_scale         = 1.f;
     regargs.clamp                = TRUE;
-    regargs.framing              = framing;
+    regargs.framing              = FRAMING_MAX;
     regargs.max_stars_candidates = MAX_STARS_FITTED;
     regargs.two_pass             = TRUE;
     regargs.percent_moved        = 0.50f;
@@ -1796,8 +1774,42 @@ G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
         return;
     }
 
-    /* Step 2: apply transforms to the fits* in-place via the internal sequence. */
+    /* Step 2: apply transforms with FRAMING_MAX.  Each layer is resampled into
+     * its own minimum bounding box; regparam[i].H becomes the Hshift storing
+     * the (xmin, ymin) offset of that bounding box in the global mosaic frame
+     * (OpenCV convention: y increases downward). */
     int ret2 = register_apply_reg(&regargs);
+
+    if (!ret2 && regargs.regparam) {
+        /* Normalise offsets relative to the canvas layer so that the canvas
+         * stays at position (0, 0) and all other layers are placed correctly
+         * relative to it. */
+        const double cx       = regargs.regparam[canvas_seq_idx].H.h02;
+        const double cy       = regargs.regparam[canvas_seq_idx].H.h12;
+
+        /* Canvas layer always sits at origin */
+        canvas_lay->position_x = 0;
+        canvas_lay->position_y = 0;
+
+        /* All other layers: compute position from normalised Hshift offset.
+         * position_y = canvas_H - dy_rel - layer_H  (FITS bottom-up convention)
+         * where dy_rel = h12_i - cy  (y from top of canvas, OpenCV y-down) */
+        int k = 1;  /* seq index counter for non-ref layers */
+        for (GSList *l = com.uniq->layers; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay || !lay->fit) continue;
+            if (lay == canvas_lay) {
+                if (lay != ref_lay) k++;
+                continue;
+            }
+            int seq_idx = (lay == ref_lay) ? 0 : k++;
+            double dx = regargs.regparam[seq_idx].H.h02 - cx;
+            double dy = regargs.regparam[seq_idx].H.h12 - cy;
+            lay->position_x = (gint) round(dx);
+            lay->position_y = (gint) round(dy);
+        }
+    }
+
     free(regargs.imgparam); regargs.imgparam = NULL;
     free(regargs.regparam); regargs.regparam = NULL;
 
