@@ -233,12 +233,18 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 			if (!startup_capable && !core) {
 				startup = FALSE; // can't be in startup list if not startup-capable
 			} else if (!startup && !core) {
+				/* Use the same canonical path that on_script_list_startup_toggled
+				 * stores, so the comparison works on Windows where
+				 * g_canonicalize_filename converts forward slashes to backslashes. */
+				gchar *canonical_scriptpath = g_canonicalize_filename(scriptpath, NULL);
 				for (iterator2 = com.pref.startup_scripts; iterator2;
 					iterator2 = iterator2->next) {
-					if (g_strrstr((gchar *)iterator2->data, (gchar *)iterator->data)) {
+					if (g_strcmp0((gchar *)iterator2->data, canonical_scriptpath) == 0) {
 						startup = TRUE;
+						break;
 					}
 				}
+				g_free(canonical_scriptpath);
 			}
 
 			if (!core) {
