@@ -57,6 +57,7 @@ void histo_change_between_roi_and_image();
 void compute_histo_for_fit(fits *thefit);
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
+void refresh_histogram_if_visible();
 void apply_histo_cancel();
 void toggle_histogram_window_visibility(int _invocation);
 

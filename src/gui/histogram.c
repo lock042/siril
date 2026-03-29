@@ -1092,7 +1092,12 @@ gsl_histogram* computeHisto_Selection(fits* fit, int layer,
 	return histo;
 }
 
-/* call from main thread */
+static gboolean set_histo_toggles_names_idle(gpointer data G_GNUC_UNUSED) {
+	set_histo_toggles_names();
+	return G_SOURCE_REMOVE;
+}
+
+/* call from any thread; GTK widget updates (toggle names) are deferred to an idle */
 void compute_histo_for_fit(fits *thefit) {
 	int nb_layers = 3;
 	if (thefit->naxis == 2)
@@ -1103,7 +1108,7 @@ void compute_histo_for_fit(fits *thefit) {
 	}
 	if (nb_layers == 3 && satbuf_working)
 		set_sat_histogram(computeHistoSat(satbuf_working));
-	set_histo_toggles_names();
+	siril_add_idle(set_histo_toggles_names_idle, NULL);
 }
 
 /* call from any thread */
@@ -1121,6 +1126,13 @@ void update_gfit_histogram_if_needed() {
 		compute_histo_for_fit(fit);
 		queue_window_redraw();
 	}
+}
+
+/* Trigger a visual refresh of the histogram window if it is currently visible.
+ * Call from the GTK main thread only; histogram data must already be computed. */
+void refresh_histogram_if_visible() {
+	if (is_histogram_visible())
+		queue_window_redraw();
 }
 
 int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {

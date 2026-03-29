@@ -436,7 +436,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	siril_debug_print("end of gfit operation - idle function\n");
 	stop_processing_thread();
 
-	update_gfit_histogram_if_needed();
+	refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
 
 	/* update bit depth selector */
 	gui_function(set_precision_switch, NULL);
@@ -467,15 +467,17 @@ void notify_gfit_modified() {
 }
 
 /* Must be called on the data-processing thread (worker or script thread) after
- * gfit data is modified, before the thread ends.  Invalidates cached statistics
- * and histogram, remaps the Cairo display buffers, and recomputes the display
- * range.  The remap pixel work is thread-safe; any GTK widget-state updates
- * it triggers are dispatched as idle callbacks so they run on the main thread. */
+ * gfit data is modified, before the thread ends.  Handles all aspects relating
+ * to gfit itself: invalidates cached statistics and histogram, computes fresh
+ * histogram data, remaps the Cairo display buffers, and recomputes the display
+ * range.  The pixel work is thread-safe; any GTK widget-state updates it
+ * triggers are dispatched as idle callbacks so they run on the main thread. */
 void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
 		invalidate_gfit_histogram();
+		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		init_layers_hi_and_lo_values(gui.sliders);
 	}
