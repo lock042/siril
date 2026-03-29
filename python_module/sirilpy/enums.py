@@ -21,6 +21,7 @@ class DialogReq(IntEnum):
     NONE = auto()   #: No requirement, this action works at any time
     PLTSOLVD = auto()   #: Image or sequence frame loaded and plate solved
     RGB = auto()    #: RGB image loaded
+    RGBPLTSOLVD = auto()    #: RGB image or sequence frame loaded and plate solved
     SEQ = auto()    #: Sequence loaded
 
 @unique
@@ -48,7 +49,7 @@ class DialogID(IntEnum):
             return None  # dialog was removed; caller can skip or warn
 
     ABOUT_DIALOG = (0, "application", "About Siril", DialogReq.NONE)
-    ANNOTATE_DIALOG = (1, "info", "Annotate Objects", DialogReq.ANY)
+    ANNOTATE_DIALOG = (1, "info", "Annotate Objects", DialogReq.PLTSOLVD)
     ASINH_DIALOG = (2, "processing", "Asinh Stretch", DialogReq.IMG)
     ASTROMETRY_DIALOG = (3, "processing", "Image Plate Solver", DialogReq.IMG)
     BACKGROUND_EXTRACTION_DIALOG = (4, "processing", "Siril Background Extraction", DialogReq.ANY)
@@ -58,7 +59,7 @@ class DialogID(IntEnum):
     CCM_DIALOG = (8, "processing", "Color Conversion Matrix", DialogReq.RGB)
     CLAHE_DIALOG = (9, "processing", "Contrast-Limited Adaptive Histogram Equalization", DialogReq.IMG)
     COLOR_CALIBRATION = (10, "processing", "Color Calibration", DialogReq.RGB)
-    COMPSTARS_DIALOG = (11, "science", "Companion Stars", DialogReq.ANY)
+    COMPSTARS_DIALOG = (11, "science", "Companion Stars", DialogReq.PLTSOLVD)
     COMPOSITION_DIALOG = (12, "processing", "RGB Compositing", DialogReq.NONE)
     COSMETIC_DIALOG = (13, "processing", "Cosmetic Correction", DialogReq.ANY)
     CURVES_DIALOG = (14, "processing", "Curves Transformation", DialogReq.ANY)
@@ -80,13 +81,13 @@ class DialogID(IntEnum):
     MERGE_CFA_DIALOG = (30, "processing", "Merge CFA Channels", DialogReq.NONE)
     NINA_LIGHT_CURVE = (31, "science", "NINA Light Curve", DialogReq.ANY)
     OPEN_DIALOG = (32, "application", "Open", DialogReq.NONE)
-    PCC_DIALOG = (33, "processing", "Photometric Color Calibration", DialogReq.RGB)
+    PCC_DIALOG = (33, "processing", "Photometric Color Calibration", DialogReq.RGBPLTSOLVD)
     PIXEL_MATH_DIALOG = (34, "processing", "Pixel Math", DialogReq.NONE)
     PREFS_DIALOG = (35, "application", "Preferences", DialogReq.NONE)
     RESAMPLE_DIALOG = (36, "processing", "Resample", DialogReq.IMG)
     RGRADIENT_DIALOG = (37, "processing", "Rotational Gradient", DialogReq.IMG)
     ROTATION_DIALOG = (38, "processing", "Rotate & Crop", DialogReq.IMG)
-    S_PCC_DIALOG = (39, "processing", "Spectrophotometric Color Calibration", DialogReq.RGB)
+    S_PCC_DIALOG = (39, "processing", "Spectrophotometric Color Calibration", DialogReq.RGBPLTSOLVD)
     SATU_DIALOG = (40, "processing", "Color Saturation", DialogReq.RGB)
     SAVEAS_DIALOG = (41, "application", "Save As", DialogReq.IMG)
     SCNR_DIALOG = (42, "processing", "Remove Green Noise", DialogReq.RGB)

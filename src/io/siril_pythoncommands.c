@@ -3657,7 +3657,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							action_name="wavelets-processing";
 							break;
 						case PCC_DIALOG:
-							action_name="pcc_processing";
+							action_name="pcc-processing";
 							break;
 						case CWD_DIALOG:
 							action_name="cwd";
