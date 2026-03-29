@@ -3349,6 +3349,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+
+	// Force UTF8 mode
+	env = g_environ_setenv(env, "PYTHONUTF8", "1", TRUE);
+
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	gboolean success = FALSE;
 	gchar *working_dir = NULL;

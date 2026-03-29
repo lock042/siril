@@ -417,6 +417,7 @@ int process_save(int nb){
 		com.uniq->fileexist = TRUE;
 		if (!com.headless) {
 			display_filename();
+			adjust_sellabel();
 		}
 	}
 	gui_function(set_precision_switch, NULL);
