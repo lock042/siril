@@ -882,7 +882,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		sig = cmsGetColorSpace(image_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		lab_type = TYPE_Lab_16_PLANAR;
-		threaded = !get_thread_run();
+		threaded = !processing_in_worker_thread();
 		// We use sRGB as the fallback for non-color managed images
 		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
@@ -1018,7 +1018,7 @@ static gpointer extract_channels_float(gpointer p) {
 			sig = cmsGetColorSpace(image_profile);
 			trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 			lab_type = TYPE_Lab_FLT_PLANAR;
-			threaded = !get_thread_run();
+			threaded = !processing_in_worker_thread();
 			transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 			cmsCloseProfile(cielab_profile);
 			cmsCloseProfile(image_profile);

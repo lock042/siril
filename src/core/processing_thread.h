@@ -98,7 +98,12 @@ void processing_system_shutdown (void);
  */
 ProcessingJob *processing_submit_job (ProcessingFunc func, gpointer data);
 
-/* Block until a specific fire-and-forget job has completed. */
+/* Block until a specific fire-and-forget job has completed.
+ *
+ * WARNING: After this function returns, the job handle is no longer valid
+ * and MUST NOT be used.  The worker frees fire-and-forget jobs immediately
+ * after completion; any access to the handle after this call is
+ * use-after-free. */
 void processing_wait_for_job (ProcessingJob *job);
 
 
@@ -118,10 +123,18 @@ void processing_wait_for_job (ProcessingJob *job);
  *   Returns TRUE while a job is executing or the slot has been reserved.
  *   Replaces the "is something running?" use of get_thread_run() in
  *   processcommand's wait loop and GUI button-sensitivity checks.
+ *
+ * cancel_and_wait_for_preview()  — FOR GUI PREVIEW CANCEL PATHS ONLY.
+ *   Sets the cancel flag, then pumps the GTK main loop until the active job
+ *   finishes.  Safe to call from the GTK main thread for preview jobs that
+ *   use asynchronous (siril_add_idle) cleanup and never call
+ *   execute_idle_and_wait_for_it.  Do NOT use for jobs that call
+ *   execute_idle_and_wait_for_it — those would deadlock.
  */
 void     processing_request_cancel (void);
 gboolean get_thread_run (void);
 gboolean processing_is_job_active (void);
+void     cancel_and_wait_for_preview (void);
 
 
 /* --------------------------------------------------------------------------
@@ -172,9 +185,15 @@ gboolean processing_is_reserved_for_python(void);
  * In the new model start_in_reserved_thread is identical to start_in_new_thread
  * because the single-worker queue provides the "only one at a time" guarantee
  * implicitly.
+ *
+ * start_and_wait_from_main_thread — submit a job from the GTK main thread and
+ * pump the main loop until the job finishes.  The job MUST NOT call
+ * execute_idle_and_wait_for_it internally (deadlock).  Returns FALSE if the
+ * job could not be started.
  */
-gboolean start_in_new_thread      (ProcessingFunc func, gpointer data);
-gboolean start_in_reserved_thread (ProcessingFunc func, gpointer data);
+gboolean start_in_new_thread            (ProcessingFunc func, gpointer data);
+gboolean start_in_reserved_thread       (ProcessingFunc func, gpointer data);
+gboolean start_and_wait_from_main_thread(ProcessingFunc func, gpointer data);
 
 /*
  * waiting_for_thread()

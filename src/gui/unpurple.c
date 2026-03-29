@@ -265,7 +265,7 @@ void on_unpurple_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
 		/* if user click very fast */
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

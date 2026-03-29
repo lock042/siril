@@ -363,7 +363,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	static GtkEntry *channel_extract_entry[3] = { NULL, NULL, NULL };
 	static GtkComboBox *combo_extract_channel = NULL;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

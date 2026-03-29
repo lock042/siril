@@ -331,6 +331,10 @@ void processing_wait_for_job(ProcessingJob *job) {
 	while (!job->completed)
 		g_cond_wait(&job->cond, &job->mutex);
 	g_mutex_unlock(&job->mutex);
+	/* NOTE: for fire-and-forget jobs the worker calls processing_job_free()
+	 * immediately after setting job->completed and broadcasting job->cond
+	 * (see worker loop).  By the time we return here the job handle may
+	 * already be freed.  Callers MUST NOT access *job after this point. */
 }
 
 /*****************************************************************************
@@ -484,11 +488,11 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
 
 gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
 	/*
-	* In the old design start_in_reserved_thread allowed submission even while
-	* com.python_claims_thread was TRUE (it only checked com.thread).  In the
-	* new design the single-worker queue serialises everything; we simply
-	* delegate to start_in_new_thread.  The "reserved" quality is implicit:
-	* there is always exactly one slot and it is always pre-allocated.
+	* In the old design start_in_reserved_thread allowed submission only when
+	* the slot was not already reserved.  In the new design the single-worker
+	* queue serialises everything; we simply delegate to start_in_new_thread.
+	* The "reserved" quality is implicit: there is always exactly one slot and
+	* it is always pre-allocated.
 	*/
 	return start_in_new_thread(func, data);
 }
@@ -600,4 +604,56 @@ void unreserve_thread(void) {
 gboolean end_generic(gpointer arg G_GNUC_UNUSED) {
 	stop_processing_thread();
 	return FALSE;
+}
+
+/*
+ * cancel_and_wait_for_preview  — FOR GUI PREVIEW CANCEL PATHS ONLY.
+ *
+ * Sets the cancel flag then spins, pumping the GTK main loop, until the
+ * active job finishes.  Safe to call from the GTK main thread because
+ * preview jobs use siril_add_idle (asynchronous) for their cleanup and
+ * never call execute_idle_and_wait_for_it, so they do not need the main
+ * thread to complete.
+ *
+ * Do NOT use for jobs that call execute_idle_and_wait_for_it — those
+ * would deadlock if the main thread is blocked here.
+ */
+void cancel_and_wait_for_preview(void) {
+	if (!processing_is_job_active())
+		return;
+	processing_request_cancel();
+	/* Pump the GTK main loop (non-blocking iterations) while the worker
+	 * finishes.  The worker does not need the main thread; we add a brief
+	 * sleep to avoid spinning 100% CPU. */
+	while (processing_is_job_active()) {
+		if (g_main_context_pending(g_main_context_default()))
+			g_main_context_iteration(g_main_context_default(), FALSE);
+		else
+			g_usleep(1000); /* 1 ms */
+	}
+}
+
+/*
+ * start_and_wait_from_main_thread  — submit a job and block until done.
+ *
+ * Intended for the rare case where GUI code (running on the GTK main thread)
+ * must submit a synchronous job and read back its return value.  The job
+ * MUST NOT call execute_idle_and_wait_for_it internally, or a deadlock will
+ * result.  (For generic_sequence_worker called from GUI context, the worker
+ * uses siril_add_idle — asynchronous — so blocking here is safe.)
+ *
+ * Returns FALSE if the job could not be started (same semantics as
+ * start_in_new_thread).
+ */
+gboolean start_and_wait_from_main_thread(ProcessingFunc func, gpointer data) {
+	if (!start_in_new_thread(func, data))
+		return FALSE;
+	/* Pump the GTK main loop while the worker finishes. */
+	while (processing_is_job_active()) {
+		if (g_main_context_pending(g_main_context_default()))
+			g_main_context_iteration(g_main_context_default(), FALSE);
+		else
+			g_usleep(1000);
+	}
+	return TRUE;
 }

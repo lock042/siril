@@ -388,7 +388,7 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	satu_show_preview = gtk_toggle_button_get_active(button);
 	if (!satu_show_preview) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		copy_backup_to_gfit();
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL);

@@ -495,7 +495,15 @@ void *process_commands(void *p) {
 
 		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command_name);
 
+		/* Set com.script so processing_submit_job blocks until the job
+		 * finishes and deposits the result in pending_result, which
+		 * waiting_for_thread() can then retrieve correctly.  Without this,
+		 * fire-and-forget jobs never set pending_result and
+		 * waiting_for_thread() always returns 0, hiding command errors. */
+		gboolean was_script = com.script;
+		com.script = TRUE;
 		int retval = execute_command(wordnb);
+		com.script = was_script;
 
 		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();

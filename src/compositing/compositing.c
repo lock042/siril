@@ -2469,13 +2469,14 @@ int crop_rgbcomp_seq() {
 	args->load_new_sequence = TRUE;
 	args->user = crop_args;
 
-	if (!start_in_new_thread(generic_sequence_worker, args)) {
+	if (!start_and_wait_from_main_thread(generic_sequence_worker, args)) {
 		free(crop_args->prefix);
 		free(crop_args);
 		free_generic_seq_args(args, FALSE);
 		return 1;
 	}
-	waiting_for_thread();
+	/* already_in_a_thread=TRUE means the worker did not schedule an idle
+	 * and did not free args, so reading retval and freeing here is safe. */
 	int retval = args->retval;
 	free_generic_seq_args(args, FALSE);
 	update_result(TRUE);

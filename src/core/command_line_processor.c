@@ -193,7 +193,7 @@ int execute_command(int wordnb) {
 	}
 
 	if ((commands[i].prerequires & REQ_CMD_NO_THREAD) != 0) {
-		if (get_thread_run()) {
+		if (processing_is_job_active()) {
 			return CMD_THREAD_RUNNING;
 		}
 	}

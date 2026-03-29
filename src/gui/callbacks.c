@@ -2570,7 +2570,7 @@ static gpointer checkSeq(gpointer p) {
 }
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

@@ -297,7 +297,7 @@ static void global_initialization() {
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
 
-	fprintf(stdout, "Initializing processing thread...\n");
+	siril_debug_print("Initializing processing thread...\n");
 	processing_system_init();
 
 	initialize_default_settings();	// com.pref

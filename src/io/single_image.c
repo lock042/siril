@@ -466,6 +466,11 @@ void notify_gfit_modified() {
 	gui_function(end_gfit_operation, NULL);
 }
 
+/* Must be called on the data-processing thread (worker or script thread) after
+ * gfit data is modified, before the thread ends.  Invalidates cached statistics
+ * and histogram, remaps the Cairo display buffers, and recomputes the display
+ * range.  The remap pixel work is thread-safe; any GTK widget-state updates
+ * it triggers are dispatched as idle callbacks so they run on the main thread. */
 void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode

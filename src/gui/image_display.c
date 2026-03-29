@@ -314,6 +314,19 @@ static void remap_mask(mask_t *mask) {
 	test_and_allocate_reference_image(vport);
 }
 
+/*
+ * Idle wrapper for set_viewer_mode_widgets_sensitive().
+ *
+ * remap() and remap_all_vports() may be called from a non-GTK thread
+ * (via notify_gfit_data_modified()).  Widget-sensitivity changes must only
+ * happen on the GTK main thread, so we dispatch them as idle callbacks.
+ * The gint value (0 or 1) is passed via GINT_TO_POINTER / GPOINTER_TO_INT.
+ */
+static gboolean viewer_mode_sensitive_idle(gpointer data) {
+	set_viewer_mode_widgets_sensitive(GPOINTER_TO_INT(data));
+	return G_SOURCE_REMOVE;
+}
+
 // remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
 static void remap(int vport) {
 	// This function maps fit data with a linear LUT between lo and hi levels
@@ -336,12 +349,20 @@ static void remap(int vport) {
 	if (allocate_full_surface(view))
 		return;
 
+	/* Cache the GtkApplicationWindow and the two GAction pointers on first call.
+	 * g_action_map_lookup_action() is not thread-safe; caching here (initialised
+	 * from the GTK main thread on first image display) avoids calling it from
+	 * worker threads.  g_action_get_state() on a GSimpleAction is thread-safe
+	 * (atomic pointer read) and is therefore safe to call from any thread. */
 	static GtkApplicationWindow *app_win = NULL;
+	static GAction *action_neg_cached = NULL;
+	static GAction *action_color_cached = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
 	}
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *neg_state = g_action_get_state(action_neg);
+	GVariant *neg_state = g_action_get_state(action_neg_cached);
 	inverted = g_variant_get_boolean(neg_state);
 	g_variant_unref(neg_state);
 	neg_state = NULL;
@@ -365,7 +386,8 @@ static void remap(int vport) {
 
 		last_mode = gui.rendering_mode;
 		histo = com.layers_hist[vport];
-		set_viewer_mode_widgets_sensitive(FALSE);
+		/* Widget-sensitivity changes must happen on the GTK main thread. */
+		siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(FALSE));
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
@@ -378,7 +400,8 @@ static void remap(int vport) {
 		}
 		else
 			make_index_for_current_display(vport);
-		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
+		siril_add_idle(viewer_mode_sensitive_idle,
+		               GINT_TO_POINTER(gui.rendering_mode != STF_DISPLAY));
 	}
 
 	src = gfit->pdata[vport];
@@ -387,8 +410,7 @@ static void remap(int vport) {
 	g_mutex_lock(&gui.cairo_mutex);
 	dst = view->buf;
 
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant *rainbow_state = g_action_get_state(action_color);
+	GVariant *rainbow_state = g_action_get_state(action_color_cached);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
 	rainbow_state = NULL;
@@ -520,13 +542,18 @@ static void remap(int vport) {
 
 static void remap_all_vports() {
 	gboolean inverted;
+	/* Cache the GtkApplicationWindow and GAction pointers on first call —
+	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
+	static GAction *action_neg_cached = NULL;
+	static GAction *action_color_cached = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
 	}
 	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state_neg = g_action_get_state(action_neg);
+	GVariant *state_neg = g_action_get_state(action_neg_cached);
 	inverted = g_variant_get_boolean(state_neg);
 	g_variant_unref(state_neg);
 	state_neg = NULL;
@@ -534,8 +561,7 @@ static void remap_all_vports() {
 
 	// Check if we need a rainbow color map
 	BYTE rainbow_index[UCHAR_MAX + 1][3];
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant* rainbow_state = g_action_get_state(action_color);
+	GVariant* rainbow_state = g_action_get_state(action_color_cached);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
 	rainbow_state = NULL;
@@ -608,7 +634,8 @@ static void remap_all_vports() {
 	unlock_display_transform();
 
 	gui.icc.profile_changed = FALSE;
-	set_viewer_mode_widgets_sensitive(TRUE);
+	/* Widget-sensitivity changes must happen on the GTK main thread. */
+	siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(TRUE));
 
 	last_mode = gui.rendering_mode;
 
