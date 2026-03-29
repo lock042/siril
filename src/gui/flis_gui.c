@@ -126,9 +126,9 @@ static inline GObject *fo(const gchar *id) {
  * Declared here, defined below with other signal handlers. */
 static void on_row_visibility_toggled(GtkToggleButton *btn, gpointer data);
 static void on_row_lock_toggled(GtkToggleButton *btn, gpointer data);
-G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn, gpointer data);
-G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn, gpointer data);
-G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data);
+void on_flis_mask_view_toggled(GtkToggleButton *btn, gpointer data);
+void on_flis_lmask_active_toggle_clicked(GtkButton *btn, gpointer data);
+void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data);
 
 /* Create an icon-only toggle button for use in a layer row. */
 static GtkWidget *row_icon_toggle(const gchar *icon_on,
@@ -798,7 +798,7 @@ static void on_row_lock_toggled(GtkToggleButton *btn,
 }
 
 
-G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
+void on_flis_layer_row_selected(GtkListBox    *box,
                                                 GtkListBoxRow *row,
                                                 gpointer       data) {
     (void)box; (void)data;
@@ -849,7 +849,7 @@ G_MODULE_EXPORT void on_flis_layer_row_selected(GtkListBox    *box,
  * Toolbar signal handlers
  * ========================================================================= */
 
-G_MODULE_EXPORT void on_flis_add_layer_clicked(GtkButton *btn,
+void on_flis_add_layer_clicked(GtkButton *btn,
                                                gpointer   data) {
     (void)btn; (void)data;
 
@@ -892,7 +892,7 @@ G_MODULE_EXPORT void on_flis_add_layer_clicked(GtkButton *btn,
     queue_redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
+void on_flis_remove_layer_clicked(GtkButton *btn,
                                                   gpointer   data) {
     (void)btn; (void)data;
     if (!flis_selected) return;
@@ -926,7 +926,7 @@ G_MODULE_EXPORT void on_flis_remove_layer_clicked(GtkButton *btn,
     queue_redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_duplicate_layer_clicked(GtkButton *btn,
+void on_flis_duplicate_layer_clicked(GtkButton *btn,
                                                      gpointer   data) {
     (void)btn; (void)data;
 
@@ -956,7 +956,7 @@ G_MODULE_EXPORT void on_flis_duplicate_layer_clicked(GtkButton *btn,
     queue_redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_move_up_clicked(GtkButton *btn,
+void on_flis_move_up_clicked(GtkButton *btn,
                                              gpointer   data) {
     (void)btn; (void)data;
     if (!flis_selected) return;
@@ -972,7 +972,7 @@ G_MODULE_EXPORT void on_flis_move_up_clicked(GtkButton *btn,
                          _("Move layer up"), FALSE, NULL);
 }
 
-G_MODULE_EXPORT void on_flis_move_down_clicked(GtkButton *btn,
+void on_flis_move_down_clicked(GtkButton *btn,
                                                gpointer   data) {
     (void)btn; (void)data;
     if (!flis_selected) return;
@@ -1017,12 +1017,12 @@ static void flis_apply_name_entry(void) {
     }
 }
 
-G_MODULE_EXPORT void on_flis_name_activate(GtkEntry *entry, gpointer data) {
+void on_flis_name_activate(GtkEntry *entry, gpointer data) {
     (void)entry; (void)data;
     flis_apply_name_entry();
 }
 
-G_MODULE_EXPORT gboolean on_flis_name_focus_out(GtkWidget *widget,
+gboolean on_flis_name_focus_out(GtkWidget *widget,
                                                 GdkEventFocus *event,
                                                 gpointer data) {
     (void)widget; (void)event; (void)data;
@@ -1030,7 +1030,7 @@ G_MODULE_EXPORT gboolean on_flis_name_focus_out(GtkWidget *widget,
     return FALSE; /* allow default focus handling */
 }
 
-G_MODULE_EXPORT void on_flis_blend_mode_changed(GtkComboBox *combo,
+void on_flis_blend_mode_changed(GtkComboBox *combo,
                                                 gpointer     data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
@@ -1123,7 +1123,7 @@ static void on_flis_opacity_spin_commit(GtkSpinButton *spin, gpointer data) {
  * Layer mask signal handlers
  * ========================================================================= */
 
-G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
+void on_flis_mask_toggle_clicked(GtkButton *btn,
                                                  gpointer   data) {
     (void)btn; (void)data;
     if (!flis_selected) return;
@@ -1199,7 +1199,7 @@ G_MODULE_EXPORT void on_flis_mask_toggle_clicked(GtkButton *btn,
     }
 }
 
-G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
+void on_flis_mask_move_clicked(GtkButton *btn,
                                                gpointer   data) {
     (void)btn; (void)data;
     if (!flis_selected || !flis_selected->lmask) return;
@@ -1276,7 +1276,7 @@ G_MODULE_EXPORT void on_flis_mask_move_clicked(GtkButton *btn,
  * Mask view toggle (processing mask ↔ layer mask)
  * ========================================================================= */
 
-G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn,
+void on_flis_mask_view_toggled(GtkToggleButton *btn,
                                                 gpointer         data) {
     (void)data;
     if (flis_updating) return;
@@ -1293,7 +1293,7 @@ G_MODULE_EXPORT void on_flis_mask_view_toggled(GtkToggleButton *btn,
 }
 
 /* Toggle layer mask active/inactive */
-G_MODULE_EXPORT void on_flis_lmask_active_toggle_clicked(GtkButton *btn,
+void on_flis_lmask_active_toggle_clicked(GtkButton *btn,
                                                           gpointer   data) {
     (void)btn;
     (void)data;
@@ -1447,7 +1447,7 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
     return GDK_EVENT_STOP;
 }
 
-G_MODULE_EXPORT void on_flis_merge_down_activate(GtkMenuItem *item, gpointer data) {
+void on_flis_merge_down_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!flis_selected || !is_current_image_flis()) return;
 
@@ -1468,7 +1468,7 @@ G_MODULE_EXPORT void on_flis_merge_down_activate(GtkMenuItem *item, gpointer dat
     redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
+void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!is_current_image_flis()) return;
 
@@ -1482,7 +1482,7 @@ G_MODULE_EXPORT void on_flis_background_neutralise_activate(GtkMenuItem *item, g
     redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) {
+void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!is_current_image_flis()) return;
 
@@ -1509,7 +1509,7 @@ G_MODULE_EXPORT void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) 
     redraw(REMAP_ALL);
 }
 
-G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data) {
+void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data) {
     (void)data;
     gboolean active = gtk_toggle_button_get_active(btn);
     if (active) {
@@ -1532,7 +1532,7 @@ G_MODULE_EXPORT void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer d
  *   • the base layer's ICC profile (borrowed; non-base layers carry no profile
  *     per the FLIS invariant)
  */
-G_MODULE_EXPORT void on_flis_export_layer_activate(GtkMenuItem *item,
+void on_flis_export_layer_activate(GtkMenuItem *item,
                                                     gpointer     data) {
     (void)item; (void)data;
     if (!flis_selected || !flis_selected->fit) return;
@@ -1681,7 +1681,7 @@ static gint flis_register_dialog(GtkWindow              *parent,
  * bounding box.  After apply_reg the per-layer bounding-box offsets stored in
  * regparam[i].H are used to set position_x/y relative to the canvas layer.
  */
-G_MODULE_EXPORT void on_flis_register_layers_activate(GtkMenuItem *item,
+void on_flis_register_layers_activate(GtkMenuItem *item,
                                                        gpointer     data) {
     (void)item; (void)data;
 
@@ -1854,7 +1854,7 @@ static gboolean flis_composite_will_be_rgb(void) {
     return FALSE;
 }
 
-G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
+void on_flis_tint_toggled(GtkToggleButton *btn,
                                           gpointer         data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
@@ -1881,7 +1881,7 @@ G_MODULE_EXPORT void on_flis_tint_toggled(GtkToggleButton *btn,
                          _("Tint"), FALSE, end_flis_tint_toggle);
 }
 
-G_MODULE_EXPORT void on_flis_tint_color_set(GtkColorButton *btn,
+void on_flis_tint_color_set(GtkColorButton *btn,
                                             gpointer        data) {
     (void)data;
     if (flis_updating || !flis_selected) return;
@@ -1904,7 +1904,7 @@ G_MODULE_EXPORT void on_flis_tint_color_set(GtkColorButton *btn,
  * Window signal handler
  * ========================================================================= */
 
-G_MODULE_EXPORT gboolean on_flis_layers_window_delete_event(
+gboolean on_flis_layers_window_delete_event(
     GtkWidget *widget, GdkEventAny *event, gpointer data) {
     (void)widget; (void)event; (void)data;
     /* Hide rather than destroy so state is preserved */
@@ -1916,7 +1916,7 @@ G_MODULE_EXPORT gboolean on_flis_layers_window_delete_event(
  * This is the right place for setup that must happen each time the panel
  * becomes visible: setting the transient parent, keep-above, and rebuilding
  * the layer list so it is always current. */
-G_MODULE_EXPORT void on_flis_layers_window_show(GtkWidget *widget,
+void on_flis_layers_window_show(GtkWidget *widget,
                                                 gpointer   data) {
     (void)data;
     GtkWindow *win     = GTK_WINDOW(widget);
