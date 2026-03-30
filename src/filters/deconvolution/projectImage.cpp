@@ -82,9 +82,6 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
 
             if (horizontalShear) {
                 int start = (maxSize - w - factor*h) / 2;
-#ifdef _OPENMP
-                #pragma omp simd
-#endif
                 for (int y = 0; y < h; y++) {
                     int offset = start + round(factor * y);
                     for (int x = 0; x < w; x++) {
@@ -94,9 +91,6 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
                 }
             } else {
                 int start = (maxSize - h - factor*w) / 2;
-#ifdef _OPENMP
-                #pragma omp simd
-#endif
                 for (int x = 0; x < w; x++) {
                     int offset = start + round(factor * x);
                     for (int y = 0; y < h; y++) {
@@ -107,9 +101,6 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
             }
 
             // Replace values that didn't get any samples by NAN
-#ifdef _OPENMP
-            #pragma omp simd
-#endif
             for (int i = 0; i < maxSize; i++) {
                 if (!countLine[i])
                     accumulationLine[i] = NAN;
@@ -165,9 +156,6 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
 
             if (horizontalShear) {
                 int start = (maxSize - w - factor*h) / 2;
-#ifdef _OPENMP
-                #pragma omp simd
-#endif
                 for (int y = 0; y < h; y++) {
                     int offset = start + round(factor * y);
                     for (int x = 0; x < w; x++) {
@@ -177,9 +165,6 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
                 }
             } else {
                 int start = (maxSize - h - factor*w) / 2;
-#ifdef _OPENMP
-                #pragma omp simd
-#endif
                 for (int x = 0; x < w; x++) {
                     int offset = start + round(factor * x);
                     for (int y = 0; y < h; y++) {
@@ -190,10 +175,7 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
             }
 
             // Replace values that didn't get any samples by NAN
-#ifdef _OPENMP
-            #pragma omp simd
-#endif
-for (int i = 0; i < maxSize; i++) {
+            for (int i = 0; i < maxSize; i++) {
                 if (!countLine[i])
                     accumulationLine[i] = NAN;
             }

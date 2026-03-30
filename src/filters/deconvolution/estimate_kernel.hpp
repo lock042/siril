@@ -240,7 +240,7 @@ public:
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.fftw_max_thread)
 {
-#pragma omp for simd schedule(static) collapse(2)
+#pragma omp for schedule(static) collapse(2)
 #endif
         for (int y = 0; y < k.h; y++) {
             for (int x = 0; x < k.w; x++) {
@@ -396,9 +396,6 @@ public:
             // crop the center of the otf to get the kernel
             int left = otf.w / 2 - k.w / 2;
             int top = otf.h / 2 - k.h / 2;
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
             for (int y = 0; y < k.h; y++) {
                 for (int x = 0; x < k.w; x++) {
                     k(x, y) = otf(left + x, top + y);

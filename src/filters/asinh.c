@@ -257,7 +257,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 		}
 		if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 			for (size_t i = 0 ; i < n ; i++) {
 				blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
@@ -353,7 +353,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 		}
 		if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 			for (size_t i = 0 ; i < n ; i++) {
 				blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };

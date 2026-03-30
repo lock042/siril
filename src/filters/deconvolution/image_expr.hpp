@@ -559,7 +559,7 @@ public:
 
 #pragma omp parallel num_threads(available_threads)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
         for (int i = 0; i < size; i++)
             (*this)[i] = e[i];

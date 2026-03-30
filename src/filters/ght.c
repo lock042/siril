@@ -356,7 +356,7 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 	float globalmax = -FLT_MAX;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 	for (size_t i = 0 ; i < layersize ; i++) {
 		float f[3];
@@ -412,7 +412,7 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 	}
 	if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 		for (size_t i = 0 ; i < layersize ; i++) {
 			float f[3];
@@ -456,7 +456,7 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 
 	// Independent stretching of mono or RGB channels
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)  collapse(2) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
 #endif
 	for (size_t chan=0; chan < nchans; chan++) {
 		for (size_t i = 0; i < layersize; i++) {
@@ -507,7 +507,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
 	int threads = min(com.max_thread, 8);
-#pragma omp parallel for simd num_threads(threads) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(threads) schedule(static) if (multithreaded)
 #endif
 	for (int i = 0 ; i <= USHRT_MAX ; i++) {
 		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
@@ -515,7 +515,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 
 	// Loop over pixels
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 	for (size_t i = 0 ; i < layersize ; i++) {
 		float f[3];
@@ -577,7 +577,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 	free(lut);
 	if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 		for (size_t i = 0 ; i < layersize ; i++) {
 			float f[3];
@@ -626,7 +626,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
 	int threads = min(com.max_thread, 8);
-#pragma omp parallel for simd num_threads(threads) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(threads) schedule(static) if (multithreaded)
 #endif
 	for (int i = 0 ; i <= USHRT_MAX ; i++) {
 		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
@@ -634,7 +634,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 
 	// Loop over pixels: independent stretching of mono or RGB channels
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
 #endif
 	for (size_t chan=0; chan < nchans; chan++) {
 		for (size_t i = 0; i < layersize; i++) {
@@ -692,7 +692,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (multithreaded)
 		{
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				rgb_to_hslf(fit->fpdata[RLAYER][i], fit->fpdata[GLAYER][i], fit->fpdata[BLAYER][i], &fit->fpdata[HLAYER][i], &fit->fpdata[SLAYER][i], &fit->fpdata[LLAYER][i]);
@@ -705,7 +705,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 			apply_linked_ght_to_fbuf_indep(fit->fpdata[SLAYER], fit->fpdata[SLAYER], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				hsl_to_rgbf(fit->fpdata[HLAYER][i], fit->fpdata[SLAYER][i], fit->fpdata[LLAYER][i], &fit->fpdata[RLAYER][i], &fit->fpdata[GLAYER][i], &fit->fpdata[BLAYER][i]);
@@ -718,7 +718,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (multithreaded)
 		{
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				rgbw_to_hslw(fit->pdata[RLAYER][i], fit->pdata[GLAYER][i], fit->pdata[BLAYER][i], &fit->pdata[HLAYER][i], &fit->pdata[SLAYER][i], &fit->pdata[LLAYER][i]);
@@ -731,7 +731,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 			apply_linked_ght_to_Wbuf_indep(fit->pdata[SLAYER], fit->pdata[SLAYER], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
 				hslw_to_rgbw(fit->pdata[HLAYER][i], fit->pdata[SLAYER][i], fit->pdata[LLAYER][i], &fit->pdata[RLAYER][i], &fit->pdata[GLAYER][i], &fit->pdata[BLAYER][i]);

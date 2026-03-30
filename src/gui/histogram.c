@@ -259,7 +259,7 @@ static void hsl_to_fit (void* h, void* s, void* l) {
 		float* sf = (float*) s;
 		float* lf = (float*) l;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			hsl_to_rgbf(hf[i], sf[i], lf[i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
@@ -269,7 +269,7 @@ static void hsl_to_fit (void* h, void* s, void* l) {
 		WORD* sw = (WORD*) s;
 		WORD* lw = (WORD*) l;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			hslw_to_rgbw(hw[i], sw[i], lw[i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
@@ -284,7 +284,7 @@ static void fit_to_hsl() {
 		float* sf = (float*) satbuf_orig;
 		float* lf = (float*) lumbuf;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
@@ -295,7 +295,7 @@ static void fit_to_hsl() {
 		WORD* sw = (WORD*) satbuf_orig;
 		WORD* lw = (WORD*) lumbuf;
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
 			rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &hw[i], &sw[i], &lw[i]);

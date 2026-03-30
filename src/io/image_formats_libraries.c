@@ -2935,9 +2935,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 			for (int i = 0; i < width * nrow; i++) {
 				r = (int) ( ( (float) (0x0fff & (src[i * nchannels + RLAYER]))  / scale) * 65535.0f + 0.5f);
 				g = (int) ( ( (float) (0x0fff & (src[i * nchannels + GLAYER]))  / scale) * 65535.0f + 0.5f);
@@ -2958,9 +2955,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 			for (int i = 0; i < width * nrow; i++) {
 				r = udata[i * nchannels + RLAYER];
 				g = udata[i * nchannels + GLAYER];
