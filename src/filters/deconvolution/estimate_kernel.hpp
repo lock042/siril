@@ -132,11 +132,17 @@ public:
 
         // compute conj(F(k)).F(v)
         img_t<std::complex<T>> Ktf(v.w, v.h);
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#endif
         for (int i = 0; i < Ktf.size; i++)
             Ktf[i] = std::conj(K_otf[i]) * fv[i];
 
         // compute |F(k)|^2
         img_t<T> KtK(v.w, v.h);
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#endif
         for (int i = 0; i < KtK.size; i++)
             // std::norm(c) returns the squared magnitude of c
             KtK[i] = std::norm(K_otf[i]);
@@ -149,14 +155,16 @@ public:
             utils::circular_gradients(g, u);
 
             // hard-thresholding (solve the 'g' update)
+            {
+                T threshold = lambda / beta;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
 #endif
-            for (int i = 0; i < v.w * v.h; i++) {
-                T n = std::pow(g[0][i], T(2)) + std::pow(g[1][i], T(2));
-                if (n < lambda / beta) {
-                    g[0][i] = 0;
-                    g[1][i] = 0;
+                for (int i = 0; i < v.w * v.h; i++) {
+                    T gx = g[0][i], gy = g[1][i];
+                    T n = gx*gx + gy*gy;
+                    g[0][i] = (n < threshold) ? T(0) : gx;
+                    g[1][i] = (n < threshold) ? T(0) : gy;
                 }
             }
 
@@ -166,12 +174,11 @@ public:
 
             // solve the 'u' update
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
 #endif
             for (int i = 0; i < div.size; i++) {
-                std::complex<T> num = Ktf[i] - beta * adj[i];
-                T denom = KtK[i] + beta * DtD[i];
-                div[i] = num / denom;
+                T denom = T(1) / (KtK[i] + beta * DtD[i]);
+                div[i] = (Ktf[i] - beta * adj[i]) * denom;
             }
 
             u = ifft::c2r(div);
@@ -334,6 +341,9 @@ public:
         fft::psf2otf(dy_otf, dy, v.w, v.h);
 
         // compute |F(\partial_x)|^2 + |F(\partial_y)|^2
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#endif
         for (int i = 0; i < DtD.size; i++) {
             // std::norm(c) returns the squared magnitude of c
             DtD[i] = std::norm(dx_otf[i]) + std::norm(dy_otf[i]);
@@ -373,21 +383,25 @@ public:
             fft::psf2otf(k_otf, k, u.w, u.h);
 
             // solve the linear system
+            // opts.use_filters is loop-invariant; branch outside for SIMD
+            if (opts.use_filters) {
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
 #endif
-            for (int i = 0; i < div.size; i++) {
-                // std::norm(c) returns the squared magnitude of c
-                std::complex<T> num;
-                T denum;
-                if (opts.use_filters) {
-                    num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i] + gamma * k_otf[i];
-                    denum = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + gamma + DtD[i] * opts.gamma;
-                } else {
-                    num = std::conj(fu[i]) * fv[i] + gamma * k_otf[i];
-                    denum = std::norm(fu[i]) + gamma + DtD[i] * opts.gamma;
+                for (int i = 0; i < div.size; i++) {
+                    std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i] + gamma * k_otf[i];
+                    T denum = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + gamma + DtD[i] * opts.gamma;
+                    div[i] = num / denum;
                 }
-                div[i] = num / denum;
+            } else {
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(com.fftw_max_thread)
+#endif
+                for (int i = 0; i < div.size; i++) {
+                    std::complex<T> num = std::conj(fu[i]) * fv[i] + gamma * k_otf[i];
+                    T denum = std::norm(fu[i]) + gamma + DtD[i] * opts.gamma;
+                    div[i] = num / denum;
+                }
             }
 
             // compute the inverse discrete Fourier transform
@@ -403,11 +417,14 @@ public:
             }
 
             // enforce positivity of the kernel + prox l1
+            {
+                T l1_thresh = opts.k_l1 / gamma;
 #ifdef _OPENMP
 #pragma omp simd
 #endif
-            for (int i = 0; i < k.size; i++) {
-                k[i] = std::max(T(0), k[i] - opts.k_l1 / gamma);
+                for (int i = 0; i < k.size; i++) {
+                    k[i] = std::max(T(0), k[i] - l1_thresh);
+                }
             }
 
             gamma = gamma * T(2);
