@@ -323,11 +323,96 @@ float GHTp(float in, const ght_params *params, const ght_compute_params *compute
 	return GHT(in, params->B, params->D, params->LP, params->SP, params->HP, params->BP, params->stretchtype, compute_params);
 }
 
+/* ── Variant-specific inline evaluators ────────────────────────────────────
+ * stretchtype and B sign are resolved once at the call site so the compiler
+ * sees a clean, branch-free inner loop for each pixel. All take an input x
+ * that has already been clamped to [0,1] and BP-normalised.
+ * ─────────────────────────────────────────────────────────────────────────*/
+
+/* Returns 0 for B==-1 (log formula), 1 for B==0 (exp formula),
+ * 2 for any other B (pow formula).  Matches the branch structure in GHT(). */
+static int b_category(float B) {
+	if (B == -1.0f) return 0;
+	if (B ==  0.0f) return 1;
+	return 2;
+}
+
+static inline float ght_payne_normal_log(float x, const ght_compute_params *c,
+                                          float LP, float SP, float HP) {
+	float res1 = c->a2 + c->b2 * logf(c->c2 + c->d2 * x);
+	float res2 = c->a3 + c->b3 * logf(c->c3 + c->d3 * x);
+	return (x < LP) ? c->b1 * x : (x < SP) ? res1 : (x < HP) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_payne_normal_exp(float x, const ght_compute_params *c,
+                                          float LP, float SP, float HP) {
+	float res1 = c->a2 + c->b2 * expf(c->c2 + c->d2 * x);
+	float res2 = c->a3 + c->b3 * expf(c->c3 + c->d3 * x);
+	return (x < LP) ? c->b1 * x : (x < SP) ? res1 : (x < HP) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_payne_normal_pow(float x, const ght_compute_params *c,
+                                          float LP, float SP, float HP) {
+	float res1 = c->a2 + c->b2 * powf(c->c2 + c->d2 * x, c->e2);
+	float res2 = c->a3 + c->b3 * powf(c->c3 + c->d3 * x, c->e3);
+	return (x < LP) ? c->b1 * x : (x < SP) ? res1 : (x < HP) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_payne_inverse_exp(float x, const ght_compute_params *c) {
+	float res1 = c->a2 + c->b2 * expf(c->c2 + c->d2 * x);
+	float res2 = c->a3 + c->b3 * expf(c->c3 + c->d3 * x);
+	return (x < c->LPT) ? c->b1 * x : (x < c->SPT) ? res1 : (x < c->HPT) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_payne_inverse_log(float x, const ght_compute_params *c) {
+	float res1 = c->a2 + c->b2 * logf(c->c2 + c->d2 * x);
+	float res2 = c->a3 + c->b3 * logf(c->c3 + c->d3 * x);
+	return (x < c->LPT) ? c->b1 * x : (x < c->SPT) ? res1 : (x < c->HPT) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_payne_inverse_pow(float x, const ght_compute_params *c) {
+	float res1 = c->a2 + c->b2 * powf(c->c2 + c->d2 * x, c->e2);
+	float res2 = c->a3 + c->b3 * powf(c->c3 + c->d3 * x, c->e3);
+	return (x < c->LPT) ? c->b1 * x : (x < c->SPT) ? res1 : (x < c->HPT) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_asinh_eval(float x, const ght_compute_params *c,
+                                    float LP, float SP, float HP) {
+	float dx2 = x - c->e2;
+	float res1 = c->a2 + c->b2 * logf(c->c2 * dx2 + sqrtf(c->d2 * dx2 * dx2 + 1.0f));
+	float dx3 = x - c->e3;
+	float res2 = c->a3 + c->b3 * logf(c->c3 * dx3 + sqrtf(c->d3 * dx3 * dx3 + 1.0f));
+	return (x < LP) ? c->a1 + c->b1 * x : (x < SP) ? res1 : (x < HP) ? res2 : c->a4 + c->b4 * x;
+}
+
+static inline float ght_invasinh_eval(float x, const ght_compute_params *c) {
+	float ex1 = expf((c->a2 - x) / c->b2);
+	float res1 = c->e2 - (ex1 - 1.0f / ex1) / (2.0f * c->c2);
+	float ex2 = expf((c->a3 - x) / c->b3);
+	float res2 = c->e3 - (ex2 - 1.0f / ex2) / (2.0f * c->c3);
+	return (x < c->LPT) ? (x - c->a1) / c->b1 : (x < c->SPT) ? res1 : (x < c->HPT) ? res2 : (x - c->a4) / c->b4;
+}
+
+/* Dispatch GHT evaluation using an already-resolved variant.
+ * Avoids branching on stretchtype/B inside the per-pixel hot path. */
+#define GHT_DISPATCH(x, c, stretchtype, bcat, LP, SP, HP) \
+	((stretchtype) == STRETCH_PAYNE_NORMAL \
+	    ? ((bcat) == 0 ? ght_payne_normal_log((x),(c),(LP),(SP),(HP)) \
+	                   : (bcat) == 1 ? ght_payne_normal_exp((x),(c),(LP),(SP),(HP)) \
+	                                 : ght_payne_normal_pow((x),(c),(LP),(SP),(HP))) \
+	: (stretchtype) == STRETCH_PAYNE_INVERSE \
+	    ? ((bcat) == 0 ? ght_payne_inverse_exp((x),(c)) \
+	                   : (bcat) == 1 ? ght_payne_inverse_log((x),(c)) \
+	                                 : ght_payne_inverse_pow((x),(c))) \
+	: (stretchtype) == STRETCH_ASINH \
+	    ? ght_asinh_eval((x),(c),(LP),(SP),(HP)) \
+	    : ght_invasinh_eval((x),(c)))
+
 void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
 	const clip_mode_t clip_mode = params->clip_mode;
 	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
 	int active_channels = 3;
-	float m_CB = 1.f; // This could be set to 0.f to switch off RGBBlend
+	const float m_CB = 1.f;
 	float* fpbuf[nchans];
 	float* outp[nchans];
 	for (size_t chan = 0; chan < nchans; chan++) {
@@ -342,95 +427,132 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 		return;
 	}
 	struct ght_compute_params compute_params = { 0 };
-	// Independent stretching of mono or RGB channels
-	// If only working with selected channels, human-weighted luminance no longer makes sense so luminance
-	// based stretches are forced to even weighting
+	// If only working with selected channels, human-weighted luminance no longer
+	// makes sense so luminance-based stretches are forced to even weighting.
 	const float invchans = 1.f / active_channels;
 	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
 		if (params->payne_colourstretchmodel == COL_HUMANLUM)
 			params->payne_colourstretchmodel = COL_EVENLUM;
-	float factor_red = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.2126f;
-	float factor_green = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.7152f;
-	float factor_blue = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.0722f;
-	// Do calcs that can be done prior to the loop
+	const float factor_red   = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.2126f;
+	const float factor_green = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.7152f;
+	const float factor_blue  = params->payne_colourstretchmodel == COL_EVENLUM ? invchans : 0.0722f;
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
+
+	// Resolve the transform variant once; stretchtype and bcat never change
+	// within a call, so the compiler can eliminate dead branches from each loop.
+	const int stretchtype = params->stretchtype;
+	const int bcat = b_category(params->B);
+	const float LP = params->LP, SP = params->SP, HP = params->HP;
 	float globalmax = -FLT_MAX;
+
+	// Hoist clip_mode outside the pixel loop: each mode gets its own tight
+	// parallel loop with no per-pixel switch overhead.
+	switch (clip_mode) {
+	case CLIP:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-	for (size_t i = 0 ; i < layersize ; i++) {
-		float f[3];
-		// Clip input to [0,1]
-		for (int chan = 0; chan < 3 ; chan++)
-			f[chan] = fmaxf(0.f, fminf(1.f, fpbuf[chan][i]));
-		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
-		float sfbar = GHTp(fbar, params, &compute_params);
-		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
-		blend_data data = { .do_channel = do_channel };
-		//Calculate the luminance and independent channel stretches for the pixel
-		for (size_t chan = 0; chan < 3 ; chan++) {
-			data.sf[chan] = f[chan] * stretch_factor;
+		for (size_t i = 0; i < layersize; i++) {
+			float f0 = fmaxf(0.f, fminf(1.f, fpbuf[0][i]));
+			float f1 = fmaxf(0.f, fminf(1.f, fpbuf[1][i]));
+			float f2 = fmaxf(0.f, fminf(1.f, fpbuf[2][i]));
+			float fbar = do_channel[0] * factor_red * f0 + do_channel[1] * factor_green * f1 + do_channel[2] * factor_blue * f2;
+			float sfbar = GHT_DISPATCH(fbar, &compute_params, stretchtype, bcat, LP, SP, HP);
+			float stretch_factor = sfbar / fmaxf(fbar, FLT_MIN);
+			outp[0][i] = do_channel[0] ? fmaxf(0.f, fminf(1.f, f0 * stretch_factor)) : f0;
+			outp[1][i] = do_channel[1] ? fmaxf(0.f, fminf(1.f, f1 * stretch_factor)) : f1;
+			outp[2][i] = do_channel[2] ? fmaxf(0.f, fminf(1.f, f2 * stretch_factor)) : f2;
 		}
-		if (clip_mode == RGBBLEND) {
-			for (size_t chan = 0; chan < 3 ; chan++) {
-				data.tf[chan] = do_channel[chan] ? GHTp(f[chan], params, &compute_params) : 0.f;
-			}
-		}
-		float maxval;
-		switch (clip_mode) {
-			case CLIP:
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					// Clip output to [0,1]
-					outp[chan][i] = (do_channel[chan]) ? fmaxf(0.f, fminf(1.f, data.sf[chan])) : f[chan];
-				}
-				break;
-			case RGBBLEND:
-				// Apply RGBblend values
-				rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
-				}
-				break;
-			case RESCALE:
-				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
-				float invmaxval = 1.f / maxval;
-				if (maxval > 1.f) {
-					data.sf[0] *= invmaxval;
-					data.sf[1] *= invmaxval;
-					data.sf[2] *= invmaxval;
-				}
-				for (size_t chan = 0 ; chan < 3 ; chan++) {
-					outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
-				}
-				break;
-			case RESCALEGLOBAL:
-				maxval = fmaxf(data.sf[0], fmaxf(data.sf[1], data.sf[2]));
-				if (maxval > globalmax)
-					globalmax = maxval;
-				break;
-		}
-	}
-	if (clip_mode == RESCALEGLOBAL) {
+		break;
+
+	case RGBBLEND:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-		for (size_t i = 0 ; i < layersize ; i++) {
-			float f[3];
-			for (size_t chan = 0; chan < 3 ; chan++)
-				f[chan] = fmaxf(0.f, fpbuf[chan][i]);
-			float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
-			float sfbar = GHTp(fbar, params, &compute_params);
-			float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
+		for (size_t i = 0; i < layersize; i++) {
+			float f0 = fmaxf(0.f, fminf(1.f, fpbuf[0][i]));
+			float f1 = fmaxf(0.f, fminf(1.f, fpbuf[1][i]));
+			float f2 = fmaxf(0.f, fminf(1.f, fpbuf[2][i]));
+			float fbar = do_channel[0] * factor_red * f0 + do_channel[1] * factor_green * f1 + do_channel[2] * factor_blue * f2;
+			float sfbar = GHT_DISPATCH(fbar, &compute_params, stretchtype, bcat, LP, SP, HP);
+			float stretch_factor = sfbar / fmaxf(fbar, FLT_MIN);
 			blend_data data = { .do_channel = do_channel };
-			//Calculate the luminance and independent channel stretches for the pixel
-			for (size_t chan = 0; chan < 3 ; chan++) {
-				data.sf[chan] = f[chan] * stretch_factor;
+			data.sf[0] = f0 * stretch_factor;
+			data.sf[1] = f1 * stretch_factor;
+			data.sf[2] = f2 * stretch_factor;
+			data.tf[0] = do_channel[0] ? GHT_DISPATCH(f0, &compute_params, stretchtype, bcat, LP, SP, HP) : 0.f;
+			data.tf[1] = do_channel[1] ? GHT_DISPATCH(f1, &compute_params, stretchtype, bcat, LP, SP, HP) : 0.f;
+			data.tf[2] = do_channel[2] ? GHT_DISPATCH(f2, &compute_params, stretchtype, bcat, LP, SP, HP) : 0.f;
+			rgbblend(&data, &data.sf[0], &data.sf[1], &data.sf[2], m_CB);
+			outp[0][i] = do_channel[0] ? data.sf[0] : f0;
+			outp[1][i] = do_channel[1] ? data.sf[1] : f1;
+			outp[2][i] = do_channel[2] ? data.sf[2] : f2;
+		}
+		break;
+
+	case RESCALE:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0; i < layersize; i++) {
+			float f0 = fmaxf(0.f, fminf(1.f, fpbuf[0][i]));
+			float f1 = fmaxf(0.f, fminf(1.f, fpbuf[1][i]));
+			float f2 = fmaxf(0.f, fminf(1.f, fpbuf[2][i]));
+			float fbar = do_channel[0] * factor_red * f0 + do_channel[1] * factor_green * f1 + do_channel[2] * factor_blue * f2;
+			float sfbar = GHT_DISPATCH(fbar, &compute_params, stretchtype, bcat, LP, SP, HP);
+			float stretch_factor = sfbar / fmaxf(fbar, FLT_MIN);
+			float sf0 = f0 * stretch_factor;
+			float sf1 = f1 * stretch_factor;
+			float sf2 = f2 * stretch_factor;
+			float maxval = fmaxf(sf0, fmaxf(sf1, sf2));
+			if (maxval > 1.f) {
+				float invmaxval = 1.f / maxval;
+				sf0 *= invmaxval;
+				sf1 *= invmaxval;
+				sf2 *= invmaxval;
 			}
-			for (size_t chan = 0 ; chan < 3 ; chan++) {
-				data.sf[chan] /= globalmax;
-				outp[chan][i] = (do_channel[chan]) ? data.sf[chan] : f[chan];
+			outp[0][i] = do_channel[0] ? sf0 : f0;
+			outp[1][i] = do_channel[1] ? sf1 : f1;
+			outp[2][i] = do_channel[2] ? sf2 : f2;
+		}
+		break;
+
+	case RESCALEGLOBAL:
+		// Pass 1: find global maximum.
+		// reduction(max:globalmax) fixes the data race present in the original.
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:globalmax) if (multithreaded)
+#endif
+		for (size_t i = 0; i < layersize; i++) {
+			float f0 = fmaxf(0.f, fminf(1.f, fpbuf[0][i]));
+			float f1 = fmaxf(0.f, fminf(1.f, fpbuf[1][i]));
+			float f2 = fmaxf(0.f, fminf(1.f, fpbuf[2][i]));
+			float fbar = do_channel[0] * factor_red * f0 + do_channel[1] * factor_green * f1 + do_channel[2] * factor_blue * f2;
+			float sfbar = GHT_DISPATCH(fbar, &compute_params, stretchtype, bcat, LP, SP, HP);
+			float stretch_factor = sfbar / fmaxf(fbar, FLT_MIN);
+			float maxval = fmaxf(f0 * stretch_factor, fmaxf(f1 * stretch_factor, f2 * stretch_factor));
+			if (maxval > globalmax)
+				globalmax = maxval;
+		}
+		// Pass 2: apply with global normalisation.
+		{
+			const float inv_globalmax = (globalmax > 0.f) ? 1.f / globalmax : 1.f;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++) {
+				float f0 = fmaxf(0.f, fpbuf[0][i]);
+				float f1 = fmaxf(0.f, fpbuf[1][i]);
+				float f2 = fmaxf(0.f, fpbuf[2][i]);
+				float fbar = do_channel[0] * factor_red * f0 + do_channel[1] * factor_green * f1 + do_channel[2] * factor_blue * f2;
+				float sfbar = GHT_DISPATCH(fbar, &compute_params, stretchtype, bcat, LP, SP, HP);
+				float stretch_factor = sfbar / fmaxf(fbar, FLT_MIN) * inv_globalmax;
+				outp[0][i] = do_channel[0] ? f0 * stretch_factor : f0;
+				outp[1][i] = do_channel[1] ? f1 * stretch_factor : f1;
+				outp[2][i] = do_channel[2] ? f2 * stretch_factor : f2;
 			}
 		}
+		break;
 	}
 }
 
@@ -450,20 +572,118 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 		return;
 	}
 	struct ght_compute_params compute_params;
-
-	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 
-	// Independent stretching of mono or RGB channels
+	const int stretchtype = params->stretchtype;
+	const int bcat = b_category(params->B);
+	const float LP = params->LP, SP = params->SP, HP = params->HP;
+	const float BP = params->BP;
+
+	// D == 0 for non-linear stretches: identity (just clamp to [0,1]).
+	if (params->D == 0.f && stretchtype != STRETCH_LINEAR) {
+		for (size_t chan = 0; chan < nchans; chan++) {
+			const float *src = fpbuf[chan];
+			float *dst = fpout[chan];
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-	for (size_t chan=0; chan < nchans; chan++) {
-		for (size_t i = 0; i < layersize; i++) {
-			// GHT is intended to operate on values in [0.f, 1.f]
-			// Clip to this range.
-			float x = fminf(1.f, fmaxf(0.f, fpbuf[chan][i]));
-			fpout[chan][i] = do_channel[chan] ? (x == 0.0f) ? 0.0f : GHTp(x, params, &compute_params) : x;
+			for (size_t i = 0; i < layersize; i++)
+				dst[i] = fmaxf(0.f, fminf(1.f, src[i]));
+		}
+		return;
+	}
+
+	// do_channel[chan] is constant within the inner loop: hoist it to the
+	// channel level so inactive channels skip the transform entirely.
+	// The dispatch on stretchtype × bcat is also resolved once per channel,
+	// giving the compiler a branch-free inner loop to vectorise.
+	for (size_t chan = 0; chan < nchans; chan++) {
+		const float *src = fpbuf[chan];
+		float *dst = fpout[chan];
+
+		if (!do_channel[chan]) {
+			// Inactive channel: copy with clamping to match original behaviour.
+			for (size_t i = 0; i < layersize; i++)
+				dst[i] = fmaxf(0.f, fminf(1.f, src[i]));
+			continue;
+		}
+
+		if (stretchtype == STRETCH_PAYNE_NORMAL) {
+			if (bcat == 0) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_normal_log(x, &compute_params, LP, SP, HP);
+				}
+			} else if (bcat == 1) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_normal_exp(x, &compute_params, LP, SP, HP);
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_normal_pow(x, &compute_params, LP, SP, HP);
+				}
+			}
+		} else if (stretchtype == STRETCH_PAYNE_INVERSE) {
+			if (bcat == 0) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_inverse_exp(x, &compute_params);
+				}
+			} else if (bcat == 1) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_inverse_log(x, &compute_params);
+				}
+			} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+				for (size_t i = 0; i < layersize; i++) {
+					float x = fmaxf(0.f, fminf(1.f, src[i]));
+					dst[i] = ght_payne_inverse_pow(x, &compute_params);
+				}
+			}
+		} else if (stretchtype == STRETCH_ASINH) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++) {
+				float x = fmaxf(0.f, fminf(1.f, src[i]));
+				dst[i] = ght_asinh_eval(x, &compute_params, LP, SP, HP);
+			}
+		} else if (stretchtype == STRETCH_INVASINH) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++) {
+				float x = fmaxf(0.f, fminf(1.f, src[i]));
+				dst[i] = ght_invasinh_eval(x, &compute_params);
+			}
+		} else { // STRETCH_LINEAR
+			const float invscale = 1.0f / (1.0f - BP);
+			const float offset   = BP * invscale;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++)
+				dst[i] = fmaxf(0.f, fminf(1.f, src[i]) * invscale - offset);
 		}
 	}
 }
@@ -515,7 +735,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 
 	// Loop over pixels
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:globalmax) if (multithreaded)
 #endif
 	for (size_t i = 0 ; i < layersize ; i++) {
 		float f[3];
