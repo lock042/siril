@@ -858,41 +858,66 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 
 	size_t int_norm = (size_t)norm;
 	gsl_histogram *mtf_histo = gsl_histogram_alloc(int_norm + 1);
-
 	gsl_histogram_set_ranges_uniform(mtf_histo, 0, norm);
+
+	// Precompute loop-invariant values
+	size_t lo_bin = (size_t)roundf_to_WORD(lo * norm);
+	size_t hi_bin = (size_t)roundf_to_WORD(hi * norm);
+	float inv_norm = 1.f / norm;
+	float inv_range = (hi > lo) ? 1.f / (hi - lo) : 1.f;
+	float m_minus_1 = m - 1.f;
+	float two_m_minus_1 = 2.f * m - 1.f;
+
 // disabled because of ISSUE #136 (https://free-astro.org/bugs/view.php?id=136)
 // Update by A Knagg-Baugh - the issue only relates to MacOS so I've limited the
 // disabling to that OS with a #ifndef. Similarly for the other instance below
 #ifndef __APPLE__
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel num_threads(com.max_thread)
 #endif
 #endif
-	for (size_t i = 0; i < int_norm + 1; i++) {
-		WORD mtf;
-		float binval = gsl_histogram_get(histo, i);
-		float pxl = ((float)i / norm);
-		guint64 clip[2] = { 0, 0 };
+	{
+		// Per-thread histogram eliminates the data race on mtf_histo
+		gsl_histogram *histo_thr = gsl_histogram_alloc(int_norm + 1);
+		gsl_histogram_set_ranges_uniform(histo_thr, 0, norm);
+		guint64 clip0 = 0, clip1 = 0;
 
-		if (i < roundf_to_WORD(lo * norm)) {
-			pxl = lo;
-			clip[0] += binval;
-		} else if (i > roundf_to_WORD(hi * norm)) {
-			pxl = hi;
-			clip[1] += binval;
+#ifndef __APPLE__
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+#endif
+		for (size_t i = 0; i <= int_norm; i++) {
+			float binval = gsl_histogram_get(histo, i);
+			if (binval == 0.0)
+				continue;
+			size_t bi = i;
+			if (i < lo_bin) {
+				bi = lo_bin;
+				clip0 += (guint64)binval;
+			} else if (i > hi_bin) {
+				bi = hi_bin;
+				clip1 += (guint64)binval;
+			}
+			float pxl = bi * inv_norm;
+			float xp = fmaxf(0.f, fminf((pxl - lo) * inv_range, 1.f));
+			WORD mtf = roundf_to_WORD(((m_minus_1 * xp) / (two_m_minus_1 * xp - m)) * norm);
+			gsl_histogram_accumulate(histo_thr, (double)mtf, (double)binval);
 		}
-		mtf = roundf_to_WORD(MTF(pxl, m, lo, hi) * norm);
-		gsl_histogram_accumulate(mtf_histo, (double)mtf, (double)binval);
+
 #ifndef __APPLE__
 #ifdef _OPENMP
 #pragma omp critical
 #endif
 #endif
 		{
-			clipped[0] += clip[0];
-			clipped[1] += clip[1];
+			gsl_histogram_add(mtf_histo, histo_thr);
+			clipped[0] += clip0;
+			clipped[1] += clip1;
 		}
+		gsl_histogram_free(histo_thr);
 	}
+
 	gsl_histogram_memcpy(histo, mtf_histo);
 	gsl_histogram_free(mtf_histo);
 }
@@ -901,41 +926,61 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
 	size_t int_norm = (size_t)norm;
 	gsl_histogram *mtf_histo = gsl_histogram_alloc(int_norm + 1);
-
 	gsl_histogram_set_ranges_uniform(mtf_histo, 0, norm);
 
 	GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 
+	// Precompute loop-invariant values
+	size_t lo_bin = (size_t)roundf_to_WORD(lo * norm);
+	size_t hi_bin = (size_t)roundf_to_WORD(hi * norm);
+	float inv_norm = 1.f / norm;
+
 #ifndef __APPLE__
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel num_threads(com.max_thread)
 #endif
 #endif
-	for (size_t i = 0; i < int_norm + 1; i++) {
-		float ght;
-		float binval = gsl_histogram_get(histo, i);
-		float pxl = ((float)i / norm);
-		guint64 clip[2] = { 0, 0 };
+	{
+		// Per-thread histogram eliminates the data race on mtf_histo
+		gsl_histogram *histo_thr = gsl_histogram_alloc(int_norm + 1);
+		gsl_histogram_set_ranges_uniform(histo_thr, 0, norm);
+		guint64 clip0 = 0, clip1 = 0;
 
-		if (i < roundf_to_WORD(lo * norm)) {
-			pxl = lo;
-			clip[0] += binval;
-		} else if (i > roundf_to_WORD(hi * norm)) {
-			pxl = hi;
-			clip[1] += binval;
+#ifndef __APPLE__
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+#endif
+		for (size_t i = 0; i <= int_norm; i++) {
+			float binval = gsl_histogram_get(histo, i);
+			if (binval == 0.0)
+				continue;
+			size_t bi = i;
+			if (i < lo_bin) {
+				bi = lo_bin;
+				clip0 += (guint64)binval;
+			} else if (i > hi_bin) {
+				bi = hi_bin;
+				clip1 += (guint64)binval;
+			}
+			float pxl = bi * inv_norm;
+			WORD ght = roundf_to_WORD(GHT(pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params) * norm);
+			gsl_histogram_accumulate(histo_thr, (double)ght, (double)binval);
 		}
-		ght = roundf_to_WORD(GHT(pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params) * norm);
-		gsl_histogram_accumulate(mtf_histo, (double) ght, (double) binval);
+
 #ifndef __APPLE__
 #ifdef _OPENMP
 #pragma omp critical
 #endif
 #endif
 		{
-			clipped[0] += clip[0];
-			clipped[1] += clip[1];
+			gsl_histogram_add(mtf_histo, histo_thr);
+			clipped[0] += clip0;
+			clipped[1] += clip1;
 		}
+		gsl_histogram_free(histo_thr);
 	}
+
 	gsl_histogram_memcpy(histo, mtf_histo);
 	gsl_histogram_free(mtf_histo);
 }
