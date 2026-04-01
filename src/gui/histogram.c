@@ -40,6 +40,7 @@
 #include "gui/siril_preview.h"
 #include "core/undo.h"
 #include "histogram.h"
+#include "histogram_utils.h"
 
 #define GRADIENT_HEIGHT 12
 
@@ -69,10 +70,6 @@ static fits* fit = NULL;
 static gboolean auto_display_compensation = FALSE;
 
 static double invxpos = -1.0;
-// colors of layers histograms		R	G	B	RGB
-static double histo_color_r[] = { 1.0, 0.0, 0.0, 0.0 };
-static double histo_color_g[] = { 0.0, 1.0, 0.0, 0.0 };
-static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
@@ -96,11 +93,9 @@ static gboolean lp_warning_given, hp_warning_given = FALSE;
 
 void *huebuf = NULL, *satbuf_orig = NULL, *satbuf_working = NULL, *lumbuf = NULL;
 
-static void set_histogram(gsl_histogram *histo, int layer);
-
 static void setup_hsl();
 static void clear_hsl();
-static void set_sat_histogram(gsl_histogram *histo);
+static void stretch_dialog_compute_histograms(fits *thefit);
 
 struct mtf_data* create_mtf_data() {
 	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
@@ -212,7 +207,7 @@ static void histo_startup() {
 		}
 	}
 	// also get the backup histogram
-	compute_histo_for_fit(fit);
+	stretch_dialog_compute_histograms(fit);
 	for (int i = 0; i < fit->naxes[2]; i++)
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
 	if (com.sat_hist) {
@@ -538,64 +533,6 @@ static void adjust_histogram_vport_size() {
 #endif
 }
 
-size_t get_histo_size(fits *fit) {
-	if (fit->type == DATA_USHORT) {
-		if (fit->orig_bitpix == BYTE_IMG)
-			return UCHAR_MAX;
-	}
-	return (size_t)USHRT_MAX;
-}
-
-// create a new histogram object for the passed fit and layer
-gsl_histogram* computeHisto(fits *fit, int layer) {
-	g_assert(layer < 3);
-	size_t i, ndata, size;
-
-	size = get_histo_size(fit);
-	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
-	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
-	ndata = fit->naxes[0] * fit->naxes[1];
-
-#ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread)
-#endif
-	{
-		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
-		gsl_histogram_set_ranges_uniform(histo_thr, 0, fit->type == DATA_FLOAT ? 1.0 + 1.0 / size : size + 1);
-
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[layer];
-#ifdef _OPENMP
-#pragma omp for private(i) schedule(static)
-#endif
-			for (i = 0; i < ndata; i++) {
-				if (buf[i] == 0)
-					continue;
-				gsl_histogram_increment(histo_thr, (double) buf[i]);
-			}
-		} else if (fit->type == DATA_FLOAT) {
-			float *buf = fit->fpdata[layer];
-#ifdef _OPENMP
-#pragma omp for private(i) schedule(static)
-#endif
-			for (i = 0; i < ndata; i++) {
-				if (buf[i] == 0.f)
-					continue;
-				gsl_histogram_increment(histo_thr, (double) buf[i]);
-			}
-		}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-		{
-			gsl_histogram_add(histo, histo_thr);
-		}
-		gsl_histogram_free(histo_thr);
-	}
-
-	return histo;
-}
-
 // create a new histogram object for the passed float buffer (used for sat)
 gsl_histogram* computeHistoSat(void* buf) {
 	size_t i, ndata, size;
@@ -679,61 +616,11 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	cairo_stroke(cr);
 }
 
-void draw_grid(cairo_t *cr, int width, int height) {
-	double dash_format[] = { 1.0, 1.0 };
-
-	cairo_set_line_width(cr, 1.0);
-	cairo_set_source_rgb(cr, 0.4, 0.4, 0.4);
-	// quarters in solid, eights in dashed line
-	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_move_to(cr, width * 0.25, 0);
-	cairo_line_to(cr, width * 0.25, height);
-	cairo_move_to(cr, width * 0.5, 0);
-	cairo_line_to(cr, width * 0.5, height);
-	cairo_move_to(cr, width * 0.75, 0);
-	cairo_line_to(cr, width * 0.75, height);
-
-	cairo_set_line_width(cr, 1.0);
-	cairo_move_to(cr, 0, height * 0.25);
-	cairo_line_to(cr, width, height * 0.25);
-	cairo_move_to(cr, 0, height * 0.5);
-	cairo_line_to(cr, width, height * 0.5);
-	cairo_move_to(cr, 0, height * 0.75);
-	cairo_line_to(cr, width, height * 0.75);
-
-	cairo_stroke(cr);
-
-	cairo_set_line_width(cr, 1.0);
-	cairo_set_dash(cr, dash_format, 2, 0);
-	cairo_move_to(cr, width * 0.125, 0);
-	cairo_line_to(cr, width * 0.125, height);
-	cairo_move_to(cr, width * 0.375, 0);
-	cairo_line_to(cr, width * 0.375, height);
-	cairo_move_to(cr, width * 0.625, 0);
-	cairo_line_to(cr, width * 0.625, height);
-	cairo_move_to(cr, width * 0.875, 0);
-	cairo_line_to(cr, width * 0.875, height);
-
-	cairo_set_line_width(cr, 1.0);
-	cairo_move_to(cr, 0, height * 0.125);
-	cairo_line_to(cr, width, height * 0.125);
-	cairo_move_to(cr, 0, height * 0.375);
-	cairo_line_to(cr, width, height * 0.375);
-	cairo_move_to(cr, 0, height * 0.625);
-	cairo_line_to(cr, width, height * 0.625);
-	cairo_move_to(cr, 0, height * 0.875);
-	cairo_line_to(cr, width, height * 0.875);
-	cairo_stroke(cr);
-
-}
-
 // erase image and redraw the background color and grid
-void erase_histo_display(cairo_t *cr, int width, int height) {
+static void erase_histo_display(cairo_t *cr, int width, int height) {
 	gboolean drawGrid, drawCurve;
 	// clear all with background color
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
+	fill_histo_background(cr, width, height);
 
 	// draw grid
 	init_toggles();
@@ -772,7 +659,7 @@ static void draw_slider(cairo_t *cr, int width, int height, int xpos) {
 	cairo_stroke(cr);
 }
 
-void display_scale(cairo_t *cr, int width, int height) {
+static void display_scale(cairo_t *cr, int width, int height) {
 	draw_gradient(cr, width, height);
 	if (invocation == HISTO_STRETCH) {
 		float delta = ((_highlights - _shadows) * _midtones) + _shadows;
@@ -780,77 +667,6 @@ void display_scale(cairo_t *cr, int width, int height) {
 		draw_slider(cr, width, height, (delta) * width);
 		draw_slider(cr, width, height, _highlights * width);
 	}
-}
-
-void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
-		int height, double zoomH, double zoomV, gboolean isOrig, gboolean is_log) {
-	if (!histo) return;
-	if (width <= 0) return;
-	int current_bin;
-	size_t norm = gsl_histogram_bins(histo) - 1;
-
-	float vals_per_px = (float)norm / (float)width;	// size of a bin
-	size_t i, nb_orig_bins = gsl_histogram_bins(histo);
-
-	// We need to store the binned histogram in order to find the binned maximum
-	static gfloat *displayed_values = NULL;
-	static int nb_bins_allocated = 0;
-	/* we create a bin for each pixel in the displayed width.
-	 * nb_bins_allocated is thus equal to the width of the image */
-	if (nb_bins_allocated != width) {
-		gfloat *tmp;
-		nb_bins_allocated = width;
-		tmp = realloc(displayed_values, nb_bins_allocated * sizeof(gfloat));
-		if (!tmp) {
-			if (displayed_values != NULL) {
-				g_free(displayed_values);
-				displayed_values = NULL;
-			}
-			PRINT_ALLOC_ERR;
-			histo_close(TRUE, TRUE, TRUE);
-			return;
-		}
-		displayed_values = tmp;
-		memset(displayed_values, 0, nb_bins_allocated);
-	}
-	if (fit->naxis == 2)
-		cairo_set_source_rgb(cr, 255.0, 255.0, 255.0);
-	else if (layer < 0)
-		cairo_set_source_rgb(cr, 255.0, 255.0, 0.0);
-	else
-		cairo_set_source_rgb(cr, histo_color_r[layer], histo_color_g[layer],
-				histo_color_b[layer]);
-	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_line_width(cr, 1.5);
-	if (isOrig || layer == -2)
-		cairo_set_line_width(cr, 0.5);
-
-	// first loop builds the bins and finds the maximum
-	i = 0;
-	double graph_height = 0.f;
-	current_bin = 0;
-	do {
-		double bin_val = 0.f;
-		while (i < nb_orig_bins
-				&& (double)i / vals_per_px <= current_bin + 0.5f) {
-			bin_val += gsl_histogram_get(histo, i);
-			i++;
-		}
-		if (is_log && bin_val != 0.f) {
-			bin_val = logf(bin_val);
-		}
-		displayed_values[current_bin] = bin_val;
-		if (bin_val > graph_height)	// check for maximum
-			graph_height = bin_val;
-		current_bin++;
-	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
-	if (!graph_height)
-		return;
-	for (i = 0; i < nb_bins_allocated; i++) {
-		double bin_height = height - height * displayed_values[i] / graph_height;
-		cairo_line_to(cr, i, bin_height);
-	}
-	cairo_stroke(cr);
 }
 
 static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
@@ -1079,19 +895,6 @@ static int histo_update_preview() {
 	return 0;
 }
 
-static void set_histogram(gsl_histogram *histo, int layer) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
-	if (com.layers_hist[layer])
-		gsl_histogram_free(com.layers_hist[layer]);
-	com.layers_hist[layer] = histo;
-}
-
-static void set_sat_histogram(gsl_histogram *histo) {
-	if (com.sat_hist)
-		gsl_histogram_free(com.sat_hist);
-	com.sat_hist = histo;
-}
-
 static gboolean on_gradient(GdkEvent *event, int width, int height) {
 	return ((GdkEventButton*) event)->x > 0
 			&& ((GdkEventButton*) event)->x < width
@@ -1103,67 +906,21 @@ static gboolean on_gradient(GdkEvent *event, int width, int height) {
  * Public functions
  */
 
-gsl_histogram* computeHisto_Selection(fits* fit, int layer,
-		rectangle *selection) {
-	g_assert(layer < 3);
-
-	size_t size = get_histo_size(fit);
-	gsl_histogram* histo = gsl_histogram_alloc(size + 1);
-	gsl_histogram_set_ranges_uniform(histo, 0, fit->type == DATA_FLOAT ? 1.0 : size);
-	size_t stridefrom = fit->rx - selection->w;
-
-	if (fit->type == DATA_USHORT) {
-		WORD *from = fit->pdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
-			+ selection->x;
-		for (size_t i = 0; i < selection->h; i++) {
-			for (size_t j = 0; j < selection->w; j++) {
-				gsl_histogram_increment(histo, (double)*from);
-				from++;
-			}
-			from += stridefrom;
-		}
-	}
-	else if (fit->type == DATA_FLOAT) {
-		float *from = fit->fpdata[layer] + (fit->ry - selection->y - selection->h) * fit->rx
-			+ selection->x;
-		for (size_t i = 0; i < selection->h; i++) {
-			for (size_t j = 0; j < selection->w; j++) {
-				gsl_histogram_increment(histo, (double)*from);
-				from++;
-			}
-			from += stridefrom;
-		}
-	}
-	return histo;
-}
-
-/* call from main thread */
-void compute_histo_for_fit(fits *thefit) {
-	int nb_layers = 3;
-	if (thefit->naxis == 2)
-		nb_layers = 1;
-	for (int i = 0; i < nb_layers; i++) {
-		if (!com.layers_hist[i])
-			set_histogram(computeHisto(thefit, i), i);
-	}
-	if (nb_layers == 3 && satbuf_working)
+/* Stretch-dialog-specific histogram refresh: computes per-layer histograms via
+ * the shared compute_histo_for_fit(), then also computes the saturation histogram
+ * (only relevant in HSL/GHT colour modes) and updates the toggle button labels. */
+static void stretch_dialog_compute_histograms(fits *thefit) {
+	compute_histo_for_fit(thefit);
+	if (thefit->naxes[2] == 3 && satbuf_working)
 		set_sat_histogram(computeHistoSat(satbuf_working));
 	set_histo_toggles_names();
-}
-
-/* call from any thread */
-void invalidate_gfit_histogram() {
-	for (int layer = 0; layer < MAXVPORT; layer++) {
-		set_histogram(NULL, layer);
-	}
-	set_sat_histogram(NULL);
 }
 
 /* call from main thread */
 void update_gfit_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (is_histogram_visible()) {
-		compute_histo_for_fit(fit);
+		stretch_dialog_compute_histograms(fit);
 		queue_window_redraw();
 	}
 }
@@ -1314,7 +1071,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
-		compute_histo_for_fit(fit);
+		stretch_dialog_compute_histograms(fit);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1351,7 +1108,7 @@ gboolean ght_single_image_idle(gpointer p) {
 	// Check if processing succeeded
 	if (args->retval == 0) {
 		// Update histograms
-		compute_histo_for_fit(fit);
+		stretch_dialog_compute_histograms(fit);
 		queue_window_redraw();
 
 		// Notify that gfit was modified
@@ -1479,20 +1236,21 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		return FALSE;
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
+	gboolean is_mono = (fit->naxes[2] == 1);
 	for (i = 0; i < RGB_VPORT; i++) {
 		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
-				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale());
+				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale(), is_mono);
 			}
 			if (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i])) {
-				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
+				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), is_mono);
 			}
 		}
 	}
 	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && fit->naxes[2] == 3) {
-		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
+		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), FALSE);
 		if (gtk_toggle_tool_button_get_active(toggleOrig))
-			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
+			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale(), FALSE);
 	}
 	display_scale(cr, width, height);
 	return FALSE;
@@ -1529,7 +1287,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
-	compute_histo_for_fit(fit);
+	stretch_dialog_compute_histograms(fit);
 }
 
 gboolean on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {

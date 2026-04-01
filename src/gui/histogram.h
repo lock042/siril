@@ -3,6 +3,7 @@
 
 #include "filters/mtf.h"
 #include "filters/ght.h"
+#include "gui/histogram_utils.h"
 
 #define NO_STRETCH_SET_YET 0
 #define HISTO_STRETCH 1
@@ -51,11 +52,7 @@ int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads)
 gboolean mtf_single_image_idle(gpointer p);
 gboolean ght_single_image_idle(gpointer p);
 
-gsl_histogram* computeHisto(fits*, int);
-gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);
 void histo_change_between_roi_and_image();
-void compute_histo_for_fit(fits *thefit);
-void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
 void apply_histo_cancel();
 void toggle_histogram_window_visibility(int _invocation);
@@ -70,8 +67,4 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void apply_mtf_to_sequence(struct mtf_data *mtf_args);
 void apply_ght_to_sequence(struct ght_data *ght_args);
 
-void erase_histo_display(cairo_t *cr, int width, int height);
-void draw_grid(cairo_t *cr, int width, int height);
-void display_scale(cairo_t *cr, int width, int height);
-void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width, int height, double zoomH, double zoomV, gboolean isOrig, gboolean is_log);
 #endif
