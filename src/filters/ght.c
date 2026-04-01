@@ -445,6 +445,22 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, float* out, size_t layersize, siz
 	const float LP = params->LP, SP = params->SP, HP = params->HP;
 	float globalmax = -FLT_MAX;
 
+	// D == 0 for non-linear stretches: identity (just clamp to [0,1]).
+	// GHTsetup zeros all compute params when D==0, which causes GHT_DISPATCH
+	// to return 0 for every pixel and collapse the image to black.
+	if (params->D == 0.f && stretchtype != STRETCH_LINEAR) {
+		for (size_t chan = 0; chan < nchans; chan++) {
+			const float *src = fpbuf[chan];
+			float *dst = outp[chan];
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++)
+				dst[i] = fmaxf(0.f, fminf(1.f, src[i]));
+		}
+		return;
+	}
+
 	// Hoist clip_mode outside the pixel loop: each mode gets its own tight
 	// parallel loop with no per-pixel switch overhead.
 	switch (clip_mode) {
