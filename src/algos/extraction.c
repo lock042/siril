@@ -443,7 +443,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #ifdef _OPENMP
 #pragma omp parallel num_threads(threads)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -480,7 +480,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #endif
 		// Separate loop for Ha site interpolation so this works for all Bayer patterns
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -660,7 +660,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(threads)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -698,7 +698,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #endif
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;

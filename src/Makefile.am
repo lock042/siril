@@ -295,6 +295,8 @@ siril_common_SOURCES = \
 	gui/histo_display.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/histogram_utils.c \
+	gui/histogram_utils.h \
 	gui/keywords_tree.c \
 	gui/keywords_tree.h \
 	gui/icc_profile.c \

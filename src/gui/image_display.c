@@ -756,7 +756,6 @@ static void remap_all_vports() {
 			}
 			for (int c = 0 ; c < 3 ; c++) {
 				const int cc = gfit->color_managed ? c : 0;
-#pragma omp simd
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
 					if (gui.cut_over && val > gui.hi) {	// cut

@@ -50,15 +50,17 @@ namespace {
 Image ColorTransform(Image&& src) {
   Image img = std::move(src);
   if (img.channels() == 3) {
+    const float inv_sqrt3 = 1.f / sqrt(3.f);
+    const float inv_sqrt2 = 1.f / sqrt(2.f);
+    const float inv_sqrt6 = 1.f / sqrt(6.f);
     for (int row = 0; row < img.rows(); ++row) {
       for (int col = 0; col < img.columns(); ++col) {
-        float r, g, b;
-        r = img.val(col, row, 0);
-        g = img.val(col, row, 1);
-        b = img.val(col, row, 2);
-        img.val(col, row, 0) = (r + g + b) / sqrt(3.f);
-        img.val(col, row, 1) = (r - b) / sqrt(2.f);
-        img.val(col, row, 2) = (r - 2 * g + b) / sqrt(6.f);
+        float r = img.val(col, row, 0);
+        float g = img.val(col, row, 1);
+        float b = img.val(col, row, 2);
+        img.val(col, row, 0) = (r + g + b) * inv_sqrt3;
+        img.val(col, row, 1) = (r - b) * inv_sqrt2;
+        img.val(col, row, 2) = (r - 2.f * g + b) * inv_sqrt6;
       }
     }
   }
@@ -68,15 +70,22 @@ Image ColorTransform(Image&& src) {
 Image ColorTransformInverse(Image&& src) {
   Image img = std::move(src);
   if (img.channels() == 3) {
+    // Precompute the six scale factors used in the inverse transform.
+    // R = y/sqrt(3) + u/sqrt(2) + v/sqrt(6)
+    // G = y/sqrt(3) - v*sqrt(2/3)
+    // B = y/sqrt(3) - u/sqrt(2) + v/sqrt(6)
+    const float inv_sqrt3      = 1.f / sqrt(3.f);
+    const float inv_sqrt2      = 1.f / sqrt(2.f);
+    const float inv_sqrt6      = 1.f / sqrt(6.f);
+    const float sqrt2_inv_sqrt3 = sqrt(2.f) * inv_sqrt3;  // sqrt(2/3)
     for (int row = 0; row < img.rows(); ++row) {
       for (int col = 0; col < img.columns(); ++col) {
-        float y, u, v;
-        y = img.val(col, row, 0);
-        u = img.val(col, row, 1);
-        v = img.val(col, row, 2);
-        img.val(col, row, 0) = (sqrt(2.f) * y + sqrt(3.f) * u + v) / sqrt(6.f);
-        img.val(col, row, 1) = (y - sqrt(2.f) * v) / sqrt(3.f);
-        img.val(col, row, 2) = (sqrt(2.f) * y - sqrt(3.f) * u + v) / sqrt(6.f);
+        float y = img.val(col, row, 0);
+        float u = img.val(col, row, 1);
+        float v = img.val(col, row, 2);
+        img.val(col, row, 0) = y * inv_sqrt3 + u * inv_sqrt2 + v * inv_sqrt6;
+        img.val(col, row, 1) = y * inv_sqrt3 - v * sqrt2_inv_sqrt3;
+        img.val(col, row, 2) = y * inv_sqrt3 - u * inv_sqrt2 + v * inv_sqrt6;
       }
     }
   }
@@ -98,15 +107,25 @@ void ExtractPatch(const Image &src, int pr, int pc, Image *dst) {
 
 void BilateralWeight(const Image &g, Image *k, int r, float gamma_r_sigma2,
                      float sigma_s2) {
+  const float inv_gamma_r_sigma2 = 1.f / gamma_r_sigma2;
+  const float inv_2sigma_s2      = 0.5f / sigma_s2;
+  const int channels = g.channels();
+  // Cache center-pixel values to avoid repeated val() calls in the inner loop
+  float center[4];  // channels is at most 4
+  for (int chan = 0; chan < channels; ++chan)
+    center[chan] = g.val(r, r, chan);
   for (int row = 0; row < g.rows(); ++row) {
+    const float dr = static_cast<float>(row - r);
+    const float row_dist2 = dr * dr * inv_2sigma_s2;
     for (int col = 0; col < g.columns(); ++col) {
       float x = 0.f;
-      for (int chan = 0; chan < g.channels(); ++chan) {
-        float y = g.val(col, row, chan) - g.val(r, r, chan);
+      for (int chan = 0; chan < channels; ++chan) {
+        float y = g.val(col, row, chan) - center[chan];
         x += y * y;
       }
-      x /= gamma_r_sigma2;
-      x += ((row - r) * (row - r) + (col - r) * (col - r)) / (2 * sigma_s2);
+      x *= inv_gamma_r_sigma2;
+      const float dc = static_cast<float>(col - r);
+      x += row_dist2 + dc * dc * inv_2sigma_s2;
       k->val(col, row) = utils::fastexp(-x);
     }
   }
@@ -370,7 +389,7 @@ Image DA3D(int &retval, const Image &noisy, const Image &guide, float sigma,
 
   unsigned thread;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads) private(thread)
 #endif  // _OPENMP
   for (int i = 0; i < nthreads; ++i) {
 #ifdef _OPENMP

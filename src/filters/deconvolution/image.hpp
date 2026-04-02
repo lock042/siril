@@ -183,16 +183,16 @@ public:
 
     // indexing
     inline T& operator[](int i) {
-        return data[i];
+        return data.data()[i];
     }
     inline const T& operator[](int i) const {
-        return data[i];
+        return data.data()[i];
     }
     inline T& operator()(int x, int y, int dd=0) {
-        return data[dd+d*(x+y*w)];
+        return data.data()[dd+d*(x+y*w)];
     }
     inline const T& operator()(int x, int y, int dd=0) const {
-        return data[dd+d*(x+y*w)];
+        return data.data()[dd+d*(x+y*w)];
     }
 
     void set_value(const T& v) {
@@ -279,7 +279,7 @@ public:
         int n = w * h * d;
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < n; i++)
             data[i] = o[i];
@@ -456,7 +456,7 @@ public:
                 // Copy data to padded slice
 #ifdef _OPENMP
                 int available_threads = com.max_thread - omp_get_num_threads();
-#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(2)
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(2)
 #endif
                 for (int y = -pad_top; y < actual_height + pad_bottom; ++y) {
                     for (int x = -pad_left; x < actual_width + pad_right; ++x) {
@@ -518,9 +518,6 @@ public:
                 for (int i = ix; i < x.w-ix; i++) {
                     for (int j = ix; j < x.h-ix; j++) {
                         T val = T(0);
-#ifdef _OPENMP
-                        #pragma omp simd reduction(+:val)
-#endif
                         for (int m = -ix; m < ix+1; m++) {
                             for (int n = -ix; n < ix+1; n++) {
                                 val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
@@ -539,9 +536,6 @@ public:
                 for (int i = 0; i < ix; i++) {
                     for (int j = 0; j < x.h; j++) {
                         T val = T(0);
-#ifdef _OPENMP
-                        #pragma omp simd reduction(+:val)
-#endif
                         for (int m = -ix; m < ix+1; m++) {
                             for (int n = -ix; n < ix+1; n++) {
                                 int im = i + m, jn = j + n;
@@ -563,9 +557,6 @@ public:
                 for (int i = x.w - ix; i < x.w; i++) {
                     for (int j = 0; j < x.h; j++) {
                         T val = T(0);
-#ifdef _OPENMP
-                        #pragma omp simd reduction(+:val)
-#endif
                         for (int m = -ix; m < ix+1; m++) {
                             for (int n = -ix; n < ix+1; n++) {
                                 int im = i + m, jn = j + n;
@@ -587,9 +578,6 @@ public:
                 for (int i = ix; i < x.w - ix; i++) {
                     for (int j = 0; j < ix; j++) {
                         T val = T(0);
-#ifdef _OPENMP
-                        #pragma omp simd reduction(+:val)
-#endif
                         for (int m = -ix; m < ix+1; m++) {
                             for (int n = -ix; n < ix+1; n++) {
                                 int im = i + m, jn = j + n;
@@ -611,9 +599,6 @@ public:
                 for (int i = ix; i < x.w - ix; i++) {
                     for (int j = x.h - ix; j < x.h; j++) {
                         T val = T(0);
-#ifdef _OPENMP
-                        #pragma omp simd reduction(+:val)
-#endif
                         for (int m = -ix; m < ix+1; m++) {
                             for (int n = -ix; n < ix+1; n++) {
                                 int im = i + m, jn = j + n;
@@ -955,7 +940,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int y = 1; y < h-1; y++)
                             (*this)(0, y, l) = g(0, y, l)[0] + g(0, y, l)[1] - g(0, y-1, l)[1];
 #ifdef _OPENMP
@@ -963,7 +948,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int x = 1; x < w-1; x++)
                             (*this)(x, 0, l) = g(x, 0, l)[0] - g(x-1, 0, l)[0] + g(x, 0, l)[1];
 #ifdef _OPENMP
@@ -971,7 +956,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int y = 1; y < h-1; y++)
                             (*this)(w-1, y, l) = -g(w-2, y, l)[0] + g(w-1, y, l)[1] - g(w-1, y-1, l)[1];
 #ifdef _OPENMP
@@ -979,7 +964,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int x = 1; x < w-1; x++)
                             (*this)(x, h-1, l) = g(x, h-1, l)[0] - g(x-1, h-1, l)[0] - g(x, h-2, l)[1];
 #ifdef _OPENMP
@@ -1042,7 +1027,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int y = 1; y < h-1; y++)
                             (*this)(0, y, l) = gx(0, y, l) + gy(0, y, l) - gy(0, y-1, l);
 #ifdef _OPENMP
@@ -1050,7 +1035,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int x = 1; x < w-1; x++)
                             (*this)(x, 0, l) = gx(x, 0, l) - gx(x-1, 0, l) + gy(x, 0, l);
 #ifdef _OPENMP
@@ -1058,7 +1043,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int y = 1; y < h-1; y++)
                             (*this)(w-1, y, l) = -gx(w-2, y, l) + gy(w-1, y, l) - gy(w-1, y-1, l);
 #ifdef _OPENMP
@@ -1066,7 +1051,7 @@ public:
                     #pragma omp section
                     {
                         #pragma omp simd
-#endif
+                        #endif
                         for (int x = 1; x < w-1; x++)
                             (*this)(x, h-1, l) = gx(x, h-1, l) - gx(x-1, h-1, l) - gy(x, h-2, l);
 #ifdef _OPENMP
