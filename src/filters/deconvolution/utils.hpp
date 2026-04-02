@@ -205,17 +205,35 @@ namespace utils {
         int w = in.w;
         int h = in.h;
         int d = in.d;
-#ifdef _OPENMP
-        int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
-#endif
+
+        // Peel the boundary rows/columns to eliminate modulo from the inner
+        // loop, enabling SIMD vectorization of the (common) interior case.
         for (int l = 0; l < d; l++) {
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    out[0](x, y, l) = in((x+1)%w, y, l) - in(x, y, l);
-                    out[1](x, y, l) = in(x, (y+1)%h, l) - in(x, y, l);
+#ifdef _OPENMP
+            int available_threads = com.max_thread - omp_get_num_threads();
+            #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#endif
+            for (int y = 0; y < h - 1; y++) {
+                // Interior columns: no wrap needed, SIMD-vectorizable
+#ifdef _OPENMP
+                #pragma omp simd
+#endif
+                for (int x = 0; x < w - 1; x++) {
+                    out[0](x, y, l) = in(x+1, y, l) - in(x, y, l);
+                    out[1](x, y, l) = in(x, y+1, l) - in(x, y, l);
                 }
+                // Right boundary: x wraps to 0
+                out[0](w-1, y, l) = in(0,   y,   l) - in(w-1, y,   l);
+                out[1](w-1, y, l) = in(w-1, y+1, l) - in(w-1, y,   l);
             }
+            // Bottom row: y wraps to 0
+            for (int x = 0; x < w - 1; x++) {
+                out[0](x,   h-1, l) = in(x+1, h-1, l) - in(x,   h-1, l);
+                out[1](x,   h-1, l) = in(x,   0,   l) - in(x,   h-1, l);
+            }
+            // Bottom-right corner: both x and y wrap
+            out[0](w-1, h-1, l) = in(0,   h-1, l) - in(w-1, h-1, l);
+            out[1](w-1, h-1, l) = in(w-1, 0,   l) - in(w-1, h-1, l);
         }
     }
 
@@ -226,15 +244,34 @@ namespace utils {
         int w = out.w;
         int h = out.h;
         int d = out.d;
-#ifdef _OPENMP
-        int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
-#endif
+
+        // Peel the boundary rows/columns to eliminate modulo from the inner
+        // loop, enabling SIMD vectorization of the (common) interior case.
         for (int l = 0; l < d; l++) {
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    out(x, y, l) = in[0](x, y, l) - in[0]((x-1+w)%w, y, l)
-                                 + in[1](x, y, l) - in[1](x, (y-1+h)%h, l);
+            // Top row (y=0): y-1 wraps to h-1
+            // Top-left corner: both x-1 wraps to w-1 and y-1 wraps to h-1
+            out(0, 0, l) = in[0](0, 0, l) - in[0](w-1, 0,   l)
+                         + in[1](0, 0, l) - in[1](0,   h-1, l);
+            for (int x = 1; x < w; x++) {
+                out(x, 0, l) = in[0](x, 0, l) - in[0](x-1, 0,   l)
+                             + in[1](x, 0, l) - in[1](x,   h-1, l);
+            }
+            // Interior rows (y > 0): no wrap in y
+#ifdef _OPENMP
+            int available_threads = com.max_thread - omp_get_num_threads();
+            #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#endif
+            for (int y = 1; y < h; y++) {
+                // Left boundary: x-1 wraps to w-1
+                out(0, y, l) = in[0](0, y, l) - in[0](w-1, y,   l)
+                             + in[1](0, y, l) - in[1](0,   y-1, l);
+                // Interior columns: no modulo needed, SIMD-vectorizable
+#ifdef _OPENMP
+                #pragma omp simd
+#endif
+                for (int x = 1; x < w; x++) {
+                    out(x, y, l) = in[0](x, y, l) - in[0](x-1, y,   l)
+                                 + in[1](x, y, l) - in[1](x,   y-1, l);
                 }
             }
         }

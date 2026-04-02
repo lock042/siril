@@ -64,14 +64,19 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
-		for (size_t j = 0; j < from->naxes[2] ; j++) {
+		float m = params.midtones, lo = params.shadows, hi = params.highlights;
+		float inv_range = (hi > lo) ? 1.f / (hi - lo) : 1.f;
+		float m_minus_1 = m - 1.f;
+		float two_m_minus_1 = 2.f * m - 1.f;
+		for (size_t j = 0; j < from->naxes[2]; j++) {
 			if (do_channel[j]) {
 				float *tolayer = to->fpdata[j], *fromlayer = from->fpdata[j];
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
 				for (size_t i = 0; i < layersize; i++) {
-					tolayer[i] = MTFp(fromlayer[i], params);
+					float xp = fmaxf(0.f, fminf((fromlayer[i] - lo) * inv_range, 1.f));
+					tolayer[i] = (m_minus_1 * xp) / (two_m_minus_1 * xp - m);
 				}
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
@@ -145,18 +150,22 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
-		for (size_t j = 0; j < from->naxes[2] ; j++) {
+		float A = (params.shadows + params.highlights) * params.midtones - params.shadows;
+		float B_c = params.shadows * (1.f - params.midtones);
+		float C = 2.f * params.midtones - 1.f;
+		float D = 1.f - params.midtones;
+		for (size_t j = 0; j < from->naxes[2]; j++) {
 			if (do_channel[j]) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
 				for (size_t i = 0; i < layersize; i++) {
-					to->fpdata[j][i] = MTF_pseudoinverse(from->fpdata[j][i], params);
+					float y = from->fpdata[j][i];
+					to->fpdata[j][i] = (A * y + B_c) / (C * y + D);
 				}
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
 		}
-
 	}
 	else return;
 
@@ -236,16 +245,21 @@ void apply_unlinked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_p
 		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
 		for (size_t j = 0; j < from->naxes[2]; j++) {
-			const gboolean do_channel = (j == 0) ? params[j].do_red :
-			                            (j == 1) ? params[j].do_green :
-			                                       params[j].do_blue;
-			if (do_channel) {
+			const gboolean do_chan = (j == 0) ? params[j].do_red :
+			                         (j == 1) ? params[j].do_green :
+			                                    params[j].do_blue;
+			if (do_chan) {
+				float A = (params[j].shadows + params[j].highlights) * params[j].midtones - params[j].shadows;
+				float B_c = params[j].shadows * (1.f - params[j].midtones);
+				float C = 2.f * params[j].midtones - 1.f;
+				float D = 1.f - params[j].midtones;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
 				for (size_t i = 0; i < layersize; i++) {
-					to->fpdata[j][i] = MTF_pseudoinverse(from->fpdata[j][i], params[j]);
+					float y = from->fpdata[j][i];
+					to->fpdata[j][i] = (A * y + B_c) / (C * y + D);
 				}
 			} else {
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
@@ -359,11 +373,16 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 	}
 	else if (from->type == DATA_FLOAT) {
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			float m = params[chan].midtones, lo = params[chan].shadows, hi = params[chan].highlights;
+			float inv_range = (hi > lo) ? 1.f / (hi - lo) : 1.f;
+			float m_minus_1 = m - 1.f;
+			float two_m_minus_1 = 2.f * m - 1.f;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
-				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+				float xp = fmaxf(0.f, fminf((from->fpdata[chan][i] - lo) * inv_range, 1.f));
+				to->fpdata[chan][i] = (m_minus_1 * xp) / (two_m_minus_1 * xp - m);
 			}
 		}
 	}
