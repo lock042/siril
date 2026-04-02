@@ -38,6 +38,7 @@
 #include "core/undo.h"
 #include "curves.h"
 #include "histogram.h"
+#include "histogram_utils.h"
 #include "filters/curve_transform.h"
 
 /* The gsl_histogram, documented here:
@@ -122,7 +123,7 @@ void curves_dialog_init_statics() {
 	}
 }
 
-static void set_histogram(gsl_histogram *histo, int layer);
+
 
 static void clear_display_histogram() {
 	if (display_histogram[0]) {
@@ -409,9 +410,7 @@ void draw_curve_points(cairo_t *cr, int width, int height) {
 // erase image and redraw the background color and grid
 void erase_curves_histogram_display(cairo_t *cr, int width, int height) {
 	// clear all with background color
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
+	fill_histo_background(cr, width, height);
 
 	update_do_channel();
 	if (gtk_toggle_tool_button_get_active(curves_grid_toggle))
@@ -503,20 +502,13 @@ static gboolean is_curves_log_scale() {
 	return (gtk_toggle_button_get_active(curves_log_check));
 }
 
-static void set_histogram(gsl_histogram *histo, int layer) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
-	if (com.layers_hist[layer])
-		gsl_histogram_free(com.layers_hist[layer]);
-	com.layers_hist[layer] = histo;
-}
-
 /* Public functions */
 
 /* call from main thread */
 void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
-		compute_histo_for_fit(fit);
+		compute_histo_for_fit(fit);   // shared version: no sat/toggle-names side effects
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 }
@@ -546,8 +538,9 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	erase_curves_histogram_display(cr, width, height);
 
+	gboolean is_mono = fit ? (fit->naxes[2] == 1) : FALSE;
 	for (i = 0; i < MAXVPORT; i++)
-		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale());
+		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale(), is_mono);
 
 	draw_curve(cr, width, height);
 	draw_curve_points(cr, width, height);

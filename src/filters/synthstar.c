@@ -53,9 +53,6 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 
 	// Following the formulae at the Wikipedia "Airy disk" article
 	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f) * pixel_size;
@@ -85,9 +82,6 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 	float a = powf(cosf(anglerad)/alphax, 2.f) + powf(sinf(anglerad)/alphay, 2.f);
 	float b = powf(sinf(anglerad)/alphax, 2.f) + powf(cosf(anglerad)/alphay, 2.f);
 	float c = 2.f * sinf(anglerad) * cosf(anglerad) * (1.f/(alphax * alphax) - 1.f/(alphay * alphay));
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f);
@@ -113,9 +107,6 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	float a = powf(cosf(anglerad), 2.f) / tssx + powf(sinf(anglerad), 2.f) / tssy;
 	float b = sinf(2 * anglerad) / (2 * tssx) - sinf(2 * anglerad) / (2 * tssy);
 	float c = powf(sinf(anglerad), 2.f) / tssx + powf(cosf(anglerad), 2.f) / tssy;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoffset + 0.5f);
@@ -148,9 +139,6 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = 0.f;
 			} else {
 				int count = 0;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 				for (int randiter = 0 ; randiter < maxranditer; randiter++) {
 					float xrandoff = siril_random_float();
 					float yrandoff = siril_random_float();
@@ -553,7 +541,7 @@ int generate_synthstars(fits *fit) {
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (size_t n = 0; n < npixels; n++) {
 				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],

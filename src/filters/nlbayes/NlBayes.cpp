@@ -154,29 +154,22 @@ void initializeNlbParameters(
  * @return sanitized image data.
  **/
 vector<float> sanitize(vector<float> input, const ImageSize size) {
-#define EPSILON 1.e-29
-	size_t error = 0;
-	for (size_t i = 0 ; i < input.size() ; i++) {
-		size_t x = i % size.width;
-		if (input[i] != input[i]) {
-			error++;
-		}
-		if (isinf(input[i])) {
-			error++;
-		}
-		if (error) {
+#define EPSILON 1.e-29f
+	for (size_t i = 0; i < input.size(); i++) {
+		// Check only this pixel — using a cumulative counter was a bug that
+		// caused every pixel after the first bad one to be overwritten.
+		bool is_bad = (input[i] != input[i]) || isinf(input[i]);
+		if (is_bad) {
 			if (i == 0)
 				input[i] = EPSILON;
-			if (i > 0 && x < size.width - 1)
-				input[i] = input[i-1];
-			else if (x == 0)
-				input[i] = input[i-size.width];
+			else if (i % size.width > 0)   // has a left neighbour
+				input[i] = input[i - 1];
+			else                            // left edge: use pixel above
+				input[i] = input[i - size.width];
 		}
-		if (input[i] < 0.0) {
-			input[i] = fmaxf(EPSILON, input[i]);
-		}
+		if (input[i] < 0.f)
+			input[i] = EPSILON;
 	}
-	siril_debug_print("\n");
 	return input;
 }
 
@@ -258,19 +251,26 @@ int runNlBayes(
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
             shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub, retval, passset, threadcomplete) \
-			private(thread) firstprivate (paramStep1)
+			private(thread, pass) firstprivate(paramStep1)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
 #ifdef _OPENMP
-#pragma omp atomic
-		threadcomplete++;
 		thread = omp_get_thread_num();
-		if (!passset && threadcomplete > nbThreads) {
-			pass = 1;
-			passset = true;
+		// Protect both the increment and the passset check under the same lock to
+		// eliminate the TOCTOU race between threadcomplete++ and the passset read.
+#pragma omp critical(nlbayes_pass)
+		{
+			++threadcomplete;
+			if (!passset && threadcomplete > nbThreads)
+				passset = true;
+			pass = passset ? 1 : 0;
 		}
 #endif
-		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1, thread, pass);
+		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1, thread, pass);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		retval += r;
 	}
 
 	if (retval != 0) {
@@ -284,7 +284,6 @@ int runNlBayes(
         cout << "runNlBayes: error in subBuild...";
 		return EXIT_FAILURE;
 	}
-	fprintf(stdout,"ready for YUV2RGB\n");
 	//! YUV to RGB
 	transformColorSpace(o_imBasic, p_imSize, false);
 	o_imBasic = sanitize(o_imBasic, p_imSize);
@@ -316,20 +315,25 @@ int runNlBayes(
 	//! Process all sub-images
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
-            shared(imNoisySub, imBasicSub, imFinalSub, threadcomplete, passset) \
-			private(thread) firstprivate (paramStep2)
+            shared(imNoisySub, imBasicSub, imFinalSub, retval, threadcomplete, passset) \
+			private(thread, pass) firstprivate(paramStep2)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
 #ifdef _OPENMP
-#pragma omp atomic
-		threadcomplete++;
 		thread = omp_get_thread_num();
-		if (!passset && threadcomplete > nbThreads) {
-			pass = 1;
-			passset = true;
+#pragma omp critical(nlbayes_pass)
+		{
+			++threadcomplete;
+			if (!passset && threadcomplete > nbThreads)
+				passset = true;
+			pass = passset ? 1 : 0;
 		}
 #endif
-		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2, thread, pass);
+		int r = processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2, thread, pass);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		retval += r;
 	}
 
 	if (retval != 0) {
@@ -514,14 +518,25 @@ void estimateSimilarPatchesStep1(
 	const unsigned nSimP	= p_params.nSimilarPatches;
 	vector<pair<float, unsigned> > distance(sW * sW);
 
+	//! Cache reference patch to avoid sW*sW redundant reloads from the large image array
+	vector<float> ref_patch(sP * sP);
+	for (unsigned p = 0; p < sP; p++)
+		for (unsigned q = 0; q < sP; q++)
+			ref_patch[p * sP + q] = i_im[p_ij + p * width + q];
+
 	//! Compute distance between patches
 	for (unsigned i = 0; i < sW; i++) {
 		for (unsigned j = 0; j < sW; j++) {
 			const unsigned k = i * width + j + ind;
 			float diff = 0.f;
 			for (unsigned p = 0; p < sP; p++) {
+				const float *rp = &ref_patch[p * sP];
+				const float *cp = &i_im[k + p * width];
+#ifdef _OPENMP
+#pragma omp simd reduction(+:diff)
+#endif
 				for (unsigned q = 0; q < sP; q++) {
-					const float tmpValue = i_im[p_ij + p * width + q] - i_im[k + p * width + q];
+					const float tmpValue = rp[q] - cp[q];
 					diff += tmpValue * tmpValue;
 				}
 			}
@@ -669,18 +684,12 @@ int computeHomogeneousAreaStep1(
 	//! If we are in an homogeneous area
 	if (stdDev < p_threshold) {
 		for (unsigned c = 0; c < p_imSize.nChannels; c++) {
-            float mean = 0.f;
-
-            for (unsigned k = 0; k < N; k++) {
-                mean += io_group3d[c][k];
-            }
-
-            mean /= (float) N;
-
-            for (unsigned k = 0; k < N; k++) {
-                io_group3d[c][k] = mean;
-            }
-        }
+			float mean = 0.f;
+			for (unsigned k = 0; k < N; k++)
+				mean += io_group3d[c][k];
+			mean /= (float) N;
+			std::fill(io_group3d[c].begin(), io_group3d[c].begin() + N, mean);
+		}
 		return 1;
 	}
 	else {
