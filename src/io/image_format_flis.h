@@ -449,6 +449,7 @@ int flis_promote_from_gfit(const gchar *name);
  */
 flis_layer_t *flis_layer_get_by_id(gint item_id);
 flis_layer_t *flis_layer_get_by_name(const gchar *name);
+flis_layer_t *flis_layer_get_by_fit(const fits *fit);
 
 /**
  * flis_layer_get_index:

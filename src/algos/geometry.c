@@ -708,6 +708,20 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		}
 	}
 
+	flis_layer_t *_lay_bin = flis_layer_get_by_fit(fit);
+	if (_lay_bin && _lay_bin->lmask && _lay_bin->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_bin->lmask->bitpix, .data = _lay_bin->lmask->data };
+		if (bin_mask(&_tmp, old_rx, old_ry, factor, mean)) {
+			siril_log_color_message(_("Error binning layer mask\n"), "red");
+			layermask_free(_lay_bin->lmask);
+			_lay_bin->lmask = NULL;
+		} else {
+			_lay_bin->lmask->data = _tmp.data;
+			_lay_bin->lmask->w = old_rx / factor;
+			_lay_bin->lmask->h = old_ry / factor;
+		}
+	}
+
 	free_wcs(fit);
 	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
@@ -772,6 +786,22 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 		}
 	}
 
+	if (retvalue == 0) {
+		flis_layer_t *_lay_res = flis_layer_get_by_fit(image);
+		if (_lay_res && _lay_res->lmask && _lay_res->lmask->data) {
+			mask_t _tmp = { .bitpix = _lay_res->lmask->bitpix, .data = _lay_res->lmask->data };
+			if (resize_mask(&_tmp, old_rx, old_ry, toX, toY, interpolation)) {
+				siril_log_color_message(_("Error resizing layer mask\n"), "red");
+				layermask_free(_lay_res->lmask);
+				_lay_res->lmask = NULL;
+			} else {
+				_lay_res->lmask->data = _tmp.data;
+				_lay_res->lmask->w = toX;
+				_lay_res->lmask->h = toY;
+			}
+		}
+	}
+
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
 	free_wcs(image);
@@ -832,6 +862,20 @@ int verbose_rotate_fast(fits *image, int angle) {
 		}
 	}
 
+	flis_layer_t *_lay_rf = flis_layer_get_by_fit(image);
+	if (_lay_rf && _lay_rf->lmask && _lay_rf->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_rf->lmask->bitpix, .data = _lay_rf->lmask->data };
+		if (transform_mask(&_tmp, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_NEAREST)) {
+			siril_log_color_message(_("Error rotating layer mask\n"), "red");
+			layermask_free(_lay_rf->lmask);
+			_lay_rf->lmask = NULL;
+		} else {
+			_lay_rf->lmask->data = _tmp.data;
+			_lay_rf->lmask->w = target_rx;
+			_lay_rf->lmask->h = target_ry;
+		}
+	}
+
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, &H);
@@ -872,6 +916,20 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			set_mask_active(image, FALSE);
 		} else {
 			set_mask_active(image, tmp_mask_active);
+		}
+	}
+
+	flis_layer_t *_lay_ri = flis_layer_get_by_fit(image);
+	if (_lay_ri && _lay_ri->lmask && _lay_ri->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_ri->lmask->bitpix, .data = _lay_ri->lmask->data };
+		if (transform_mask(&_tmp, orig_rx, orig_ry, target_rx, target_ry, H, OPENCV_CUBIC)) {
+			siril_log_color_message(_("Error rotating layer mask\n"), "red");
+			layermask_free(_lay_ri->lmask);
+			_lay_ri->lmask = NULL;
+		} else {
+			_lay_ri->lmask->data = _tmp.data;
+			_lay_ri->lmask->w = target_rx;
+			_lay_ri->lmask->h = target_ry;
 		}
 	}
 
@@ -977,6 +1035,16 @@ void mirrorx(fits *fit, gboolean verbose) {
 		}
 	}
 
+	flis_layer_t *_lay_mx = flis_layer_get_by_fit(fit);
+	if (_lay_mx && _lay_mx->lmask && _lay_mx->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_mx->lmask->bitpix, .data = _lay_mx->lmask->data };
+		if (mirrorx_mask(&_tmp, fit->rx, fit->ry)) {
+			siril_log_color_message(_("Error mirroring layer mask\n"), "red");
+			layermask_free(_lay_mx->lmask);
+			_lay_mx->lmask = NULL;
+		}
+	}
+
 	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
 		sprintf(fit->keywords.row_order, "TOP-DOWN");
 	else {
@@ -1020,6 +1088,17 @@ void mirrory(fits *fit, gboolean verbose) {
 			show_or_hide_mask_tab();
 		} else {
 			set_mask_active(fit, tmp_mask_active);
+		}
+	}
+
+	flis_layer_t *_lay_my = flis_layer_get_by_fit(fit);
+	if (_lay_my && _lay_my->lmask && _lay_my->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_my->lmask->bitpix, .data = _lay_my->lmask->data };
+		if (mirrorx_mask(&_tmp, fit->rx, fit->ry) ||
+		    rotate_mask_pi(&_tmp, fit->rx, fit->ry)) {
+			siril_log_color_message(_("Error mirroring layer mask\n"), "red");
+			layermask_free(_lay_my->lmask);
+			_lay_my->lmask = NULL;
 		}
 	}
 
@@ -1236,6 +1315,20 @@ int crop(fits *fit, rectangle *bounds) {
 			return -1;
 		} else {
 			set_mask_active(fit, tmp_mask_active);
+		}
+	}
+
+	flis_layer_t *_lay_cr = flis_layer_get_by_fit(fit);
+	if (_lay_cr && _lay_cr->lmask && _lay_cr->lmask->data) {
+		mask_t _tmp = { .bitpix = _lay_cr->lmask->bitpix, .data = _lay_cr->lmask->data };
+		if (crop_mask(&_tmp, bounds, orig_rx, orig_ry)) {
+			siril_log_color_message(_("Error cropping layer mask\n"), "red");
+			layermask_free(_lay_cr->lmask);
+			_lay_cr->lmask = NULL;
+		} else {
+			_lay_cr->lmask->data = _tmp.data;
+			_lay_cr->lmask->w = bounds->w;
+			_lay_cr->lmask->h = bounds->h;
 		}
 	}
 

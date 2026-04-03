@@ -40,6 +40,7 @@
 #include "core/undo.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/flis_gui.h"
 #include "gui/image_display.h"
 #include "io/single_image.h"
@@ -1768,6 +1769,20 @@ gpointer generic_image_worker(gpointer p) {
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
 
+	/* Refuse to run if a layer group is selected: the operation would only
+	 * apply to the active layer, which is misleading when the user intends
+	 * it to affect the whole group.  Select an individual layer instead. */
+	if (!args->command && is_current_image_flis() &&
+	    flis_get_selected_group() != NULL) {
+		siril_log_color_message(_("%s: cannot apply to a layer group — "
+		    "select an individual layer.\n"), "red", args->description);
+		queue_error_message_dialog(_("Layer Group Selected"),
+		    _("This operation cannot be applied to a layer group.\n"
+		      "Please select an individual layer."));
+		args->retval = 1;
+		goto the_end;
+	}
+
 	// Memory check
 	if (args->mem_ratio > 0.0f) {
 		if (default_img_mem_hook(args)) {
@@ -1900,6 +1915,25 @@ gpointer generic_mask_worker(gpointer p) {
 	// Set default max_threads if not specified
 	if (args->max_threads < 1)
 		args->max_threads = com.max_thread;
+
+	/* Refuse to run a layer-mask operation when a group is selected.
+	 * Two cases must be caught:
+	 * (a) target_layer_id > 0: an explicit layer was chosen in a creation
+	 *     dialog (mask_from_stars / mask_from_image / mask_from_color) — the
+	 *     combo populates regardless of group selection.
+	 * (b) target_layer_id == 0 in lmask mode: flis_get_selected_layer_id()
+	 *     returned 0 for the group; without the guard this silently falls
+	 *     back to a processing-mask operation. */
+	if (!args->command && is_current_image_flis() && flis_get_selected_group() != NULL &&
+	    (args->target_layer_id > 0 || get_flis_show_layer_mask())) {
+		siril_log_color_message(_("%s: cannot apply layer mask operation to a "
+		    "layer group — select an individual layer.\n"), "red", args->description);
+		queue_error_message_dialog(_("Layer Group Selected"),
+		    _("This operation cannot be applied to a layer group.\n"
+		      "Please select an individual layer."));
+		args->retval = 1;
+		goto the_end;
+	}
 
 	/* Layer mask target detection.  Layer IDs start at 1; calloc default
 	 * of 0 means "no layer target" (normal processing mask). */

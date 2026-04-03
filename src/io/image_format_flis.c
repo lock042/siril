@@ -1952,6 +1952,15 @@ gint flis_layer_get_index(const flis_layer_t *layer) {
     return -1;
 }
 
+flis_layer_t *flis_layer_get_by_fit(const fits *fit) {
+    if (!com.uniq || !com.uniq->layers || !fit) return NULL;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay && lay->fit == fit) return lay;
+    }
+    return NULL;
+}
+
 gint flis_layer_count(void) {
     if (!com.uniq) return 0;
     return (gint)g_slist_length(com.uniq->layers);
