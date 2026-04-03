@@ -63,10 +63,12 @@
 /* -----------------------------------------------------------------------
  * FLIS_META binary table column definitions.
  *
- * The METADATA column uses a fixed 256A string rather than the 1PA
- * variable-length form described in the spec.  This avoids CFITSIO heap
- * complexity; 256 characters is sufficient for all current metadata keys.
- * A future revision may switch to 1PA when more metadata keys are defined.
+ * The METADATA column uses the 1PA variable-length ASCII array format as
+ * described in the FLIS spec.  Each row stores a semicolon-delimited
+ * key=value string of arbitrary length in the FITS heap.  On read the
+ * actual byte count is queried with fits_read_descript and a correctly
+ * sized buffer is g_malloc'd per row; callers must free each
+ * row->metadata before freeing the rows array.
  * ----------------------------------------------------------------------- */
 #define FLIS_META_NCOLS      14
 
@@ -78,7 +80,7 @@ static const char *FLIS_COL_NAMES[FLIS_META_NCOLS] = {
 static const char *FLIS_COL_FMTS[FLIS_META_NCOLS] = {
     "1J", "8A", "1J", "1J", "1J",
     "32A", "4A", "16A", "1E", "1L",
-    "1J", "1J", "256A", "1J"
+    "1J", "1J", "1PA", "1J"
 };
 static const char *FLIS_COL_UNITS[FLIS_META_NCOLS] = {
     "", "", "", "", "",
@@ -124,7 +126,7 @@ typedef struct {
     gboolean visible;
     gint    position_x;
     gint    position_y;
-    char    metadata[257];   /* 256A + NUL */
+    char   *metadata;        /* 1PA variable-length string, g_malloc'd */
     gint    group_id;
 } flis_meta_row_t;
 
@@ -473,8 +475,6 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             int vis  = lay->visible ? 1 : 0;
             const char *blend = blend_mode_to_str(lay->blend_mode);
             gchar *meta = build_metadata_string(lay);
-            /* Truncate metadata to 256 chars */
-            if (meta && strlen(meta) > 256) meta[256] = '\0';
             const char *name = lay->layer_name ? lay->layer_name : "Layer";
 
             fits_write_col(fptr, TINT,     COL_ITEM_ID,     row, 1, 1, &id,              &status);
@@ -592,8 +592,6 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
                 grp->collapsed ? 1 : 0,
                 grp->created  ? grp->created  : "",
                 grp->modified ? grp->modified : "");
-            if (meta && strlen(meta) > 256) meta[256] = '\0';
-
             fits_write_col(fptr, TINT,     COL_ITEM_ID,     row, 1, 1, &id,                        &status);
             fits_write_col(fptr, TSTRING,  COL_ITEM_TYPE,   row, 1, 1, &(char*){FLIS_TYPE_GROUP},  &status);
             fits_write_col(fptr, TINT,     COL_HDU_INDEX,   row, 1, 1, &zero,                      &status);
@@ -759,8 +757,21 @@ static flis_meta_row_t *read_flis_meta(fitsfile *fptr, long *nrows_out) {
 
         fits_read_col(fptr, TINT,    COL_POSITION_X,  r, 1, 1, &(int){0},  &row->position_x,   NULL, &status);
         fits_read_col(fptr, TINT,    COL_POSITION_Y,  r, 1, 1, &(int){0},  &row->position_y,   NULL, &status);
-        strptr = row->metadata;
-        fits_read_col(fptr, TSTRING, COL_METADATA,    r, 1, 1, &anull,     &strptr,            NULL, &status);
+        {
+            /* Variable-length 1PA column: query actual byte count first,
+             * then allocate an exact-fit buffer and read into it. */
+            long vl_repeat = 0, vl_offset = 0;
+            int vl_status = 0;
+            fits_read_descript(fptr, COL_METADATA, r, &vl_repeat, &vl_offset, &vl_status);
+            if (vl_status || vl_repeat < 0) vl_repeat = 0;
+            row->metadata = g_malloc(vl_repeat + 1);
+            row->metadata[0] = '\0';
+            if (vl_repeat > 0) {
+                strptr = row->metadata;
+                fits_read_col(fptr, TSTRING, COL_METADATA, r, 1, 1, &anull, &strptr, NULL, &status);
+                row->metadata[vl_repeat] = '\0'; /* guarantee NUL termination */
+            }
+        }
         fits_read_col(fptr, TINT, COL_GROUP_ID, r, 1, 1, &(int){0}, &row->group_id, NULL, &status);
         if (status == COL_NOT_FOUND || status == 219) {
             row->group_id = 0;
@@ -1277,11 +1288,11 @@ int load_flis(const gchar *filename) {
         grp->visible    = row->visible;
         grp->blend_mode = str_to_blend_mode(row->blend_mode);
         /* Parse COLLAPSED from metadata string */
-        if (strstr(row->metadata, "COLLAPSED=1"))
+        if (row->metadata && strstr(row->metadata, "COLLAPSED=1"))
             grp->collapsed = TRUE;
         /* Parse timestamps from metadata: CREATED=...; MODIFIED=... */
         {
-            const char *p = strstr(row->metadata, "CREATED=");
+            const char *p = row->metadata ? strstr(row->metadata, "CREATED=") : NULL;
             if (p) {
                 p += 8;
                 const char *end = strchr(p, ';');
@@ -1290,7 +1301,7 @@ int load_flis(const gchar *filename) {
                 else if (*p)
                     grp->created = g_strdup(p);
             }
-            const char *q = strstr(row->metadata, "MODIFIED=");
+            const char *q = row->metadata ? strstr(row->metadata, "MODIFIED=") : NULL;
             if (q) {
                 q += 9;
                 const char *end = strchr(q, ';');
@@ -1411,6 +1422,8 @@ int load_flis(const gchar *filename) {
     }
 
     g_hash_table_destroy(id_map);
+    for (long r = 0; r < nrows; r++)
+        g_free(meta_rows[r].metadata);
     free(meta_rows);
     if (file_icc) cmsCloseProfile(file_icc);
     fits_close_file(fptr, &status);
