@@ -70,7 +70,7 @@
 
 #define CHECK_FOR_OPENED_DIALOG \
     do { \
-        if (is_a_dialog_opened()) { \
+        if (is_an_image_processing_dialog_opened()) { \
             siril_message_dialog(GTK_MESSAGE_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
             return; \
         } \

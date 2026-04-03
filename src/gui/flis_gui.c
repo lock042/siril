@@ -1842,12 +1842,15 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
         gtk_list_box_select_row(list, row);
 
     GtkMenu *menu = GTK_MENU(lookup_widget("flis_layer_context_menu"));
-    if (menu && flis_selected) {
-        /* Merge Down is only available when a layer exists below the selection */
+    if (menu && (flis_selected || flis_selected_group)) {
+        gboolean layer_sel = (flis_selected != NULL);
+
+        /* Merge Down and Move to Group only make sense for a selected layer */
         GtkWidget *merge_item = lookup_widget("flis_merge_down_item");
+        GtkWidget *assign_item = lookup_widget("flis_assign_group_item");
         if (merge_item) {
             gboolean can_merge = FALSE;
-            if (flis_selected && com.uniq) {
+            if (layer_sel && com.uniq) {
                 for (GSList *l = com.uniq->layers; l; l = l->next) {
                     flis_layer_t *lay = (flis_layer_t *)l->data;
                     if (lay && lay != flis_selected &&
@@ -1859,6 +1862,9 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
             }
             gtk_widget_set_sensitive(merge_item, can_merge);
         }
+        if (assign_item)
+            gtk_widget_set_sensitive(assign_item, layer_sel);
+
         /* Sync the "Move Layer" toggle button to the current mouse mode */
         GtkToggleButton *drag_btn = GTK_TOGGLE_BUTTON(lookup_widget("flis_drag_toggle_btn"));
         if (drag_btn) {
@@ -2219,6 +2225,17 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
         return;
     }
 
+    /* Warn: registration permanently transforms pixel data in every layer. */
+    if (!siril_confirm_dialog(_("Register Layers"),
+            _("Registration will permanently resample the pixel data of all "
+              "affected layers and update their canvas offsets.\n\n"
+              "This operation cannot be undone."),
+            _("Register"))) {
+        if (free_target) g_slist_free(target_layers);
+        free(method);
+        return;
+    }
+
     /* The canvas (base) layer is the first layer in the stack.
      * The registration reference is the currently selected layer, or the
      * canvas layer if nothing is selected. */
@@ -2232,14 +2249,6 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
      * relative to the canvas. */
     const gint ref_orig_x = ref_lay->position_x;
     const gint ref_orig_y = ref_lay->position_y;
-
-    /* Save undo state for every layer that will have its position modified.
-     * Registration also transforms pixel data (not undoable), but at least
-     * the position offsets can be restored. */
-    for (GSList *_ul = target_layers; _ul; _ul = _ul->next) {
-        flis_layer_t *_ulay = (flis_layer_t *)_ul->data;
-        if (_ulay) undo_save_flis_layer_props(_ulay, _("Register layers"));
-    }
 
     /* Build an internal sequence.
      * Slot 0 = registration reference; remaining slots follow GSList order,
@@ -2313,7 +2322,12 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
     /* Step 2: apply transforms with FRAMING_MAX.  Each layer is resampled into
      * its own minimum bounding box; regparam[i].H becomes the Hshift storing
      * the (xmin, ymin) offset of that bounding box in the global mosaic frame
-     * (OpenCV convention: y increases downward). */
+     * (OpenCV convention: y increases downward).
+     * NOTE: star_align_prepare_hook() overrides regargs->framing to
+     * FRAMING_CURRENT during step 1; we must restore FRAMING_MAX here so
+     * that register_apply_reg() produces the correct per-layer bounding-box
+     * offsets rather than a zero Hs for every image. */
+    regargs.framing = FRAMING_MAX;
     int ret2 = register_apply_reg(&regargs);
 
     if (!ret2 && regargs.regparam) {
