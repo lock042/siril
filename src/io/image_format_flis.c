@@ -601,7 +601,8 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             fits_write_col(fptr, TINT,     COL_LAYER_ORDER, row, 1, 1, &zero,                      &status);
             fits_write_col(fptr, TSTRING,  COL_LAYER_NAME,  row, 1, 1, &name,                      &status);
             fits_write_col(fptr, TSTRING,  COL_COLOR_MDL,   row, 1, 1, &(char*){"N/A"},            &status);
-            fits_write_col(fptr, TSTRING,  COL_BLEND_MODE,  row, 1, 1, &(char*){"PASSTHRU"},       &status);
+            const char *bm_str = blend_mode_to_str(grp->blend_mode);
+            fits_write_col(fptr, TSTRING,  COL_BLEND_MODE,  row, 1, 1, &bm_str,                    &status);
             fits_write_col(fptr, TFLOAT,   COL_OPACITY,     row, 1, 1, &op,                        &status);
             fits_write_col(fptr, TLOGICAL, COL_VISIBLE,     row, 1, 1, &vis,                       &status);
             fits_write_col(fptr, TINT,     COL_POSITION_X,  row, 1, 1, &zero,                      &status);
@@ -1271,9 +1272,10 @@ int load_flis(const gchar *filename) {
             continue;
         flis_group_t *grp = flis_group_new(row->layer_name);
         if (!grp) continue;
-        grp->item_id = row->item_id;
-        grp->opacity = row->opacity;
-        grp->visible = row->visible;
+        grp->item_id    = row->item_id;
+        grp->opacity    = row->opacity;
+        grp->visible    = row->visible;
+        grp->blend_mode = str_to_blend_mode(row->blend_mode);
         /* Parse COLLAPSED from metadata string */
         if (strstr(row->metadata, "COLLAPSED=1"))
             grp->collapsed = TRUE;
@@ -1962,10 +1964,11 @@ gint flis_layer_count(void) {
 flis_group_t *flis_group_new(const gchar *name) {
     flis_group_t *grp = g_new0(flis_group_t, 1);
     if (!grp) { PRINT_ALLOC_ERR; return NULL; }
-    grp->name    = g_strdup(name ? name : _("Group"));
-    grp->visible = TRUE;
-    grp->opacity = 1.0f;
-    grp->collapsed = FALSE;
+    grp->name       = g_strdup(name ? name : _("Group"));
+    grp->visible    = TRUE;
+    grp->opacity    = 1.0f;
+    grp->blend_mode = FLIS_BLEND_PASS_THROUGH;
+    grp->collapsed  = FALSE;
     return grp;
 }
 
@@ -2088,6 +2091,13 @@ int flis_group_set_visible(flis_group_t *group, gboolean visible) {
 int flis_group_set_opacity(flis_group_t *group, gfloat opacity) {
     if (!group) return 1;
     group->opacity = CLAMP(opacity, 0.0f, 1.0f);
+    flis_group_touch_modified(group);
+    return 0;
+}
+
+int flis_group_set_blend_mode(flis_group_t *group, flis_blend_mode_t mode) {
+    if (!group) return 1;
+    group->blend_mode = mode;
     flis_group_touch_modified(group);
     return 0;
 }
@@ -2424,6 +2434,7 @@ flis_layer_t *flis_layer_duplicate(const flis_layer_t *src) {
     dup->position_x  = src->position_x;
     dup->position_y  = src->position_y;
     dup->locked      = FALSE; /* duplicates start unlocked */
+    dup->group_id    = src->group_id;
 
     /* Deep-copy the layer mask if present */
     if (src->lmask) {
@@ -2491,6 +2502,23 @@ int flis_layer_move_up(flis_layer_t *layer) {
     if (!next) return 1;  /* already at top */
 
     flis_layer_t *neighbour = (flis_layer_t *)next->data;
+    if (!neighbour) return -1;
+
+    /* If the neighbour belongs to a group, jump past the entire group:
+     * find the topmost (highest layer_order) member of that group. */
+    if (neighbour->group_id != 0) {
+        flis_group_t *_grp = flis_group_get_by_id(neighbour->group_id);
+        if (_grp) {
+            GSList *_members = flis_group_get_layers(_grp);  /* sorted ascending */
+            if (_members) {
+                GSList *_last = g_slist_last(_members);
+                if (_last && _last->data)
+                    neighbour = (flis_layer_t *)_last->data;
+                g_slist_free(_members);
+            }
+        }
+    }
+
     if (flis_check_locked(neighbour, "swap with locked layer above")) return -1;
 
     flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;
@@ -2521,6 +2549,22 @@ int flis_layer_move_down(flis_layer_t *layer) {
     flis_layer_t *neighbour = (flis_layer_t *)g_slist_nth_data(
                                   com.uniq->layers, idx - 1);
     if (!neighbour) return -1;
+
+    /* If the neighbour belongs to a group, jump past the entire group:
+     * find the bottommost (lowest layer_order) member of that group. */
+    if (neighbour->group_id != 0) {
+        flis_group_t *_grp = flis_group_get_by_id(neighbour->group_id);
+        if (_grp) {
+            GSList *_members = flis_group_get_layers(_grp);  /* sorted ascending */
+            if (_members) {
+                flis_layer_t *_first = (flis_layer_t *)_members->data;
+                if (_first)
+                    neighbour = _first;
+                g_slist_free(_members);
+            }
+        }
+    }
+
     if (flis_check_locked(neighbour, "swap with locked layer below")) return -1;
 
     flis_layer_t *old_base = (flis_layer_t *)com.uniq->layers->data;

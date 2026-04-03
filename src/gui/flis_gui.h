@@ -16,6 +16,9 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+/* Forward declaration to avoid pulling in image_format_flis.h */
+typedef struct _flis_group_t flis_group_t;
+
 /**
  * flis_gui_init:
  *
@@ -95,5 +98,25 @@ void flis_populate_layer_combo(GtkComboBoxText *combo, gboolean filter_by_canvas
  * combo (e.g. filtered out by canvas-size).  No-op if @combo is NULL.
  */
 void flis_combo_select_active_layer(GtkComboBoxText *combo);
+
+/**
+ * flis_get_selected_group:
+ * Returns the currently selected flis_group_t*, or NULL if a layer (not group) is selected.
+ */
+flis_group_t *flis_get_selected_group(void);
+
+/**
+ * flis_group_drag_begin:
+ * Called when a group drag starts. Saves undo states for all members and
+ * records their original positions for delta-based updates.
+ */
+void flis_group_drag_begin(flis_group_t *group);
+
+/**
+ * flis_group_drag_update:
+ * Called on every mouse-move tick during a group drag.
+ * Moves all group members by (dx, dy) from their recorded original positions.
+ */
+void flis_group_drag_update(gint dx, gint dy);
 
 #endif /* FLIS_GUI_H */

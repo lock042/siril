@@ -646,7 +646,13 @@ static void flis_blend_chroma_pixel(float opacity,
  * USHORT sources are converted to float once per layer, not per pixel.
  * The inner loops are tagged with omp simd for auto-vectorisation.
  * ------------------------------------------------------------------------- */
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite);
+
 fits *flis_render_layers(GSList *layers) {
+    return flis_render_layers_internal(layers, FALSE);
+}
+
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite) {
     if (!layers) return NULL;
 
     flis_layer_t *base = (flis_layer_t *)layers->data;
@@ -687,6 +693,54 @@ fits *flis_render_layers(GSList *layers) {
 
     gboolean first_layer = TRUE;
 
+    /* Pre-pass: build sub-composites for non-PASS_THROUGH groups.
+     * These are composited separately and then blended using the group blend mode. */
+    GHashTable *grp_composites = NULL;
+    GHashTable *grp_trigger    = NULL;
+    GHashTable *skip_in_main   = NULL;
+
+    if (!sub_composite && com.uniq && com.uniq->groups) {
+        for (GSList *_gg = com.uniq->groups; _gg; _gg = _gg->next) {
+            flis_group_t *_grp = (flis_group_t *)_gg->data;
+            if (!_grp || _grp->blend_mode == FLIS_BLEND_PASS_THROUGH) continue;
+            if (!_grp->visible) {
+                if (!skip_in_main)
+                    skip_in_main = g_hash_table_new(g_direct_hash, g_direct_equal);
+                GSList *_ms = flis_group_get_layers(_grp);
+                for (GSList *_m = _ms; _m; _m = _m->next)
+                    g_hash_table_insert(skip_in_main, _m->data, GINT_TO_POINTER(1));
+                g_slist_free(_ms);
+                continue;
+            }
+
+            GSList *_ms = flis_group_get_layers(_grp);
+            fits *_sub = flis_render_layers_internal(_ms, TRUE);
+            g_slist_free(_ms);
+            if (!_sub) continue;
+
+            if (!grp_composites) grp_composites = g_hash_table_new(g_direct_hash, g_direct_equal);
+            if (!grp_trigger)    grp_trigger    = g_hash_table_new(g_direct_hash, g_direct_equal);
+            if (!skip_in_main)   skip_in_main   = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+            g_hash_table_insert(grp_composites, GINT_TO_POINTER(_grp->item_id), _sub);
+
+            /* Find first member in the sorted layers list to use as trigger */
+            for (GSList *_nl = layers; _nl; _nl = _nl->next) {
+                flis_layer_t *_tl = (flis_layer_t *)_nl->data;
+                if (_tl && _tl->group_id == _grp->item_id) {
+                    g_hash_table_insert(grp_trigger, _tl, GINT_TO_POINTER(_grp->item_id));
+                    break;
+                }
+            }
+
+            /* Mark all members for skipping */
+            GSList *_ms2 = flis_group_get_layers(_grp);
+            for (GSList *_m = _ms2; _m; _m = _m->next)
+                g_hash_table_insert(skip_in_main, _m->data, GINT_TO_POINTER(1));
+            g_slist_free(_ms2);
+        }
+    }
+
     for (GSList *node = layers; node; node = node->next) {
         flis_layer_t *lay = (flis_layer_t *)node->data;
         if (!lay || !lay->fit || !lay->visible) continue;
@@ -701,10 +755,58 @@ fits *flis_render_layers(GSList *layers) {
                                             lay->blend_mode == FLIS_BLEND_LUMINOSITY);
         const gboolean     chroma_mode   = (lay->blend_mode == FLIS_BLEND_CHROMA);
         flis_blend_mode_t  mode          = lay->blend_mode;
+        /* Group compositing: skip layers that belong to a non-PASS_THROUGH group
+         * (they are handled via the group sub-composite). */
+        if (!sub_composite && skip_in_main &&
+                g_hash_table_contains(skip_in_main, lay)) {
+            /* Check if this layer is the trigger point for a group composite */
+            if (grp_trigger) {
+                gpointer _gid_ptr = g_hash_table_lookup(grp_trigger, lay);
+                if (_gid_ptr) {
+                    gint _gid = GPOINTER_TO_INT(_gid_ptr);
+                    fits *_gsub = grp_composites
+                                  ? (fits *)g_hash_table_lookup(grp_composites, GINT_TO_POINTER(_gid))
+                                  : NULL;
+                    flis_group_t *_gobj = flis_group_get_by_id(_gid);
+                    if (_gsub && _gobj) {
+                        /* Blend group sub-composite using the group's blend mode and opacity.
+                         * Re-use the standard dispatch macros by shadowing local variables. */
+                        const float *pre_r        = _gsub->fpdata[RLAYER];
+                        const float *pre_g        = _gsub->fpdata[GLAYER];
+                        const float *pre_b        = _gsub->fpdata[BLAYER];
+                        const float  global_opacity = _gobj->opacity;
+                        const flis_blend_mode_t mode = _gobj->blend_mode;
+                        const gboolean hsl_mode2   = (mode == FLIS_BLEND_HUE ||
+                                                      mode == FLIS_BLEND_SATURATION ||
+                                                      mode == FLIS_BLEND_COLOR ||
+                                                      mode == FLIS_BLEND_LUMINOSITY);
+                        const gboolean chroma_mode2 = (mode == FLIS_BLEND_CHROMA);
+                        const uint8_t *mask_data   = NULL;
+                        const gint    ox = 0, oy = 0;
+                        const gint    x0 = 0, x1 = (gint)W;
+                        const gint    y0 = 0, y1 = (gint)H;
+                        const guint   lW = W, lH = H;
+                        const float   tr = 1.f, tg = 1.f, tb = 1.f;
+                        if (first_layer) {
+                            FLIS_BASE_LOOP(tr, tg, tb);
+                            first_layer = FALSE;
+                        } else if (hsl_mode2) {
+                            FLIS_HSL_LOOP(tr, tg, tb);
+                        } else if (chroma_mode2) {
+                            FLIS_CHROMA_LOOP(tr, tg, tb);
+                        } else {
+                            FLIS_DISPATCH(tr, tg, tb);
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+
         /* Group modifiers: if this layer belongs to a hidden group, skip it;
          * if the group has reduced opacity, scale the effective opacity. */
         gfloat effective_opacity = lay->opacity;
-        if (lay->group_id != 0) {
+        if (!sub_composite && lay->group_id != 0) {
             flis_group_t *grp = flis_group_get_by_id(lay->group_id);
             if (grp) {
                 if (!grp->visible) continue;
@@ -799,6 +901,20 @@ fits *flis_render_layers(GSList *layers) {
 
         free(float_buf);  /* no-op for float sources (float_buf == NULL) */
     }
+
+    /* Cleanup group compositing tables */
+    if (grp_composites) {
+        GHashTableIter _it;
+        gpointer _k, _v;
+        g_hash_table_iter_init(&_it, grp_composites);
+        while (g_hash_table_iter_next(&_it, &_k, &_v)) {
+            fits *_gsub = (fits *)_v;
+            if (_gsub) { free(_gsub->fdata); free(_gsub); }
+        }
+        g_hash_table_destroy(grp_composites);
+    }
+    if (grp_trigger)  g_hash_table_destroy(grp_trigger);
+    if (skip_in_main) g_hash_table_destroy(skip_in_main);
 
     return out;
 }

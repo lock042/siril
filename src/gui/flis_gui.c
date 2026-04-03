@@ -68,6 +68,9 @@ static flis_layer_t *flis_selected   = NULL;
 /* Non-NULL when a group row is selected instead of a layer row. */
 static flis_group_t *flis_selected_group = NULL;
 
+typedef struct { gint item_id; gint orig_x; gint orig_y; } FlisDragOrigin;
+static GArray *flis_group_drag_origins = NULL;
+
 /* =========================================================================
  * Blend mode index ↔ flis_blend_mode_t mapping
  * Must match the <items> order in flis_layers.glade exactly.
@@ -91,6 +94,7 @@ static const flis_blend_mode_t blend_mode_map[] = {
     FLIS_BLEND_COLOR,
     FLIS_BLEND_LUMINOSITY,
     FLIS_BLEND_CHROMA,
+    FLIS_BLEND_PASS_THROUGH,  /* index 17 — groups only */
 };
 static const int N_BLEND_MODES =
     (int)(sizeof(blend_mode_map) / sizeof(blend_mode_map[0]));
@@ -306,6 +310,40 @@ static GtkWidget *flis_layer_row_new(flis_layer_t *layer) {
     return row;
 }
 
+flis_group_t *flis_get_selected_group(void) {
+    return flis_selected_group;
+}
+
+void flis_group_drag_begin(flis_group_t *group) {
+    if (flis_group_drag_origins) {
+        g_array_free(flis_group_drag_origins, TRUE);
+        flis_group_drag_origins = NULL;
+    }
+    if (!group) return;
+
+    GSList *members = flis_group_get_layers(group);
+    flis_group_drag_origins = g_array_new(FALSE, FALSE, sizeof(FlisDragOrigin));
+    for (GSList *l = members; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay) continue;
+        undo_save_flis_layer_props(lay, _("Move group"));
+        FlisDragOrigin orig = { lay->item_id, lay->position_x, lay->position_y };
+        g_array_append_val(flis_group_drag_origins, orig);
+    }
+    g_slist_free(members);
+}
+
+void flis_group_drag_update(gint dx, gint dy) {
+    if (!flis_group_drag_origins || !com.uniq) return;
+    for (guint i = 0; i < flis_group_drag_origins->len; i++) {
+        FlisDragOrigin *orig = &g_array_index(flis_group_drag_origins, FlisDragOrigin, i);
+        flis_layer_t *lay = flis_layer_get_by_id(orig->item_id);
+        if (!lay) continue;
+        lay->position_x = orig->orig_x + dx;
+        lay->position_y = orig->orig_y + dy;
+    }
+}
+
 /* =========================================================================
  * Properties panel update
  * ========================================================================= */
@@ -321,8 +359,10 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
             gtk_widget_set_sensitive(props, TRUE);
             gtk_entry_set_text(GTK_ENTRY(fw("flis_name_entry")),
                                flis_selected_group->name ? flis_selected_group->name : "");
-            /* Blend combo: set insensitive — groups are always pass-through */
-            gtk_widget_set_sensitive(fw("flis_blend_combo"), FALSE);
+            /* Blend combo: sensitive for groups (Pass-through / Normal) */
+            gtk_widget_set_sensitive(fw("flis_blend_combo"), TRUE);
+            gtk_combo_box_set_active(GTK_COMBO_BOX(fw("flis_blend_combo")),
+                                     blend_mode_to_index(flis_selected_group->blend_mode));
             /* Opacity: show group opacity */
             GtkAdjustment *adj = GTK_ADJUSTMENT(fo("flis_opacity_adj"));
             gtk_adjustment_set_value(adj, (gdouble)(flis_selected_group->opacity * 100.f));
@@ -343,8 +383,8 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
 
     gtk_widget_set_sensitive(props, TRUE);
 
-    /* Restore section visibility (may have been hidden for a group) */
-    gtk_widget_set_visible(fw("flis_tint_frame"), TRUE);
+    /* Restore visibility (may have been hidden for a group); tint visibility
+     * is set correctly below once we know whether this layer is mono. */
     gtk_widget_set_sensitive(fw("flis_blend_combo"), TRUE);
     /* Restore mask frame visibility */
     {
@@ -405,10 +445,10 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
         g_signal_handlers_unblock_by_func(layer_radio, on_flis_mask_view_toggled, NULL);
     }
 
-    /* Tint section — always visible, but insensitive for RGB layers */
+    /* Tint section — hidden for RGB layers, shown only for mono layers */
     gboolean mono = (layer->fit && layer->fit->naxes[2] == 1);
     gboolean has_tint = mono && layer->has_tint;
-    gtk_widget_set_sensitive(fw("flis_tint_frame"), mono);
+    gtk_widget_set_visible(fw("flis_tint_frame"), mono);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(fw("flis_tint_check")), has_tint);
     gtk_widget_set_sensitive(fw("flis_tint_color_btn"), mono && has_tint);
@@ -1404,10 +1444,19 @@ gboolean on_flis_name_focus_out(GtkWidget *widget,
 void on_flis_blend_mode_changed(GtkComboBox *combo,
                                                 gpointer     data) {
     (void)data;
-    if (flis_updating || !flis_selected) return;
+    if (flis_updating) return;
 
     gint idx = gtk_combo_box_get_active(combo);
     if (idx < 0 || idx >= N_BLEND_MODES) return;
+
+    if (flis_selected_group && !flis_selected) {
+        flis_group_set_blend_mode(flis_selected_group, blend_mode_map[idx]);
+        flis_invalidate_composite();
+        queue_redraw(REMAP_ALL);
+        return;
+    }
+
+    if (!flis_selected) return;
 
     undo_save_flis_layer_props(flis_selected, _("Blend mode"));
 
@@ -2177,6 +2226,21 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
     flis_layer_t *ref_lay    = flis_selected ? flis_selected :
                                (flis_layer_t *)target_layers->data;
 
+    /* Save ref_lay's current canvas-relative position before registration.
+     * When the canvas is not in target_layers (group-only registration),
+     * we use this to normalise new offsets so the group stays in place
+     * relative to the canvas. */
+    const gint ref_orig_x = ref_lay->position_x;
+    const gint ref_orig_y = ref_lay->position_y;
+
+    /* Save undo state for every layer that will have its position modified.
+     * Registration also transforms pixel data (not undoable), but at least
+     * the position offsets can be restored. */
+    for (GSList *_ul = target_layers; _ul; _ul = _ul->next) {
+        flis_layer_t *_ulay = (flis_layer_t *)_ul->data;
+        if (_ulay) undo_save_flis_layer_props(_ulay, _("Register layers"));
+    }
+
     /* Build an internal sequence.
      * Slot 0 = registration reference; remaining slots follow GSList order,
      * skipping the reference.  Track which slot the canvas layer lands in. */
@@ -2253,20 +2317,33 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
     int ret2 = register_apply_reg(&regargs);
 
     if (!ret2 && regargs.regparam) {
-        /* Normalise offsets relative to the canvas layer so that the canvas
-         * stays at position (0, 0) and all other layers are placed correctly
-         * relative to it. */
-        const double cx       = regargs.regparam[canvas_seq_idx].H.h02;
-        const double cy       = regargs.regparam[canvas_seq_idx].H.h12;
+        /* Normalise offsets so positions are expressed relative to the canvas
+         * layer.  Two cases:
+         *
+         * (a) Canvas is in target_layers (canvas_seq_idx >= 0): canvas goes
+         *     to (0,0) and all other layers are placed relative to it.
+         *
+         * (b) Canvas is NOT in target_layers (canvas_seq_idx == -1, i.e.
+         *     group-only registration): the reference layer occupied
+         *     ref_orig_x/y relative to the canvas before registration.
+         *     After registration regparam[0].H gives ref_lay's mosaic origin,
+         *     so we add ref_orig_x/y to map mosaic coords back to canvas
+         *     coords.  canvas_lay->position_x/y is left untouched. */
+        double cx, cy;
+        if (canvas_seq_idx >= 0) {
+            cx = regargs.regparam[canvas_seq_idx].H.h02;
+            cy = regargs.regparam[canvas_seq_idx].H.h12;
+            canvas_lay->position_x = 0;
+            canvas_lay->position_y = 0;
+        } else {
+            /* ref_lay is at mosaic offset regparam[0].H; it maps to
+             * ref_orig_x/y in canvas coords, so the mosaic origin in canvas
+             * coords is (regparam[0].H.h02 - ref_orig_x, ...). */
+            cx = regargs.regparam[0].H.h02 - ref_orig_x;
+            cy = regargs.regparam[0].H.h12 - ref_orig_y;
+        }
 
-        /* Canvas layer always sits at origin */
-        canvas_lay->position_x = 0;
-        canvas_lay->position_y = 0;
-
-        /* All other layers: compute position from normalised Hshift offset.
-         * position_y = canvas_H - dy_rel - layer_H  (FITS bottom-up convention)
-         * where dy_rel = h12_i - cy  (y from top of canvas, OpenCV y-down) */
-        int k = 1;  /* seq index counter for non-ref layers */
+        int k = 1;
         for (GSList *l = target_layers; l; l = l->next) {
             flis_layer_t *lay = (flis_layer_t *)l->data;
             if (!lay || !lay->fit) continue;

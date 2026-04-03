@@ -48,6 +48,7 @@
 #include "progress_and_log.h"
 #include "registration_preview.h"
 #include "gui/user_polygons.h"
+#include "gui/flis_gui.h"
 
 // Tracks whether double middle click will zoom to fit or zoom to 1:1, for the
 // toggle
@@ -671,14 +672,24 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_FLIS_DRAG_LAYER: {
 				if (!is_current_image_flis()) break;
-				flis_layer_t *active = flis_active_layer();
-				if (!active) break;
-				/* Save undo state BEFORE modifying position */
-				undo_save_flis_layer_props(active, _("Move layer"));
-				gui.flis_layer_dragging = TRUE;
-				gui.start = data->zoomed;
-				gui.flis_drag_origin_x = active->position_x;
-				gui.flis_drag_origin_y = active->position_y;
+				flis_group_t *_grp = flis_get_selected_group();
+				if (_grp) {
+					/* Group drag — move all members together */
+					gui.flis_drag_group_id = _grp->item_id;
+					gui.flis_layer_dragging = TRUE;
+					gui.start = data->zoomed;
+					flis_group_drag_begin(_grp);
+				} else {
+					flis_layer_t *active = flis_active_layer();
+					if (!active) break;
+					gui.flis_drag_group_id = 0;
+					/* Save undo state BEFORE modifying position */
+					undo_save_flis_layer_props(active, _("Move layer"));
+					gui.flis_layer_dragging = TRUE;
+					gui.start = data->zoomed;
+					gui.flis_drag_origin_x = active->position_x;
+					gui.flis_drag_origin_y = active->position_y;
+				}
 				register_release_callback(drag_flis_layer_release, data->event->button);
 				break;
 			}

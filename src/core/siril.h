@@ -940,6 +940,7 @@ struct guiinf {
 	gboolean flis_layer_dragging;   // TRUE while button is down in drag-layer mode
 	gint     flis_drag_origin_x;    // layer position_x at drag start
 	gint     flis_drag_origin_y;    // layer position_y at drag start (FITS convention)
+	gint     flis_drag_group_id;    // item_id of group being dragged, 0 = single-layer drag
 };
 
 struct common_icc {

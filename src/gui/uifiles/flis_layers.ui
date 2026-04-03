@@ -101,10 +101,10 @@
               <object class="GtkScrolledWindow" id="flis_list_scroll">
                 <property name="visible">True</property>
                 <property name="min-content-height">100</property>
-                <property name="max-content-height">220</property>
                 <property name="hscrollbar-policy">never</property>
                 <property name="vscrollbar-policy">automatic</property>
                 <property name="shadow-type">in</property>
+                <property name="vexpand">True</property>
                 <child>
                   <object class="GtkListBox" id="flis_layer_list">
                     <property name="visible">True</property>
@@ -115,7 +115,7 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
               </packing>
             </child>
@@ -347,6 +347,7 @@
                           <item translatable="yes">Color</item>
                           <item translatable="yes">Luminosity</item>
                           <item translatable="yes">LRGB Color</item>
+                          <item translatable="yes">Pass-through</item>
                         </items>
                         <signal name="changed" handler="on_flis_blend_mode_changed"/>
                       </object>

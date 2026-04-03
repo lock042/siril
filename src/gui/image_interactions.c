@@ -38,6 +38,7 @@
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/histo_display.h"
+#include "gui/flis_gui.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
@@ -705,13 +706,20 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.flis_layer_dragging) {
-		flis_layer_t *active = flis_active_layer();
-		if (active) {
-			/* Both position_x and position_y are in display coordinates
-			 * (0,0 = top-left, y increasing downward), matching zoomed. */
-			active->position_x = gui.flis_drag_origin_x + (zoomed.x - gui.start.x);
-			active->position_y = gui.flis_drag_origin_y + (zoomed.y - gui.start.y);
+		const gint _dx = (gint)(zoomed.x - gui.start.x);
+		const gint _dy = (gint)(zoomed.y - gui.start.y);
+		if (gui.flis_drag_group_id != 0) {
+			flis_group_drag_update(_dx, _dy);
 			redraw(REDRAW_OVERLAY);
+		} else {
+			flis_layer_t *active = flis_active_layer();
+			if (active) {
+				/* Both position_x and position_y are in display coordinates
+				 * (0,0 = top-left, y increasing downward), matching zoomed. */
+				active->position_x = gui.flis_drag_origin_x + _dx;
+				active->position_y = gui.flis_drag_origin_y + _dy;
+				redraw(REDRAW_OVERLAY);
+			}
 		}
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {

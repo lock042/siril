@@ -101,13 +101,14 @@ typedef struct flis_layer_props_t {
  *   created / modified — owned; NULL if unset; free with g_free()
  * ----------------------------------------------------------------------- */
 typedef struct _flis_group_t {
-    gint     item_id;      /* Stable ITEM_ID from FLIS_META; never reused  */
-    gchar   *name;         /* User-visible name (≤32 chars for on-disk)    */
-    gboolean visible;      /* FALSE: all member layers skipped in composite */
-    gfloat   opacity;      /* Multiplied with each member's effective opacity */
-    gboolean collapsed;    /* UI only: list rows hidden when TRUE          */
-    gchar   *created;      /* ISO 8601 or NULL                             */
-    gchar   *modified;     /* ISO 8601 or NULL                             */
+    gint              item_id;    /* Stable ITEM_ID from FLIS_META; never reused  */
+    gchar            *name;       /* User-visible name (≤32 chars for on-disk)    */
+    gboolean          visible;    /* FALSE: all member layers skipped in composite */
+    gfloat            opacity;    /* Multiplied with each member's effective opacity */
+    flis_blend_mode_t blend_mode; /* FLIS_BLEND_PASS_THROUGH or FLIS_BLEND_NORMAL  */
+    gboolean          collapsed;  /* UI only: list rows hidden when TRUE          */
+    gchar            *created;    /* ISO 8601 or NULL                             */
+    gchar            *modified;   /* ISO 8601 or NULL                             */
 } flis_group_t;
 
 /* Lightweight snapshot of non-pixel group properties for undo. */
@@ -553,6 +554,11 @@ int flis_group_set_visible(flis_group_t *group, gboolean visible);
  * flis_group_set_opacity:
  */
 int flis_group_set_opacity(flis_group_t *group, gfloat opacity);
+
+/**
+ * flis_group_set_blend_mode:
+ */
+int flis_group_set_blend_mode(flis_group_t *group, flis_blend_mode_t mode);
 
 /**
  * flis_group_touch_modified:
