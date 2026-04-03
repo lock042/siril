@@ -231,6 +231,7 @@ src_files = [
   'gui/git_gui.c',
   'gui/histo_display.c',
   'gui/histogram.c',
+  'gui/histogram_utils.c',
   'gui/keywords_tree.c',
   'gui/icc_profile.c',
   'gui/image_display.c',
