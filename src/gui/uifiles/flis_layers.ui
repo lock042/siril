@@ -179,6 +179,22 @@
                   </object>
                 </child>
                 <child>
+                  <object class="GtkButton" id="flis_group_btn">
+                    <property name="visible">True</property>
+                    <property name="tooltip-text" translatable="yes">Create a new layer group</property>
+                    <property name="relief">none</property>
+                    <property name="sensitive">False</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="icon-name">folder-new-symbolic</property>
+                        <property name="icon-size">1</property>
+                      </object>
+                    </child>
+                    <signal name="clicked" handler="on_flis_new_group_clicked"/>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkToggleButton" id="flis_drag_toggle_btn">
                     <property name="visible">True</property>
                     <property name="label">✥</property>
@@ -557,6 +573,18 @@
         <property name="visible">True</property>
         <property name="label" translatable="yes">Layers match…</property>
         <signal name="activate" handler="on_flis_background_neutralise_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_assign_group_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Move layer to group…</property>
+        <signal name="activate" handler="on_flis_assign_group_activate"/>
       </object>
     </child>
     <child>

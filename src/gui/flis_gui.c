@@ -65,6 +65,9 @@ static gboolean      flis_updating   = FALSE;
 /* The layer most recently selected in the list box. */
 static flis_layer_t *flis_selected   = NULL;
 
+/* Non-NULL when a group row is selected instead of a layer row. */
+static flis_group_t *flis_selected_group = NULL;
+
 /* =========================================================================
  * Blend mode index ↔ flis_blend_mode_t mapping
  * Must match the <items> order in flis_layers.glade exactly.
@@ -157,10 +160,86 @@ static GtkWidget *row_icon_toggle(const gchar *icon_on,
     return btn;
 }
 
+/* Forward declarations for group row callbacks */
+static void on_group_collapse_toggled(GtkToggleButton *btn, gpointer data);
+static void on_group_visibility_toggled(GtkToggleButton *btn, gpointer data);
+
+static GtkWidget *flis_group_row_new(flis_group_t *group) {
+    GtkWidget *row  = gtk_list_box_row_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+    gtk_container_set_border_width(GTK_CONTAINER(hbox), 2);
+
+    /* Collapse/expand toggle: ▶ when collapsed, ▼ when expanded */
+    GtkWidget *expand_btn = gtk_toggle_button_new();
+    GtkWidget *expand_icon = gtk_image_new_from_icon_name(
+        group->collapsed ? "pan-end-symbolic" : "pan-down-symbolic",
+        GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_button_set_image(GTK_BUTTON(expand_btn), expand_icon);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(expand_btn), !group->collapsed);
+    gtk_button_set_relief(GTK_BUTTON(expand_btn), GTK_RELIEF_NONE);
+    gtk_widget_set_focus_on_click(expand_btn, FALSE);
+    gtk_widget_set_tooltip_text(expand_btn, _("Expand/collapse group"));
+    g_object_set_data(G_OBJECT(expand_btn), "flis-group", group);
+    g_object_set_data_full(G_OBJECT(expand_btn), "icon-expanded",
+                           g_strdup("pan-down-symbolic"), g_free);
+    g_object_set_data_full(G_OBJECT(expand_btn), "icon-collapsed",
+                           g_strdup("pan-end-symbolic"), g_free);
+    g_signal_connect(expand_btn, "toggled",
+                     G_CALLBACK(on_group_collapse_toggled), NULL);
+
+    /* Visibility toggle */
+    GtkWidget *vis_btn = row_icon_toggle(
+        "view-reveal-symbolic", "view-conceal-symbolic",
+        group->visible, _("Toggle group visibility"), NULL,
+        G_CALLBACK(on_group_visibility_toggled));
+    /* Override data: point to group, not a layer */
+    g_object_set_data(G_OBJECT(vis_btn), "flis-layer", NULL);
+    g_object_set_data(G_OBJECT(vis_btn), "flis-group", group);
+
+    /* Folder icon */
+    GtkWidget *folder_icon = gtk_image_new_from_icon_name(
+        "folder-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_margin_start(folder_icon, 2);
+    gtk_widget_set_margin_end(folder_icon, 2);
+
+    /* Name label */
+    GtkWidget *name_lbl = gtk_label_new(group->name ? group->name : _("Group"));
+    gtk_label_set_xalign(GTK_LABEL(name_lbl), 0.0f);
+    gtk_widget_set_hexpand(name_lbl, TRUE);
+
+    /* Member count badge */
+    GSList *members = flis_group_get_layers(group);
+    gchar  *badge   = g_strdup_printf("(%d)", g_slist_length(members));
+    g_slist_free(members);
+    GtkWidget *count_lbl = gtk_label_new(badge);
+    g_free(badge);
+    gtk_style_context_add_class(gtk_widget_get_style_context(count_lbl), "dim-label");
+    gtk_widget_set_margin_start(count_lbl, 4);
+    gtk_widget_set_margin_end(count_lbl, 4);
+
+    gtk_box_pack_start(GTK_BOX(hbox), expand_btn,   FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), folder_icon,  FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), vis_btn,      FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), name_lbl,     TRUE,  TRUE,  0);
+    gtk_box_pack_start(GTK_BOX(hbox), count_lbl,    FALSE, FALSE, 0);
+
+    gtk_container_add(GTK_CONTAINER(row), hbox);
+    gtk_widget_show_all(row);
+
+    /* Tag the row so selection handler can distinguish group vs layer */
+    g_object_set_data(G_OBJECT(row), "flis-group", group);
+    g_object_set_data(G_OBJECT(row), "flis-layer", NULL);
+    g_object_set_data(G_OBJECT(row), "name-label", name_lbl);
+
+    return row;
+}
+
 static GtkWidget *flis_layer_row_new(flis_layer_t *layer) {
     GtkWidget *row  = gtk_list_box_row_new();
     GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 2);
+    if (layer->group_id != 0)
+        gtk_widget_set_margin_start(hbox, 18);  /* indent for group members */
 
     /* Visibility toggle */
     GtkWidget *vis_btn = row_icon_toggle(
@@ -222,6 +301,7 @@ static GtkWidget *flis_layer_row_new(flis_layer_t *layer) {
 
     /* Attach the layer pointer for later retrieval in row-selected handler */
     g_object_set_data(G_OBJECT(row), "flis-layer", layer);
+    g_object_set_data(G_OBJECT(row), "flis-group", NULL);
 
     return row;
 }
@@ -236,12 +316,43 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
     GtkWidget *props = fw("flis_props_box");
 
     if (!layer) {
+        /* If no layer is selected but a group is selected, show group properties */
+        if (flis_selected_group) {
+            gtk_widget_set_sensitive(props, TRUE);
+            gtk_entry_set_text(GTK_ENTRY(fw("flis_name_entry")),
+                               flis_selected_group->name ? flis_selected_group->name : "");
+            /* Blend combo: set insensitive — groups are always pass-through */
+            gtk_widget_set_sensitive(fw("flis_blend_combo"), FALSE);
+            /* Opacity: show group opacity */
+            GtkAdjustment *adj = GTK_ADJUSTMENT(fo("flis_opacity_adj"));
+            gtk_adjustment_set_value(adj, (gdouble)(flis_selected_group->opacity * 100.f));
+            /* Hide layer-specific sections */
+            gtk_widget_set_visible(fw("flis_tint_frame"), FALSE);
+            /* Hide mask section — groups don't have masks */
+            GtkWidget *mask_frame = gtk_widget_get_parent(fw("flis_mask_status_btn"));
+            while (mask_frame && !GTK_IS_FRAME(mask_frame))
+                mask_frame = gtk_widget_get_parent(mask_frame);
+            if (mask_frame) gtk_widget_set_visible(mask_frame, FALSE);
+            flis_updating = FALSE;
+            return;
+        }
         gtk_widget_set_sensitive(props, FALSE);
         flis_updating = FALSE;
         return;
     }
 
     gtk_widget_set_sensitive(props, TRUE);
+
+    /* Restore section visibility (may have been hidden for a group) */
+    gtk_widget_set_visible(fw("flis_tint_frame"), TRUE);
+    gtk_widget_set_sensitive(fw("flis_blend_combo"), TRUE);
+    /* Restore mask frame visibility */
+    {
+        GtkWidget *mask_frame = gtk_widget_get_parent(fw("flis_mask_status_btn"));
+        while (mask_frame && !GTK_IS_FRAME(mask_frame))
+            mask_frame = gtk_widget_get_parent(mask_frame);
+        if (mask_frame) gtk_widget_set_visible(mask_frame, TRUE);
+    }
 
     /* Name */
     gtk_entry_set_text(GTK_ENTRY(fw("flis_name_entry")),
@@ -323,29 +434,37 @@ static void flis_properties_panel_update(flis_layer_t *layer) {
  * ========================================================================= */
 
 static void flis_toolbar_sensitivity_update(void) {
-    gboolean have_image = (com.uniq != NULL && com.uniq->fit != NULL);
-    gboolean is_flis    = is_current_image_flis();
-    gboolean have_sel   = (flis_selected != NULL);
-    gint     n          = flis_layer_count();
+    gboolean have_image     = (com.uniq != NULL && com.uniq->fit != NULL);
+    gboolean is_flis        = is_current_image_flis();
+    gboolean have_sel       = (flis_selected != NULL);
+    gboolean have_group_sel = (flis_selected_group != NULL);
+    gint     n              = flis_layer_count();
 
     /* Add is always available when an image is loaded */
     gtk_widget_set_sensitive(fw("flis_add_btn"), have_image);
 
-    /* Operations on a selected layer */
+    /* Remove: when a layer is selected (need >1 layers), or when a group is selected */
     gtk_widget_set_sensitive(fw("flis_remove_btn"),
-                             is_flis && have_sel && n > 1);
-    /* Duplicate is available whenever an image is loaded: for a plain FITS
-     * it promotes to FLIS first, then duplicates the base layer. */
+                             is_flis && (have_sel ? n > 1 : have_group_sel));
+
+    /* Duplicate is available whenever an image is loaded */
     gtk_widget_set_sensitive(fw("flis_duplicate_btn"),
                              have_image && (have_sel || !is_flis));
 
-    /* Drag-to-move toggle — enabled whenever a FLIS layer is selected */
-    gtk_widget_set_sensitive(fw("flis_drag_toggle_btn"), is_flis && have_sel);
+    /* Drag-to-move toggle — enabled whenever a FLIS layer or group is selected */
+    gtk_widget_set_sensitive(fw("flis_drag_toggle_btn"),
+                             is_flis && (have_sel || have_group_sel));
 
-    /* Layer actions menu — enabled whenever a FLIS layer is selected */
-    gtk_widget_set_sensitive(fw("flis_layer_menu_btn"), is_flis && have_sel);
+    /* Layer actions menu — enabled whenever a FLIS layer or group is selected */
+    gtk_widget_set_sensitive(fw("flis_layer_menu_btn"),
+                             is_flis && (have_sel || have_group_sel));
 
-    /* Move buttons: only active if there is a layer above/below */
+    /* Group button */
+    GtkWidget *grp_btn = fw("flis_group_btn");
+    if (grp_btn)
+        gtk_widget_set_sensitive(grp_btn, is_flis);
+
+    /* Move buttons: only active if there is a layer above/below (not for groups) */
     gboolean can_up = FALSE, can_down = FALSE;
     if (is_flis && have_sel) {
         gint idx = flis_layer_get_index(flis_selected);
@@ -380,7 +499,6 @@ static void flis_layers_list_rebuild(void) {
     flis_updating = FALSE;
 
     if (!is_current_image_flis()) {
-        /* Plain FITS or no image: show a single informational placeholder row */
         GtkWidget *row  = gtk_list_box_row_new();
         GtkWidget *lbl  = gtk_label_new(
             com.uniq && com.uniq->fit
@@ -390,63 +508,129 @@ static void flis_layers_list_rebuild(void) {
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.5f);
         gtk_widget_set_margin_top(lbl, 8);
         gtk_widget_set_margin_bottom(lbl, 8);
-        gtk_style_context_add_class(
-            gtk_widget_get_style_context(lbl), "dim-label");
+        gtk_style_context_add_class(gtk_widget_get_style_context(lbl), "dim-label");
         gtk_container_add(GTK_CONTAINER(row), lbl);
         gtk_widget_show_all(row);
         gtk_list_box_insert(list, row, -1);
         gtk_widget_show_all(GTK_WIDGET(list));
-
         flis_selected = NULL;
+        flis_selected_group = NULL;
         flis_properties_panel_update(NULL);
         flis_toolbar_sensitivity_update();
         return;
     }
 
-    /* Build rows in reverse layer_order (top of visual stack at top of list).
-     * com.uniq->layers is sorted ascending by layer_order, so the last element
-     * is the topmost layer. */
-    gint n = flis_layer_count();
-    GtkListBoxRow *row_to_select = NULL;
+    /* Build a sorted list of top-level items for rendering.
+     * Top-level items are: standalone layers (group_id == 0) and groups.
+     * A group's visual z-position is the maximum layer_order of its members.
+     * Items are sorted descending (topmost rendered layer appears first in the list). */
+    typedef struct {
+        gboolean    is_group;
+        gint        sort_order;   /* descending sort key */
+        flis_layer_t *layer;      /* valid when !is_group */
+        flis_group_t *group;      /* valid when is_group */
+    } TopItem;
 
-    for (gint i = n - 1; i >= 0; i--) {
-        flis_layer_t *lay = (flis_layer_t *)g_slist_nth_data(
-                                com.uniq->layers, (guint)i);
-        if (!lay) continue;
-        GtkWidget *row = flis_layer_row_new(lay);
-        gtk_list_box_insert(list, row, -1);
-        if (lay == flis_selected)
-            row_to_select = GTK_LIST_BOX_ROW(row);
+    GArray *top = g_array_new(FALSE, FALSE, sizeof(TopItem));
+
+    /* Add standalone layers */
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || lay->group_id != 0) continue;
+        TopItem item = { FALSE, lay->layer_order, lay, NULL };
+        g_array_append_val(top, item);
     }
 
+    /* Add groups with sort_order = max member layer_order */
+    for (GSList *g = com.uniq->groups; g; g = g->next) {
+        flis_group_t *grp = (flis_group_t *)g->data;
+        if (!grp) continue;
+        GSList *members = flis_group_get_layers(grp);
+        if (!members) {
+            TopItem item = { TRUE, G_MAXINT, NULL, grp };
+            g_array_append_val(top, item);
+        } else {
+            gint max_order = 0;
+            for (GSList *m = members; m; m = m->next) {
+                flis_layer_t *lay = (flis_layer_t *)m->data;
+                if (lay->layer_order > max_order) max_order = lay->layer_order;
+            }
+            TopItem item = { TRUE, max_order, NULL, grp };
+            g_array_append_val(top, item);
+            g_slist_free(members);
+        }
+    }
+
+    /* Sort descending by sort_order */
+    for (guint i = 0; i < top->len; i++) {
+        for (guint j = i + 1; j < top->len; j++) {
+            TopItem *a = &g_array_index(top, TopItem, i);
+            TopItem *b = &g_array_index(top, TopItem, j);
+            if (b->sort_order > a->sort_order) {
+                TopItem tmp = *a; *a = *b; *b = tmp;
+            }
+        }
+    }
+
+    GtkListBoxRow *row_to_select = NULL;
+
+    for (guint i = 0; i < top->len; i++) {
+        TopItem *item = &g_array_index(top, TopItem, i);
+
+        if (!item->is_group) {
+            GtkWidget *row = flis_layer_row_new(item->layer);
+            gtk_list_box_insert(list, row, -1);
+            if (item->layer == flis_selected)
+                row_to_select = GTK_LIST_BOX_ROW(row);
+        } else {
+            flis_group_t *grp = item->group;
+            /* Group header row */
+            GtkWidget *grp_row = flis_group_row_new(grp);
+            gtk_list_box_insert(list, grp_row, -1);
+            if (grp == flis_selected_group)
+                row_to_select = GTK_LIST_BOX_ROW(grp_row);
+
+            /* Member rows (only shown when group is not collapsed) */
+            if (!grp->collapsed) {
+                GSList *members = flis_group_get_layers(grp); /* ascending */
+                /* Reverse for descending (topmost first) */
+                members = g_slist_reverse(members);
+                for (GSList *m = members; m; m = m->next) {
+                    flis_layer_t *lay = (flis_layer_t *)m->data;
+                    GtkWidget *row = flis_layer_row_new(lay);
+                    gtk_list_box_insert(list, row, -1);
+                    if (lay == flis_selected)
+                        row_to_select = GTK_LIST_BOX_ROW(row);
+                }
+                g_slist_free(members);
+            }
+        }
+    }
+
+    g_array_free(top, TRUE);
     gtk_widget_show_all(GTK_WIDGET(list));
 
-    /* Re-select the previously selected layer, or default to the topmost.
-     * flis_updating suppresses on_flis_layer_row_selected during the
-     * programmatic selection, so we must manually sync gfit afterwards. */
+    /* Re-select the previously selected row */
     flis_updating = TRUE;
     if (row_to_select) {
         gtk_list_box_select_row(list, row_to_select);
     } else {
+        /* Default: select the topmost row */
         GtkListBoxRow *first = gtk_list_box_get_row_at_index(list, 0);
         if (first) {
             gtk_list_box_select_row(list, first);
-            flis_selected = (flis_layer_t *)g_object_get_data(
-                                G_OBJECT(first), "flis-layer");
+            flis_layer_t *lay = (flis_layer_t *)g_object_get_data(G_OBJECT(first), "flis-layer");
+            flis_group_t *grp = (flis_group_t *)g_object_get_data(G_OBJECT(first), "flis-group");
+            flis_selected       = lay;
+            flis_selected_group = grp;
         }
     }
     flis_updating = FALSE;
 
-    /* Sync gfit with the newly selected layer.  on_flis_layer_row_selected
-     * was suppressed by flis_updating above, so uniq_set_active_layer was
-     * not called.  Without this, gfit keeps pointing at whichever layer was
-     * active before the rebuild (typically the base layer from load_flis),
-     * and every subsequent operation modifies the wrong layer regardless of
-     * which one is visually selected in the panel. */
+    /* Sync gfit with the newly selected layer (only when a layer row is active) */
     if (flis_selected && com.uniq) {
         gint idx = flis_layer_get_index(flis_selected);
-        if (idx >= 0)
-            uniq_set_active_layer(com.uniq, idx);
+        if (idx >= 0) uniq_set_active_layer(com.uniq, idx);
     }
 
     flis_properties_panel_update(flis_selected);
@@ -806,14 +990,17 @@ void on_flis_layer_row_selected(GtkListBox    *box,
 
     if (!row) {
         flis_selected = NULL;
+        flis_selected_group = NULL;
         flis_properties_panel_update(NULL);
         flis_toolbar_sensitivity_update();
         return;
     }
 
-    flis_layer_t *layer = (flis_layer_t *)g_object_get_data(
-                              G_OBJECT(row), "flis-layer");
-    flis_selected = layer;
+    flis_layer_t *layer = (flis_layer_t *)g_object_get_data(G_OBJECT(row), "flis-layer");
+    flis_group_t *group = (flis_group_t *)g_object_get_data(G_OBJECT(row), "flis-group");
+
+    flis_selected       = layer;
+    flis_selected_group = group;
 
     if (layer && com.uniq) {
         gint idx = flis_layer_get_index(layer);
@@ -824,25 +1011,55 @@ void on_flis_layer_row_selected(GtkListBox    *box,
     flis_properties_panel_update(layer);
     flis_toolbar_sensitivity_update();
 
-    /* Auto-select which mask type to display for the newly active layer:
-     * prefer processing mask if present; show layer mask only if it is the
-     * sole mask available.  This resets any manual toggle the user made on
-     * the previous layer, which is the least surprising behaviour. */
     if (layer) {
         gboolean has_proc  = (layer->fit && layer->fit->mask != NULL);
         gboolean has_lmask = (layer->lmask != NULL);
         set_flis_show_layer_mask(has_lmask && !has_proc);
     }
 
-    /* Update mask tab visibility, title, and enable-check sensitivity. */
     show_or_hide_mask_tab();
-
-    /* Populate the mask tab for the newly active layer. */
     queue_redraw_mask();
 
-    /* Redraw so the display reflects the newly active layer. */
     if (is_current_image_flis() && !flis_updating)
         queue_redraw(REMAP_ALL);
+}
+
+/* =========================================================================
+ * Group row signal handlers
+ * ========================================================================= */
+
+static void on_group_collapse_toggled(GtkToggleButton *btn, gpointer data) {
+    (void)data;
+    if (flis_updating) return;
+    flis_group_t *group = (flis_group_t *)g_object_get_data(G_OBJECT(btn), "flis-group");
+    if (!group) return;
+    gboolean expanded = gtk_toggle_button_get_active(btn);
+    group->collapsed = !expanded;
+    /* Update icon */
+    const gchar *icon = expanded
+        ? (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-expanded")
+        : (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-collapsed");
+    gtk_button_set_image(GTK_BUTTON(btn),
+        gtk_image_new_from_icon_name(icon, GTK_ICON_SIZE_SMALL_TOOLBAR));
+    /* Rebuild list to show/hide member rows */
+    flis_layers_list_rebuild();
+}
+
+static void on_group_visibility_toggled(GtkToggleButton *btn, gpointer data) {
+    (void)data;
+    if (flis_updating) return;
+    flis_group_t *group = (flis_group_t *)g_object_get_data(G_OBJECT(btn), "flis-group");
+    if (!group) return;
+    gboolean active = gtk_toggle_button_get_active(btn);
+    /* Update icon */
+    const gchar *icon_name = active
+        ? (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-on")
+        : (const gchar *)g_object_get_data(G_OBJECT(btn), "icon-off");
+    gtk_button_set_image(GTK_BUTTON(btn),
+        gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR));
+    flis_group_set_visible(group, active);
+    flis_invalidate_composite();
+    queue_redraw(REMAP_ALL);
 }
 
 /* =========================================================================
@@ -892,12 +1109,101 @@ void on_flis_add_layer_clicked(GtkButton *btn,
     queue_redraw(REMAP_ALL);
 }
 
-void on_flis_remove_layer_clicked(GtkButton *btn,
-                                                  gpointer   data) {
+void on_flis_remove_layer_clicked(GtkButton *btn, gpointer data) {
     (void)btn; (void)data;
+
+    if (flis_selected_group) {
+        /* Group row selected: ask whether to remove the group (ungroup layers)
+         * or delete the group and all its layers. */
+        GtkWindow *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
+        GtkWidget *dlg = gtk_dialog_new_with_buttons(
+            _("Remove Group"),
+            parent,
+            GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+            _("Cancel"),            GTK_RESPONSE_CANCEL,
+            _("Remove Group Only"), GTK_RESPONSE_ACCEPT,
+            _("Delete with Layers"),GTK_RESPONSE_REJECT,
+            NULL);
+        GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+        GtkWidget *lbl = gtk_label_new(NULL);
+        GSList *grp_members = flis_group_get_layers(flis_selected_group);
+        gchar *msg = g_strdup_printf(
+            _("Group \"%s\" contains %d layer(s).\n\n"
+              "<b>Remove Group Only</b> — ungroups all member layers "
+              "(layers are kept).\n"
+              "<b>Delete with Layers</b> — permanently deletes the group "
+              "AND all member layers. This cannot be undone."),
+            flis_selected_group->name ? flis_selected_group->name : _("Group"),
+            (int)g_slist_length(grp_members));
+        g_slist_free(grp_members);
+        gtk_label_set_markup(GTK_LABEL(lbl), msg);
+        g_free(msg);
+        gtk_label_set_line_wrap(GTK_LABEL(lbl), TRUE);
+        gtk_widget_set_margin_start(lbl, 12);
+        gtk_widget_set_margin_end(lbl, 12);
+        gtk_widget_set_margin_top(lbl, 12);
+        gtk_widget_set_margin_bottom(lbl, 12);
+        gtk_container_add(GTK_CONTAINER(content), lbl);
+        gtk_widget_show_all(dlg);
+        gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+        gtk_widget_destroy(dlg);
+
+        if (response == GTK_RESPONSE_CANCEL) return;
+
+        if (response == GTK_RESPONSE_REJECT) {
+            /* Delete group with all layers — require second confirmation */
+            GSList *members = flis_group_get_layers(flis_selected_group);
+            gint n_members  = (gint)g_slist_length(members);
+            g_slist_free(members);
+
+            gchar *confirm_msg = g_strdup_printf(
+                _("Permanently delete group \"%s\" and all %d of its layers?\n\n"
+                  "This operation cannot be undone."),
+                flis_selected_group->name ? flis_selected_group->name : _("Group"),
+                n_members);
+            GtkWidget *confirm_dlg = gtk_message_dialog_new(
+                parent,
+                GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE,
+                "%s", confirm_msg);
+            g_free(confirm_msg);
+            gtk_dialog_add_buttons(GTK_DIALOG(confirm_dlg),
+                _("Cancel"),        GTK_RESPONSE_CANCEL,
+                _("Delete All"),    GTK_RESPONSE_OK,
+                NULL);
+            gtk_dialog_set_default_response(GTK_DIALOG(confirm_dlg), GTK_RESPONSE_CANCEL);
+            gint r2 = gtk_dialog_run(GTK_DIALOG(confirm_dlg));
+            gtk_widget_destroy(confirm_dlg);
+            if (r2 != GTK_RESPONSE_OK) return;
+
+            /* Purge undo for all member layers */
+            GSList *to_delete = flis_group_get_layers(flis_selected_group);
+            for (GSList *m = to_delete; m; m = m->next) {
+                flis_layer_t *lay = (flis_layer_t *)m->data;
+                flis_undo_purge_layer(lay->item_id);
+            }
+            g_slist_free(to_delete);
+
+            flis_group_t *grp = flis_selected_group;
+            flis_selected_group = NULL;
+            flis_selected       = NULL;
+            flis_group_delete_with_layers(grp);
+        } else {
+            /* GTK_RESPONSE_ACCEPT: remove group only, keep layers */
+            flis_group_t *grp = flis_selected_group;
+            flis_selected_group = NULL;
+            flis_group_remove(grp);
+        }
+
+        flis_invalidate_composite();
+        flis_gui_update();
+        queue_redraw(REMAP_ALL);
+        return;
+    }
+
+    /* Original layer removal path */
     if (!flis_selected) return;
 
-    /* Confirmation dialog */
     GtkWidget *dlg = gtk_message_dialog_new(
         GTK_WINDOW(lookup_widget("flis_layers_window")),
         GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -914,16 +1220,63 @@ void on_flis_remove_layer_clicked(GtkButton *btn,
 
     flis_layer_t *to_remove = flis_selected;
     flis_selected = NULL;
-
-    /* Purge undo states for this layer BEFORE destroying it so item_id is
-     * still valid.  Other layers' states are preserved. */
     flis_undo_purge_layer(to_remove->item_id);
-
-    if (flis_layer_remove(to_remove)) return; /* error already logged */
+    if (flis_layer_remove(to_remove)) return;
 
     flis_invalidate_composite();
     flis_gui_update();
     queue_redraw(REMAP_ALL);
+}
+
+void on_flis_new_group_clicked(GtkButton *btn, gpointer data) {
+    (void)btn; (void)data;
+    if (!is_current_image_flis()) return;
+
+    /* Ask for the group name */
+    GtkWidget *dlg = gtk_dialog_new_with_buttons(
+        _("New Group"),
+        GTK_WINDOW(lookup_widget("flis_layers_window")),
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("Create"),  GTK_RESPONSE_ACCEPT,
+        NULL);
+    gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
+    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_widget_set_margin_start(box, 12);
+    gtk_widget_set_margin_end(box, 12);
+    gtk_widget_set_margin_top(box, 12);
+    gtk_widget_set_margin_bottom(box, 12);
+    gtk_box_pack_start(GTK_BOX(box), gtk_label_new(_("Name:")), FALSE, FALSE, 0);
+    GtkWidget *entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(entry), _("Group"));
+    gtk_entry_set_max_length(GTK_ENTRY(entry), 32);
+    gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
+    gtk_widget_set_hexpand(entry, TRUE);
+    gtk_box_pack_start(GTK_BOX(box), entry, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(content), box);
+    gtk_widget_show_all(dlg);
+
+    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+    gchar *name = NULL;
+    if (response == GTK_RESPONSE_ACCEPT)
+        name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+    gtk_widget_destroy(dlg);
+
+    if (!name || !name[0]) { g_free(name); return; }
+
+    flis_group_t *grp = flis_group_add(name);
+    g_free(name);
+    if (!grp) return;
+
+    /* If a layer is currently selected, offer to add it to the new group */
+    if (flis_selected) {
+        flis_layer_set_group(flis_selected, grp->item_id);
+    }
+
+    flis_selected_group = grp;
+    flis_selected = NULL;
+    flis_gui_update();
 }
 
 void on_flis_duplicate_layer_clicked(GtkButton *btn,
@@ -992,12 +1345,30 @@ void on_flis_move_down_clicked(GtkButton *btn,
  * Properties panel signal handlers
  * ========================================================================= */
 
-/* Apply the name entry to the selected layer (on Enter or focus-out) */
+/* Apply the name entry to the selected layer or group (on Enter or focus-out) */
 static void flis_apply_name_entry(void) {
-    if (flis_updating || !flis_selected) return;
+    if (flis_updating) return;
+    const gchar *text = gtk_entry_get_text(GTK_ENTRY(fw("flis_name_entry")));
 
-    const gchar *text = gtk_entry_get_text(
-                            GTK_ENTRY(fw("flis_name_entry")));
+    if (flis_selected_group) {
+        flis_group_set_name(flis_selected_group, text);
+        /* Update the name label in the list row */
+        GtkListBox *list = GTK_LIST_BOX(fw("flis_layer_list"));
+        GList *rows = gtk_container_get_children(GTK_CONTAINER(list));
+        for (GList *r = rows; r; r = r->next) {
+            GtkWidget *row = GTK_WIDGET(r->data);
+            if (g_object_get_data(G_OBJECT(row), "flis-group") == flis_selected_group) {
+                GtkWidget *lbl = GTK_WIDGET(g_object_get_data(G_OBJECT(row), "name-label"));
+                if (lbl) gtk_label_set_text(GTK_LABEL(lbl), text);
+                break;
+            }
+        }
+        g_list_free(rows);
+        return;
+    }
+
+    if (!flis_selected) return;
+
     undo_save_flis_layer_props(flis_selected, _("Layer name"));
     if (flis_layer_set_name(flis_selected, text) == 0) {
         /* Update the name label in the list row without a full rebuild */
@@ -1099,9 +1470,15 @@ static gboolean on_flis_opacity_scale_release(GtkWidget *widget,
  * on_flis_opacity_spin_value_changed, connected in flis_gui_init(). */
 static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     (void)data;
-    if (flis_updating || !flis_selected) return;
-
+    if (flis_updating) return;
     gdouble pct = gtk_adjustment_get_value(adj);
+    if (flis_selected_group) {
+        flis_group_set_opacity(flis_selected_group, (gfloat)(pct / 100.0));
+        flis_invalidate_composite();
+        queue_redraw(REMAP_ALL);
+        return;
+    }
+    if (!flis_selected) return;
     flis_layer_set_opacity(flis_selected, (gfloat)(pct / 100.0));
     flis_invalidate_composite();
     queue_redraw(REMAP_ALL);
@@ -1447,6 +1824,71 @@ static gboolean on_flis_layer_list_button_press(GtkWidget      *widget,
     return GDK_EVENT_STOP;
 }
 
+void on_flis_assign_group_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!flis_selected) return;
+
+    /* Build a dialog with a list of groups plus "None (ungrouped)" */
+    GtkWindow *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
+    GtkWidget *dlg = gtk_dialog_new_with_buttons(
+        _("Move Layer to Group"),
+        parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("Move"),   GTK_RESPONSE_ACCEPT,
+        NULL);
+    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+    GtkWidget *combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), "none", _("(None — ungrouped)"));
+    gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo), "none");
+
+    gint n_groups = flis_group_count();
+    if (n_groups == 0) {
+        GtkWidget *lbl = gtk_label_new(_("No groups exist. Create a group first."));
+        gtk_widget_set_margin_start(lbl, 12);
+        gtk_widget_set_margin_top(lbl, 8);
+        gtk_container_add(GTK_CONTAINER(content), lbl);
+        gtk_container_add(GTK_CONTAINER(content), combo);
+        gtk_widget_set_sensitive(combo, FALSE);
+    } else {
+        for (GSList *g = com.uniq->groups; g; g = g->next) {
+            flis_group_t *grp = (flis_group_t *)g->data;
+            if (!grp) continue;
+            gchar *id = g_strdup_printf("%d", grp->item_id);
+            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), id, grp->name ? grp->name : "Group");
+            /* Pre-select current group */
+            if (flis_selected->group_id == grp->item_id)
+                gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo), id);
+            g_free(id);
+        }
+        GtkWidget *lbl = gtk_label_new(_("Assign layer to group:"));
+        gtk_widget_set_margin_start(lbl, 12);
+        gtk_widget_set_margin_top(lbl, 8);
+        gtk_container_add(GTK_CONTAINER(content), lbl);
+        gtk_container_add(GTK_CONTAINER(content), combo);
+    }
+
+    gtk_widget_set_margin_start(combo, 12);
+    gtk_widget_set_margin_end(combo, 12);
+    gtk_widget_set_margin_bottom(combo, 8);
+    gtk_widget_show_all(dlg);
+    gint response = gtk_dialog_run(GTK_DIALOG(dlg));
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        const gchar *active_id = gtk_combo_box_get_active_id(GTK_COMBO_BOX(combo));
+        if (active_id) {
+            if (g_strcmp0(active_id, "none") == 0) {
+                flis_layer_set_group(flis_selected, 0);
+            } else {
+                gint gid = (gint)g_ascii_strtoll(active_id, NULL, 10);
+                flis_layer_set_group(flis_selected, gid);
+            }
+        }
+        flis_gui_update();
+    }
+    gtk_widget_destroy(dlg);
+}
+
 void on_flis_merge_down_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!flis_selected || !is_current_image_flis()) return;
@@ -1472,7 +1914,16 @@ void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
     (void)item; (void)data;
     if (!is_current_image_flis()) return;
 
-    if (flis_background_neutralise()) {
+    GSList *subset = NULL;
+    gboolean free_subset = FALSE;
+    if (flis_selected_group) {
+        subset = flis_group_get_layers(flis_selected_group);
+        free_subset = TRUE;
+    }
+    int ret = flis_background_neutralise_layers(subset);
+    if (free_subset) g_slist_free(subset);
+
+    if (ret) {
         siril_message_dialog(GTK_MESSAGE_ERROR, _("Background Neutralise"),
                              _("Background neutralisation failed."));
         return;
@@ -1687,24 +2138,44 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
 
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
 
-    gint n_layers = flis_layer_count();
+    /* If a group is selected, register only that group's layers */
+    GSList *target_layers = NULL;
+    gboolean free_target = FALSE;
+    if (flis_selected_group) {
+        target_layers = flis_group_get_layers(flis_selected_group);
+        free_target = TRUE;
+        if (g_slist_length(target_layers) < 2) {
+            siril_message_dialog(GTK_MESSAGE_WARNING, _("Register Layers"),
+                _("The selected group needs at least two layers for registration."));
+            g_slist_free(target_layers);
+            return;
+        }
+    } else {
+        target_layers = com.uniq->layers;
+    }
+
+    gint n_layers = (gint)g_slist_length(target_layers);
     if (n_layers < 2) {
         siril_message_dialog(GTK_MESSAGE_WARNING, _("Register Layers"),
             _("At least two layers are required for registration."));
+        if (free_target) g_slist_free(target_layers);
         return;
     }
 
     /* Show method dialog (framing is always FRAMING_MAX). */
     GtkWindow *parent = GTK_WINDOW(lookup_widget("flis_layers_window"));
     struct registration_method *method = NULL;
-    if (flis_register_dialog(parent, &method) != GTK_RESPONSE_ACCEPT)
+    if (flis_register_dialog(parent, &method) != GTK_RESPONSE_ACCEPT) {
+        if (free_target) g_slist_free(target_layers);
         return;
+    }
 
     /* The canvas (base) layer is the first layer in the stack.
      * The registration reference is the currently selected layer, or the
      * canvas layer if nothing is selected. */
     flis_layer_t *canvas_lay = (flis_layer_t *)com.uniq->layers->data;
-    flis_layer_t *ref_lay    = flis_selected ? flis_selected : canvas_lay;
+    flis_layer_t *ref_lay    = flis_selected ? flis_selected :
+                               (flis_layer_t *)target_layers->data;
 
     /* Build an internal sequence.
      * Slot 0 = registration reference; remaining slots follow GSList order,
@@ -1724,7 +2195,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
 
     int i = 1;
     gboolean is_variable = FALSE;
-    for (GSList *l = com.uniq->layers; l; l = l->next) {
+    for (GSList *l = target_layers; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (!lay || !lay->fit) continue;
         if (lay == ref_lay) continue;
@@ -1771,6 +2242,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
         com.run_thread = FALSE;
         set_cursor_waiting(FALSE);
         set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
+        if (free_target) g_slist_free(target_layers);
         return;
     }
 
@@ -1795,7 +2267,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
          * position_y = canvas_H - dy_rel - layer_H  (FITS bottom-up convention)
          * where dy_rel = h12_i - cy  (y from top of canvas, OpenCV y-down) */
         int k = 1;  /* seq index counter for non-ref layers */
-        for (GSList *l = com.uniq->layers; l; l = l->next) {
+        for (GSList *l = target_layers; l; l = l->next) {
             flis_layer_t *lay = (flis_layer_t *)l->data;
             if (!lay || !lay->fit) continue;
             if (lay == canvas_lay) {
@@ -1816,6 +2288,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
     free_sequence(seq, TRUE);
     com.run_thread = FALSE;
     set_cursor_waiting(FALSE);
+    if (free_target) g_slist_free(target_layers);
 
     if (ret2) {
         set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);

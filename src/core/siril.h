@@ -492,6 +492,9 @@ typedef struct {
 									Sorted ascending by layer_order
 									for compositing; lowest order is
 									the base layer (defines canvas).   */
+	GSList     *groups;             /* List of flis_group_t*, unsorted.
+									Each group is a named container for
+									a subset of layers.                */
 	gint        active_layer;       /* Index into layers of the layer
 									currently bound to gfit.           */
 	gint        next_item_id;       /* Next ITEM_ID to assign.  Init to 1;

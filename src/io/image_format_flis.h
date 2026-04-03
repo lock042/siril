@@ -57,9 +57,10 @@ typedef enum {
      * with a luminance layer: place the colour layer on top in this mode.
      * See FLIS spec Section 6.4 (mode name "CHROMA"). */
     FLIS_BLEND_CHROMA      = 65536,
+    FLIS_BLEND_PASS_THROUGH = 131072,   /* Groups only: members composite directly at natural z-order */
 } flis_blend_mode_t;
 
-#define FLIS_BLND_ALL 131071  /* bitmask declaring all 17 modes supported */
+#define FLIS_BLND_ALL 262143  /* bitmask declaring all 18 modes supported */
 
 /* -----------------------------------------------------------------------
  * Tint colour for MONO layers composited into an RGB stack.
@@ -88,6 +89,34 @@ typedef struct flis_layer_props_t {
     gint              position_x; /* display coordinates (0=left) */
     gint              position_y; /* display coordinates (0=top) */
 } flis_layer_props_t;
+
+/* -----------------------------------------------------------------------
+ * Per-group data.  Groups are organisational containers that hold a subset
+ * of layers.  All groups use pass-through compositing in this implementation:
+ * member layers blend at their natural layer_order position in the stack, with
+ * the group's visibility and opacity applied as modifiers.
+ *
+ * Ownership:
+ *   name     — owned; free with g_free()
+ *   created / modified — owned; NULL if unset; free with g_free()
+ * ----------------------------------------------------------------------- */
+typedef struct _flis_group_t {
+    gint     item_id;      /* Stable ITEM_ID from FLIS_META; never reused  */
+    gchar   *name;         /* User-visible name (≤32 chars for on-disk)    */
+    gboolean visible;      /* FALSE: all member layers skipped in composite */
+    gfloat   opacity;      /* Multiplied with each member's effective opacity */
+    gboolean collapsed;    /* UI only: list rows hidden when TRUE          */
+    gchar   *created;      /* ISO 8601 or NULL                             */
+    gchar   *modified;     /* ISO 8601 or NULL                             */
+} flis_group_t;
+
+/* Lightweight snapshot of non-pixel group properties for undo. */
+typedef struct flis_group_props_t {
+    gboolean visible;
+    gfloat   opacity;
+    gboolean collapsed;
+    gchar    name[33];
+} flis_group_props_t;
 
 /* -----------------------------------------------------------------------
  * Layer mask — lightweight structure for a greyscale opacity or processing
@@ -159,6 +188,7 @@ typedef struct _flis_layer_t {
     gchar            *created;       /* ISO 8601 creation timestamp or NULL */
     gchar            *modified;      /* ISO 8601 modification timestamp or NULL */
     gboolean          locked;        /* TRUE: layer locked against edits  */
+    gint              group_id;      /* item_id of owning flis_group_t; 0 = ungrouped */
 } flis_layer_t;
 
 /* -----------------------------------------------------------------------
@@ -435,6 +465,106 @@ gint flis_layer_get_index(const flis_layer_t *layer);
  * NULL.
  */
 gint flis_layer_count(void);
+
+/* -----------------------------------------------------------------------
+ * Group management
+ * ----------------------------------------------------------------------- */
+
+/**
+ * flis_group_new:
+ * Allocates a flis_group_t with defaults. Caller assigns item_id.
+ * Returns heap-allocated flis_group_t* or NULL on failure.
+ */
+flis_group_t *flis_group_new(const gchar *name);
+
+/**
+ * flis_group_free:
+ * Frees group and all owned fields. NULL-safe.
+ */
+void flis_group_free(flis_group_t *group);
+
+/**
+ * flis_free_groups:
+ * Frees every flis_group_t in uniq->groups and sets groups=NULL.
+ */
+void flis_free_groups(single *uniq);
+
+/**
+ * flis_group_add:
+ * Allocates a group, assigns item_id from next_item_id, inserts into
+ * com.uniq->groups. Returns the new group or NULL on failure.
+ */
+flis_group_t *flis_group_add(const gchar *name);
+
+/**
+ * flis_group_remove:
+ * Removes group from com.uniq->groups and frees it.
+ * All member layers have their group_id reset to 0.
+ * Returns 0 on success, non-zero on error.
+ */
+int flis_group_remove(flis_group_t *group);
+
+/**
+ * flis_group_delete_with_layers:
+ * Removes the group AND calls flis_layer_remove on every member layer.
+ * This is irreversible — the caller must have shown a confirmation dialog.
+ * Returns 0 on success, non-zero if any layer removal failed (the group
+ * is still removed and the remaining members are unassigned).
+ */
+int flis_group_delete_with_layers(flis_group_t *group);
+
+/**
+ * flis_group_get_by_id:
+ * Returns the flis_group_t* with the given item_id, or NULL.
+ */
+flis_group_t *flis_group_get_by_id(gint item_id);
+
+/**
+ * flis_group_get_layers:
+ * Returns a new GSList of flis_layer_t* members of group, sorted ascending
+ * by layer_order. Caller must g_slist_free() the returned list.
+ */
+GSList *flis_group_get_layers(const flis_group_t *group);
+
+/**
+ * flis_group_count:
+ * Returns the number of groups in com.uniq->groups, or 0.
+ */
+gint flis_group_count(void);
+
+/**
+ * flis_layer_set_group:
+ * Sets layer->group_id. Pass 0 to ungroup.
+ * Returns 0 on success.
+ */
+int flis_layer_set_group(flis_layer_t *layer, gint group_id);
+
+/**
+ * flis_group_set_name:
+ */
+int flis_group_set_name(flis_group_t *group, const gchar *name);
+
+/**
+ * flis_group_set_visible:
+ */
+int flis_group_set_visible(flis_group_t *group, gboolean visible);
+
+/**
+ * flis_group_set_opacity:
+ */
+int flis_group_set_opacity(flis_group_t *group, gfloat opacity);
+
+/**
+ * flis_group_touch_modified:
+ */
+void flis_group_touch_modified(flis_group_t *group);
+
+/**
+ * flis_background_neutralise_layers:
+ * Like flis_background_neutralise() but operates only on the layers in
+ * @layer_subset (a GSList of flis_layer_t*). NULL means all layers.
+ */
+int flis_background_neutralise_layers(GSList *layer_subset);
 
 /**
  * is_current_image_flis:

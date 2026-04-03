@@ -68,22 +68,22 @@
  * complexity; 256 characters is sufficient for all current metadata keys.
  * A future revision may switch to 1PA when more metadata keys are defined.
  * ----------------------------------------------------------------------- */
-#define FLIS_META_NCOLS      13
+#define FLIS_META_NCOLS      14
 
 static const char *FLIS_COL_NAMES[FLIS_META_NCOLS] = {
     "ITEM_ID", "ITEM_TYPE", "HDU_INDEX", "PARENT_ID", "LAYER_ORDER",
     "LAYER_NAME", "COLOR_MDL", "BLEND_MODE", "OPACITY", "VISIBLE",
-    "POSITION_X", "POSITION_Y", "METADATA"
+    "POSITION_X", "POSITION_Y", "METADATA", "GROUP_ID"
 };
 static const char *FLIS_COL_FMTS[FLIS_META_NCOLS] = {
     "1J", "8A", "1J", "1J", "1J",
     "32A", "4A", "16A", "1E", "1L",
-    "1J", "1J", "256A"
+    "1J", "1J", "256A", "1J"
 };
 static const char *FLIS_COL_UNITS[FLIS_META_NCOLS] = {
     "", "", "", "", "",
     "", "", "", "", "",
-    "pix", "pix", ""
+    "pix", "pix", "", ""
 };
 
 /* Column index constants (1-based for CFITSIO) */
@@ -100,11 +100,13 @@ static const char *FLIS_COL_UNITS[FLIS_META_NCOLS] = {
 #define COL_POSITION_X  11
 #define COL_POSITION_Y  12
 #define COL_METADATA    13
+#define COL_GROUP_ID    14
 
 /* ITEM_TYPE string constants */
 #define FLIS_TYPE_LAYER  "LAYER"
 #define FLIS_TYPE_MASK   "MASK"
 #define FLIS_TYPE_LMASK  "LMASK"
+#define FLIS_TYPE_GROUP  "GROUP"
 
 /* -----------------------------------------------------------------------
  * Scratch structure for one FLIS_META table row during load.
@@ -123,6 +125,7 @@ typedef struct {
     gint    position_x;
     gint    position_y;
     char    metadata[257];   /* 256A + NUL */
+    gint    group_id;
 } flis_meta_row_t;
 
 /* ===================================================================== */
@@ -147,7 +150,8 @@ static const struct { flis_blend_mode_t mode; const char *name; }
         { FLIS_BLEND_SATURATION,  "SATURATION"  },
         { FLIS_BLEND_COLOR,       "COLOR"       },
         { FLIS_BLEND_LUMINOSITY,  "LUMINOSITY"  },
-        { FLIS_BLEND_CHROMA,      "CHROMA"      },
+        { FLIS_BLEND_CHROMA,        "CHROMA"    },
+        { FLIS_BLEND_PASS_THROUGH,  "PASSTHRU"  },
     };
 
 static const char *blend_mode_to_str(flis_blend_mode_t mode) {
@@ -434,6 +438,9 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
         if (lay->lmask) nrows++;
         if (lay->fit && lay->fit->mask) nrows++;
     }
+    /* Also count group rows */
+    if (com.uniq && com.uniq->groups)
+        nrows += (int)g_slist_length(com.uniq->groups);
 
     /* Create the binary table — cast away const for cfitsio API */
     if (fits_create_tbl(fptr, BINARY_TBL, nrows, FLIS_META_NCOLS,
@@ -489,6 +496,10 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
                 fits_write_col(fptr, TSTRING, COL_METADATA, row, 1, 1, &empty,           &status);
             }
             g_free(meta);
+            {
+                gint gid = lay->group_id;
+                fits_write_col(fptr, TINT, COL_GROUP_ID, row, 1, 1, &gid, &status);
+            }
             row++;
         }
 
@@ -518,6 +529,10 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             fits_write_col(fptr, TINT,     COL_POSITION_X,  row, 1, 1, &px,              &status);
             fits_write_col(fptr, TINT,     COL_POSITION_Y,  row, 1, 1, &py,              &status);
             fits_write_col(fptr, TSTRING,  COL_METADATA,    row, 1, 1, &empty,           &status);
+            {
+                gint gid = 0;
+                fits_write_col(fptr, TINT, COL_GROUP_ID, row, 1, 1, &gid, &status);
+            }
             g_free(lname);
             row++;
         }
@@ -548,6 +563,10 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             fits_write_col(fptr, TINT,     COL_POSITION_X,  row, 1, 1, &px,              &status);
             fits_write_col(fptr, TINT,     COL_POSITION_Y,  row, 1, 1, &py,              &status);
             fits_write_col(fptr, TSTRING,  COL_METADATA,    row, 1, 1, &empty,           &status);
+            {
+                gint gid = 0;
+                fits_write_col(fptr, TINT, COL_GROUP_ID, row, 1, 1, &gid, &status);
+            }
             g_free(mname);
             row++;
         }
@@ -557,6 +576,50 @@ static int write_flis_meta_hdu(fitsfile *fptr, GSList *layers,
             return 1;
         }
     }
+
+    /* Write GROUP rows */
+    if (com.uniq && com.uniq->groups) {
+        for (GSList *g = com.uniq->groups; g; g = g->next) {
+            flis_group_t *grp = (flis_group_t *)g->data;
+            if (!grp) continue;
+            gint id   = grp->item_id;
+            gint zero = 0;
+            gfloat op = grp->opacity;
+            int vis   = grp->visible ? 1 : 0;
+            const char *name = grp->name ? grp->name : "Group";
+            /* Build metadata string for group: COLLAPSED and timestamps */
+            gchar *meta = g_strdup_printf("COLLAPSED=%d;CREATED=%s;MODIFIED=%s",
+                grp->collapsed ? 1 : 0,
+                grp->created  ? grp->created  : "",
+                grp->modified ? grp->modified : "");
+            if (meta && strlen(meta) > 256) meta[256] = '\0';
+
+            fits_write_col(fptr, TINT,     COL_ITEM_ID,     row, 1, 1, &id,                        &status);
+            fits_write_col(fptr, TSTRING,  COL_ITEM_TYPE,   row, 1, 1, &(char*){FLIS_TYPE_GROUP},  &status);
+            fits_write_col(fptr, TINT,     COL_HDU_INDEX,   row, 1, 1, &zero,                      &status);
+            fits_write_col(fptr, TINT,     COL_PARENT_ID,   row, 1, 1, &zero,                      &status);
+            fits_write_col(fptr, TINT,     COL_LAYER_ORDER, row, 1, 1, &zero,                      &status);
+            fits_write_col(fptr, TSTRING,  COL_LAYER_NAME,  row, 1, 1, &name,                      &status);
+            fits_write_col(fptr, TSTRING,  COL_COLOR_MDL,   row, 1, 1, &(char*){"N/A"},            &status);
+            fits_write_col(fptr, TSTRING,  COL_BLEND_MODE,  row, 1, 1, &(char*){"PASSTHRU"},       &status);
+            fits_write_col(fptr, TFLOAT,   COL_OPACITY,     row, 1, 1, &op,                        &status);
+            fits_write_col(fptr, TLOGICAL, COL_VISIBLE,     row, 1, 1, &vis,                       &status);
+            fits_write_col(fptr, TINT,     COL_POSITION_X,  row, 1, 1, &zero,                      &status);
+            fits_write_col(fptr, TINT,     COL_POSITION_Y,  row, 1, 1, &zero,                      &status);
+            if (meta && meta[0]) {
+                fits_write_col(fptr, TSTRING, COL_METADATA, row, 1, 1, &meta,                      &status);
+            } else {
+                const char *empty = "";
+                fits_write_col(fptr, TSTRING, COL_METADATA, row, 1, 1, &empty,                     &status);
+            }
+            fits_write_col(fptr, TINT,     COL_GROUP_ID,    row, 1, 1, &zero,                      &status);
+            g_free(meta);
+
+            if (status) { report_fits_error(status); return 1; }
+            row++;
+        }
+    }
+
     return 0;
 }
 
@@ -697,6 +760,11 @@ static flis_meta_row_t *read_flis_meta(fitsfile *fptr, long *nrows_out) {
         fits_read_col(fptr, TINT,    COL_POSITION_Y,  r, 1, 1, &(int){0},  &row->position_y,   NULL, &status);
         strptr = row->metadata;
         fits_read_col(fptr, TSTRING, COL_METADATA,    r, 1, 1, &anull,     &strptr,            NULL, &status);
+        fits_read_col(fptr, TINT, COL_GROUP_ID, r, 1, 1, &(int){0}, &row->group_id, NULL, &status);
+        if (status == COL_NOT_FOUND || status == 219) {
+            row->group_id = 0;
+            status = 0;
+        }
 
         if (status) {
             siril_log_color_message(_("FLIS: error reading metadata row %ld: %d\n"), "salmon", r, status);
@@ -878,6 +946,7 @@ void flis_free_layers(single *uniq) {
     uniq->fit    = NULL;
     uniq->chans  = 0;
     uniq->active_layer = 0;
+    flis_free_groups(uniq);
 }
 
 void uniq_set_active_layer(single *uniq, gint index) {
@@ -1193,6 +1262,44 @@ int load_flis(const gchar *filename) {
     /* Map from item_id -> flis_layer_t* for parent lookup */
     GHashTable *id_map = g_hash_table_new(g_direct_hash, g_direct_equal);
     GSList *layers = NULL;
+    GSList *groups = NULL;
+
+    /* Pass 0: GROUP rows — build group objects first so layers can reference them */
+    for (long r = 0; r < nrows; r++) {
+        flis_meta_row_t *row = &meta_rows[r];
+        if (g_ascii_strcasecmp(row->item_type, FLIS_TYPE_GROUP))
+            continue;
+        flis_group_t *grp = flis_group_new(row->layer_name);
+        if (!grp) continue;
+        grp->item_id = row->item_id;
+        grp->opacity = row->opacity;
+        grp->visible = row->visible;
+        /* Parse COLLAPSED from metadata string */
+        if (strstr(row->metadata, "COLLAPSED=1"))
+            grp->collapsed = TRUE;
+        /* Parse timestamps from metadata: CREATED=...; MODIFIED=... */
+        {
+            const char *p = strstr(row->metadata, "CREATED=");
+            if (p) {
+                p += 8;
+                const char *end = strchr(p, ';');
+                if (end && end > p)
+                    grp->created = g_strndup(p, end - p);
+                else if (*p)
+                    grp->created = g_strdup(p);
+            }
+            const char *q = strstr(row->metadata, "MODIFIED=");
+            if (q) {
+                q += 9;
+                const char *end = strchr(q, ';');
+                if (end && end > q)
+                    grp->modified = g_strndup(q, end - q);
+                else if (*q)
+                    grp->modified = g_strdup(q);
+            }
+        }
+        groups = g_slist_append(groups, grp);
+    }
 
     /* Pass 1: LAYER rows */
     for (long r = 0; r < nrows; r++) {
@@ -1219,6 +1326,7 @@ int load_flis(const gchar *filename) {
         layer->position_x  = row->position_x;
         layer->position_y  = row->position_y;
         parse_metadata_string(row->metadata, layer);
+        layer->group_id = row->group_id;
 
         layers = g_slist_insert_sorted(layers, layer,
                                        (GCompareFunc)layer_order_cmp);
@@ -1322,6 +1430,7 @@ int load_flis(const gchar *filename) {
     com.uniq->filename  = g_strdup(filename);
     com.uniq->fileexist = TRUE;
     com.uniq->layers    = layers;
+    com.uniq->groups    = groups;
     com.uniq->next_item_id = 1; /* will be set properly below */
 
     /* Find the highest item_id to seed next_item_id */
@@ -1329,6 +1438,10 @@ int load_flis(const gchar *filename) {
     for (GSList *l = layers; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (lay->item_id > max_id) max_id = lay->item_id;
+    }
+    for (GSList *g = groups; g; g = g->next) {
+        flis_group_t *grp = (flis_group_t *)g->data;
+        if (grp->item_id > max_id) max_id = grp->item_id;
     }
     com.uniq->next_item_id = max_id + 1;
 
@@ -1840,6 +1953,149 @@ gint flis_layer_get_index(const flis_layer_t *layer) {
 gint flis_layer_count(void) {
     if (!com.uniq) return 0;
     return (gint)g_slist_length(com.uniq->layers);
+}
+
+/* ===================================================================== */
+/* Group management                                                      */
+/* ===================================================================== */
+
+flis_group_t *flis_group_new(const gchar *name) {
+    flis_group_t *grp = g_new0(flis_group_t, 1);
+    if (!grp) { PRINT_ALLOC_ERR; return NULL; }
+    grp->name    = g_strdup(name ? name : _("Group"));
+    grp->visible = TRUE;
+    grp->opacity = 1.0f;
+    grp->collapsed = FALSE;
+    return grp;
+}
+
+void flis_group_free(flis_group_t *group) {
+    if (!group) return;
+    g_free(group->name);
+    g_free(group->created);
+    g_free(group->modified);
+    g_free(group);
+}
+
+void flis_free_groups(single *uniq) {
+    if (!uniq || !uniq->groups) return;
+    for (GSList *g = uniq->groups; g; g = g->next)
+        flis_group_free((flis_group_t *)g->data);
+    g_slist_free(uniq->groups);
+    uniq->groups = NULL;
+}
+
+flis_group_t *flis_group_add(const gchar *name) {
+    if (!com.uniq) return NULL;
+    flis_group_t *grp = flis_group_new(name);
+    if (!grp) return NULL;
+    grp->item_id  = com.uniq->next_item_id++;
+    grp->created  = flis_now_iso8601();
+    grp->modified = g_strdup(grp->created);
+    com.uniq->groups = g_slist_append(com.uniq->groups, grp);
+    siril_log_message(_("FLIS: created group '%s' (id=%d)\n"),
+                      grp->name, grp->item_id);
+    return grp;
+}
+
+int flis_group_remove(flis_group_t *group) {
+    if (!com.uniq || !group) return 1;
+    /* Unassign all member layers */
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay && lay->group_id == group->item_id)
+            lay->group_id = 0;
+    }
+    com.uniq->groups = g_slist_remove(com.uniq->groups, group);
+    siril_log_message(_("FLIS: removed group '%s' (layers unassigned)\n"),
+                      group->name ? group->name : "?");
+    flis_group_free(group);
+    return 0;
+}
+
+int flis_group_delete_with_layers(flis_group_t *group) {
+    if (!com.uniq || !group) return 1;
+    /* Collect members first (flis_layer_remove modifies the list) */
+    GSList *members = flis_group_get_layers(group);
+    int err = 0;
+    for (GSList *m = members; m; m = m->next) {
+        flis_layer_t *lay = (flis_layer_t *)m->data;
+        lay->group_id = 0;  /* unassign before removal so flis_layer_remove works */
+        if (flis_layer_count() > 1) {
+            flis_undo_purge_layer(lay->item_id);
+            if (flis_layer_remove(lay)) err = 1;
+        } else {
+            siril_log_color_message(
+                _("FLIS: cannot delete last layer — keeping it\n"), "salmon");
+            err = 1;
+        }
+    }
+    g_slist_free(members);
+    /* Remove the group itself */
+    com.uniq->groups = g_slist_remove(com.uniq->groups, group);
+    flis_group_free(group);
+    return err;
+}
+
+flis_group_t *flis_group_get_by_id(gint item_id) {
+    if (!com.uniq || !com.uniq->groups) return NULL;
+    for (GSList *g = com.uniq->groups; g; g = g->next) {
+        flis_group_t *grp = (flis_group_t *)g->data;
+        if (grp && grp->item_id == item_id) return grp;
+    }
+    return NULL;
+}
+
+GSList *flis_group_get_layers(const flis_group_t *group) {
+    if (!com.uniq || !group) return NULL;
+    GSList *result = NULL;
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (lay && lay->group_id == group->item_id)
+            result = g_slist_insert_sorted(result, lay,
+                                           (GCompareFunc)layer_order_cmp);
+    }
+    return result;
+}
+
+gint flis_group_count(void) {
+    if (!com.uniq) return 0;
+    return (gint)g_slist_length(com.uniq->groups);
+}
+
+int flis_layer_set_group(flis_layer_t *layer, gint group_id) {
+    if (!layer) return 1;
+    layer->group_id = group_id;
+    flis_layer_touch_modified(layer);
+    return 0;
+}
+
+int flis_group_set_name(flis_group_t *group, const gchar *name) {
+    if (!group) return 1;
+    g_free(group->name);
+    group->name = g_strdup(name ? name : "");
+    flis_group_touch_modified(group);
+    return 0;
+}
+
+int flis_group_set_visible(flis_group_t *group, gboolean visible) {
+    if (!group) return 1;
+    group->visible = visible;
+    flis_group_touch_modified(group);
+    return 0;
+}
+
+int flis_group_set_opacity(flis_group_t *group, gfloat opacity) {
+    if (!group) return 1;
+    group->opacity = CLAMP(opacity, 0.0f, 1.0f);
+    flis_group_touch_modified(group);
+    return 0;
+}
+
+void flis_group_touch_modified(flis_group_t *group) {
+    if (!group) return;
+    g_free(group->modified);
+    group->modified = flis_now_iso8601();
 }
 
 gboolean is_current_image_flis(void) {
@@ -2713,6 +2969,122 @@ int flis_background_neutralise(void) {
         } else {
             s = (old_bg * a[i]) / medians[i];
             siril_log_color_message("  %-24s  ×%.4f  (median %.5f → %.5f)\n", "blue",
+                name, s, medians[i], medians[i] * s);
+            scale_layer_pixels(layers_arr[i]->fit, s);
+            invalidate_stats_from_fit(layers_arr[i]->fit);
+        }
+        for (int c = 0; c < 3; c++)
+            new_bg[c] += s * medians[i] * T[c * N + i];
+    }
+    siril_log_color_message(
+        _("FLIS: predicted composite background  R:%.5f  G:%.5f  B:%.5f  (target %.5f each)\n"),
+        "green", new_bg[0], new_bg[1], new_bg[2], old_bg);
+
+    free(layers_arr); free(medians); free(T); free(a);
+    flis_invalidate_composite();
+    return 0;
+}
+
+/*
+ * flis_background_neutralise_layers — same as flis_background_neutralise but
+ * operates only on the specified layer subset (a GSList of flis_layer_t*).
+ * If @layer_subset is NULL, falls back to operating on all layers.
+ */
+int flis_background_neutralise_layers(GSList *layer_subset) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+    GSList *target = layer_subset ? layer_subset : com.uniq->layers;
+
+    int total = g_slist_length(target);
+    flis_layer_t **layers_arr = calloc(total, sizeof(flis_layer_t *));
+    double *medians = calloc(total, sizeof(double));
+    double *T_data  = calloc(3 * total, sizeof(double));
+    if (!layers_arr || !medians || !T_data) {
+        PRINT_ALLOC_ERR;
+        free(layers_arr); free(medians); free(T_data);
+        return 1;
+    }
+
+    int N = 0;
+    for (GSList *l = target; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        if (lay->fit->naxes[2] != 1) continue;
+        if (!lay->fit->fdata && !lay->fit->data) continue;
+
+        T_data[0 * total + N] = lay->has_tint ? lay->layer_tint.r : 1.0;
+        T_data[1 * total + N] = lay->has_tint ? lay->layer_tint.g : 1.0;
+        T_data[2 * total + N] = lay->has_tint ? lay->layer_tint.b : 1.0;
+
+        imstats *st = statistics(NULL, -1, lay->fit, 0, NULL, STATS_BASIC, SINGLE_THREADED);
+        if (!st) { free(layers_arr); free(medians); free(T_data); return 1; }
+        double med = st->median;
+        free_stats(st);
+        if (lay->fit->type == DATA_USHORT)
+            med /= USHRT_MAX_DOUBLE;
+        medians[N] = med;
+        layers_arr[N] = lay;
+        N++;
+    }
+
+    if (N == 0) {
+        siril_log_color_message(_("FLIS: background neutralise — no eligible mono layers found\n"), "salmon");
+        free(layers_arr); free(medians); free(T_data);
+        return 1;
+    }
+
+    double *T = calloc(3 * N, sizeof(double));
+    if (!T) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T_data); return 1; }
+    for (int c = 0; c < 3; c++)
+        for (int i = 0; i < N; i++)
+            T[c * N + i] = T_data[c * total + i];
+    free(T_data);
+
+    double old_bg = 0.0;
+    for (int i = 0; i < N; i++)
+        old_bg += medians[i] * (T[0*N+i] + T[1*N+i] + T[2*N+i]);
+    old_bg /= 3.0;
+
+    if (old_bg <= 0.0) {
+        siril_log_color_message(_("FLIS: background neutralise — background level is zero\n"), "salmon");
+        free(layers_arr); free(medians); free(T);
+        return 1;
+    }
+
+    double *a = calloc(N, sizeof(double));
+    if (!a) { PRINT_ALLOC_ERR; free(layers_arr); free(medians); free(T); return 1; }
+
+    const double b_unit[3] = { 1.0, 1.0, 1.0 };
+    if (pseudoinverse_solve(T, N, b_unit, a)) {
+        siril_log_color_message(_("FLIS: background neutralise — tint matrix rank-deficient\n"), "salmon");
+        free(layers_arr); free(medians); free(T); free(a);
+        return 1;
+    }
+
+    for (int i = 0; i < N; i++) {
+        if (a[i] <= 0.0 || medians[i] <= 0.0) {
+            const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
+            double tr = T[0*N+i], tg = T[1*N+i], tb = T[2*N+i];
+            const char *dom = (tr >= tg && tr >= tb) ? "R" : (tg >= tr && tg >= tb) ? "G" : "B";
+            const char *low = (tr <= tg && tr <= tb) ? "R" : (tg <= tr && tg <= tb) ? "G" : "B";
+            siril_log_color_message(
+                _("FLIS: background neutralise — layer '%s' incompatible "
+                  "(coeff %.4f < 0; %s-dominant tint, increase %s component)\n"),
+                "salmon", name, a[i], dom, low);
+            a[i] = -1.0;
+        }
+    }
+
+    siril_log_color_message(_("FLIS: background neutralise scale factors:\n"), "green");
+    double new_bg[3] = { 0.0, 0.0, 0.0 };
+    for (int i = 0; i < N; i++) {
+        const char *name = layers_arr[i]->layer_name ? layers_arr[i]->layer_name : "?";
+        double s;
+        if (a[i] < 0.0) {
+            s = 1.0;
+            siril_log_color_message("  %-24s  x1.0000  (left unscaled — tint infeasible)\n", "salmon", name);
+        } else {
+            s = (old_bg * a[i]) / medians[i];
+            siril_log_color_message("  %-24s  x%.4f  (median %.5f -> %.5f)\n", "blue",
                 name, s, medians[i], medians[i] * s);
             scale_layer_pixels(layers_arr[i]->fit, s);
             invalidate_stats_from_fit(layers_arr[i]->fit);

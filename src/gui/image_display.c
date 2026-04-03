@@ -701,7 +701,17 @@ fits *flis_render_layers(GSList *layers) {
                                             lay->blend_mode == FLIS_BLEND_LUMINOSITY);
         const gboolean     chroma_mode   = (lay->blend_mode == FLIS_BLEND_CHROMA);
         flis_blend_mode_t  mode          = lay->blend_mode;
-        const float        global_opacity = lay->opacity;
+        /* Group modifiers: if this layer belongs to a hidden group, skip it;
+         * if the group has reduced opacity, scale the effective opacity. */
+        gfloat effective_opacity = lay->opacity;
+        if (lay->group_id != 0) {
+            flis_group_t *grp = flis_group_get_by_id(lay->group_id);
+            if (grp) {
+                if (!grp->visible) continue;
+                effective_opacity *= grp->opacity;
+            }
+        }
+        const float        global_opacity = effective_opacity;
 
         /* Pre-compute source float pointers.
          *
@@ -1097,7 +1107,7 @@ static void remap(int vport) {
 	inverted = g_variant_get_boolean(neg_state);
 	g_variant_unref(neg_state);
 	neg_state = NULL;
-	fits *ref = com.uniq->layers && flis_display_composite ? flis_display_composite : gfit;
+	fits *ref = com.uniq && com.uniq->layers && flis_display_composite ? flis_display_composite : gfit;
 	if (gui.rendering_mode == HISTEQ_DISPLAY) {
 		double hist_sum, nb_pixels;
 		size_t i, hist_nb_bins;
