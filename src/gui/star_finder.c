@@ -236,7 +236,12 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		args->im.from_seq = NULL;
 		args->im.index_in_seq = -1;
 	}
-	args->layer = select_vport(gui.cvport);
+	int _sf_layer = select_vport(gui.cvport);
+	/* For FLIS images the active layer may be mono even when the composite
+	 * is displayed as RGB.  Clamp to avoid out-of-bounds channel access. */
+	if (_sf_layer >= (int)gfit->naxes[2])
+		_sf_layer = RLAYER;
+	args->layer = _sf_layer;
 	args->max_stars_fitted = 0;
 	args->starfile = NULL;
 	args->save_eqcoords = TRUE;

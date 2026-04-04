@@ -7580,8 +7580,12 @@ int process_findstar(int nb) {
 	}
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
-	args->layer = layer;
 	args->im.fit = gfit;
+	/* For FLIS images the active layer may be mono even when the composite
+	 * is displayed as RGB.  Clamp to avoid out-of-bounds channel access. */
+	if (layer >= (int)gfit->naxes[2])
+		layer = RLAYER;
+	args->layer = layer;
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		args->im.from_seq = &com.seq;
 		args->im.index_in_seq = com.seq.current;

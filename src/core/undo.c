@@ -612,6 +612,25 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
  * historic_layer_entry_t into a live FLIS layer.  The entry must remain
  * valid for the duration of the call (its swap files are read but not freed). */
 static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *e) {
+	/* Props-only entry: restore layer_props and nothing else */
+	if (e->props_only) {
+		if (e->layer_props) {
+			const flis_layer_props_t *p = e->layer_props;
+			lay->blend_mode   = p->blend_mode;
+			lay->opacity      = p->opacity;
+			lay->visible      = p->visible;
+			lay->locked       = p->locked;
+			lay->has_tint     = p->has_tint;
+			lay->layer_tint   = p->tint;
+			lay->lmask_active = p->lmask_active;
+			lay->position_x   = p->position_x;
+			lay->position_y   = p->position_y;
+			g_free(lay->layer_name);
+			lay->layer_name = g_strdup(p->name);
+		}
+		return 0;
+	}
+
 	fits *fit = lay->fit;
 	if (!fit) return 0;
 
@@ -1488,16 +1507,23 @@ int undo_display_data(int dir) {
 				gboolean is_flis = is_current_image_flis();
 
 				if (next->n_multi_entries > 0 && next->multi_entries && is_flis) {
-					/* Compound multi-layer state: rebuild layer list and snapshot */
+					/* Compound multi-layer state: rebuild layer list and snapshot.
+					 * Use props-only variant if every entry is props-only. */
+					gboolean all_props_only = TRUE;
 					GSList *layers = NULL;
 					for (guint k = 0; k < next->n_multi_entries; k++) {
 						flis_layer_t *lay = flis_layer_get_by_id(
 						        next->multi_entries[k].flis_layer_id);
 						if (lay) layers = g_slist_prepend(layers, lay);
+						if (!next->multi_entries[k].props_only)
+							all_props_only = FALSE;
 					}
 					if (layers) {
 						layers = g_slist_reverse(layers);
-						undo_save_flis_multi_layer(layers, NULL);
+						if (all_props_only)
+							undo_save_flis_multi_layer_props(layers, NULL);
+						else
+							undo_save_flis_multi_layer(layers, NULL);
 						g_slist_free(layers);
 					} else {
 						undo_save_state(gfit, NULL);
@@ -1926,6 +1952,68 @@ static historic *undo_ring_prepare(void) {
 	h->reorder_layer_a_id  = FLIS_UNDO_LAYER_NONE;
 	h->reorder_layer_b_id  = FLIS_UNDO_LAYER_NONE;
 	return h;
+}
+
+int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...) {
+	if (!layers || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	guint n = g_slist_length(layers);
+	if (n == 0) return 1;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	historic_layer_entry_t *entries = g_new0(historic_layer_entry_t, n);
+	guint built = 0;
+
+	for (GSList *l = layers; l; l = l->next, built++) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay) {
+			siril_log_color_message(
+				_("undo_save_flis_multi_layer_props: NULL layer — aborting\n"), "red");
+			g_free(entries);
+			return 1;
+		}
+		historic_layer_entry_t *e = &entries[built];
+		e->flis_layer_id = lay->item_id;
+		e->props_only    = TRUE;
+		e->layer_props   = g_new(flis_layer_props_t, 1);
+		e->layer_props->blend_mode   = lay->blend_mode;
+		e->layer_props->opacity      = lay->opacity;
+		e->layer_props->visible      = lay->visible;
+		e->layer_props->locked       = lay->locked;
+		e->layer_props->has_tint     = lay->has_tint;
+		e->layer_props->tint         = lay->layer_tint;
+		e->layer_props->lmask_active = lay->lmask_active;
+		e->layer_props->position_x   = lay->position_x;
+		e->layer_props->position_y   = lay->position_y;
+		g_strlcpy(e->layer_props->name,
+		          lay->layer_name ? lay->layer_name : "",
+		          sizeof(e->layer_props->name));
+	}
+
+	historic *h = undo_ring_prepare();
+	if (!h) { g_free(entries); return 1; }
+
+	h->flis_layer_id        = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id       = FLIS_UNDO_LAYER_NONE;
+	h->lmask_dest_layer_id  = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id   = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id   = FLIS_UNDO_LAYER_NONE;
+	h->multi_entries        = entries;
+	h->n_multi_entries      = n;
+	snprintf(h->history, FLEN_VALUE, "%s", histo);
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
 }
 
 int undo_save_processing_mask(fits *fit, const char *message, ...) {

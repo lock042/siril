@@ -763,6 +763,9 @@ typedef struct {
 	gint            position_x;
 	gint            position_y;
 	flis_layer_props_t *layer_props; /* full props snapshot, always set */
+	/* If TRUE, only layer_props is restored on undo; pixel, mask, and lmask
+	 * data are not touched.  Used by undo_save_flis_multi_layer_props(). */
+	gboolean            props_only;
 	/* Layer mask snapshot for compound undo (NULL = no lmask at save time) */
 	gchar          *lmask_filename;
 	size_t          lmask_w;

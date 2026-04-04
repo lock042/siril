@@ -192,6 +192,24 @@ int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
 int undo_save_flis_multi_layer(GSList *layers, const char *message, ...);
 
 /**
+ * undo_save_flis_multi_layer_props:
+ * @layers:  GSList of flis_layer_t* whose properties should be snapshotted.
+ * @message: Undo label (printf-style format string).
+ *
+ * Saves an atomic compound undo state covering the properties (blend mode,
+ * opacity, visibility, lock, tint, name, position) of every layer in @layers,
+ * WITHOUT writing any pixel swap files.  Use this for operations that only
+ * change layer properties — in particular, group drag moves that update
+ * position_x/y for all group members simultaneously.
+ *
+ * A single undo step reverts all layers' properties at once.
+ * Call BEFORE the operation runs.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int undo_save_flis_multi_layer_props(GSList *layers, const char *message, ...);
+
+/**
  * undo_save_processing_mask:
  * @fit:     The fits whose processing mask state should be snapshotted.
  * @message: Undo label.

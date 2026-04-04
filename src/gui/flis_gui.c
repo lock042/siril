@@ -322,11 +322,13 @@ void flis_group_drag_begin(flis_group_t *group) {
     if (!group) return;
 
     GSList *members = flis_group_get_layers(group);
+    /* Save one atomic undo state for all group members before the drag
+     * moves any of them.  A single undo step reverts all positions. */
+    undo_save_flis_multi_layer_props(members, _("Move group"));
     flis_group_drag_origins = g_array_new(FALSE, FALSE, sizeof(FlisDragOrigin));
     for (GSList *l = members; l; l = l->next) {
         flis_layer_t *lay = (flis_layer_t *)l->data;
         if (!lay) continue;
-        undo_save_flis_layer_props(lay, _("Move group"));
         FlisDragOrigin orig = { lay->item_id, lay->position_x, lay->position_y };
         g_array_append_val(flis_group_drag_origins, orig);
     }
@@ -1975,6 +1977,12 @@ void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
         subset = flis_group_get_layers(flis_selected_group);
         free_subset = TRUE;
     }
+    /* Snapshot all affected layers before modifying pixel data. */
+    GSList *match_target = subset ? subset : com.uniq->layers;
+    if (undo_save_flis_multi_layer(match_target, _("Layer matching"))) {
+        siril_log_color_message(
+            _("Warning: could not save undo state for layer matching.\n"), "salmon");
+    }
     int ret = flis_background_neutralise_layers(subset);
     if (free_subset) g_slist_free(subset);
 
@@ -2225,15 +2233,20 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
         return;
     }
 
-    /* Warn: registration permanently transforms pixel data in every layer. */
+    /* Confirm before running — pixel data will be resampled in every layer. */
     if (!siril_confirm_dialog(_("Register Layers"),
-            _("Registration will permanently resample the pixel data of all "
-              "affected layers and update their canvas offsets.\n\n"
-              "This operation cannot be undone."),
+            _("Registration will resample the pixel data of all affected "
+              "layers and update their canvas offsets."),
             _("Register"))) {
         if (free_target) g_slist_free(target_layers);
         free(method);
         return;
+    }
+
+    /* Snapshot all target layers before the operation so it can be undone. */
+    if (undo_save_flis_multi_layer(target_layers, _("Register layers"))) {
+        siril_log_color_message(
+            _("Warning: could not save undo state for registration.\n"), "salmon");
     }
 
     /* The canvas (base) layer is the first layer in the stack.
