@@ -35,6 +35,7 @@
  * compatible because they name the same struct tag. */
 typedef struct _flis_layer_t      flis_layer_t;
 typedef struct flis_layer_props_t flis_layer_props_t;
+typedef struct _layermask_t       layermask_t;
 
 /*
  * IMPORTANT — siril.h change required
@@ -189,5 +190,48 @@ int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
  * are cleaned up).
  */
 int undo_save_flis_multi_layer(GSList *layers, const char *message, ...);
+
+/**
+ * undo_save_processing_mask:
+ * @fit:     The fits whose processing mask state should be snapshotted.
+ * @message: Undo label.
+ *
+ * Saves the current processing-mask state of @fit as a mask-only undo entry.
+ * No pixel swap file is written.  Use this for operations that create, modify,
+ * or delete a processing mask without touching pixel data.
+ *
+ * Analogous to undo_save_flis_lmask() but for the processing mask (fit->mask).
+ * Call BEFORE any change to fit->mask.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int undo_save_processing_mask(fits *fit, const char *message, ...);
+
+/**
+ * undo_save_flis_layer_full:
+ * @fit_snapshot:    Pixel + processing-mask snapshot (the pre-operation copy
+ *                   of the layer's fits, e.g. the `orig` from
+ *                   generic_image_worker).
+ * @lay:             The FLIS layer (for item_id and props).
+ * @lmask_snapshot:  Pre-operation layer-mask snapshot, or NULL if the layer
+ *                   had no mask at save time.  Ownership is NOT transferred —
+ *                   the caller must free it after this call.
+ * @props_snapshot:  Pre-operation property snapshot (blend mode, opacity,
+ *                   position, etc.).  Must not be NULL.
+ * @message:         Undo label (printf-style format string).
+ *
+ * Saves a complete single-layer FLIS undo state that includes pixel data,
+ * processing mask, layer mask, and layer properties (including position) in
+ * one atomic ring-buffer entry.  Use this for geometry-changing operations
+ * (rotation, mirror, crop, binning, resample) so that all aspects of the
+ * layer are reverted together.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+int undo_save_flis_layer_full(fits *fit_snapshot,
+                               flis_layer_t *lay,
+                               layermask_t *lmask_snapshot,
+                               const flis_layer_props_t *props_snapshot,
+                               const char *message, ...);
 
 #endif /* UNDO_H_ */

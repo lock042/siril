@@ -763,6 +763,11 @@ typedef struct {
 	gint            position_x;
 	gint            position_y;
 	flis_layer_props_t *layer_props; /* full props snapshot, always set */
+	/* Layer mask snapshot for compound undo (NULL = no lmask at save time) */
+	gchar          *lmask_filename;
+	size_t          lmask_w;
+	size_t          lmask_h;
+	guint8          lmask_bitpix;
 } historic_layer_entry_t;
 
 struct historic_struct {
@@ -791,6 +796,13 @@ struct historic_struct {
 	double focal_length;
 	cmsHPROFILE icc_profile;
 	gboolean spcc_applied;
+	/* Processing-mask-only state.  No pixel swap file; only mask data is
+	 * restored on undo.  Analogous to the layer-mask undo mechanism. */
+	gboolean pmask_only;
+	/* Full single-layer FLIS geometry state.  Saves pixels, processing mask,
+	 * layer mask, and layer properties in one atomic entry.  Used by
+	 * geometry-changing operations so that lmask and offset are also undone. */
+	gboolean full_layer;
 	/* Compound multi-layer state.  Non-NULL only when this entry was saved
 	 * via undo_save_flis_multi_layer().  When set, all single-layer fields
 	 * above (filename, mask_filename, flis_layer_id, …) are unused. */

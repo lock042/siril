@@ -116,6 +116,7 @@ static void rotate_gui(fits *fit) {
 	args->idle_function = rotation_idle;
 	args->description = _("Rotation");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 
@@ -176,6 +177,7 @@ void siril_rotate90() {
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation 90°");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = 1;  // Fast rotation doesn't benefit from threading
 
@@ -218,6 +220,7 @@ void siril_rotate270() {
 	args->idle_function = fast_rotation_idle;
 	args->description = _("Rotation -90°");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = 1;
 
@@ -327,6 +330,7 @@ void mirrorx_gui(fits *fit) {
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror X");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 
@@ -364,6 +368,7 @@ void mirrory_gui(fits *fit) {
 	args->idle_function = mirror_idle;
 	args->description = _("Mirror Y");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 
@@ -433,6 +438,7 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->idle_function = binning_idle;
 	args->description = _("Binning");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 
@@ -517,6 +523,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->idle_function = resample_idle;
 	args->description = _("Resample");
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = com.max_thread;
 
@@ -714,6 +721,7 @@ void siril_crop() {
 	args->description = _("Crop");
 	args->log_hook = crop_log_hook;
 	args->verbose = TRUE;
+	args->geometry_changing = TRUE;
 	args->user = params;
 	args->max_threads = 1;  // Crop doesn't benefit from threading
 

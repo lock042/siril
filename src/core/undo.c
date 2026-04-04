@@ -155,6 +155,60 @@ static int undo_build_mask_swapfile(fits *fit, char **filename) {
 	return 0;
 }
 
+/* Write a layermask_t to a new temporary swap file.
+ * On success sets *filename, *out_w, *out_h, *out_bitpix and returns 0.
+ * On failure *filename is NULL and returns 1. */
+static int undo_build_lmask_swapfile(layermask_t *lm,
+                                     gchar **filename,
+                                     size_t *out_w, size_t *out_h,
+                                     guint8 *out_bitpix) {
+	*filename  = NULL;
+	*out_w     = 0;
+	*out_h     = 0;
+	*out_bitpix = 0;
+
+	if (!lm || !lm->data)
+		return 0; /* no mask — caller stores NULL filename */
+
+	size_t elem_size;
+	switch (lm->bitpix) {
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
+		default:
+			siril_log_message(_("undo_build_lmask_swapfile: unsupported bitpix %d\n"),
+			                  (int)lm->bitpix);
+			return 1;
+	}
+
+	gchar *nameBuff = g_build_filename(com.pref.swap_dir, "siril_lmsk-XXXXXX", NULL);
+	int fd = g_mkstemp(nameBuff);
+	if (fd < 1) {
+		siril_log_message(_("File I/O Error: Unable to create lmask swap file in %s: [%s]\n"),
+		                  com.pref.swap_dir, strerror(errno));
+		g_free(nameBuff);
+		return 1;
+	}
+
+	size_t total = lm->w * lm->h * elem_size;
+	errno = 0;
+	if (write(fd, lm->data, total) == -1) {
+		siril_log_message(_("File I/O Error: Unable to write lmask swap file: [%s]\n"),
+		                  strerror(errno));
+		g_close(fd, NULL);
+		g_unlink(nameBuff);
+		g_free(nameBuff);
+		return 1;
+	}
+	g_close(fd, NULL);
+
+	*filename   = nameBuff;
+	*out_w      = lm->w;
+	*out_h      = lm->h;
+	*out_bitpix = lm->bitpix;
+	return 0;
+}
+
 /* Free all heap resources owned by a historic_layer_entry_t.
  * Does NOT free the entry struct itself (it is typically part of an array). */
 static void free_layer_entry(historic_layer_entry_t *e) {
@@ -170,6 +224,12 @@ static void free_layer_entry(historic_layer_entry_t *e) {
 			siril_debug_print("g_unlink() of multi-layer mask swap failed\n");
 		g_free(e->mask_filename);
 		e->mask_filename = NULL;
+	}
+	if (e->lmask_filename) {
+		if (g_unlink(e->lmask_filename))
+			siril_debug_print("g_unlink() of multi-layer lmask swap failed\n");
+		g_free(e->lmask_filename);
+		e->lmask_filename = NULL;
 	}
 	if (e->wcslib) {
 		wcsfree(e->wcslib);
@@ -223,6 +283,8 @@ static int undo_remove_item(historic *histo, int index) {
 	histo[index].reorder_layer_a_order = 0;
 	histo[index].reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
 	histo[index].reorder_layer_b_order = 0;
+	histo[index].pmask_only  = FALSE;
+	histo[index].full_layer  = FALSE;
 	/* Free compound multi-layer entries */
 	if (histo[index].multi_entries) {
 		for (guint k = 0; k < histo[index].n_multi_entries; k++)
@@ -310,6 +372,15 @@ static int build_layer_entry(flis_layer_t *lay, historic_layer_entry_t *e) {
 		return 1;
 	}
 	e->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
+
+	/* Layer mask snapshot */
+	if (undo_build_lmask_swapfile(lay->lmask,
+	                              &e->lmask_filename,
+	                              &e->lmask_w, &e->lmask_h, &e->lmask_bitpix)) {
+		if (e->mask_filename) { g_unlink(e->mask_filename); g_free(e->mask_filename); e->mask_filename = NULL; }
+		if (e->filename) { g_unlink(e->filename); g_free(e->filename); e->filename = NULL; }
+		return 1;
+	}
 
 	e->wcsdata = fit->keywords.wcsdata;
 	if (fit->keywords.wcslib) {
@@ -596,6 +667,48 @@ static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *
 			return 1;
 	}
 
+	/* Layer mask */
+	if (!e->lmask_filename) {
+		flis_layer_remove_lmask(lay);
+	} else {
+		size_t npix = e->lmask_w * e->lmask_h;
+		size_t elem_size;
+		switch (e->lmask_bitpix) {
+			case 8:  elem_size = sizeof(uint8_t);  break;
+			case 16: elem_size = sizeof(uint16_t); break;
+			case 32: elem_size = sizeof(float);    break;
+			default:
+				siril_log_color_message(
+					_("Undo: invalid lmask bitpix %d in compound entry\n"),
+					"red", (int)e->lmask_bitpix);
+				return 1;
+		}
+		int lfd = g_open(e->lmask_filename, O_RDONLY | O_BINARY, 0);
+		if (lfd == -1) {
+			siril_log_color_message(
+				_("Undo: cannot open lmask swap %s\n"), "red", e->lmask_filename);
+			return 1;
+		}
+		size_t total = npix * elem_size;
+		void *buf = malloc(total);
+		if (!buf) { PRINT_ALLOC_ERR; g_close(lfd, NULL); return 1; }
+		if ((size_t)read(lfd, buf, total) < total) {
+			siril_log_color_message(_("Undo: short read on lmask swap\n"), "red");
+			free(buf); g_close(lfd, NULL); return 1;
+		}
+		g_close(lfd, NULL);
+		layermask_t *lm = calloc(1, sizeof(layermask_t));
+		if (!lm) { PRINT_ALLOC_ERR; free(buf); return 1; }
+		lm->w      = e->lmask_w;
+		lm->h      = e->lmask_h;
+		lm->bitpix = e->lmask_bitpix;
+		lm->data   = buf;
+		if (flis_layer_set_lmask(lay, lm)) {
+			layermask_free(lm);
+			return 1;
+		}
+	}
+
 	/* Layer offset */
 	lay->position_x = e->position_x;
 	lay->position_y = e->position_y;
@@ -638,6 +751,104 @@ static int undo_get_data(fits *fit, historic *hist) {
 				return 1;
 			}
 		}
+		return 0;
+	}
+
+	/* Processing-mask-only state: restore fit->mask without touching pixels. */
+	if (hist->pmask_only) {
+		return undo_get_mask_data(fit, hist);
+	}
+
+	/* Full single-layer FLIS geometry state: pixels + pmask + lmask + props. */
+	if (hist->full_layer) {
+		if (!is_current_image_flis()) return 1;
+		flis_layer_t *lay = flis_layer_get_by_id(hist->flis_layer_id);
+		if (!lay) {
+			siril_log_color_message(
+				_("Undo: target layer (id %d) no longer exists\n"),
+				"salmon", hist->flis_layer_id);
+			return 1;
+		}
+		/* ICC profile */
+		if (fit->icc_profile) cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(hist->icc_profile);
+		color_manage(fit, (fit->icc_profile != NULL));
+		fits_change_depth(fit, hist->nchans);
+		/* Pixels */
+		int retval;
+		if (hist->type == DATA_USHORT) {
+			if (fit->type != DATA_USHORT) {
+				size_t ndata = (size_t)fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+				fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+			}
+			retval = undo_get_data_ushort(fit, hist);
+		} else if (hist->type == DATA_FLOAT) {
+			if (fit->type != DATA_FLOAT) {
+				size_t ndata = (size_t)fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+				fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+			}
+			retval = undo_get_data_float(fit, hist);
+		} else {
+			retval = 1;
+		}
+		if (retval) return retval;
+		/* Processing mask */
+		retval = undo_get_mask_data(fit, hist);
+		if (retval) return retval;
+		/* Layer mask */
+		if (!hist->lmask_filename) {
+			flis_layer_remove_lmask(lay);
+		} else {
+			size_t npix = hist->lmask_w * hist->lmask_h;
+			size_t elem_size;
+			switch (hist->lmask_bitpix) {
+				case 8:  elem_size = sizeof(uint8_t);  break;
+				case 16: elem_size = sizeof(uint16_t); break;
+				case 32: elem_size = sizeof(float);    break;
+				default:
+					siril_log_color_message(
+						_("Undo: invalid lmask bitpix %d in full_layer state\n"),
+						"salmon", (int)hist->lmask_bitpix);
+					return 1;
+			}
+			int lfd = g_open(hist->lmask_filename, O_RDONLY | O_BINARY, 0);
+			if (lfd == -1) {
+				siril_log_color_message(
+					_("Undo: cannot open lmask swap %s\n"), "red", hist->lmask_filename);
+				return 1;
+			}
+			size_t total = npix * elem_size;
+			void *buf = malloc(total);
+			if (!buf) { PRINT_ALLOC_ERR; g_close(lfd, NULL); return 1; }
+			if ((size_t)read(lfd, buf, total) < total) {
+				siril_log_color_message(_("Undo: short read on lmask swap\n"), "red");
+				free(buf); g_close(lfd, NULL); return 1;
+			}
+			g_close(lfd, NULL);
+			layermask_t *lm = calloc(1, sizeof(layermask_t));
+			if (!lm) { PRINT_ALLOC_ERR; free(buf); return 1; }
+			lm->w      = hist->lmask_w;
+			lm->h      = hist->lmask_h;
+			lm->bitpix = hist->lmask_bitpix;
+			lm->data   = buf;
+			if (flis_layer_set_lmask(lay, lm)) { layermask_free(lm); return 1; }
+		}
+		/* Layer properties (blend mode, opacity, position, …) */
+		if (hist->layer_props) {
+			const flis_layer_props_t *p = hist->layer_props;
+			lay->blend_mode   = p->blend_mode;
+			lay->opacity      = p->opacity;
+			lay->visible      = p->visible;
+			lay->locked       = p->locked;
+			lay->has_tint     = p->has_tint;
+			lay->layer_tint   = p->tint;
+			lay->lmask_active = p->lmask_active;
+			lay->position_x   = p->position_x;
+			lay->position_y   = p->position_y;
+			g_free(lay->layer_name);
+			lay->layer_name = g_strdup(p->name);
+		}
+		full_stats_invalidation_from_fit(fit);
 		return 0;
 	}
 
@@ -1203,8 +1414,9 @@ static gboolean flis_undo_switch_layer(const historic *hist) {
 		return TRUE;
 
 	/* Atomic lmask-move, lmask add/remove, and reorder states all address
-	 * layers directly by ID in undo_get_data(); no gfit switch needed. */
-	if (!hist->filename && !hist->layer_props)
+	 * layers directly by ID in undo_get_data(); no gfit switch needed.
+	 * pmask_only states DO need a layer switch (flis_layer_id is set). */
+	if (!hist->filename && !hist->layer_props && !hist->pmask_only)
 		return TRUE;
 
 	if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE)
@@ -1321,6 +1533,30 @@ int undo_display_data(int dir) {
 							undo_save_flis_lmask(layer, NULL);
 						else
 							undo_save_state(gfit, NULL);
+					} else if (next->pmask_only) {
+						/* Processing-mask-only state */
+						undo_save_processing_mask(gfit, NULL);
+					} else {
+						undo_save_state(gfit, NULL);
+					}
+				} else if (next->full_layer && is_flis) {
+					/* Full FLIS geometry state: snapshot current layer state */
+					flis_layer_t *lay = flis_layer_get_by_id(next->flis_layer_id);
+					if (lay) {
+						flis_layer_props_t cur_props;
+						cur_props.blend_mode   = lay->blend_mode;
+						cur_props.opacity      = lay->opacity;
+						cur_props.visible      = lay->visible;
+						cur_props.locked       = lay->locked;
+						cur_props.has_tint     = lay->has_tint;
+						cur_props.tint         = lay->layer_tint;
+						cur_props.lmask_active = lay->lmask_active;
+						cur_props.position_x   = lay->position_x;
+						cur_props.position_y   = lay->position_y;
+						g_strlcpy(cur_props.name,
+						          lay->layer_name ? lay->layer_name : "",
+						          sizeof(cur_props.name));
+						undo_save_flis_layer_full(gfit, lay, lay->lmask, &cur_props, NULL);
 					} else {
 						undo_save_state(gfit, NULL);
 					}
@@ -1659,6 +1895,145 @@ fail:
 		free_layer_entry(&entries[k]);
 	g_free(entries);
 	return 1;
+}
+
+/* Shared ring-buffer push boilerplate.  Allocates the ring if needed, trims
+ * any redo states above hist_display, and handles wrap-around.
+ * Returns a zeroed historic* ready to be filled in, or NULL on OOM. */
+static historic *undo_ring_prepare(void) {
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		if (!com.history) { PRINT_ALLOC_ERR; return NULL; }
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+	historic *h = &com.history[com.hist_current];
+	memset(h, 0, sizeof(*h));
+	h->flis_layer_id       = FLIS_UNDO_LAYER_NONE;
+	h->lmask_layer_id      = FLIS_UNDO_LAYER_NONE;
+	h->lmask_dest_layer_id = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_a_id  = FLIS_UNDO_LAYER_NONE;
+	h->reorder_layer_b_id  = FLIS_UNDO_LAYER_NONE;
+	return h;
+}
+
+int undo_save_processing_mask(fits *fit, const char *message, ...) {
+	if (!fit || !single_image_is_loaded()) return 1;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	historic *h = undo_ring_prepare();
+	if (!h) return 1;
+
+	h->pmask_only  = TRUE;
+	h->rx          = fit->rx;
+	h->ry          = fit->ry;
+	h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
+	snprintf(h->history, FLEN_VALUE, "%s", histo);
+
+	if (undo_build_mask_swapfile(fit, &h->mask_filename)) {
+		memset(h, 0, sizeof(*h));
+		h->flis_layer_id = FLIS_UNDO_LAYER_NONE;
+		return 1;
+	}
+
+	if (is_current_image_flis()) {
+		flis_layer_t *active = flis_active_layer();
+		if (active)
+			h->flis_layer_id = active->item_id;
+	}
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
+}
+
+int undo_save_flis_layer_full(fits *fit_snapshot,
+                               flis_layer_t *lay,
+                               layermask_t *lmask_snapshot,
+                               const flis_layer_props_t *props_snapshot,
+                               const char *message, ...) {
+	if (!fit_snapshot || !lay || !props_snapshot || !single_image_is_loaded())
+		return 1;
+	if (!is_current_image_flis()) return 1;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	historic *h = undo_ring_prepare();
+	if (!h) return 1;
+
+	/* Pixel data */
+	if (undo_build_swapfile(fit_snapshot, &h->filename)) {
+		memset(h, 0, sizeof(*h)); h->flis_layer_id = FLIS_UNDO_LAYER_NONE; return 1;
+	}
+	/* Processing mask */
+	if (undo_build_mask_swapfile(fit_snapshot, &h->mask_filename)) {
+		if (h->filename) { g_unlink(h->filename); g_free(h->filename); h->filename = NULL; }
+		memset(h, 0, sizeof(*h)); h->flis_layer_id = FLIS_UNDO_LAYER_NONE; return 1;
+	}
+	/* Layer mask */
+	if (undo_build_lmask_swapfile(lmask_snapshot,
+	                               &h->lmask_filename,
+	                               &h->lmask_w, &h->lmask_h, &h->lmask_bitpix)) {
+		if (h->mask_filename) { g_unlink(h->mask_filename); g_free(h->mask_filename); h->mask_filename = NULL; }
+		if (h->filename) { g_unlink(h->filename); g_free(h->filename); h->filename = NULL; }
+		memset(h, 0, sizeof(*h)); h->flis_layer_id = FLIS_UNDO_LAYER_NONE; return 1;
+	}
+
+	h->full_layer     = TRUE;
+	h->flis_layer_id  = lay->item_id;
+	h->rx             = fit_snapshot->rx;
+	h->ry             = fit_snapshot->ry;
+	h->nchans         = (int)fit_snapshot->naxes[2];
+	h->type           = fit_snapshot->type;
+	h->mask_bitpix    = (fit_snapshot->mask && fit_snapshot->mask->data)
+	                      ? fit_snapshot->mask->bitpix : 0;
+	h->wcsdata        = fit_snapshot->keywords.wcsdata;
+	if (fit_snapshot->keywords.wcslib) {
+		int status = -1;
+		h->wcslib = wcs_deepcopy(fit_snapshot->keywords.wcslib, &status);
+		if (status) siril_debug_print("undo_save_flis_layer_full: wcs copy failed\n");
+	}
+	h->focal_length   = fit_snapshot->keywords.focal_length;
+	h->icc_profile    = copyICCProfile(fit_snapshot->icc_profile);
+	/* position_x/y captured in layer_props; also store in flis_position for
+	 * the position-restore path that runs at the end of undo_get_data. */
+	h->flis_position_x = props_snapshot->position_x;
+	h->flis_position_y = props_snapshot->position_y;
+
+	h->layer_props = g_new(flis_layer_props_t, 1);
+	*h->layer_props = *props_snapshot;
+
+	snprintf(h->history, FLEN_VALUE, "%s", histo);
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
 }
 
 void set_undo_redo_tooltip() {

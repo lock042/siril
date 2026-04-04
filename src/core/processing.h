@@ -188,6 +188,11 @@ struct generic_img_args {
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
 	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
 	gboolean mask_aware; // Whether the operation is mask-aware or not
+	/* If TRUE, generic_image_worker saves a full FLIS undo state (pixels,
+	 * processing mask, layer mask, and layer metadata) instead of pixels+pmask
+	 * only.  Set this for all geometry-changing operations (rotation, mirror,
+	 * binning, resample, crop) so that layer mask and position are undone too. */
+	gboolean geometry_changing;
 };
 
 struct generic_mask_args {

@@ -1800,17 +1800,60 @@ gpointer generic_image_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing image..."), 0.1f);
 
-	/* Snapshot the active FLIS layer's offset BEFORE the hook runs.
-	 * Operations like crop may call flis_update_layer_offset_after_crop()
-	 * inside the hook, mutating position_x/y.  undo_save_state() is called
-	 * after the hook, so any snapshot taken there sees the post-op value.
-	 * We patch the undo state's position fields immediately after saving. */
+	/* For geometry-changing operations on FLIS layers, snapshot the layer's
+	 * lmask and properties BEFORE the hook runs.  The hook transforms both
+	 * pixel data and lmask in-place; by the time we save the undo state the
+	 * lmask has already changed.  We also capture position here so we don't
+	 * need to patch it manually afterwards (geometry ops can update position
+	 * inside their hook, e.g. crop → flis_update_layer_offset_after_crop). */
+	flis_layer_t       *_flis_lay_undo = NULL;
+	layermask_t        *_pre_lmask     = NULL;
+	flis_layer_props_t  _pre_props;
+	memset(&_pre_props, 0, sizeof(_pre_props));
+	/* For non-geometry ops we still need the pre-op position for the patch. */
 	gint flis_pre_pos_x = 0, flis_pre_pos_y = 0;
 	if (is_current_image_flis()) {
 		flis_layer_t *_active = flis_active_layer();
 		if (_active) {
 			flis_pre_pos_x = _active->position_x;
 			flis_pre_pos_y = _active->position_y;
+			if (args->geometry_changing && !args->for_preview) {
+				_flis_lay_undo = _active;
+				_pre_props.blend_mode   = _active->blend_mode;
+				_pre_props.opacity      = _active->opacity;
+				_pre_props.visible      = _active->visible;
+				_pre_props.locked       = _active->locked;
+				_pre_props.has_tint     = _active->has_tint;
+				_pre_props.tint         = _active->layer_tint;
+				_pre_props.lmask_active = _active->lmask_active;
+				_pre_props.position_x   = _active->position_x;
+				_pre_props.position_y   = _active->position_y;
+				g_strlcpy(_pre_props.name,
+				          _active->layer_name ? _active->layer_name : "",
+				          sizeof(_pre_props.name));
+				if (_active->lmask && _active->lmask->data) {
+					size_t elem_size;
+					switch (_active->lmask->bitpix) {
+						case 8:  elem_size = sizeof(uint8_t);  break;
+						case 16: elem_size = sizeof(uint16_t); break;
+						default: elem_size = sizeof(float);    break;
+					}
+					size_t total = _active->lmask->w * _active->lmask->h * elem_size;
+					_pre_lmask = calloc(1, sizeof(layermask_t));
+					if (_pre_lmask) {
+						_pre_lmask->w      = _active->lmask->w;
+						_pre_lmask->h      = _active->lmask->h;
+						_pre_lmask->bitpix = _active->lmask->bitpix;
+						_pre_lmask->data   = malloc(total);
+						if (_pre_lmask->data) {
+							memcpy(_pre_lmask->data, _active->lmask->data, total);
+						} else {
+							free(_pre_lmask);
+							_pre_lmask = NULL;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -1866,12 +1909,19 @@ the_end:;
 
 	if (!retval) {
 		if (undo_state && orig) {
-			undo_save_state(orig, summary); // We just use the short description for the undo state
-			/* Overwrite the position that undo_save_state stored (which
-			 * reflects the post-op value) with the pre-op snapshot. */
-			if (is_current_image_flis() && com.history && com.hist_current > 0) {
-				com.history[com.hist_current - 1].flis_position_x = flis_pre_pos_x;
-				com.history[com.hist_current - 1].flis_position_y = flis_pre_pos_y;
+			if (args->geometry_changing && _flis_lay_undo) {
+				/* Full geometry undo: pixels + pmask + lmask + props in one entry.
+				 * _pre_lmask holds the pre-op lmask snapshot; pass it to the undo
+				 * function BEFORE freeing it so the swap file can be written. */
+				undo_save_flis_layer_full(orig, _flis_lay_undo,
+				                         _pre_lmask, &_pre_props, summary);
+			} else {
+				undo_save_state(orig, summary);
+				/* Patch position for non-geometry FLIS ops. */
+				if (is_current_image_flis() && com.history && com.hist_current > 0) {
+					com.history[com.hist_current - 1].flis_position_x = flis_pre_pos_x;
+					com.history[com.hist_current - 1].flis_position_y = flis_pre_pos_y;
+				}
 			}
 		} else {
 			// Update the HISTORY card if it wasn't updated by undo_save_state'
@@ -1891,6 +1941,7 @@ the_end:;
 	g_free(summary); // free the message
 	g_free(history);
 	g_free(desc);
+	if (_pre_lmask) layermask_free(_pre_lmask);
 	if (orig) clearfits(orig);
 	free(orig);
 
