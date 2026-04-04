@@ -165,4 +165,29 @@ int undo_save_flis_lmask_move(flis_layer_t *source, flis_layer_t *dest,
 int undo_save_flis_layer_reorder(flis_layer_t *layer_a, flis_layer_t *layer_b,
                                   const char *message);
 
+/**
+ * undo_save_flis_multi_layer:
+ * @layers:  GSList of flis_layer_t* to snapshot (all layers affected by the
+ *           operation).  The list is not modified or freed.
+ * @message: undo label (printf-style format string).
+ *
+ * Saves an atomic compound undo state covering every layer in @layers.
+ * For each layer a pixel swap file is written (and a processing-mask swap
+ * file if the layer carries a processing mask).  A full flis_layer_props_t
+ * snapshot (blend mode, opacity, visibility, lock, tint, name, position) is
+ * also stored per layer.
+ *
+ * Use this for multi-layer operations such as registration or layer matching
+ * where pixel data, WCS, positions, and/or properties of several layers
+ * change atomically.  A single undo step reverts all layers at once.
+ *
+ * Call BEFORE the operation runs, so the saved state holds the pre-operation
+ * values.
+ *
+ * Returns 0 on success, non-zero if any swap file could not be written
+ * (in which case no undo state is pushed and any already-written swap files
+ * are cleaned up).
+ */
+int undo_save_flis_multi_layer(GSList *layers, const char *message, ...);
+
 #endif /* UNDO_H_ */

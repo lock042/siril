@@ -155,6 +155,36 @@ static int undo_build_mask_swapfile(fits *fit, char **filename) {
 	return 0;
 }
 
+/* Free all heap resources owned by a historic_layer_entry_t.
+ * Does NOT free the entry struct itself (it is typically part of an array). */
+static void free_layer_entry(historic_layer_entry_t *e) {
+	if (!e) return;
+	if (e->filename) {
+		if (g_unlink(e->filename))
+			siril_debug_print("g_unlink() of multi-layer swap failed\n");
+		g_free(e->filename);
+		e->filename = NULL;
+	}
+	if (e->mask_filename) {
+		if (g_unlink(e->mask_filename))
+			siril_debug_print("g_unlink() of multi-layer mask swap failed\n");
+		g_free(e->mask_filename);
+		e->mask_filename = NULL;
+	}
+	if (e->wcslib) {
+		wcsfree(e->wcslib);
+		free(e->wcslib);
+		e->wcslib = NULL;
+	}
+	if (e->icc_profile) {
+		cmsCloseProfile(e->icc_profile);
+		e->icc_profile = NULL;
+	}
+	g_free(e->layer_props);
+	e->layer_props = NULL;
+	memset(&e->wcsdata, 0, sizeof(wcs_info));
+}
+
 static int undo_remove_item(historic *histo, int index) {
 	if (histo[index].filename) {
 		if (g_unlink(histo[index].filename))
@@ -193,6 +223,14 @@ static int undo_remove_item(historic *histo, int index) {
 	histo[index].reorder_layer_a_order = 0;
 	histo[index].reorder_layer_b_id    = FLIS_UNDO_LAYER_NONE;
 	histo[index].reorder_layer_b_order = 0;
+	/* Free compound multi-layer entries */
+	if (histo[index].multi_entries) {
+		for (guint k = 0; k < histo[index].n_multi_entries; k++)
+			free_layer_entry(&histo[index].multi_entries[k]);
+		g_free(histo[index].multi_entries);
+		histo[index].multi_entries   = NULL;
+		histo[index].n_multi_entries = 0;
+	}
 	return 0;
 }
 
@@ -244,6 +282,59 @@ static void undo_add_item(fits *fit, char *filename, char *mask_filename,
 	}
 	com.hist_current++;
 	com.hist_display = com.hist_current;
+}
+
+/* Build a historic_layer_entry_t snapshot from a live FLIS layer.
+ * Writes pixel and processing-mask swap files.
+ * Returns 0 on success; on failure all already-written files are cleaned up
+ * and 1 is returned. */
+static int build_layer_entry(flis_layer_t *lay, historic_layer_entry_t *e) {
+	memset(e, 0, sizeof(*e));
+	e->flis_layer_id = lay->item_id;
+	e->position_x    = lay->position_x;
+	e->position_y    = lay->position_y;
+
+	fits *fit = lay->fit;
+	if (!fit) return 0;
+
+	e->rx     = fit->rx;
+	e->ry     = fit->ry;
+	e->nchans = (int)fit->naxes[2];
+	e->type   = fit->type;
+
+	if (undo_build_swapfile(fit, &e->filename))
+		return 1;
+
+	if (undo_build_mask_swapfile(fit, &e->mask_filename)) {
+		if (e->filename) { g_unlink(e->filename); g_free(e->filename); e->filename = NULL; }
+		return 1;
+	}
+	e->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
+
+	e->wcsdata = fit->keywords.wcsdata;
+	if (fit->keywords.wcslib) {
+		int status = -1;
+		e->wcslib = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status)
+			siril_debug_print("build_layer_entry: could not copy wcslib\n");
+	}
+	e->focal_length = fit->keywords.focal_length;
+	e->icc_profile  = copyICCProfile(fit->icc_profile);
+
+	e->layer_props = g_new(flis_layer_props_t, 1);
+	e->layer_props->blend_mode   = lay->blend_mode;
+	e->layer_props->opacity      = lay->opacity;
+	e->layer_props->visible      = lay->visible;
+	e->layer_props->locked       = lay->locked;
+	e->layer_props->has_tint     = lay->has_tint;
+	e->layer_props->tint         = lay->layer_tint;
+	e->layer_props->lmask_active = lay->lmask_active;
+	e->layer_props->position_x   = lay->position_x;
+	e->layer_props->position_y   = lay->position_y;
+	g_strlcpy(e->layer_props->name,
+	          lay->layer_name ? lay->layer_name : "",
+	          sizeof(e->layer_props->name));
+	return 0;
 }
 
 static int undo_get_data_ushort(fits *fit, historic *hist) {
@@ -446,7 +537,110 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	return 0;
 }
 
+/* Restore pixel data, processing mask, WCS, position and props from a
+ * historic_layer_entry_t into a live FLIS layer.  The entry must remain
+ * valid for the duration of the call (its swap files are read but not freed). */
+static int restore_layer_entry(flis_layer_t *lay, const historic_layer_entry_t *e) {
+	fits *fit = lay->fit;
+	if (!fit) return 0;
+
+	/* Pixel data */
+	if (e->filename) {
+		/* Build a minimal historic that the data helpers understand.
+		 * We only set the fields they actually read; everything else is 0. */
+		historic tmp;
+		memset(&tmp, 0, sizeof(tmp));
+		tmp.filename     = e->filename;
+		tmp.rx           = e->rx;
+		tmp.ry           = e->ry;
+		tmp.nchans       = e->nchans;
+		tmp.type         = e->type;
+		tmp.wcsdata      = e->wcsdata;
+		tmp.wcslib       = e->wcslib;   /* read-only; not freed by helpers */
+		tmp.focal_length = e->focal_length;
+
+		if (fit->icc_profile)
+			cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = copyICCProfile(e->icc_profile);
+		color_manage(fit, (fit->icc_profile != NULL));
+		fits_change_depth(fit, e->nchans);
+
+		int retval;
+		if (e->type == DATA_USHORT) {
+			if (fit->type != DATA_USHORT) {
+				size_t ndata = (size_t)fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+				fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+			}
+			retval = undo_get_data_ushort(fit, &tmp);
+		} else if (e->type == DATA_FLOAT) {
+			if (fit->type != DATA_FLOAT) {
+				size_t ndata = (size_t)fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+				fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+			}
+			retval = undo_get_data_float(fit, &tmp);
+		} else {
+			retval = 1;
+		}
+		if (retval) return retval;
+	}
+
+	/* Processing mask — always call; undo_get_mask_data handles NULL (removes mask) */
+	{
+		historic tmp_mask;
+		memset(&tmp_mask, 0, sizeof(tmp_mask));
+		tmp_mask.mask_filename = e->mask_filename;
+		tmp_mask.mask_bitpix   = e->mask_bitpix;
+		tmp_mask.rx            = e->rx;
+		tmp_mask.ry            = e->ry;
+		if (undo_get_mask_data(fit, &tmp_mask))
+			return 1;
+	}
+
+	/* Layer offset */
+	lay->position_x = e->position_x;
+	lay->position_y = e->position_y;
+
+	/* Layer properties */
+	if (e->layer_props) {
+		const flis_layer_props_t *p = e->layer_props;
+		lay->blend_mode   = p->blend_mode;
+		lay->opacity      = p->opacity;
+		lay->visible      = p->visible;
+		lay->locked       = p->locked;
+		lay->has_tint     = p->has_tint;
+		lay->layer_tint   = p->tint;
+		lay->lmask_active = p->lmask_active;
+		g_free(lay->layer_name);
+		lay->layer_name = g_strdup(p->name);
+	}
+
+	full_stats_invalidation_from_fit(fit);
+	return 0;
+}
+
 static int undo_get_data(fits *fit, historic *hist) {
+	/* Compound multi-layer state: restore each layer in turn */
+	if (hist->n_multi_entries > 0 && hist->multi_entries) {
+		if (!is_current_image_flis()) return 1;
+		for (guint k = 0; k < hist->n_multi_entries; k++) {
+			const historic_layer_entry_t *e = &hist->multi_entries[k];
+			flis_layer_t *lay = flis_layer_get_by_id(e->flis_layer_id);
+			if (!lay) {
+				siril_log_color_message(
+					_("Undo: target layer (id %d) no longer exists — skipping\n"),
+					"salmon", e->flis_layer_id);
+				continue;
+			}
+			if (restore_layer_entry(lay, e)) {
+				siril_log_color_message(
+					_("Undo: failed to restore layer (id %d)\n"),
+					"red", e->flis_layer_id);
+				return 1;
+			}
+		}
+		return 0;
+	}
+
 	/* Property-only undo state: no pixel swap file, just layer properties */
 	if (!hist->filename && hist->layer_props) {
 		if (hist->flis_layer_id == FLIS_UNDO_LAYER_NONE || !is_current_image_flis())
@@ -1003,6 +1197,11 @@ static gboolean flis_active_layer_has_any_mask(void) {
  * target layer no longer exists (e.g. it was deleted after the state was
  * saved) — the caller should skip this history entry in that case. */
 static gboolean flis_undo_switch_layer(const historic *hist) {
+	/* Compound multi-layer state: undo_get_data() iterates all entries by ID;
+	 * there is no single target layer to switch gfit to. */
+	if (hist->n_multi_entries > 0)
+		return TRUE;
+
 	/* Atomic lmask-move, lmask add/remove, and reorder states all address
 	 * layers directly by ID in undo_get_data(); no gfit switch needed. */
 	if (!hist->filename && !hist->layer_props)
@@ -1076,7 +1275,22 @@ int undo_display_data(int dir) {
 				historic *next = &com.history[com.hist_display - 1];
 				gboolean is_flis = is_current_image_flis();
 
-				if (!next->filename && is_flis) {
+				if (next->n_multi_entries > 0 && next->multi_entries && is_flis) {
+					/* Compound multi-layer state: rebuild layer list and snapshot */
+					GSList *layers = NULL;
+					for (guint k = 0; k < next->n_multi_entries; k++) {
+						flis_layer_t *lay = flis_layer_get_by_id(
+						        next->multi_entries[k].flis_layer_id);
+						if (lay) layers = g_slist_prepend(layers, lay);
+					}
+					if (layers) {
+						layers = g_slist_reverse(layers);
+						undo_save_flis_multi_layer(layers, NULL);
+						g_slist_free(layers);
+					} else {
+						undo_save_state(gfit, NULL);
+					}
+				} else if (!next->filename && is_flis) {
 					if (next->layer_props) {
 						/* Props-only state */
 						flis_layer_t *active = flis_layer_get_by_id(next->flis_layer_id);
@@ -1314,7 +1528,18 @@ void flis_undo_purge_layer(gint item_id) {
 	int purged = 0;
 	int i = 0;
 	while (i < com.hist_current) {
-		if (com.history[i].flis_layer_id == item_id ||
+		/* Check whether this compound entry references item_id */
+		gboolean multi_match = FALSE;
+		if (com.history[i].n_multi_entries > 0 && com.history[i].multi_entries) {
+			for (guint k = 0; k < com.history[i].n_multi_entries; k++) {
+				if (com.history[i].multi_entries[k].flis_layer_id == item_id) {
+					multi_match = TRUE;
+					break;
+				}
+			}
+		}
+		if (multi_match ||
+		    com.history[i].flis_layer_id == item_id ||
 		    com.history[i].lmask_layer_id == item_id ||
 		    com.history[i].lmask_dest_layer_id == item_id ||
 		    com.history[i].reorder_layer_a_id == item_id ||
@@ -1347,6 +1572,93 @@ void flis_undo_purge_layer(gint item_id) {
 		                  purged, item_id);
 		gui_function(update_MenuItem, NULL);
 	}
+}
+
+/* undo_save_flis_multi_layer:
+ *
+ * Saves an atomic compound undo state covering every layer in @layers.
+ * For each layer one pixel swap file and one processing-mask swap file
+ * (if the layer has a mask) are written.  A flis_layer_props_t snapshot
+ * is also stored.  A single undo step reverts all layers at once.
+ *
+ * Call BEFORE the operation runs so the saved state holds pre-operation values.
+ * Returns 0 on success; on failure all swap files already written are cleaned
+ * up and no state is pushed.
+ */
+int undo_save_flis_multi_layer(GSList *layers, const char *message, ...) {
+	if (!layers || !is_current_image_flis() || !single_image_is_loaded())
+		return 1;
+
+	guint n = g_slist_length(layers);
+	if (n == 0) return 1;
+
+	char histo[FLEN_VALUE] = { 0 };
+	if (message) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
+	}
+
+	historic_layer_entry_t *entries = g_new0(historic_layer_entry_t, n);
+	guint built = 0;
+
+	for (GSList *l = layers; l; l = l->next, built++) {
+		flis_layer_t *lay = (flis_layer_t *)l->data;
+		if (!lay) {
+			siril_log_color_message(
+				_("undo_save_flis_multi_layer: NULL layer in list — aborting\n"), "red");
+			goto fail;
+		}
+		if (build_layer_entry(lay, &entries[built])) {
+			siril_log_color_message(
+				_("undo_save_flis_multi_layer: failed to build entry for layer %d\n"),
+				"red", lay->item_id);
+			goto fail;
+		}
+	}
+
+	/* All entries built successfully — push onto the ring buffer */
+	if (!com.history) {
+		com.hist_size    = HISTORY_SIZE;
+		com.history      = calloc(com.hist_size, sizeof(historic));
+		com.hist_current = 0;
+		com.hist_display = 0;
+	}
+	while (com.hist_display < com.hist_current) {
+		com.hist_current--;
+		undo_remove_item(com.history, com.hist_current);
+	}
+	if (com.hist_current == com.hist_size - 1) {
+		undo_remove_item(com.history, 1);
+		memmove(&com.history[1], &com.history[2],
+		        (com.hist_size - 2) * sizeof(*com.history));
+		com.hist_current = com.hist_size - 2;
+	}
+
+	{
+		historic *h = &com.history[com.hist_current];
+		memset(h, 0, sizeof(*h));
+		h->flis_layer_id        = FLIS_UNDO_LAYER_NONE;
+		h->lmask_layer_id       = FLIS_UNDO_LAYER_NONE;
+		h->lmask_dest_layer_id  = FLIS_UNDO_LAYER_NONE;
+		h->reorder_layer_a_id   = FLIS_UNDO_LAYER_NONE;
+		h->reorder_layer_b_id   = FLIS_UNDO_LAYER_NONE;
+		h->multi_entries        = entries;
+		h->n_multi_entries      = n;
+		snprintf(h->history, FLEN_VALUE, "%s", histo);
+	}
+
+	com.hist_current++;
+	com.hist_display = com.hist_current;
+	gui_function(update_MenuItem, NULL);
+	return 0;
+
+fail:
+	for (guint k = 0; k < built; k++)
+		free_layer_entry(&entries[k]);
+	g_free(entries);
+	return 1;
 }
 
 void set_undo_redo_tooltip() {

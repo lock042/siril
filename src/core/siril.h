@@ -746,6 +746,25 @@ typedef struct _child_info {
 /* Forward declaration — full definition is in io/image_format_flis.h */
 typedef struct flis_layer_props_t flis_layer_props_t;
 
+/* Per-layer snapshot within a compound (multi-layer) undo entry.
+ * Used by undo_save_flis_multi_layer() for operations such as registration
+ * or layer matching that atomically change multiple layers at once. */
+typedef struct {
+	gint            flis_layer_id;   /* item_id of the layer */
+	char           *filename;        /* pixel swap file path, or NULL */
+	char           *mask_filename;   /* processing mask swap file, or NULL */
+	uint8_t         mask_bitpix;
+	int             rx, ry, nchans;
+	data_type       type;
+	wcs_info        wcsdata;
+	struct wcsprm  *wcslib;
+	double          focal_length;
+	cmsHPROFILE     icc_profile;
+	gint            position_x;
+	gint            position_y;
+	flis_layer_props_t *layer_props; /* full props snapshot, always set */
+} historic_layer_entry_t;
+
 struct historic_struct {
 	char *filename;
 	char *mask_filename;
@@ -772,6 +791,11 @@ struct historic_struct {
 	double focal_length;
 	cmsHPROFILE icc_profile;
 	gboolean spcc_applied;
+	/* Compound multi-layer state.  Non-NULL only when this entry was saved
+	 * via undo_save_flis_multi_layer().  When set, all single-layer fields
+	 * above (filename, mask_filename, flis_layer_id, …) are unused. */
+	historic_layer_entry_t *multi_entries;
+	guint                   n_multi_entries;
 };
 
 /* the structure storing information for each layer to be composed
