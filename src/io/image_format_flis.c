@@ -1854,6 +1854,46 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
                       angle, old_rx, old_ry, new_rx, new_ry);
 }
 
+/* flis_update_all_layer_offsets_after_rotate:
+ *
+ * Group-rotation variant: rotates the centre of EVERY non-base layer around
+ * the old canvas centre and maps it onto the new canvas.  Used when an entire
+ * layer group (which may include the base layer) has been rotated, so the
+ * "active layer" reported by flis_active_layer() is the group node rather than
+ * any individual layer.
+ *
+ * Non-group members that are NOT in the rotated set also need their canvas
+ * positions updated here because the canvas itself has rotated.
+ */
+void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
+                                                gint new_rx, gint new_ry,
+                                                double angle) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+    if (old_rx == new_rx && old_ry == new_ry && angle == 0.0) return;
+
+    double rad   = angle * M_PI / 180.0;
+    double cos_a = cos(rad);
+    double sin_a = sin(rad);
+    double ocx   = old_rx / 2.0;
+    double ocy   = old_ry / 2.0;
+
+    for (GSList *l = com.uniq->layers->next; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        double cx  = lay->position_x + lay->fit->rx / 2.0;
+        double cy  = lay->position_y + lay->fit->ry / 2.0;
+        double dx  = cx - ocx;
+        double dy  = cy - ocy;
+        double new_cx = new_rx / 2.0 + dx * cos_a - dy * sin_a;
+        double new_cy = new_ry / 2.0 + dx * sin_a + dy * cos_a;
+        lay->position_x = (gint)round(new_cx - lay->fit->rx / 2.0);
+        lay->position_y = (gint)round(new_cy - lay->fit->ry / 2.0);
+    }
+    flis_invalidate_composite();
+    siril_debug_print("FLIS: all layer offsets updated after group rotate (%.2f deg, %dx%d -> %dx%d)\n",
+                      angle, old_rx, old_ry, new_rx, new_ry);
+}
+
 guint flis_canvas_rx(void) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->rx;
     flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;

@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 #include <glib.h>
 
 #include "core/siril.h"
@@ -54,6 +55,7 @@
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "io/image_format_flis.h"
+#include "algos/geometry.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
 
@@ -1853,10 +1855,56 @@ gpointer generic_image_worker(gpointer p) {
 				undo_save_flis_multi_layer(_grp_members, "%s",
 				                           summary ? summary : args->description);
 
+			/* ---- Geometry correction setup --------------------------------
+			 * Must happen before the loop so we have the canvas dims and
+			 * rotation coefficients before any hooks change fit->rx/ry. */
+			gint _grp_canvas_rx_before = (gint)flis_canvas_rx();
+			gint _grp_canvas_ry_before = (gint)flis_canvas_ry();
+
+			gboolean _is_rotation = (args->image_hook == rotation_image_hook);
+			gboolean _is_mirrorx  = (args->image_hook == mirrorx_image_hook);
+			gboolean _is_mirrory  = (args->image_hook == mirrory_image_hook);
+
+			struct rotation_args *_rp_geom = _is_rotation
+			    ? (struct rotation_args *)args->user : NULL;
+			double _rot_cos_a = 1.0, _rot_sin_a = 0.0;
+			/* Predicted new canvas dims for 90°/270° rotations (dims swap). */
+			gint _new_canvas_rx = _grp_canvas_rx_before;
+			gint _new_canvas_ry = _grp_canvas_ry_before;
+
+			flis_layer_t *_grp_base = (is_current_image_flis() && com.uniq && com.uniq->layers)
+			    ? (flis_layer_t *)com.uniq->layers->data : NULL;
+			gboolean _base_in_grp = _grp_base &&
+			    g_slist_find(_grp_members, _grp_base) != NULL;
+
+			if (_rp_geom) {
+				double _rad = _rp_geom->angle * M_PI / 180.0;
+				_rot_cos_a = cos(_rad);
+				_rot_sin_a = sin(_rad);
+				/* For 90°/270° the canvas dims swap when base is in the group. */
+				int _ai = (int)_rp_geom->angle;
+				if (_base_in_grp && (double)_ai == _rp_geom->angle &&
+				    _ai % 90 == 0 && _ai % 180 != 0) {
+					_new_canvas_rx = _grp_canvas_ry_before;
+					_new_canvas_ry = _grp_canvas_rx_before;
+				}
+				/* For 180° the dims are unchanged; for general angles the
+				 * new canvas size is read from flis_canvas_rx() after the
+				 * base layer's hook call below (updated inline). */
+			}
+			/* ---- End geometry setup --------------------------------------- */
+
 			/* Apply hook to every member. */
 			for (GSList *l = _grp_members; l && !args->retval; l = l->next) {
 				flis_layer_t *_lay = l->data;
 				if (!_lay || !_lay->fit) continue;
+
+				/* Save pre-hook geometry (dims and canvas position) so the
+				 * rotation correction can use old values after the hook has
+				 * changed fit->rx/ry for 90°/270° rotations. */
+				gint _pre_rx = _lay->fit->rx, _pre_ry = _lay->fit->ry;
+				gint _pre_px = _lay->position_x, _pre_py = _lay->position_y;
+
 				gboolean _ly_mask = args->mask_aware &&
 				                    _lay->fit->mask && _lay->fit->mask_active;
 				fits *_ly_orig = NULL;
@@ -1878,6 +1926,104 @@ gpointer generic_image_worker(gpointer p) {
 				if (_ly_mask && _ly_orig) {
 					blend_fits_with_mask(_lay->fit, _ly_orig);
 					clearfits(_ly_orig); free(_ly_orig);
+				}
+
+				if (args->retval) continue;
+
+				if (_is_rotation && _rp_geom && _lay != _grp_base) {
+					/* Non-base group member: update canvas position.
+					 *
+					 * Two cases:
+					 * A) Base is in the group (canvas rotated): rotate this
+					 *    layer's centre around the old canvas centre.
+					 * B) Base not in group (canvas unchanged): preserve this
+					 *    layer's centre at the same canvas position.
+					 *
+					 * Both cases use PRE-hook dims/pos so the centre is
+					 * computed from the old (pre-rotation) layer size. */
+					if (_base_in_grp &&
+					    (_new_canvas_rx != _grp_canvas_rx_before ||
+					     _new_canvas_ry != _grp_canvas_ry_before)) {
+						/* Case A: rotate centre around canvas centre */
+						double _ocx = _grp_canvas_rx_before / 2.0;
+						double _ocy = _grp_canvas_ry_before / 2.0;
+						double _cx  = _pre_px + _pre_rx / 2.0;
+						double _cy  = _pre_py + _pre_ry / 2.0;
+						double _dx  = _cx - _ocx;
+						double _dy  = _cy - _ocy;
+						double _ncx = _new_canvas_rx / 2.0
+						            + _dx * _rot_cos_a - _dy * _rot_sin_a;
+						double _ncy = _new_canvas_ry / 2.0
+						            + _dx * _rot_sin_a + _dy * _rot_cos_a;
+						_lay->position_x = (gint)round(_ncx - _lay->fit->rx / 2.0);
+						_lay->position_y = (gint)round(_ncy - _lay->fit->ry / 2.0);
+					} else {
+						/* Case B: preserve canvas centre */
+						_lay->position_x = _pre_px + (_pre_rx - (gint)_lay->fit->rx) / 2;
+						_lay->position_y = _pre_py + (_pre_ry - (gint)_lay->fit->ry) / 2;
+					}
+				}
+
+				/* For general (non-90°-multiple) rotation: after the base
+				 * layer's hook, read the actual new canvas dims from the
+				 * updated base fit so subsequent layers use the right centre. */
+				if (_is_rotation && _lay == _grp_base) {
+					_new_canvas_rx = (gint)flis_canvas_rx();
+					_new_canvas_ry = (gint)flis_canvas_ry();
+				}
+			}
+
+			/* For rotation with canvas change: also update non-group non-base
+			 * layers.  Their pixel data was not rotated so their dims are
+			 * still the old values — use them directly as the old centre. */
+			if (!args->retval && _is_rotation && _base_in_grp && is_current_image_flis() &&
+			    com.uniq && com.uniq->layers &&
+			    (_new_canvas_rx != _grp_canvas_rx_before ||
+			     _new_canvas_ry != _grp_canvas_ry_before)) {
+				double _ocx = _grp_canvas_rx_before / 2.0;
+				double _ocy = _grp_canvas_ry_before / 2.0;
+				for (GSList *_al = com.uniq->layers->next; _al; _al = _al->next) {
+					flis_layer_t *_ng = (flis_layer_t *)_al->data;
+					if (!_ng || !_ng->fit) continue;
+					if (g_slist_find(_grp_members, _ng)) continue; /* already updated */
+					double _cx = _ng->position_x + _ng->fit->rx / 2.0;
+					double _cy = _ng->position_y + _ng->fit->ry / 2.0;
+					double _dx = _cx - _ocx;
+					double _dy = _cy - _ocy;
+					_ng->position_x = (gint)round(
+					    _new_canvas_rx / 2.0 + _dx * _rot_cos_a - _dy * _rot_sin_a
+					    - _ng->fit->rx / 2.0);
+					_ng->position_y = (gint)round(
+					    _new_canvas_ry / 2.0 + _dx * _rot_sin_a + _dy * _rot_cos_a
+					    - _ng->fit->ry / 2.0);
+				}
+				flis_invalidate_composite();
+			}
+
+			/* Mirror operations: reflect group member positions. */
+			if (!args->retval && is_current_image_flis()) {
+				if (_is_mirrorx) {
+					/* mirrorx = vertical flip (swaps rows).
+					 * Reflect each member's canvas y-position. */
+					guint _ch = flis_canvas_ry();
+					for (GSList *l = _grp_members; l; l = l->next) {
+						flis_layer_t *_lay = l->data;
+						if (_lay && _lay->fit)
+							_lay->position_y = (gint)_ch
+							                 - _lay->position_y
+							                 - (gint)_lay->fit->ry;
+					}
+				} else if (_is_mirrory) {
+					/* mirrory = horizontal flip (flip_top_to_bottom + rotate_pi).
+					 * Reflect each member's canvas x-position. */
+					guint _cw = flis_canvas_rx();
+					for (GSList *l = _grp_members; l; l = l->next) {
+						flis_layer_t *_lay = l->data;
+						if (_lay && _lay->fit)
+							_lay->position_x = (gint)_cw
+							                 - _lay->position_x
+							                 - (gint)_lay->fit->rx;
+					}
 				}
 			}
 

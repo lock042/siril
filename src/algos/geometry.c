@@ -36,6 +36,7 @@
 #include "io/sequence.h"
 #include "io/image_format_flis.h"
 #include "io/image_format_fits.h"
+#include "gui/flis_gui.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -833,6 +834,10 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
+	/* 0° (and any multiple of 360°) is a no-op.  cvRotateImage() does not
+	 * handle angle==0 correctly (falls into the 270° branch), so we must
+	 * bail out before calling it. */
+	if (angle % 360 == 0) return 0;
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
@@ -883,8 +888,13 @@ int verbose_rotate_fast(fits *image, int angle) {
 		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
-	// This does nothing for non-FLIS images
-	flis_update_layer_offset_after_rotate(orig_rx, orig_ry, target_rx, target_ry, (double)angle);
+	/* For a group operation the offset update is deferred to the group
+	 * processing path (processing.c) which calls it once, correctly, after
+	 * all members have been processed.  Calling it here per-member would
+	 * use flis_active_layer() == the group node (not the base layer) and
+	 * update positions multiple times with the wrong branch. */
+	if (!flis_get_selected_group())
+		flis_update_layer_offset_after_rotate(orig_rx, orig_ry, target_rx, target_ry, (double)angle);
 	return 0;
 }
 
@@ -1763,6 +1773,16 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	struct rotation_args *params = (struct rotation_args *)args->user;
 	if (!params)
 		return 1;
+
+	/* When processing a layer group, each member may have different
+	 * dimensions.  params->area was set from the first layer (gfit).
+	 * For fast rotations (interpolation == -1) the area must always
+	 * cover the full image, so update it to match the current fit. */
+	if (params->interpolation == -1 &&
+	    params->area.x == 0 && params->area.y == 0) {
+		params->area.w = fit->rx;
+		params->area.h = fit->ry;
+	}
 
 	// Check for fast rotation (90 degree increments)
 	int angle_int = (int)params->angle;

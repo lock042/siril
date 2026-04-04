@@ -397,6 +397,19 @@ void flis_update_layer_offset_after_rotate(gint old_rx, gint old_ry,
                                            double angle);
 
 /**
+ * flis_update_all_layer_offsets_after_rotate:
+ *
+ * Group-rotation variant of flis_update_layer_offset_after_rotate.  Always
+ * applies the "base layer rotated" logic: every non-base layer's canvas centre
+ * is rotated by @angle around the old canvas centre and mapped onto the new
+ * canvas.  Use this when a whole layer group has been rotated (the group node
+ * is the "active layer", not the base layer).
+ */
+void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
+                                                gint new_rx, gint new_ry,
+                                                double angle);
+
+/**
  * flis_canvas_rx / flis_canvas_ry:
  *
  * Return the canvas (base-layer) width/height.  For non-FLIS images these
