@@ -1864,9 +1864,12 @@ gpointer generic_image_worker(gpointer p) {
 			gboolean _is_rotation = (args->image_hook == rotation_image_hook);
 			gboolean _is_mirrorx  = (args->image_hook == mirrorx_image_hook);
 			gboolean _is_mirrory  = (args->image_hook == mirrory_image_hook);
+			gboolean _is_crop     = (args->image_hook == crop_image_hook_single);
 
 			struct rotation_args *_rp_geom = _is_rotation
 			    ? (struct rotation_args *)args->user : NULL;
+			struct crop_args *_cp_geom = _is_crop
+			    ? (struct crop_args *)args->user : NULL;
 			double _rot_cos_a = 1.0, _rot_sin_a = 0.0;
 			/* Predicted new canvas dims for 90°/270° rotations (dims swap). */
 			gint _new_canvas_rx = _grp_canvas_rx_before;
@@ -1930,6 +1933,20 @@ gpointer generic_image_worker(gpointer p) {
 
 				if (args->retval) continue;
 
+				if (_is_crop && _cp_geom && _lay != _grp_base) {
+					/* Non-base crop member: update canvas position to the
+					 * intersection top-left, shifted by the crop origin when
+					 * the base is also in the group (canvas shrinks). */
+					gint sel_x = _cp_geom->area.x, sel_y = _cp_geom->area.y;
+					if (_base_in_grp) {
+						_lay->position_x = MAX(_pre_px, sel_x) - sel_x;
+						_lay->position_y = MAX(_pre_py, sel_y) - sel_y;
+					} else {
+						_lay->position_x = MAX(_pre_px, sel_x);
+						_lay->position_y = MAX(_pre_py, sel_y);
+					}
+				}
+
 				if (_is_rotation && _rp_geom && _lay != _grp_base) {
 					/* Non-base group member: update canvas position.
 					 *
@@ -1944,9 +1961,15 @@ gpointer generic_image_worker(gpointer p) {
 					if (_base_in_grp &&
 					    (_new_canvas_rx != _grp_canvas_rx_before ||
 					     _new_canvas_ry != _grp_canvas_ry_before)) {
-						/* Case A: rotate centre around canvas centre */
-						double _ocx = _grp_canvas_rx_before / 2.0;
-						double _ocy = _grp_canvas_ry_before / 2.0;
+						/* Case A: rotate centre around the rotation centre.
+						 * For non-cropped rotations this is the canvas centre.
+						 * For cropped rotations it is the selection midpoint. */
+						double _ocx = (_rp_geom->cropped)
+						    ? _rp_geom->area.x + _rp_geom->area.w * 0.5
+						    : _grp_canvas_rx_before / 2.0;
+						double _ocy = (_rp_geom->cropped)
+						    ? _rp_geom->area.y + _rp_geom->area.h * 0.5
+						    : _grp_canvas_ry_before / 2.0;
 						double _cx  = _pre_px + _pre_rx / 2.0;
 						double _cy  = _pre_py + _pre_ry / 2.0;
 						double _dx  = _cx - _ocx;
@@ -1980,8 +2003,12 @@ gpointer generic_image_worker(gpointer p) {
 			    com.uniq && com.uniq->layers &&
 			    (_new_canvas_rx != _grp_canvas_rx_before ||
 			     _new_canvas_ry != _grp_canvas_ry_before)) {
-				double _ocx = _grp_canvas_rx_before / 2.0;
-				double _ocy = _grp_canvas_ry_before / 2.0;
+				double _ocx = (_rp_geom && _rp_geom->cropped)
+				    ? _rp_geom->area.x + _rp_geom->area.w * 0.5
+				    : _grp_canvas_rx_before / 2.0;
+				double _ocy = (_rp_geom && _rp_geom->cropped)
+				    ? _rp_geom->area.y + _rp_geom->area.h * 0.5
+				    : _grp_canvas_ry_before / 2.0;
 				for (GSList *_al = com.uniq->layers->next; _al; _al = _al->next) {
 					flis_layer_t *_ng = (flis_layer_t *)_al->data;
 					if (!_ng || !_ng->fit) continue;
@@ -1996,6 +2023,21 @@ gpointer generic_image_worker(gpointer p) {
 					_ng->position_y = (gint)round(
 					    _new_canvas_ry / 2.0 + _dx * _rot_sin_a + _dy * _rot_cos_a
 					    - _ng->fit->ry / 2.0);
+				}
+				flis_invalidate_composite();
+			}
+
+			/* Crop: update non-group non-base layer offsets when the base is in
+			 * the group (canvas shrinks by the crop origin). */
+			if (!args->retval && _is_crop && _cp_geom && _base_in_grp &&
+			    is_current_image_flis() && com.uniq && com.uniq->layers) {
+				gint sel_x = _cp_geom->area.x, sel_y = _cp_geom->area.y;
+				for (GSList *_al = com.uniq->layers->next; _al; _al = _al->next) {
+					flis_layer_t *_ng = (flis_layer_t *)_al->data;
+					if (!_ng) continue;
+					if (g_slist_find(_grp_members, _ng)) continue; /* already updated */
+					_ng->position_x -= sel_x;
+					_ng->position_y -= sel_y;
 				}
 				flis_invalidate_composite();
 			}
@@ -2094,6 +2136,10 @@ gpointer generic_image_worker(gpointer p) {
 	memset(&_pre_props, 0, sizeof(_pre_props));
 	/* For non-geometry ops we still need the pre-op position for the patch. */
 	gint flis_pre_pos_x = 0, flis_pre_pos_y = 0;
+	/* Set TRUE when we have pre-saved a multi-layer undo for a base-layer
+	 * geometry op so that the single-layer undo_save_flis_layer_full path is
+	 * skipped (undo state is already in the ring buffer). */
+	gboolean _flis_base_multi_undo = FALSE;
 	if (is_current_image_flis()) {
 		flis_layer_t *_active = flis_active_layer();
 		if (_active) {
@@ -2137,6 +2183,26 @@ gpointer generic_image_worker(gpointer p) {
 				}
 			}
 		}
+	}
+
+	/* For geometry-changing operations on the FLIS BASE layer (single-layer
+	 * path, no group selected), save ALL layers atomically before the hook
+	 * runs.  This captures the non-base layers' pre-op positions so that an
+	 * undo correctly restores offsets that flis_update_layer_offset_after_crop
+	 * (and similar functions) would otherwise change without being tracked.
+	 * The same "save before hook" pattern is used by the group path above. */
+	if (!_flis_base_multi_undo &&
+	    is_current_image_flis() && args->geometry_changing &&
+	    !args->for_preview && !args->command && !args->custom_undo &&
+	    args->fit == gfit && !flis_get_selected_group() &&
+	    com.uniq && com.uniq->layers && com.uniq->layers->next != NULL &&
+	    flis_active_layer() == (flis_layer_t *)com.uniq->layers->data) {
+		gchar *_msumm = args->log_hook
+		    ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
+		if (!undo_save_flis_multi_layer(com.uniq->layers, "%s",
+		                                _msumm ? _msumm : args->description))
+			_flis_base_multi_undo = TRUE;
+		g_free(_msumm);
 	}
 
 	// Call the image processing hook - operates in-place on args->fit
@@ -2191,7 +2257,12 @@ the_end:;
 
 	if (!retval) {
 		if (undo_state && orig) {
-			if (args->geometry_changing && _flis_lay_undo) {
+			if (_flis_base_multi_undo) {
+				/* Multi-layer undo was saved before the hook (captures base
+				 * pixels + all non-base positions atomically); nothing more
+				 * to do here.  _pre_lmask and _flis_lay_undo are still freed
+				 * below at the regular cleanup point. */
+			} else if (args->geometry_changing && _flis_lay_undo) {
 				/* Full geometry undo: pixels + pmask + lmask + props in one entry.
 				 * _pre_lmask holds the pre-op lmask snapshot; pass it to the undo
 				 * function BEFORE freeing it so the swap file can be written. */

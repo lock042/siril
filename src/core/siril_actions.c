@@ -709,7 +709,10 @@ void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (com.selection.w == 0 || com.selection.h == 0) {
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
+		gint _sx = 0, _sy = 0;
+		flis_layer_t *_al = flis_active_layer();
+		if (_al) { _sx = _al->position_x; _sy = _al->position_y; }
+		com.selection = (rectangle){ _sx, _sy, gfit->rx, gfit->ry };
 	}
 	siril_open_dialog("rotation_dialog");
 	redraw(REDRAW_OVERLAY);

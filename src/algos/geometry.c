@@ -1350,8 +1350,26 @@ int crop(fits *fit, rectangle *bounds) {
 		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
-	// This does nothing for non-FLIS images
-	flis_update_layer_offset_after_crop(bounds->x, bounds->y);
+	/* In group mode the position update is handled by the group loop in
+	 * processing.c.  For single-layer (non-group) mode call it now.
+	 *
+	 * For non-base FLIS layers, crop_image_hook_single converts params->area
+	 * from canvas to layer-local before calling crop(), so bounds->x/y are
+	 * layer-local here.  Reconstruct the canvas-coordinate origin by adding
+	 * back the layer's canvas offset so flis_update_layer_offset_after_crop
+	 * receives the canvas intersection top-left (ix1, iy1). */
+	if (!flis_get_selected_group()) {
+		flis_layer_t *_off_lay  = flis_layer_get_by_fit(fit);
+		flis_layer_t *_off_base = is_current_image_flis() && com.uniq && com.uniq->layers
+		    ? (flis_layer_t *)com.uniq->layers->data : NULL;
+		if (_off_lay && _off_base && _off_lay != _off_base) {
+			flis_update_layer_offset_after_crop(
+			    _off_lay->position_x + bounds->x,
+			    _off_lay->position_y + bounds->y);
+		} else {
+			flis_update_layer_offset_after_crop(bounds->x, bounds->y);
+		}
+	}
 	return 0;
 }
 
@@ -1743,7 +1761,41 @@ int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_thre
 	struct crop_args *params = (struct crop_args *)args->user;
 	if (!params)
 		return 1;
-	int retval = crop(fit, &params->area);
+
+	rectangle local_area = params->area;  /* canvas coords; adjusted below for non-base FLIS */
+
+	/* params->area is always in canvas coordinates.  For any non-base FLIS
+	 * layer (group or single-layer mode), the layer may be smaller than or
+	 * offset from the canvas, so convert to layer-local before calling crop().
+	 * If the selection doesn't intersect the layer at all, skip it. */
+	flis_layer_t *_crop_lay  = flis_layer_get_by_fit(fit);
+	flis_layer_t *_crop_base = (is_current_image_flis() && com.uniq && com.uniq->layers)
+	    ? (flis_layer_t *)com.uniq->layers->data : NULL;
+	if (_crop_lay && _crop_base && _crop_lay != _crop_base) {
+		gint can_x1 = params->area.x;
+		gint can_y1 = params->area.y;
+		gint can_x2 = params->area.x + params->area.w;
+		gint can_y2 = params->area.y + params->area.h;
+		gint lay_x2 = _crop_lay->position_x + (gint)fit->rx;
+		gint lay_y2 = _crop_lay->position_y + (gint)fit->ry;
+
+		gint ix1 = MAX(can_x1, _crop_lay->position_x);
+		gint iy1 = MAX(can_y1, _crop_lay->position_y);
+		gint ix2 = MIN(can_x2, lay_x2);
+		gint iy2 = MIN(can_y2, lay_y2);
+
+		if (ix2 <= ix1 || iy2 <= iy1) {
+			/* No intersection: leave this layer untouched */
+			gui_function(crop_gui_updates, NULL);
+			return 0;
+		}
+		local_area.x = ix1 - _crop_lay->position_x;
+		local_area.y = iy1 - _crop_lay->position_y;
+		local_area.w = ix2 - ix1;
+		local_area.h = iy2 - iy1;
+	}
+
+	int retval = crop(fit, &local_area);
 	gui_function(crop_gui_updates, NULL);
 	return retval;
 }
@@ -1792,14 +1844,31 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	    params->area.w == fit->rx && params->area.h == fit->ry) {
 		retval = verbose_rotate_fast(fit, angle_int);
 	} else {
-		retval = verbose_rotate_image(fit, params->area, params->angle,
+		/* For cropped rotations, params->area is in canvas coordinates.
+		 * verbose_rotate_image expects layer-local coordinates, so
+		 * subtract the layer's canvas offset for FLIS layers with offset.
+		 * For non-cropped rotations the rotation is always around the image
+		 * centre (area.x/y are overwritten in GetMatrixReframe), so no
+		 * conversion is needed in that case. */
+		rectangle _local_area = params->area;
+		if (params->cropped) {
+			flis_layer_t *_ri_lay = flis_layer_get_by_fit(fit);
+			if (_ri_lay) {
+				_local_area.x -= _ri_lay->position_x;
+				_local_area.y -= _ri_lay->position_y;
+			}
+		}
+		retval = verbose_rotate_image(fit, _local_area, params->angle,
 	                             params->interpolation, params->cropped,
 	                             params->clamp);
 	}
 
-	// If a selection is set, we set it to the entire image
+	// Reset selection to current active layer area (canvas coords)
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
+		gint _sx = 0, _sy = 0;
+		flis_layer_t *_al = flis_active_layer();
+		if (_al) { _sx = _al->position_x; _sy = _al->position_y; }
+		com.selection = (rectangle){ _sx, _sy, gfit->rx, gfit->ry };
 		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
