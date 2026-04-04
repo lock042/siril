@@ -1739,11 +1739,165 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean arg_update_gfit = args->command_updates_gfit;
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
+	/* Hoisted here so goto the_end (group path) does not jump over their
+	 * initialisers — leaving them as garbage and causing layermask_free()
+	 * to be called on a random stack value at clean-up time. */
+	flis_layer_t *_flis_lay_undo = NULL;
+	layermask_t  *_pre_lmask     = NULL;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
+
+	// Set default max_threads if not specified
+	if (args->max_threads < 1)
+		args->max_threads = com.max_thread;
+
+	/* ------------------------------------------------------------------ *
+	 * GROUP PATH                                                           *
+	 * When a layer group is selected, apply the operation to every layer  *
+	 * in the group using the same image_hook and args->user, saving a     *
+	 * single atomic multi-layer undo state.                               *
+	 * ------------------------------------------------------------------ */
+	flis_group_t *_grp         = NULL;
+	GSList       *_grp_members = NULL;
+	if (!args->command && is_current_image_flis())
+		_grp = flis_get_selected_group();
+	if (_grp)
+		_grp_members = flis_group_get_layers(_grp);
+
+	if (_grp_members) {
+		int n_members = (int)g_slist_length(_grp_members);
+
+		if (args->description && verbose) {
+			gchar *_gdesc = g_strdup_printf(
+			    _("%s: processing group (%d layer%s)...\n"),
+			    args->description, n_members, n_members == 1 ? "" : "s");
+			siril_log_color_message(_gdesc, "green");
+			g_free(_gdesc);
+		}
+		set_progress_bar_data(_("Processing group..."), 0.1f);
+
+		/* Memory check: we process one layer at a time, so the peak
+		 * memory is that of a single member.  Use gfit (active layer)
+		 * as the representative fit. */
+		if (args->mem_ratio > 0.0f) {
+			args->fit = gfit;
+			if (default_img_mem_hook(args)) {
+				args->retval = 1;
+				g_slist_free(_grp_members);
+				goto the_end;
+			}
+		}
+
+		if (args->for_preview) {
+			/* First preview call: save pixel copies for non-active members.
+			 * The active layer (gfit) is already backed up by copy_gfit_to_backup().
+			 * On subsequent calls copy_backup_to_gfit() has already restored
+			 * every member (via restore_flis_group_members_from_backup), so
+			 * we just re-apply. */
+			if (!is_flis_group_backup_active()) {
+				fits **_nonactive = malloc(n_members * sizeof(fits *));
+				if (_nonactive) {
+					int _na = 0;
+					for (GSList *l = _grp_members; l; l = l->next) {
+						flis_layer_t *_lay = l->data;
+						if (_lay && _lay->fit && _lay->fit != gfit)
+							_nonactive[_na++] = _lay->fit;
+					}
+					if (_na > 0)
+						copy_flis_group_members_to_backup(_nonactive, _na);
+					free(_nonactive);
+				}
+			}
+
+			/* Apply hook to every member in-place. */
+			for (GSList *l = _grp_members; l && !args->retval; l = l->next) {
+				flis_layer_t *_lay = l->data;
+				if (!_lay || !_lay->fit) continue;
+				gboolean _ly_mask = args->mask_aware &&
+				                    _lay->fit->mask && _lay->fit->mask_active;
+				fits *_ly_orig = NULL;
+				if (_ly_mask) {
+					_ly_orig = calloc(1, sizeof(fits));
+					if (_ly_orig && copyfits(_lay->fit, _ly_orig,
+					        CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+						free(_ly_orig); _ly_orig = NULL;
+					}
+				}
+				args->fit = _lay->fit;
+				if (args->image_hook(args, _lay->fit, args->max_threads))
+					args->retval = 1;
+				if (_ly_mask && _ly_orig) {
+					blend_fits_with_mask(_lay->fit, _ly_orig);
+					clearfits(_ly_orig); free(_ly_orig);
+				}
+			}
+
+		} else {
+			/* Final apply: copy_backup_to_gfit() was called by the dialog
+			 * before starting this worker, which restores gfit AND all
+			 * non-active group members.  Discard the now-consumed backups
+			 * so clear_backup() does not attempt a redundant restore. */
+			if (is_flis_group_backup_active())
+				free_flis_group_backups();
+
+			/* Generate summary BEFORE hooks run (args->user is unchanged). */
+			summary = args->log_hook
+			        ? args->log_hook(args->user, SUMMARY)
+			        : g_strdup(args->description);
+
+			/* Single atomic undo covering every group member. */
+			if (!args->custom_undo)
+				undo_save_flis_multi_layer(_grp_members, "%s",
+				                           summary ? summary : args->description);
+
+			/* Apply hook to every member. */
+			for (GSList *l = _grp_members; l && !args->retval; l = l->next) {
+				flis_layer_t *_lay = l->data;
+				if (!_lay || !_lay->fit) continue;
+				gboolean _ly_mask = args->mask_aware &&
+				                    _lay->fit->mask && _lay->fit->mask_active;
+				fits *_ly_orig = NULL;
+				if (_ly_mask) {
+					_ly_orig = calloc(1, sizeof(fits));
+					if (_ly_orig && copyfits(_lay->fit, _ly_orig,
+					        CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+						free(_ly_orig); _ly_orig = NULL;
+					}
+				}
+				args->fit = _lay->fit;
+				if (args->image_hook(args, _lay->fit, args->max_threads)) {
+					siril_log_color_message(
+					    _("%s: processing failed on layer '%s'.\n"), "red",
+					    args->description,
+					    _lay->layer_name ? _lay->layer_name : "?");
+					args->retval = 1;
+				}
+				if (_ly_mask && _ly_orig) {
+					blend_fits_with_mask(_lay->fit, _ly_orig);
+					clearfits(_ly_orig); free(_ly_orig);
+				}
+			}
+
+			if (!args->retval) {
+				history = args->log_hook
+				        ? args->log_hook(args->user, DETAILED)
+				        : g_strdup(args->description);
+			}
+		}
+
+		/* Restore args->fit to gfit for the end_generic_image idle path,
+		 * which calls notify_gfit_modified() → REMAP_ALL to rebuild the
+		 * composite with the updated layer data. */
+		args->fit = gfit;
+		g_slist_free(_grp_members);
+		goto the_end;
+	}
+	/* ------------------------------------------------------------------ *
+	 * END GROUP PATH — single-layer path continues below                  *
+	 * ------------------------------------------------------------------ */
 
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
@@ -1763,24 +1917,6 @@ gpointer generic_image_worker(gpointer p) {
 			args->retval = 1;
 			goto the_end;
 		}
-	}
-
-	// Set default max_threads if not specified
-	if (args->max_threads < 1)
-		args->max_threads = com.max_thread;
-
-	/* Refuse to run if a layer group is selected: the operation would only
-	 * apply to the active layer, which is misleading when the user intends
-	 * it to affect the whole group.  Select an individual layer instead. */
-	if (!args->command && is_current_image_flis() &&
-	    flis_get_selected_group() != NULL) {
-		siril_log_color_message(_("%s: cannot apply to a layer group — "
-		    "select an individual layer.\n"), "red", args->description);
-		queue_error_message_dialog(_("Layer Group Selected"),
-		    _("This operation cannot be applied to a layer group.\n"
-		      "Please select an individual layer."));
-		args->retval = 1;
-		goto the_end;
 	}
 
 	// Memory check
@@ -1806,8 +1942,8 @@ gpointer generic_image_worker(gpointer p) {
 	 * lmask has already changed.  We also capture position here so we don't
 	 * need to patch it manually afterwards (geometry ops can update position
 	 * inside their hook, e.g. crop → flis_update_layer_offset_after_crop). */
-	flis_layer_t       *_flis_lay_undo = NULL;
-	layermask_t        *_pre_lmask     = NULL;
+	_flis_lay_undo = NULL;
+	_pre_lmask     = NULL;
 	flis_layer_props_t  _pre_props;
 	memset(&_pre_props, 0, sizeof(_pre_props));
 	/* For non-geometry ops we still need the pre-op position for the patch. */

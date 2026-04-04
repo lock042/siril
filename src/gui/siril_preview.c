@@ -41,6 +41,20 @@ static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
+/* ---- FLIS group-member backup ----------------------------------------
+ * Stores pixel-data copies for the non-active members of a group that is
+ * being processed with live preview.  The active layer (gfit) is handled
+ * by the existing preview_gfit_backup; these entries cover the rest.
+ * Uses only fits* — no FLIS type knowledge required here.
+ * -------------------------------------------------------------------- */
+typedef struct {
+	fits *target;   /* lay->fit pointer — NOT owned by this module */
+	fits  backup;   /* owned pixel copy */
+} flis_member_backup_t;
+
+static flis_member_backup_t *flis_member_backups  = NULL;
+static int                   n_flis_member_backups = 0;
+
 static gboolean update_preview(gpointer user_data) {
 	lock_roi_mutex();
 	if (notify_is_blocked)
@@ -66,6 +80,66 @@ static void free_struct(gpointer user_data) {
 
 	timer_id = 0;
 	free(im);
+}
+
+int copy_flis_group_members_to_backup(fits **member_fits, int n_members) {
+	if (!member_fits || n_members <= 0)
+		return 0;
+	flis_member_backup_t *arr = calloc(n_members, sizeof(flis_member_backup_t));
+	if (!arr) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	int saved = 0;
+	for (int i = 0; i < n_members; i++) {
+		if (!member_fits[i])
+			continue;
+		arr[saved].target = member_fits[i];
+		memset(&arr[saved].backup, 0, sizeof(fits));
+		if (copyfits(member_fits[i], &arr[saved].backup,
+		             CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1)) {
+			siril_debug_print("copy_flis_group_members_to_backup: copy error for member %d\n", i);
+			/* Free what we have so far and abort */
+			for (int j = 0; j < saved; j++)
+				clearfits(&arr[j].backup);
+			free(arr);
+			return 1;
+		}
+		copy_fits_metadata(member_fits[i], &arr[saved].backup);
+		saved++;
+	}
+	/* Free any pre-existing group backup before replacing */
+	free_flis_group_backups();
+	flis_member_backups  = arr;
+	n_flis_member_backups = saved;
+	return 0;
+}
+
+void restore_flis_group_members_from_backup(void) {
+	if (!flis_member_backups || n_flis_member_backups <= 0)
+		return;
+	for (int i = 0; i < n_flis_member_backups; i++) {
+		fits *tgt = flis_member_backups[i].target;
+		if (!tgt) continue;
+		if (copyfits(&flis_member_backups[i].backup, tgt, CP_COPYA | CP_COPYMASK, -1))
+			siril_debug_print("restore_flis_group_members_from_backup: copy error for member %d\n", i);
+		else
+			copy_fits_metadata(&flis_member_backups[i].backup, tgt);
+	}
+}
+
+void free_flis_group_backups(void) {
+	if (!flis_member_backups)
+		return;
+	for (int i = 0; i < n_flis_member_backups; i++)
+		clearfits(&flis_member_backups[i].backup);
+	free(flis_member_backups);
+	flis_member_backups   = NULL;
+	n_flis_member_backups = 0;
+}
+
+gboolean is_flis_group_backup_active(void) {
+	return flis_member_backups != NULL;
 }
 
 void copy_gfit_icc_to_backup() {
@@ -144,6 +218,9 @@ int copy_backup_to_gfit() {
 			retval = 1;
 		}
 	}
+	/* Restore non-active FLIS group members if a group preview is active.
+	 * This is a no-op for plain images and single-layer FLIS operations. */
+	restore_flis_group_members_from_backup();
 	return retval;
 }
 
@@ -162,6 +239,10 @@ gboolean is_preview_active() {
 void clear_backup() {
 	clearfits(&preview_gfit_backup);
 	clear_backup_icc();
+	/* Release any FLIS group-member backups.  The restore was already done
+	 * (by copy_backup_to_gfit or by the final-apply worker path), so we just
+	 * free the memory here without restoring. */
+	free_flis_group_backups();
 	preview_is_active = FALSE;
 }
 

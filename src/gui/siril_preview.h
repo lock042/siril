@@ -37,6 +37,23 @@ fits *get_preview_gfit_backup();
 gboolean is_preview_active();
 void clear_backup();
 
+/* Group-member backup for FLIS layer-group preview.
+ *
+ * When a group operation runs with for_preview=TRUE, the non-active group
+ * members need the same backup/restore treatment that copy_gfit_to_backup /
+ * copy_backup_to_gfit gives the active layer (gfit).  These functions store
+ * pixel copies for an array of fits* targets (the lay->fit of each non-active
+ * member) using only fits* — no FLIS type awareness is required here.
+ *
+ * copy_backup_to_gfit() calls restore_flis_group_members_from_backup() so
+ * the restore is always paired with the gfit restore.  clear_backup() calls
+ * free_flis_group_backups() to release memory once the backup is consumed.
+ */
+int      copy_flis_group_members_to_backup(fits **member_fits, int n_members);
+void     restore_flis_group_members_from_backup(void);
+void     free_flis_group_backups(void);
+gboolean is_flis_group_backup_active(void);
+
 void siril_preview_hide();
 
 void cancel_pending_update();
