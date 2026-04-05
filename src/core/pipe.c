@@ -51,6 +51,7 @@
 #include "core/siril_log.h"
 #include "pipe.h"
 #include "command_line_processor.h"
+#include "io/single_image.h"
 //#include "processing.h"
 	void stop_processing_thread();	// avoid including everything
 	gpointer waiting_for_thread();
@@ -504,6 +505,13 @@ void *process_commands(void *p) {
 		com.script = TRUE;
 		int retval = execute_command(wordnb);
 		com.script = was_script;
+
+		/* The com.script flag suppressed notify_gfit_data_modified()'s remap
+		 * work during execute_command (matching the script-mode display-deferral
+		 * behaviour).  If this pipe command is not itself inside a true script,
+		 * flush the display now that the result is ready. */
+		if (!was_script && !com.headless)
+			notify_gfit_data_modified();
 
 		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();

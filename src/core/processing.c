@@ -1603,7 +1603,7 @@ gpointer generic_image_worker(gpointer p) {
 			blend_fits_with_mask(args->fit, orig);
 		}
 
-		// Carry out data updates (statistics, histograms, upate Cairo buffers if headless)
+		// Carry out data updates (statistics, histograms, update Cairo buffers in GUI mode)
 		notify_gfit_data_modified();
 
 		// If there is a log_hook, set the HISTORY card and update the log as required

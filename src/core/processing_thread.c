@@ -211,15 +211,23 @@ void processing_system_shutdown(void) {
 	if (!worker_running)
 		return;
 
-	/* Tell the worker loop to exit after draining. */
-	g_mutex_lock(&queue_mutex);
-	worker_running = FALSE;
-	g_cond_broadcast(&queue_cond);
-	g_mutex_unlock(&queue_mutex);
-
-	/* Enqueue a sentinel so the worker wakes even if it is mid-wait.
-	* (The loop also exits on worker_running=FALSE, but a QUIT job guarantees
-	*  it drains any jobs pushed before the shutdown signal.) */
+	/* Push a QUIT sentinel to stop the worker cleanly.
+	 *
+	 * We deliberately do NOT set worker_running = FALSE and broadcast before
+	 * pushing the sentinel, because the !worker_running early-exit in the
+	 * worker loop fires before the queue is checked — causing the QUIT job to
+	 * be left in the queue unprocessed and its internal mutex/cond to leak.
+	 *
+	 * By pushing QUIT first the worker either:
+	 *   (a) is already waiting in g_cond_wait → wakes on the signal, pops
+	 *       QUIT, calls processing_job_free, and breaks; or
+	 *   (b) is executing a job → finishes, loops back, sees QUIT in the
+	 *       queue, processes it, and breaks.
+	 *
+	 * worker_running is set to FALSE only after g_thread_join so that the
+	 * !worker_running guard above continues to work for the lifetime of the
+	 * thread.
+	 */
 	ProcessingJob *quit = g_new0(ProcessingJob, 1);
 	quit->type = PROCESSING_JOB_QUIT;
 	g_mutex_init(&quit->mutex);
@@ -231,7 +239,8 @@ void processing_system_shutdown(void) {
 	g_mutex_unlock(&queue_mutex);
 
 	g_thread_join(worker_thread);
-	worker_thread = NULL;
+	worker_thread  = NULL;
+	worker_running = FALSE;
 
 	g_mutex_clear(&queue_mutex);
 	g_cond_clear(&queue_cond);
@@ -561,6 +570,14 @@ gpointer waiting_for_thread(void) {
 	* with com.python_command=FALSE but wait_for_completion=TRUE) and the job
 	* was submitted fire-and-forget.  We wait on queue_cond, which the worker
 	* broadcasts after every job completion.
+	*
+	* NOTE: for fire-and-forget jobs pending_result is never set by the worker
+	* (see worker loop comment — overwriting it would corrupt a subsequent
+	* blocking job's result).  Therefore the result of the awaited job is NOT
+	* recoverable here and this function will return 0.  All command-path
+	* callers that need the return value must ensure they submit via a blocking
+	* context (com.script = TRUE or com.python_command = TRUE) so that the
+	* fast path above is taken instead.
 	*/
 	while (active_job != NULL)
 		g_cond_wait(&queue_cond, &queue_mutex);

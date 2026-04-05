@@ -548,14 +548,21 @@ void set_cutoff_sliders_values() {
 				gtk_builder_get_object(gui.builder, "checkcut_max"));
 	}
 
-	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), gui.lo, gui.hi);
-	gtk_adjustment_set_value(adjmin, (gdouble)gui.lo);
-	gtk_adjustment_set_value(adjmax, (gdouble)gui.hi);
-	g_snprintf(buffer, 6, "%u", gui.hi);
+	/* Snapshot gui.hi/gui.lo under com.mutex: notify_gfit_data_modified() may
+	 * write them from the worker thread concurrently. */
+	g_mutex_lock(&com.mutex);
+	WORD hi = gui.hi;
+	WORD lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
+	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
+	gtk_adjustment_set_value(adjmin, (gdouble)lo);
+	gtk_adjustment_set_value(adjmax, (gdouble)hi);
+	g_snprintf(buffer, 6, "%u", hi);
 	g_signal_handlers_block_by_func(maxentry, on_max_entry_changed, NULL);
 	gtk_entry_set_text(maxentry, buffer);
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
-	g_snprintf(buffer, 6, "%u", gui.lo);
+	g_snprintf(buffer, 6, "%u", lo);
 	g_signal_handlers_block_by_func(minentry, on_min_entry_changed, NULL);
 	gtk_entry_set_text(minentry, buffer);
 	g_signal_handlers_unblock_by_func(minentry, on_min_entry_changed, NULL);

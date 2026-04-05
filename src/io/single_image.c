@@ -471,15 +471,30 @@ void notify_gfit_modified() {
  * to gfit itself: invalidates cached statistics and histogram, computes fresh
  * histogram data, remaps the Cairo display buffers, and recomputes the display
  * range.  The pixel work is thread-safe; any GTK widget-state updates it
- * triggers are dispatched as idle callbacks so they run on the main thread. */
+ * triggers are dispatched as idle callbacks so they run on the main thread.
+ *
+ * In non-Python script mode the expensive work (histogram computation, Cairo
+ * remap, display-range recalculation) is skipped: there is no point updating
+ * the display buffers for every intermediate command in a script when the
+ * result will never be shown until the script ends.  The cache-invalidation
+ * calls are always made so that subsequent commands see stale stats/histograms
+ * as dirty and recompute them on demand.  execute_script() calls this function
+ * again after clearing com.script so the final result is displayed correctly. */
 void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
 		invalidate_gfit_histogram();
+		// Skip expensive pixel work mid-script; display is flushed at script end.
+		if (com.script && !com.python_script)
+			return;
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
+		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
+		 * protect the write with com.mutex to prevent a data race. */
+		g_mutex_lock(&com.mutex);
 		init_layers_hi_and_lo_values(gui.sliders);
+		g_mutex_unlock(&com.mutex);
 	}
 }
 
