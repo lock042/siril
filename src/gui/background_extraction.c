@@ -288,6 +288,7 @@ void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event,
 
 	copy_gfit_to_bkg_backup();
 	copy_backup_to_gfit();
+	notify_gfit_data_modified();
 	notify_gfit_modified();
 }
 
@@ -303,6 +304,7 @@ void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *even
 
 	copy_bkg_backup_to_gfit();
 	clearfits(&background_backup);
+	notify_gfit_data_modified();
 	notify_gfit_modified();
 }
 

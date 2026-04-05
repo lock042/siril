@@ -488,6 +488,15 @@ void notify_gfit_data_modified() {
 		// Skip expensive pixel work mid-script; display is flushed at script end.
 		if (com.script && !com.python_script)
 			return;
+		/* Do not remap if a job on the worker thread is currently writing gfit.
+		 * The worker calls this function itself from within generic_image_worker,
+		 * so we must allow that path through — hence the processing_in_worker_thread()
+		 * exemption.  Any other caller that arrives while a job is active (e.g. a
+		 * GTK slider callback during a Python script command) would race against the
+		 * worker reading/writing gfit pixel data.  The job's own call, and the
+		 * subsequent end_gfit_operation idle, will update the display correctly. */
+		if (!processing_in_worker_thread() && processing_is_job_active())
+			return;
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);

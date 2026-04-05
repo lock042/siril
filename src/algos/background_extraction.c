@@ -35,6 +35,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "io/sequence.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
@@ -898,6 +899,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 				g_mutex_unlock(&bgsamples_mutex);
 			}
 			free(args);
+			notify_gfit_data_modified();
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
 		}
@@ -927,6 +929,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		com.grad_samples = NULL;
 		g_mutex_unlock(&bgsamples_mutex);
 	}
+	notify_gfit_data_modified();
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
@@ -1067,6 +1070,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			}
 			cfachans_cleanup(cfachans);
 			free(args);
+			notify_gfit_data_modified();
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
 		}
@@ -1096,6 +1100,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		com.grad_samples = NULL;
 		g_mutex_unlock(&bgsamples_mutex);
 	}
+	notify_gfit_data_modified();
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }

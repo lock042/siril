@@ -179,6 +179,7 @@ void cancel_pending_update() {
 void siril_preview_hide() {
 	copy_backup_to_gfit();
 	clear_backup();
+	notify_gfit_data_modified();  // remap Cairo buffers to the restored image
 	notify_gfit_modified();
 }
 

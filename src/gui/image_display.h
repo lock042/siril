@@ -22,7 +22,6 @@ void remap_all();
 /* Invalidate gfit stats/histogram and, if on the GTK main thread, also remap
  * the Cairo buffers.  Safe to call from any thread; non-main-thread callers
  * have the remap deferred to end_gfit_operation(). */
-void notify_gfit_data_modified();
 void redraw(remap_type doremap);	// redraw the image
 void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
