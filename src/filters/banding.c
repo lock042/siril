@@ -112,7 +112,7 @@ static gboolean banding_single_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	// Free using the generic cleanup which will call the destructor
@@ -448,7 +448,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	double amount, invsigma;
 	gboolean protect_highlights;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

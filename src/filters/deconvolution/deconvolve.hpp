@@ -28,7 +28,7 @@
 #include "fft.hpp"
 #include "utils.hpp"
 #include "core/siril.h"
-#include "core/processing.h" // for get_thread_run()
+#include "core/processing.h" // for processing_should_continue()
 #include "core/siril_log.h" // for siril_log_message()
 #include "gui/progress_and_log.h" // for set_progress_bar_data()
 
@@ -99,7 +99,7 @@ namespace deconvolve {
         est.map(f);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            if (!get_thread_run())
+            if (!processing_should_continue())
                 continue;
             img_t<T> w(f.w, f.h, f.d);
             w.map(img::real(est));
@@ -194,7 +194,7 @@ namespace deconvolve {
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            if (!get_thread_run())
+            if (!processing_should_continue())
                 continue;
             // Regularization calcs
             w.map(x);
@@ -273,7 +273,7 @@ namespace deconvolve {
         f_ft.map(f);
         f_ft.fft(f_ft);
 
-        if (!get_thread_run())
+        if (!processing_should_continue())
             return;
 
         img_t<std::complex<T>> dx_otf(f.w, f.h, f.d);
@@ -286,7 +286,7 @@ namespace deconvolve {
         }
         dx_otf.fft(dx_otf);
 
-        if (!get_thread_run())
+        if (!processing_should_continue())
             return;
 
         img_t<std::complex<T>> dy_otf(f.w, f.h, f.d);
@@ -299,7 +299,7 @@ namespace deconvolve {
         }
         dy_otf.fft(dy_otf);
 
-        if (!get_thread_run())
+        if (!processing_should_continue())
             return;
 
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
@@ -307,7 +307,7 @@ namespace deconvolve {
         K_otf.map(K_otf * std::complex<T>(K.d) / K.sum());
         K_otf.fft(K_otf);
 
-        if (!get_thread_run())
+        if (!processing_should_continue())
             return;
 
         auto Kf = img::conj(K_otf) * f_ft;
@@ -322,13 +322,13 @@ namespace deconvolve {
         img_t<std::complex<T>> w1_ft(f.w, f.h, f.d);
         img_t<std::complex<T>> x_ft(f.w, f.h, f.d);
         while (beta < max_beta) {
-            if (!get_thread_run())
+            if (!processing_should_continue())
                 break;
             T gamma = beta / lambda;
             auto denom = ksq + gamma * dxdysq;
 
             for (int inner = 0; inner < iters; inner++) {
-                if (!get_thread_run())
+                if (!processing_should_continue())
                     break;
                 auto grad = gradient.direct(x);
                 w.map(grad * (T(1) - T(1) / (img::max(T(1), beta * img::hypot(grad)))));

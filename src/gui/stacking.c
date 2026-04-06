@@ -122,7 +122,7 @@ static void start_stacking() {
 		force32b = GTK_TOGGLE_BUTTON(lookup_widget("check_force32b"));
 	}
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

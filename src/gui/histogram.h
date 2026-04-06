@@ -54,6 +54,7 @@ gboolean ght_single_image_idle(gpointer p);
 
 void histo_change_between_roi_and_image();
 void update_gfit_histogram_if_needed();
+void refresh_histogram_if_visible();
 void apply_histo_cancel();
 void toggle_histogram_window_visibility(int _invocation);
 

@@ -339,7 +339,7 @@ int savebmp(const char *name, fits *fit) {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
 		}
-		gboolean threaded = !get_thread_run();
+		gboolean threaded = !processing_in_worker_thread();
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
 		cmsUInt32Number data_format_size = gfit->type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 		cmsUInt32Number bytesperline = gfit->rx * data_format_size;
@@ -694,7 +694,7 @@ static int saveppm(const char *name, fits *fit) {
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
-		gboolean threaded = !get_thread_run();
+		gboolean threaded = !processing_in_worker_thread();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
@@ -767,7 +767,7 @@ static int savepgm(const char *name, fits *fit) {
 		} else {
 			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
 		}
-		gboolean threaded = get_thread_run();
+		gboolean threaded = processing_in_worker_thread();
 		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
 		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
 		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);

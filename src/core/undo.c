@@ -530,8 +530,10 @@ int undo_display_data(int dir) {
 			refresh_annotations(TRUE);
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
 			redraw_mask_idle(NULL);
-			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+			if (!com.pref.gui.mask_tints_vports) {// redraw() is called in redraw_mask_idle if this is TRUE
+				notify_gfit_data_modified();
 				redraw(REMAP_ALL);
+			}
 			if (preview_was_active) {
 				copy_gfit_to_backup();
 				siril_log_message(_("Following undo / redo with a preview active you may need "
@@ -573,8 +575,10 @@ int undo_display_data(int dir) {
 			unlock_display_transform();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
 			redraw_mask_idle(NULL);
-			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
+				notify_gfit_data_modified();
 				redraw(REMAP_ALL);
+			}
 			if (preview_was_active)
 				copy_gfit_to_backup();
 			if (roi_was_active) {

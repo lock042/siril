@@ -1421,7 +1421,7 @@ void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_da
 }
 
 static void apply_pixel_math() {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

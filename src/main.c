@@ -67,6 +67,7 @@
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
+#include "core/processing_thread.h"
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
@@ -295,6 +296,9 @@ static void global_initialization() {
 	gui.use_hd_remap = FALSE;
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
+
+	siril_debug_print("Initializing processing thread...\n");
+	processing_system_init();
 
 	initialize_default_settings();	// com.pref
 #ifdef HAVE_FFTW3F_MULTITHREAD
@@ -740,6 +744,10 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	// Shut down the processing thread
+	processing_system_shutdown();
+
 #ifdef HAVE_LIBGIT2
 	git_libgit2_shutdown();
 #endif

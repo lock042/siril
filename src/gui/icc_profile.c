@@ -342,7 +342,8 @@ FINISH:
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
-	notify_gfit_modified();
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
@@ -358,7 +359,8 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
 	set_source_information();
 	refresh_icc_transforms();
-	notify_gfit_modified();
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
 
 }
 
@@ -399,7 +401,8 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	refresh_icc_transforms();
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
-	notify_gfit_modified();
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
 }
 
 void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
@@ -768,7 +771,9 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 		gui.rendering_mode = prior_rendering_mode;
 		set_display_mode();
 	}
-	if (mode_changed)
+	if (mode_changed) {
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
+	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
 }

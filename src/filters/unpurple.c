@@ -239,7 +239,7 @@ gboolean unpurple_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	// Free using the generic cleanup which will call the destructor
 	free_generic_img_args(args);
@@ -251,7 +251,7 @@ gboolean unpurple_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	// Free using the generic cleanup which will call the destructor
 	free_generic_img_args(args);

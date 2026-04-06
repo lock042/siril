@@ -458,23 +458,6 @@ int process_unclip(int nb) {
 	return CMD_OK;
 }
 
-// TODO: check this against the new denoise idles
-/*
-static gboolean end_denoise(gpointer p) {
-	stop_processing_thread();
-	struct denoise_args *args = (struct denoise_args *) p;
-	if (!args->previewing) {
-		copy_gfit_to_backup();
-		populate_roi();
-	}
-	notify_gfit_modified();
-	queue_redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-	free(args);
-	return FALSE;
-}*/
-
 gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	denoise_args *args = (denoise_args *) p;
 
@@ -2151,7 +2134,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK;
 }
 
@@ -2199,7 +2182,7 @@ gboolean estimate_only_cmd_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 
 	// PSF estimation doesn't modify gfit directly, but may update the kernel
-	// No need to notify_gfit_modified() here
+	// No need to gfit_modified_update_gui() here
 
 	// Free using the generic cleanup which will call the destructor
 	free_generic_img_args(args);
@@ -2224,7 +2207,7 @@ int process_makepsf(int nb) {
 
 	char *arg_1 = word[1];
 	if (!g_strcmp0(arg_1, "clear")) {
-		if (get_thread_run()) {
+		if (processing_is_job_active()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
 			goto terminate_makepsf;
@@ -3278,7 +3261,7 @@ int process_wrecons(int nb) {
 		g_free(dir[i]);
 	}
 	siril_log_message(_("Wavelet reconstruction\n"));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -4086,7 +4069,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(gfit);
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -4114,7 +4097,7 @@ int process_linear_match(int nb) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(gfit, a, b);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
@@ -8051,7 +8034,7 @@ int process_clear(int nb) {
 
 int process_clearstar(int nb){
 	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	queue_redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);
 	return CMD_OK;
@@ -14038,7 +14021,7 @@ int process_icc_assign(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 	return CMD_OK;
 }
@@ -14108,7 +14091,7 @@ int process_icc_convert_to(int nb) {
 		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	return CMD_OK;
 }
 
@@ -14117,7 +14100,7 @@ int process_icc_remove(int nb) {
 	siril_colorspace_transform(gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 	return CMD_OK;
 }
@@ -14411,7 +14394,7 @@ int process_eqcrop(int nb) {
 	if (retval)
 		return retval;
 
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	gui_function(crop_gui_updates, NULL);
 
 	return CMD_OK;

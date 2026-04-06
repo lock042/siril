@@ -392,6 +392,7 @@ void apply_to_img() {
 			set_cutoff_sliders_max_values();
 			set_cutoff_sliders_values();
 			set_display_mode();
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 			sequence_list_change_current();
 			set_cursor_waiting(FALSE);
