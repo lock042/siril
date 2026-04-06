@@ -52,10 +52,7 @@
 #include "pipe.h"
 #include "command_line_processor.h"
 #include "io/single_image.h"
-//#include "processing.h"
-	void stop_processing_thread();	// avoid including everything
-	gpointer waiting_for_thread();
-	gboolean get_thread_run();
+#include "core/processing_thread.h"
 #include "gui/progress_and_log.h"
 
 #ifdef _WIN32
@@ -265,7 +262,7 @@ int enqueue_command(char *command) {
 	if (!strncmp(command, "cancel", 6))
 		return 1;
 	if (!strcmp(command, "ping")) {
-		if (get_thread_run())
+		if (processing_is_job_active())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 		else {
 			gchar *str = g_strdup_printf("%s\n", command);
@@ -362,7 +359,7 @@ void *read_pipe(void *p) {
 				CloseHandle(hPipe_r);
 				hPipe_r = INVALID_HANDLE_VALUE;
 				empty_command_queue();
-				if (get_thread_run()) {
+				if (processing_is_job_active()) {
 					stop_processing_thread();
 					pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 				}
@@ -449,7 +446,7 @@ void *read_pipe(void *p) {
 				pipe_fd_r = -1;
 				if (read_return == PIPE_READ_ERROR) {
 					empty_command_queue();
-					if (get_thread_run()) {
+					if (processing_is_job_active()) {
 						stop_processing_thread();
 						pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 					}

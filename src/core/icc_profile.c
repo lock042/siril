@@ -1217,7 +1217,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number srctype, desttype;
 	size_t npixels = fit->rx * fit->ry;
 	// convert from fit->icc_profile to profile
-	gboolean threaded = !get_thread_run();
+	gboolean threaded = !processing_in_worker_thread();
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.export_intent, com.icc.rendering_flags);

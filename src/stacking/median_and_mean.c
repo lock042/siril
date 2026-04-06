@@ -107,7 +107,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 					drizzle = FALSE;
 				}
 			}
-			if (!get_thread_run())
+			if (!processing_should_continue())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
 				set_progress_bar_data(NULL, PROGRESS_PULSATE);
@@ -400,7 +400,7 @@ static int stack_read_block_data(struct stacking_args *args,
 		}
 		rectangle area = {0, my_block->start_row, rx, my_block->height};
 
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			return ST_CANCEL;
 
 		if (args->reglayer >= 0) {
@@ -1529,7 +1529,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		guint64 brej[2] = {0, 0}; // rejection counts for the block
 		long x, y;
 
-		if (!get_thread_run()) retval = ST_CANCEL;
+		if (!processing_should_continue()) retval = ST_CANCEL;
 		if (retval) continue;
 #ifdef _OPENMP
 		data_idx = omp_get_thread_num();
@@ -1571,7 +1571,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			// update progress bar
 			g_atomic_int_inc(&cur_nb);
 
-			if (!get_thread_run()) {
+			if (!processing_should_continue()) {
 				retval = ST_CANCEL;
 				break;
 			}

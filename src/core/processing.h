@@ -235,6 +235,13 @@ void check_python_flag();
 
 void kill_all_python_scripts(); // Used to prepare for resetting the venv
 
+/*
+ * processing_should_continue() — FOR USE INSIDE WORKER FUNCTIONS ONLY.
+ * Returns TRUE when no cancellation has been requested; FALSE when it has.
+ * Declared here (not in processing_thread.h) so only worker-facing code sees it.
+ */
+gboolean processing_should_continue (void);
+
 gboolean get_script_thread_run();
 void wait_for_script_thread();
 

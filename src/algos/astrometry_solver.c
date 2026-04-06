@@ -61,8 +61,8 @@
 #define TRANS_SANITY_CHECK 0.1 // TRANS sanity check to validate the first TRANS structure
 #define NB_GRID_POINTS 7 // the number of points in one direction to create the X,Y meshgrid for inverse polynomial fiiting
 
-#define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->ret = SOLVE_CANCELLED; goto clearup;}
-#define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
+#define CHECK_FOR_CANCELLATION_RET if (!processing_should_continue()) { args->ret = SOLVE_CANCELLED; goto clearup;}
+#define CHECK_FOR_CANCELLATION if (!processing_should_continue()) { ret = SOLVE_CANCELLED; goto clearup; }
 
 #undef DEBUG		/* get some of diagnostic output */
 #define ASTROMETRY_DEBUG 0
@@ -1137,7 +1137,7 @@ clearup:
 static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	near_solve_data *nswdata = (near_solve_data *)data;
 	int n = g_atomic_int_add(&nswdata->progress, 1) + 1; // g_atomic_int_add returns the atomic before the add
-	if (!get_thread_run() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
+	if (!processing_should_continue() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
 		return;
 	}
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
@@ -1281,7 +1281,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	} else if (com.pref.astrometry.max_seconds_run > 0) {// we have a time-out specified
 		guint64 timer = 0;
 		guint64 timeout = com.pref.astrometry.max_seconds_run * G_TIME_SPAN_SECOND;
-		while (get_thread_run() && !nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
+		while (processing_should_continue() && !nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
 			g_usleep(G_TIME_SPAN_SECOND);
 			timer += G_TIME_SPAN_SECOND;
 		}

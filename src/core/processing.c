@@ -219,7 +219,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		rectangle area = { .x = args->area.x, .y = args->area.y,
 			.w = args->area.w, .h = args->area.h };
 
-		if (!get_thread_run()) {
+		if (!processing_should_continue()) {
 			abort = 1;
 			continue;
 		}

@@ -496,7 +496,7 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
 
     // alternate between estimating k and u, while decreasing lambda
     for (int i = 0; i < opts.iterations; i++) {
-        if (!get_thread_run())
+        if (!processing_should_continue())
             break;
         if (opts.verbose) {
             printf("Iteration %d/%d: lambda=%f\n", i+1, opts.iterations, opts.lambda);

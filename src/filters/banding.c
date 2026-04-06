@@ -448,7 +448,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	double amount, invsigma;
 	gboolean protect_highlights;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

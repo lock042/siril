@@ -156,7 +156,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	set_cursor_waiting(TRUE);
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

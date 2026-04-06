@@ -45,7 +45,7 @@ static GPrivate  worker_tls = G_PRIVATE_INIT(NULL);
 /*
 * cancel_flag — atomic int, 1 when cancellation has been requested.
 * Cleared automatically at the start of each new job.
-* Polled via get_thread_run() inside worker functions.
+* Polled via processing_should_continue() inside worker functions.
 */
 static gint cancel_flag = 0;
 
@@ -355,7 +355,7 @@ void processing_request_cancel(void) {
 }
 
 /*
-* get_thread_run — FOR WORKER FUNCTIONS ONLY.
+* processing_should_continue — FOR WORKER FUNCTIONS ONLY.
 *
 * Returns TRUE  → no cancellation requested; keep processing frames.
 * Returns FALSE → cancellation was requested; abort the current job.
@@ -363,7 +363,7 @@ void processing_request_cancel(void) {
 * Do not use this to test whether a job is currently active from outside a
 * worker; use processing_is_job_active() for that purpose.
 */
-gboolean get_thread_run(void) {
+gboolean processing_should_continue(void) {
 	return g_atomic_int_get(&cancel_flag) == 0;
 }
 
@@ -634,7 +634,7 @@ gboolean reserve_thread(void) {
 	* Also clears cancel_flag, mirroring what the worker does at the start of
 	* each queued job.  This matters for synchronous callers (compositing
 	* alignment, etc.) that call generic_sequence_worker directly with
-	* already_in_a_thread=TRUE: those use get_thread_run() to poll for abort,
+	* already_in_a_thread=TRUE: those use processing_should_continue() to poll for abort,
 	* so a stale cancel_flag left by a previous stop_processing_thread() call
 	* would cause them to terminate immediately on the first frame.
 	*/

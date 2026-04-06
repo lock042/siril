@@ -2333,7 +2333,7 @@ void gtk_main_quit() {
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
 	// Don't call processing_system_shutdown(); the user wants to quit the program so we do so immediately
-	// whereas processing_system_shutdown() will wait for the next call to get_thread_run()
+	// whereas processing_system_shutdown() will wait for the next call to processing_should_continue()
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	writeinitfile();		// save settings (like window positions)
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins

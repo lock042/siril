@@ -322,7 +322,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	double amount = gtk_range_get_value(
 			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

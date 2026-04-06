@@ -321,7 +321,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			continue;
 		rectangle area = { 0 };
 		double flux[3] = { 0.0, 0.0, 0.0 };
@@ -641,7 +641,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
 #endif
 	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			continue;
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
@@ -704,7 +704,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	if (transform)
 		cmsDeleteTransform(transform);
 	free(ps);
-	if (!get_thread_run()) {
+	if (!processing_should_continue()) {
 		free(data[RLAYER]);
 		free(data[GLAYER]);
 		free(data[BLAYER]);

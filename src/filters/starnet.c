@@ -76,7 +76,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
-	if (!get_thread_run()) {
+	if (!processing_should_continue()) {
 		return 1;
 	}
 	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
@@ -92,7 +92,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// At this point, remove the processing thread from the list of children and replace it
 	// with the starnet process. This avoids tracking two children for the same task.
-	if (get_thread_run())
+	if (processing_should_continue())
 		remove_child_from_children((GPid) -2);
 
 	// Add the Starnet child to the list of child processes
@@ -737,7 +737,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Save workingfit as starless stretched image fits
 	update_filter_information(&workingfit, "Starless", TRUE);
-	if ((!args->multi_args) && get_thread_run()) { // sequence worker will handle saving this in the sequence
+	if ((!args->multi_args) && processing_should_continue()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
@@ -766,7 +766,7 @@ gpointer do_starnet(gpointer p) {
 		}
 
 		// Save fit as starmask fits
-		if (get_thread_run()) {
+		if (processing_should_continue()) {
 			if ((!args->multi_args)) {
 				retval = savefits(starmaskfit, &fit);
 				if (retval) {

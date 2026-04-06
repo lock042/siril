@@ -579,7 +579,7 @@ static gboolean end_convert(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
 
-	if (!args->retval && get_thread_run() && args->nb_converted_files > 0) {
+	if (!args->retval && processing_should_continue() && args->nb_converted_files > 0) {
 		// load the sequence unless it's in another directory
 		char *converted_seqname = NULL;
 		if (!string_is_a_path(args->destroot)) {
@@ -713,7 +713,7 @@ gpointer convert_thread_worker(gpointer p) {
 			open_next_input_seq(&convert);
 		}
 		// reader is freed elsewhere
-	} while (get_thread_run());
+	} while (processing_should_continue());
 	siril_debug_print("conversion scheduling loop finished, waiting for first read task to signal\n");
 	g_mutex_lock(&args->pool_mutex);
 	while (convert.first <= 0) {
@@ -1076,7 +1076,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (rwdata->writer->have_seqwriter)
 		seqwriter_wait_for_memory();
 
-	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
+	if (!processing_should_continue() || g_atomic_int_get(&conv->fatal_error)) {
 		handle_error(rwdata);
 		signal_memory_limit(conv);
 		return;
@@ -1116,7 +1116,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	}
 	readjust_memory_limits(conv, fit);
 
-	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
+	if (!processing_should_continue() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
 		free(fit);

@@ -566,7 +566,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	static GtkToggleButton *order = NULL;
 	static GtkNotebook* notebookFFT = NULL;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

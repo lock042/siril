@@ -14,11 +14,10 @@
  *    This makes the "one command must finish before the next can start"
  *    guarantee in execute_script automatic, without needing an external join.
  *
- * 3. Cancellation is a separate signal (processing_request_cancel / get_thread_run)
- *    and is distinct from "is a job active?" (processing_is_job_active).
- *    Call sites that previously used get_thread_run() for "is something running?"
- *    should migrate to processing_is_job_active(); get_thread_run() is kept for
- *    the cancel-poll semantics used inside worker functions.
+ * 3. Cancellation is a separate signal (processing_request_cancel /
+ *    processing_should_continue) and is distinct from "is a job active?"
+ *    (processing_is_job_active).  processing_should_continue() is declared in
+ *    processing.h (not here) so only worker-facing code sees it.
  *
  * 4. stop_processing_thread() only does child-list cleanup and cursor reset.
  *    (Eventually cursor reset should probably go into the generic idle as well, but
@@ -111,18 +110,19 @@ void processing_wait_for_job (ProcessingJob *job);
  * Cancellation
  * --------------------------------------------------------------------------
  *
- * processing_request_cancel() sets the cancel flag polled by get_thread_run().
- * The flag is automatically cleared when the next job starts.
+ * processing_request_cancel() sets the cancel flag polled by
+ * processing_should_continue().  The flag is automatically cleared when the
+ * next job starts.
  *
- * get_thread_run()  — FOR USE INSIDE WORKER FUNCTIONS ONLY.
+ * processing_should_continue()  — FOR USE INSIDE WORKER FUNCTIONS ONLY.
  *   Returns TRUE → keep running.  Returns FALSE → cancellation was requested.
- *   (This is the old "com.run_thread" semantics for the abort-check loop
- *    inside generic_sequence_worker etc.)
+ *   Declared in processing.h rather than here so that only worker-facing code
+ *   can see it.
  *
  * processing_is_job_active()  — FOR EXTERNAL CALLERS.
  *   Returns TRUE while a job is executing or the slot has been reserved.
- *   Replaces the "is something running?" use of get_thread_run() in
- *   processcommand's wait loop and GUI button-sensitivity checks.
+ *   Use this (not processing_should_continue()) for "is something running?"
+ *   checks in GUI button-sensitivity callbacks and pre-command guard clauses.
  *
  * cancel_and_wait_for_preview()  — FOR GUI PREVIEW CANCEL PATHS ONLY.
  *   Sets the cancel flag, then pumps the GTK main loop until the active job
@@ -132,7 +132,6 @@ void processing_wait_for_job (ProcessingJob *job);
  *   execute_idle_and_wait_for_it — those would deadlock.
  */
 void     processing_request_cancel (void);
-gboolean get_thread_run (void);
 gboolean processing_is_job_active (void);
 void     cancel_and_wait_for_preview (void);
 
@@ -226,7 +225,7 @@ void stop_processing_thread (void);
  *
  * Compatibility shim:
  *   b = FALSE → processing_request_cancel()
- *   b = TRUE  → no-op (job_active is managed internally)
+ *   b = TRUE  → no-op (job_active_flag is managed internally)
  */
 void set_thread_run (gboolean b);
 

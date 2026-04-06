@@ -2207,7 +2207,7 @@ int process_makepsf(int nb) {
 
 	char *arg_1 = word[1];
 	if (!g_strcmp0(arg_1, "clear")) {
-		if (get_thread_run()) {
+		if (processing_is_job_active()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
 			goto terminate_makepsf;

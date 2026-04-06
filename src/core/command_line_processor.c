@@ -572,7 +572,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return CMD_NOT_FOUND;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
+		if (processing_is_job_active() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return CMD_THREAD_RUNNING;
 		}

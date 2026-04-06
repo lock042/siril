@@ -466,7 +466,7 @@ int generate_synthstars(fits *fit) {
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			stopcalled = TRUE;
 		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
 		if (!stopcalled) {
@@ -727,7 +727,7 @@ int reprofile_saturated_stars(fits *fit) {
 		double total = fit->naxes[2] * nb_stars;
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
-			if (!get_thread_run())
+			if (!processing_should_continue())
 				stopcalled = TRUE;
 			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
 			if (stars[n]->has_saturated && !stopcalled) {

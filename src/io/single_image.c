@@ -279,7 +279,7 @@ int open_single_image(const char* filename) {
 	/* Check we aren't running a processing thread otherwise it will clobber gfit
 	 * when it finishes and cause a segfault.
 	 */
-	if ((retval = get_thread_run())) {
+	if ((retval = processing_is_job_active())) {
 		siril_log_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
 	}
 
