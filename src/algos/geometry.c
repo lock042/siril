@@ -1871,6 +1871,7 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		com.selection = (rectangle){ _sx, _sy, gfit->rx, gfit->ry };
 		gui_function(new_selection_zone, NULL);
 	}
+	notify_gfit_data_modified();
 	update_zoom_label();
 	return retval;
 }
