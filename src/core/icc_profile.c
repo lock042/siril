@@ -1325,6 +1325,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 		if (fit == gfit && !com.headless) {
 			set_source_information();
 			refresh_icc_transforms();
+			notify_gfit_data_modified();
 			notify_gfit_modified();
 		}
 		set_cursor_waiting(FALSE);
@@ -1357,6 +1358,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 	if (fit == gfit) {
 		set_source_information();
 		refresh_icc_transforms();
+		notify_gfit_data_modified();
 		notify_gfit_modified();
 	}
 	set_cursor_waiting(FALSE);

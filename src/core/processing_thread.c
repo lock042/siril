@@ -630,8 +630,18 @@ gboolean reserve_thread(void) {
 	/*
 	* Atomically claim the active slot for a short synchronous operation.
 	* Returns FALSE if already active (another job or reservation in progress).
+	*
+	* Also clears cancel_flag, mirroring what the worker does at the start of
+	* each queued job.  This matters for synchronous callers (compositing
+	* alignment, etc.) that call generic_sequence_worker directly with
+	* already_in_a_thread=TRUE: those use get_thread_run() to poll for abort,
+	* so a stale cancel_flag left by a previous stop_processing_thread() call
+	* would cause them to terminate immediately on the first frame.
 	*/
-	return g_atomic_int_compare_and_exchange(&job_active_flag, 0, 1);
+	if (!g_atomic_int_compare_and_exchange(&job_active_flag, 0, 1))
+		return FALSE;
+	g_atomic_int_set(&cancel_flag, 0);
+	return TRUE;
 }
 
 void unreserve_thread(void) {

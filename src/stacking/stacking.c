@@ -504,6 +504,7 @@ static gboolean end_stacking(gpointer p) {
 		sliders_mode_set_state(gui.sliders);
 		set_cutoff_sliders_max_values();
 		set_sliders_value_to_gfit();
+		notify_gfit_data_modified();
 		notify_gfit_modified();	// computes min and max
 
 		set_display_mode();

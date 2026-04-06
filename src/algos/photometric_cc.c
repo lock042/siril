@@ -1003,6 +1003,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 			siril_log_color_message(_("Spectrophotometric Color Calibration succeeded.\n"), "green");
 		else
 			siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
+		notify_gfit_data_modified();
 		notify_gfit_modified();
 	}
 	else siril_add_idle(end_generic, NULL);
