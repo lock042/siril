@@ -343,7 +343,7 @@ FINISH:
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
@@ -360,7 +360,7 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	set_source_information();
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 
 }
 
@@ -402,7 +402,7 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	gui_function(close_tab, NULL);
 	gui_function(init_right_tab, NULL);
 	notify_gfit_data_modified();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {

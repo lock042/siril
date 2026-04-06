@@ -207,7 +207,7 @@ int execute_command(int wordnb) {
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
 		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		} else {
 			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
@@ -274,7 +274,7 @@ static gboolean end_script(gpointer p) {
 	clear_status_bar();
 	gui_function(set_GUI_CWD, NULL);
 	gui_function(update_MenuItem, NULL);
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	gui_function(redraw_previews, NULL);
 	update_zoom_label();
 	update_display_fwhm();

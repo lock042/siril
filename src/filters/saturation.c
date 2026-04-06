@@ -189,7 +189,7 @@ static gboolean satu_preview_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -200,7 +200,7 @@ static gboolean satu_apply_idle(gpointer p) {
 	stop_processing_thread();
 	populate_roi();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	clear_backup();
@@ -283,7 +283,7 @@ static void satu_close(gboolean revert) {
 	if (revert) {
 		if (satu_amount != 0.0) {
 			copy_backup_to_gfit();
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	}
 	roi_supported(FALSE);
@@ -356,7 +356,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 		set_cursor_waiting(FALSE);
 	}
 }

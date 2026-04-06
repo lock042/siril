@@ -228,7 +228,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		hist_sat_backup = NULL;
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	}
 	// free data
@@ -1087,7 +1087,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 		queue_window_redraw();
 
 		// Notify that gfit was modified
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 		// If this was a final apply (not preview), clear backups and reinitialize
 		if (!data->is_preview) {
@@ -1124,7 +1124,7 @@ gboolean ght_single_image_idle(gpointer p) {
 		queue_window_redraw();
 
 		// Notify that gfit was modified
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 		// If this was a final apply (not preview), clear backups and reinitialize
 		if (!data->is_preview) {

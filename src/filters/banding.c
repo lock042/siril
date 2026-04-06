@@ -112,7 +112,7 @@ static gboolean banding_single_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	// Free using the generic cleanup which will call the destructor

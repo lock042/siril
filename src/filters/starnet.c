@@ -1009,7 +1009,7 @@ gboolean starnet_single_image_idle(gpointer p) {
 			params->customstride ? params->stride : _("default"));
 		g_free(undo_msg);
 
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	// Free using the generic cleanup which will call the destructor

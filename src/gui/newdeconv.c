@@ -639,7 +639,7 @@ void deconv_roi_callback() {
 	gtk_widget_set_visible(GTK_WIDGET(bdeconv_roi_preview), gui.roi.active);
 	// When operations are clicked, bdeconv_fill_estk_from_gui will check gui.roi.active.
 	copy_backup_to_gfit();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 void close_deconv() {
@@ -755,7 +755,7 @@ gboolean deconvolve_img_idle(gpointer arg) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 
 	if (bdeconv_psfprevious) {
 		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);

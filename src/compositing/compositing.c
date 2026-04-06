@@ -1732,7 +1732,7 @@ static void update_result(int and_refresh) {
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 }
 

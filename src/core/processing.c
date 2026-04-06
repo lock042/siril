@@ -1381,7 +1381,7 @@ gboolean end_generic_mask(gpointer p) {
 static gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	if (gfit->mask)
 		queue_redraw_mask();
 	free_generic_img_args(args);

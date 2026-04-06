@@ -220,7 +220,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	if (revert_icc_profile && !single_image_stretch_applied) {
@@ -476,7 +476,7 @@ gboolean curve_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -491,7 +491,7 @@ gboolean curve_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;

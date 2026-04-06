@@ -156,7 +156,7 @@ static void unpurple_close(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	} else {
 		invalidate_stats_from_fit(gfit);
 	}

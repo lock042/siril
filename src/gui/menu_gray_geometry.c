@@ -50,7 +50,7 @@ static gboolean rotation_idle(gpointer p) {
 
 		update_zoom_label();
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -131,7 +131,7 @@ static gboolean fast_rotation_idle(gpointer p)
     struct generic_img_args *args = (struct generic_img_args *)p;
 
     if (args->retval == 0) {
-        notify_gfit_modified();   /* resets viewport, remaps, redraws,
+        gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
                                      refreshes previews — all in one call  */
         update_zoom_label();      /* reads the now-correct zoom state       */
     }
@@ -273,7 +273,7 @@ static gboolean mirror_idle(gpointer p) {
 	if (args->retval == 0) {
 		notify_gfit_data_modified();
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -382,7 +382,7 @@ static gboolean binning_idle(gpointer p) {
 
 	if (args->retval == 0) {
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -460,7 +460,7 @@ static gboolean resample_idle(gpointer p) {
 
 	if (args->retval == 0) {
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -662,7 +662,7 @@ static gboolean crop_idle(gpointer p) {
 		reset_display_offset();
 		update_zoom_label();
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
 			queue_redraw_mask();

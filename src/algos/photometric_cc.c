@@ -1004,7 +1004,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		else
 			siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);

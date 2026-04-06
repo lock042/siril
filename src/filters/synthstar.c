@@ -626,7 +626,7 @@ int generate_synthstars(fits *fit) {
 	update_filter_information(fit, "StarMask", TRUE);
 	if (fit == gfit && !stopcalled) {
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
@@ -814,7 +814,7 @@ int reprofile_saturated_stars(fits *fit) {
 
 	if (fit == gfit && !stopcalled) {
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");

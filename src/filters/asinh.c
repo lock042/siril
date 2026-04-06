@@ -40,7 +40,7 @@ static gboolean asinh_preview_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -53,7 +53,7 @@ static gboolean asinh_apply_idle(gpointer p) {
 	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -150,7 +150,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	} else {
 		// Save undo state when applying (not reverting)

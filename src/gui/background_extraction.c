@@ -100,7 +100,7 @@ gboolean end_background(gpointer p) {
 	stop_processing_thread();
 	if (args) {
 		background_computed = TRUE;
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 		free(args);
@@ -289,7 +289,7 @@ void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event,
 	copy_gfit_to_bkg_backup();
 	copy_backup_to_gfit();
 	notify_gfit_data_modified();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
@@ -305,7 +305,7 @@ void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *even
 	copy_bkg_backup_to_gfit();
 	clearfits(&background_backup);
 	notify_gfit_data_modified();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {

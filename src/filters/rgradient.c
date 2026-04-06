@@ -208,7 +208,7 @@ gboolean rgradient_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;

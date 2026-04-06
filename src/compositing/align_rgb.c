@@ -159,7 +159,7 @@ int rgb_align(int m) {
 	} else {
 		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 		notify_gfit_data_modified();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	siril_log_message(_("Aligned RGB channels\n"));
 	set_cursor_waiting(FALSE);

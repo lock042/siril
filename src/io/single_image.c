@@ -461,7 +461,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 
 /* to be called after each operation that modifies the content of gfit, at the
  * end of a processing operation, not for previews */
-void notify_gfit_modified() {
+void gfit_modified_update_gui() {
 	siril_debug_print("end of gfit operation\n");
 	gui_function(end_gfit_operation, NULL);
 }
