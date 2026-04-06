@@ -450,8 +450,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 // idle function executed at the end of the Cosmetic Correction processing
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	gfit_modified_update_gui();
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
@@ -927,7 +926,7 @@ gboolean cosme_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	// Free using the generic cleanup which will call the destructor

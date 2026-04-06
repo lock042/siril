@@ -86,6 +86,7 @@ src_files = [
   'core/pipe.c',
   'core/preprocess.c',
   'core/processing.c',
+  'core/processing_thread.c',
   'core/sequence_filtering.c',
   'core/settings.c',
   'core/signals.c',

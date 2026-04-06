@@ -417,7 +417,7 @@ int processNlBayes(
 	unsigned lastupdate = 0;
 	float offset = 0;
 	for (unsigned ij = 0; ij < p_imSize.wh; ij += p_params.offSet) {
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			return 1;
 		//! Only non-seen patches are processed
 		if (mask[ij]) {

@@ -106,7 +106,7 @@ int process_bgnoise(int nb);
 
 // called by the GUI, uses the processing thread
 void evaluate_noise_in_image() {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

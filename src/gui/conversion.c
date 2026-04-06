@@ -100,7 +100,7 @@ static void initialize_convert() {
 
 	init_widgets();
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

@@ -40,7 +40,7 @@ static gboolean asinh_preview_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -53,7 +53,7 @@ static gboolean asinh_apply_idle(gpointer p) {
 	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -150,7 +150,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	} else {
 		// Save undo state when applying (not reverting)
@@ -583,7 +583,7 @@ void on_asinh_parameter_changed(GtkWidget *widget, gpointer user_data) {
 void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(button)) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

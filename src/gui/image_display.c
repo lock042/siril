@@ -69,7 +69,7 @@ static display_mode last_mode;
 
 /* STF (auto-stretch) data */
 static gboolean stf_computed = FALSE; // Flag to know if STF parameters are available
-struct mtf_params stf[3];
+static struct mtf_params stf[3];
 
 /* widgets for draw_reg_data*/
 GtkComboBox *seqcombo;
@@ -84,6 +84,7 @@ static GtkSpinButton *tri_cut_spin_step = NULL;
 static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
+	g_mutex_lock(&gui.cairo_mutex);
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx);
 
 	// allocate the image surface if not already done or the same size
@@ -91,16 +92,26 @@ static int allocate_full_surface(struct image_view *view) {
 				|| gfit->ry != view->full_surface_height
 				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
-		view->full_surface_stride = stride;
-		view->full_surface_height = gfit->ry;
+
 		guchar *tmp = realloc(view->buf, stride * gfit->ry * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
-			if (view->buf)
-				free(view->buf);
+			free(view->buf);
+			view->buf = NULL;
+			if (view->full_surface) {
+				cairo_surface_destroy(view->full_surface);
+				view->full_surface = NULL;
+			}
+			view->full_surface_stride = 0;
+			view->full_surface_height = 0;
+			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 		view->buf = tmp;
+		// Only update dimension fields once the allocation succeeded
+		view->full_surface_stride = stride;
+		view->full_surface_height = gfit->ry;
+
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
@@ -109,9 +120,15 @@ static int allocate_full_surface(struct image_view *view) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
 			view->full_surface = NULL;
+			free(view->buf);
+			view->buf = NULL;
+			view->full_surface_stride = 0;
+			view->full_surface_height = 0;
+			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	return 0;
 }
 
@@ -135,13 +152,16 @@ static void remaprgb(void) {
 	if (allocate_full_surface(rgbview))
 		return;
 
-	// WARNING : this assumes that R, G and B buffers are already allocated and mapped
-	// it seems ok, but one can probably imagine situations where it segfaults
+	// Source pointers are captured inside the lock to avoid a race with a
+	// concurrent allocate_full_surface() realloc between its internal unlock
+	// and the lock acquisition below.
+	g_mutex_lock(&gui.cairo_mutex);
 	bufr = (const guint32*) gui.view[RED_VPORT].buf;
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
 	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
 	if (bufr == NULL || bufg == NULL || bufb == NULL) {
 		siril_debug_print("remaprgb: gray buffers not allocated for display\n");
+		g_mutex_unlock(&gui.cairo_mutex);
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
@@ -154,9 +174,12 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-// flush to ensure all writing to the image was done and redraw the surface
+	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
 	invalidate_image_render_cache(RGB_VPORT);
 }
 
@@ -171,6 +194,7 @@ void allocate_hd_remap_indices() {
 			gui.use_hd_remap = FALSE;
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("autohd_item")), FALSE);
 			hd_remap_indices_cleanup();
+			return;
 		}
 	}
 }
@@ -198,6 +222,7 @@ static void remap_mask(mask_t *mask) {
 	if (allocate_full_surface(view))
 		return;
 
+	g_mutex_lock(&gui.cairo_mutex);
 	// Cairo setup
 	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
 	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
@@ -267,7 +292,7 @@ static void remap_mask(mask_t *mask) {
 					// Round & Clamp
 					uint8_t val = roundf_to_BYTE(v);
 
-					// 3. Pack to ARGB (Alpha unused)
+					// Pack to ARGB (Alpha unused)
 					dst_row[x] = (val << 16) | (val << 8) | val;
 				}
 			}
@@ -282,8 +307,24 @@ static void remap_mask(mask_t *mask) {
 
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
 	invalidate_image_render_cache(vport);
 	test_and_allocate_reference_image(vport);
+}
+
+/*
+ * Idle wrapper for set_viewer_mode_widgets_sensitive().
+ *
+ * remap() and remap_all_vports() may be called from a non-GTK thread
+ * (via notify_gfit_data_modified()).  Widget-sensitivity changes must only
+ * happen on the GTK main thread, so we dispatch them as idle callbacks.
+ * The gint value (0 or 1) is passed via GINT_TO_POINTER / GPOINTER_TO_INT.
+ */
+static gboolean viewer_mode_sensitive_idle(gpointer data) {
+	set_viewer_mode_widgets_sensitive(GPOINTER_TO_INT(data));
+	return G_SOURCE_REMOVE;
 }
 
 // remapping one vport at a time is used for DISPLAY_STF and DISPLAY_HISTEQ
@@ -308,12 +349,20 @@ static void remap(int vport) {
 	if (allocate_full_surface(view))
 		return;
 
+	/* Cache the GtkApplicationWindow and the two GAction pointers on first call.
+	 * g_action_map_lookup_action() is not thread-safe; caching here (initialised
+	 * from the GTK main thread on first image display) avoids calling it from
+	 * worker threads.  g_action_get_state() on a GSimpleAction is thread-safe
+	 * (atomic pointer read) and is therefore safe to call from any thread. */
 	static GtkApplicationWindow *app_win = NULL;
+	static GAction *action_neg_cached = NULL;
+	static GAction *action_color_cached = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
 	}
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *neg_state = g_action_get_state(action_neg);
+	GVariant *neg_state = g_action_get_state(action_neg_cached);
 	inverted = g_variant_get_boolean(neg_state);
 	g_variant_unref(neg_state);
 	neg_state = NULL;
@@ -337,7 +386,8 @@ static void remap(int vport) {
 
 		last_mode = gui.rendering_mode;
 		histo = com.layers_hist[vport];
-		set_viewer_mode_widgets_sensitive(FALSE);
+		/* Widget-sensitivity changes must happen on the GTK main thread. */
+		siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(FALSE));
 	} else {
 		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
@@ -350,15 +400,17 @@ static void remap(int vport) {
 		}
 		else
 			make_index_for_current_display(vport);
-		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
+		siril_add_idle(viewer_mode_sensitive_idle,
+		               GINT_TO_POINTER(gui.rendering_mode != STF_DISPLAY));
 	}
 
 	src = gfit->pdata[vport];
 	fsrc = gfit->fpdata[vport];
+
+	g_mutex_lock(&gui.cairo_mutex);
 	dst = view->buf;
 
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant *rainbow_state = g_action_get_state(action_color);
+	GVariant *rainbow_state = g_action_get_state(action_color_cached);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
 	rainbow_state = NULL;
@@ -481,19 +533,27 @@ static void remap(int vport) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; must be called after our unlock
 	invalidate_image_render_cache(vport);
 	test_and_allocate_reference_image(vport);
 }
 
 static void remap_all_vports() {
 	gboolean inverted;
+	/* Cache the GtkApplicationWindow and GAction pointers on first call —
+	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
+	static GAction *action_neg_cached = NULL;
+	static GAction *action_color_cached = NULL;
 	if (app_win == NULL) {
 		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
 	}
 	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-	GVariant *state_neg = g_action_get_state(action_neg);
+	GVariant *state_neg = g_action_get_state(action_neg_cached);
 	inverted = g_variant_get_boolean(state_neg);
 	g_variant_unref(state_neg);
 	state_neg = NULL;
@@ -501,8 +561,7 @@ static void remap_all_vports() {
 
 	// Check if we need a rainbow color map
 	BYTE rainbow_index[UCHAR_MAX + 1][3];
-	GAction *action_color = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
-	GVariant* rainbow_state = g_action_get_state(action_color);
+	GVariant* rainbow_state = g_action_get_state(action_color_cached);
 	color_map color = g_variant_get_boolean(rainbow_state);
 	g_variant_unref(rainbow_state);
 	rainbow_state = NULL;
@@ -575,21 +634,31 @@ static void remap_all_vports() {
 	unlock_display_transform();
 
 	gui.icc.profile_changed = FALSE;
-	set_viewer_mode_widgets_sensitive(TRUE);
+	/* Widget-sensitivity changes must happen on the GTK main thread. */
+	siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(TRUE));
 
 	last_mode = gui.rendering_mode;
 
+	// Allocate surfaces and capture src/fsrc outside the lock.
+	// dst[] pointers are captured below, inside the lock, to prevent a stale-
+	// pointer race: a concurrent allocate_full_surface() could realloc view->buf
+	// between its internal unlock and the cairo_mutex acquisition below.
 	for (int i = 0 ; i < 3 ; i++) {
 		src[i] = gfit->pdata[i];
 		fsrc[i] = gfit->fpdata[i];
 		if (allocate_full_surface(view[i]))
 			return;
-		dst[i] = view[i]->buf;
 	}
+	g_mutex_lock(&gui.cairo_mutex);
+	for (int i = 0 ; i < 3 ; i++)
+		dst[i] = view[i]->buf;
 
 	int norm = (int) get_normalized_value(gfit);
 	const guint width = gfit->rx;
 	const guint height = gfit->ry;
+
+	// Shared flag for per-thread allocation failures; checked after the parallel block.
+	gboolean alloc_error = FALSE;
 
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
@@ -599,23 +668,36 @@ static void remap_all_vports() {
 			lock_display_transform();
 
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread)
+#pragma omp parallel num_threads(com.max_thread) shared(alloc_error)
 {
 		// Thread-local buffers - allocated once per thread
 		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width), (pixelbuf + 2 * width) };
 		BYTE *pixelbuf_byte = malloc(width * 3);
-		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width), (pixelbuf_byte + 2 * width) };
 		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
 
+		if (!pixelbuf || !pixelbuf_byte || (apply_mask && !mask_row)) {
+			PRINT_ALLOC_ERR;
+#pragma omp atomic write
+			alloc_error = TRUE;
+		} else {
 #pragma omp for schedule(static)
 #else
 		// Single-threaded: allocate once
 		WORD *pixelbuf = malloc(width * 3 * sizeof(WORD));
-		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width) , (pixelbuf + 2 * width) };
+		WORD *linebuf[3] = { pixelbuf, (pixelbuf + width), (pixelbuf + 2 * width) };
 		BYTE *pixelbuf_byte = malloc(width * 3);
-		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width) , (pixelbuf_byte + 2 * width) };
+		BYTE *linebuf_byte[3] = { pixelbuf_byte, (pixelbuf_byte + width), (pixelbuf_byte + 2 * width) };
 		BYTE *mask_row = apply_mask ? malloc(width * sizeof(BYTE)) : NULL;
+
+		if (!pixelbuf || !pixelbuf_byte || (apply_mask && !mask_row)) {
+			PRINT_ALLOC_ERR;
+			free(pixelbuf);
+			free(pixelbuf_byte);
+			free(mask_row);
+			alloc_error = TRUE;
+		} else {
 #endif
 		for (y = 0; y < height; y++) {
 			guint x;
@@ -764,27 +846,41 @@ static void remap_all_vports() {
 				}
 			}
 		}
+		// Close the else-branch of the allocation check, then free buffers.
+		// In the OpenMP path free() is called by every thread for its own
+		// allocations; free(NULL) is safe for the error path where some
+		// allocations may have failed.
+		}
 #ifdef _OPENMP
-		// Clean up thread-local buffers
 		free(pixelbuf);
 		free(pixelbuf_byte);
-		if (mask_row)
-			free(mask_row);
+		free(mask_row);
 }
 #else
-		// Clean up single-threaded buffers
 		free(pixelbuf);
 		free(pixelbuf_byte);
-		if (mask_row)
-			free(mask_row);
+		free(mask_row);
 #endif
 		if (do_transform)
 			unlock_display_transform();
 	}
-	// flush to ensure all writing to the image was done and redraw the surface
+
+	// Bail out cleanly if any thread's allocation failed
+	if (alloc_error) {
+		g_mutex_unlock(&gui.cairo_mutex);
+		return;
+	}
+
+	// flush to ensure all writing to the image was done and redraw the surfaces
 	for (int vport = 0 ; vport < 3 ; vport++) {
 		cairo_surface_flush(view[vport]->full_surface);
 		cairo_surface_mark_dirty(view[vport]->full_surface);
+	}
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	// invalidate_image_render_cache is self-locking; both it and
+	// test_and_allocate_reference_image must be called after our unlock
+	for (int vport = 0 ; vport < 3 ; vport++) {
 		invalidate_image_render_cache(vport);
 		test_and_allocate_reference_image(vport);
 	}
@@ -1054,6 +1150,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 }
 
 static void draw_vport(const draw_data_t* dd) {
+	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
 		cairo_surface_t *target = cairo_get_target(dd->cr);
@@ -1063,6 +1160,7 @@ static void draw_vport(const draw_data_t* dd) {
 			siril_debug_print("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
 			cairo_surface_destroy(view->disp_surface);
 			view->disp_surface = NULL;
+			g_mutex_unlock(&gui.cairo_mutex);
 			return;
 		}
 		view->view_width = dd->window_width;
@@ -1089,10 +1187,16 @@ static void draw_vport(const draw_data_t* dd) {
 
 	// prepare the display matrix for remaining drawing (selection, stars, ...)
 	cairo_transform(dd->cr, &gui.display_matrix);
+	g_mutex_unlock(&gui.cairo_mutex);
+
 }
 
 static void draw_main_image(const draw_data_t* dd) {
-	if (gui.view[dd->vport].buf) {
+	g_mutex_lock(&gui.cairo_mutex);
+	gboolean has_buf = (gui.view[dd->vport].buf != NULL);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	if (has_buf) {
 		draw_vport(dd);
 	} else {
 		draw_empty_image(dd);
@@ -1473,8 +1577,9 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cr, 40);
+		cairo_set_font_size(cr, 40.0 / dd->zoom);
 		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
+		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
 		cairo_stroke(cr);
 	}
 
@@ -1504,7 +1609,7 @@ static void draw_stars(const draw_data_t* dd) {
 						2. * M_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-				cairo_set_font_size(cr, 40);
+				cairo_set_font_size(cr, 40.0 / dd->zoom);
 				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);
 				if (i == 0) {
 					cairo_show_text(cr, "V");
@@ -2271,13 +2376,13 @@ double get_zoom_val() {
 	return min(wtmp, htmp);
 }
 
-// passing -1 means invalidate all
 static void invalidate_image_render_cache(int vport) {
 	/* the render cache is a surface containing the rendering of the image
 	 * from the mapped buffers to the drawing area.
 	 * If some of the parameters change, the cache must be invalidated to
 	 * redraw the image: image content, image mapping, widget dimensions.
 	 */
+	g_mutex_lock(&gui.cairo_mutex);
 	for (int i = 0; i < MAXVPORT; i++) {
 		if (vport >= 0 && i != vport)
 			continue;
@@ -2287,6 +2392,7 @@ static void invalidate_image_render_cache(int vport) {
 		gui.view[i].view_height = -1;
 		gui.view[i].view_width = -1;
 	}
+	g_mutex_unlock(&gui.cairo_mutex);
 	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
@@ -2372,6 +2478,19 @@ void copy_roi_into_gfit() {
 	}
 }
 
+void remap_all() {
+	stf_computed = FALSE;
+	if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
+		for (int i = 0; i < gfit->naxes[2]; i++) {
+			remap(i);
+		}
+	} else {
+		remap_all_vports();
+	}
+	if (gfit->naxis == 3)
+		remaprgb();
+}
+
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
 	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
@@ -2383,16 +2502,6 @@ void redraw(remap_type doremap) {
 			invalidate_image_render_cache(-1);
 			break;
 		case REMAP_ALL:
-			stf_computed = FALSE;
-			if (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY) {
-				for (int i = 0; i < gfit->naxes[2]; i++) {
-					remap(i);
-				}
-			} else {
-				remap_all_vports();
-			}
-			if (gfit->naxis == 3)
-				remaprgb();
 			/* redraw the 9-panel mosaic dialog if needed */
 			redraw_aberration_inspector();
 			break;
@@ -2424,8 +2533,10 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 gboolean redraw_mask_idle(gpointer p) {
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
-	if (com.pref.gui.mask_tints_vports)
+	if (com.pref.gui.mask_tints_vports) {
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
+	}
 	return FALSE;
 }
 

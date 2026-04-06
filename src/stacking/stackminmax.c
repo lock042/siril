@@ -90,7 +90,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	g_assert(nb_frames <= args->seq->number);
 
 	for (int j = 0; j < args->seq->number; ++j) {
-		if (!get_thread_run()) {
+		if (!processing_should_continue()) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_reset_progress_bar;
 		}
@@ -237,7 +237,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		}
 		clearfits(&fit);
 	}
-	if (!get_thread_run()) {
+	if (!processing_should_continue()) {
 		retval = ST_GENERIC_ERROR;
 		goto free_and_reset_progress_bar;
 	}

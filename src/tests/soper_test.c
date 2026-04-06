@@ -30,6 +30,7 @@ fits *gfit;	// currently loaded image (now a pointer)
 
 // Setup function to allocate global gfit as in the main program
 static void setup(void) {
+	com.headless = TRUE;
 	gfit = calloc(1, sizeof(fits));
 	cr_assert(gfit != NULL, "Failed to allocate global gfit");
 }

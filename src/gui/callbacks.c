@@ -548,14 +548,21 @@ void set_cutoff_sliders_values() {
 				gtk_builder_get_object(gui.builder, "checkcut_max"));
 	}
 
-	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), gui.lo, gui.hi);
-	gtk_adjustment_set_value(adjmin, (gdouble)gui.lo);
-	gtk_adjustment_set_value(adjmax, (gdouble)gui.hi);
-	g_snprintf(buffer, 6, "%u", gui.hi);
+	/* Snapshot gui.hi/gui.lo under com.mutex: notify_gfit_data_modified() may
+	 * write them from the worker thread concurrently. */
+	g_mutex_lock(&com.mutex);
+	WORD hi = gui.hi;
+	WORD lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
+	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
+	gtk_adjustment_set_value(adjmin, (gdouble)lo);
+	gtk_adjustment_set_value(adjmax, (gdouble)hi);
+	g_snprintf(buffer, 6, "%u", hi);
 	g_signal_handlers_block_by_func(maxentry, on_max_entry_changed, NULL);
 	gtk_entry_set_text(maxentry, buffer);
 	g_signal_handlers_unblock_by_func(maxentry, on_max_entry_changed, NULL);
-	g_snprintf(buffer, 6, "%u", gui.lo);
+	g_snprintf(buffer, 6, "%u", lo);
 	g_signal_handlers_block_by_func(minentry, on_min_entry_changed, NULL);
 	gtk_entry_set_text(minentry, buffer);
 	g_signal_handlers_unblock_by_func(minentry, on_min_entry_changed, NULL);
@@ -598,6 +605,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
@@ -606,14 +614,17 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 void on_mask_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	gfit->mask_active = state;
-	if (com.pref.gui.mask_tints_vports)
+	if (com.pref.gui.mask_tints_vports) {
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // draw or remove the red tint from the image
+	}
 }
 
 void on_mask_show_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	com.pref.gui.mask_tints_vports = state;
 	siril_log_message(state ? _("Mask visibility enabled\n") : _("Mask visibility disabled\n"));
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 }
 
@@ -748,6 +759,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 			hd_remap_indices_cleanup();
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
@@ -758,19 +770,16 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 	siril_debug_print("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != 1 << bitdepth) {
 		siril_log_message(_("Setting HD AutoStretch display mode bit depth to %d...\n"), bitdepth);
-//		set_cursor_waiting(TRUE);
-
 		com.pref.hd_bitdepth = bitdepth;
 		gui.hd_remap_max = 1 << bitdepth;
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		}
-//		set_cursor_waiting(FALSE);
 	}
 }
-
 
 /* Sets the display mode combo box to the value stored in the relevant struct.
  * The operation is purely graphical. */
@@ -823,6 +832,7 @@ gboolean set_display_mode_idle(gpointer user_data) {
 void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 }
@@ -1317,6 +1327,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 				fit_replace_buffer(gfit, float_buffer_to_ushort(gfit->fdata, ndata), DATA_USHORT);
 				invalidate_gfit_histogram();
 				update_gfit_histogram_if_needed();
+				notify_gfit_data_modified();
 				redraw(REMAP_ALL);
 			}
 		} else if (gfit->type == DATA_USHORT) {
@@ -1327,6 +1338,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			fit_replace_buffer(gfit, ushort_buffer_to_float(gfit->data, ndata), DATA_FLOAT);
 			invalidate_gfit_histogram();
 			update_gfit_histogram_if_needed();
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 		}
 	}
@@ -2119,6 +2131,7 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		gui.sliders = USER;
 		sliders_mode_set_state(gui.sliders);
 	}
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
@@ -2130,6 +2143,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		gui.sliders = USER;
 		sliders_mode_set_state(gui.sliders);
 	}
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	return FALSE;
@@ -2138,6 +2152,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 /* a checkcut checkbox was toggled. Update the layer_info and others if chained. */
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 }
@@ -2150,6 +2165,7 @@ void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 		gui.icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 }
@@ -2314,10 +2330,12 @@ gboolean restore_paned_position(gpointer user_data) {
 }
 
 void gtk_main_quit() {
-	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
+	// Don't call processing_system_shutdown(); the user wants to quit the program so we do so immediately
+	// whereas processing_system_shutdown() will wait for the next call to processing_should_continue()
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
+	writeinitfile();		// save settings (like window positions)
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	cleanup_common_profiles(); // close lcms2 data structures
@@ -2369,6 +2387,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		}
@@ -2383,6 +2402,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		init_layers_hi_and_lo_values(gui.sliders);
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
+			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 			gui_function(redraw_previews, NULL);
 		}
@@ -2419,6 +2439,7 @@ void setup_stretch_sliders() {
 	}
 	if (changed) {
 		set_cutoff_sliders_values();
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
@@ -2438,6 +2459,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 		set_cutoff_sliders_values();
 
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
@@ -2487,6 +2509,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 		set_cutoff_sliders_values();
 
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 	}
@@ -2554,7 +2577,7 @@ static gpointer checkSeq(gpointer p) {
 }
 
 void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
@@ -2629,7 +2652,7 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			reset_plot();
 			set_layers_for_registration();
 			if (cleanstat)
-				notify_gfit_modified();
+				gfit_modified_update_gui();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}
