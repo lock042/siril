@@ -91,6 +91,17 @@ static gboolean pending_result_valid = FALSE;
 */
 static ProcessingJob *active_job = NULL;
 
+/* ── Post-job callback ───────────────────────────────────────────────────
+*
+* Optional GSourceFunc dispatched as a GTK idle after every job completes
+* and job_active_flag has been cleared.  Set via
+* processing_set_post_job_callback(); NULL means disabled.
+* Written only from the GTK main thread before any jobs run; read from
+* the worker thread — effectively read-only after initialisation so no
+* locking is needed.
+*/
+static GSourceFunc post_job_callback = NULL;
+
 /*****************************************************************************
 *    I N T E R N A L   H E L P E R S
 *****************************************************************************/
@@ -168,6 +179,12 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
 		*   4. Free if fire-and-forget.
 		*/
 		g_atomic_int_set(&job_active_flag, 0);
+
+		/* Notify any registered observer (e.g. the preview system) that the
+		 * slot is now free.  Dispatched as an idle so the callback runs on the
+		 * GTK main thread and is guaranteed to see job_active_flag == 0. */
+		if (post_job_callback)
+			g_idle_add(post_job_callback, NULL);
 
 		g_mutex_lock(&queue_mutex);
 		active_job = NULL;
@@ -616,6 +633,10 @@ void stop_processing_thread(void) {
 	remove_child_from_children((GPid) -2);
 	if (!com.headless)
 		set_cursor_waiting(FALSE);
+}
+
+void processing_set_post_job_callback(GSourceFunc cb) {
+	post_job_callback = cb;
 }
 
 /* Compatibility shim — see header. */

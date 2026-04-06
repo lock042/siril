@@ -241,6 +241,20 @@ void unreserve_thread (void);
 
 gboolean end_generic (gpointer arg);
 
+/*
+ * processing_set_post_job_callback()
+ *
+ * Register a GSourceFunc to be dispatched as a GTK idle after every job
+ * completes and job_active_flag has been cleared to 0.  The callback runs
+ * on the GTK main thread so it is safe to call any GUI or preview API.
+ * Pass NULL to deregister.
+ *
+ * Intended exclusively for the preview system.  The callback fires after
+ * non-preview jobs too; the callee is responsible for checking whether
+ * action is needed (e.g. by testing preview_in_flight).
+ */
+void processing_set_post_job_callback (GSourceFunc cb);
+
 #ifdef __cplusplus
 }
 #endif

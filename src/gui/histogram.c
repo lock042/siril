@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/processing_thread.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
@@ -228,6 +229,10 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		hist_sat_backup = NULL;
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
+			/* Remap the Cairo display buffers from the restored gfit.
+			 * Without this the display continues to show the preview
+			 * because gfit_modified_update_gui() only queues a redraw. */
+			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
 	}
@@ -865,6 +870,10 @@ static void queue_window_redraw() {
 static void update_histo_mtf() {
 	if (!com.layers_hist[0]) return;
 	if (!hist_backup[0]) return;
+	/* The worker thread may be freeing com.layers_hist[] via
+	 * invalidate_gfit_histogram() inside notify_gfit_data_modified().
+	 * Skip the update if a job is active to avoid a data race.        */
+	if (processing_is_job_active()) return;
 	float norm = (float)gsl_histogram_bins(com.layers_hist[0]) - 1;
 
 	_init_clipped_pixels();

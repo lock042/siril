@@ -25,27 +25,81 @@
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/processing_thread.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
-
-#define PREVIEW_DELAY 200
-
-static guint timer_id = 0;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
+
+/* ── Preview scheduling state ───────────────────────────────────────────────
+ *
+ * All fields are accessed exclusively from the GTK main thread.
+ *
+ * pending_preview  — the most recent notify_update() request that arrived
+ *                    while a preview was already in flight.  At most one is
+ *                    kept; later arrivals replace earlier ones (coalescing).
+ *
+ * preview_in_flight — TRUE from the moment we start dispatching a preview
+ *                     until the last pending request has been serviced.
+ *                     Used to decide whether to coalesce new requests.
+ *
+ * preview_job_active — TRUE when the current preview dispatched a job to
+ *                      the processing thread (async path).  Only set when
+ *                      we know a thread job is running for us, so we can
+ *                      safely call processing_request_cancel() without
+ *                      accidentally aborting an unrelated job.
+ */
+static update_image *pending_preview   = NULL;
+static gboolean      preview_in_flight = FALSE;
+static gboolean      preview_job_active = FALSE;
 static cmsHPROFILE preview_icc_backup = NULL;
 static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
-static gboolean update_preview(gpointer user_data) {
+/* Forward declaration. */
+static void dispatch_preview(update_image *im);
+
+/* Called (on the GTK main thread, via g_idle_add) after every processing-
+ * thread job completes.  Also called directly from dispatch_preview() when
+ * update_preview_fn ran synchronously (no thread job was submitted).      */
+static void on_preview_done(void) {
+	preview_job_active = FALSE;
+
+	if (pending_preview) {
+		update_image *next = pending_preview;
+		pending_preview = NULL;
+		/* preview_in_flight stays TRUE — we are immediately starting another. */
+		dispatch_preview(next);
+	} else {
+		preview_in_flight = FALSE;
+	}
+}
+
+/* GSourceFunc registered with processing_set_post_job_callback().
+ * Fires after every processing-thread job, not only preview jobs.
+ * The preview_in_flight / preview_job_active guards make it a no-op when
+ * an unrelated job finishes while no preview is in progress.              */
+static gboolean preview_post_job_callback(gpointer data G_GNUC_UNUSED) {
+	if (preview_in_flight && preview_job_active)
+		on_preview_done();
+	return G_SOURCE_REMOVE;
+}
+
+/* Execute one preview update.  Always called from the GTK main thread.
+ * Consumes (frees) im.                                                    */
+static void dispatch_preview(update_image *im) {
 	lock_roi_mutex();
-	if (notify_is_blocked)
-		return FALSE;
-	update_image *im = (update_image*) user_data;
+
+	if (notify_is_blocked) {
+		unlock_roi_mutex();
+		free(im);
+		preview_in_flight = FALSE;
+		return;
+	}
 
 	if (im->show_preview) {
 		siril_debug_print("update preview\n");
@@ -53,19 +107,22 @@ static gboolean update_preview(gpointer user_data) {
 		im->update_preview_fn();
 	}
 
-	waiting_for_thread(); // in case function is run in another thread
+	waiting_for_thread(); /* no-op on GTK main thread; kept for safety */
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
-	// Don't gfit_modified_update_gui() here, it must be done by the callers
+	/* Don't gfit_modified_update_gui() here; callers are responsible. */
 	unlock_roi_mutex();
-	return FALSE;
-}
-
-static void free_struct(gpointer user_data) {
-	update_image *im = (update_image*) user_data;
-
-	timer_id = 0;
 	free(im);
+
+	if (processing_is_job_active()) {
+		/* update_preview_fn submitted an async job.  The post-job callback
+		 * will call on_preview_done() when the worker finishes.           */
+		preview_job_active = TRUE;
+	} else {
+		/* update_preview_fn ran synchronously (no thread job submitted).
+		 * Drive the next pending update immediately.                      */
+		on_preview_done();
+	}
 }
 
 void copy_gfit_icc_to_backup() {
@@ -169,11 +226,11 @@ void set_notify_block(gboolean value) {
 	notify_is_blocked = value;
 }
 
-void cancel_pending_update() {
-    if (timer_id != 0) {
-        g_source_remove(timer_id);
-        timer_id = 0;
-    }
+void cancel_pending_update(void) {
+	if (pending_preview) {
+		free(pending_preview);
+		pending_preview = NULL;
+	}
 }
 
 void siril_preview_hide() {
@@ -184,10 +241,33 @@ void siril_preview_hide() {
 }
 
 void notify_update(gpointer user_data) {
-	if (timer_id != 0) {
-		g_source_remove(timer_id);
+	/* One-time registration of the post-job callback with the processing
+	 * thread.  Done here rather than at application startup so that the
+	 * preview module is self-contained and requires no external init call. */
+	static gboolean callback_registered = FALSE;
+	if (!callback_registered) {
+		processing_set_post_job_callback(preview_post_job_callback);
+		callback_registered = TRUE;
 	}
-	timer_id = g_timeout_add_full(G_PRIORITY_DEFAULT_IDLE,
-			PREVIEW_DELAY, (GSourceFunc) update_preview, user_data,
-			(GDestroyNotify) free_struct);
+
+	if (notify_is_blocked) {
+		free(user_data);
+		return;
+	}
+
+	if (preview_in_flight) {
+		/* A preview is already in progress.  Coalesce: keep only the latest
+		 * request and cancel the running thread job (if any) so the worker
+		 * finishes sooner and we can start the new one.                    */
+		if (pending_preview)
+			free(pending_preview);
+		pending_preview = (update_image *) user_data;
+		if (preview_job_active)
+			processing_request_cancel();
+		return;
+	}
+
+	/* No preview in flight: start immediately. */
+	preview_in_flight = TRUE;
+	dispatch_preview((update_image *) user_data);
 }
