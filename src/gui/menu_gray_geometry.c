@@ -54,9 +54,8 @@ static gboolean rotation_idle(gpointer p) {
 		gui_function(new_selection_zone, NULL);
 
 		update_zoom_label();
-		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -141,20 +140,18 @@ static void rotate_gui(fits *fit) {
 }
 
 /* Idle function for fast rotation */
-static gboolean fast_rotation_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
+static gboolean fast_rotation_idle(gpointer p)
+{
+    struct generic_img_args *args = (struct generic_img_args *)p;
 
-	stop_processing_thread();
+    if (args->retval == 0) {
+        gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
+                                     refreshes previews — all in one call  */
+        update_zoom_label();      /* reads the now-correct zoom state       */
+    }
 
-	if (args->retval == 0) {
-		update_zoom_label();
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
+    free_generic_img_args(args);
+    return FALSE;
 }
 
 void siril_rotate90() {
@@ -293,9 +290,9 @@ static gboolean mirror_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -406,7 +403,7 @@ static gboolean binning_idle(gpointer p) {
 
 	if (args->retval == 0) {
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -485,7 +482,7 @@ static gboolean resample_idle(gpointer p) {
 
 	if (args->retval == 0) {
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -687,8 +684,8 @@ static gboolean crop_idle(gpointer p) {
 		delete_selected_area();
 		reset_display_offset();
 		update_zoom_label();
-		notify_gfit_modified();
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
 			queue_redraw_mask();
@@ -748,7 +745,7 @@ void siril_crop() {
 }
 
 void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

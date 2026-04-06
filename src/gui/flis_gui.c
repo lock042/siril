@@ -925,6 +925,7 @@ static gboolean end_flis_tint_toggle(gpointer p) {
             init_right_tab(NULL);
         }
         flis_gui_update();
+        notify_gfit_data_modified();
         queue_redraw(REMAP_ALL);
     }
 
@@ -1062,8 +1063,10 @@ void on_flis_layer_row_selected(GtkListBox    *box,
     show_or_hide_mask_tab();
     queue_redraw_mask();
 
-    if (is_current_image_flis() && !flis_updating)
+    if (is_current_image_flis() && !flis_updating) {
+        notify_gfit_data_modified();
         queue_redraw(REMAP_ALL);
+    }
 }
 
 /* =========================================================================
@@ -1101,6 +1104,7 @@ static void on_group_visibility_toggled(GtkToggleButton *btn, gpointer data) {
         gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR));
     flis_group_set_visible(group, active);
     flis_invalidate_composite();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 
@@ -1148,6 +1152,7 @@ void on_flis_add_layer_clicked(GtkButton *btn,
     flis_selected = new_layer;
     flis_invalidate_composite();
     flis_gui_update();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 
@@ -1239,6 +1244,7 @@ void on_flis_remove_layer_clicked(GtkButton *btn, gpointer data) {
 
         flis_invalidate_composite();
         flis_gui_update();
+        notify_gfit_data_modified();
         queue_redraw(REMAP_ALL);
         return;
     }
@@ -1267,6 +1273,7 @@ void on_flis_remove_layer_clicked(GtkButton *btn, gpointer data) {
 
     flis_invalidate_composite();
     flis_gui_update();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 
@@ -1348,6 +1355,7 @@ void on_flis_duplicate_layer_clicked(GtkButton *btn,
     flis_selected = dup;
     flis_invalidate_composite();
     flis_gui_update();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 
@@ -1454,6 +1462,7 @@ void on_flis_blend_mode_changed(GtkComboBox *combo,
     if (flis_selected_group && !flis_selected) {
         flis_group_set_blend_mode(flis_selected_group, blend_mode_map[idx]);
         flis_invalidate_composite();
+        notify_gfit_data_modified();
         queue_redraw(REMAP_ALL);
         return;
     }
@@ -1526,12 +1535,14 @@ static void on_flis_opacity_adj_changed(GtkAdjustment *adj, gpointer data) {
     if (flis_selected_group) {
         flis_group_set_opacity(flis_selected_group, (gfloat)(pct / 100.0));
         flis_invalidate_composite();
+        notify_gfit_data_modified();
         queue_redraw(REMAP_ALL);
         return;
     }
     if (!flis_selected) return;
     flis_layer_set_opacity(flis_selected, (gfloat)(pct / 100.0));
     flis_invalidate_composite();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 
@@ -1735,7 +1746,9 @@ void on_flis_lmask_active_toggle_clicked(GtkButton *btn,
     flis_layer_touch_modified(flis_selected);
 
     /* Refresh UI and composite */
+    flis_invalidate_composite();
     flis_gui_update();
+    notify_gfit_data_modified();
     redraw(REMAP_ALL);
 }
 
@@ -1962,8 +1975,10 @@ void on_flis_merge_down_activate(GtkMenuItem *item, gpointer data) {
         return;
     }
 
+    flis_invalidate_composite();
     flis_gui_update();
     show_or_hide_mask_tab();
+    notify_gfit_data_modified();
     redraw(REMAP_ALL);
 }
 
@@ -1992,7 +2007,9 @@ void on_flis_background_neutralise_activate(GtkMenuItem *item, gpointer data) {
         return;
     }
 
+    flis_invalidate_composite();
     flis_gui_update();
+    notify_gfit_data_modified();
     redraw(REMAP_ALL);
 }
 
@@ -2018,8 +2035,10 @@ void on_flis_flatten_activate(GtkMenuItem *item, gpointer data) {
         return;
     }
 
+    flis_invalidate_composite();
     flis_gui_update();
     show_or_hide_mask_tab();
+    notify_gfit_data_modified();
     redraw(REMAP_ALL);
 }
 
@@ -2315,7 +2334,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
 
     set_cursor_waiting(TRUE);
     set_progress_bar_data(_("Registering FLIS layers…"), PROGRESS_RESET);
-    com.run_thread = TRUE;
+    reserve_thread();
 
     /* Step 1: compute registration transforms. */
     int ret1 = method->method_ptr(&regargs);
@@ -2325,7 +2344,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
 
     if (ret1) {
         free_sequence(seq, TRUE);
-        com.run_thread = FALSE;
+        unreserve_thread();
         set_cursor_waiting(FALSE);
         set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
         if (free_target) g_slist_free(target_layers);
@@ -2390,7 +2409,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
     free(regargs.regparam); regargs.regparam = NULL;
 
     free_sequence(seq, TRUE);
-    com.run_thread = FALSE;
+    unreserve_thread();
     set_cursor_waiting(FALSE);
     if (free_target) g_slist_free(target_layers);
 
@@ -2403,6 +2422,7 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
 
     /* Layers have been transformed in-place; invalidate the composite. */
     flis_invalidate_composite();
+    notify_gfit_data_modified();
     queue_redraw(REMAP_ALL);
 }
 

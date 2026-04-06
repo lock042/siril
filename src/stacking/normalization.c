@@ -263,7 +263,7 @@ static int compute_normalization(struct stacking_args *args) {
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
 		if (!retval) {
-			if (!get_thread_run()) {
+			if (!processing_should_continue()) {
 				retval = 1;
 				continue;
 			}
@@ -783,7 +783,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		int ii = args->image_indices[i];
 		for (int j = i + 1; j < nb_frames; ++j) {
 			if (!retval) {
-				if (!get_thread_run()) {
+				if (!processing_should_continue()) {
 					retval = 1;
 					continue;
 				}

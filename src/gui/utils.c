@@ -401,7 +401,7 @@ OverrangeResponse apply_limits(fits *fit, double minval, double maxval, Overrang
 	}
 
 	if (fit == gfit)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 	return method;
 }

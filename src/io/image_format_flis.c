@@ -1585,7 +1585,7 @@ void flis_convert_layers_icc(cmsHPROFILE old_profile, cmsHPROFILE new_profile) {
     if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
     if (!old_profile || !new_profile) return;
 
-    gboolean threaded = !get_thread_run();
+    gboolean threaded = !processing_in_worker_thread();
     cmsUInt32Number intent = com.pref.icc.processing_intent;
 
     cmsUInt32Number rgb_float_type = get_planar_formatter_type(cmsSigRgbData, DATA_FLOAT, FALSE);

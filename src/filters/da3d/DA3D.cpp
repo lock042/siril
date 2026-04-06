@@ -279,7 +279,7 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
   // Instrumentation
   // main loop
   while (agg_weights.Minimum() < threshold) {  // line 4
-    if (!get_thread_run()) {
+    if (!processing_should_continue()) {
       retval++;
       break;
     }

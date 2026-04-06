@@ -1646,8 +1646,10 @@ int undo_display_data(int dir) {
 			}
 			flis_gui_update();
 			redraw_mask_idle(NULL);
-			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+			if (!com.pref.gui.mask_tints_vports) {// redraw() is called in redraw_mask_idle if this is TRUE
+				notify_gfit_data_modified();
 				redraw(REMAP_ALL);
+			}
 			if (preview_was_active) {
 				copy_gfit_to_backup();
 				siril_log_message(_("Following undo / redo with a preview active you may need "
@@ -1721,8 +1723,10 @@ int undo_display_data(int dir) {
 			}
 			flis_gui_update();
 			redraw_mask_idle(NULL);
-			if (!com.pref.gui.mask_tints_vports) // redraw() is called in redraw_mask_idle if this is TRUE
+			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
+				notify_gfit_data_modified();
 				redraw(REMAP_ALL);
+			}
 			if (preview_was_active)
 				copy_gfit_to_backup();
 			if (roi_was_active) {

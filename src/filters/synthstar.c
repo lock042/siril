@@ -466,7 +466,7 @@ int generate_synthstars(fits *fit) {
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			stopcalled = TRUE;
 		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
 		if (!stopcalled) {
@@ -624,8 +624,10 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -725,7 +727,7 @@ int reprofile_saturated_stars(fits *fit) {
 		double total = fit->naxes[2] * nb_stars;
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
-			if (!get_thread_run())
+			if (!processing_should_continue())
 				stopcalled = TRUE;
 			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
 			if (stars[n]->has_saturated && !stopcalled) {
@@ -810,8 +812,10 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);

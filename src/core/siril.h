@@ -980,6 +980,8 @@ struct guiinf {
 	gint     flis_drag_origin_x;    // layer position_x at drag start
 	gint     flis_drag_origin_y;    // layer position_y at drag start (FITS convention)
 	gint     flis_drag_group_id;    // item_id of group being dragged, 0 = single-layer drag
+
+	GMutex cairo_mutex; // control access to Cairo buffers
 };
 
 struct common_icc {
@@ -1020,13 +1022,10 @@ struct cominf {
 	gboolean python_script;	// python script being executed
 	gboolean python_command;	// python is running a Siril command
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
-	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
 	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
-	gboolean run_thread;		// the main thread loop condition
-	gboolean python_claims_thread;	// prevent other things acquiring the processing thread while a python script has it
 	gboolean stop_script;		// abort script execution, not just a command
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits

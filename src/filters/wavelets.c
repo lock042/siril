@@ -34,6 +34,7 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "algos/Def_Wavelet.h"
 #include "wavelets.h"
 
@@ -74,6 +75,7 @@ static int update_wavelets() {
 		}
 		g_free(dir[i]);
 	}
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	return 0;
 }
@@ -408,7 +410,7 @@ void on_wavelet_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!wavelet_show_preview) {
 	/* if user click very fast */
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

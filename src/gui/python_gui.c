@@ -1193,7 +1193,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 		case LANG_SSF:;
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
 			g_free(text);
-			if (get_thread_run()) {
+			if (processing_is_job_active()) {
 				PRINT_ANOTHER_THREAD_RUNNING;
 				g_object_unref(input_stream);
 				return;

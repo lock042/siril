@@ -808,6 +808,7 @@ static gpointer live_stacker(gpointer arg) {
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
+				remap_all();
 				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}

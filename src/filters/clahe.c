@@ -59,7 +59,7 @@ static gboolean clahe_worker_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);

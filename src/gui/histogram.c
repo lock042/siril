@@ -228,7 +228,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 		hist_sat_backup = NULL;
 		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	}
 	// free data
@@ -906,6 +906,11 @@ static gboolean on_gradient(GdkEvent *event, int width, int height) {
  * Public functions
  */
 
+static gboolean set_histo_toggles_names_idle(gpointer data G_GNUC_UNUSED) {
+	set_histo_toggles_names();
+	return G_SOURCE_REMOVE;
+}
+
 /* Stretch-dialog-specific histogram refresh: computes per-layer histograms via
  * the shared compute_histo_for_fit(), then also computes the saturation histogram
  * (only relevant in HSL/GHT colour modes) and updates the toggle button labels. */
@@ -913,7 +918,7 @@ static void stretch_dialog_compute_histograms(fits *thefit) {
 	compute_histo_for_fit(thefit);
 	if (thefit->naxes[2] == 3 && satbuf_working)
 		set_sat_histogram(computeHistoSat(satbuf_working));
-	set_histo_toggles_names();
+	siril_add_idle(set_histo_toggles_names_idle, NULL);
 }
 
 /* call from main thread */
@@ -923,6 +928,13 @@ void update_gfit_histogram_if_needed() {
 		stretch_dialog_compute_histograms(fit);
 		queue_window_redraw();
 	}
+}
+
+/* Trigger a visual refresh of the histogram window if it is currently visible.
+ * Call from the GTK main thread only; histogram data must already be computed. */
+void refresh_histogram_if_visible() {
+	if (is_histogram_visible())
+		queue_window_redraw();
 }
 
 int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
@@ -1075,7 +1087,7 @@ gboolean mtf_single_image_idle(gpointer p) {
 		queue_window_redraw();
 
 		// Notify that gfit was modified
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 		// If this was a final apply (not preview), clear backups and reinitialize
 		if (!data->is_preview) {
@@ -1112,7 +1124,7 @@ gboolean ght_single_image_idle(gpointer p) {
 		queue_window_redraw();
 
 		// Notify that gfit was modified
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 		// If this was a final apply (not preview), clear backups and reinitialize
 		if (!data->is_preview) {
@@ -2474,7 +2486,7 @@ void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")))) {
 		/* if user click very fast */
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

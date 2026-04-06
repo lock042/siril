@@ -47,7 +47,7 @@ void median_roi_callback() {
 	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
 	copy_backup_to_gfit();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 /* Idle function for preview updates */
@@ -56,7 +56,7 @@ static gboolean median_preview_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -69,7 +69,7 @@ static gboolean median_apply_idle(gpointer p) {
 	if (args->retval == 0) {
 		copy_gfit_to_backup();
 		populate_roi();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	median_close();
@@ -156,7 +156,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	set_cursor_waiting(TRUE);
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

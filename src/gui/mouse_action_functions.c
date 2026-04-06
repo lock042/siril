@@ -176,7 +176,9 @@ static gboolean drag_flis_layer_release(mouse_data *data) {
 	gui.flis_layer_dragging = FALSE;
 
 	/* Rebuild the composite with the new layer position */
-	notify_gfit_modified();
+	flis_invalidate_composite();
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
 	return TRUE;
 }
 

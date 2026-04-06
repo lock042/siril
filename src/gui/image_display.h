@@ -15,6 +15,7 @@ typedef enum {
  * closed (done automatically by free_image_data() in single_image.c). */
 void flis_invalidate_composite(void);
 void flis_composite_free(void);
+int  flis_composite_build(void);   /* rebuild if dirty; no-op if already current */
 
 /* flis_render_layers: composites a GSList of flis_layer_t* into a newly
  * allocated float-RGB fits*.  The caller must clearfits()+free() the result.
@@ -35,7 +36,11 @@ void initialize_image_display();
 
 void copy_roi_into_gfit();
 
-void redraw(remap_type doremap);	// redraw the image, possibly with a remap
+void remap_all();
+/* Invalidate gfit stats/histogram and, if on the GTK main thread, also remap
+ * the Cairo buffers.  Safe to call from any thread; non-main-thread callers
+ * have the remap deferred to end_gfit_operation(). */
+void redraw(remap_type doremap);	// redraw the image
 void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
 gboolean redraw_mask_idle(gpointer p);
