@@ -230,7 +230,7 @@ win64-native:
   stage: packaging
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   cache:
     key: "cache-windows-small1-${MSYSTEM}"
     paths:
@@ -242,7 +242,7 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 56
+    SDW_VERSION: 61
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
