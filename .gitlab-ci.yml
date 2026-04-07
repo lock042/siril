@@ -357,7 +357,7 @@ win64-native-installer:
     *run_ondemand_schedule_tag
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   variables:
     CHERE_INVOKING: "yes"
   tags:
