@@ -36,6 +36,7 @@
 #include "gui/siril_preview.h"
 #include "curves.h"
 #include "histogram.h"
+#include "histogram_utils.h"
 #include "filters/curve_transform.h"
 
 // ---------------------------------------------------------------------------
@@ -204,9 +205,8 @@ void curves_dialog_init_statics() {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// DRAWING (THE COOL STUFF)
-// ---------------------------------------------------------------------------
+
+
 
 static void draw_background_gradient(cairo_t *cr, int width, int height) {
 	cairo_pattern_t *pat = cairo_pattern_create_linear(0, height, 0, 0);
@@ -716,11 +716,12 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		draw_histo_with_color(display_histogram_chroma, cr, width, height, 1.0, 0.7, 0.2, is_curves_log_scale());
 	} else {
 		// Display RGB histograms
+		gboolean is_mono = fit ? (fit->naxes[2] == 1) : FALSE;
 		for (int i = 0; i < MAXVPORT; i++) {
 			if (current_channel == CHAN_R && i != 0) continue;
 			if (current_channel == CHAN_G && i != 1) continue;
 			if (current_channel == CHAN_B && i != 2) continue;
-			display_histo(display_histogram[i], cr, i, width, height, 1.0, 1.0, FALSE, is_curves_log_scale());
+			display_histo(display_histogram[i], cr, i, width, height, 1.0, 1.0, FALSE, is_curves_log_scale(), is_mono);
 		}
 	}
 
@@ -798,11 +799,6 @@ static void reset_cursors_and_values(gboolean full_reset) {
 	update_gfit_curves_histogram_if_needed();
 }
 
-static void set_histogram(gsl_histogram *histo, int layer) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
-	if (com.layers_hist[layer]) gsl_histogram_free(com.layers_hist[layer]);
-	com.layers_hist[layer] = histo;
-}
 
 static void clear_display_histogram() {
 	if (display_histogram[0]) {
@@ -847,7 +843,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	if (revert_icc_profile && !single_image_stretch_applied) {
 		if (gfit->icc_profile) cmsCloseProfile(gfit->icc_profile);
@@ -926,7 +922,7 @@ gboolean curve_preview_idle(gpointer p) {
 	update_clip_ui_from_stats();
 
 	stop_processing_thread();
-	if (args->retval == 0) notify_gfit_modified();
+	if (args->retval == 0) gfit_modified_update_gui();
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -939,7 +935,7 @@ gboolean curve_apply_idle(gpointer p) {
 
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 		copy_gfit_to_backup();
 		compute_histo_for_fit(fit);
@@ -1428,7 +1424,7 @@ gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, g
 void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(curves_preview_check)) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

@@ -375,7 +375,7 @@ int process_satu(int nb) {
 	char log[90];
 	sprintf(log, "Color saturation %d%%, threshold %.2f",
 		round_to_int(coeff * 100.0), background_factor);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 	siril_log_message(_("%s\n"), log);
 
 	return CMD_OK;
@@ -416,6 +416,7 @@ int process_save(int nb){
 		com.uniq->fileexist = TRUE;
 		if (!com.headless) {
 			display_filename();
+			adjust_sellabel();
 		}
 	}
 	gui_function(set_precision_switch, NULL);
@@ -456,23 +457,6 @@ int process_unclip(int nb) {
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
 }
-
-// TODO: check this against the new denoise idles
-/*
-static gboolean end_denoise(gpointer p) {
-	stop_processing_thread();
-	struct denoise_args *args = (struct denoise_args *) p;
-	if (!args->previewing) {
-		copy_gfit_to_backup();
-		populate_roi();
-	}
-	notify_gfit_modified();
-	queue_redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
-	free(args);
-	return FALSE;
-}*/
 
 gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 	denoise_args *args = (denoise_args *) p;
@@ -700,7 +684,6 @@ int process_denoise(int nb) {
 			if (end == arg) {
 				siril_log_message(_("Error parsing SOS iterations.\n"));
 				free_denoise_args(params);
-				free(params);
 				set_cursor_waiting(FALSE);
 				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
@@ -1700,7 +1683,7 @@ static int gauss_image_hook(struct generic_img_args *args, fits *fit, int thread
 	// Add to history
 	char log[90];
 	sprintf(log, "Gaussian filtering, sigma: %.2f", data->sigma);
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return retval;
 }
@@ -2118,7 +2101,7 @@ int process_epf(int nb) {
 	} else {
 		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
 	}
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -2151,7 +2134,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK;
 }
 
@@ -2199,7 +2182,7 @@ gboolean estimate_only_cmd_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 
 	// PSF estimation doesn't modify gfit directly, but may update the kernel
-	// No need to notify_gfit_modified() here
+	// No need to gfit_modified_update_gui() here
 
 	// Free using the generic cleanup which will call the destructor
 	free_generic_img_args(args);
@@ -2224,7 +2207,7 @@ int process_makepsf(int nb) {
 
 	char *arg_1 = word[1];
 	if (!g_strcmp0(arg_1, "clear")) {
-		if (get_thread_run()) {
+		if (processing_is_job_active()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			status = CMD_GENERIC_ERROR;
 			goto terminate_makepsf;
@@ -2883,7 +2866,7 @@ static int unsharp_cmd_image_hook(struct generic_img_args *args, fits *fit, int 
 	// Add to history
 	char log[90];
 	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", data->sigma, data->multi);
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return retval;
 }
@@ -3194,14 +3177,14 @@ int process_ccm(int nb) {
 		// Build history log
 		char log[256];
 		snprintf(log, 255, "Color correction matrix applied:");
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 		snprintf(log, 255, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
 					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
 					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 		snprintf(log, 255, "Power: %.4f", args->power);
-		gfit->history = g_slist_append(gfit->history, strdup(log));
+		gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 		free(prefix);
 
@@ -3278,7 +3261,7 @@ int process_wrecons(int nb) {
 		g_free(dir[i]);
 	}
 	siril_log_message(_("Wavelet reconstruction\n"));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -3628,7 +3611,7 @@ int process_mtf(int nb) {
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
 			inverse ? "Inverse midtones" : "Midtones",
 			params.shadows, params.midtones, params.highlights);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	return CMD_OK;
 }
@@ -3719,7 +3702,7 @@ int process_ghs(int nb, int stretchtype) {
 			sprintf(log, "GHS BP shift (new BP: %.3f)", params->BP);
 			break;
 	}
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	if (gui.roi.active)
 		populate_roi();
@@ -3909,7 +3892,7 @@ int process_autoghs(int nb) {
 	char log[100];
 	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
 			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	return CMD_OK;
 }
@@ -4086,7 +4069,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(gfit);
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -4114,7 +4097,7 @@ int process_linear_match(int nb) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(gfit, a, b);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
@@ -4224,7 +4207,7 @@ int process_asinh(int nb) {
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
-	gfit->history = g_slist_append(gfit->history, strdup(log));
+	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 	siril_log_message(log);
 
 	return CMD_OK;
@@ -6381,7 +6364,7 @@ int process_light_curve(int nb) {
 				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		float fwhm = measure_image_FWHM(&reffit, layer);
+		float fwhm = measure_image_FWHM(&reffit, layer, NULL);
 		if (fwhm <= 0.0f) {
 			siril_log_color_message(_("Could not find stars in the reference image, aborting.\n"), "red");
 			if (seq != &com.seq)
@@ -6959,7 +6942,7 @@ static int thresh_image_hook(struct generic_img_args *args, fits *fit, int threa
 	} else {
 		sprintf(log, "Image clamped to [min, %d]", data->hi);
 	}
-	fit->history = g_slist_append(fit->history, strdup(log));
+	fit->history = g_slist_append(fit->history, g_strdup(log));
 
 	return 0;
 }
@@ -8051,7 +8034,7 @@ int process_clear(int nb) {
 
 int process_clearstar(int nb){
 	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 	queue_redraw(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);
 	return CMD_OK;
@@ -12517,7 +12500,7 @@ int process_rgbcomp(int nb) {
 		if (had_an_rgb_image)
 			merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, NULL);
 		else merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, &g, &b, NULL);
-		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
+		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("LRGB composition"));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
@@ -12548,7 +12531,7 @@ int process_rgbcomp(int nb) {
 		rgb_extract_last_options(next_arg, &result_filename, "composed_rgb", &do_sum);
 
 		merge_fits_headers_to_result(rgbptr, do_sum, &r, &g, &b, NULL);
-		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
+		rgbptr->history = g_slist_append(rgbptr->history, g_strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
 			rgb.fpdata[RLAYER][i] = r.fdata[i];
@@ -14038,7 +14021,7 @@ int process_icc_assign(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 	return CMD_OK;
 }
@@ -14108,7 +14091,7 @@ int process_icc_convert_to(int nb) {
 		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	return CMD_OK;
 }
 
@@ -14117,7 +14100,7 @@ int process_icc_remove(int nb) {
 	siril_colorspace_transform(gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 
 	return CMD_OK;
 }
@@ -14330,6 +14313,157 @@ int process_pyscript(int nb) {
 	} else {
 		return CMD_FILE_NOT_FOUND;
 	}
+}
+
+int process_eqcrop(int nb) {
+        int image_size;
+	if (!has_wcs(gfit)) {
+		siril_log_color_message("Cannot run this command on this image because it has no WCS data or it is not supported\n", "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	image_size = max(gfit->rx, gfit->ry);
+
+	int arg_idx = 1;
+        SirilWorldCS *coords1 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        SirilWorldCS *coords2 = siril_world_cs_new_from_objct_ra_dec(word[arg_idx], word[arg_idx+1]);
+        arg_idx += 2;
+        if (!coords1 || !coords2) {
+                siril_log_message(_("Could not parse the coordinates\n"));
+                return CMD_ARG_ERROR;
+        }
+
+        //TODO: sequence operation
+        //gboolean sliding = FALSE;
+        int minsize = 0, margin_px = INT_MAX;
+        double margin_asec = DBL_MAX;
+        for (int i = arg_idx; i < nb; i++) {
+                gchar *end;
+                if (g_str_has_prefix(word[i], "-marginpx=")) {
+                        const char *arg = word[i] + 10;
+                        margin_px = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || margin_px >= image_size) {
+                                siril_log_color_message("margin in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-marginasec=")) {
+                        const char *arg = word[i] + 12;
+                        margin_asec = g_ascii_strtod(arg, &end);
+                        if (end == arg || margin_asec >= 1000000.0) {
+                                siril_log_color_message("margin in arcsec is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else if (g_str_has_prefix(word[i], "-minsize=")) {
+                        const char *arg = word[i] + 9;
+                        minsize = g_ascii_strtoull(arg, &end, 10);
+                        if (end == arg || minsize >= image_size) {
+                                siril_log_color_message("minimal size in pixels is incorrect (%s)\n", "red", word[i]);
+                                siril_world_cs_unref(coords1);
+                                siril_world_cs_unref(coords2);
+                                return CMD_ARG_ERROR;
+                        }
+                }
+                else {
+                        siril_log_message(_("Invalid argument %s, aborting.\n"), word[i]);
+                        siril_world_cs_unref(coords1);
+                        siril_world_cs_unref(coords2);
+                        return CMD_ARG_ERROR;
+                }
+        }
+
+        if (margin_asec != DBL_MAX && margin_px != INT_MAX) {
+                siril_log_color_message(_("Arguments for margins in arcsec or pixels are mutually exclusive\n"), "red");
+                siril_world_cs_unref(coords1);
+                siril_world_cs_unref(coords2);
+                return CMD_ARG_ERROR;
+        }
+        if (margin_asec == DBL_MAX && margin_px == INT_MAX)
+                margin_px = 10;         // set a default margin value, 10 pixels
+
+	double ra1 = siril_world_cs_get_alpha(coords1), dec1 = siril_world_cs_get_delta(coords1), ra2 = siril_world_cs_get_alpha(coords2), dec2 = siril_world_cs_get_delta(coords2);
+	siril_world_cs_unref(coords1);
+	siril_world_cs_unref(coords2);
+
+	int retval = eqcrop(ra1, dec1, ra2, dec2, margin_px, margin_asec, minsize, gfit);
+	if (retval)
+		return retval;
+
+	gfit_modified_update_gui();
+	gui_function(crop_gui_updates, NULL);
+
+	return CMD_OK;
+}
+
+int process_catmag_mono(int nb) {
+	// catmag [reftemp] [dtemp]
+	/* find stars in image to set aperture photometry parameters and get the number of stars, gets
+	 * NOMAD stars for the plate solved image, keep only those with B-V within [refbv-dbv, refbv+dbf]
+	 * if provided and those bright enough to keep the same number as detected stars in the image,
+	 * find the best fit for the magnitude offset for all measured and valid stars.
+	 * Sun has a B-V of 0.65
+	 */
+	if (!has_wcs(gfit)) {
+		siril_log_color_message(_("Image is not plate solved!\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	struct catmag_data *args = calloc(1, sizeof(struct catmag_data));
+	gboolean limit_temperature = FALSE;
+	float refT = 5555.0f, dT = 500.0f;
+	if (nb > 1) { refT = g_ascii_strtod(word[1], NULL); limit_temperature = TRUE; }
+	if (nb > 2) dT = g_ascii_strtod(word[2], NULL);
+
+	if (limit_temperature && (refT < 2000.0f || refT > 10000.0f || dT < 10.0f || dT > 3000.0f)) {
+		siril_log_color_message(_("Reference temperature is out of usual range [2000, 10000]K\n"), "red");
+		free(args);
+		return CMD_ARG_ERROR;
+	}
+
+	if (local_gaia_available()) {
+		args->refT = refT;
+		args->dT = dT;
+		args->limit_temperature = limit_temperature;
+		args->catalogue = CAT_LOCAL_GAIA_ASTRO;
+	}
+	else if (local_kstars_available()) {
+		gboolean limit_BV = FALSE;
+		float refBV = 0.0f, dBV = 0.5f;
+		if (limit_temperature) {
+			refBV = T_to_BV(refT);
+			limit_BV = TRUE;
+			dBV = (T_to_BV(refT - dT) - T_to_BV(refT + dT)) / 2.0;
+			siril_log_message(_("Converted provided temperatures to reference B-V of %.2f and dB-V of %.3f\n"), refBV, dBV);
+		}
+
+		if (limit_BV && (refBV < -0.5f || refBV > 1.5f || dBV < 0.001f || dBV > 2.0f)) {
+			siril_log_color_message(_("Reference B-V index is out of usual range [-0.5, 1.5]\n"), "red");
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+		args->refBV = refBV;
+		args->dBV = dBV;
+		args->limit_BV = limit_BV;
+		args->catalogue = CAT_LOCAL_KSTARS;
+	}
+	else {
+		if (!is_online()) {
+			siril_log_color_message(_("local catalogues not found and offline mode is enabled, cannot proceed\n"), "red");
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
+		args->refT = refT;
+		args->dT = dT;
+		args->limit_temperature = limit_temperature;
+		args->catalogue = CAT_GAIADR3;
+	}
+	args->fit = gfit;
+	start_in_new_thread(catmag_mono_worker, args);
+	return 0;
 }
 
 // Process functions refactored
@@ -14803,24 +14937,13 @@ int process_feather_mask(int nb) {
 }
 
 int process_mask_fmul(int nb) {
-	int argidx = 1;
 	float factor = -1.f;
 	char *end;
 
-	while (argidx < nb) {
-		if (g_str_has_prefix(word[argidx], "-factor=")) {
-			char *arg = word[argidx] + 8;
-			factor = g_ascii_strtod(arg, &end);
-			if (arg == end || factor < 0.0f) {
-				siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[argidx]);
-				return CMD_ARG_ERROR;
-			}
-		}
-		argidx++;
-	}
-
-	if (factor < 0.f) {
-		siril_log_message(_("Factor parameter (-factor=) is required, aborting.\n"));
+	char *arg = word[1];
+	factor = g_ascii_strtod(arg, &end);
+	if (arg == end || factor < 0.f) {
+		siril_log_message(_("Invalid argument %s, factor must be >= 0, aborting.\n"), word[1]);
 		return CMD_ARG_ERROR;
 	}
 

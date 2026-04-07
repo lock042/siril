@@ -20,6 +20,10 @@
 
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
+#include "gui/utils.h"
+#include "core/processing.h"
+#include "core/siril_log.h"
+#include "gui/siril-window.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -47,6 +51,7 @@ static GActionEntry image_entries[] = {
 	{ "bit-depth", NULL },
 	{ "zoom-out", zoom_out_activate },
 	{ "zoom-in", zoom_in_activate },
+	{ "histo_display", on_histogram_overlay_activate, NULL, "false", on_histogram_overlay_state },
 	{ "zoom-fit", zoom_fit_activate, NULL, "true", change_zoom_fit_state },
 	{ "zoom-one", zoom_one_activate },
 	{ "negative-view", negative_view_activate, NULL, "false", negative_view_state },
@@ -71,7 +76,8 @@ static GActionEntry image_entries[] = {
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state },
 	{ "nina_light_curve", nina_lc_activate },
-	{ "compstars", compstars_activate }
+	{ "compstars", compstars_activate },
+	{ "catmag", catmag_activate }
 };
 
 static GActionEntry selection_entries[] = {
@@ -202,11 +208,72 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
 }
 
+typedef struct {
+    const char *action_name;   // the action to activate
+    const gboolean appmap;          // whether the action is in the app GActionMap
+    int result;                // filled by idle callback
+} ActionIdleData;
+
+static gboolean activate_action_idle_cb(gpointer user_data) {
+	ActionIdleData *data = (ActionIdleData*) user_data;
+	if (!data || !data->action_name) {
+		siril_log_color_message(_("activate_action_if_enabled(): incorrect or NULL data\n"), "red");
+		data->result = ACTION_NULL_DATA;
+		return FALSE;
+	}
+
+	GAction *action = NULL;
+
+	if (data->appmap) {
+		action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), data->action_name);
+	} else {
+		GtkWidget *win = lookup_widget("control_window");
+		if (!win) {
+			siril_log_color_message(_("activate_action_if_enabled(): control_window not found\n"), "red");
+			data->result = ACTION_WINDOW_MISSING;
+			return FALSE;
+		}
+		action = g_action_map_lookup_action(G_ACTION_MAP(win), data->action_name);
+	}
+
+	if (!action) {
+		siril_log_color_message(_("activate_action_if_enabled(): action '%s' not found\n"), "red", data->action_name);
+		data->result = ACTION_NOT_FOUND;
+		return FALSE;
+	}
+
+	if (!g_action_get_enabled(action)) {
+		data->result = ACTION_DISABLED;
+		return FALSE;
+	}
+
+	g_action_activate(action, NULL);
+	data->result = ACTION_SUCCESS;
+	return FALSE; // idle finished
+}
+
+ActionResult queue_activate_action_if_enabled(const char *name, const gboolean appmap) {
+	if (!name)
+		return ACTION_NOT_FOUND;
+
+	ActionIdleData data = {
+		.action_name = name,
+		.appmap = appmap,
+		.result = ACTION_NOT_FOUND  // default
+	};
+
+	// execute_idle_and_wait_for_it will run idle in main thread and return only when done
+	execute_idle_and_wait_for_it(activate_action_idle_cb, &data);
+
+	return data.result;
+}
+
 void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *wcs_processing_actions[] = {
 		"annotate-object",
 		"wcs-grid",
 		"compstars",
+		"catmag",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);

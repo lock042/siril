@@ -45,6 +45,7 @@ RUN apt-get update -qyy \
         liblz4-dev \
         libpugixml-dev \
         libxisf-dev \
+        libsqlite3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

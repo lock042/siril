@@ -924,7 +924,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return;
-	if (!single_image_is_loaded() && get_thread_run()) {
+	if (!single_image_is_loaded() && processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

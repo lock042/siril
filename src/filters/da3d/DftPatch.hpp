@@ -86,8 +86,9 @@ inline void DftPatch::ToFreq() {
 
 inline void DftPatch::ToSpace() {
   fftwf_execute(plan_backward_);
+  const float inv_n = 1.f / (rows_ * columns_);
   for (int i = 0; i < rows_ * columns_ * channels_; ++i) {
-    space_[i] /= rows_ * columns_;
+    space_[i] *= inv_n;
   }
 }
 

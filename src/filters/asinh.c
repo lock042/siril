@@ -40,7 +40,7 @@ static gboolean asinh_preview_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -53,7 +53,7 @@ static gboolean asinh_apply_idle(gpointer p) {
 	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -150,7 +150,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 	} else {
 		// Save undo state when applying (not reverting)
@@ -194,95 +194,111 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 	float factor_green = human_luminance ? 0.7152f : third;
 	float factor_blue = human_luminance ? 0.0722f : third;
 
-	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	float inv_1moffset = 1.f / (1.f - offset);
+	size_t n = fit->naxes[0] * fit->naxes[1];
 	float globalmax = -FLT_MAX;
 	if (fit->naxes[2] > 1) {
+		switch (clip_mode) {
+			case CLIP:
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < n; i++) {
-			blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
-			float val[3] = { buf[RLAYER][i] * invnorm, buf[GLAYER][i] * invnorm, buf[BLAYER][i] * invnorm };
-			float prime[3];
-			for (int chan = 0 ; chan < 3 ; chan++)
-				prime[chan] = max(0, (val[chan] - offset) / (1.0f - offset));
-
-			float x = factor_red * prime[RLAYER] + factor_green * prime[GLAYER] + factor_blue * prime[BLAYER];
-			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-			for (int chan = 0 ; chan < 3 ; chan++)
-				data.sf[chan] = min(1.0f, max(0.0f, (prime[chan] * k)));
-			if (clip_mode == RGBBLEND) {
-				for (int chan = 0 ; chan < 3 ; chan++)
-					data.tf[chan] = (prime[chan] == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * prime[chan]) / (prime[chan] * asinh_beta);
-			}
-			float maxval = -FLT_MAX;
-			switch (clip_mode) {
-				case CLIP:
-					for (int chan = 0 ; chan < 3 ; chan++)
-						buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, fminf(data.sf[chan], 1.f))) : roundf_to_WORD(fmaxf(0.f, val[chan]));
-					break;
-				case RESCALE:
-					for (int chan = 0 ; chan < 3 ; chan++) {
-						if (do_channel[chan] && data.sf[chan] > maxval)
-							maxval = data.sf[chan];
-					}
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] * invnorm - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					for (int chan = 0; chan < 3; chan++)
+						buf[chan][i] = roundf_to_WORD(norm * fmaxf(0.f, fminf(prime[chan] * k, 1.f)));
+				}
+				break;
+			case RESCALE:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] * invnorm - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					float sf[3] = { fmaxf(0.f, prime[0] * k), fmaxf(0.f, prime[1] * k), fmaxf(0.f, prime[2] * k) };
+					float maxval = fmaxf(fmaxf(sf[0], sf[1]), sf[2]);
 					if (maxval > 1.f) {
 						float invmaxval = 1.f / maxval;
-						for (int chan = 0 ; chan < 3 ; chan++) {
-							data.sf[chan] *= invmaxval;
-							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
-						}
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = roundf_to_WORD(norm * sf[chan] * invmaxval);
 					} else {
-						for (int chan = 0 ; chan < 3 ; chan++) {
-							buf[chan][i] = do_channel[chan] ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(norm * fmaxf(0.f, val[chan]));
-						}
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = roundf_to_WORD(norm * sf[chan]);
 					}
-					break;
-				case RGBBLEND:;
-					float out[3] = {val[0], val[1], val[2]};
-					rgbblend(&data, &out[RLAYER], &out[GLAYER], &out[BLAYER], m_CB);
-					for (int chan = 0 ; chan < 3 ; chan++) {
+				}
+				break;
+			case RGBBLEND:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
+					float val[3] = { buf[0][i] * invnorm, buf[1][i] * invnorm, buf[2][i] * invnorm };
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (val[chan] - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					for (int chan = 0; chan < 3; chan++)
+						data.sf[chan] = fminf(1.f, fmaxf(0.f, prime[chan] * k));
+					for (int chan = 0; chan < 3; chan++)
+						data.tf[chan] = (prime[chan] == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * prime[chan]) / (prime[chan] * asinh_beta);
+					float out[3] = { val[0], val[1], val[2] };
+					rgbblend(&data, &out[0], &out[1], &out[2], m_CB);
+					for (int chan = 0; chan < 3; chan++)
 						buf[chan][i] = roundf_to_WORD(norm * out[chan]);
-					}
-					break;
-				case RESCALEGLOBAL:
-					for (int chan = 0 ; chan < 3 ; chan++) {
-						if (do_channel[chan] && data.sf[chan] > maxval)
-							maxval = data.sf[chan];
-					}
+				}
+				break;
+			case RESCALEGLOBAL:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:globalmax)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] * invnorm - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					float maxval = fmaxf(fmaxf(fminf(1.f, prime[0] * k),
+					                           fminf(1.f, prime[1] * k)),
+					                           fminf(1.f, prime[2] * k));
 					if (maxval > globalmax)
 						globalmax = maxval;
-					break;
-			}
-		}
-		if (clip_mode == RESCALEGLOBAL) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0 ; i < n ; i++) {
-				blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
-				float val[3] = { buf[RLAYER][i] * invnorm, buf[GLAYER][i] * invnorm, buf[BLAYER][i] * invnorm };
-				float prime[3];
-				for (int chan = 0 ; chan < 3 ; chan++)
-					prime[chan] = max(0, (val[chan] - offset) / (1.0f - offset));
-
-				float x = factor_red * prime[RLAYER] + factor_green * prime[GLAYER] + factor_blue * prime[BLAYER];
-				float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-				for (int chan = 0 ; chan < 3 ; chan++) {
-					data.sf[chan] = min(1.0f, max(0.0f, (prime[chan] * k))) / globalmax;
-					buf[chan][i] = (do_channel[chan]) ? roundf_to_WORD(norm * fmaxf(0.f, data.sf[chan])) : roundf_to_WORD(fmaxf(0.f, val[chan]));
 				}
-			}
+				{
+					float inv_globalmax = 1.f / fmaxf(globalmax, FLT_MIN);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						float prime[3];
+						for (int chan = 0; chan < 3; chan++)
+							prime[chan] = fmaxf(0.f, (buf[chan][i] * invnorm - offset) * inv_1moffset);
+						float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+						float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = roundf_to_WORD(norm * fmaxf(0.f, fminf(1.f, prime[chan] * k) * inv_globalmax));
+					}
+				}
+				break;
 		}
 	} else {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			float x = buf[RLAYER][i] * invnorm;
-			float xprime = max(0, (x - offset) / (1.0f - offset));
-			float k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
-			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(xprime) * k)));
+			float xprime = fmaxf(0.f, (x - offset) * inv_1moffset);
+			float k = (xprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = roundf_to_WORD(norm * fminf(1.f, fmaxf(0.f, xprime * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -292,94 +308,112 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance, clip_mode_t clip_mode) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 	const gboolean do_channel[3] = { TRUE, TRUE, TRUE };
-
 	float m_CB = 1.f;
 	float asinh_beta = asinhf(beta);
 	float factor_red = human_luminance ? 0.2126f : 0.3333f;
 	float factor_green = human_luminance ? 0.7152f : 0.3333f;
 	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
+	float inv_1moffset = 1.f / (1.f - offset);
 
-	size_t i, n = fit->naxes[0] * fit->naxes[1];
+	size_t n = fit->naxes[0] * fit->naxes[1];
 	float globalmax = -FLT_MAX;
 	if (fit->naxes[2] > 1) {
+		switch (clip_mode) {
+			case CLIP:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < n; i++) {
-			blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
-			float val[3] = { buf[RLAYER][i], buf[GLAYER][i], buf[BLAYER][i] };
-			float prime[3];
-			for (int chan = 0 ; chan < 3 ; chan++)
-				prime[chan] = max(0, (val[chan] - offset) / (1.0f - offset));
-
-			float x = factor_red * prime[RLAYER] + factor_green * prime[GLAYER] + factor_blue * prime[BLAYER];
-			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-			for (int chan = 0 ; chan < 3 ; chan++)
-				data.sf[chan] = min(1.0f, max(0.0f, (prime[chan] * k)));
-			if (clip_mode == RGBBLEND) {
-				for (int chan = 0 ; chan < 3 ; chan++)
-					data.tf[chan] = (prime[chan] == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * prime[chan]) / (prime[chan] * asinh_beta);
-			}
-			float maxval = -FLT_MAX;
-			switch (clip_mode) {
-				case CLIP:
-					for (int chan = 0 ; chan < 3 ; chan++)
-						buf[chan][i] = do_channel[chan] ? fmaxf(0.f, fminf(data.sf[chan], 1.f)) : fmaxf(0.f, val[chan]);
-					break;
-				case RESCALE:
-					for (int chan = 0 ; chan < 3 ; chan++) {
-						if (do_channel[chan] && data.sf[chan] > maxval)
-							maxval = data.sf[chan];
-					}
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					for (int chan = 0; chan < 3; chan++)
+						buf[chan][i] = fmaxf(0.f, fminf(prime[chan] * k, 1.f));
+				}
+				break;
+			case RESCALE:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					float sf[3] = { fmaxf(0.f, prime[0] * k), fmaxf(0.f, prime[1] * k), fmaxf(0.f, prime[2] * k) };
+					float maxval = fmaxf(fmaxf(sf[0], sf[1]), sf[2]);
 					if (maxval > 1.f) {
-						for (int chan = 0 ; chan < 3 ; chan++) {
-							data.sf[chan] /= maxval;
-							buf[chan][i] = do_channel[chan] ? fmaxf(0.f, data.sf[chan]) : fmaxf(0.f, val[chan]);
-						}
+						float invmaxval = 1.f / maxval;
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = sf[chan] * invmaxval;
+					} else {
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = sf[chan];
 					}
-					break;
-				case RGBBLEND:
-					rgbblend(&data, &buf[RLAYER][i], &buf[GLAYER][i], &buf[BLAYER][i], m_CB);
-					break;
-				case RESCALEGLOBAL:
-					for (int chan = 0 ; chan < 3 ; chan++) {
-						if (do_channel[chan] && data.sf[chan] > maxval)
-							maxval = data.sf[chan];
-					}
+				}
+				break;
+			case RGBBLEND:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					for (int chan = 0; chan < 3; chan++)
+						data.sf[chan] = fminf(1.f, fmaxf(0.f, prime[chan] * k));
+					for (int chan = 0; chan < 3; chan++)
+						data.tf[chan] = (prime[chan] == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * prime[chan]) / (prime[chan] * asinh_beta);
+					rgbblend(&data, &buf[0][i], &buf[1][i], &buf[2][i], m_CB);
+				}
+				break;
+			case RESCALEGLOBAL:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(max:globalmax)
+#endif
+				for (size_t i = 0; i < n; i++) {
+					float prime[3];
+					for (int chan = 0; chan < 3; chan++)
+						prime[chan] = fmaxf(0.f, (buf[chan][i] - offset) * inv_1moffset);
+					float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+					float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+					float maxval = fmaxf(fmaxf(fminf(1.f, prime[0] * k),
+					                           fminf(1.f, prime[1] * k)),
+					                           fminf(1.f, prime[2] * k));
 					if (maxval > globalmax)
 						globalmax = maxval;
-					break;
-			}
-		}
-		if (clip_mode == RESCALEGLOBAL) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-			for (size_t i = 0 ; i < n ; i++) {
-				blend_data data = { .sf = { 0.f }, .tf = { 0.f }, .do_channel = do_channel };
-				float val[3] = { buf[RLAYER][i], buf[GLAYER][i], buf[BLAYER][i] };
-				float prime[3];
-				for (int chan = 0 ; chan < 3 ; chan++)
-					prime[chan] = max(0, (val[chan] - offset) / (1.0f - offset));
-
-				float x = factor_red * prime[RLAYER] + factor_green * prime[GLAYER] + factor_blue * prime[BLAYER];
-				float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
-				for (int chan = 0 ; chan < 3 ; chan++) {
-					data.sf[chan] = min(1.0f, max(0.0f, (prime[chan] * k))) / globalmax;
-					buf[chan][i] = (do_channel[chan]) ? fmaxf(0.f, data.sf[chan]) : fmaxf(0.f, val[chan]);
 				}
-			}
+				{
+					float inv_globalmax = 1.f / fmaxf(globalmax, FLT_MIN);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+					for (size_t i = 0; i < n; i++) {
+						float prime[3];
+						for (int chan = 0; chan < 3; chan++)
+							prime[chan] = fmaxf(0.f, (buf[chan][i] - offset) * inv_1moffset);
+						float x = factor_red * prime[0] + factor_green * prime[1] + factor_blue * prime[2];
+						float k = (x == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * x) / (x * asinh_beta);
+						for (int chan = 0; chan < 3; chan++)
+							buf[chan][i] = fmaxf(0.f, fminf(1.f, prime[chan] * k) * inv_globalmax);
+					}
+				}
+				break;
 		}
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (i = 0; i < n; i++) {
-			float x, k;
-			x = buf[RLAYER][i];
-			float xprime = max(0.0f, (x - offset) / (1.0f - offset));
-			k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
-			buf[RLAYER][i] = min(1.0f, max(0.0f,(xprime * k)));
+		for (size_t i = 0; i < n; i++) {
+			float xprime = fmaxf(0.f, (buf[RLAYER][i] - offset) * inv_1moffset);
+			float k = (xprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = fminf(1.f, fmaxf(0.f, xprime * k));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -549,7 +583,7 @@ void on_asinh_parameter_changed(GtkWidget *widget, gpointer user_data) {
 void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(button)) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

@@ -53,9 +53,6 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 
 	// Following the formulae at the Wikipedia "Airy disk" article
 	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f) * pixel_size;
@@ -85,9 +82,6 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 	float a = powf(cosf(anglerad)/alphax, 2.f) + powf(sinf(anglerad)/alphay, 2.f);
 	float b = powf(sinf(anglerad)/alphax, 2.f) + powf(cosf(anglerad)/alphay, 2.f);
 	float c = 2.f * sinf(anglerad) * cosf(anglerad) * (1.f/(alphax * alphax) - 1.f/(alphay * alphay));
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f);
@@ -113,9 +107,6 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	float a = powf(cosf(anglerad), 2.f) / tssx + powf(sinf(anglerad), 2.f) / tssy;
 	float b = sinf(2 * anglerad) / (2 * tssx) - sinf(2 * anglerad) / (2 * tssy);
 	float c = powf(sinf(anglerad), 2.f) / tssx + powf(cosf(anglerad), 2.f) / tssy;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoffset + 0.5f);
@@ -148,9 +139,6 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = 0.f;
 			} else {
 				int count = 0;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 				for (int randiter = 0 ; randiter < maxranditer; randiter++) {
 					float xrandoff = siril_random_float();
 					float yrandoff = siril_random_float();
@@ -478,7 +466,7 @@ int generate_synthstars(fits *fit) {
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			stopcalled = TRUE;
 		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
 		if (!stopcalled) {
@@ -553,7 +541,7 @@ int generate_synthstars(fits *fit) {
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (size_t n = 0; n < npixels; n++) {
 				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
@@ -636,8 +624,10 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -737,7 +727,7 @@ int reprofile_saturated_stars(fits *fit) {
 		double total = fit->naxes[2] * nb_stars;
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
-			if (!get_thread_run())
+			if (!processing_should_continue())
 				stopcalled = TRUE;
 			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
 			if (stars[n]->has_saturated && !stopcalled) {
@@ -822,8 +812,10 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);

@@ -101,6 +101,7 @@ src/core/masks.c
 src/core/pipe.c
 src/core/preprocess.c
 src/core/processing.c
+src/core/processing_thread.c
 src/core/sequence_filtering.c
 src/core/settings.c
 src/core/siril.c
@@ -137,6 +138,7 @@ src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c
 src/gui/colors.c
+src/gui/catmag.c
 src/gui/compstars.c
 src/gui/conversion.c
 src/gui/curves.c

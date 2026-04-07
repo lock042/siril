@@ -45,6 +45,7 @@
 #include "gui/curves.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
+#include "gui/histo_display.h"
 #include "gui/icc_profile.h"
 #include "gui/image_interactions.h"
 #include "gui/open_dialog.h"
@@ -54,7 +55,6 @@
 #include "gui/sequence_list.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
-#include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"
@@ -240,6 +240,19 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	gtk_widget_set_visible(w, !gtk_widget_get_visible(w));
 }
 
+void on_histogram_overlay_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	gboolean new_state = g_variant_get_boolean(state);
+	set_histogram_overlay_visible(new_state);
+	g_simple_action_set_state(action, state);
+}
+
+void on_histogram_overlay_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
@@ -287,6 +300,7 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -319,6 +333,7 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -789,6 +804,10 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("compstars");
+}
+
+void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("catmag");
 }
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

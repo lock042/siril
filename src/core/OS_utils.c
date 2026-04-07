@@ -613,32 +613,41 @@ int get_available_cpu_cgroups() {
 }
 #endif
 
+static NumProcsInfo procs_info = { 0 };
+
 void init_num_procs() {
-	/* Get CPU number and set the number of threads */
 #ifdef _OPENMP
-	int num_proc = (int) g_get_num_processors();
-	int omp_num_proc = omp_get_num_procs();
-	if (num_proc != omp_num_proc) {
-		siril_log_message(_("Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"),
-					omp_num_proc, ngettext("processor", "processors", omp_num_proc), num_proc);
-		// in case of cgroup limitation of the cpuset, openmp already detects the correct count
-	}
-	com.max_thread = num_proc < omp_num_proc ? num_proc : omp_num_proc;;
-	int cgroups_num_proc = get_available_cpu_cgroups();
-	if (cgroups_num_proc > 0 && cgroups_num_proc < com.max_thread) {
-		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
-		com.max_thread = cgroups_num_proc;
-	}
+	procs_info.glib_num_proc  = (int) g_get_num_processors();
+	procs_info.omp_num_proc   = omp_get_num_procs();
+	com.max_thread = MIN(procs_info.glib_num_proc, procs_info.omp_num_proc);
+	procs_info.cgroups_num_proc = get_available_cpu_cgroups();
+	if (procs_info.cgroups_num_proc > 0 && procs_info.cgroups_num_proc < com.max_thread)
+		com.max_thread = procs_info.cgroups_num_proc;
 	omp_set_max_active_levels(INT_MAX);
-	int max_levels_supported = omp_get_max_active_levels();
-	int supports_nesting = max_levels_supported > 1;
+	procs_info.supports_nesting = omp_get_max_active_levels() > 1;
+#else
+	com.max_thread = 1;
+#endif
+}
+
+void log_num_procs() {
+#ifdef _OPENMP
+	if (procs_info.glib_num_proc != procs_info.omp_num_proc) {
+		siril_log_message(_("Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"),
+				procs_info.omp_num_proc,
+				ngettext("processor", "processors", procs_info.omp_num_proc),
+				procs_info.glib_num_proc);
+	}
+	if (procs_info.cgroups_num_proc > 0) {
+		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"),
+				procs_info.cgroups_num_proc);
+	}
 	siril_log_message(
 			_("Parallel processing enabled: using %d logical %s%s.\n"),
 			com.max_thread,
 			ngettext("processor", "processors", com.max_thread),
-			supports_nesting ? "" : _(", nesting not supported"));
+			procs_info.supports_nesting ? "" : _(", nesting not supported"));
 #else
-	com.max_thread = 1;
 	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
 #endif
 }

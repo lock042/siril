@@ -167,7 +167,7 @@ void reset_conv_controls_and_args() {
 	estk_data *tmp_args = alloc_estk_data();
 	if (!tmp_args) return;
 
-	if (!get_thread_run())
+	if (!processing_is_job_active())
 		reset_conv_args(tmp_args);
 	gui_function(reset_conv_controls, tmp_args);
 
@@ -363,7 +363,7 @@ int get_kernel(estk_data *args) {
 					com.kernel = estimate_kernel(args, com.fftw_max_thread);
 					break;
 			}
-			if (get_thread_run())
+			if (processing_should_continue())
 				siril_log_message(_("Kernel estimation complete.\n"));
 			break;
 		case PSF_SELECTION: // Kernel from selection
@@ -751,7 +751,7 @@ gpointer deconvolve(gpointer p) {
 		yuvdata = malloc(npixels * args->fit->naxes[2] * sizeof(float));
 #ifdef _OPENMP
 		threads = sequence_is_running ? 1 : com.max_thread;
-#pragma omp parallel for simd num_threads(threads) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			rgb_to_yuvf(args->fdata[i], args->fdata[i + npixels], args->fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
@@ -761,7 +761,7 @@ gpointer deconvolve(gpointer p) {
 		args->fdata = yuvdata; // fdata now points to the Y part of yuvdata
 	}
 
-	if (get_thread_run() || sequence_is_running == 1) {
+	if (processing_should_continue() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
 		gettimeofday(&t_start, NULL);
@@ -800,7 +800,7 @@ gpointer deconvolve(gpointer p) {
 		args->nchans = 3;
 		args->fdata = malloc(npixels * args->nchans * sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(threads) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args->fdata[i], &args->fdata[i + npixels], &args->fdata[i + 2 * npixels]);
@@ -809,7 +809,7 @@ gpointer deconvolve(gpointer p) {
 	}
 
 	// Update the fit with the result
-	if (get_thread_run()) {
+	if (processing_should_continue()) {
 		if (args->fit->type == DATA_FLOAT) {
 			memcpy(args->fit->fdata, args->fdata, args->ndata * sizeof(float));
 			if (com.pref.force_16bit)

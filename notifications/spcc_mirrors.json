@@ -6,5 +6,9 @@
   {
     "url": "https://gaia.wheep.co.uk",
     "description": "UK Mirror"
+  },
+  {
+    "url": "https://huggingface.co/datasets/siril-spcc/gaia/resolve/main",
+    "description": "Huggingface"
   }
 ]

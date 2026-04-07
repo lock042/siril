@@ -53,6 +53,7 @@ int	process_boxselect(int nb);
 int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catmag_mono(int nb);
 int	process_catsearch(int nb);
 int	process_ccm(int nb);
 int	process_cd(int nb);
@@ -73,6 +74,7 @@ int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
 int	process_epf(int nb);
+int	process_eqcrop(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);

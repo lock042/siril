@@ -381,6 +381,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="histo">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/histo_dark.svg</property>
+  </object>
   <object class="GtkImage" id="image3">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -2742,6 +2747,21 @@ Output is a csv file compatible with NINA Exoplanet</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="calibrate_mag_button">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Calibrate magnitudes of the image using stars detected from the catalogue</property>
+            <property name="action-name">win.catmag</property>
+            <property name="text" translatable="yes">Calibrate magnitudes ...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -10404,6 +10424,31 @@ Current state: linked.</property>
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkSeparatorToolItem" id="separateur3">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="histo_button">
+                    <property name="name">histo_button</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Show/hide histogram overlay</property>
+                    <property name="action-name">win.histo_display</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">histo</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkSeparatorToolItem" id="separateur8">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -10440,6 +10485,16 @@ Current state: linked.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="separateur">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
                   </packing>
                 </child>
                 <child>

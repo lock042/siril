@@ -36,9 +36,12 @@
  ****************************************************************************/
 
 void linear_fit(GList *points, double *slopes) {
-	if (!points || g_list_length(points) < 2) return;
+	int n = g_list_length(points);
+	g_assert(n >= 2);
+
+	// Precalculate the slope between each pair of points
 	GList *current = points;
-	for (int i = 0; i < g_list_length(points) - 1; i++) {
+	for (int i = 0; i < n - 1; i++) {
 		point *point1 = (point *) current->data;
 		point *point2 = (point *) current->next->data;
 		double dx = point2->x - point1->x;

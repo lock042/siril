@@ -894,6 +894,7 @@ static void check_gfit_is_ours() {
 	set_cutoff_sliders_values();
 	set_display_mode();
 	gui_function(update_MenuItem, NULL);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 
 	sequence_list_change_current();
@@ -1068,6 +1069,7 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 		GtkNotebook *notebook = (GtkNotebook *) lookup_widget("notebook1");
 		gtk_notebook_set_current_page(notebook, 3);
 		gui.cvport = 3;
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 		update_display_selection();
 		update_display_fwhm();
@@ -1306,8 +1308,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		regargs.type = SHIFT_TRANSFORMATION;
 	else
 		regargs.type = HOMOGRAPHY_TRANSFORMATION;
-	com.run_thread = TRUE; // fix for the cancelling check in processing
 
+	if (!reserve_thread()) {
+		siril_log_message(_("A processing operation is already running.\n"));
+		set_cursor_waiting(FALSE);
+		return;
+	}
 	// Update the spinbutton values if we are doing manual reg
 	// This avoids GTK calls from threads
 	if (method->method_ptr == register_manual) {
@@ -1332,7 +1338,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	if (ret1) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE; // fix for the cancelling check in processing
+		unreserve_thread();
 		return;
 	}
 	// Second step - apply registration
@@ -1353,7 +1359,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 			                          "in which case the images must be re-loaded to retry "
 			                          "alignment.)"), _("Proceed"))) {
 			set_cursor_waiting(FALSE);
-			com.run_thread = FALSE; // fix for the cancelling check in processing
+			unreserve_thread();
 			return;
 		}
 	}
@@ -1370,12 +1376,12 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	if (ret2) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 		set_cursor_waiting(FALSE);
-		com.run_thread = FALSE; // fix for the cancelling check in processing
+		unreserve_thread();
 		return;
 	}
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
-	com.run_thread = FALSE; // fix for the cancelling check in processing
+	unreserve_thread();
 
 	/* display the values */
 	if (method->method_ptr != register_manual) {
@@ -1725,8 +1731,8 @@ static void update_result(int and_refresh) {
 		colors_align_and_compose();
 	}
 	if (and_refresh && number_of_images_loaded() > 0) {
-		notify_gfit_modified();
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	}
 }
 
@@ -2463,13 +2469,14 @@ int crop_rgbcomp_seq() {
 	args->load_new_sequence = TRUE;
 	args->user = crop_args;
 
-	if (!start_in_new_thread(generic_sequence_worker, args)) {
+	if (!start_and_wait_from_main_thread(generic_sequence_worker, args)) {
 		free(crop_args->prefix);
 		free(crop_args);
 		free_generic_seq_args(args, FALSE);
 		return 1;
 	}
-	waiting_for_thread();
+	/* already_in_a_thread=TRUE means the worker did not schedule an idle
+	 * and did not free args, so reading retval and freeing here is safe. */
 	int retval = args->retval;
 	free_generic_seq_args(args, FALSE);
 	update_result(TRUE);

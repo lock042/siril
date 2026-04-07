@@ -401,7 +401,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->description = _("Cone search");
 		args->verbose = TRUE;
 		args->command_updates_gfit = FALSE;
-		args->command = TRUE;
+		args->command = FALSE;
 		args->user = params_cone;
 		args->log_hook = NULL;
 

@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing_thread.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/message_dialog.h"
@@ -39,6 +40,7 @@
 #include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
+#include "catmag.h"
 
 static gboolean dialog_is_opened = FALSE;
 static gboolean processing_dialog_is_opened = FALSE;
@@ -56,6 +58,7 @@ static const SirilDialogEntry entries[] =
 	{"ccm_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"catmag", get_catmag_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -116,6 +119,10 @@ static SirilDialogEntry get_entry_by_id(gchar *id) {
 	return empty;
 }
 
+int number_of_dialogs() {
+	return G_N_ELEMENTS(entries);
+}
+
 static GtkWidget *get_widget_by_id(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.get_window)
@@ -147,7 +154,7 @@ void siril_open_dialog(gchar *id) {
 
 	// We cannot open the dialog if a python script claims the thread, to prevent conflict over
 	// updating gfit
-	if (entry.type == IMAGE_PROCESSING_DIALOG && com.python_claims_thread) {
+	if (entry.type == IMAGE_PROCESSING_DIALOG && processing_is_reserved_for_python()) {
 		queue_error_message_dialog(_("Error"), _("Error: cannot open an image processing dialog while a Python script claims the processing thread. "
 									"Wait for the Python script to finish processing first."));
 		return;

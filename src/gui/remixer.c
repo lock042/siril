@@ -216,7 +216,7 @@ gboolean redraw_remix_histo_left(GtkWidget *widget, cairo_t *cr, gpointer data) 
 
 	if (height == 1)
 		return FALSE;
-	erase_histo_display(cr, width, height);
+	fill_histo_background(cr, width, height);
 	draw_grid(cr, width, height);
 		for (i = 0; i < RGB_VPORT; i++) {
 		if (remix_histlayers_left[i]) {
@@ -236,7 +236,7 @@ gboolean redraw_remix_histo_right(GtkWidget *widget, cairo_t *cr, gpointer data)
 
 	if (height == 1)
 		return FALSE;
-	erase_histo_display(cr, width, height);
+	fill_histo_background(cr, width, height);
 	draw_grid(cr, width, height);
 
 	for (i = 0; i < RGB_VPORT; i++) {
@@ -548,7 +548,7 @@ int remixer() {
 		}
 	}
 
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 
 	return 0;
 }

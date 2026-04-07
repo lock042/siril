@@ -422,8 +422,7 @@ static void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	gfit_modified_update_gui();
 	gui_function(redraw_previews, NULL);
 	g_free(args->type);
 	g_free(args->modulus);
@@ -549,6 +548,8 @@ end:
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+	if (!args->retval)
+		notify_gfit_data_modified();
 	siril_add_idle(end_fourier_transform, args);
 
 	return GINT_TO_POINTER(args->retval);
@@ -565,7 +566,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	static GtkToggleButton *order = NULL;
 	static GtkNotebook* notebookFFT = NULL;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

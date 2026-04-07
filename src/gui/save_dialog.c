@@ -468,6 +468,7 @@ static gboolean end_save(gpointer p) {
 	gtk_entry_set_text(args->entry, "");
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
+	adjust_sellabel();
 	gui_function(set_precision_switch, NULL);
 	set_cursor_waiting(FALSE);
 	close_dialog();
@@ -742,8 +743,8 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 	}
 	initialize_data(args);
 
-	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
-		if (!get_thread_run()) {
+	if (!processing_is_job_active() && gtk_toggle_button_get_active(button)) {
+		if (!processing_is_job_active()) {
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
@@ -768,7 +769,7 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			return;
 		}
 		initialize_data(args);
-		if (!get_thread_run()) {
+		if (!processing_is_job_active()) {
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
