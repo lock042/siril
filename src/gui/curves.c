@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -714,12 +715,13 @@ void toggle_curves_window_visibility() {
 		// When opening the dialog with a single image loaded, we cache the original ICC
 		// profile (may be NULL) in case the user closes the dialog without applying a
 		// stretch, in which case we will revert.
+		fits *profiled = flis_get_profiled_fit();
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
-				original_icc = copyICCProfile(gfit->icc_profile);
+				original_icc = copyICCProfile(profiled->icc_profile);
 			}
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+			icc_auto_assign_or_convert(profiled, ICC_ASSIGN_ON_STRETCH);
 		} else {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);

@@ -38,6 +38,7 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/siril_preview.h"
+#include "io/image_format_flis.h"
 #include "core/undo.h"
 #include "histogram.h"
 #include "histogram_utils.h"
@@ -1916,10 +1917,11 @@ void toggle_histogram_window_visibility(int _invocation) {
 		siril_close_dialog("histogram_dialog");
 	} else {
 		fit = gfit;
+		fits *profiled = flis_get_profiled_fit();
 		if (original_icc)
 			cmsCloseProfile(original_icc);
-		original_icc = copyICCProfile(gfit->icc_profile);
-		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+		original_icc = copyICCProfile(profiled->icc_profile);
+		icc_auto_assign_or_convert(profiled, ICC_ASSIGN_ON_STRETCH);
 		single_image_stretch_applied = FALSE;
 		// When opening the dialog with a single image loaded, we cache the original ICC
 		// profile (may be NULL) in case the user closes the dialog without applying a
@@ -1927,9 +1929,9 @@ void toggle_histogram_window_visibility(int _invocation) {
 		if (single_image_is_loaded()) {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);
-				original_icc = copyICCProfile(gfit->icc_profile);
+				original_icc = copyICCProfile(profiled->icc_profile);
 			}
-			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+			icc_auto_assign_or_convert(profiled, ICC_ASSIGN_ON_STRETCH);
 		} else {
 			if (original_icc) {
 				cmsCloseProfile(original_icc);

@@ -17,6 +17,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
+#include "io/image_format_flis.h"
 #include "core/undo.h"
 
 #include "asinh.h"
@@ -466,18 +467,19 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders();
 
+	fits *profiled = flis_get_profiled_fit();
 	if (original_icc)
 		cmsCloseProfile(original_icc);
-	original_icc = copyICCProfile(gfit->icc_profile);
-	icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+	original_icc = copyICCProfile(profiled->icc_profile);
+	icc_auto_assign_or_convert(profiled, ICC_ASSIGN_ON_STRETCH);
 	single_image_stretch_applied = FALSE;
 
 	if (single_image_is_loaded()) {
 		if (original_icc) {
 			cmsCloseProfile(original_icc);
-			original_icc = copyICCProfile(gfit->icc_profile);
+			original_icc = copyICCProfile(profiled->icc_profile);
 		}
-		icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_STRETCH);
+		icc_auto_assign_or_convert(profiled, ICC_ASSIGN_ON_STRETCH);
 	} else {
 		if (original_icc) {
 			cmsCloseProfile(original_icc);
