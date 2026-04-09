@@ -34,17 +34,6 @@ used in the tests.
     meson test (or meson test -C _build from src)
     meson test -v
 
-###Using test script
-
-To compile the test programs, compile siril with the autotools/make method,
-then run ./build.sh in src/tests.
-Since sorting makes some performance tests, siril has to be compiled with -O2
-to have realistic values.
-
-If build error occurs, check that the basic build script has all required
-package links for your OS and options for your compiler.
-If link error occurs, add the missing functions in dummy.c
-
 ## Debugging scripts
 
 The script creates executables for some tests, which can be debugged like any other.

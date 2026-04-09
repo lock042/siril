@@ -140,6 +140,8 @@ siril-deb-meson:
     - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
+    # for integration tests: init python with astropy, wget test files, run the script
+    - src/tests/integration_tests.sh
     - cd ${BUILD_DIR}
 #    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
     - cd ..
