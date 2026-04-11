@@ -1618,15 +1618,14 @@ gpointer generic_image_worker(gpointer p) {
 the_end:;
 
 	int retval = args->retval;
-	if (retval) {
-		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
-	} else {
-		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
-	}
 
+	// Cleanup / idles
 	if (args->command) {
-		// commands do not use custom idles and the generic ones must run synchronously
-		if (args->command_updates_gfit) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_img_args(args);
+		} else if (args->command_updates_gfit) {
+			// commands do not use custom idles and the generic ones must run synchronously
 			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
 		} else {
 			execute_idle_and_wait_for_it(end_generic_image, args);
@@ -1638,8 +1637,15 @@ the_end:;
 	}
 
 	// Everything below here must avoid using args as it will be cleared in the idle function
+	// (or headless path).
 	// We do other widget updates here after the idle has been added, so that we don't get
 	// early redraws
+
+	if (retval) {
+		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+	}
 
 	if (!argpreview && !retval)
 		siril_log_message("%s\n", history); // Log the full detailed description
@@ -1665,7 +1671,8 @@ the_end:;
 	g_free(summary); // free the message
 	g_free(history);
 	g_free(desc);
-	if (orig) clearfits(orig);
+	if (orig)
+		clearfits(orig);
 	free(orig);
 
 	return GINT_TO_POINTER(retval);
@@ -1743,8 +1750,13 @@ the_end:
 	}
 
 	if (args->command) {
-		// commands do not use custom idles and must run synchronously
-		execute_idle_and_wait_for_it(end_generic_mask, args);
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_mask_args(args);
+		} else {
+			// commands do not use custom idles and must run synchronously
+			execute_idle_and_wait_for_it(end_generic_mask, args);
+		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);
 	} else {

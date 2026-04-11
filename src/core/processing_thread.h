@@ -45,33 +45,6 @@ extern "C" {
  */
 typedef gpointer (*ProcessingFunc)(gpointer data);
 
-/* Internal job type — used by the queue machinery. */
-typedef enum {
-    PROCESSING_JOB_NORMAL,
-    PROCESSING_JOB_QUIT
-} ProcessingJobType;
-
-/*
- * Full struct definition is public so callers can hold a ProcessingJob on the
- * stack if needed, but treat all fields as private: use only the API below.
- *
- * Only non-NULL job handles are returned for fire-and-forget (GUI) submissions.
- * Blocking submissions (script / python-command) return NULL from
- * processing_submit_job / start_in_new_thread because the job is already
- * complete and freed by the time the call returns.
- */
-typedef struct _ProcessingJob {
-    ProcessingJobType  type;
-    ProcessingFunc     func;
-    gpointer           data;
-    gpointer           result;
-
-    GMutex             mutex;
-    GCond              cond;
-    gboolean           completed;
-    gboolean           fire_and_forget;
-} ProcessingJob;
-
 
 /* --------------------------------------------------------------------------
  * Lifecycle  (call once at application start / stop)
@@ -86,24 +59,21 @@ void processing_system_shutdown (void);
  * --------------------------------------------------------------------------
  *
  * If called from the worker thread itself (re-entrant / already_in_a_thread
- * pattern), func is invoked directly and synchronously; NULL is returned.
+ * pattern), func is invoked directly and synchronously.
  *
  * If context_requires_wait() — i.e. com.script or com.python_command is set —
- * the call blocks until the job completes, the result is cached for the next
- * waiting_for_thread() call, and NULL is returned.
+ * the call blocks until the job completes and the result is cached for the
+ * next waiting_for_thread() call.
  *
- * Otherwise the job is queued and a non-NULL handle is returned; the caller
- * must not free it.  Use processing_wait_for_job() to wait on it explicitly.
+ * Otherwise the job is queued fire-and-forget.  External callers that need to
+ * wait use processing_is_job_active() polling or waiting_for_thread().
+ *
+ * For the time being, processing_submit_job is commented out of the header as
+ * external jobs should generally use the start_in_new_thread() interface,
+ * which incudes some checking. If a need emerges to use this function outside
+ * processing_thread.c it may be uncommented.
  */
-ProcessingJob *processing_submit_job (ProcessingFunc func, gpointer data);
-
-/* Block until a specific fire-and-forget job has completed.
- *
- * WARNING: After this function returns, the job handle is no longer valid
- * and MUST NOT be used.  The worker frees fire-and-forget jobs immediately
- * after completion; any access to the handle after this call is
- * use-after-free. */
-void processing_wait_for_job (ProcessingJob *job);
+// gboolean processing_submit_job (ProcessingFunc func, gpointer data);
 
 
 /* --------------------------------------------------------------------------
@@ -170,7 +140,7 @@ void python_releases_thread  (void);
 gboolean processing_is_reserved_for_python(void);
 
 /* --------------------------------------------------------------------------
- * Compatibility wrappers  (same signatures as before)
+ * Main public API
  * -------------------------------------------------------------------------- */
 
 /*
@@ -219,15 +189,6 @@ gpointer waiting_for_thread (void);
  * block.  Safe to call from any thread, including the worker itself.
  */
 void stop_processing_thread (void);
-
-/*
- * set_thread_run(b)
- *
- * Compatibility shim:
- *   b = FALSE → processing_request_cancel()
- *   b = TRUE  → no-op (job_active_flag is managed internally)
- */
-void set_thread_run (gboolean b);
 
 /*
  * reserve_thread / unreserve_thread
