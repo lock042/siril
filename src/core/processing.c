@@ -1617,8 +1617,9 @@ gpointer generic_image_worker(gpointer p) {
 
 the_end:;
 
-	// Cleanup / idles
+	int retval = args->retval;
 
+	// Cleanup / idles
 	if (args->command) {
 		if (com.headless) {
 			stop_processing_thread();
@@ -1640,7 +1641,6 @@ the_end:;
 	// We do other widget updates here after the idle has been added, so that we don't get
 	// early redraws
 
-	int retval = args->retval;
 	if (retval) {
 		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
 	} else {
