@@ -22,6 +22,7 @@ typedef enum {
 } background_interpolation;
 
 struct background_data {
+	destructor destroy_fn;  /* Must be first member */
 	int nb_of_samples;
 	double tolerance;
 	background_correction correction;
@@ -58,6 +59,8 @@ int generate_background_samples(int nb_of_samples, double tolerance);
 gpointer remove_gradient_from_image(gpointer p);
 gpointer remove_gradient_from_cfa_image(gpointer p);
 void apply_background_extraction_to_sequence(struct background_data *background_args);
+void free_background_data(void *p);
+int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads);
 
 gboolean background_sample_is_valid(background_sample *sample);
 gdouble background_sample_get_size(background_sample *sample);

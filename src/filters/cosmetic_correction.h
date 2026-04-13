@@ -53,8 +53,9 @@ struct cosmetic_data *new_cosmetic_data();
 void free_cosmetic_data(void *args);
 gchar* cosmetic_log_hook(gpointer p, log_hook_detail detail);
 
-/* Image processing hook for generic_image_worker */
+/* Image processing hooks for generic_image_worker */
 int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads);
+int cosmetic_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads);
 
 /* Idle function for generic_image_worker */
 gboolean cosme_idle(gpointer p);

@@ -41,6 +41,46 @@
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
 
+/************* wrecons hook (shared with GUI OK path and process_wrecons) *************/
+
+void free_wrecons_data(void *p) {
+	free(p);
+}
+
+int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct wrecons_data *args = (struct wrecons_data *)gargs->user;
+	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave", "b_rawdata.wave" };
+	const char *tmpdir = g_get_tmp_dir();
+	for (int i = 0; i < args->nb_chan; i++) {
+		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+		int ret;
+		if (fit->type == DATA_USHORT)
+			ret = wavelet_reconstruct_file(dir, args->coef, fit->pdata[i]);
+		else if (fit->type == DATA_FLOAT)
+			ret = wavelet_reconstruct_file_float(dir, args->coef, fit->fpdata[i]);
+		else {
+			g_free(dir);
+			return 1;
+		}
+		g_free(dir);
+		if (ret) return 1;
+	}
+	siril_log_message(_("Wavelet reconstruction\n"));
+	return 0;
+}
+
+/* Idle function: called after generic_image_worker finishes the wrecons apply */
+static gboolean wrecons_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (!args->retval)
+		gfit_modified_update_gui();
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
+	siril_close_dialog("wavelets_dialog");
+	return FALSE;
+}
+
 static void reset_scale_w() {
 	static GtkRange *range_w[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
 
@@ -217,14 +257,31 @@ void apply_wavelets_cancel() {
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_active = gtk_widget_get_sensitive(lookup_widget("frame_wavelets")) == TRUE;
 	if (is_active && wavelet_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = update_wavelets;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+		/* Preview was not active: gfit still holds the original pixels.
+		 * Apply the reconstruction via generic_image_worker so that undo
+		 * state is saved automatically before the hook runs. */
+		set_cursor_waiting(TRUE);
+		struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
+		wrecons_args->destroy_fn = free_wrecons_data;
+		wrecons_args->nb_chan = gfit->naxes[2];
+		for (int i = 0; i < 6; i++)
+			wrecons_args->coef[i] = wavelet_value[i];
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		args->fit = gfit;
+		args->image_hook = wrecons_image_hook;
+		args->idle_function = wrecons_idle;
+		args->description = _("Wavelets Transformation");
+		args->verbose = TRUE;
+		args->user = wrecons_args;
+		if (!start_in_new_thread(generic_image_worker, args))
+			free_generic_img_args(args);
+		return;
 	}
+	/* Preview was active: gfit already holds the reconstructed pixels.
+	 * Commit the preview backup as the undo "before" state and close. */
 	undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
 	siril_log_color_message(_("Wavelets Transformation\n"), "green");
-
 	siril_close_dialog("wavelets_dialog");
 }
 

@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
+#include "core/processing.h"
 #include "core/undo.h"
 #include "core/masks.h"
 #include "core/siril_update.h"
@@ -821,18 +822,28 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa()) return;
-	undo_save_state(gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(fix_saturated_stars, NULL);
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = unclip_image_hook;
+	args->description = _("Unclip stars");
+	args->verbose = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa())
 		return;
-	undo_save_state(gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(do_synthstar, NULL);
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = synthstar_image_hook;
+	args->description = _("Synthetic stars");
+	args->verbose = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

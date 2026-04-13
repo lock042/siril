@@ -1591,3 +1591,56 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
 }
+
+/* ---- Image processing hooks for generic_image_worker ---- */
+
+void free_icc_data(void *p) {
+	struct icc_data *args = (struct icc_data *)p;
+	if (!args) return;
+	if (args->profile)
+		cmsCloseProfile(args->profile);
+	free(args);
+}
+
+/* Hook for profile removal. Calls siril_colorspace_transform with NULL
+ * to remove the profile and disable color management. */
+int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	siril_colorspace_transform(fit, NULL);
+	return 0;
+}
+
+/* Hook for profile assignment (no pixel transform).
+ * Clears the existing profile first to force the assign-only path
+ * in siril_colorspace_transform, then assigns the new profile. */
+int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct icc_data *args = (struct icc_data *)gargs->user;
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	siril_colorspace_transform(fit, args->profile);
+	if (!fit->icc_profile) {
+		siril_log_color_message(_("Error assigning ICC profile.\n"), "red");
+		color_manage(fit, FALSE);
+		return 1;
+	}
+	siril_log_color_message(_("Color profile assignment complete.\n"), "green");
+	return 0;
+}
+
+/* Hook for color space conversion (may transform pixels).
+ * Sets the processing intent from args->intent then calls
+ * siril_colorspace_transform which handles pixel conversion. */
+int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct icc_data *args = (struct icc_data *)gargs->user;
+	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+	com.pref.icc.processing_intent = args->intent;
+	siril_colorspace_transform(fit, args->profile);
+	com.pref.icc.processing_intent = temp_intent;
+	if (!fit->icc_profile) {
+		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
+		return 1;
+	}
+	siril_log_color_message(_("Color space conversion complete.\n"), "green");
+	return 0;
+}

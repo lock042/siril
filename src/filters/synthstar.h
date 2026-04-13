@@ -1,8 +1,11 @@
 #ifndef SRC_SYNTHSTAR_H_
 #define SRC_SYNTHSTAR_H_
 
-gpointer do_synthstar(gpointer data);
-gpointer fix_saturated_stars(gpointer data);
+#include "core/processing.h"
+
+/* generic_image_worker hooks */
+int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads);
+int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads);
 void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, const float wavelength, const float aperture, const float focal_length, const float pixel_scale, const float obstruction);
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle);

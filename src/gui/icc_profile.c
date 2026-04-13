@@ -268,6 +268,32 @@ void on_pref_icc_assign_never_toggled(GtkToggleButton *button, gpointer user_dat
 		g_signal_handlers_unblock_by_func(composition, on_pref_icc_assign_toggled, NULL);
 	}
 }
+/* Idle function for generic_image_worker path of on_icc_assign_clicked
+ * and on_icc_remove_clicked */
+static gboolean icc_assign_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	set_source_information();
+	gfit_modified_update_gui();
+	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+/* Idle function for generic_image_worker path of on_icc_convertto_clicked */
+static gboolean icc_convert_to_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	set_source_information();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
+	gfit_modified_update_gui();
+	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 //////// GUI callbacks for the color management dialog
 
 void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
@@ -300,8 +326,6 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 	on_clear_roi();
-	// We save the undo state as dealing with gfit
-	undo_save_state(gfit, _("Color profile assignment"));
 
 	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
 	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
@@ -334,34 +358,32 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 		cmsCloseProfile(gfit->icc_profile);
 		gfit->icc_profile = NULL;
 	}
-FINISH:
-	gfit->icc_profile = copyICCProfile(target);
-	if (gfit->icc_profile)
-		color_manage(gfit, TRUE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
-	set_source_information();
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+FINISH:;
+	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
+	icc_args->destroy_fn = free_icc_data;
+	icc_args->profile = copyICCProfile(target);
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = icc_assign_hook;
+	args->idle_function = icc_assign_idle;
+	args->description = _("ICC profile assignment");
+	args->verbose = TRUE;
+	args->user = icc_args;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	on_clear_roi();
-	// We save the undo state as dealing with gfit
-	undo_save_state(gfit, _("Color profile removal"));
-	if (gfit->icc_profile) {
-		cmsCloseProfile(gfit->icc_profile);
-		gfit->icc_profile = NULL;
-	}
-	color_manage(gfit, FALSE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
-	set_source_information();
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
-
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = icc_remove_hook;
+	args->idle_function = icc_assign_idle;
+	args->description = _("ICC profile removal");
+	args->verbose = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
@@ -382,27 +404,20 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 		return;
 	}
 
-	// Do the transform
-	// We save the undo state if dealing with gfit
-	undo_save_state(gfit, _("Color profile conversion"));
-	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
-	com.pref.icc.processing_intent = com.pref.icc.export_intent;
-	siril_colorspace_transform(gfit, target);
-	com.pref.icc.processing_intent = temp_intent;
+	struct icc_data *icc_args = calloc(1, sizeof(struct icc_data));
+	icc_args->destroy_fn = free_icc_data;
+	icc_args->profile = copyICCProfile(target);
+	icc_args->intent = com.pref.icc.export_intent;
 
-	// Assign the new color space to gfit
-	if (gfit->icc_profile)
-		cmsCloseProfile(gfit->icc_profile);
-	gfit->icc_profile = copyICCProfile(target);
-	if (gfit->icc_profile)
-		color_manage(gfit, TRUE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
-	set_source_information();
-	refresh_icc_transforms();
-	gui_function(close_tab, NULL);
-	gui_function(init_right_tab, NULL);
-	notify_gfit_data_modified();
-	gfit_modified_update_gui();
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = icc_convert_to_hook;
+	args->idle_function = icc_convert_to_idle;
+	args->description = _("ICC color space conversion");
+	args->verbose = TRUE;
+	args->user = icc_args;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
