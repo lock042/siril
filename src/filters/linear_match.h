@@ -20,6 +20,19 @@
 #ifndef SRC_GUI_LINEAR_MATCH_H_
 #define SRC_GUI_LINEAR_MATCH_H_
 
+#include "core/siril.h"
+#include "core/processing.h"
+
+struct linear_match_data {
+	void (*destroy_fn)(void *); /* Must be first member */
+	fits ref;                   /* Reference image (owned by this struct) */
+	double low;
+	double high;
+};
+
+struct linear_match_data *new_linear_match_data(fits *ref_fit, double low, double high);
+void free_linear_match_data(void *p);
+int linear_match_image_hook(struct generic_img_args *args, fits *fit, int threads);
 void apply_linear_to_fits(fits *fit, double *a, double *b);
 
 #endif /* SRC_GUI_LINEAR_MATCH_H_ */

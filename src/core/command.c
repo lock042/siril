@@ -1142,14 +1142,66 @@ static char* normalize_rebayerfilename(char *filename_buffer, const char *input,
 	return filename_buffer;
 }
 
+struct rebayer_cmd_data {
+	char *f_cfa0, *f_cfa1, *f_cfa2, *f_cfa3;
+	sensor_pattern pattern;
+};
+
+static void free_rebayer_cmd_data(struct rebayer_cmd_data *data) {
+	free(data->f_cfa0);
+	free(data->f_cfa1);
+	free(data->f_cfa2);
+	free(data->f_cfa3);
+	free(data);
+}
+
+static gpointer rebayer_cmd_worker(gpointer p) {
+	struct rebayer_cmd_data *data = (struct rebayer_cmd_data *)p;
+	fits c0 = { 0 }, c1 = { 0 }, c2 = { 0 }, c3 = { 0 };
+	int retval = readfits(data->f_cfa0, &c0, NULL, FALSE);
+	retval += readfits(data->f_cfa1, &c1, NULL, FALSE);
+	retval += readfits(data->f_cfa2, &c2, NULL, FALSE);
+	retval += readfits(data->f_cfa3, &c3, NULL, FALSE);
+	if (retval) {
+		siril_log_color_message(_("Error loading files!\n"), "red");
+		clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
+		free_rebayer_cmd_data(data);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	fits *out = merge_cfa(&c0, &c1, &c2, &c3, data->pattern);
+	clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
+	if (!out) {
+		siril_log_color_message(_("Merge CFA failed.\n"), "red");
+		free_rebayer_cmd_data(data);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	close_single_image();
+	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copy_fits_metadata(out, gfit);
+	update_sampling_information(gfit, 0.5f);
+	update_bayer_pattern_information(gfit, data->pattern);
+	free_wcs(gfit);
+	update_fits_header(gfit);
+	clearfits(out);
+	free(out);
+	clear_stars_list(TRUE);
+	com.seq.current = UNRELATED_IMAGE;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+		com.uniq->comment = strdup(_("Bayer pattern merge"));
+	if (!com.script) {
+		gui_function(open_single_image_from_gfit, NULL);
+	}
+	free_rebayer_cmd_data(data);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
+}
+
 int process_rebayer(int nb){
 	long maxpath = get_pathmax();
 	char filename[maxpath];
-	fits cfa0 = { 0 };
-	fits cfa1 = { 0 };
-	fits cfa2 = { 0 };
-	fits cfa3 = { 0 };
-	fits *out = NULL;
 	sensor_pattern pattern = -1;
 	if (nb < 5) {
 		siril_log_color_message(_("Error, requires at least 4 arguments to specify the 4 files!\n"), "red");
@@ -1173,39 +1225,25 @@ int process_rebayer(int nb){
 		return CMD_ARG_ERROR;
 	}
 
-	set_cursor_waiting(TRUE);
-	int retval = readfits(normalize_rebayerfilename(filename, word[1], maxpath), &cfa0, NULL, FALSE);
-	retval += readfits(normalize_rebayerfilename(filename, word[2], maxpath), &cfa1, NULL, FALSE);
-	retval += readfits(normalize_rebayerfilename(filename, word[3], maxpath), &cfa2, NULL, FALSE);
-	retval += readfits(normalize_rebayerfilename(filename, word[4], maxpath), &cfa3, NULL, FALSE);
-	if (retval) {
-		siril_log_color_message(_("Error loading files!\n"), "red");
-		set_cursor_waiting(FALSE);
-		return CMD_FILE_NOT_FOUND;
+	struct rebayer_cmd_data *args = calloc(1, sizeof(struct rebayer_cmd_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
+	args->f_cfa0 = strdup(normalize_rebayerfilename(filename, word[1], maxpath));
+	args->f_cfa1 = strdup(normalize_rebayerfilename(filename, word[2], maxpath));
+	args->f_cfa2 = strdup(normalize_rebayerfilename(filename, word[3], maxpath));
+	args->f_cfa3 = strdup(normalize_rebayerfilename(filename, word[4], maxpath));
+	args->pattern = pattern;
 
-	out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
-	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
-	close_single_image();
-	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	copy_fits_metadata(out, gfit);
-	update_sampling_information(gfit, 0.5f);
-	update_bayer_pattern_information(gfit, pattern);
-	free_wcs(gfit);
-	update_fits_header(gfit);
-	clearfits(out);
-	free(out);
-
-	clear_stars_list(TRUE);
-	com.seq.current = UNRELATED_IMAGE;
-	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
-		com.uniq->comment = strdup(_("Bayer pattern merge"));
-
-	if (!com.script) {
-		gui_function(open_single_image_from_gfit, NULL);
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(rebayer_cmd_worker, args)) {
+		free_rebayer_cmd_data(args);
+		set_cursor_waiting(FALSE);
+		return CMD_GENERIC_ERROR;
 	}
 	set_cursor_waiting(FALSE);
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 // Structure to hold imoper-specific data
@@ -3728,6 +3766,46 @@ int process_ghs(int nb, int stretchtype) {
 	return CMD_OK;
 }
 
+/* Data and hook for the unlinked autoghs path */
+struct autoghs_unlinked_data {
+	void (*destroy_fn)(void *);  /* Must be first member */
+	float shadows_clipping;
+	float amount;
+	float b, hp, lp;
+	clip_mode_t clip_mode;
+};
+
+static int autoghs_unlinked_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct autoghs_unlinked_data *data = (struct autoghs_unlinked_data *)args->user;
+	int nb_channels = (int)fit->naxes[2];
+	imstats *stats[3] = { NULL };
+	int ret = compute_all_channels_statistics_single_image(fit, STATS_BASIC, MULTI_THREADED, stats);
+	if (ret) {
+		for (int i = 0; i < nb_channels; ++i)
+			free_stats(stats[i]);
+		return 1;
+	}
+	for (int i = 0; i < nb_channels; ++i) {
+		if (stats[i]) {
+			float SP = stats[i]->median + data->shadows_clipping * stats[i]->sigma;
+			if (fit->type == DATA_USHORT)
+				SP *= (fit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+			siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+			ght_params params = {
+				.B = data->b, .D = data->amount, .LP = data->lp, .SP = SP,
+				.HP = data->hp, .BP = 0.0f,
+				.stretchtype = STRETCH_PAYNE_NORMAL,
+				.payne_colourstretchmodel = COL_INDEP,
+				.do_red = TRUE, .do_green = TRUE, .do_blue = TRUE,
+				.clip_mode = data->clip_mode
+			};
+			apply_ght_to_fits_channel(fit, fit, i, &params, TRUE);
+			free_stats(stats[i]);
+		}
+	}
+	return 0;
+}
+
 int process_autoghs(int nb) {
 	int argidx = 1;
 	gboolean linked = FALSE, mask_aware = FALSE;
@@ -3870,43 +3948,59 @@ int process_autoghs(int nb) {
 		args->idle_function = NULL;  // No idle in command mode
 		args->description = _("AutoGHS");
 		args->command_updates_gfit = TRUE;
-		args->command = TRUE; // calling as command, not from GUI
+		args->command = TRUE;
+		args->custom_undo = TRUE;  // We append history ourselves below
 		args->verbose = TRUE;
 		args->user = data;
 		args->mask_aware = mask_aware;
 		args->max_threads = com.max_thread;
-		args->for_preview = FALSE;
-		args->for_roi = FALSE;
 
-		// Run worker synchronously - cleanup happens via destructor
 		if (!start_in_new_thread(generic_image_worker, args)) {
 			free_generic_img_args(args);
 			return CMD_GENERIC_ERROR;
 		}
 
 	} else {
-		// Unlinked mode - process each channel independently
-		// For now, keep direct processing as it uses apply_ght_to_fits_channel
-		// TODO: Implement per-channel worker support for mask compatibility
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
-#endif
-		for (int i = 0; i < nb_channels; ++i) {
-			if (stats[i]) {
-				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-				if (gfit->type == DATA_USHORT)
-					SP *= (gfit->orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+		/* Unlinked mode: free the pre-computed stats (the hook recomputes them
+		 * on the image it receives, keeping all gfit access inside the worker) */
+		for (int i = 0; i < nb_channels; ++i)
+			free_stats(stats[i]);
 
-				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
-				apply_ght_to_fits_channel(gfit, gfit, i, &params, TRUE);
+		struct autoghs_unlinked_data *data = calloc(1, sizeof(struct autoghs_unlinked_data));
+		if (!data)
+			return CMD_ALLOC_ERROR;
+		data->destroy_fn = free;
+		data->shadows_clipping = shadows_clipping;
+		data->amount = amount;
+		data->b = b;
+		data->hp = hp;
+		data->lp = lp;
+		data->clip_mode = clip_mode;
 
-				free_stats(stats[i]);
-			}
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			free(data);
+			return CMD_ALLOC_ERROR;
+		}
+		args->fit = gfit;
+		args->image_hook = autoghs_unlinked_hook;
+		args->description = _("AutoGHS (unlinked)");
+		args->command_updates_gfit = TRUE;
+		args->command = TRUE;
+		args->custom_undo = TRUE;  // We append history ourselves below
+		args->verbose = TRUE;
+		args->user = data;
+		args->mask_aware = mask_aware;
+		args->max_threads = com.max_thread;
+
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
+			return CMD_GENERIC_ERROR;
 		}
 	}
 
+	/* Both paths set custom_undo=TRUE and block until complete (script/command
+	 * context), so appending history here is safe and avoids double entries. */
 	char log[100];
 	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
 			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
@@ -4031,70 +4125,66 @@ int process_linstretch(int nb) {
 }
 
 int process_wavelet(int nb) {
-	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
-			"b_rawdata.wave" }, *dir[3];
-
-	int Type_Transform, Nbr_Plan, maxplan, mins, chan, nb_chan;
-	const char* tmpdir = g_get_tmp_dir();
 	gchar *end1, *end2;
+	int Nbr_Plan = g_ascii_strtoull(word[1], &end1, 10);
+	int Type_Transform = g_ascii_strtoull(word[2], &end2, 10);
 
-	Nbr_Plan = g_ascii_strtoull(word[1], &end1, 10);
-	Type_Transform = g_ascii_strtoull(word[2], &end2, 10);
+	if (end2 == word[2] || (Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE)) {
+		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
+		return CMD_ARG_ERROR;
+	}
 
-	nb_chan = gfit->naxes[2];
-	g_assert(nb_chan <= 3);
-
-	mins = min (gfit->rx, gfit->ry);
-	maxplan = log(mins) / log(2) - 2;
-
-	if (end1 == word[1] || Nbr_Plan > maxplan ){
+	/* Dimension-based plan validation: read rx/ry briefly for argument checking */
+	int mins = min(gfit->rx, gfit->ry);
+	int maxplan = log(mins) / log(2) - 2;
+	if (end1 == word[1] || Nbr_Plan > maxplan) {
 		siril_log_message(_("Wavelet: maximum number of plans for this image size is %d\n"),
 				maxplan);
 		return CMD_ARG_ERROR;
 	}
 
-	if(end2 == word[2] || (Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE)){
-		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
-		return CMD_ARG_ERROR;
-	}
 	image_cfa_warning_check();
-	if (gfit->type == DATA_USHORT) {
-		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
-		if (!Imag) {
-			PRINT_ALLOC_ERR;
-			return CMD_ALLOC_ERROR;
-		}
 
-		for (chan = 0; chan < nb_chan; chan++) {
-			dir[chan] = g_build_filename(tmpdir, File_Name_Transform[chan], NULL);
-			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir[chan],
-					Type_Transform, Nbr_Plan, gfit->pdata[chan]);
-			g_free(dir[chan]);
-		}
-
-		free(Imag);
-	} else if (gfit->type == DATA_FLOAT) {
-		for (chan = 0; chan < nb_chan; chan++) {
-			dir[chan] = g_build_filename(tmpdir, File_Name_Transform[chan], NULL);
-			wavelet_transform_file_float(gfit->fpdata[chan], gfit->ry, gfit->rx, dir[chan],
-					Type_Transform, Nbr_Plan);
-			g_free(dir[chan]);
-		}
+	struct wavelet_transform_data *args = calloc(1, sizeof(struct wavelet_transform_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	else return CMD_INVALID_IMAGE;
+	args->Nbr_Plan = Nbr_Plan;
+	args->Type_Transform = Type_Transform;
+
+	if (!start_in_new_thread(wavelet_transform_worker, args)) {
+		free(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
+static int log_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return loglut(fit);
+}
+
 int process_log(int nb){
-	loglut(gfit);
-	gfit_modified_update_gui();
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->image_hook = log_image_hook;
+	args->description = _("Log stretch");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->verbose = FALSE;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_linear_match(int nb) {
-	fits ref = { 0 };
 	gchar *end1, *end2;
-	double a[3] = { 0.0 }, b[3] = { 0.0 };
 	double low = g_ascii_strtod(word[2], &end1);
 	double high = g_ascii_strtod(word[3], &end2);
 
@@ -4103,23 +4193,40 @@ int process_linear_match(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	if (end1 == word[3] || high < 0 || high > 1) {
+	if (end2 == word[3] || high < 0 || high > 1) {
 		siril_log_message(_("High value must be in the [0, 1] range.\n"));
 		return CMD_ARG_ERROR;
 	}
 
+	fits ref = { 0 };
 	if (readfits(word[1], &ref, NULL, gfit->type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
-	cmd_errors retval = CMD_OK;
-	if (!find_linear_coeff(gfit, &ref, low, high, a, b, NULL)) {
-		image_cfa_warning_check();
-		set_cursor_waiting(TRUE);
-		apply_linear_to_fits(gfit, a, b);
-		gfit_modified_update_gui();
-		retval |= CMD_NOTIFY_GFIT_MODIFIED;
+
+	struct linear_match_data *data = new_linear_match_data(&ref, low, high);
+	if (!data) {
+		clearfits(&ref);
+		return CMD_ALLOC_ERROR;
 	}
-	clearfits(&ref);
-	return retval;
+
+	image_cfa_warning_check();
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_linear_match_data(data);
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->image_hook = linear_match_image_hook;
+	args->description = _("Linear Match");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->verbose = FALSE;
+	args->user = data;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 int process_asinh(int nb) {
@@ -14302,23 +14409,32 @@ int process_trixel(int nb) {
 	return CMD_OK;
 }
 
+struct limit_data {
+	void (*destroy_fn)(void *);  /* Must be first member */
+	OverrangeResponse method;
+};
+
+static int limit_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct limit_data *data = (struct limit_data *)args->user;
+	if (fit->type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return 0;
+	}
+	double minval, maxval;
+	if (quick_minmax(fit, &minval, &maxval))
+		return 1;
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return 0;
+	}
+	apply_limits(fit, minval, maxval, data->method);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
+	return 0;
+}
+
 int process_limit(int nb) {
 	if (nb != 2)
 		return CMD_WRONG_N_ARG;
-	if (gfit->type == DATA_USHORT) {
-		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
-		return CMD_OK;
-	}
-
-	double maxval, minval;
-	int retval = quick_minmax(gfit, &minval, &maxval);
-	if (retval)
-		return CMD_GENERIC_ERROR;
-
-	if (maxval <= 1.0 && minval >= 0.0) {
-		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
-		return CMD_OK;
-	}
 
 	OverrangeResponse method;
 	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
@@ -14332,8 +14448,30 @@ int process_limit(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	apply_limits(gfit, minval, maxval, method);
-	siril_log_message(_("Pixel limits applied successfully.\n"));
+	struct limit_data *data = calloc(1, sizeof(struct limit_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	data->destroy_fn = free;
+	data->method = method;
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free(data);
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->image_hook = limit_image_hook;
+	args->description = _("Limit pixels");
+	args->command_updates_gfit = TRUE;
+	args->command = TRUE;
+	args->verbose = FALSE;
+	args->user = data;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -14834,15 +14972,22 @@ int process_mask_from_lum(int nb) {
 }
 
 int process_clear_mask(int nb) {
-	if (gfit && gfit->mask) {
-		set_mask_active(gfit, FALSE);
-		free_mask(gfit->mask);
-		gfit->mask = NULL;
-		show_or_hide_mask_tab();
-		siril_log_message(_("Mask cleared\n"));
+	if (!gfit || !gfit->mask)
+		return CMD_OK;
+
+	struct generic_mask_args *args = calloc(1, sizeof(struct generic_mask_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
 	}
-	if (!com.script) {
-		execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+	args->fit = gfit;
+	args->mask_hook = mask_clear_hook;
+	args->description = _("Clear mask");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	if (!start_in_new_thread(generic_mask_worker, args)) {
+		free(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }

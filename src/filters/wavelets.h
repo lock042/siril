@@ -18,10 +18,17 @@ struct wrecons_data {
 	int nb_chan;
 };
 
+/* Data struct for wavelet decomposition (wavelet command and GUI compute path) */
+struct wavelet_transform_data {
+	int Nbr_Plan;
+	int Type_Transform;
+};
+
 void apply_wavelets_cancel();
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
 gpointer extract_plans(gpointer p);
 void free_wrecons_data(void *p);
 int wrecons_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gpointer wavelet_transform_worker(gpointer p);
 
 #endif /* SRC_GUI_WAVELETS_H_ */

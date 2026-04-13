@@ -41,6 +41,48 @@
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
 
+/************* wavelet transform worker (wavelet command and GUI compute path) *************/
+
+gpointer wavelet_transform_worker(gpointer p) {
+	struct wavelet_transform_data *args = (struct wavelet_transform_data *)p;
+	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
+			"b_rawdata.wave" };
+	const char *tmpdir = g_get_tmp_dir();
+	int nb_chan = gfit->naxes[2];
+
+	if (gfit->type == DATA_USHORT) {
+		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
+		if (!Imag) {
+			PRINT_ALLOC_ERR;
+			free(args);
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
+		}
+		for (int i = 0; i < nb_chan; i++) {
+			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
+					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i]);
+			g_free(dir);
+		}
+		free(Imag);
+	} else if (gfit->type == DATA_FLOAT) {
+		for (int i = 0; i < nb_chan; i++) {
+			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir,
+					args->Type_Transform, args->Nbr_Plan);
+			g_free(dir);
+		}
+	} else {
+		free(args);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
+}
+
 /************* wrecons hook (shared with GUI OK path and process_wrecons) *************/
 
 void free_wrecons_data(void *p) {
@@ -290,26 +332,27 @@ gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	return FALSE;
 }
 
+static gboolean wavelet_compute_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
+	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
+	reset_scale_w();
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	if (wavelet_show_preview) {
 		copy_backup_to_gfit();
 	}
 
-	int Type_Transform, Nbr_Plan, maxplan, mins, i;
-	int nb_chan = gfit->naxes[2];
-	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
-			"b_rawdata.wave" }, *dir[3];
-	const char *tmpdir;
-
-	tmpdir = g_get_tmp_dir();
-
-	Nbr_Plan = gtk_spin_button_get_value(
+	int Nbr_Plan = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")));
-	Type_Transform = gtk_combo_box_get_active(
+	int Type_Transform = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(lookup_widget("combobox_type_w"))) + 1;
 
-	mins = min(gfit->rx, gfit->ry);
-	maxplan = log(mins) / log(2) - 2;
+	int mins = min(gfit->rx, gfit->ry);
+	int maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
 		char *msg = siril_log_message(
@@ -327,40 +370,24 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
 	}
 
-	set_cursor_waiting(TRUE);
-
-	if (gfit->type == DATA_USHORT) {
-		size_t n = gfit->naxes[0] * gfit->naxes[1] * sizeof(float);
-		float *Imag = malloc(n);
-		if (Imag) {
-			for (i = 0; i < nb_chan; i++) {
-				dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
-				strcpy(dir[i], tmpdir);
-				strcat(dir[i], G_DIR_SEPARATOR_S);
-				strcat(dir[i], File_Name_Transform[i]);
-				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir[i],
-						Type_Transform, Nbr_Plan, gfit->pdata[i]);
-				free(dir[i]);
-			}
-			free(Imag);
-		}
-	} else {
-		for (i = 0; i < nb_chan; i++) {
-			dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
-			strcpy(dir[i], tmpdir);
-			strcat(dir[i], G_DIR_SEPARATOR_S);
-			strcat(dir[i], File_Name_Transform[i]);
-			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir[i],
-					Type_Transform, Nbr_Plan);
-			free(dir[i]);
-		}
+	struct wavelet_transform_data *args = calloc(1, sizeof(struct wavelet_transform_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
 	}
-	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
-	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
-	reset_scale_w();
-	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), Nbr_Plan);
-	set_cursor_waiting(FALSE);
-	return;
+	args->Nbr_Plan = Nbr_Plan;
+	args->Type_Transform = Type_Transform;
+
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(wavelet_transform_worker, args)) {
+		free(args);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+	/* In GUI mode start_in_new_thread is fire-and-forget; the idle below
+	 * re-enables the widgets once the worker completes.  In script mode it
+	 * blocks, but on_button_compute_w_clicked is never called from scripts. */
+	siril_add_idle(wavelet_compute_idle, NULL);
 }
 
 /****************** GUI for Wavelet Layers Extraction *****************/

@@ -20,9 +20,9 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/undo.h"
 #include "core/siril_log.h"
-#include "algos/fitting.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/message_dialog.h"
@@ -30,7 +30,6 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 
 #include "filters/linear_match.h"
 
@@ -62,35 +61,51 @@ gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
 	return TRUE;
 }
 
+static gboolean linearmatch_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 	if (!single_image_is_loaded())
 		return;
 	gchar *filename = get_reference_filename();
-	if (filename) {
-		gchar *error;
-		fits ref = { 0 };
-		double a[3] = { 0.0 }, b[3] = { 0.0 };
-		double low = get_low_rejection();
-		double high = get_high_rejection();
-		if (readfits(filename, &ref, NULL, gfit->type == DATA_FLOAT)) {
-			g_free(filename);
-			return;
-		}
+	if (!filename)
+		return;
+	double low = get_low_rejection();
+	double high = get_high_rejection();
+	fits ref = { 0 };
+	if (readfits(filename, &ref, NULL, gfit->type == DATA_FLOAT)) {
 		g_free(filename);
-		set_cursor_waiting(TRUE);
-		undo_save_state(gfit, _("Linear Match"));
-		if (!find_linear_coeff(gfit, &ref, low, high, a, b, &error)) {
-			apply_linear_to_fits(gfit, a, b);
-			notify_gfit_data_modified();
-			gfit_modified_update_gui();
-			gui_function(redraw_previews, NULL);
-		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Cannot compute linear coefficients."),
-					error);
-		}
+		return;
+	}
+	g_free(filename);
+
+	struct linear_match_data *data = new_linear_match_data(&ref, low, high);
+	if (!data) {
 		clearfits(&ref);
+		return;
+	}
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		free_linear_match_data(data);
+		return;
+	}
+	args->fit = gfit;
+	args->image_hook = linear_match_image_hook;
+	args->idle_function = linearmatch_idle;
+	args->description = _("Linear Match");
+	args->verbose = TRUE;
+	args->user = data;
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		set_cursor_waiting(FALSE);
 	}
 }
