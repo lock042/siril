@@ -484,10 +484,16 @@ void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
+		/* Hold histogram_mutex across the invalidate+recompute pair so the
+		 * main thread never sees a partially-nullified layers_hist[] array.
+		 * update_histo_mtf() on the main thread acquires the same mutex. */
+		g_mutex_lock(&com.histogram_mutex);
 		invalidate_gfit_histogram();
 		// Skip expensive pixel work mid-script; display is flushed at script end.
-		if (com.script && !com.python_script)
+		if (com.script && !com.python_script) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
+		}
 		/* Do not remap if a job on the worker thread is currently writing gfit.
 		 * The worker calls this function itself from within generic_image_worker,
 		 * so we must allow that path through — hence the processing_in_worker_thread()
@@ -495,9 +501,12 @@ void notify_gfit_data_modified() {
 		 * GTK slider callback during a Python script command) would race against the
 		 * worker reading/writing gfit pixel data.  The job's own call, and the
 		 * subsequent end_gfit_operation idle, will update the display correctly. */
-		if (!processing_in_worker_thread() && processing_is_job_active())
+		if (!processing_in_worker_thread() && processing_is_job_active()) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
+		}
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
+		g_mutex_unlock(&com.histogram_mutex);
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
 		 * protect the write with com.mutex to prevent a data race. */
