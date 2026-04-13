@@ -5982,6 +5982,29 @@ int process_pm(int nb) {
 	return CMD_OK;
 }
 
+struct psf_cmd_data {
+	int channel;
+	rectangle selection;
+};
+
+static gpointer psf_cmd_worker(gpointer p) {
+	struct psf_cmd_data *args = (struct psf_cmd_data *)p;
+	starprofile profile = com.pref.starfinder_conf.profile;
+	psf_error error = PSF_NO_ERR;
+	struct phot_config *ps = phot_set_adjusted_for_image(gfit);
+	psf_star *result = psf_get_minimisation(gfit, args->channel, &args->selection, TRUE, FALSE, ps, TRUE, profile, &error);
+	free(ps);
+	if (result) {
+		gchar *str = format_psf_result(result, &args->selection, gfit, NULL);
+		siril_log_message("%s\n", str);
+		g_free(str);
+	}
+	free_psf(result);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
+}
+
 int process_psf(int nb){
 	if (com.selection.w > 300 || com.selection.h > 300){
 		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
@@ -6007,17 +6030,13 @@ int process_psf(int nb){
 		}
 	}
 
-	starprofile profile = com.pref.starfinder_conf.profile;
-	psf_error error = PSF_NO_ERR;
-	struct phot_config *ps = phot_set_adjusted_for_image(gfit);
-	psf_star *result = psf_get_minimisation(gfit, channel, &com.selection, TRUE, FALSE, ps, TRUE, profile, &error);
-	free(ps);
-	if (result) {
-		gchar *str = format_psf_result(result, &com.selection, gfit, NULL);
-		siril_log_message("%s\n", str);
-		g_free(str);
+	struct psf_cmd_data *args = calloc(1, sizeof(struct psf_cmd_data));
+	args->channel = channel;
+	args->selection = com.selection;
+	if (!start_in_new_thread(psf_cmd_worker, args)) {
+		free(args);
+		return CMD_GENERIC_ERROR;
 	}
-	free_psf(result);
 	return CMD_OK;
 }
 
@@ -6848,20 +6867,21 @@ int process_bgnoise(int nb) {
 	return CMD_OK;
 }
 
-int process_histo(int nb) {
-	GError *error = NULL;
-	gchar *end;
-	int nlayer = g_ascii_strtoull(word[1], &end, 10);
-	const gchar* clayer;
+struct histo_cmd_data {
+	int nlayer;
+};
 
-	if (end == word[1] || nlayer > 3 || nlayer < 0)
-		return CMD_INVALID_IMAGE;
+static gpointer histo_cmd_worker(gpointer p) {
+	struct histo_cmd_data *args = (struct histo_cmd_data *)p;
+	GError *error = NULL;
+	const gchar *clayer;
+
 	image_cfa_warning_check();
-	gsl_histogram *histo = computeHisto(gfit, nlayer);
+	gsl_histogram *histo = computeHisto(gfit, args->nlayer);
 	if (!isrgb(gfit))
 		clayer = "bw";		//if B&W
 	else
-		clayer = channel_number_to_name(nlayer);
+		clayer = channel_number_to_name(args->nlayer);
 	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
 
 	GFile *file = g_file_new_for_path(filename);
@@ -6877,10 +6897,14 @@ int process_histo(int nb) {
 			fprintf(stderr, "Cannot save histo\n");
 		}
 		g_object_unref(file);
-		return CMD_FILE_NOT_FOUND;
+		gsl_histogram_free(histo);
+		free(args);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
 	}
+	gint retval = 0;
 	for (size_t i = 0; i < USHRT_MAX + 1; i++) {
-		gchar *buffer = g_strdup_printf("%zu %d\n", i, (int) gsl_histogram_get (histo, i));
+		gchar *buffer = g_strdup_printf("%zu %d\n", i, (int) gsl_histogram_get(histo, i));
 
 		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
@@ -6888,7 +6912,10 @@ int process_histo(int nb) {
 			g_clear_error(&error);
 			g_object_unref(output_stream);
 			g_object_unref(file);
-			return CMD_GENERIC_ERROR;
+			gsl_histogram_free(histo);
+			free(args);
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
 	}
@@ -6898,6 +6925,24 @@ int process_histo(int nb) {
 	g_object_unref(output_stream);
 	g_object_unref(file);
 	gsl_histogram_free(histo);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
+int process_histo(int nb) {
+	gchar *end;
+	int nlayer = g_ascii_strtoull(word[1], &end, 10);
+
+	if (end == word[1] || nlayer > 3 || nlayer < 0)
+		return CMD_INVALID_IMAGE;
+
+	struct histo_cmd_data *args = calloc(1, sizeof(struct histo_cmd_data));
+	args->nlayer = nlayer;
+	if (!start_in_new_thread(histo_cmd_worker, args)) {
+		free(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
