@@ -87,3 +87,8 @@ int linear_match_image_hook(struct generic_img_args *args, fits *fit, int thread
 	apply_linear_to_fits(fit, a, b);
 	return 0;
 }
+
+gchar *linear_match_log_hook(gpointer p, log_hook_detail detail) {
+	struct linear_match_data *data = (struct linear_match_data *)p;
+	return g_strdup_printf(_("Linear match (low: %.3f, high: %.3f)"), data->low, data->high);
+}

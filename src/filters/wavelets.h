@@ -29,6 +29,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 gpointer extract_plans(gpointer p);
 void free_wrecons_data(void *p);
 int wrecons_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *wrecons_log_hook(gpointer p, log_hook_detail detail);
 gpointer wavelet_transform_worker(gpointer p);
 
 #endif /* SRC_GUI_WAVELETS_H_ */

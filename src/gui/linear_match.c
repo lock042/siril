@@ -99,6 +99,7 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 	args->fit = gfit;
 	args->image_hook = linear_match_image_hook;
+	args->log_hook = linear_match_log_hook;
 	args->idle_function = linearmatch_idle;
 	args->description = _("Linear Match");
 	args->verbose = TRUE;

@@ -1115,6 +1115,14 @@ void free_background_data(void *p) {
 /* Single-image hook for generic_image_worker.
  * Handles both CFA and non-CFA paths based on args->is_cfa.
  * Uses fit parameter instead of gfit; no notify/idle calls. */
+gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail) {
+	struct background_data *args = (struct background_data *)p;
+	const gchar *interp = (args->interpolation_method == BACKGROUND_INTER_POLY) ? _("polynomial") : _("RBF");
+	if (args->is_cfa)
+		return g_strdup_printf(_("Background extraction (%s, CFA)"), interp);
+	return g_strdup_printf(_("Background extraction (%s)"), interp);
+}
+
 int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	struct background_data *args = (struct background_data *)gargs->user;
 	gchar *error = NULL;

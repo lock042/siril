@@ -1609,6 +1609,10 @@ int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	return 0;
 }
 
+gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("ICC profile removed"));
+}
+
 /* Hook for profile assignment (no pixel transform).
  * Clears the existing profile first to force the assign-only path
  * in siril_colorspace_transform, then assigns the new profile. */
@@ -1624,8 +1628,15 @@ int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		color_manage(fit, FALSE);
 		return 1;
 	}
-	siril_log_color_message(_("Color profile assignment complete.\n"), "green");
 	return 0;
+}
+
+gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail) {
+	struct icc_data *args = (struct icc_data *)p;
+	gchar *desc = siril_color_profile_get_description(args->profile);
+	gchar *ret = g_strdup_printf(_("Assigned ICC profile: %s"), desc);
+	g_free(desc);
+	return ret;
 }
 
 /* Hook for color space conversion (may transform pixels).
@@ -1641,6 +1652,13 @@ int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) 
 		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
 		return 1;
 	}
-	siril_log_color_message(_("Color space conversion complete.\n"), "green");
 	return 0;
+}
+
+gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail) {
+	struct icc_data *args = (struct icc_data *)p;
+	gchar *desc = siril_color_profile_get_description(args->profile);
+	gchar *ret = g_strdup_printf(_("Converted to ICC profile: %s"), desc);
+	g_free(desc);
+	return ret;
 }

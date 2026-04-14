@@ -470,7 +470,7 @@ static int fft_compute_core(struct fft_data *args, fits *fit) {
 		siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 
-	siril_log_color_message(_("Fourier Transform: processing...\n"), "green");
+	/* "Fourier Transform: processing..." is logged by the framework before the hook runs */
 
 	switch (args->type[3]) {
 	default:
@@ -567,6 +567,14 @@ int fft_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	return retval;
+}
+
+gchar *fft_log_hook(gpointer p, log_hook_detail detail) {
+	struct fft_data *args = (struct fft_data *)p;
+	gboolean is_inverse = (args->type[3] == 'i' || args->type[3] == 'I');
+	if (is_inverse)
+		return g_strdup(_("Fourier Transform (inverse)"));
+	return g_strdup(_("Fourier Transform (direct)"));
 }
 
 /* Idle function for generic_image_worker GUI path - redraws previews */
@@ -676,6 +684,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->fit = gfit;
 		args->mem_ratio = 2.0f;
 		args->image_hook = fft_image_hook;
+		args->log_hook = fft_log_hook;
 		args->idle_function = fft_idle;
 		args->description = _("Fourier Transform");
 		args->verbose = TRUE;

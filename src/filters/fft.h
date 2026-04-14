@@ -16,5 +16,6 @@ struct fft_data {
 gpointer fourier_transform(gpointer p);
 void free_fft_data(void *p);
 int fft_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *fft_log_hook(gpointer p, log_hook_detail detail);
 gboolean fft_idle(gpointer p);
 #endif

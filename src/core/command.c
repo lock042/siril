@@ -447,6 +447,7 @@ int process_synthstar(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = synthstar_image_hook;
+	args->log_hook = synthstar_log_hook;
 	args->description = _("Synthetic stars");
 	args->verbose = TRUE;
 	args->command = TRUE;
@@ -463,6 +464,7 @@ int process_unclip(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = unclip_image_hook;
+	args->log_hook = unclip_log_hook;
 	args->description = _("Unclip stars");
 	args->verbose = TRUE;
 	args->command = TRUE;
@@ -3309,6 +3311,7 @@ int process_wrecons(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = wrecons_image_hook;
+	args->log_hook = wrecons_log_hook;
 	args->description = _("Wavelet reconstruction");
 	args->verbose = TRUE;
 	args->command = TRUE;
@@ -3766,7 +3769,7 @@ int process_ghs(int nb, int stretchtype) {
 	return CMD_OK;
 }
 
-/* Data and hook for the unlinked autoghs path */
+/* Data, hook, and log_hook for the unlinked autoghs path */
 struct autoghs_unlinked_data {
 	void (*destroy_fn)(void *);  /* Must be first member */
 	float shadows_clipping;
@@ -3804,6 +3807,12 @@ static int autoghs_unlinked_hook(struct generic_img_args *args, fits *fit, int t
 		}
 	}
 	return 0;
+}
+
+static gchar *autoghs_unlinked_log_hook(gpointer p, log_hook_detail detail) {
+	struct autoghs_unlinked_data *data = (struct autoghs_unlinked_data *)p;
+	return g_strdup_printf("AutoGHS (k.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			data->shadows_clipping, data->amount, data->b, data->lp, data->hp);
 }
 
 int process_autoghs(int nb) {
@@ -3949,7 +3958,6 @@ int process_autoghs(int nb) {
 		args->description = _("AutoGHS");
 		args->command_updates_gfit = TRUE;
 		args->command = TRUE;
-		args->custom_undo = TRUE;  // We append history ourselves below
 		args->verbose = TRUE;
 		args->user = data;
 		args->mask_aware = mask_aware;
@@ -3984,10 +3992,10 @@ int process_autoghs(int nb) {
 		}
 		args->fit = gfit;
 		args->image_hook = autoghs_unlinked_hook;
+		args->log_hook = autoghs_unlinked_log_hook;
 		args->description = _("AutoGHS (unlinked)");
 		args->command_updates_gfit = TRUE;
 		args->command = TRUE;
-		args->custom_undo = TRUE;  // We append history ourselves below
 		args->verbose = TRUE;
 		args->user = data;
 		args->mask_aware = mask_aware;
@@ -3998,13 +4006,6 @@ int process_autoghs(int nb) {
 			return CMD_GENERIC_ERROR;
 		}
 	}
-
-	/* Both paths set custom_undo=TRUE and block until complete (script/command
-	 * context), so appending history here is safe and avoids double entries. */
-	char log[100];
-	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
-			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
-	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	return CMD_OK;
 }
@@ -4217,10 +4218,11 @@ int process_linear_match(int nb) {
 	}
 	args->fit = gfit;
 	args->image_hook = linear_match_image_hook;
+	args->log_hook = linear_match_log_hook;
 	args->description = _("Linear Match");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->verbose = FALSE;
+	args->verbose = TRUE;
 	args->user = data;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -7994,6 +7996,7 @@ int process_cosme(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 1.0f;  // Cosmetic correction works in-place with minimal overhead
 	args->image_hook = cosme_image_hook_generic;
+	args->log_hook = cosme_log_hook;
 	args->idle_function = NULL;
 	args->description = _("Cosmetic Correction");
 	args->verbose = TRUE;
@@ -8560,6 +8563,7 @@ int process_fft(int nb){
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = fft_image_hook;
+	args->log_hook = fft_log_hook;
 	args->description = _("Fourier Transform");
 	args->verbose = TRUE;
 	args->command = TRUE;
@@ -8863,6 +8867,7 @@ int process_subsky(int nb) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 			args->fit = gfit;
 			args->image_hook = remove_gradient_image_hook;
+			args->log_hook = remove_gradient_log_hook;
 			args->description = _("Background extraction");
 			args->verbose = TRUE;
 			args->command = TRUE;
@@ -13044,11 +13049,11 @@ static int do_pcc(int nb, gboolean spectro) {
 	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
 	img_args->fit = gfit;
 	img_args->image_hook = photometric_cc_image_hook;
+	img_args->log_hook = photometric_cc_log_hook;
 	img_args->description = spectro ? _("SPCC") : _("PCC");
 	img_args->verbose = TRUE;
 	img_args->command = TRUE;
 	img_args->command_updates_gfit = TRUE;
-	img_args->custom_undo = TRUE;
 	img_args->user = pcc_args;
 	if (!start_in_new_thread(generic_image_worker, img_args)) {
 		free_generic_img_args(img_args);
@@ -14236,10 +14241,12 @@ int process_icc_assign(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = icc_assign_hook;
+	args->log_hook = icc_assign_log_hook;
 	args->description = _("ICC profile assignment");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14303,10 +14310,12 @@ int process_icc_convert_to(int nb) {
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = icc_convert_to_hook;
+	args->log_hook = icc_convert_to_log_hook;
 	args->description = _("ICC color space conversion");
 	args->verbose = TRUE;
 	args->command = TRUE;
 	args->command_updates_gfit = TRUE;
+	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
 	args->user = icc_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -14317,11 +14326,23 @@ int process_icc_convert_to(int nb) {
 
 int process_icc_remove(int nb) {
 	if (!com.headless) on_clear_roi();
-	siril_colorspace_transform(gfit, NULL);
-	refresh_icc_transforms();
-	if (!com.headless)
-		gfit_modified_update_gui();
-
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return CMD_ALLOC_ERROR;
+	}
+	args->fit = gfit;
+	args->image_hook = icc_remove_hook;
+	args->log_hook = icc_remove_log_hook;
+	args->description = _("ICC profile removal");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->command_updates_gfit = TRUE;
+	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
+		return CMD_GENERIC_ERROR;
+	}
 	return CMD_OK;
 }
 
@@ -14428,8 +14449,19 @@ static int limit_image_hook(struct generic_img_args *args, fits *fit, int thread
 		return 0;
 	}
 	apply_limits(fit, minval, maxval, data->method);
-	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return 0;
+}
+
+static gchar *limit_log_hook(gpointer p, log_hook_detail detail) {
+	struct limit_data *data = (struct limit_data *)p;
+	const gchar *method_str;
+	switch (data->method) {
+		case RESPONSE_CLIP:              method_str = _("clip"); break;
+		case RESPONSE_RESCALE_CLIPNEG:   method_str = _("rescale positive"); break;
+		case RESPONSE_RESCALE_ALL:       method_str = _("rescale all"); break;
+		default:                         method_str = _("unknown"); break;
+	}
+	return g_strdup_printf(_("Limit pixels (%s)"), method_str);
 }
 
 int process_limit(int nb) {
@@ -14463,10 +14495,11 @@ int process_limit(int nb) {
 	}
 	args->fit = gfit;
 	args->image_hook = limit_image_hook;
+	args->log_hook = limit_log_hook;
 	args->description = _("Limit pixels");
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
-	args->verbose = FALSE;
+	args->verbose = TRUE;
 	args->user = data;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);

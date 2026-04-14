@@ -115,7 +115,10 @@ struct icc_data {
 
 void free_icc_data(void *p);
 int icc_remove_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail);
 int icc_assign_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail);
 int icc_convert_to_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

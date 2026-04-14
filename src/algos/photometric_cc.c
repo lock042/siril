@@ -26,7 +26,6 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/undo.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/colors.h"
@@ -902,10 +901,9 @@ void free_photometric_cc_data(void *p) {
 }
 
 /* photometric_cc_image_hook is the generic_image_worker hook for single-image
- * PCC and SPCC.  It replaces the old photometric_cc_standalone thread function.
- * Undo state is managed with custom_undo=TRUE: the hook saves undo after the
- * catalog download succeeds (just before pixel modification) so that a catalog
- * failure does not leave an unnecessary undo entry.
+ * PCC and SPCC.  The framework saves undo state and writes FITS history only
+ * on success (when the hook returns 0), so a catalog failure never produces a
+ * spurious undo entry and no manual history write is needed here.
  */
 int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int threads) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)img_args->user;
@@ -981,12 +979,6 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 	retval |= nb_stars == 0;
 
 	if (!retval) {
-		/* Save undo state after catalog succeeds, before pixel modification.
-		 * custom_undo=TRUE means generic_image_worker won't save it automatically. */
-		if (!com.script) {
-			const gchar *algo = args->spcc ? _("SPCC") : _("PCC");
-			undo_save_state(fit, _("Photometric CC (algorithm: %s)"), algo);
-		}
 		args->ref_stars = siril_cat;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);
@@ -998,11 +990,10 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
-	if (!retval) {
-		if (args->spcc)
-			siril_log_color_message(_("Spectrophotometric Color Calibration succeeded.\n"), "green");
-		else
-			siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
-	}
 	return retval;
+}
+
+gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
+	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
+	return g_strdup(args->spcc ? _("Spectrophotometric Color Calibration") : _("Photometric Color Calibration"));
 }

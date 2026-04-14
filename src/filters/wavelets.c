@@ -107,8 +107,11 @@ int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
 		g_free(dir);
 		if (ret) return 1;
 	}
-	siril_log_message(_("Wavelet reconstruction\n"));
 	return 0;
+}
+
+gchar *wrecons_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Wavelet reconstruction"));
 }
 
 /* Idle function: called after generic_image_worker finishes the wrecons apply */
@@ -312,6 +315,7 @@ void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
 		args->image_hook = wrecons_image_hook;
+		args->log_hook = wrecons_log_hook;
 		args->idle_function = wrecons_idle;
 		args->description = _("Wavelets Transformation");
 		args->verbose = TRUE;

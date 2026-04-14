@@ -826,6 +826,7 @@ void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = unclip_image_hook;
+	args->log_hook = unclip_log_hook;
 	args->description = _("Unclip stars");
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))
@@ -840,6 +841,7 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	args->fit = gfit;
 	args->image_hook = synthstar_image_hook;
+	args->log_hook = synthstar_log_hook;
 	args->description = _("Synthetic stars");
 	args->verbose = TRUE;
 	if (!start_in_new_thread(generic_image_worker, args))

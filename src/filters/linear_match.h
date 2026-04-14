@@ -33,6 +33,7 @@ struct linear_match_data {
 struct linear_match_data *new_linear_match_data(fits *ref_fit, double low, double high);
 void free_linear_match_data(void *p);
 int linear_match_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *linear_match_log_hook(gpointer p, log_hook_detail detail);
 void apply_linear_to_fits(fits *fit, double *a, double *b);
 
 #endif /* SRC_GUI_LINEAR_MATCH_H_ */
