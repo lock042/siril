@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/background_extraction.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
@@ -124,19 +125,59 @@ static gboolean background_idle(gpointer p) {
 
 /************* CALLBACKS *************/
 
-void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+/* Data for the sample generation worker thread */
+struct bkg_generate_args {
 	int nb_of_samples;
 	double tolerance;
-	GtkToggleButton* keep_all_button = (GtkToggleButton*) lookup_widget("subsky_keep_samples");
-	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
-	nb_of_samples = get_nb_samples_per_line();
-	tolerance = keep_all ? -1. : get_tolerance_value();
+};
 
-	if (generate_background_samples(nb_of_samples, tolerance))
-		control_window_switch_to_tab(OUTPUT_LOGS);
+/* Idle: runs on the GTK thread after sample generation completes */
+static gboolean bkg_generate_idle(gpointer p) {
+	struct bkg_generate_args *args = (struct bkg_generate_args *)p;
+	stop_processing_thread();
+	if (!args) {
+		/* generation failed — log tab was already switched in the worker */
+		redraw(REDRAW_OVERLAY);
+		set_cursor_waiting(FALSE);
+		return FALSE;
+	}
+	free(args);
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+/* Worker: runs in the processing thread, reads gfit to compute samples */
+static gpointer bkg_generate_worker(gpointer p) {
+	struct bkg_generate_args *args = (struct bkg_generate_args *)p;
+	int retval = generate_background_samples(args->nb_of_samples, args->tolerance);
+	if (retval) {
+		/* Pass NULL to signal failure; args is freed here */
+		free(args);
+		siril_add_idle(bkg_generate_idle, NULL);
+	} else {
+		siril_add_idle(bkg_generate_idle, args);
+	}
+	return GINT_TO_POINTER(retval);
+}
+
+void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *keep_all_button = (GtkToggleButton *) lookup_widget("subsky_keep_samples");
+	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
+
+	struct bkg_generate_args *args = calloc(1, sizeof(struct bkg_generate_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	args->nb_of_samples = get_nb_samples_per_line();
+	args->tolerance = keep_all ? -1.0 : get_tolerance_value();
+
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(bkg_generate_worker, args)) {
+		free(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
