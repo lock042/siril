@@ -1180,6 +1180,7 @@ static gpointer rebayer_cmd_worker(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	close_single_image();
 	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	copy_fits_metadata(out, gfit);
@@ -1187,6 +1188,7 @@ static gpointer rebayer_cmd_worker(gpointer p) {
 	update_bayer_pattern_information(gfit, data->pattern);
 	free_wcs(gfit);
 	update_fits_header(gfit);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 	clearfits(out);
 	free(out);
 	clear_stars_list(TRUE);
@@ -6100,6 +6102,7 @@ static gpointer psf_cmd_worker(gpointer p) {
 	struct psf_cmd_data *args = (struct psf_cmd_data *)p;
 	starprofile profile = com.pref.starfinder_conf.profile;
 	psf_error error = PSF_NO_ERR;
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	struct phot_config *ps = phot_set_adjusted_for_image(gfit);
 	psf_star *result = psf_get_minimisation(gfit, args->channel, &args->selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
@@ -6108,6 +6111,7 @@ static gpointer psf_cmd_worker(gpointer p) {
 		siril_log_message("%s\n", str);
 		g_free(str);
 	}
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	free_psf(result);
 	free(args);
 	siril_add_idle(end_generic, NULL);
@@ -6985,12 +6989,14 @@ static gpointer histo_cmd_worker(gpointer p) {
 	GError *error = NULL;
 	const gchar *clayer;
 
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	image_cfa_warning_check();
 	gsl_histogram *histo = computeHisto(gfit, args->nlayer);
 	if (!isrgb(gfit))
 		clayer = "bw";		//if B&W
 	else
 		clayer = channel_number_to_name(args->nlayer);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
 
 	GFile *file = g_file_new_for_path(filename);

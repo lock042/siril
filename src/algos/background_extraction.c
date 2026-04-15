@@ -830,9 +830,11 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
 	const char *err;
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		g_mutex_unlock(&bgsamples_mutex);
 		return 1;
 	}
@@ -841,6 +843,7 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, gfit);
 	}
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	g_mutex_unlock(&bgsamples_mutex);
 	return 0;
 }
@@ -848,6 +851,7 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 gboolean end_background(gpointer p);	// in gui/background_extraction.c
 
 /* uses samples from com.grad_samples */
+#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	gchar *error = NULL;
@@ -933,6 +937,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
+#endif /* dead code */
 
 static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 	GSList *new_list = NULL;
@@ -969,6 +974,7 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 }
 
 /* uses samples from com.grad_samples */
+#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
 gpointer remove_gradient_from_cfa_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	sensor_pattern pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
@@ -1104,6 +1110,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
+#endif /* dead code */
 
 void free_background_data(void *p) {
 	struct background_data *args = (struct background_data *)p;

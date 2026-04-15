@@ -615,7 +615,16 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 	mask_t* mask; // Mask for image operations
 	gboolean mask_active; // Whether or not the mask is active
+
+	/* Thread safety */
+	// rwlock *MUST* be the last member in the struct
+	GRWLock rwlock; // Protects concurrent access to this fits from processing workers and Python threads
 };
+
+_Static_assert(
+    offsetof(struct ffit, rwlock) + sizeof(GRWLock) == sizeof(struct ffit),
+    "rwlock must remain the last field in struct ffit"
+);
 
 typedef enum {
 	SPCC_RED = 1 << RLAYER,

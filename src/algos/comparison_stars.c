@@ -440,6 +440,7 @@ gpointer compstars_worker(gpointer p) {
 	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
 	struct compstars_arg *args = (struct compstars_arg *) p;
 	sky_object_query_args *query_args = NULL;
+	g_rw_lock_reader_lock(&args->fit->rwlock);
 	//0. check pre-requisites
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -498,6 +499,7 @@ gpointer compstars_worker(gpointer p) {
 	retval = sort_compstars(args);
 
 end:
+	g_rw_lock_reader_unlock(&args->fit->rwlock);
 	args->retval = retval;
 	args->has_GUI = TRUE;
 	if (!com.headless && com.python_command) {

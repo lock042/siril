@@ -1550,6 +1550,7 @@ gpointer generic_image_worker(gpointer p) {
 	args->retval = 0;
 
 
+	g_rw_lock_writer_lock(&args->fit->rwlock);
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
@@ -1662,6 +1663,7 @@ the_end:;
 			}
 		}
 	}
+	g_rw_lock_writer_unlock(&argfit->rwlock);
 	if (verbose) {
 		siril_log_color_message(_("%s %s.\n"), "green", desc, retval ? _("failed") : _("succeeded"));
 		gettimeofday(&t_end, NULL);
@@ -1688,6 +1690,7 @@ gpointer generic_mask_worker(gpointer p) {
 
 	gboolean verbose = args->verbose;
 	gchar *history = NULL;
+	gboolean rwlocked = FALSE;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
@@ -1714,6 +1717,8 @@ gpointer generic_mask_worker(gpointer p) {
 
 	set_progress_bar_data(_("Processing mask..."), 0.1f);
 
+	g_rw_lock_writer_lock(&args->fit->rwlock);
+	rwlocked = TRUE;
 	if (args->fit == gfit && !args->command) {
 		gchar *undo_msg = args->log_hook ? args->log_hook(args->user, SUMMARY) : g_strdup(args->description);
 		undo_save_state(gfit, undo_msg);
@@ -1748,6 +1753,8 @@ the_end:
 	if (args->mask_creation) {
 		set_mask_active(args->fit, TRUE);
 	}
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
 
 	if (args->command) {
 		if (com.headless) {

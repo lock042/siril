@@ -1294,6 +1294,7 @@ gpointer conesearch_worker(gpointer p) {
 	double stardiam = 0.0;
 	gboolean hide_display_tag = FALSE;
 	gboolean free_dx = TRUE;
+	gboolean rwlocked = FALSE;
 
 	// Check initial args
 	if (!siril_cat) {
@@ -1323,6 +1324,10 @@ gpointer conesearch_worker(gpointer p) {
 	}
 
 	// Project using WCS
+	if (args->fit == gfit) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		rwlocked = TRUE;
+	}
 	if (siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, TRUE)) {
 		if (siril_cat->projected == CAT_PROJ_WCS)
 			siril_log_color_message(_("No item found in the image\n"), "salmon");
@@ -1553,6 +1558,8 @@ gpointer conesearch_worker(gpointer p) {
 
 exit_conesearch:
 	{
+		if (rwlocked)
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 		gboolean go_idle = args->has_GUI;
 		if ((retval || !args->has_GUI) && temp_cat) {
 			siril_catalog_free(temp_cat);

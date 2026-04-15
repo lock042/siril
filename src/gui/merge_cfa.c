@@ -406,6 +406,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	close_single_image();
 	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	copy_fits_metadata(out, gfit);
@@ -413,6 +414,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 	update_bayer_pattern_information(gfit, data->pattern);
 	free_wcs(gfit);
 	update_fits_header(gfit);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 	clearfits(out);
 	free(out);
 	clear_stars_list(TRUE);

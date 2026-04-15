@@ -884,6 +884,12 @@ gpointer plate_solver(gpointer p) {
 	args->ret = SOLVE_OK;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
+	gboolean rwlocked = FALSE;
+	if (!args->for_sequence) {
+		g_rw_lock_writer_lock(&args->fit->rwlock);
+		rwlocked = TRUE;
+	}
+
 	if (args->verbose) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
@@ -1091,6 +1097,8 @@ gpointer plate_solver(gpointer p) {
 	}
 
 clearup:
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);

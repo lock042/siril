@@ -636,6 +636,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	struct catmag_data *args = (struct catmag_data *)arg;
 	/* configure for current stars */
 	int nb_stars_in_image = 0;
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	double fwhm = measure_image_FWHM(args->fit, -1, &nb_stars_in_image);
 	if (nb_stars_in_image < 1 || fwhm == 0.0) {
 		fwhm = 6.0;
@@ -651,6 +652,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	if (!cat) {
 		siril_log_message(_("Failed to initialize the catalogue query\n"));
 		free(pset); free(args);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -670,6 +672,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	if (retval < 1) {
 		siril_log_message(_("Failed to get stars from catalog\n"));
 		free(pset); free(args);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -679,6 +682,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	if (retval || cat->nbitems < 1) {
 		siril_log_message(_("Failed to project stars from catalog\n"));
 		free(pset); free(args);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -689,6 +693,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	if (!distances || !magnitudes) {
 		free(distances); free(magnitudes); free(pset); free(args);
 		PRINT_ALLOC_ERR;
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -772,6 +777,7 @@ gpointer catmag_mono_worker(gpointer arg) {
 	free(magnitudes);
 	free(pset);
 	free(args);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
