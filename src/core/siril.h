@@ -18,6 +18,12 @@
 
 #include "core/settings.h"
 
+#if defined(__cplusplus)
+  #define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+#else
+  #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#endif
+
 #define _(String) gettext (String)
 #define gettext_noop(String) String
 #define N_(String) gettext_noop (String)
@@ -616,15 +622,31 @@ struct ffit {
 	mask_t* mask; // Mask for image operations
 	gboolean mask_active; // Whether or not the mask is active
 
-	/* Thread safety */
-	// rwlock *MUST* be the last member in the struct
+	/* GRWLock for thread safety. Most issues around concurrent access to gfit are protected against by
+	 * the processing thread system fed by start_in_new_thread, which will only handle jobs serially.
+	 * However this does not protect against access from python connection threads, which only protects
+	 * pixel data access using `with siril.image_lock()`, and it doesn't protect against access from
+	 * idle functions.
+	 *
+	 * The GRWLock is only ever needed to control access to public fits structs (currently only gfit).
+	 * It is initialized properly as long as a fits* is allocated using calloc() or a fits is initialized
+	 * to { 0 }, and it MUST only ever be interacted with using g_rwlock_* functions to lock and unlock
+	 * for reading and writing. The lock is NOT copied from a source OR overwritten in a target by copyfits()
+	 *
+	 * Locking is done in high level functions, typically generic_*_worker or the simple threaded functions
+	 * that are run directly using start_in_new_thread as they don't require the full generic worker
+	 * framework. It should be avoided in low level fits handling functions as this is likely to cause
+	 * deadlocks.
+	 *
+	 * rwlock *MUST* be the last member in the struct
+	 */
 	GRWLock rwlock; // Protects concurrent access to this fits from processing workers and Python threads
 };
 
-//_Static_assert(
-//    offsetof(struct ffit, rwlock) + sizeof(GRWLock) == sizeof(struct ffit),
-//    "rwlock must remain the last field in struct ffit"
-//);
+STATIC_ASSERT(
+    offsetof(struct ffit, rwlock) == sizeof(struct ffit) - sizeof(((struct ffit *)0)->rwlock),
+    "rwlock must remain the last field in struct ffit"
+);
 
 typedef enum {
 	SPCC_RED = 1 << RLAYER,
