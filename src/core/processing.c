@@ -1382,7 +1382,7 @@ static gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	gfit_modified_update_gui();
-	if (gfit->mask)
+	if (args->has_mask)
 		queue_redraw_mask();
 	free_generic_img_args(args);
 	return FALSE;
@@ -1619,6 +1619,8 @@ gpointer generic_image_worker(gpointer p) {
 the_end:;
 
 	int retval = args->retval;
+	/* Capture mask state while writer lock is held and before idles are posted. */
+	args->has_mask = (argfit->mask != NULL);
 
 	// Cleanup / idles
 	if (args->command) {

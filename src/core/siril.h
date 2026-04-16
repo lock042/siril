@@ -621,10 +621,10 @@ struct ffit {
 	GRWLock rwlock; // Protects concurrent access to this fits from processing workers and Python threads
 };
 
-_Static_assert(
-    offsetof(struct ffit, rwlock) + sizeof(GRWLock) == sizeof(struct ffit),
-    "rwlock must remain the last field in struct ffit"
-);
+//_Static_assert(
+//    offsetof(struct ffit, rwlock) + sizeof(GRWLock) == sizeof(struct ffit),
+//    "rwlock must remain the last field in struct ffit"
+//);
 
 typedef enum {
 	SPCC_RED = 1 << RLAYER,

@@ -322,19 +322,11 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	stop_processing_thread();
 
 	if (!args->ret) {
-		/* write to gfit in the graphical thread */
-		clearfits(gfit);
+		/* gfit was already written by the worker; just do GTK-side work */
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
-		invalidate_gfit_histogram();
-
-		memcpy(gfit, args->fit, sizeof(fits));
-		icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
-		com.seq.current = UNRELATED_IMAGE;
-		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		gui_function(open_single_image_from_gfit, NULL);
 	}
-	else clearfits(args->fit);
 
 	set_cursor_waiting(FALSE);
 	if (args->from_ui)
@@ -888,6 +880,23 @@ failure: // failure before the eval loop
 		free(args);
 	}
 	else {
+		/* Still holding the writer lock: write the result into gfit now so the
+		 * idle (end_pixel_math_operation) is left with GTK-only tasks.
+		 * Use offsetof to avoid overwriting gfit->rwlock itself.
+		 * Setting com.seq.current = UNRELATED_IMAGE before releasing the lock
+		 * ensures that the idle's close_sequence() call passes index=-2 to
+		 * save_stats_from_fit, which returns early and leaves the sequence
+		 * data untouched. */
+		if (!failed) {
+			clearfits(gfit);
+			invalidate_gfit_histogram();
+			memcpy(gfit, args->fit, offsetof(fits, rwlock));
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_COMPOSITION);
+			com.seq.current = UNRELATED_IMAGE;
+			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
+		} else {
+			clearfits(args->fit);
+		}
 		if (rwlocked)
 			g_rw_lock_writer_unlock(&gfit->rwlock);
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);

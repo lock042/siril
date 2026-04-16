@@ -458,7 +458,6 @@ gboolean end_plate_solver(gpointer p) {
 		close_astrometry_dialog();
 		/* ****** */
 		if (args->image_flipped) {
-			notify_gfit_data_modified();
 			redraw(REMAP_ALL);
 		} else {
 			redraw(REDRAW_OVERLAY);

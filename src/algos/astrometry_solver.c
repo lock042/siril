@@ -47,6 +47,7 @@
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/path_parse.h"
@@ -1131,6 +1132,8 @@ clearup:
 	if (!args->for_sequence) {
 		if (asnet_running && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
+		if (args->image_flipped && !com.headless)
+			notify_gfit_data_modified();
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {

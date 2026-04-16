@@ -1300,6 +1300,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_pixeldata_request(conn, gfit, payload, payload_length);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
+				// Writer lock must be released before dispatching the idle:
+				// update_single_image_from_gfit acquires the reader lock, which
+				// would deadlock if we still held the writer lock here.
+				if (success && !com.headless) {
+					siril_debug_print("set_*_pixeldata: updating gfit\n");
+					if (g_main_context_is_owner(g_main_context_default()))
+						update_single_image_from_gfit(NULL);
+					else
+						execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
+				}
 			}
 			break;
 		}

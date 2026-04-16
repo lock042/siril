@@ -770,8 +770,11 @@ static gboolean update_stars_idle(gpointer p) {
 	struct star_update_s *args = (struct star_update_s *)p;
 	clear_stars_list(TRUE);
 	com.stars = args->stars;
-	if (args->update_GUI && !com.headless)
+	if (args->update_GUI && !com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		fill_stars_list(gfit, com.stars);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	redraw(REDRAW_OVERLAY);
 	free(args);
 	return FALSE;

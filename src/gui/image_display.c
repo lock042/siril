@@ -2423,6 +2423,7 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	if (gui.roi.fit.type != gfit->type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
@@ -2476,6 +2477,7 @@ void copy_roi_into_gfit() {
 			}
 		}
 	}
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 }
 
 void remap_all() {
@@ -2529,9 +2531,13 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 }
 
 gboolean redraw_mask_idle(gpointer p) {
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	if (com.pref.gui.mask_tints_vports) {
+		/* Reader lock released before this call: notify_gfit_data_modified()
+		 * may call copy_roi_into_gfit() which acquires the writer lock. */
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	}

@@ -679,12 +679,15 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
+		g_rw_lock_writer_lock(&gfit->rwlock);
 		if (seq_read_frame(seq, image_to_load, gfit, FALSE, -1)) {
+			g_rw_lock_writer_unlock(&gfit->rwlock);
 			siril_log_color_message(_("could not load reference image from sequence\n"), "red");
 			free_sequence(seq, TRUE);
 			return TRUE;
 		}
 		seq->current = image_to_load;
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 	if (seq->type == SEQ_SER)
 		ser_display_info(seq->ser_file);
@@ -696,7 +699,9 @@ gboolean set_seq(gpointer user_data){
 
 	/* Sequence is stored in com.seq for now */
 	memcpy(&com.seq, seq, sizeof(sequence));
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	update_gain_from_gfit();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (!com.script && !com.headless) {
 		execute_idle_and_wait_for_it(set_seq_gui, seq);
@@ -721,6 +726,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	invalidate_gfit_histogram();
 	undo_flush();
 	close_single_image();
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {
 		gfit->rx = seq->rx;
@@ -731,10 +737,13 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (load_it && !com.script) {
 		set_cursor_waiting(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
+			g_rw_lock_writer_unlock(&gfit->rwlock);
 			set_cursor_waiting(FALSE);
 			return 1;
 		}
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
+
 		if (gui.sliders != USER) {
 			init_layers_hi_and_lo_values(gui.sliders);
 			sliders_mode_set_state(gui.sliders);
@@ -757,6 +766,9 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		update_gfit_histogram_if_needed();
 		set_cursor_waiting(FALSE);
 		reset_3stars();
+	} else {
+		/* clearfits was done above; if we're not loading, release the lock now */
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 
 	gui_function(update_MenuItem, NULL);		// initialize menu gui

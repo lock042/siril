@@ -102,7 +102,9 @@ gboolean end_background(gpointer p) {
 	stop_processing_thread();
 	if (args) {
 		background_computed = TRUE;
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		gfit_modified_update_gui();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 		free(args);
@@ -115,7 +117,9 @@ gboolean end_background(gpointer p) {
 static gboolean background_idle(gpointer p) {
 	stop_processing_thread();
 	background_computed = TRUE;
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	gfit_modified_update_gui();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 	free_generic_img_args((struct generic_img_args *)p);
