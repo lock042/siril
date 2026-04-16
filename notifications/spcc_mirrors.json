@@ -1,10 +1,26 @@
 [
   {
     "url": "https://zenodo.org/records/17988559/files",
-    "description": "Primary"
+    "description": "Zenodo"
   },
   {
-    "url": "https://gaia.wheep.co.uk",
+    "url": "http://siril-spcc-public-lz-hel.s3-website.eu-north-lz-hel-a.cloud.ovh.net/",
+    "description": "OVH Helsinki"
+  },
+  {
+    "url": "http://siril-spcc-public-lz-man.s3-website.eu-west-lz-mnc-a.cloud.ovh.net/",
+    "description": "OVH Manchester"
+  },
+  {
+    "url": "http://siril-spcc-public-az-sydney.s3-website.ap-southeast-syd.io.cloud.ovh.net/",
+    "description": "OVH Sydney"
+  },
+  {
+    "url": "http://siril-spcc-public-az-mumbai.s3-website.ap-south-mum.io.cloud.ovh.net/",
+    "description": "OVH Mumbai"
+  },
+  {
+    "url": "http://gaia.wheep.co.uk",
     "description": "UK Mirror"
   },
   {
@@ -12,3 +28,4 @@
     "description": "Huggingface"
   }
 ]
+
