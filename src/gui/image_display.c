@@ -2493,8 +2493,6 @@ void remap_all() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
-		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
