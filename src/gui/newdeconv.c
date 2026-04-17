@@ -543,7 +543,10 @@ void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void calculate_parameters() {
-	if (com.stars && com.stars[0]) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	psf_star **stars_snap = com.stars;
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	if (stars_snap && stars_snap[0]) {
 		int i = 0;
 		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
 		gboolean unit_is_arcsec = FALSE;
@@ -551,32 +554,32 @@ void calculate_parameters() {
 		starprofile profiletype = PSF_GAUSSIAN;
 		fits *fit = (gui.roi.active && !com.headless) ? &gui.roi.fit : gfit;
 
-		while (com.stars[i]) {
+		while (stars_snap[i]) {
 			double fwhmx, fwhmy;
 			char *unit;
-			gboolean is_as = get_fwhm_as_arcsec_if_possible(com.stars[i], &fwhmx, &fwhmy, &unit);
+			gboolean is_as = get_fwhm_as_arcsec_if_possible(stars_snap[i], &fwhmx, &fwhmy, &unit);
 			if (i == 0) {
 				unit_is_arcsec = is_as;
-				layer = com.stars[i]->layer;
-				profiletype = com.stars[i]->profile;
+				layer = stars_snap[i]->layer;
+				profiletype = stars_snap[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
 				siril_log_color_message(_("Error: all stars' FWHM must have the same units.\n"), "red");
 				return;
 			}
-			else if (layer != com.stars[i]->layer ) {
+			else if (layer != stars_snap[i]->layer ) {
 				siril_log_color_message(_("Error: stars' properties must all be computed on the same layer"), "red");
 				return;
 			}
-			else if (profiletype != com.stars[i]->profile) {
+			else if (profiletype != stars_snap[i]->profile) {
 				siril_log_color_message(_("Error: stars must all be modeled with the same profile type"), "red");
 				return;
 			}
-			if (!com.stars[i]->has_saturated) {
+			if (!stars_snap[i]->has_saturated) {
 				FWHMx += fwhmx;
-				beta += com.stars[i]->beta;
+				beta += stars_snap[i]->beta;
 				FWHMy += fwhmy;
-				angle += com.stars[i]->angle;
+				angle += stars_snap[i]->angle;
 				n++;
 				}
 			i++;
@@ -596,7 +599,7 @@ void calculate_parameters() {
 		}
 		float avg_angle = (float) angle / (float) n;
 		if (!com.headless && !com.script) {
-			if (com.stars[0]->profile == PSF_GAUSSIAN)
+			if (stars_snap[0]->profile == PSF_GAUSSIAN)
 				gtk_label_set_text(bdeconv_starprofile_text, _("Gaussian"));
 			else
 				gtk_label_set_text(bdeconv_starprofile_text, _("Moffat"));

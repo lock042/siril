@@ -1234,12 +1234,16 @@ static void set_fwhm_star_as_star_list_with_layer(sequence *seq, int layer) {
 	 * mean it contains data for all images. Handle with care. */
 	if (seq->regparam && layer >= 0 && layer < seq->nb_layers
 			&& seq->regparam[layer] && seq->current >= 0
-			&& seq->regparam[layer][seq->current].fwhm_data && !com.stars) {
-		com.stars = new_fitted_stars(1);
-		com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
-		com.stars[1] = NULL;
-		// this is freed in PSF_list.c:clear_stars_list()
-		com.star_is_seqdata = TRUE;
+			&& seq->regparam[layer][seq->current].fwhm_data) {
+		g_rw_lock_writer_lock(&com.stars_lock);
+		if (!com.stars) {
+			com.stars = new_fitted_stars(1);
+			com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
+			com.stars[1] = NULL;
+			// this is freed in PSF_list.c:clear_stars_list()
+			com.star_is_seqdata = TRUE;
+		}
+		g_rw_lock_writer_unlock(&com.stars_lock);
 	}
 }
 

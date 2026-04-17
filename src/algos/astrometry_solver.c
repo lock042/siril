@@ -978,8 +978,8 @@ gpointer plate_solver(gpointer p) {
 			while (stars[nb_stars])
 				nb_stars++;
 		} else { // we need to make a copy of com.stars as we will alter the coordinates
-			stars = com.stars;
-			if (stars) {
+			g_rw_lock_reader_lock(&com.stars_lock);
+			if (com.stars) {
 				while (com.stars[nb_stars])
 					nb_stars++;
 				stars = new_fitted_stars(nb_stars);
@@ -989,6 +989,7 @@ gpointer plate_solver(gpointer p) {
 					stars[s]->ypos = com.stars[s]->ypos;
 				}
 			}
+			g_rw_lock_reader_unlock(&com.stars_lock);
 		}
 	}
 	CHECK_FOR_CANCELLATION_RET;

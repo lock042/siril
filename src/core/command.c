@@ -2797,9 +2797,13 @@ int parse_deconvolve(int first_arg, int nb, estk_data* data, nonblind_t type) {
 	// A manual PSF, if required, must be created using the makepsf command and then rl
 	// will detect it as an existing kernel and use it.
 
+	g_rw_lock_reader_lock(&com.stars_lock);
+	gboolean has_stars = (com.stars && com.stars[0]);
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
 	if (kernel_loaded)
 		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
-	else if (com.stars && com.stars[0])
+	else if (has_stars)
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel

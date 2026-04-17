@@ -329,7 +329,15 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	if (starcount(com.stars) < 1) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int comstar_count = starcount(com.stars);
+	if (comstar_count >= 1) {
+		stars = com.stars;
+		nb_stars = comstar_count;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (comstar_count < 1) {
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
@@ -366,9 +374,6 @@ int generate_synthstars(fits *fit) {
 			return -1;
 		}
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		nb_stars = starcount(com.stars);
 	}
 
 	if (nb_stars < 1 || !stars) {

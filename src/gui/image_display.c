@@ -1503,8 +1503,10 @@ static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
 
-	if (com.stars && !com.script && (single_image_is_loaded() || sequence_is_loaded())) {
+	if (!com.script && (single_image_is_loaded() || sequence_is_loaded()) &&
+			g_rw_lock_reader_trylock(&com.stars_lock)) {
 		/* com.stars is a NULL-terminated array */
+		if (com.stars) {
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
@@ -1550,6 +1552,8 @@ static void draw_stars(const draw_data_t* dd) {
 
 			i++;
 		}
+		} // if (com.stars)
+		g_rw_lock_reader_unlock(&com.stars_lock);
 	}
 
 	/* quick photometry */

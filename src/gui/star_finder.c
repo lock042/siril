@@ -264,12 +264,14 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	int i = 0;
 	gboolean already_found = FALSE;
 	starprofile profile;
+
+	g_rw_lock_reader_lock(&com.stars_lock);
 	if (com.stars && com.stars[0])
-		// Add star depending on fit profile used for existing stars in the array
 		profile = (com.stars[0]->profile == PSF_GAUSSIAN ? PSF_GAUSSIAN : PSF_MOFFAT_BFREE);
 	else
-		// Default to Gaussian (or get this from a parameter in the GUI, tbd)
 		profile = com.pref.starfinder_conf.profile;
+	gboolean seqdata = com.star_is_seqdata;
+	g_rw_lock_reader_unlock(&com.stars_lock);
 
 	*index = -1;
 	psf_star *result = psf_get_minimisation(gfit, layer, &com.selection, FALSE, FALSE, NULL, TRUE, profile, NULL);
@@ -279,6 +281,11 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	/* We do not check if it's matching with the "reject_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 
+	// If seqdata, clear before acquiring writer lock (clear_stars_list uses its own writer lock)
+	if (seqdata)
+		clear_stars_list(TRUE);
+
+	g_rw_lock_writer_lock(&com.stars_lock);
 	if (com.stars && !com.star_is_seqdata) {
 		// check if the star was already detected/peaked
 		while (com.stars[i]) {
@@ -289,19 +296,18 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 			i++;
 		}
 	} else {
-		if (com.star_is_seqdata) {
-			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
-			clear_stars_list(TRUE);
-		}
 		com.stars = new_fitted_stars(MAX_STARS);
 		if (!com.stars) {
+			g_rw_lock_writer_unlock(&com.stars_lock);
 			PRINT_ALLOC_ERR;
+			free_psf(result);
 			return NULL;
 		}
 		com.star_is_seqdata = FALSE;
 	}
 
 	if (already_found) {
+		g_rw_lock_writer_unlock(&com.stars_lock);
 		free_psf(result);
 		result = NULL;
 		char *msg = siril_log_message(_("This star has already been picked !\n"));
@@ -311,15 +317,18 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 			result->xpos = result->x0 + com.selection.x;
 			result->ypos = com.selection.y + com.selection.h - result->y0;
 			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
-			if (!newstars)
+			if (!newstars) {
+				g_rw_lock_writer_unlock(&com.stars_lock);
 				PRINT_ALLOC_ERR;
-			else {
+			} else {
 				com.stars = newstars;
 				com.stars[i] = result;
 				com.stars[i + 1] = NULL;
 				*index = i;
+				g_rw_lock_writer_unlock(&com.stars_lock);
 			}
 		} else {
+			g_rw_lock_writer_unlock(&com.stars_lock);
 			free_psf(result);
 			result = NULL;
 		}
@@ -327,23 +336,23 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	return result;
 }
 
-static int get_comstar_count() {
-	int i = 0;
-	while (com.stars[i])
-		i++;
-	return i;
-}
-
 /* Remove a star from com.stars, at index index. The star is freed. */
 int remove_star(int index) {
-	if (index < 0 || !com.stars || !com.stars[index])
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (index < 0 || !com.stars || !com.stars[index]) {
+		g_rw_lock_writer_unlock(&com.stars_lock);
 		return 1;
+	}
 
-	int N = get_comstar_count() + 1;
+	int N = 0;
+	while (com.stars[N])
+		N++;
+	N++;
 
 	free_psf(com.stars[index]);
 	memmove(&com.stars[index], &com.stars[index + 1],
 			(N - index - 1) * sizeof(*com.stars));
+	g_rw_lock_writer_unlock(&com.stars_lock);
 	redraw(REDRAW_OVERLAY);
 	return 0;
 }

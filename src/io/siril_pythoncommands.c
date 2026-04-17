@@ -1997,7 +1997,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if we need to find stars or use existing ones
-			if (starcount(com.stars) < 1) {
+			g_rw_lock_reader_lock(&com.stars_lock);
+			int py_comstar_count = starcount(com.stars);
+			if (py_comstar_count >= 1) {
+				stars = com.stars;
+				nb_stars = py_comstar_count;
+			}
+			g_rw_lock_reader_unlock(&com.stars_lock);
+
+			if (py_comstar_count < 1) {
 				// Set up starfinder_data structure
 				struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 				if (!sf_data) {
@@ -2035,8 +2043,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				}
 				stars_needs_freeing = TRUE;
 			} else {
-				stars = com.stars;
-				nb_stars = starcount(com.stars);
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 			}
 
