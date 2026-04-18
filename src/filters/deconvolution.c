@@ -155,12 +155,14 @@ void reset_conv_args(estk_data* args) {
 }
 
 void reset_conv_kernel() {
+	g_mutex_lock(&com.mutex);
 	if (com.kernel != NULL) {
 		free(com.kernel);
 		com.kernel = NULL;
 		com.kernelchannels = 1;
 		com.kernelsize = 0;
 	}
+	g_mutex_unlock(&com.mutex);
 }
 
 void reset_conv_controls_and_args() {
@@ -451,8 +453,10 @@ int get_kernel(estk_data *args) {
 	else
 		siril_log_message(_("PSF made in top down orientation.\n"));
 #endif
+	g_mutex_lock(&com.mutex);
 	com.kernelsize = (!com.kernel) ? 0 : args->ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args->kchans;
+	g_mutex_unlock(&com.mutex);
 	if (args->psftype != PSF_PREVIOUS) {
 		gui_function(DrawPSF, NULL);
 	}

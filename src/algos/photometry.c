@@ -604,7 +604,9 @@ gpointer light_curve_worker(gpointer arg) {
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
+		g_mutex_lock(&com.mutex);
 		com.selection = args->areas[star_index];
+		g_mutex_unlock(&com.mutex);
 		if (seqpsf(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));

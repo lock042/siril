@@ -713,7 +713,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			gboolean result = single_image_is_loaded() || sequence_is_loaded();
 
 			if (result) {
-				if (com.selection.w == 0 && com.selection.h == 0) {
+				g_mutex_lock(&com.mutex);
+				rectangle sel = com.selection;
+				g_mutex_unlock(&com.mutex);
+				if (sel.w == 0 && sel.h == 0) {
 					// No selection: return STATUS_NONE and sirilpy will return None
 					success = send_response(conn, STATUS_NONE, NULL, 0);
 					break;
@@ -722,10 +725,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t x_BE = GUINT32_TO_BE(com.selection.x);
-				uint32_t y_BE = GUINT32_TO_BE(com.selection.y);
-				uint32_t w_BE = GUINT32_TO_BE(com.selection.w);
-				uint32_t h_BE = GUINT32_TO_BE(com.selection.h);
+				uint32_t x_BE = GUINT32_TO_BE(sel.x);
+				uint32_t y_BE = GUINT32_TO_BE(sel.y);
+				uint32_t w_BE = GUINT32_TO_BE(sel.w);
+				uint32_t h_BE = GUINT32_TO_BE(sel.h);
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &x_BE, sizeof(uint32_t));
@@ -3030,10 +3033,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			fits *fit = calloc(1, sizeof(fits));
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			gboolean debayer_pref = com.pref.debayer.open_debayer;
 			com.pref.debayer.open_debayer = FALSE; // disable debayering
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 			int retval = read_single_image(filepath, fit, NULL, FALSE, NULL, FALSE, FALSE);
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			com.pref.debayer.open_debayer = debayer_pref;
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 			if (retval) {
 				free(fit);
 				g_free(filepath);

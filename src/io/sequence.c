@@ -468,11 +468,16 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		gboolean is_fz = g_str_has_suffix(ext, ".fz");
 		const gchar *com_ext = get_com_ext(is_fz);
 
-		/* set the configured extention to the extension of the file, otherwise reading will fail */
+		/* If the file's extension differs from the configured one, update it so
+		 * subsequent reads use the correct extension.  Write under pref_rwlock
+		 * since workers may be reading com.pref.ext concurrently. */
 		if (strcasecmp(ext, com_ext + 1)) {
+			gchar *new_ext = g_strdup_printf(".%s", ext);
+			if (is_fz) new_ext[strlen(new_ext) - 2] = '\0';
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			g_free(com.pref.ext);
-			com.pref.ext = g_strdup_printf(".%s", ext);
-			if (is_fz) com.pref.ext[strlen(com.pref.ext) - 2] = '\0';
+			com.pref.ext = new_ext;
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));

@@ -5402,7 +5402,10 @@ int process_set(int nb) {
 		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-		return read_keyfile(kf) == 0;
+		g_rw_lock_writer_lock(&com.pref_rwlock);
+		int retval = read_keyfile(kf) == 0;
+		g_rw_lock_writer_unlock(&com.pref_rwlock);
+		return retval;
 	}
 	return 0;
 }
@@ -5453,10 +5456,11 @@ int process_set_mag(int nb) {
 }
 
 int process_set_photometry(int nb) {
+	double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0, force = -1.0;
+	int min = -65536, max = -1;
+	gboolean error = FALSE;
+
 	if (nb > 0) {
-		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0, force = -1.0;
-		int min = -65536, max = -1;	//, force = -1;
-		gboolean error = FALSE;
 		for (int i = 1; i < nb; i++) {
 			char *arg = word[i], *end;
 			if (!word[i])
@@ -5512,6 +5516,11 @@ int process_set_photometry(int nb) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
 			return CMD_ARG_ERROR;
 		}
+	}
+
+	g_rw_lock_writer_lock(&com.pref_rwlock);
+
+	if (nb > 0) {
 		if (inner > 0) {
 			if (outer > 0) {
 				if (outer > inner) {
@@ -5576,10 +5585,12 @@ int process_set_photometry(int nb) {
 		}
 
 		if (error) {
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
 			return CMD_ARG_ERROR;
 		}
 	}
+
 	siril_log_message(_("Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
@@ -5589,6 +5600,7 @@ int process_set_photometry(int nb) {
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 	return CMD_OK;
 }
 
@@ -5665,11 +5677,13 @@ int process_set_ext(int nb) {
 			return CMD_ARG_ERROR;
 		}
 
-		g_free(com.pref.ext);
 		gchar *lower = g_ascii_strdown(word[1], strlen(word[1]));
+		g_rw_lock_writer_lock(&com.pref_rwlock);
+		g_free(com.pref.ext);
 		com.pref.ext = g_strdup_printf(".%s", lower);
-		g_free(lower);
 		writeinitfile();
+		g_rw_lock_writer_unlock(&com.pref_rwlock);
+		g_free(lower);
 	}
 
 	return CMD_OK;
@@ -5800,39 +5814,42 @@ int process_set_findstar(int nb) {
 	}
 
 	siril_log_message(_("sigma = %3.2f\n"), sigma);
-	com.pref.starfinder_conf.sigma = sigma;
 	if (maxr != 1.0 && maxr > roundness)
 		siril_log_message(_("roundness range = [%f, %f]\n"), roundness, maxr);
 	else {
 		siril_log_message(_("roundness = %3.2f\n"), roundness);
 		maxr = 1.0;
 	}
-	com.pref.starfinder_conf.roundness = roundness;
-	com.pref.starfinder_conf.max_r = maxr;
 	siril_log_message(_("radius = %d\n"), radius);
-	com.pref.starfinder_conf.radius = radius;
 	if ((minA > 0.0 || maxA > 0.0) && minA < maxA)
 		siril_log_message(_("amplitude range = [%f, %f]\n"), minA, maxA);
 	else {
 		siril_log_message(_("amplitude range unlimited\n"));
 		minA = 0.0; maxA = 0.0;
 	}
+	siril_log_message(_("convergence = %d\n"), convergence);
+	siril_log_message(_("focal = %3.1f\n"), focal_length);
+	siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
+	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
+	siril_log_message(_("profile = %s\n"), (profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
+	if (profile != PSF_GAUSSIAN)
+		siril_log_message(_("minimum beta = %3.2f\n"), minbeta);
+
+	g_rw_lock_writer_lock(&com.pref_rwlock);
+	com.pref.starfinder_conf.sigma = sigma;
+	com.pref.starfinder_conf.roundness = roundness;
+	com.pref.starfinder_conf.max_r = maxr;
+	com.pref.starfinder_conf.radius = radius;
 	com.pref.starfinder_conf.min_A = minA;
 	com.pref.starfinder_conf.max_A = maxA;
-	siril_log_message(_("convergence = %d\n"), convergence);
 	com.pref.starfinder_conf.convergence = convergence;
-	siril_log_message(_("focal = %3.1f\n"), focal_length);
 	com.pref.starfinder_conf.focal_length = focal_length;
-	siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
 	com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
-	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
 	com.pref.starfinder_conf.relax_checks = relax_checks;
-	siril_log_message(_("profile = %s\n"), (profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 	com.pref.starfinder_conf.profile = profile;
-	if (profile != PSF_GAUSSIAN) {
-		siril_log_message(_("minimum beta = %3.2f\n"), minbeta);
+	if (profile != PSF_GAUSSIAN)
 		com.pref.starfinder_conf.min_beta = minbeta;
-	}
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 	return CMD_OK;
 }
 
@@ -6446,7 +6463,9 @@ int process_seq_psf(int nb) {
 			if (seq != &com.seq) free_sequence(seq, TRUE);
 			return CMD_SELECTION_ERROR;
 		}
+		g_mutex_lock(&com.mutex);
 		com.selection = area;
+		g_mutex_unlock(&com.mutex);
 	}
 
 	// Set framing mode
@@ -12299,11 +12318,14 @@ int process_calibrate_single(int nb) {
 }
 
 int process_set_32bits(int nb) {
-	com.pref.force_16bit = word[0][3] == '1';
-	if (com.pref.force_16bit)
+	gboolean force_16bit = word[0][3] == '1';
+	g_rw_lock_writer_lock(&com.pref_rwlock);
+	com.pref.force_16bit = force_16bit;
+	writeinitfile();
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
+	if (force_16bit)
 		siril_log_message(_("16-bit per channel in processed images mode is active\n"));
 	else siril_log_message(_("32-bit per channel in processed images mode is active\n"));
-	writeinitfile();
 	return CMD_OK;
 }
 
@@ -12365,11 +12387,13 @@ int process_set_compress(int nb) {
 	} else {
 		siril_log_message(_("No compression enabled.\n"));
 	}
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.comp.fits_enabled = compress;
 	com.pref.comp.fits_method = method;
 	com.pref.comp.fits_quantization = q;
 	com.pref.comp.fits_hcompress_scale = hscale;
 	writeinitfile();
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 	return CMD_OK;
 }
 
@@ -12414,9 +12438,11 @@ int process_set_mem(int nb) {
 	if (ratio > 1.0) {
 		siril_log_message(_("Setting the ratio of memory used for stacking above 1 will require the use of on-disk memory, which can be very slow and is unrecommended (%g requested)\n"), ratio);
 	}
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.memory_ratio = ratio;
 	com.pref.mem_mode = RATIO;
 	writeinitfile();
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 	siril_log_message(_("Usable memory for stacking changed to %g\n"), ratio);
 	return CMD_OK;
 }
@@ -12637,10 +12663,12 @@ int process_boxselect(int nb){
 	if (com.selection.w > 0 && com.selection.h > 0)
 		siril_log_message(_("Overriding previous selection\n"));
 
+	g_mutex_lock(&com.mutex);
 	com.selection.x = x;
 	com.selection.y = y;
 	com.selection.w = w;
 	com.selection.h = h;
+	g_mutex_unlock(&com.mutex);
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
 		gui_function(new_selection_zone, NULL);

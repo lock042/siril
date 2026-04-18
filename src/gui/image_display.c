@@ -542,6 +542,14 @@ static void remap(int vport) {
 
 static void remap_all_vports() {
 	gboolean inverted;
+	/* Snapshot gui.hi/gui.lo: init_layers_hi_and_lo_values() may write them
+	 * from the worker thread concurrently while this path runs from
+	 * remap_all() called directly on the worker (via notify_gfit_data_modified). */
+	g_mutex_lock(&com.mutex);
+	WORD remap_hi = gui.hi;
+	WORD remap_lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
 	/* Cache the GtkApplicationWindow and GAction pointers on first call —
 	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
@@ -758,10 +766,10 @@ static void remap_all_vports() {
 				const int cc = gfit->color_managed ? c : 0;
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
-					if (gui.cut_over && val > gui.hi) {	// cut
+					if (gui.cut_over && val > remap_hi) {	// cut
 						linebuf_byte[c][x] = 0;
 					} else {
-						linebuf_byte[c][x] = index[cc][val - gui.lo < 0 ? 0 : val - gui.lo];
+						linebuf_byte[c][x] = index[cc][val - remap_lo < 0 ? 0 : val - remap_lo];
 					}
 					if (inverted)
 						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
@@ -924,7 +932,11 @@ static int make_hd_index_for_current_display(int vport) {
 }
 
 static int make_index_for_current_display(int vport) {
-	float slope, delta = gui.hi - gui.lo;
+	g_mutex_lock(&com.mutex);
+	WORD lo = gui.lo;
+	WORD hi = gui.hi;
+	g_mutex_unlock(&com.mutex);
+	float slope, delta = hi - lo;
 	int i;
 	BYTE *index;
 	float pxl;

@@ -957,9 +957,11 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 
 // Actual drawing function
 void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
-	static GMutex psf_preview_mutex;
-	if (!com.kernel || !com.kernelsize) return;
-	g_mutex_lock(&psf_preview_mutex);
+	g_mutex_lock(&com.mutex);
+	if (!com.kernel || !com.kernelsize) {
+		g_mutex_unlock(&com.mutex);
+		return;
+	}
 	int width =  gtk_widget_get_allocated_width(widget);
 	int height = gtk_widget_get_allocated_height(widget);
 
@@ -1003,7 +1005,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 	free(buf);
-	g_mutex_unlock(&psf_preview_mutex);
+	g_mutex_unlock(&com.mutex);
 	return;
 }
 

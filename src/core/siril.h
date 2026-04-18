@@ -925,7 +925,9 @@ struct guiinf {
 	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
 	GdkRGBA poly_ink; // Color and alpha for drawing polygons
 	gboolean poly_fill; // Whether to fill drawn polygons
-	GMutex cairo_mutex; // control access to Cairo buffers
+	// cairo_mutex guards gui.view[].buf and Cairo display surfaces;
+	// held by display-update code on main thread and any worker that composites into the buffers
+	GMutex cairo_mutex;
 };
 
 struct common_icc {
@@ -948,6 +950,7 @@ struct common_icc {
 /* The global data structure of siril core */
 struct cominf {
 	GResource *resource; // resources
+	gboolean headless;		// pure console, no GUI
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -958,20 +961,38 @@ struct cominf {
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 	gsl_histogram *sat_hist;
-					      // TODO: move in ffit?
-	GMutex histogram_mutex;		// guards layers_hist[] and sat_hist against worker/main-thread races
 
-	// TODO: combine these gbooleans into a single bitmask state variable
-	gboolean headless;		// pure console, no GUI
+	// TODO: these three variables could / should be accessed using g_atomic_int_*
+	// (this would be a broad but light change with many read / write sites)
 	gboolean script;		// script being executed, always TRUE when headless is
-	gboolean python_script;	// python script being executed
 	gboolean python_command;	// python is running a Siril command
+	gboolean stop_script;		// abort script execution, not just a command
+
+	// com.mutex is a general-purpose lock protecting several unrelated fields that are written from
+	// worker threads and read from the main thread (or vice-versa): the log-message ring buffer;
+	// gui.hi and gui.lo (snapshot these under the lock in remap_all_vports / make_index_for_current_display);
+	// com.selection (all four fields must be updated atomically); com.kernel / com.kernelsize /
+	// com.kernelchannels (written by reset_conv_kernel / get_kernel, read by drawing_the_PSF)
+	GMutex mutex;
+
+	// env_mutex guards g_setenv() / g_unsetenv() calls; those glib functions are not thread-safe so any
+	// thread that modifies the process environment must hold this lock
+	GMutex env_mutex;
+
+	// histogram_mutex guards layers_hist[] and sat_hist; held by worker threads that compute
+	// histograms and by the main thread when reading them for display
+	GMutex histogram_mutex;
+
+	// pref_mutex guards com.pref: generic_image_worker / generic_sequence_worker / generic_mask_worker
+	// hold a reader lock for their entire job duration (so all deep com.pref.* reads are implicitly
+	// covered); process_set_*() command handlers and Python pref writes hold a writer lock briefly
+	// around the actual writes
+	GRWLock pref_rwlock;
+
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
-	GMutex mutex;			// a mutex we use for this thread
-	GMutex env_mutex;		// a mutex used for updating environment vars (g_setenv is not threadsafe)
 	GThread *python_thread;	// the thread for the python interpreter
 	char python_magic[9];	// magic number for the python interpreter, used to check .pyc compatibility
-	gboolean stop_script;		// abort script execution, not just a command
+	gboolean python_script;	// python script being executed
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 	GThread *update_scripts_thread;	// thread used to update the scripts repository, so the GUI can wait it
@@ -982,9 +1003,12 @@ struct cominf {
 
 	rectangle selection;		// coordinates of the selection rectangle
 
+	// stars_lock guards com.stars (and star_is_seqdata): writer lock when adding, replacing,
+	// or freeing the star list; reader lock when iterating or reading star data from any other thread
+	GRWLock stars_lock;
 	psf_star **stars;		// list of stars detected in the current image
-	GRWLock stars_lock;		// guards com.stars against concurrent reads/writes
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
+
 	double magOffset;		// offset to reduce the real magnitude, single image
 
 	/* history of operations, for the FITS header and the undo feature */

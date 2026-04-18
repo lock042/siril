@@ -96,6 +96,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	assert(args);
 	assert(args->seq);
 	assert(args->image_hook);
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 
@@ -408,6 +409,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 #ifdef _OPENMP
 	free(threads_per_image);
 #endif
@@ -1549,7 +1551,7 @@ gpointer generic_image_worker(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
-
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 	g_rw_lock_writer_lock(&args->fit->rwlock);
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
@@ -1666,6 +1668,7 @@ the_end:;
 		}
 	}
 	g_rw_lock_writer_unlock(&argfit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 	if (verbose) {
 		siril_log_color_message(_("%s %s.\n"), "green", desc, retval ? _("failed") : _("succeeded"));
 		gettimeofday(&t_end, NULL);
@@ -1697,6 +1700,7 @@ gpointer generic_mask_worker(gpointer p) {
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 
 	// Set default max_threads if not specified
 	if (args->max_threads < 1)
@@ -1757,6 +1761,7 @@ the_end:
 	}
 	if (rwlocked)
 		g_rw_lock_writer_unlock(&args->fit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
 	if (args->command) {
 		if (com.headless) {
