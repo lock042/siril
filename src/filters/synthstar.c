@@ -301,28 +301,27 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	reprofile_saturated_stars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+/* generic_image_worker hooks */
+int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return generate_synthstars(fit) < 0 ? 1 : 0;
 }
 
-gpointer do_synthstar(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	generate_synthstars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Synthetic stars"));
+}
+
+int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return reprofile_saturated_stars(fit) < 0 ? 1 : 0;
+}
+
+gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Unclip stars"));
 }
 
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	char *msg = siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	set_progress_bar_data(_("Star synthesis (full star mask creation): processing..."), PROGRESS_RESET);
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;

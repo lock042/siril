@@ -928,6 +928,7 @@ struct cominf {
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 	gsl_histogram *sat_hist;
 					      // TODO: move in ffit?
+	GMutex histogram_mutex;		// guards layers_hist[] and sat_hist against worker/main-thread races
 
 	// TODO: combine these gbooleans into a single bitmask state variable
 	gboolean headless;		// pure console, no GUI
