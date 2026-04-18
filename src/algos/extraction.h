@@ -32,4 +32,15 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3);
 int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3);
 void apply_split_cfa_to_sequence(struct multi_output_data *multi_args);
 
+/* Single-image CFA extraction hook for generic_image_worker */
+struct cfa_extract_args {
+	destructor destroy_fn;   /* Must be first */
+	int operation;           /* 0=split_cfa, 1=extractHa, 2=extractHaOIII, 3=extractGreen */
+	gchar *channel[4];       /* pre-computed output filenames (NULL if unused) */
+	extraction_scaling scaling;
+	sensor_pattern pattern;
+};
+void free_cfa_extract_args(void *p);
+int cfa_extract_image_hook(struct generic_img_args *args, fits *fit, int threads);
+
 #endif
