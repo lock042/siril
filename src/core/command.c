@@ -14541,58 +14541,74 @@ gpointer execute_python_script_wrapper(gpointer user_data) {
 int process_pyscript(int nb) {
 	gchar *script_name = NULL;
 	GStatBuf statbuf;
-	if (g_stat(word[1], &statbuf) == 0) {
-		// full path provided (or at least we can find it directly)
-		script_name = g_strdup(word[1]);
+
+	gboolean async = FALSE;
+	int arg_offset = 1;
+
+	// Check for -async as first argument
+	if (nb >= 1 && g_strcmp0(word[1], "-async") == 0) {
+		async = TRUE;
+		arg_offset = 2;
+	}
+
+	// Ensure we still have a script name
+	if (nb < arg_offset) {
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Resolve script name
+	if (g_stat(word[arg_offset], &statbuf) == 0) {
+		script_name = g_strdup(word[arg_offset]);
 	} else {
-		// Search for the file in the user's set script directories and the scripts repository
-		// We search the user's path first so any local modifications are used in preference to
-		// the repository script with the same name.
 		GSList *path = com.pref.gui.script_path;
 		while (path) {
 			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
-			script_name = find_file_in_directory(word[1], (gchar*) path->data);
-			if (script_name) // found it!
+			script_name = find_file_in_directory(word[arg_offset], (gchar*) path->data);
+			if (script_name)
 				break;
 			path = path->next;
 		}
 		if (!script_name) {
-			// If we still haven't found it, iterate over the siril-scripts local repository
-			script_name = find_file_recursively(word[1], siril_get_scripts_repo_path());
+			script_name = find_file_recursively(word[arg_offset], siril_get_scripts_repo_path());
 		}
 	}
 
 	if (script_name) {
 		gchar** argv_script = NULL;
-		if (nb > 1) {
-			// Treat additional arguments as arguments to be passed to the script
-			argv_script = calloc(nb, sizeof(gchar*));
-			for (int i = 2 ; i <= nb ; i++) {
-				argv_script[i-2] = g_strdup(word[i]);
+
+		// Number of extra args after script name
+		int extra_args = nb - arg_offset;
+
+		if (extra_args > 0) {
+			argv_script = calloc(extra_args + 1, sizeof(gchar*));
+			for (int i = 0; i < extra_args; i++) {
+				argv_script[i] = g_strdup(word[arg_offset + 1 + i]);
 			}
 		}
+
 		pyscript_data *data = calloc(1, sizeof(pyscript_data));
 		data->script_name = script_name;
 		data->argv_script = argv_script;
 		data->from_cli = TRUE;
-		// Cannot use start_in_new_thread here because of the possibility of the python script
-		// calling siril.cmd() and running commands that themselves require the processing thread
-		// so we use a generic GThread
+
 		gboolean already_in_a_python_script = com.python_script;
+
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
-		// data->script_name freed by execute_python_script_wrapper
+
 		if (!thread) {
 			free(data);
 			g_free(script_name);
 			g_strfreev(argv_script);
 			return CMD_GENERIC_ERROR;
 		} else {
-			if (com.script || already_in_a_python_script) {
+			// Updated condition with async
+			if (com.script || (already_in_a_python_script && !async)) {
 				g_thread_join(thread);
 			} else {
 				g_thread_unref(thread);
 			}
 		}
+
 		return CMD_OK;
 	} else {
 		return CMD_FILE_NOT_FOUND;

@@ -20,8 +20,11 @@ siril-1.4.3
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
-* Add SirilInterface.open_dialog()
+
+**Improvements**
+* Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
+* Added -async option to pyscript command (!1015)
 
 siril-1.4.2
 02/18/26
