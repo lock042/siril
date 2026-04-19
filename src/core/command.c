@@ -14591,9 +14591,13 @@ int process_pyscript(int nb) {
 		data->argv_script = argv_script;
 		data->from_cli = TRUE;
 
+		// Cannot use start_in_new_thread here because of the possibility of the python script
+		// calling siril.cmd() and running commands that themselves require the processing thread
+		// so we use a generic GThread
 		gboolean already_in_a_python_script = com.python_script;
 
 		GThread *thread = g_thread_new("pyscript_thread", execute_python_script_wrapper, data);
+		// data->script_name freed by execute_python_script_wrapper
 
 		if (!thread) {
 			free(data);
