@@ -143,8 +143,6 @@ gpointer stack_function_handler(gpointer p) {
 		com.uniq->fit = gfit;
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
-		/* Giving noise estimation (new thread) */
-		bgnoise_async(gfit, TRUE);
 
 		// updating the header string to parse the final name
 		// and parse the name
@@ -223,6 +221,10 @@ gpointer stack_function_handler(gpointer p) {
 		 * thread; it is internally gated by !com.headless. */
 		notify_gfit_data_modified();
 		g_rw_lock_writer_unlock(&gfit->rwlock);
+		/* Launch noise estimation after releasing the writer lock so the
+		 * bgnoise thread can acquire the reader lock immediately and run
+		 * concurrently with the GTK idle work in end_stacking. */
+		bgnoise_async(gfit, TRUE);
 	} else {
 		clearfits(&args->result);
 	}
