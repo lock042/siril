@@ -170,8 +170,10 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
+	g_rw_lock_writer_lock(&com.stars_lock);
 	if (!com.stars)
 		com.stars = calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
+	g_rw_lock_writer_unlock(&com.stars_lock);
 
 	int index;
 	if (!comboboxreglayer)
@@ -224,9 +226,11 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 		goto psf_end;
 	}
 
+	g_rw_lock_writer_lock(&com.stars_lock);
 	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
 	com.stars[3] = NULL;
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
+	g_rw_lock_writer_unlock(&com.stars_lock);
 
 psf_end:
 	g_slist_free(spsfargs->list);

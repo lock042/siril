@@ -190,6 +190,7 @@ struct generic_img_args {
 	gboolean for_roi; // if TRUE, operation is being applied to ROI only
 	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
 	gboolean mask_aware; // Whether the operation is mask-aware or not
+	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
 };
 
 struct generic_mask_args {

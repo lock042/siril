@@ -47,6 +47,7 @@
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/path_parse.h"
@@ -884,6 +885,12 @@ gpointer plate_solver(gpointer p) {
 	args->ret = SOLVE_OK;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
+	gboolean rwlocked = FALSE;
+	if (!args->for_sequence) {
+		g_rw_lock_writer_lock(&args->fit->rwlock);
+		rwlocked = TRUE;
+	}
+
 	if (args->verbose) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
@@ -971,8 +978,8 @@ gpointer plate_solver(gpointer p) {
 			while (stars[nb_stars])
 				nb_stars++;
 		} else { // we need to make a copy of com.stars as we will alter the coordinates
-			stars = com.stars;
-			if (stars) {
+			g_rw_lock_reader_lock(&com.stars_lock);
+			if (com.stars) {
 				while (com.stars[nb_stars])
 					nb_stars++;
 				stars = new_fitted_stars(nb_stars);
@@ -982,6 +989,7 @@ gpointer plate_solver(gpointer p) {
 					stars[s]->ypos = com.stars[s]->ypos;
 				}
 			}
+			g_rw_lock_reader_unlock(&com.stars_lock);
 		}
 	}
 	CHECK_FOR_CANCELLATION_RET;
@@ -1091,6 +1099,8 @@ gpointer plate_solver(gpointer p) {
 	}
 
 clearup:
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);
@@ -1123,6 +1133,8 @@ clearup:
 	if (!args->for_sequence) {
 		if (asnet_running && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
+		if (args->image_flipped && !com.headless)
+			notify_gfit_data_modified();
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {

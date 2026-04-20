@@ -713,18 +713,6 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
 	fit->naxes[2] = info->channels;
-	if (fit == gfit) {
-		if (!com.headless) {
-			if (g_main_context_is_owner(g_main_context_default())) {
-				// it is safe to call the function directly
-				update_single_image_from_gfit(NULL);
-			} else {
-				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-				execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
-			}
-		}
-		siril_debug_print("set_*_pixeldata: updating gfit\n");
-	}
 	// Cleanup shared memory
 	#ifdef _WIN32
 		UnmapViewOfFile(shm_ptr);
