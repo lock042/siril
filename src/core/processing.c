@@ -1656,6 +1656,12 @@ gpointer generic_image_worker(gpointer p) {
 				}
 			}
 
+			/* For FLIS: pixel data of every group member was modified in-place.
+			 * Invalidate and rebuild the composite now so the display reflects
+			 * the preview result when the idle calls queue_redraw(). */
+			if (!args->retval && is_current_image_flis())
+				notify_gfit_data_modified();
+
 		} else {
 			/* Final apply: copy_backup_to_gfit() was called by the dialog
 			 * before starting this worker, which restores gfit AND all
@@ -1684,11 +1690,20 @@ gpointer generic_image_worker(gpointer p) {
 			gboolean _is_mirrorx  = (args->image_hook == mirrorx_image_hook);
 			gboolean _is_mirrory  = (args->image_hook == mirrory_image_hook);
 			gboolean _is_crop     = (args->image_hook == crop_image_hook_single);
+			gboolean _is_binning  = (args->image_hook == binning_image_hook);
+			gboolean _is_resample = (args->image_hook == resample_image_hook);
 
 			struct rotation_args *_rp_geom = _is_rotation
 			    ? (struct rotation_args *)args->user : NULL;
 			struct crop_args *_cp_geom = _is_crop
 			    ? (struct crop_args *)args->user : NULL;
+			struct binning_args *_bn_geom = _is_binning
+			    ? (struct binning_args *)args->user : NULL;
+			struct resample_args *_rs_geom = _is_resample
+			    ? (struct resample_args *)args->user : NULL;
+			/* Saved original resample target dims (may be modified per-member) */
+			gint _rs_orig_toX = _rs_geom ? _rs_geom->toX : 0;
+			gint _rs_orig_toY = _rs_geom ? _rs_geom->toY : 0;
 			double _rot_cos_a = 1.0, _rot_sin_a = 0.0;
 			/* Predicted new canvas dims for 90°/270° rotations (dims swap). */
 			gint _new_canvas_rx = _grp_canvas_rx_before;
@@ -1737,6 +1752,17 @@ gpointer generic_image_worker(gpointer p) {
 						free(_ly_orig); _ly_orig = NULL;
 					}
 				}
+				/* Resample: non-base members resize proportionally, not to the
+				 * same absolute dimensions as the base target.  Temporarily
+				 * override params->toX/toY with the proportional target. */
+				if (_is_resample && _rs_geom && _lay != _grp_base
+				        && _grp_canvas_rx_before > 0 && _grp_canvas_ry_before > 0) {
+					_rs_geom->toX = MAX(1, (gint)round(
+					    (double)_pre_rx * _rs_orig_toX / _grp_canvas_rx_before));
+					_rs_geom->toY = MAX(1, (gint)round(
+					    (double)_pre_ry * _rs_orig_toY / _grp_canvas_ry_before));
+				}
+
 				args->fit = _lay->fit;
 				if (args->image_hook(args, _lay->fit, args->max_threads)) {
 					siril_log_color_message(
@@ -1745,6 +1771,13 @@ gpointer generic_image_worker(gpointer p) {
 					    _lay->layer_name ? _lay->layer_name : "?");
 					args->retval = 1;
 				}
+
+				/* Restore original resample dims for subsequent members. */
+				if (_is_resample && _rs_geom) {
+					_rs_geom->toX = _rs_orig_toX;
+					_rs_geom->toY = _rs_orig_toY;
+				}
+
 				if (_ly_mask && _ly_orig) {
 					blend_fits_with_mask(_lay->fit, _ly_orig);
 					clearfits(_ly_orig); free(_ly_orig);
@@ -1813,6 +1846,41 @@ gpointer generic_image_worker(gpointer p) {
 					_new_canvas_rx = (gint)flis_canvas_rx();
 					_new_canvas_ry = (gint)flis_canvas_ry();
 				}
+
+				if (_is_resample && _rs_geom && _lay != _grp_base) {
+					/* Resample: update canvas position for non-base member.
+					 * A) Base in group (canvas resizes): scale centre by the
+					 *    same factor as the base layer.
+					 * B) Base not in group (canvas unchanged): preserve centre
+					 *    (shift by half the size change). */
+					if (_base_in_grp) {
+						double _sx = (double)_rs_orig_toX / _grp_canvas_rx_before;
+						double _sy = (double)_rs_orig_toY / _grp_canvas_ry_before;
+						_lay->position_x = (gint)round(
+						    (_pre_px + _pre_rx / 2.0) * _sx - _lay->fit->rx / 2.0);
+						_lay->position_y = (gint)round(
+						    (_pre_py + _pre_ry / 2.0) * _sy - _lay->fit->ry / 2.0);
+					} else {
+						_lay->position_x = _pre_px + (_pre_rx - (gint)_lay->fit->rx) / 2;
+						_lay->position_y = _pre_py + (_pre_ry - (gint)_lay->fit->ry) / 2;
+					}
+				}
+
+				if (_is_binning && _bn_geom && _lay != _grp_base) {
+					/* Binning: update canvas position for non-base member.
+					 * A) Base in group: scale centre by 1/factor.
+					 * B) Base not in group: preserve centre. */
+					if (_base_in_grp) {
+						double _bf = (double)_bn_geom->factor;
+						_lay->position_x = (gint)round(
+						    (_pre_px + _pre_rx / 2.0) / _bf - _lay->fit->rx / 2.0);
+						_lay->position_y = (gint)round(
+						    (_pre_py + _pre_ry / 2.0) / _bf - _lay->fit->ry / 2.0);
+					} else {
+						_lay->position_x = _pre_px + (_pre_rx - (gint)_lay->fit->rx) / 2;
+						_lay->position_y = _pre_py + (_pre_ry - (gint)_lay->fit->ry) / 2;
+					}
+				}
 			}
 
 			/* For rotation with canvas change: also update non-group non-base
@@ -1861,6 +1929,39 @@ gpointer generic_image_worker(gpointer p) {
 				flis_invalidate_composite();
 			}
 
+			/* Resample with canvas change: also scale non-group non-base layers. */
+			if (!args->retval && _is_resample && _base_in_grp && is_current_image_flis() &&
+			    com.uniq && com.uniq->layers) {
+				double _sx = (double)_rs_orig_toX / _grp_canvas_rx_before;
+				double _sy = (double)_rs_orig_toY / _grp_canvas_ry_before;
+				for (GSList *_al = com.uniq->layers->next; _al; _al = _al->next) {
+					flis_layer_t *_ng = (flis_layer_t *)_al->data;
+					if (!_ng || !_ng->fit) continue;
+					if (g_slist_find(_grp_members, _ng)) continue; /* already updated */
+					double _cx = _ng->position_x + _ng->fit->rx / 2.0;
+					double _cy = _ng->position_y + _ng->fit->ry / 2.0;
+					_ng->position_x = (gint)round(_cx * _sx - _ng->fit->rx / 2.0);
+					_ng->position_y = (gint)round(_cy * _sy - _ng->fit->ry / 2.0);
+				}
+				flis_invalidate_composite();
+			}
+
+			/* Binning with canvas change: also scale non-group non-base layers. */
+			if (!args->retval && _is_binning && _base_in_grp && _bn_geom &&
+			    is_current_image_flis() && com.uniq && com.uniq->layers) {
+				double _bf = (double)_bn_geom->factor;
+				for (GSList *_al = com.uniq->layers->next; _al; _al = _al->next) {
+					flis_layer_t *_ng = (flis_layer_t *)_al->data;
+					if (!_ng || !_ng->fit) continue;
+					if (g_slist_find(_grp_members, _ng)) continue; /* already updated */
+					double _cx = _ng->position_x + _ng->fit->rx / 2.0;
+					double _cy = _ng->position_y + _ng->fit->ry / 2.0;
+					_ng->position_x = (gint)round(_cx / _bf - _ng->fit->rx / 2.0);
+					_ng->position_y = (gint)round(_cy / _bf - _ng->fit->ry / 2.0);
+				}
+				flis_invalidate_composite();
+			}
+
 			/* Mirror operations: reflect group member positions. */
 			if (!args->retval && is_current_image_flis()) {
 				if (_is_mirrorx) {
@@ -1888,6 +1989,14 @@ gpointer generic_image_worker(gpointer p) {
 				}
 			}
 
+			/* For FLIS: rebuild the composite and remap Cairo surfaces now that
+			 * all hooks have run and all canvas positions are up to date.
+			 * This ensures the idle's queue_redraw() finds correctly-positioned
+			 * pixel data rather than a stale composite built before the
+			 * position corrections above. */
+			if (!args->retval && is_current_image_flis())
+				notify_gfit_data_modified();
+
 			if (!args->retval) {
 				history = args->log_hook
 				        ? args->log_hook(args->user, DETAILED)
@@ -1895,9 +2004,7 @@ gpointer generic_image_worker(gpointer p) {
 			}
 		}
 
-		/* Restore args->fit to gfit for the end_generic_image idle path,
-		 * which calls notify_gfit_data_modified() to rebuild the
-		 * composite with the updated layer data. */
+		/* Restore args->fit to gfit for the end_generic_image idle path. */
 		args->fit = gfit;
 		g_slist_free(_grp_members);
 		goto the_end;

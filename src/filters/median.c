@@ -89,7 +89,12 @@ int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) 
 	struct median_filter_data *params = (struct median_filter_data*) args->user;
 	if (!params)
 		return 1;
-	return GPOINTER_TO_INT(median_filter(params));
+	params->fit = fit;
+	gboolean saved_previewing = params->previewing;
+	params->previewing = TRUE;
+	int retval = GPOINTER_TO_INT(median_filter(params));
+	params->previewing = saved_previewing;
+	return retval;
 }
 
 void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -687,7 +692,8 @@ static gpointer median_filter_float(gpointer p) {
 gpointer median_filter(gpointer p) {
 	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
-	copy_backup_to_gfit();
+	if (!args->previewing)
+		copy_backup_to_gfit();
 	if (!com.script && !args->previewing) {
 		undo_save_state(gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
 			args->ksize, args->ksize, args->iterations, args->amount);

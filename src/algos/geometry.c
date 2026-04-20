@@ -1871,7 +1871,14 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		com.selection = (rectangle){ _sx, _sy, gfit->rx, gfit->ry };
 		gui_function(new_selection_zone, NULL);
 	}
-	notify_gfit_data_modified();
+	/* For group operations, notify_gfit_data_modified() is called by the
+	 * group path in processing.c AFTER canvas positions are updated.
+	 * Calling it here (before positions are updated) would build the
+	 * composite with stale positions and write wrong pixels to the Cairo
+	 * surfaces; the subsequent correct call would fix the composite but
+	 * redraw() does not re-remap Cairo surfaces unless they are stale. */
+	if (!flis_get_selected_group())
+		notify_gfit_data_modified();
 	update_zoom_label();
 	return retval;
 }

@@ -670,7 +670,7 @@ static void flis_layers_list_rebuild(void) {
     flis_updating = FALSE;
 
     /* Sync gfit with the newly selected layer (only when a layer row is active) */
-    if (flis_selected && com.uniq) {
+    if (flis_selected && com.uniq && !processing_is_job_active()) {
         gint idx = flis_layer_get_index(flis_selected);
         if (idx >= 0) uniq_set_active_layer(com.uniq, idx);
     }
@@ -1047,7 +1047,12 @@ void on_flis_layer_row_selected(GtkListBox    *box,
 
     if (layer && com.uniq) {
         gint idx = flis_layer_get_index(layer);
-        if (idx >= 0)
+		gint curr_idx = flis_layer_get_index(flis_active_layer());
+		if (idx != curr_idx && processing_is_job_active()) {
+			queue_warning_message_dialog(_("Warning"), _("Cannot switch layers while the processing thread is running"));
+			return;
+		}
+		if (idx >= 0)
             uniq_set_active_layer(com.uniq, idx);
     }
 

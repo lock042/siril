@@ -57,6 +57,7 @@
 #include "core/undo.h"
 #include "algos/statistics.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "image_format_fits.h"
 #include "image_format_flis.h"
 
@@ -968,6 +969,7 @@ void uniq_set_active_layer(single *uniq, gint index) {
     uniq->fit   = layer->fit;
     uniq->chans = (layer->fit->naxes[2] > 0) ? (int)layer->fit->naxes[2] : 1;
     gfit        = layer->fit;
+	on_clear_roi(); // clear any ROI
 }
 
 /* ===================================================================== */

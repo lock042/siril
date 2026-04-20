@@ -1038,6 +1038,7 @@ struct cominf {
 	rectangle selection;		// coordinates of the selection rectangle
 
 	psf_star **stars;		// list of stars detected in the current image
+	gint stars_layer_id;	// layer ID for star positions
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
 	double magOffset;		// offset to reduce the real magnitude, single image
 

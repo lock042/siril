@@ -37,6 +37,7 @@
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
+#include "io/image_format_flis.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
@@ -1462,9 +1463,16 @@ gpointer findstar_worker(gpointer p) {
 	if (args->stars && args->nb_stars) {
 		*args->stars = stars;
 		*args->nb_stars = nbstars;
-	}
-	else if (!args->update_GUI)
+	} else if (!args->update_GUI) {
 		free_fitted_stars(stars);
+	}
+
+	if (args->update_GUI) {
+		flis_layer_t *layer = NULL;
+		if (is_current_image_flis())
+			layer = flis_layer_get_by_fit(args->im.fit);
+		com.stars_layer_id = layer ? layer->item_id : 0;
+	}
 END:
 	if (args->update_GUI)
 		execute_idle_and_wait_for_it(end_findstar, args);

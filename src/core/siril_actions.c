@@ -477,8 +477,9 @@ void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpoint
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
-		if (has_wcs(gfit)) {
-			com.found_object = find_objects_in_field(gfit);
+		fits *base = flis_get_profiled_fit(); // returns the canvas layer for FLIS, or gfit for simple FITS files
+		if (has_wcs(base)) {
+			com.found_object = find_objects_in_field(base);
 		}
 	} else {
 		clear_user_polygons();

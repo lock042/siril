@@ -219,7 +219,17 @@ int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct epfargs *params = (struct epfargs *)args->user;
 	if (!params)
 		return 1;
+	/* For self-guide mode (guidefit == fit), update both to the current member.
+	 * For external guide mode, check dimensions match before proceeding. */
+	gboolean self_guided = (params->guidefit == params->fit);
 	params->fit = fit;
+	if (self_guided) {
+		params->guidefit = fit;
+	} else if (params->guidefit &&
+	           (params->guidefit->rx != fit->rx || params->guidefit->ry != fit->ry)) {
+		siril_log_color_message(_("Edge Preserving Filter: guide image dimensions do not match layer dimensions, skipping.\n"), "red");
+		return 1;
+	}
 	return edge_preserving_filter(params);
 }
 

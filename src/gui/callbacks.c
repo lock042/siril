@@ -1257,7 +1257,7 @@ static void update_roi_from_selection() {
 	}
 	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
 	gboolean active = (gui.roi.selection.w > 0 && gui.roi.selection.h > 0);
-	if (active)
+	if (active && flis_get_selected_group())
 		on_set_roi();
 	else
 		on_clear_roi();

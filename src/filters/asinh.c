@@ -18,6 +18,7 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_flis.h"
+#include "gui/flis_gui.h"
 #include "core/undo.h"
 
 #include "asinh.h"
@@ -155,19 +156,26 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 		}
 	} else {
 		// Save undo state when applying (not reverting)
-		invalidate_stats_from_fit(gfit);
-
 		float stretch_value, black_value;
 		get_asinh_values(&stretch_value, &black_value, NULL, NULL);
 
-		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
+		/* For FLIS group operations, the worker saves a multi-layer undo
+		 * (custom_undo=FALSE path).  Saving a single-layer state here would
+		 * only cover gfit, leaving the other group members un-undoable. */
+		if (is_current_image_flis() && flis_get_selected_group()) {
+			/* Nothing to do: worker handles the multi-layer undo. */
+		} else {
+			invalidate_stats_from_fit(gfit);
 
-		undo_save_state(&undo_fit,
-				_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
-				stretch_value, black_value);
+			fits undo_fit = {0};
+			memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+			undo_fit.icc_profile = original_icc;
+			undo_fit.color_managed = original_icc != NULL;
+
+			undo_save_state(&undo_fit,
+					_("Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"),
+					stretch_value, black_value);
+		}
 	}
 
 	roi_supported(FALSE);
@@ -544,7 +552,9 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->mask_aware = TRUE;
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
-	args->custom_undo = TRUE;
+	/* For FLIS group operations, let the worker save the multi-layer undo.
+	 * For all other cases, asinh_close() saves a single-layer undo. */
+	args->custom_undo = !(is_current_image_flis() && flis_get_selected_group());
 
 	start_in_new_thread(generic_image_worker, args);
 

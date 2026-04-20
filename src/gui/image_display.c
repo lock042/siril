@@ -2458,12 +2458,15 @@ static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
 
+	flis_layer_t *layer = flis_layer_get_by_id(com.stars_layer_id);
+	int xoff = layer ? layer->position_x : 0;
+	int yoff = layer ? layer->position_y : 0;
+
 	if (com.stars && !com.script && (single_image_is_loaded() || sequence_is_loaded())) {
 		/* com.stars is a NULL-terminated array */
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
-
 		while (com.stars[i]) {
 			double size = com.stars[i]->fwhmx * 2.0;
 			if (size <= 0.0) size = com.pref.phot_set.aperture;
@@ -2472,11 +2475,11 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
 				cairo_set_source_rgba(cr, 0.0, 0.4, 1.0, 0.6);
 
-				cairo_move_to(cr, com.stars[i]->xpos, 0);
-				cairo_line_to(cr, com.stars[i]->xpos, dd->image_height);
+				cairo_move_to(cr, com.stars[i]->xpos + xoff, 0);
+				cairo_line_to(cr, com.stars[i]->xpos + xoff, dd->image_height);
 				cairo_stroke(cr);
-				cairo_move_to(cr, 0, com.stars[i]->ypos);
-				cairo_line_to(cr, dd->image_width, com.stars[i]->ypos);
+				cairo_move_to(cr, 0, com.stars[i]->ypos + yoff);
+				cairo_line_to(cr, dd->image_width, com.stars[i]->ypos + yoff);
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
@@ -2487,7 +2490,7 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_line_width(cr, 3.0 / dd->zoom);
 			}
 			cairo_save(cr); // save the original transform
-			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
+			cairo_translate(cr, com.stars[i]->xpos + xoff, com.stars[i]->ypos + yoff);
 			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
 			double r = com.stars[i]->fwhmx > 0.0 ? com.stars[i]->fwhmy / com.stars[i]->fwhmx : 1.0;
 			cairo_scale(cr, r, 1);
@@ -2517,7 +2520,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
 
 		/* fwhm * 2: first circle */
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, size, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos + xoff, gui.qphot->ypos + yoff, size, 0., 2. * M_PI);
 		cairo_stroke(cr);
 
 		/* sky annulus */
@@ -2527,18 +2530,19 @@ static void draw_stars(const draw_data_t* dd) {
 			cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
 		}
 
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos + xoff, gui.qphot->ypos + yoff, com.pref.phot_set.inner, 0., 2. * M_PI);
 		cairo_stroke(cr);
-		cairo_arc(cr, gui.qphot->xpos, gui.qphot->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);
+		cairo_arc(cr, gui.qphot->xpos + xoff, gui.qphot->ypos + yoff, com.pref.phot_set.outer, 0., 2. * M_PI);
 		cairo_stroke(cr);
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
-		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
+		cairo_move_to(cr, gui.qphot->xpos + xoff + com.pref.phot_set.outer + 5, gui.qphot->ypos + yoff);
 		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
 		cairo_stroke(cr);
 	}
 
 	/* draw seqpsf stars */
+	/* We don't care about the offset here because sequences cannot be layered images */
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];

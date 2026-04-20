@@ -44,6 +44,8 @@
 #include "gui/dialogs.h"
 #include "gui/utils.h"
 #include "gui/colors.h"
+#include "gui/flis_gui.h"
+#include "io/image_format_flis.h"
 
 void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_black_value[4] = { NULL, NULL, NULL, NULL };
@@ -316,10 +318,25 @@ void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 
 void negative_processing() {
 	set_cursor_waiting(TRUE);
-	undo_save_state(gfit, _("Negative Transformation"));
 	siril_log_color_message(_("Negative Transformation\n"), "green");
-	pos_to_neg(gfit);
-	invalidate_stats_from_fit(gfit);
+
+	flis_group_t *grp = is_current_image_flis() ? flis_get_selected_group() : NULL;
+	if (grp) {
+		GSList *members = flis_group_get_layers(grp);
+		undo_save_flis_multi_layer(members, _("Negative Transformation"));
+		for (GSList *l = members; l; l = l->next) {
+			flis_layer_t *lay = (flis_layer_t *)l->data;
+			if (!lay || !lay->fit) continue;
+			pos_to_neg(lay->fit);
+			invalidate_stats_from_fit(lay->fit);
+		}
+		g_slist_free(members);
+	} else {
+		undo_save_state(gfit, _("Negative Transformation"));
+		pos_to_neg(gfit);
+		invalidate_stats_from_fit(gfit);
+	}
+
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
 	notify_gfit_data_modified();
