@@ -359,14 +359,18 @@ static void display_PSF(psf_star **result) {
 
 static gint get_index_of_selected_star(gdouble x, gdouble y) {
 	int i = 0;
+	gint result = -1;
 
+	g_rw_lock_reader_lock(&com.stars_lock);
 	while (com.stars && com.stars[i]) {
 		if ((com.stars[i]->xpos == x) && (com.stars[i]->ypos == y)) {
-			return i;
+			result = i;
+			break;
 		}
 		i++;
 	}
-	return -1;
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	return result;
 }
 
 static void display_status() {
@@ -376,8 +380,10 @@ static void display_status() {
 
 	statusbar = GTK_STATUSBAR(lookup_widget("statusbar_PSF"));
 
+	g_rw_lock_reader_lock(&com.stars_lock);
 	while (com.stars && com.stars[i])
 		i++;
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	if (gui.selected_star == -1) {
 		if (i > 0) {
 			text = ngettext("%d star", "%d stars", i);
@@ -401,11 +407,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
 	double bin_X = com.pref.binning_update ? (double) gfit->keywords.binning_x : 1.0;
+	g_rw_lock_reader_lock(&com.stars_lock);
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
+		g_rw_lock_reader_unlock(&com.stars_lock);
 		return; // If com.stars is empty there is no point carrying on
 	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	if (is_as) {
 		invpixscalex = 1.0 / (radian_conversion * (double) gfit->keywords.pixel_size_x / gfit->keywords.focal_length) * bin_X;
 	}
@@ -716,18 +725,19 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 void refresh_star_list(){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
 	fill_stars_list(gfit, com.stars);
+	g_rw_lock_reader_unlock(&com.stars_lock);
 }
 
-/* this can be called from any thread as long as refresh_GUI is false, it's
- * synchronized with the main thread with a mutex */
+/* this can be called from any thread; com.stars_lock (writer) serialises it */
 void clear_stars_list(gboolean refresh_GUI) {
-	g_mutex_lock(&com.mutex); // Lock at the beginning to protect the check and modification
+	g_rw_lock_writer_lock(&com.stars_lock);
 	psf_star **stars = com.stars;
 
 	if (stars) {
-		com.stars = NULL; // Set com.stars to NULL while holding the lock
-		g_mutex_unlock(&com.mutex);
+		com.stars = NULL;
+		g_rw_lock_writer_unlock(&com.stars_lock);
 
 		if (refresh_GUI && !com.headless) {
 			get_stars_list_store();
@@ -746,7 +756,7 @@ void clear_stars_list(gboolean refresh_GUI) {
 			free(stars);
 		}
 	} else {
-		g_mutex_unlock(&com.mutex); // Unlock if com.stars is NULL
+		g_rw_lock_writer_unlock(&com.stars_lock);
 	}
 
 	com.star_is_seqdata = FALSE;
@@ -769,9 +779,16 @@ struct star_update_s {
 static gboolean update_stars_idle(gpointer p) {
 	struct star_update_s *args = (struct star_update_s *)p;
 	clear_stars_list(TRUE);
+	g_rw_lock_writer_lock(&com.stars_lock);
 	com.stars = args->stars;
-	if (args->update_GUI && !com.headless)
+	g_rw_lock_writer_unlock(&com.stars_lock);
+	if (args->update_GUI && !com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		g_rw_lock_reader_lock(&com.stars_lock);
 		fill_stars_list(gfit, com.stars);
+		g_rw_lock_reader_unlock(&com.stars_lock);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	redraw(REDRAW_OVERLAY);
 	free(args);
 	return FALSE;
@@ -794,9 +811,11 @@ void update_star_list(psf_star **new_stars, gboolean update_PSF_list, gboolean w
 }
 
 static int get_comstar_count() {
+	g_rw_lock_reader_lock(&com.stars_lock);
 	int i = 0;
 	while (com.stars[i])
 		i++;
+	g_rw_lock_reader_unlock(&com.stars_lock);
 	return i;
 }
 
@@ -888,7 +907,10 @@ void on_stars_list_window_hide(GtkWidget *object, gpointer user_data) {
 }
 
 void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
-	display_PSF(com.stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
+	psf_star **stars_snap = com.stars;
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	display_PSF(stars_snap);
 }
 
 void on_add_button_clicked(GtkButton *button, gpointer user_data) {
@@ -896,9 +918,9 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	if (layer == -1)
 		layer = 1;
 	int index;
-	add_star(gfit, layer, &index);
+	psf_star *new_star = add_star(gfit, layer, &index);
 	if (index > -1)
-		add_star_to_list(com.stars[index], index);
+		add_star_to_list(new_star, index);
 	display_status();
 	refresh_star_list();
 }
@@ -912,7 +934,10 @@ void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {
-	if (com.stars) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	gboolean have_stars_export = (com.stars != NULL);
+	g_rw_lock_reader_unlock(&com.stars_lock);
+	if (have_stars_export) {
 		save_stars_dialog();
 	} else {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Nothing to export"),

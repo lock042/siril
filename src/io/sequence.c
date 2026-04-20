@@ -468,11 +468,16 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		gboolean is_fz = g_str_has_suffix(ext, ".fz");
 		const gchar *com_ext = get_com_ext(is_fz);
 
-		/* set the configured extention to the extension of the file, otherwise reading will fail */
+		/* If the file's extension differs from the configured one, update it so
+		 * subsequent reads use the correct extension.  Write under pref_rwlock
+		 * since workers may be reading com.pref.ext concurrently. */
 		if (strcasecmp(ext, com_ext + 1)) {
+			gchar *new_ext = g_strdup_printf(".%s", ext);
+			if (is_fz) new_ext[strlen(new_ext) - 2] = '\0';
+			g_rw_lock_writer_lock(&com.pref_rwlock);
 			g_free(com.pref.ext);
-			com.pref.ext = g_strdup_printf(".%s", ext);
-			if (is_fz) com.pref.ext[strlen(com.pref.ext) - 2] = '\0';
+			com.pref.ext = new_ext;
+			g_rw_lock_writer_unlock(&com.pref_rwlock);
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
@@ -679,12 +684,15 @@ gboolean set_seq(gpointer user_data){
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
+		g_rw_lock_writer_lock(&gfit->rwlock);
 		if (seq_read_frame(seq, image_to_load, gfit, FALSE, -1)) {
+			g_rw_lock_writer_unlock(&gfit->rwlock);
 			siril_log_color_message(_("could not load reference image from sequence\n"), "red");
 			free_sequence(seq, TRUE);
 			return TRUE;
 		}
 		seq->current = image_to_load;
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 	if (seq->type == SEQ_SER)
 		ser_display_info(seq->ser_file);
@@ -696,7 +704,9 @@ gboolean set_seq(gpointer user_data){
 
 	/* Sequence is stored in com.seq for now */
 	memcpy(&com.seq, seq, sizeof(sequence));
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	update_gain_from_gfit();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (!com.script && !com.headless) {
 		execute_idle_and_wait_for_it(set_seq_gui, seq);
@@ -721,6 +731,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	invalidate_gfit_histogram();
 	undo_flush();
 	close_single_image();
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	clearfits(gfit);
 	if (seq->current == SCALED_IMAGE) {
 		gfit->rx = seq->rx;
@@ -731,10 +742,13 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	if (load_it && !com.script) {
 		set_cursor_waiting(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
+			g_rw_lock_writer_unlock(&gfit->rwlock);
 			set_cursor_waiting(FALSE);
 			return 1;
 		}
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
+
 		if (gui.sliders != USER) {
 			init_layers_hi_and_lo_values(gui.sliders);
 			sliders_mode_set_state(gui.sliders);
@@ -757,6 +771,9 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		update_gfit_histogram_if_needed();
 		set_cursor_waiting(FALSE);
 		reset_3stars();
+	} else {
+		/* clearfits was done above; if we're not loading, release the lock now */
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 
 	gui_function(update_MenuItem, NULL);		// initialize menu gui
@@ -1222,12 +1239,16 @@ static void set_fwhm_star_as_star_list_with_layer(sequence *seq, int layer) {
 	 * mean it contains data for all images. Handle with care. */
 	if (seq->regparam && layer >= 0 && layer < seq->nb_layers
 			&& seq->regparam[layer] && seq->current >= 0
-			&& seq->regparam[layer][seq->current].fwhm_data && !com.stars) {
-		com.stars = new_fitted_stars(1);
-		com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
-		com.stars[1] = NULL;
-		// this is freed in PSF_list.c:clear_stars_list()
-		com.star_is_seqdata = TRUE;
+			&& seq->regparam[layer][seq->current].fwhm_data) {
+		g_rw_lock_writer_lock(&com.stars_lock);
+		if (!com.stars) {
+			com.stars = new_fitted_stars(1);
+			com.stars[0] = seq->regparam[layer][seq->current].fwhm_data;
+			com.stars[1] = NULL;
+			// this is freed in PSF_list.c:clear_stars_list()
+			com.star_is_seqdata = TRUE;
+		}
+		g_rw_lock_writer_unlock(&com.stars_lock);
 	}
 }
 

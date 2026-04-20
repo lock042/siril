@@ -247,8 +247,11 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	if (!com.headless)
+	if (!com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		open_single_image_from_gfit(NULL);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	return FALSE;
 }
 
@@ -355,6 +358,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	 does the things necessary when key aspects may have
 	 changed (eg changed number of channels, bitpix etc.)*/
 
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
 	sliders_mode_set_state(gui.sliders);
@@ -368,6 +372,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 
 	remap_all();
 	update_gfit_histogram_if_needed();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	redraw(REMAP_ALL);
 	return FALSE;
 }
@@ -505,6 +510,16 @@ void notify_gfit_data_modified() {
 			g_mutex_unlock(&com.histogram_mutex);
 			return;
 		}
+		/* If a ROI is active and contains processed data, merge it back into
+		 * gfit now — before computing the histogram and before remap_all()
+		 * builds the Cairo display buffers — so that both operations see the
+		 * fully-updated pixel data.  This is the correct point to do this:
+		 * redraw() must remain a pure "repaint from Cairo buffers" function
+		 * and must not write gfit. */
+		if (gui.roi.active && gui.roi.operation_supports_roi &&
+				((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) ||
+				 (gfit->type == DATA_USHORT && gui.roi.fit.data)))
+			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit

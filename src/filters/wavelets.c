@@ -48,6 +48,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
 			"b_rawdata.wave" };
 	const char *tmpdir = g_get_tmp_dir();
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	int nb_chan = gfit->naxes[2];
 
 	if (gfit->type == DATA_USHORT) {
@@ -55,6 +56,7 @@ gpointer wavelet_transform_worker(gpointer p) {
 		if (!Imag) {
 			PRINT_ALLOC_ERR;
 			free(args);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			siril_add_idle(end_generic, NULL);
 			return GINT_TO_POINTER(1);
 		}
@@ -74,11 +76,13 @@ gpointer wavelet_transform_worker(gpointer p) {
 		}
 	} else {
 		free(args);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
 	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
 	free(args);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(0);
 }

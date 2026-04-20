@@ -182,7 +182,6 @@ void enable_debayer(gboolean arg) {
 }
 
 gboolean end_image_loading(gpointer arg) {
-	remap_all();
 	redraw(REMAP_ALL);
 	return FALSE;
 }
