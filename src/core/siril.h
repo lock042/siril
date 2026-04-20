@@ -986,7 +986,8 @@ struct cominf {
 	// pref_mutex guards com.pref: generic_image_worker / generic_sequence_worker / generic_mask_worker
 	// hold a reader lock for their entire job duration (so all deep com.pref.* reads are implicitly
 	// covered); process_set_*() command handlers and Python pref writes hold a writer lock briefly
-	// around the actual writes
+	// around the actual writes, and the GUI operations in preferences.c hold reader / writer locks as
+	// required.
 	GRWLock pref_rwlock;
 
 	GThread *python_init_thread; // python initialization thread, used to monitor startup completion
