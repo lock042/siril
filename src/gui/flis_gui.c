@@ -51,6 +51,7 @@
 #include "registration/registration.h"
 #include "gui/message_dialog.h"
 #include "core/undo.h"
+#include "core/processing_thread.h"
 #include "flis_gui.h"
 #include "gui/image_interactions.h"
 
@@ -2212,6 +2213,97 @@ static gint flis_register_dialog(GtkWindow              *parent,
     return response;
 }
 
+typedef struct {
+    sequence                   *seq;
+    struct registration_args    regargs;
+    struct registration_method *method;
+    flis_layer_t               *canvas_lay;
+    flis_layer_t               *ref_lay;
+    gint                        ref_orig_x;
+    gint                        ref_orig_y;
+    int                         canvas_seq_idx;
+    GSList                     *target_layers;
+    gboolean                    free_target;
+    int                         retval;
+} flis_reg_worker_args_t;
+
+static gboolean flis_register_end_idle(gpointer p) {
+    flis_reg_worker_args_t *args = p;
+    set_cursor_waiting(FALSE);
+    if (args->retval) {
+        set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
+    } else {
+        set_progress_bar_data(_("Layer registration complete."), PROGRESS_DONE);
+        flis_invalidate_composite();
+        notify_gfit_data_modified();
+        queue_redraw(REMAP_ALL);
+    }
+    free(args);
+    return FALSE;
+}
+
+static gpointer flis_register_worker(gpointer p) {
+    flis_reg_worker_args_t *args = p;
+    sequence *seq                = args->seq;
+    struct registration_method *method = args->method;
+
+    /* Step 1: compute registration transforms. */
+    int ret1 = method->method_ptr(&args->regargs);
+    free(args->regargs.imgparam); args->regargs.imgparam = NULL;
+    free(args->regargs.regparam); args->regargs.regparam = NULL;
+    free(method);
+    args->method = NULL;
+
+    if (ret1) {
+        free_sequence(seq, TRUE);
+        if (args->free_target) g_slist_free(args->target_layers);
+        args->retval = 1;
+        siril_add_idle(flis_register_end_idle, args);
+        return GINT_TO_POINTER(1);
+    }
+
+    /* Step 2: apply transforms with FRAMING_MAX. */
+    args->regargs.framing = FRAMING_MAX;
+    int ret2 = register_apply_reg(&args->regargs);
+
+    if (!ret2 && args->regargs.regparam) {
+        double cx, cy;
+        if (args->canvas_seq_idx >= 0) {
+            cx = args->regargs.regparam[args->canvas_seq_idx].H.h02;
+            cy = args->regargs.regparam[args->canvas_seq_idx].H.h12;
+            args->canvas_lay->position_x = 0;
+            args->canvas_lay->position_y = 0;
+        } else {
+            cx = args->regargs.regparam[0].H.h02 - args->ref_orig_x;
+            cy = args->regargs.regparam[0].H.h12 - args->ref_orig_y;
+        }
+
+        int k = 1;
+        for (GSList *l = args->target_layers; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay || !lay->fit) continue;
+            if (lay == args->canvas_lay) {
+                if (lay != args->ref_lay) k++;
+                continue;
+            }
+            int seq_idx = (lay == args->ref_lay) ? 0 : k++;
+            double dx = args->regargs.regparam[seq_idx].H.h02 - cx;
+            double dy = args->regargs.regparam[seq_idx].H.h12 - cy;
+            lay->position_x = (gint)round(dx);
+            lay->position_y = (gint)round(dy);
+        }
+    }
+
+    free(args->regargs.imgparam); args->regargs.imgparam = NULL;
+    free(args->regargs.regparam); args->regargs.regparam = NULL;
+    free_sequence(seq, TRUE);
+    if (args->free_target) g_slist_free(args->target_layers);
+
+    args->retval = ret2;
+    siril_add_idle(flis_register_end_idle, args);
+    return GINT_TO_POINTER(ret2);
+}
+
 /*
  * Register all FLIS layers against the currently selected layer (reference).
  *
@@ -2337,98 +2429,35 @@ void on_flis_register_layers_activate(GtkMenuItem *item,
                    ? SHIFT_TRANSFORMATION : HOMOGRAPHY_TRANSFORMATION;
     get_the_registration_area(&regargs, method);
 
+    flis_reg_worker_args_t *wargs = calloc(1, sizeof(flis_reg_worker_args_t));
+    if (!wargs) {
+        PRINT_ALLOC_ERR;
+        free_sequence(seq, TRUE);
+        if (free_target) g_slist_free(target_layers);
+        free(method);
+        return;
+    }
+    wargs->seq            = seq;
+    wargs->regargs        = regargs;
+    wargs->method         = method;
+    wargs->canvas_lay     = canvas_lay;
+    wargs->ref_lay        = ref_lay;
+    wargs->ref_orig_x     = ref_orig_x;
+    wargs->ref_orig_y     = ref_orig_y;
+    wargs->canvas_seq_idx = canvas_seq_idx;
+    wargs->target_layers  = target_layers;
+    wargs->free_target    = free_target;
+
     set_cursor_waiting(TRUE);
     set_progress_bar_data(_("Registering FLIS layers…"), PROGRESS_RESET);
-    reserve_thread();
-
-    /* Step 1: compute registration transforms. */
-    int ret1 = method->method_ptr(&regargs);
-    free(regargs.imgparam); regargs.imgparam = NULL;
-    free(regargs.regparam); regargs.regparam = NULL;
-    free(method);
-
-    if (ret1) {
-        free_sequence(seq, TRUE);
-        unreserve_thread();
+    if (!start_in_new_thread(flis_register_worker, wargs)) {
         set_cursor_waiting(FALSE);
-        set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
+        set_progress_bar_data(NULL, PROGRESS_DONE);
+        free_sequence(seq, TRUE);
         if (free_target) g_slist_free(target_layers);
-        return;
+        free(method);
+        free(wargs);
     }
-
-    /* Step 2: apply transforms with FRAMING_MAX.  Each layer is resampled into
-     * its own minimum bounding box; regparam[i].H becomes the Hshift storing
-     * the (xmin, ymin) offset of that bounding box in the global mosaic frame
-     * (OpenCV convention: y increases downward).
-     * NOTE: star_align_prepare_hook() overrides regargs->framing to
-     * FRAMING_CURRENT during step 1; we must restore FRAMING_MAX here so
-     * that register_apply_reg() produces the correct per-layer bounding-box
-     * offsets rather than a zero Hs for every image. */
-    regargs.framing = FRAMING_MAX;
-    int ret2 = register_apply_reg(&regargs);
-
-    if (!ret2 && regargs.regparam) {
-        /* Normalise offsets so positions are expressed relative to the canvas
-         * layer.  Two cases:
-         *
-         * (a) Canvas is in target_layers (canvas_seq_idx >= 0): canvas goes
-         *     to (0,0) and all other layers are placed relative to it.
-         *
-         * (b) Canvas is NOT in target_layers (canvas_seq_idx == -1, i.e.
-         *     group-only registration): the reference layer occupied
-         *     ref_orig_x/y relative to the canvas before registration.
-         *     After registration regparam[0].H gives ref_lay's mosaic origin,
-         *     so we add ref_orig_x/y to map mosaic coords back to canvas
-         *     coords.  canvas_lay->position_x/y is left untouched. */
-        double cx, cy;
-        if (canvas_seq_idx >= 0) {
-            cx = regargs.regparam[canvas_seq_idx].H.h02;
-            cy = regargs.regparam[canvas_seq_idx].H.h12;
-            canvas_lay->position_x = 0;
-            canvas_lay->position_y = 0;
-        } else {
-            /* ref_lay is at mosaic offset regparam[0].H; it maps to
-             * ref_orig_x/y in canvas coords, so the mosaic origin in canvas
-             * coords is (regparam[0].H.h02 - ref_orig_x, ...). */
-            cx = regargs.regparam[0].H.h02 - ref_orig_x;
-            cy = regargs.regparam[0].H.h12 - ref_orig_y;
-        }
-
-        int k = 1;
-        for (GSList *l = target_layers; l; l = l->next) {
-            flis_layer_t *lay = (flis_layer_t *)l->data;
-            if (!lay || !lay->fit) continue;
-            if (lay == canvas_lay) {
-                if (lay != ref_lay) k++;
-                continue;
-            }
-            int seq_idx = (lay == ref_lay) ? 0 : k++;
-            double dx = regargs.regparam[seq_idx].H.h02 - cx;
-            double dy = regargs.regparam[seq_idx].H.h12 - cy;
-            lay->position_x = (gint) round(dx);
-            lay->position_y = (gint) round(dy);
-        }
-    }
-
-    free(regargs.imgparam); regargs.imgparam = NULL;
-    free(regargs.regparam); regargs.regparam = NULL;
-
-    free_sequence(seq, TRUE);
-    unreserve_thread();
-    set_cursor_waiting(FALSE);
-    if (free_target) g_slist_free(target_layers);
-
-    if (ret2) {
-        set_progress_bar_data(_("Registration failed."), PROGRESS_DONE);
-        return;
-    }
-
-    set_progress_bar_data(_("Layer registration complete."), PROGRESS_DONE);
-
-    /* Layers have been transformed in-place; invalidate the composite. */
-    flis_invalidate_composite();
-    notify_gfit_data_modified();
-    queue_redraw(REMAP_ALL);
 }
 
 /* =========================================================================
