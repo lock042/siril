@@ -8759,6 +8759,8 @@ int process_subsky(int nb) {
 	background_interpolation interp;
 	char *prefix = NULL;
 	gboolean use_existing = FALSE;
+	gboolean randomize = FALSE;
+	gboolean grad_descent = FALSE;
 
 	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
@@ -8846,6 +8848,12 @@ int process_subsky(int nb) {
 		else if (!is_sequence && !g_strcmp0(arg, "-existing")) {
 			use_existing = TRUE;
 		}
+		else if (!g_strcmp0(arg, "-random")) {
+			randomize = TRUE;
+		}
+		else if (!g_strcmp0(arg, "-gradient")) {
+			grad_descent = TRUE;
+		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 			free(prefix);
@@ -8865,6 +8873,8 @@ int process_subsky(int nb) {
 	bkg_args->threads = com.max_thread;
 	bkg_args->dither = dithering;
 	bkg_args->from_ui = FALSE;
+	bkg_args->randomize = randomize;
+	bkg_args->grad_descent = grad_descent;
 	siril_debug_print("dithering: %s\n", dithering ? "enabled" : "disabled");
 
 	if (is_sequence) {
@@ -8890,7 +8900,7 @@ int process_subsky(int nb) {
 				retval = 0;
 			}
 		} else {
-			retval = generate_background_samples(samples, tolerance);
+			retval = generate_background_samples(samples, tolerance, randomize, grad_descent);
 		}
 		if (!retval) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));

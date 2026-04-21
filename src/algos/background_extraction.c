@@ -34,6 +34,7 @@
 #include "algos/extraction.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
+#include "filters/mtf.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -593,7 +594,243 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
+/* Remove samples whose centres are within SAMPLE_SIZE pixels of one already
+ * accepted, keeping the first occurrence.  The caller must NOT use the
+ * original list after this call — its nodes are consumed or freed. */
+static GSList *deduplicate_background_samples(GSList *list) {
+	GSList *out = NULL;
+	for (GSList *l = list; l; l = l->next) {
+		background_sample *s = (background_sample *)l->data;
+		gboolean too_close = FALSE;
+		for (GSList *o = out; o && !too_close; o = o->next) {
+			background_sample *q = (background_sample *)o->data;
+			int dx = (int)s->position.x - (int)q->position.x;
+			int dy = (int)s->position.y - (int)q->position.y;
+			if (dx * dx + dy * dy < SAMPLE_SIZE * SAMPLE_SIZE)
+				too_close = TRUE;
+		}
+		if (too_close)
+			free(s);
+		else
+			out = g_slist_prepend(out, s);
+	}
+	g_slist_free(list);
+	return g_slist_reverse(out);
+}
+
+/* ---- Gradient-descent helpers ---- */
+
+/* Compute median of the SAMPLE_SIZE x SAMPLE_SIZE patch centred on (x,y).
+ * Uses a stack buffer since patch area is compile-time constant. */
+static double gd_patch_median(const float *image, int x, int y, int w, int h) {
+	double buf[SAMPLE_SIZE * SAMPLE_SIZE];
+	int half = SAMPLE_SIZE / 2;
+	int n = 0;
+	for (int py = y - half; py <= y + half; py++) {
+		for (int px = x - half; px <= x + half; px++) {
+			if (px >= 0 && px < w && py >= 0 && py < h)
+				buf[n++] = (double)image[py * w + px];
+		}
+	}
+	return n > 0 ? quickmedian_double(buf, n) : 0.0;
+}
+
+/* Move (x,y) one pixel at a time toward the darkest 8-connected neighbour
+ * (as judged by patch median) until a local minimum is found or the iteration
+ * limit is reached.  The result is clamped so that get_sample() will succeed.
+ * This optimization is based on the approach used by SetiAstro's AutoDBE, which
+ * is (c) Franklin Marek and licensed as GPL v3.0-or-later.
+ */
+static void gradient_descent_to_dim_spot(const float *image, int *px, int *py, int w, int h) {
+	int half = SAMPLE_SIZE / 2;
+	int x = CLAMP(*px, half, w - half - 1);
+	int y = CLAMP(*py, half, h - half - 1);
+
+	for (int iter = 0; iter < 100; iter++) {
+		double cur = gd_patch_median(image, x, y, w, h);
+		int bx = x, by = y;
+		double best = cur;
+
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				if (dx == 0 && dy == 0) continue;
+				int nx = x + dx, ny = y + dy;
+				if (nx < half || nx >= w - half || ny < half || ny >= h - half)
+					continue;
+				double m = gd_patch_median(image, nx, ny, w, h);
+				if (m < best) {
+					best = m;
+					bx = nx;
+					by = ny;
+				}
+			}
+		}
+		if (bx == x && by == y)
+			break;
+		x = bx;
+		y = by;
+	}
+	*px = x;
+	*py = y;
+}
+
+/* ---- Random dark-area sample generation ---- */
+
+/* Generate nb_samples interior samples from darker areas of each image
+ * quadrant, plus fixed border/corner points.  Optionally applies
+ * gradient descent to move each candidate to a local dark minimum.
+ * This sample generation function is inspired by SetiAstro's AutoDBE
+ * script which is (c) Franklin Marek and licensed as GPL-v3.0-or-later.
+ */
+static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
+		gboolean grad_descent, const char **error, threading_type threads) {
+	int nx = fit->rx;
+	int ny = fit->ry;
+	GSList *list = NULL;
+	int radius = size / 2;
+
+	float *image = convert_fits_to_luminance(fit, threads);
+	if (!image) {
+		if (error) *error = "out of memory";
+		return NULL;
+	}
+
+	/* Autostretch buffer */
+	fits *tmp = NULL;
+	new_fit_image_with_data(&tmp, fit->rx, fit->ry, 1, DATA_FLOAT, (void*) image);
+	struct mtf_params params;
+	find_unlinked_midtones_balance_default(tmp, &params);
+	apply_unlinked_mtf_to_fits(tmp, tmp, &params);
+	tmp->fdata = NULL;
+	clearfits(tmp);
+	free(tmp);
+
+	/* minimum coordinate so get_sample() succeeds */
+	int margin = radius + 1;
+
+/* Helper: accept a sample only if it contains no zero pixels */
+#define ACCEPT_SAMPLE(s, list) \
+	do { \
+		if ((s) && (s)->min > 0.0) \
+			(list) = g_slist_prepend((list), (s)); \
+		else if (s) \
+			free(s); \
+	} while (0)
+
+	/* ---- Border points ---- */
+	/* 4 corners */
+	int corners[4][2] = {
+		{margin,          margin},
+		{nx - margin - 1, margin},
+		{margin,          ny - margin - 1},
+		{nx - margin - 1, ny - margin - 1},
+	};
+	for (int i = 0; i < 4; i++) {
+		int x = corners[i][0], y = corners[i][1];
+		if (grad_descent)
+			gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
+		background_sample *s = get_sample(image, x, y, nx, ny);
+		ACCEPT_SAMPLE(s, list);
+	}
+
+	/* 5 evenly-spaced points along top and bottom edges */
+	for (int k = 0; k < 5; k++) {
+		int x = margin + k * (nx - 2 * margin) / 4;
+		/* top */
+		int xt = x, yt = margin;
+		if (grad_descent)
+			gradient_descent_to_dim_spot(image, &xt, &yt, nx, ny);
+		background_sample *st = get_sample(image, xt, yt, nx, ny);
+		ACCEPT_SAMPLE(st, list);
+		/* bottom */
+		int xb = x, yb = ny - margin - 1;
+		if (grad_descent)
+			gradient_descent_to_dim_spot(image, &xb, &yb, nx, ny);
+		background_sample *sb = get_sample(image, xb, yb, nx, ny);
+		ACCEPT_SAMPLE(sb, list);
+	}
+
+	/* 5 evenly-spaced points along left and right edges */
+	for (int k = 0; k < 5; k++) {
+		int y = margin + k * (ny - 2 * margin) / 4;
+		/* left */
+		int xl = margin, yl = y;
+		if (grad_descent)
+			gradient_descent_to_dim_spot(image, &xl, &yl, nx, ny);
+		background_sample *sl = get_sample(image, xl, yl, nx, ny);
+		ACCEPT_SAMPLE(sl, list);
+		/* right */
+		int xr = nx - margin - 1, yr = y;
+		if (grad_descent)
+			gradient_descent_to_dim_spot(image, &xr, &yr, nx, ny);
+		background_sample *sr = get_sample(image, xr, yr, nx, ny);
+		ACCEPT_SAMPLE(sr, list);
+	}
+
+	/* ---- Random interior points from 4 quadrants ---- */
+	int pts_per_quad = MAX(1, nb_samples / 4);
+	int half_nx = nx / 2, half_ny = ny / 2;
+
+	int qxs[2] = {0, half_nx}, qxe[2] = {half_nx, nx};
+	int qys[2] = {0, half_ny}, qye[2] = {half_ny, ny};
+
+	for (int qi = 0; qi < 4; qi++) {
+		int xs = qxs[qi % 2], xe = qxe[qi % 2];
+		int ys = qys[qi / 2], ye = qye[qi / 2];
+		int qw = xe - xs, qh = ye - ys;
+
+		/* Estimate the 50th-percentile brightness by sampling ~10 000 pixels */
+		int n_thresh = MIN(10000, qw * qh);
+		float *tbuf = malloc(n_thresh * sizeof(float));
+		if (!tbuf) continue;
+		for (int i = 0; i < n_thresh; i++) {
+			int rx = xs + (int)(siril_random_double() * qw);
+			int ry = ys + (int)(siril_random_double() * qh);
+			rx = CLAMP(rx, xs, xe - 1);
+			ry = CLAMP(ry, ys, ye - 1);
+			tbuf[i] = image[ry * nx + rx];
+		}
+		double threshold = histogram_median_float(tbuf, n_thresh, FALSE);
+		free(tbuf);
+
+		int min_x = MAX(xs, radius) + 1;
+		int max_x = MIN(xe, nx - radius) - 1;
+		int min_y = MAX(ys, radius) + 1;
+		int max_y = MIN(ye, ny - radius) - 1;
+		if (min_x >= max_x || min_y >= max_y) continue;
+
+		/* Rejection sampling: pick random points below the threshold */
+		int count = 0;
+		int max_attempts = pts_per_quad * 200;
+		for (int attempt = 0; attempt < max_attempts && count < pts_per_quad; attempt++) {
+			int x = min_x + (int)(siril_random_double() * (max_x - min_x));
+			int y = min_y + (int)(siril_random_double() * (max_y - min_y));
+			x = CLAMP(x, min_x, max_x);
+			y = CLAMP(y, min_y, max_y);
+			if ((double)image[y * nx + x] < threshold) {
+				if (grad_descent)
+					gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
+				background_sample *s = get_sample(image, x, y, nx, ny);
+				if (s && s->min > 0.0) {
+					list = g_slist_prepend(list, s);
+					count++;
+				} else if (s) {
+					free(s);
+				}
+			}
+		}
+	}
+#undef ACCEPT_SAMPLE
+
+	list = deduplicate_background_samples(list);
+	list = g_slist_reverse(list);
+	free(image);
+	if (!list && error)
+		*error = "none of the samples matched the thresholds";
+	return list;
+}
+
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
@@ -639,6 +876,8 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		for (int j = 0; j < nb_per_column; j++) {
 			int x = round_to_int(i * (spacing + size)) + radius + 1;
 			int y = y_offset + round_to_int(j * (spacing + size)) + radius;
+			if (grad_descent)
+				gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
 			background_sample *sample = get_sample(image, x, y, nx, ny);
 			if (sample) {
 				mad[k++] = fabs(sample->median[RLAYER] - median);
@@ -657,12 +896,13 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		background_sample *sample = (background_sample*) l->data;
 		/* Store next element's pointer before removing it */
 		GSList *next = g_slist_next(l);
-		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold) {
+		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold || sample->min == 0.0) {
 			free(sample);
 			list = g_slist_delete_link(list, l);
 		}
 		l = next;
 	}
+	list = deduplicate_background_samples(list);
 	list = g_slist_reverse(list);
 	free(image);
 	if (!list && error)
@@ -826,14 +1066,18 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 }
 
 /* generates samples and stores them in com.grad_samples */
-int generate_background_samples(int nb_of_samples, double tolerance) {
+int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent) {
 	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
-	const char *err;
+	const char *err = NULL;
 	g_rw_lock_reader_lock(&gfit->rwlock);
-	com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
+	if (randomize) {
+		com.grad_samples = generate_samples_random(gfit, nb_of_samples, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED);
+	} else {
+		com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED);
+	}
 	if (!com.grad_samples) {
-		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", err ? _(err) : _("unknown error"));
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 		g_mutex_unlock(&bgsamples_mutex);
 		return 1;
@@ -1313,7 +1557,12 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	}
 
 	const char *err;
-	GSList *samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, &err, (threading_type)threads);
+	GSList *samples;
+	if (b_args->randomize) {
+		samples = generate_samples_random(fit, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+	} else {
+		samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+	}
 	if (!samples) {
 		siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 		free(background);
@@ -1430,7 +1679,12 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		}
 
 		const char *err;
-		GSList *samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, &err, (threading_type)threads);
+		GSList *samples;
+		if (b_args->randomize) {
+			samples = generate_samples_random(subchannel, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+		} else {
+			samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+		}
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 			free(background);
