@@ -1009,7 +1009,7 @@ GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts) {
 	return list;
 }
 
-GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
+GSList *add_background_sample(GSList *orig, fits *fit, point pt, gboolean grad_descent) {
 	GSList *list;
 	int nx = fit->rx;
 	int ny = fit->ry;
@@ -1018,6 +1018,13 @@ GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
 	image = convert_fits_to_luminance(fit, MULTI_THREADED);
 
 	list = orig;
+
+	if (grad_descent) {
+		int x = (int)pt.x, y = (int)pt.y;
+		gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
+		pt.x = x;
+		pt.y = y;
+	}
 
 	background_sample *sample = get_sample(image, pt.x, pt.y, nx, ny);
 	list = g_slist_append(list, sample);
