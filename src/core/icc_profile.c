@@ -1287,6 +1287,12 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (called_with_gfit && is_current_image_flis())
 		fit = flis_get_profiled_fit();
 
+	/* For a FLIS base layer the colour profile applies to the RGB composite,
+	 * so select mono vs. RGB profiles based on the composite channel count,
+	 * not the raw (potentially mono) base layer channel count. */
+	guint nchans_for_profile = (is_current_image_flis() && fit == flis_get_profiled_fit())
+	                           ? flis_composite_naxes2() : (guint)fit->naxes[2];
+
 	gboolean proceed = FALSE;
 
 	// Handle images that have been extracted as channels from a 3-color image
@@ -1311,10 +1317,10 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 				// if the fit has previously been stretched, we assign the sRGB TRC:
 				// this will then be converted to the working color space rather than
 				// just assigned which would cause a color shift
-				fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
+				fit->icc_profile = nchans_for_profile == 1 ? gray_srgbtrc() : srgb_trc();
 				// color_manage() is called later from siril_colorspace_transform()
 			} else if (com.pref.icc.pedantic_linear && !(occasion & ICC_ASSIGN_ON_STRETCH)) {
-				fit->icc_profile = siril_color_profile_linear_from_color_profile (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard);
+				fit->icc_profile = siril_color_profile_linear_from_color_profile (nchans_for_profile == 1 ? com.icc.mono_standard : com.icc.working_standard);
 				// Unless we're about to stack, leave the image with a linear profile and return
 				gchar *desc = siril_color_profile_get_description(fit->icc_profile);
 				fit->history = g_slist_append(fit->history, g_strdup_printf(_("Assigned ICC profile: %s"), desc));
@@ -1333,7 +1339,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			return;
 
 		// If the image is already in the working color space, we have nothing to do
-		if (fit->color_managed && profiles_identical(fit->icc_profile, fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard))
+		if (fit->color_managed && profiles_identical(fit->icc_profile, nchans_for_profile == 1 ? com.icc.mono_standard : com.icc.working_standard))
 			return;
 
 		// If the preference is that we always convert, trigger the conversion
@@ -1353,7 +1359,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 	if (proceed) {
 		set_cursor_waiting(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
-		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
+		siril_colorspace_transform(fit, (nchans_for_profile == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		if (called_with_gfit && !com.headless) {
 			set_source_information();
 			refresh_icc_transforms();
