@@ -70,8 +70,16 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 	gboolean stars_needs_freeing = FALSE;
 	psf_star **stars = NULL;
 	int channel = 1;
+	int nb_stars = 0;
 
-	int nb_stars = starcount(com.stars);
+	g_rw_lock_reader_lock(&com.stars_lock);
+	nb_stars = starcount(com.stars);
+	if (nb_stars >= 1) {
+		stars = com.stars;
+		stars_needs_freeing = FALSE;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
@@ -87,9 +95,6 @@ int generate_binary_starmask(fits *fit, fits **star_mask, double threshold) {
 						NULL, FALSE, FALSE, 0, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		stars_needs_freeing = FALSE;
 	}
 
 	if (starcount(stars) < 1) {

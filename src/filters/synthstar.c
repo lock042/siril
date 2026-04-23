@@ -301,28 +301,27 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	reprofile_saturated_stars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+/* generic_image_worker hooks */
+int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return generate_synthstars(fit) < 0 ? 1 : 0;
 }
 
-gpointer do_synthstar(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	generate_synthstars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Synthetic stars"));
+}
+
+int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return reprofile_saturated_stars(fit) < 0 ? 1 : 0;
+}
+
+gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Unclip stars"));
 }
 
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	char *msg = siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	set_progress_bar_data(_("Star synthesis (full star mask creation): processing..."), PROGRESS_RESET);
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;
@@ -330,7 +329,15 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	if (starcount(com.stars) < 1) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int comstar_count = starcount(com.stars);
+	if (comstar_count >= 1) {
+		stars = com.stars;
+		nb_stars = comstar_count;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (comstar_count < 1) {
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
@@ -367,9 +374,6 @@ int generate_synthstars(fits *fit) {
 			return -1;
 		}
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		nb_stars = starcount(com.stars);
 	}
 
 	if (nb_stars < 1 || !stars) {

@@ -1868,7 +1868,9 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		gint _sx = 0, _sy = 0;
 		flis_layer_t *_al = flis_active_layer();
 		if (_al) { _sx = _al->position_x; _sy = _al->position_y; }
+		g_mutex_lock(&com.mutex);
 		com.selection = (rectangle){ _sx, _sy, gfit->rx, gfit->ry };
+		g_mutex_unlock(&com.mutex);
 		gui_function(new_selection_zone, NULL);
 	}
 	/* For group operations, notify_gfit_data_modified() is called by the

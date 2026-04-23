@@ -548,6 +548,7 @@ int remixer() {
 		}
 	}
 
+	notify_gfit_data_modified();
 	gfit_modified_update_gui();
 
 	return 0;

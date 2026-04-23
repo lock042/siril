@@ -20,6 +20,8 @@
 
 #include "core/siril.h"
 #include "core/undo.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/background_extraction.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
@@ -100,7 +102,9 @@ gboolean end_background(gpointer p) {
 	stop_processing_thread();
 	if (args) {
 		background_computed = TRUE;
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		gfit_modified_update_gui();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 		free(args);
@@ -109,21 +113,75 @@ gboolean end_background(gpointer p) {
 	return FALSE;
 }
 
+/* Idle function for generic_image_worker path of on_bkg_compute_bkg_clicked */
+static gboolean background_idle(gpointer p) {
+	stop_processing_thread();
+	background_computed = TRUE;
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	gfit_modified_update_gui();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
+	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
+	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
+	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 /************* CALLBACKS *************/
 
-void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+/* Data for the sample generation worker thread */
+struct bkg_generate_args {
 	int nb_of_samples;
 	double tolerance;
-	GtkToggleButton* keep_all_button = (GtkToggleButton*) lookup_widget("subsky_keep_samples");
-	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
-	nb_of_samples = get_nb_samples_per_line();
-	tolerance = keep_all ? -1. : get_tolerance_value();
+};
 
-	if (generate_background_samples(nb_of_samples, tolerance))
-		control_window_switch_to_tab(OUTPUT_LOGS);
+/* Idle: runs on the GTK thread after sample generation completes */
+static gboolean bkg_generate_idle(gpointer p) {
+	struct bkg_generate_args *args = (struct bkg_generate_args *)p;
+	stop_processing_thread();
+	if (!args) {
+		/* generation failed — log tab was already switched in the worker */
+		redraw(REDRAW_OVERLAY);
+		set_cursor_waiting(FALSE);
+		return FALSE;
+	}
+	free(args);
 	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+/* Worker: runs in the processing thread, reads gfit to compute samples */
+static gpointer bkg_generate_worker(gpointer p) {
+	struct bkg_generate_args *args = (struct bkg_generate_args *)p;
+	int retval = generate_background_samples(args->nb_of_samples, args->tolerance);
+	if (retval) {
+		/* Pass NULL to signal failure; args is freed here */
+		free(args);
+		siril_add_idle(bkg_generate_idle, NULL);
+	} else {
+		siril_add_idle(bkg_generate_idle, args);
+	}
+	return GINT_TO_POINTER(retval);
+}
+
+void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *keep_all_button = (GtkToggleButton *) lookup_widget("subsky_keep_samples");
+	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
+
+	struct bkg_generate_args *args = calloc(1, sizeof(struct bkg_generate_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	args->nb_of_samples = get_nb_samples_per_line();
+	args->tolerance = keep_all ? -1.0 : get_tolerance_value();
+
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(bkg_generate_worker, args)) {
+		free(args);
+		set_cursor_waiting(FALSE);
+	}
 }
 
 void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
@@ -149,23 +207,33 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	double smoothing = get_smoothing_parameter();
 	background_interpolation interpolation_method = get_interpolation_method();
 
-	struct background_data *args = calloc(1, sizeof(struct background_data));
-	args->threads = com.max_thread;
-	args->from_ui = TRUE;
-	args->correction = correction;
-	args->interpolation_method = interpolation_method;
-	args->degree = (poly_order) degree;
-	args->smoothing = smoothing;
-	args->dither = use_dither;
-	args->fit = gfit;
-
 	// Check if the image has a Bayer CFA pattern
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit->keywords.bayer_pattern);
 	gboolean is_cfa = gfit->naxes[2] == 1 && pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX;
-	if (!start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
-						remove_gradient_from_image, args)) {
-		free(args->seqEntry);
-		free(args);
+
+	struct background_data *bkg_args = calloc(1, sizeof(struct background_data));
+	bkg_args->destroy_fn = free_background_data;
+	bkg_args->threads = com.max_thread;
+	bkg_args->from_ui = TRUE;
+	bkg_args->correction = correction;
+	bkg_args->interpolation_method = interpolation_method;
+	bkg_args->degree = (poly_order)degree;
+	bkg_args->smoothing = smoothing;
+	bkg_args->dither = use_dither;
+	bkg_args->fit = gfit;
+	bkg_args->is_cfa = is_cfa;
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->mem_ratio = 2.0f;
+	args->image_hook = remove_gradient_image_hook;
+	args->log_hook = remove_gradient_log_hook;
+	args->idle_function = background_idle;
+	args->description = _("Background extraction");
+	args->verbose = TRUE;
+	args->user = bkg_args;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 	}
 }
 

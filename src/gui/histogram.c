@@ -864,8 +864,16 @@ static void queue_window_redraw() {
 }
 
 static void update_histo_mtf() {
-	if (!com.layers_hist[0]) return;
-	if (!hist_backup[0]) return;
+	/* Lock against notify_gfit_data_modified() on the worker thread, which
+	 * calls invalidate_gfit_histogram() + compute_histo_for_fit() under the
+	 * same mutex.  Without this, the worker can nullify layers_hist[1] or
+	 * layers_hist[2] between our NULL-check on [0] and the gsl_histogram_memcpy
+	 * loop, causing a SIGSEGV. */
+	g_mutex_lock(&com.histogram_mutex);
+	if (!com.layers_hist[0] || !hist_backup[0]) {
+		g_mutex_unlock(&com.histogram_mutex);
+		return;
+	}
 	float norm = (float)gsl_histogram_bins(com.layers_hist[0]) - 1;
 
 	_init_clipped_pixels();
@@ -881,9 +889,12 @@ static void update_histo_mtf() {
 		}
 	}
 	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT) {
-		gsl_histogram_memcpy(com.sat_hist, hist_sat_backup);
-		apply_ght_to_histo(com.sat_hist, norm, _SP, _BP, 1.0f);
+		if (com.sat_hist && hist_sat_backup) {
+			gsl_histogram_memcpy(com.sat_hist, hist_sat_backup);
+			apply_ght_to_histo(com.sat_hist, norm, _SP, _BP, 1.0f);
+		}
 	}
+	g_mutex_unlock(&com.histogram_mutex);
 	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 	_update_clipped_pixels(data);
 	queue_window_redraw();

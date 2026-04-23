@@ -1491,6 +1491,10 @@ int undo_display_data(int dir) {
 		if (is_undo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
+			/* Writer lock: covers the ROI metadata reads (rx/ry/naxes[2]),
+			 * undo_save_state (reads pixels), and undo_get_data (writes pixels).
+			 * The entire save+restore must be atomic against the Python thread. */
+			g_rw_lock_writer_lock(&gfit->rwlock);
 			// Can't reactivate the ROI if the size has changed
 			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display - 1].rx
 					&& gfit->ry == com.history[com.hist_display - 1].ry
@@ -1609,7 +1613,11 @@ int undo_display_data(int dir) {
 
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
+			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
+			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			update_gfit_histogram_if_needed();
+			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
@@ -1645,13 +1653,18 @@ int undo_display_data(int dir) {
 					gui_function(flis_init_right_tab, NULL);
 			}
 			flis_gui_update();
+			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) {// redraw() is called in redraw_mask_idle if this is TRUE
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				notify_gfit_data_modified();
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				redraw(REMAP_ALL);
 			}
 			if (preview_was_active) {
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				copy_gfit_to_backup();
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				siril_log_message(_("Following undo / redo with a preview active you may need "
 						"to toggle the preview off and on again to reactivate the preview effect\n"));
 				// TODO: To be perfect, we would need a register of preview functions
@@ -1661,13 +1674,17 @@ int undo_display_data(int dir) {
 				memcpy(&com.selection, &roi_rect, sizeof(rectangle));
 				on_set_roi();
 			}
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 		}
 		break;
 	case REDO:
 		if (is_redo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
+			/* Writer lock: covers the ROI metadata reads and undo_get_data (writes pixels). */
+			g_rw_lock_writer_lock(&gfit->rwlock);
 			// Can't reactivate the ROI if the size has changed
 			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display + 1].rx
 					&& gfit->ry == com.history[com.hist_display + 1].ry
@@ -1693,7 +1710,10 @@ int undo_display_data(int dir) {
 
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
+			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
+			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			update_gfit_histogram_if_needed();
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
 			lock_display_transform();
@@ -1722,18 +1742,26 @@ int undo_display_data(int dir) {
 					gui_function(flis_init_right_tab, NULL);
 			}
 			flis_gui_update();
+			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				notify_gfit_data_modified();
+				g_rw_lock_reader_unlock(&gfit->rwlock);
 				redraw(REMAP_ALL);
 			}
-			if (preview_was_active)
+			if (preview_was_active) {
+				g_rw_lock_reader_lock(&gfit->rwlock);
 				copy_gfit_to_backup();
+				g_rw_lock_reader_unlock(&gfit->rwlock);
+			}
 			if (roi_was_active) {
 				memcpy(&gui.roi.selection, &roi_rect, sizeof(rectangle));
 				on_set_roi();
 			}
+			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 		}
 		break;
 	default:

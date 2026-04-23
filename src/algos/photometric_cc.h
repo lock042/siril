@@ -6,6 +6,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
@@ -19,6 +20,7 @@ typedef enum {
 } normalization_channel;
 
 struct photometric_cc_data {
+	destructor destroy_fn;		/* Must be first member */
 	fits *fit;			// the image to process
 	gboolean bg_auto;		// automatically select an area for bkg neutralization
 	rectangle bg_area;		// the area for background if not bg_auto
@@ -56,7 +58,9 @@ struct photometric_cc_data {
 int apply_photometric_color_correction(fits *fit, const float *kw, const float *bg);
 int get_stats_coefficients(fits *fit, rectangle *area, float *bg, float t0, float t1);
 int photometric_cc(struct photometric_cc_data *args);
-gpointer photometric_cc_standalone(gpointer p);
+void free_photometric_cc_data(void *p);
+int photometric_cc_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail);
 int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
 int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset);

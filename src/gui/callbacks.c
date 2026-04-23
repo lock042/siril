@@ -1332,7 +1332,7 @@ void display_filename() {
 	char *filename;
 	gchar *orig_filename = NULL;
 	GError *error = NULL;
-	if (single_image_is_loaded()) {	// unique image
+	if (single_image_is_loaded() && com.uniq->filename && com.uniq->filename[0] != '\0') {	// unique image
 		filename = com.uniq->filename;
 		orig_filename = g_file_read_link(filename, &error);
 		nb_layers = com.uniq->chans;
@@ -1626,10 +1626,12 @@ void set_output_filename_to_sequence_name() {
 
 gboolean show_or_hide_mask_tab_idle(gpointer p) {
 	if (com.headless) return FALSE;
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	gboolean has_proc_mask = (gfit->mask != NULL);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, MASK_VPORT);
 
-	gboolean has_proc_mask  = (gfit->mask != NULL);
 	gboolean has_layer_mask = FALSE;
 
 	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
@@ -1652,7 +1654,6 @@ gboolean show_or_hide_mask_tab_idle(gpointer p) {
 			else if (get_flis_show_layer_mask() && !has_layer_mask && has_proc_mask)
 				set_flis_show_layer_mask(FALSE);
 		}
-
 		gtk_widget_show(page);
 
 		/* Update the tab button label to reflect what is being shown */

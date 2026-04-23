@@ -101,6 +101,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	assert(args);
 	assert(args->seq);
 	assert(args->image_hook);
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 
@@ -413,6 +414,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 #ifdef _OPENMP
 	free(threads_per_image);
 #endif
@@ -1398,7 +1400,7 @@ static gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	gfit_modified_update_gui();
-	if (gfit->mask)
+	if (args->has_mask)
 		queue_redraw_mask();
 	free_generic_img_args(args);
 	return FALSE;
@@ -2023,6 +2025,8 @@ gpointer generic_image_worker(gpointer p) {
 	 * END GROUP PATH — single-layer path continues below                  *
 	 * ------------------------------------------------------------------ */
 
+	g_rw_lock_reader_lock(&com.pref_rwlock);
+	g_rw_lock_writer_lock(&args->fit->rwlock);
 	gboolean using_mask = args->mask_aware && args->fit->mask && args->fit->mask_active;
 	// Create a copy so we still have the original fit for combining with the result
 	// according to a mask
@@ -2168,15 +2172,16 @@ gpointer generic_image_worker(gpointer p) {
 the_end:;
 
 	int retval = args->retval;
-	if (retval) {
-		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
-	} else {
-		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
-	}
+	/* Capture mask state while writer lock is held and before idles are posted. */
+	args->has_mask = (argfit->mask != NULL);
 
+	// Cleanup / idles
 	if (args->command) {
-		// commands do not use custom idles and the generic ones must run synchronously
-		if (args->command_updates_gfit) {
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_img_args(args);
+		} else if (args->command_updates_gfit) {
+			// commands do not use custom idles and the generic ones must run synchronously
 			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
 		} else {
 			execute_idle_and_wait_for_it(end_generic_image, args);
@@ -2188,8 +2193,15 @@ the_end:;
 	}
 
 	// Everything below here must avoid using args as it will be cleared in the idle function
+	// (or headless path).
 	// We do other widget updates here after the idle has been added, so that we don't get
 	// early redraws
+
+	if (retval) {
+		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+	} else {
+		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+	}
 
 	if (!argpreview && !retval)
 		siril_log_message("%s\n", history); // Log the full detailed description
@@ -2224,6 +2236,8 @@ the_end:;
 			}
 		}
 	}
+	g_rw_lock_writer_unlock(&argfit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 	if (verbose) {
 		siril_log_color_message(_("%s %s.\n"), "green", desc, retval ? _("failed") : _("succeeded"));
 		gettimeofday(&t_end, NULL);
@@ -2234,7 +2248,8 @@ the_end:;
 	g_free(history);
 	g_free(desc);
 	if (_pre_lmask) layermask_free(_pre_lmask);
-	if (orig) clearfits(orig);
+	if (orig)
+		clearfits(orig);
 	free(orig);
 
 	return GINT_TO_POINTER(retval);
@@ -2250,10 +2265,12 @@ gpointer generic_mask_worker(gpointer p) {
 
 	gboolean verbose = args->verbose;
 	gchar *history = NULL;
+	gboolean rwlocked = FALSE;
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 
 	// Set default max_threads if not specified
 	if (args->max_threads < 1)
@@ -2353,6 +2370,8 @@ gpointer generic_mask_worker(gpointer p) {
 
 	/* Save undo state: creation ops (lmask_op or not) and non-lmask ops.
 	 * Modification lmask ops are handled above before temp_mask_wrap is set up. */
+	g_rw_lock_writer_lock(&args->fit->rwlock);
+	rwlocked = TRUE;
 	if (args->fit == gfit && !args->command) {
 		if (is_lmask_op && args->mask_creation) {
 			undo_save_flis_lmask(target_lay, args->description);
@@ -2437,10 +2456,18 @@ the_end:
 		/* Only activate the processing mask for non-layer-mask creation ops */
 		set_mask_active(args->fit, TRUE);
 	}
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 
 	if (args->command) {
-		// commands do not use custom idles and must run synchronously
-		execute_idle_and_wait_for_it(end_generic_mask, args);
+		if (com.headless) {
+			stop_processing_thread();
+			free_generic_mask_args(args);
+		} else {
+			// commands do not use custom idles and must run synchronously
+			execute_idle_and_wait_for_it(end_generic_mask, args);
+		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);
 	} else {

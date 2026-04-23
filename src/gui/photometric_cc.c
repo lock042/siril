@@ -241,9 +241,19 @@ static void start_photometric_cc(gboolean spcc) {
 
 	get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	if (!start_in_new_thread(photometric_cc_standalone, pcc_args)) {
-		g_free(pcc_args->datalink_path);
-		free(pcc_args);
+
+	pcc_args->destroy_fn = free_photometric_cc_data;
+
+	struct generic_img_args *img_args = calloc(1, sizeof(struct generic_img_args));
+	img_args->fit = gfit;
+	img_args->image_hook = photometric_cc_image_hook;
+	img_args->log_hook = photometric_cc_log_hook;
+	img_args->description = spcc ? _("SPCC") : _("PCC");
+	img_args->verbose = TRUE;
+	img_args->user = pcc_args;
+	if (!start_in_new_thread(generic_image_worker, img_args)) {
+		free_generic_img_args(img_args);
+		set_cursor_waiting(FALSE);
 	}
 }
 

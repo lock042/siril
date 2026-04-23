@@ -830,9 +830,11 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
 	const char *err;
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 		g_mutex_unlock(&bgsamples_mutex);
 		return 1;
 	}
@@ -841,6 +843,7 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, gfit);
 	}
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	g_mutex_unlock(&bgsamples_mutex);
 	return 0;
 }
@@ -848,6 +851,7 @@ int generate_background_samples(int nb_of_samples, double tolerance) {
 gboolean end_background(gpointer p);	// in gui/background_extraction.c
 
 /* uses samples from com.grad_samples */
+#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	gchar *error = NULL;
@@ -933,6 +937,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
+#endif /* dead code */
 
 static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 	GSList *new_list = NULL;
@@ -969,6 +974,7 @@ static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 }
 
 /* uses samples from com.grad_samples */
+#if 0 /* dead code — no call sites; superseded by remove_gradient_image_hook */
 gpointer remove_gradient_from_cfa_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	sensor_pattern pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
@@ -1103,6 +1109,194 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	notify_gfit_data_modified();
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
+}
+#endif /* dead code */
+
+void free_background_data(void *p) {
+	struct background_data *args = (struct background_data *)p;
+	if (!args) return;
+	free(args->seqEntry);
+	free(args);
+}
+
+/* Single-image hook for generic_image_worker.
+ * Handles both CFA and non-CFA paths based on args->is_cfa.
+ * Uses fit parameter instead of gfit; no notify/idle calls. */
+gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail) {
+	struct background_data *args = (struct background_data *)p;
+	const gchar *interp = (args->interpolation_method == BACKGROUND_INTER_POLY) ? _("polynomial") : _("RBF");
+	if (args->is_cfa)
+		return g_strdup_printf(_("Background extraction (%s, CFA)"), interp);
+	return g_strdup_printf(_("Background extraction (%s)"), interp);
+}
+
+int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct background_data *args = (struct background_data *)gargs->user;
+	gchar *error = NULL;
+
+	if (args->is_cfa) {
+		sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE, FALSE);
+		if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+			siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
+			return 1;
+		}
+
+		fits **cfachans = calloc(4, sizeof(fits *));
+		for (int i = 0 ; i < 4 ; i++)
+			cfachans[i] = calloc(1, sizeof(fits));
+
+		int ret = 1;
+		if (fit->type == DATA_USHORT)
+			ret = split_cfa_ushort(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+		else if (fit->type == DATA_FLOAT)
+			ret = split_cfa_float(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+		if (ret) {
+			siril_log_color_message(_("Error splitting into CFA subchannels, aborting...\n"), "red");
+			cfachans_cleanup(cfachans);
+			return 1;
+		}
+
+		for (int i = 0 ; i < 4 ; i++) {
+			imstats *stat = statistics(NULL, -1, cfachans[i], 0, NULL, STATS_BASIC, MULTI_THREADED);
+			if (!stat) {
+				siril_log_message(_("Error: statistics computation failed.\n"));
+				cfachans_cleanup(cfachans);
+				return 1;
+			}
+			float median = (float)stat->median;
+			free_stats(stat);
+			if (median <= 0.0f) {
+				siril_log_color_message(_("Subchannel with negative median detected: removing the gradient on negative images is not supported\n"), "red");
+				cfachans_cleanup(cfachans);
+				return 1;
+			}
+		}
+
+		for (int i = 0 ; i < 4 ; i++) {
+			fits *subchannel = cfachans[i];
+			GSList *samples = rescale_sample_list_for_cfa(com.grad_samples, subchannel);
+			if (!samples) {
+				siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
+				cfachans_cleanup(cfachans);
+				return 1;
+			}
+			double *background = malloc(subchannel->naxes[0] * subchannel->naxes[1] * sizeof(double));
+			if (!background) {
+				PRINT_ALLOC_ERR;
+				free_background_sample_list(samples);
+				cfachans_cleanup(cfachans);
+				return 1;
+			}
+			const size_t n = subchannel->naxes[0] * subchannel->naxes[1];
+			double *image = malloc(n * sizeof(double));
+			if (!image) {
+				free(background);
+				free_background_sample_list(samples);
+				cfachans_cleanup(cfachans);
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			double background_mean = get_background_mean(samples, 1);
+			gboolean interpolation_worked = TRUE;
+			if (args->interpolation_method == BACKGROUND_INTER_POLY) {
+				interpolation_worked = computeBackground_Polynom(samples, background, 0,
+						subchannel->rx, subchannel->ry, args->degree, &error);
+			} else {
+				interpolation_worked = computeBackground_RBF(samples, background, 0,
+						subchannel->rx, subchannel->ry, args->smoothing, &error, args->threads);
+			}
+			if (!interpolation_worked) {
+				free(image);
+				free(background);
+				free_background_sample_list(samples);
+				if (!args->from_ui) {
+					g_mutex_lock(&bgsamples_mutex);
+					free_background_sample_list(com.grad_samples);
+					com.grad_samples = NULL;
+					g_mutex_unlock(&bgsamples_mutex);
+				}
+				cfachans_cleanup(cfachans);
+				queue_error_message_dialog(_("Not enough samples."), error);
+				return 1;
+			}
+			convert_fits_to_img(subchannel, image, 0, args->dither);
+			remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
+			convert_img_to_fits(image, subchannel, 0);
+			free(image);
+			free(background);
+			free_background_sample_list(samples);
+		}
+		fits *out = merge_cfa(cfachans[0], cfachans[1], cfachans[2], cfachans[3], pattern);
+		fits_swap_image_data(out, fit);
+		clearfits(out);
+		free(out);
+		siril_log_message(_("Background with %s interpolation computed for CFA image.\n"),
+				(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
+		cfachans_cleanup(cfachans);
+		invalidate_stats_from_fit(fit);
+		if (!args->from_ui) {
+			g_mutex_lock(&bgsamples_mutex);
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+			g_mutex_unlock(&bgsamples_mutex);
+		}
+	} else {
+		double *background = malloc(fit->ry * fit->rx * sizeof(double));
+		if (!background) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		const size_t n = fit->naxes[0] * fit->naxes[1];
+		double *image = malloc(n * sizeof(double));
+		if (!image) {
+			free(background);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		g_mutex_lock(&bgsamples_mutex);
+		update_median_samples(com.grad_samples, fit);
+		g_mutex_unlock(&bgsamples_mutex);
+		double background_mean = get_background_mean(com.grad_samples, fit->naxes[2]);
+		for (int channel = 0; channel < fit->naxes[2]; channel++) {
+			gboolean interpolation_worked = TRUE;
+			if (args->interpolation_method == BACKGROUND_INTER_POLY) {
+				interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel,
+						fit->rx, fit->ry, args->degree, &error);
+			} else {
+				interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel,
+						fit->rx, fit->ry, args->smoothing, &error, args->threads);
+			}
+			if (!interpolation_worked) {
+				free(image);
+				free(background);
+				queue_error_message_dialog(_("Not enough samples."), error ? error : _("Insufficient samples"));
+				if (!args->from_ui) {
+					g_mutex_lock(&bgsamples_mutex);
+					free_background_sample_list(com.grad_samples);
+					com.grad_samples = NULL;
+					g_mutex_unlock(&bgsamples_mutex);
+				}
+				return 1;
+			}
+			const char *c_name = fit->naxes[2] > 1 ? channel_number_to_name(channel) : _("monochrome");
+			siril_log_message(_("Background extraction from %s channel.\n"), c_name);
+			convert_fits_to_img(fit, image, channel, args->dither);
+			remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
+			convert_img_to_fits(image, fit, channel);
+		}
+		siril_log_message(_("Background with %s interpolation computed.\n"),
+				(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
+		free(image);
+		free(background);
+		invalidate_stats_from_fit(fit);
+		if (!args->from_ui) {
+			g_mutex_lock(&bgsamples_mutex);
+			free_background_sample_list(com.grad_samples);
+			com.grad_samples = NULL;
+			g_mutex_unlock(&bgsamples_mutex);
+		}
+	}
+	return 0;
 }
 
 /** Apply for sequence **/

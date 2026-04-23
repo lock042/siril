@@ -1483,6 +1483,14 @@ static void remap(int vport) {
 
 static void remap_all_vports() {
 	gboolean inverted;
+	/* Snapshot gui.hi/gui.lo: init_layers_hi_and_lo_values() may write them
+	 * from the worker thread concurrently while this path runs from
+	 * remap_all() called directly on the worker (via notify_gfit_data_modified). */
+	g_mutex_lock(&com.mutex);
+	WORD remap_hi = gui.hi;
+	WORD remap_lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
 	/* Cache the GtkApplicationWindow and GAction pointers on first call —
 	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
@@ -1726,10 +1734,10 @@ static void remap_all_vports() {
 				const int cc = gfit->color_managed ? c : 0;
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
-					if (gui.cut_over && val > gui.hi) {	// cut
+					if (gui.cut_over && val > remap_hi) {	// cut
 						linebuf_byte[c][x] = 0;
 					} else {
-						linebuf_byte[c][x] = index[cc][val - gui.lo < 0 ? 0 : val - gui.lo];
+						linebuf_byte[c][x] = index[cc][val - remap_lo < 0 ? 0 : val - remap_lo];
 					}
 					if (inverted)
 						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
@@ -1892,7 +1900,11 @@ static int make_hd_index_for_current_display(int vport) {
 }
 
 static int make_index_for_current_display(int vport) {
-	float slope, delta = gui.hi - gui.lo;
+	g_mutex_lock(&com.mutex);
+	WORD lo = gui.lo;
+	WORD hi = gui.hi;
+	g_mutex_unlock(&com.mutex);
+	float slope, delta = hi - lo;
 	int i;
 	BYTE *index;
 	float pxl;
@@ -2475,8 +2487,10 @@ static void draw_stars(const draw_data_t* dd) {
 	int xoff = layer ? layer->position_x : 0;
 	int yoff = layer ? layer->position_y : 0;
 
-	if (com.stars && !com.script && (single_image_is_loaded() || sequence_is_loaded())) {
+	if (!com.script && (single_image_is_loaded() || sequence_is_loaded()) &&
+			g_rw_lock_reader_trylock(&com.stars_lock)) {
 		/* com.stars is a NULL-terminated array */
+		if (com.stars) {
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
@@ -2521,6 +2535,8 @@ static void draw_stars(const draw_data_t* dd) {
 
 			i++;
 		}
+		} // if (com.stars)
+		g_rw_lock_reader_unlock(&com.stars_lock);
 	}
 
 	/* quick photometry */
@@ -3462,6 +3478,7 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	/* gui.roi.selection is in canvas coords; translate to layer-local for FLIS sub-layers */
 	rectangle lsel = gui.roi.selection;
@@ -3527,6 +3544,7 @@ void copy_roi_into_gfit() {
 			}
 		}
 	}
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 }
 
 void remap_all() {
@@ -3633,6 +3651,7 @@ void redraw(remap_type doremap) {
 		}
 	}
 
+
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
@@ -3680,6 +3699,7 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 }
 
 gboolean redraw_mask_idle(gpointer p) {
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	/* Determine which mask to render in the mask viewport. */
 	if (flis_show_layer_mask && is_current_image_flis() && com.uniq && com.uniq->layers) {
 		for (GSList *node = com.uniq->layers; node; node = node->next) {
@@ -3693,7 +3713,10 @@ gboolean redraw_mask_idle(gpointer p) {
 	} else if (gfit->mask && gfit->mask->data) {
 		remap_mask(gfit->mask);
 	}
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	if (com.pref.gui.mask_tints_vports) {
+		/* Reader lock released before this call: notify_gfit_data_modified()
+		 * may call copy_roi_into_gfit() which acquires the writer lock. */
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	}

@@ -271,6 +271,32 @@ void on_pref_icc_assign_never_toggled(GtkToggleButton *button, gpointer user_dat
 		g_signal_handlers_unblock_by_func(composition, on_pref_icc_assign_toggled, NULL);
 	}
 }
+/* Idle function for generic_image_worker path of on_icc_assign_clicked
+ * and on_icc_remove_clicked */
+static gboolean icc_assign_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
+	set_source_information();
+	gfit_modified_update_gui();
+	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+/* Idle function for generic_image_worker path of on_icc_convertto_clicked */
+static gboolean icc_convert_to_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
+	set_source_information();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
+	gfit_modified_update_gui();
+	free_generic_img_args((struct generic_img_args *)p);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 //////// GUI callbacks for the color management dialog
 
 void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
@@ -370,7 +396,6 @@ void on_icc_remove_clicked(GtkButton* button, gpointer* user_data) {
 	refresh_icc_transforms();
 	notify_gfit_data_modified();
 	gfit_modified_update_gui();
-
 }
 
 void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {

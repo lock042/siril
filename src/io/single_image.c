@@ -260,8 +260,11 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	if (!com.headless)
+	if (!com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		open_single_image_from_gfit(NULL);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	return FALSE;
 }
 
@@ -411,6 +414,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	 does the things necessary when key aspects may have
 	 changed (eg changed number of channels, bitpix etc.)*/
 
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
 	sliders_mode_set_state(gui.sliders);
@@ -438,6 +442,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 		flis_composite_build();
 	remap_all();
 	update_gfit_histogram_if_needed();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	redraw(REMAP_ALL);
 	return FALSE;
 }
@@ -554,10 +559,16 @@ void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
+		/* Hold histogram_mutex across the invalidate+recompute pair so the
+		 * main thread never sees a partially-nullified layers_hist[] array.
+		 * update_histo_mtf() on the main thread acquires the same mutex. */
+		g_mutex_lock(&com.histogram_mutex);
 		invalidate_gfit_histogram();
 		// Skip expensive pixel work mid-script; display is flushed at script end.
-		if (com.script && !com.python_script)
+		if (com.script && !com.python_script) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
+		}
 		/* Do not remap if a job on the worker thread is currently writing gfit.
 		 * The worker calls this function itself from within generic_image_worker,
 		 * so we must allow that path through — hence the processing_in_worker_thread()
@@ -565,18 +576,22 @@ void notify_gfit_data_modified() {
 		 * GTK slider callback during a Python script command) would race against the
 		 * worker reading/writing gfit pixel data.  The job's own call, and the
 		 * subsequent end_gfit_operation idle, will update the display correctly. */
-		if (!processing_in_worker_thread() && processing_is_job_active())
+		if (!processing_in_worker_thread() && processing_is_job_active()) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
-		/* FLIS: gfit data has been modified, so the composite is stale.
-		 * Invalidate it unconditionally before rebuilding so that remap_all()
-		 * always operates on the up-to-date composited image.  Preview functions
-		 * and other callers that don't explicitly call flis_invalidate_composite()
-		 * are covered here. */
-		if (is_current_image_flis()) {
-			flis_invalidate_composite();
-			flis_composite_build();
 		}
+		/* If a ROI is active and contains processed data, merge it back into
+		 * gfit now — before computing the histogram and before remap_all()
+		 * builds the Cairo display buffers — so that both operations see the
+		 * fully-updated pixel data.  This is the correct point to do this:
+		 * redraw() must remain a pure "repaint from Cairo buffers" function
+		 * and must not write gfit. */
+		if (gui.roi.active && gui.roi.operation_supports_roi &&
+				((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) ||
+				 (gfit->type == DATA_USHORT && gui.roi.fit.data)))
+			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
+		g_mutex_unlock(&com.histogram_mutex);
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
 		 * protect the write with com.mutex to prevent a data race. */

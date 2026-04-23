@@ -11,6 +11,7 @@ siril-1.5.0
 * Added draggable histogram overlay with cursor tracking (!986)
 * Improved vectorization of numerous functions, algorithm optimizations and removed dead code (!1008)
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
+* Improved locking of data structs that may be accessed by multiple threads (!1014)
 
 siril-1.4.3
 --/--/--
@@ -20,8 +21,11 @@ siril-1.4.3
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
-* Add SirilInterface.open_dialog()
+
+**Improvements**
+* Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
+* Added -async option to pyscript command (!1015)
 
 siril-1.4.2
 02/18/26

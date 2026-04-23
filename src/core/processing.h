@@ -195,6 +195,7 @@ struct generic_img_args {
 	 * only.  Set this for all geometry-changing operations (rotation, mirror,
 	 * binning, resample, crop) so that layer mask and position are undone too. */
 	gboolean geometry_changing;
+	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
 };
 
 struct generic_mask_args {
