@@ -14259,8 +14259,6 @@ int process_seq_profile(int nb) {
 int process_icc_assign(int nb) {
 	if (!com.headless) on_clear_roi();
 	char *arg = word[1];
-	/* For FLIS, operate on the base (profiled) layer rather than whatever
-	 * non-base layer gfit currently points to. */
 	fits *profiled = flis_get_profiled_fit();
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
@@ -14278,22 +14276,17 @@ int process_icc_assign(int nb) {
 	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
-	if (profile) {
-		if (profiled->icc_profile)
-			cmsCloseProfile(profiled->icc_profile);
-		profiled->icc_profile = NULL;
-		siril_colorspace_transform(profiled, profile);
-		cmsCloseProfile(profile);
-	} else {
+	if (!profile) {
 		siril_log_color_message(_("Error opening target ICC profile.\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
-	if (profiled->icc_profile) {
-		siril_log_color_message(_("Color profile assignment complete.\n"), "green");
-		color_manage(profiled, TRUE);
-	} else {
-		siril_log_color_message(_("Error opening ICC profile.\n"), "red");
-		color_manage(profiled, FALSE);
+	struct icc_op_args *args = g_new0(struct icc_op_args, 1);
+	args->profiled   = profiled;
+	args->op         = ICC_OP_ASSIGN;
+	args->profile    = profile;   /* ownership transferred */
+	args->undo_label = g_strdup(_("Color profile assignment"));
+	if (!start_in_new_thread(icc_operation_worker, args)) {
+		free_icc_op_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -14302,10 +14295,7 @@ int process_icc_assign(int nb) {
 int process_icc_convert_to(int nb) {
 	if (!com.headless) on_clear_roi();
 	char *arg = word[1];
-	/* For FLIS, operate on the base (profiled) layer. */
 	fits *profiled = flis_get_profiled_fit();
-	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
-	com.pref.icc.processing_intent = com.pref.icc.export_intent;
 	if (!profiled->icc_profile) {
 		siril_log_color_message(_("Image has no color profile assigned to convert from. Assign a profile first.\n"), "red");
 		return CMD_GENERIC_ERROR;
@@ -14330,63 +14320,34 @@ int process_icc_convert_to(int nb) {
 	} else if (g_file_test(arg, G_FILE_TEST_EXISTS) && g_file_test(arg, G_FILE_TEST_IS_REGULAR)) {
 		profile = cmsOpenProfileFromFile(arg, "r");
 	}
-	if (profile) {
-		if (is_current_image_flis()) {
-			/* Walk all FLIS layers: RGB layers converted directly, mono layers
-			 * broadcast→transform→luminance-collapse. */
-			flis_convert_layers_icc(profiled->icc_profile, profile);
-		} else {
-			siril_colorspace_transform(profiled, profile);
-			profiled->icc_profile = copyICCProfile(profile);
-			color_manage(profiled, TRUE);
-		}
-		com.pref.icc.processing_intent = temp_intent;
-		cmsCloseProfile(profile);
-		siril_log_color_message(_("Color space conversion complete.\n"), "green");
-	} else {
+	if (!profile) {
 		siril_log_color_message(_("Error opening ICC profile.\n"), "red");
 		return CMD_GENERIC_ERROR;
-		// Don't call color_manage(profiled, FALSE) here: no change is made to
-		// the pre-existing state of color management
 	}
-	refresh_icc_transforms();
-	if (!com.headless) {
-		if (is_current_image_flis() && com.uniq) {
-			gboolean composite_rgb = FALSE;
-			for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
-				flis_layer_t *lay = (flis_layer_t *)l->data;
-				if (!lay || !lay->fit || !lay->visible) continue;
-				if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
-				if (lay->has_tint)           composite_rgb = TRUE;
-			}
-			com.uniq->chans = composite_rgb ? 3 : 1;
-		}
-		gui_function(close_tab, NULL);
-		if (is_current_image_flis() && com.uniq)
-			activate_tab(com.uniq->chans >= 3 ? RGB_VPORT : RED_VPORT);
-		else
-			gui_function(init_right_tab, NULL);
+	struct icc_op_args *args = g_new0(struct icc_op_args, 1);
+	args->profiled          = profiled;
+	args->op                = ICC_OP_CONVERT;
+	args->profile           = profile;   /* ownership transferred */
+	args->intent            = com.pref.icc.export_intent;
+	args->flis_mode         = is_current_image_flis();
+	args->tab_update_needed = !com.headless;
+	args->undo_label        = g_strdup(_("Color profile conversion"));
+	if (!start_in_new_thread(icc_operation_worker, args)) {
+		free_icc_op_args(args);
+		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }
 
 int process_icc_remove(int nb) {
 	if (!com.headless) on_clear_roi();
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		return CMD_ALLOC_ERROR;
-	}
-	args->fit = gfit;
-	args->image_hook = icc_remove_hook;
-	args->log_hook = icc_remove_log_hook;
-	args->description = _("ICC profile removal");
-	args->verbose = TRUE;
-	args->command = TRUE;
-	args->command_updates_gfit = TRUE;
-	args->custom_undo = TRUE;  /* siril_colorspace_transform already writes FITS history */
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
+	fits *profiled = flis_get_profiled_fit();
+	struct icc_op_args *args = g_new0(struct icc_op_args, 1);
+	args->profiled   = profiled;
+	args->op         = ICC_OP_REMOVE;
+	args->undo_label = g_strdup(_("Color profile removal"));
+	if (!start_in_new_thread(icc_operation_worker, args)) {
+		free_icc_op_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;

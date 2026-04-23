@@ -104,21 +104,25 @@ void update_profiles_after_gamut_change();
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb);
 void cleanup_common_profiles();
 
-/* Image processing hooks for generic_image_worker */
-#include "core/processing.h"
+/* Dedicated threaded ICC worker */
+typedef enum {
+	ICC_OP_ASSIGN,
+	ICC_OP_REMOVE,
+	ICC_OP_CONVERT
+} icc_op_t;
 
-struct icc_data {
-	destructor destroy_fn;      /* Must be first member */
-	cmsHPROFILE profile;        /* owned; freed by free_icc_data */
-	cmsUInt32Number intent;     /* rendering intent for convert_to */
+struct icc_op_args {
+	fits            *profiled;           /* fit to operate on */
+	icc_op_t         op;
+	cmsHPROFILE      profile;            /* owned; NULL for ICC_OP_REMOVE */
+	cmsUInt32Number  intent;             /* for ICC_OP_CONVERT */
+	gboolean         flis_mode;          /* walk all FLIS layers for convert */
+	gboolean         tab_update_needed;  /* for convert: rebuild channel tabs */
+	gchar           *undo_label;
+	int              retval;
 };
 
-void free_icc_data(void *p);
-int icc_remove_hook(struct generic_img_args *args, fits *fit, int threads);
-gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail);
-int icc_assign_hook(struct generic_img_args *args, fits *fit, int threads);
-gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail);
-int icc_convert_to_hook(struct generic_img_args *args, fits *fit, int threads);
-gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail);
+void     free_icc_op_args(struct icc_op_args *args);
+gpointer icc_operation_worker(gpointer p);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

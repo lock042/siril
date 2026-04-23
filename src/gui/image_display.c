@@ -1009,8 +1009,8 @@ static int allocate_full_surface(struct image_view *view, const fits *ref) {
 void check_gfit_profile_identical_to_monitor() {
 	fits *profiled = flis_get_profiled_fit();
 	if (!com.headless && profiled->icc_profile && profiled->color_managed)
-		identical = profiles_identical(profiled->icc_profile, gui.icc.monitor);
-	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
+		g_atomic_int_set(&identical, profiles_identical(profiled->icc_profile, gui.icc.monitor));
+	siril_debug_print("gfit profile identical to monitor profile: %d\n", g_atomic_int_get(&identical));
 }
 
 static void remaprgb(void) {
@@ -1624,8 +1624,8 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		const gboolean do_transform = (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed));
+		siril_debug_print((gui.icc.proofing_transform && !g_atomic_int_get(&identical) && (!g_atomic_int_get(&gui.icc.same_primaries) || g_atomic_int_get(&gui.icc.profile_changed))) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (gui.icc.proofing_transform && !g_atomic_int_get(&identical) && (!g_atomic_int_get(&gui.icc.same_primaries) || g_atomic_int_get(&gui.icc.profile_changed)));
 
 		if (do_transform)
 			lock_display_transform();

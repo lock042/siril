@@ -27,6 +27,8 @@
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "icc_default_profiles.h"
+#include "core/undo.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
@@ -91,12 +93,12 @@ static gboolean cm_worker(gpointer user_data) {
 	g_free(monitor);
 	g_free(proof);
 	g_free(tooltip);
+	g_free(data);
 	return FALSE;
 }
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	struct cm_struct data = { fit, active };
 	/* Update the GUI toolbar when operating on gfit, or when operating on
 	 * the FLIS base (profiled) layer — which may differ from gfit when a
 	 * non-base layer is active. */
@@ -104,10 +106,13 @@ void color_manage(fits *fit, gboolean active) {
 	if (!update_toolbar && is_current_image_flis())
 		update_toolbar = (fit == flis_get_profiled_fit());
 	if (update_toolbar && !com.script) {
+		struct cm_struct *data = g_new(struct cm_struct, 1);
+		*data = (struct cm_struct){ fit, active };
 		if (g_main_context_is_owner(g_main_context_default())) {
-			cm_worker(&data);
+			cm_worker(data); /* cm_worker frees data */
 		} else {
-			execute_idle_and_wait_for_it(cm_worker, &data);
+			/* Non-blocking: post to GTK main thread; cm_worker frees data. */
+			siril_add_idle(cm_worker, data);
 		}
 	}
 }
@@ -749,17 +754,18 @@ cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
 	return transform;
 }
 
-/* Refreshes the display and proofing transforms after a profile is changed. */
+/* Refreshes the display and proofing transforms after a profile is changed.
+ * May be called from a worker thread; boolean display-state flags are written
+ * with g_atomic_int_set() to avoid data races with concurrent GTK redraws. */
 void refresh_icc_transforms() {
 	if (!com.headless) {
-		gui.icc.same_primaries = same_primaries(flis_get_profiled_fit()->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
+		g_atomic_int_set(&gui.icc.same_primaries, same_primaries(flis_get_profiled_fit()->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL));
 		g_mutex_lock(&display_transform_mutex);
 		if (gui.icc.proofing_transform)
 			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
 		g_mutex_unlock(&display_transform_mutex);
-		gui.icc.profile_changed = TRUE;
-
+		g_atomic_int_set(&gui.icc.profile_changed, TRUE);
 	}
 	if (is_preview_active())
 		copy_gfit_icc_to_backup();
@@ -1210,7 +1216,10 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			color_manage(fit, TRUE);
 			return;
 		} else {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
+			if (processing_in_worker_thread())
+				siril_log_color_message(_("Error: image channel count does not match color profile. Cannot assign this profile.\n"), "red");
+			else
+				siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
 			return;
 		}
 	}
@@ -1236,7 +1245,10 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	}
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
+		if (processing_in_worker_thread())
+			siril_log_color_message(_("Error: Siril only supports Gray or RGB color spaces. Cannot convert to this profile.\n"), "red");
+		else
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
 	void *data = NULL;
@@ -1267,7 +1279,10 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		color_manage(fit, TRUE);
 		siril_debug_print("siril_colorspace_transform() converted a profile\n");
 	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
+		if (processing_in_worker_thread())
+			siril_log_color_message(_("Error: failed to create colorspace transform.\n"), "red");
+		else
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}
 }
 
@@ -1635,73 +1650,135 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_add_idle(end_generic, NULL);
 }
 
-/* ---- Image processing hooks for generic_image_worker ---- */
+/* ---- Dedicated threaded ICC worker ---- */
 
-void free_icc_data(void *p) {
-	struct icc_data *args = (struct icc_data *)p;
+void free_icc_op_args(struct icc_op_args *args) {
 	if (!args) return;
-	if (args->profile)
-		cmsCloseProfile(args->profile);
-	free(args);
+	if (args->profile) cmsCloseProfile(args->profile);
+	g_free(args->undo_label);
+	g_free(args);
 }
 
-/* Hook for profile removal. Calls siril_colorspace_transform with NULL
- * to remove the profile and disable color management. */
-int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	siril_colorspace_transform(fit, NULL);
-	return 0;
-}
-
-gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
-	return g_strdup(_("ICC profile removed"));
-}
-
-/* Hook for profile assignment (no pixel transform).
- * Clears the existing profile first to force the assign-only path
- * in siril_colorspace_transform, then assigns the new profile. */
-int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	struct icc_data *args = (struct icc_data *)gargs->user;
-	if (fit->icc_profile) {
-		cmsCloseProfile(fit->icc_profile);
-		fit->icc_profile = NULL;
+static gboolean icc_op_done_idle(gpointer p) {
+	struct icc_op_args *args = (struct icc_op_args *)p;
+	stop_processing_thread();
+	if (!args->retval) {
+		/* color_manage() on the GTK main thread: updates fit->color_managed flag
+		 * (redundant but harmless) and refreshes the toolbar icon / tooltip. */
+		color_manage(args->profiled, args->profiled->color_managed);
+		gtk_widget_set_sensitive(lookup_widget("icc_convertto"), args->profiled->color_managed);
+		gtk_widget_set_sensitive(lookup_widget("icc_remove"), args->profiled->color_managed);
+		set_source_information();
+		if (args->tab_update_needed) {
+			gui_function(close_tab, NULL);
+			if (is_current_image_flis() && com.uniq)
+				activate_tab(com.uniq->chans >= 3 ? RGB_VPORT : RED_VPORT);
+			else
+				gui_function(init_right_tab, NULL);
+		}
+		gfit_modified_update_gui();
 	}
-	siril_colorspace_transform(fit, args->profile);
-	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error assigning ICC profile.\n"), "red");
-		color_manage(fit, FALSE);
-		return 1;
+	free_icc_op_args(args);
+	return G_SOURCE_REMOVE;
+}
+
+gpointer icc_operation_worker(gpointer p) {
+	struct icc_op_args *args = (struct icc_op_args *)p;
+	fits *profiled = args->profiled;
+
+	g_rw_lock_reader_lock(&com.pref_rwlock);
+	g_rw_lock_writer_lock(&profiled->rwlock);
+
+	/* Snapshot pre-modification state for undo, before any change is made.
+	 * copyfits/CP_FORMAT explicitly nulls icc_profile, so we restore it
+	 * manually so the undo ring buffer records the correct pre-op profile. */
+	fits *orig = calloc(1, sizeof(fits));
+	gboolean has_orig = (orig &&
+	    !copyfits(profiled, orig, CP_ALLOC | CP_FORMAT | CP_COPYA | CP_COPYMASK, -1));
+	if (has_orig) {
+		orig->icc_profile   = copyICCProfile(profiled->icc_profile);
+		orig->color_managed = profiled->color_managed;
 	}
-	return 0;
-}
 
-gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail) {
-	struct icc_data *args = (struct icc_data *)p;
-	gchar *desc = siril_color_profile_get_description(args->profile);
-	gchar *ret = g_strdup_printf(_("Assigned ICC profile: %s"), desc);
-	g_free(desc);
-	return ret;
-}
+	int retval = 0;
+	switch (args->op) {
+		case ICC_OP_REMOVE:
+			if (profiled->icc_profile) {
+				cmsCloseProfile(profiled->icc_profile);
+				profiled->icc_profile = NULL;
+				profiled->history = g_slist_append(profiled->history,
+				                                   g_strdup(_("ICC profile removed")));
+			}
+			profiled->color_managed = FALSE;
+			break;
 
-/* Hook for color space conversion (may transform pixels).
- * Sets the processing intent from args->intent then calls
- * siril_colorspace_transform which handles pixel conversion. */
-int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
-	struct icc_data *args = (struct icc_data *)gargs->user;
-	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
-	com.pref.icc.processing_intent = args->intent;
-	siril_colorspace_transform(fit, args->profile);
-	com.pref.icc.processing_intent = temp_intent;
-	if (!fit->icc_profile) {
-		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
-		return 1;
+		case ICC_OP_ASSIGN:
+			if (profiled->icc_profile)
+				cmsCloseProfile(profiled->icc_profile);
+			profiled->icc_profile = copyICCProfile(args->profile);
+			profiled->color_managed = (profiled->icc_profile != NULL);
+			if (profiled->color_managed) {
+				gchar *desc = siril_color_profile_get_description(args->profile);
+				profiled->history = g_slist_append(profiled->history,
+				    g_strdup_printf(_("Assigned ICC profile: %s"), desc));
+				g_free(desc);
+				refresh_icc_transforms();
+			}
+			break;
+
+		case ICC_OP_CONVERT: {
+			cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+			com.pref.icc.processing_intent = args->intent;
+			if (args->flis_mode) {
+				flis_convert_layers_icc(profiled->icc_profile, args->profile);
+				/* flis_convert_layers_icc updates each layer's color_managed.
+				 * The base layer's profile is the authority for color management. */
+				cmsCloseProfile(profiled->icc_profile);
+				profiled->icc_profile = copyICCProfile(args->profile);
+				profiled->color_managed = (profiled->icc_profile != NULL);
+				/* Update com.uniq->chans so tab activation uses the correct count. */
+				if (com.uniq) {
+					gboolean composite_rgb = FALSE;
+					for (GSList *l = com.uniq->layers; l && !composite_rgb; l = l->next) {
+						flis_layer_t *lay = (flis_layer_t *)l->data;
+						if (!lay || !lay->fit || !lay->visible) continue;
+						if (lay->fit->naxes[2] >= 3) composite_rgb = TRUE;
+						if (lay->has_tint)           composite_rgb = TRUE;
+					}
+					com.uniq->chans = composite_rgb ? 3 : 1;
+				}
+			} else {
+				siril_colorspace_transform(profiled, args->profile);
+				if (!profiled->icc_profile) {
+					siril_log_color_message(_("Error converting ICC color space.\n"), "red");
+					retval = 1;
+				}
+			}
+			com.pref.icc.processing_intent = temp_intent;
+			if (!retval)
+				refresh_icc_transforms();
+			break;
+		}
 	}
-	return 0;
-}
 
-gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail) {
-	struct icc_data *args = (struct icc_data *)p;
-	gchar *desc = siril_color_profile_get_description(args->profile);
-	gchar *ret = g_strdup_printf(_("Converted to ICC profile: %s"), desc);
-	g_free(desc);
-	return ret;
+	if (!retval) {
+		notify_gfit_data_modified();
+		if (has_orig)
+			undo_save_state(orig, "%s", args->undo_label);
+	}
+
+	args->retval = retval;
+	g_rw_lock_writer_unlock(&profiled->rwlock);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+	if (orig) { clearfits(orig); free(orig); }
+
+	if (com.script) {
+		/* Script / headless path: perform essential non-GTK cleanup synchronously. */
+		stop_processing_thread();
+		free_icc_op_args(args);
+	} else {
+		siril_add_idle(icc_op_done_idle, args);
+	}
+	return GINT_TO_POINTER(retval);
 }
