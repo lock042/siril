@@ -840,8 +840,13 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
             pre_g = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[GLAYER];
             pre_b = mono ? lfit->fpdata[RLAYER] : lfit->fpdata[BLAYER];
         } else {
+            /* Convert the layer's own pixel data (lW×lH) to float, not the
+             * canvas area (W×H).  The blend loops index into this buffer with
+             * layer-local stride lW, so the channel offsets must match lW×lH,
+             * not the (potentially larger) canvas N = W×H. */
+            const size_t LN = (size_t)lfit->rx * lfit->ry;
             const size_t n_planes = mono ? 1 : 3;
-            float_buf = malloc(N * n_planes * sizeof(float));
+            float_buf = malloc(LN * n_planes * sizeof(float));
             if (!float_buf) { PRINT_ALLOC_ERR; continue; }
 
             const WORD *sw[3] = {
@@ -850,16 +855,16 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
                 mono ? lfit->pdata[RLAYER] : lfit->pdata[BLAYER]
             };
             for (size_t _c = 0; _c < n_planes; _c++) {
-                float      *fw  = float_buf + _c * N;
+                float      *fw  = float_buf + _c * LN;
                 const WORD *src = sw[_c];
                 FLIS_OMP_PAR_FOR_SIMD
-                for (size_t _k = 0; _k < N; _k++)
+                for (size_t _k = 0; _k < LN; _k++)
                     fw[_k] = src[_k] * INV_USHRT_MAX_SINGLE;
             }
 
             pre_r = float_buf;
-            pre_g = mono ? float_buf : float_buf + N;
-            pre_b = mono ? float_buf : float_buf + N * 2;
+            pre_g = mono ? float_buf : float_buf + LN;
+            pre_b = mono ? float_buf : float_buf + LN * 2;
         }
 
         const float tr = (mono && lay->has_tint) ? (float)lay->layer_tint.r : 1.f;
