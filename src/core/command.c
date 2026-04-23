@@ -80,6 +80,7 @@
 #include "gui/keywords_tree.h"
 #include "gui/newdeconv.h"
 #include "gui/siril_preview.h"
+#include "gui/flis_gui.h"
 #include "gui/stacking.h"
 #include "gui/registration.h"
 #include "gui/registration_preview.h"
@@ -12559,6 +12560,7 @@ int process_rgbcomp(int nb) {
 
 // used for PCC and SPCC commands
 static int do_pcc(int nb, gboolean spectro) {
+	NOT_FOR_LAYER_GROUP(CMD_GENERIC_ERROR);
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;

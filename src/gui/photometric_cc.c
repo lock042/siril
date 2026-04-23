@@ -30,6 +30,7 @@
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
+#include "gui/flis_gui.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
 #include "gui/siril_plot.h"
@@ -478,6 +479,7 @@ int get_spcc_catalog_from_GUI() {
  */
 
 void on_button_cc_ok_clicked(GtkButton *button, gpointer user_data) {
+	NOT_FOR_LAYER_GROUP();
 	GtkToggleButton *auto_bkg;
 
 	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
@@ -490,6 +492,7 @@ void on_button_cc_ok_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_spcc_ok_clicked(GtkButton *button, gpointer user_data) {
+	NOT_FOR_LAYER_GROUP();
 	GtkToggleButton *auto_bkg;
 
 	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));

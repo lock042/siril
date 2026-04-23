@@ -15,9 +15,9 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
-
-/* Forward declaration to avoid pulling in image_format_flis.h */
-typedef struct _flis_group_t flis_group_t;
+#include "io/image_format_flis.h"
+#include "core/siril_log.h"
+#include "gui/message_dialog.h"
 
 /**
  * flis_gui_init:
@@ -118,5 +118,25 @@ void flis_group_drag_begin(flis_group_t *group);
  * Moves all group members by (dx, dy) from their recorded original positions.
  */
 void flis_group_drag_update(gint dx, gint dy);
+
+/**
+ * NOT_FOR_LAYER_GROUP:
+ * @retval: value to return if a layer group is currently selected.
+ *          Pass nothing (empty) for void functions; pass e.g. CMD_GENERIC_ERROR
+ *          for command handlers.
+ *
+ * Guard macro: when a FLIS layer group is the active selection the enclosed
+ * operation cannot be applied (the group has no pixel data of its own).
+ * Emits a red log message and an error dialog, then returns @retval.
+ */
+#define NOT_FOR_LAYER_GROUP(retval) \
+	do { \
+		if (is_current_image_flis() && flis_get_selected_group()) { \
+			siril_log_color_message(_("This operation cannot be applied to a layer group. Select an individual layer first.\n"), "red"); \
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Layer Group Selected"), \
+				_("This operation cannot be applied to a layer group. Please select an individual layer first.")); \
+			return retval; \
+		} \
+	} while (0)
 
 #endif /* FLIS_GUI_H */
