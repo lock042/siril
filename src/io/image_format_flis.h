@@ -410,19 +410,46 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
                                                 double angle);
 
 /**
- * flis_canvas_rx / flis_canvas_ry:
+ * flis_expand_canvas_to_all_layers:
  *
- * Return the canvas (base-layer) width/height.  For non-FLIS images these
- * simply return gfit->rx / gfit->ry, so callers can use them unconditionally.
+ * Expands the canvas so it encompasses the bounding box of every layer
+ * (using their current position_x/y offsets).  All layer offsets are
+ * shifted so the leftmost/bottommost corner maps to (0,0).  Invalidates
+ * the composite.  No-op when no FLIS is loaded.
  */
-guint flis_canvas_rx(void);
-guint flis_canvas_ry(void);
+void flis_expand_canvas_to_all_layers(void);
+
+/**
+ * flis_clip_canvas_to_active_layer:
+ *
+ * Sets the canvas to the pixel dimensions of the currently active layer,
+ * placing that layer at offset (0,0).  All other layer offsets are
+ * adjusted by the same amount.  Layers that fall outside the new canvas
+ * bounds are not removed.  Invalidates the composite.  No-op when no
+ * FLIS is loaded.
+ */
+void flis_clip_canvas_to_active_layer(void);
+
+/**
+ * flis_crop_all_layers_to_selection:
+ *
+ * Crops every layer's pixel data to its intersection with com.selection,
+ * repositions all layer offsets relative to the selection origin, and
+ * sets the canvas to the selection dimensions.  Layers with no
+ * intersection retain their pixel data but are repositioned (they will
+ * fall outside the new canvas).  An undo state is saved before any
+ * modification.
+ *
+ * Returns 0 on success, 1 if there is no active selection or no FLIS
+ * is loaded.
+ */
+int flis_crop_all_layers_to_selection(void);
 
 /**
  * flis_canvas_to_pixel_index:
  * @cx:        x coordinate in canvas display space (0 = left)
  * @cy_disp:   y coordinate in canvas display space (0 = top)
- * @canvas_ry: canvas height (pass flis_canvas_ry())
+ * @canvas_ry: canvas height (pass canvas_ry() from gui/utils.h)
  * @out_idx:   receives the flat array index within gfit->pdata / gfit->fpdata
  *
  * Converts a canvas display coordinate to a pixel array index inside the

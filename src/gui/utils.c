@@ -26,6 +26,7 @@
 #include "algos/statistics.h"
 #include "core/arithm.h"
 #include "io/single_image.h"
+#include "io/image_format_flis.h"
 #include "gui/callbacks.h"
 #include "core/siril_log.h"
 #include "utils.h"
@@ -440,4 +441,17 @@ GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba) {
     rgba.alpha = (packed_rgba & 0xFF) / 255.0;
 
     return rgba;
+}
+
+/* Return the current canvas width/height.  For a FLIS image this is the
+ * independently-tracked com.uniq->canvas_rx/ry; for all other image types
+ * (plain FITS, sequence frame) it falls back to gfit->rx/ry. */
+guint canvas_rx(void) {
+    if (!is_current_image_flis() || !com.uniq) return gfit->rx;
+    return com.uniq->canvas_rx ? com.uniq->canvas_rx : gfit->rx;
+}
+
+guint canvas_ry(void) {
+    if (!is_current_image_flis() || !com.uniq) return gfit->ry;
+    return com.uniq->canvas_ry ? com.uniq->canvas_ry : gfit->ry;
 }

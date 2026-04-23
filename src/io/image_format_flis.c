@@ -55,6 +55,7 @@
 #include "core/icc_profile.h"
 #include "core/masks.h"
 #include "core/undo.h"
+#include "algos/geometry.h"
 #include "algos/statistics.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -955,10 +956,12 @@ void flis_layer_free(flis_layer_t *layer) {
 void flis_free_layers(single *uniq) {
     if (!uniq) return;
     g_slist_free_full(uniq->layers, (GDestroyNotify)flis_layer_free);
-    uniq->layers = NULL;
-    uniq->fit    = NULL;
-    uniq->chans  = 0;
+    uniq->layers    = NULL;
+    uniq->fit       = NULL;
+    uniq->chans     = 0;
     uniq->active_layer = 0;
+    uniq->canvas_rx = 0;
+    uniq->canvas_ry = 0;
     flis_free_groups(uniq);
 }
 
@@ -1011,10 +1014,14 @@ int save_flis(const gchar *filename) {
     GSList *sorted = g_slist_copy(com.uniq->layers);
     sorted = g_slist_sort(sorted, (GCompareFunc)layer_order_cmp);
 
-    /* Determine canvas dimensions from the base layer (lowest layer_order) */
     flis_layer_t *base = (flis_layer_t *)sorted->data;
-    long canvas_w = base->fit ? base->fit->rx : 0;
-    long canvas_h = base->fit ? base->fit->ry : 0;
+
+    /* Use the independently-tracked canvas dimensions.  Fall back to the base
+     * layer size for files promoted before canvas tracking was introduced. */
+    long canvas_w = (com.uniq->canvas_rx > 0) ? (long)com.uniq->canvas_rx
+                  : (base->fit ? (long)base->fit->rx : 0);
+    long canvas_h = (com.uniq->canvas_ry > 0) ? (long)com.uniq->canvas_ry
+                  : (base->fit ? (long)base->fit->ry : 0);
 
     /* Determine whether an ICC profile should be written.
      * Use the base layer's ICC profile for the whole file. */
@@ -1462,6 +1469,18 @@ int load_flis(const gchar *filename) {
     }
     com.uniq->next_item_id = max_id + 1;
 
+    /* Set canvas dimensions from the file keywords.  If the file predates
+     * independent canvas tracking (keywords absent or zero), fall back to the
+     * base layer's pixel dimensions. */
+    if (canvas_w > 0 && canvas_h > 0) {
+        com.uniq->canvas_rx = (guint)canvas_w;
+        com.uniq->canvas_ry = (guint)canvas_h;
+    } else {
+        flis_layer_t *base_lay = layers ? (flis_layer_t *)layers->data : NULL;
+        com.uniq->canvas_rx = (base_lay && base_lay->fit) ? base_lay->fit->rx : 0;
+        com.uniq->canvas_ry = (base_lay && base_lay->fit) ? base_lay->fit->ry : 0;
+    }
+
     /* Set active layer to the base (index 0 = lowest layer_order after sort) */
     uniq_set_active_layer(com.uniq, 0);
 
@@ -1896,16 +1915,211 @@ void flis_update_all_layer_offsets_after_rotate(gint old_rx, gint old_ry,
                       angle, old_rx, old_ry, new_rx, new_ry);
 }
 
-guint flis_canvas_rx(void) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->rx;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    return (base && base->fit) ? (guint)base->fit->rx : gfit->rx;
+
+/*
+ * Expand the canvas so it encompasses every layer's bounding box.
+ *
+ * All layer offsets are shifted so that the leftmost/bottommost layer
+ * corner maps to (0,0).  canvas_rx/ry are updated to the resulting size.
+ * No-op when there is only one layer or all layers already fit inside the
+ * current canvas.
+ */
+void flis_expand_canvas_to_all_layers(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    gint min_x = G_MAXINT, min_y = G_MAXINT;
+    gint max_x = G_MININT, max_y = G_MININT;
+
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+        min_x = MIN(min_x, lay->position_x);
+        min_y = MIN(min_y, lay->position_y);
+        max_x = MAX(max_x, lay->position_x + (gint)lay->fit->rx);
+        max_y = MAX(max_y, lay->position_y + (gint)lay->fit->ry);
+    }
+
+    if (min_x >= max_x || min_y >= max_y) return;
+
+    /* Shift all offsets so the bounding box origin is (0,0). */
+    if (min_x != 0 || min_y != 0) {
+        for (GSList *l = com.uniq->layers; l; l = l->next) {
+            flis_layer_t *lay = (flis_layer_t *)l->data;
+            if (!lay) continue;
+            lay->position_x -= min_x;
+            lay->position_y -= min_y;
+        }
+    }
+
+    com.uniq->canvas_rx = (guint)(max_x - min_x);
+    com.uniq->canvas_ry = (guint)(max_y - min_y);
+
+    flis_invalidate_composite();
+    siril_log_message(_("FLIS: canvas expanded to %dx%d pixels\n"),
+                      com.uniq->canvas_rx, com.uniq->canvas_ry);
 }
 
-guint flis_canvas_ry(void) {
-    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return gfit->ry;
-    flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-    return (base && base->fit) ? (guint)base->fit->ry : gfit->ry;
+/*
+ * Clip the canvas to the currently active layer.
+ *
+ * The active layer is placed at offset (0,0) and the canvas is set to
+ * match its pixel dimensions.  All other layer offsets are adjusted
+ * accordingly.  Layers that fall outside the new canvas are not removed
+ * but may be partially or fully out of view.
+ */
+void flis_clip_canvas_to_active_layer(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return;
+
+    flis_layer_t *active = flis_active_layer();
+    if (!active || !active->fit) return;
+
+    gint off_x = active->position_x;
+    gint off_y = active->position_y;
+    guint new_rx = active->fit->rx;
+    guint new_ry = active->fit->ry;
+
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay) continue;
+        lay->position_x -= off_x;
+        lay->position_y -= off_y;
+    }
+
+    com.uniq->canvas_rx = new_rx;
+    com.uniq->canvas_ry = new_ry;
+
+    flis_invalidate_composite();
+    siril_log_message(_("FLIS: canvas clipped to active layer (%dx%d pixels)\n"),
+                      new_rx, new_ry);
+}
+
+/*
+ * Crop every layer to its intersection with the current selection rectangle,
+ * then set the canvas to the selection size.
+ *
+ * All coordinates (position_x/y, com.selection) are in display space:
+ * x = 0 at left, y = 0 at top, increasing rightward/downward.
+ *
+ * For layers that fully contain the selection, only a position adjustment
+ * is applied.  For layers that partially overlap, the pixel data is cropped
+ * to the intersection.  Layers with no intersection are left at their
+ * current pixel size but repositioned outside the new canvas — they remain
+ * invisible but are not deleted.
+ *
+ * Returns 0 on success, 1 if no valid selection or nothing to do.
+ */
+int flis_crop_all_layers_to_selection(void) {
+    if (!is_current_image_flis() || !com.uniq || !com.uniq->layers) return 1;
+
+    const rectangle sel = com.selection;
+    if (sel.w <= 0 || sel.h <= 0) {
+        siril_log_color_message(_("FLIS: no selection active for crop\n"), "red");
+        return 1;
+    }
+
+    /* Save undo state for all layers before any pixel data is modified. */
+    if (undo_save_flis_multi_layer(com.uniq->layers, _("Crop layers to selection"))) {
+        siril_log_color_message(
+            _("Warning: could not save undo state before crop.\n"), "salmon");
+    }
+
+    gint n_cropped = 0, n_adjusted = 0;
+
+    for (GSList *l = com.uniq->layers; l; l = l->next) {
+        flis_layer_t *lay = (flis_layer_t *)l->data;
+        if (!lay || !lay->fit) continue;
+
+        const gint lx1 = lay->position_x;
+        const gint ly1 = lay->position_y;
+        const gint lx2 = lx1 + (gint)lay->fit->rx;
+        const gint ly2 = ly1 + (gint)lay->fit->ry;
+
+        const gint sx1 = sel.x;
+        const gint sy1 = sel.y;
+        const gint sx2 = sel.x + sel.w;
+        const gint sy2 = sel.y + sel.h;
+
+        /* Intersection in canvas display coords */
+        const gint ix1 = MAX(sx1, lx1);
+        const gint iy1 = MAX(sy1, ly1);
+        const gint ix2 = MIN(sx2, lx2);
+        const gint iy2 = MIN(sy2, ly2);
+
+        if (ix2 <= ix1 || iy2 <= iy1) {
+            /* No intersection — reposition relative to new canvas origin but
+             * do not modify pixel data. */
+            lay->position_x -= sel.x;
+            lay->position_y -= sel.y;
+            continue;
+        }
+
+        /* Layer-local crop rectangle in display coords (y=0 = layer top) */
+        rectangle local = {
+            .x = ix1 - lx1,
+            .y = iy1 - ly1,
+            .w = ix2 - ix1,
+            .h = iy2 - iy1
+        };
+
+        /* Full layer already inside selection — no pixel crop needed */
+        if (local.x == 0 && local.y == 0 &&
+            local.w == (gint)lay->fit->rx && local.h == (gint)lay->fit->ry) {
+            lay->position_x = lx1 - sel.x;
+            lay->position_y = ly1 - sel.y;
+            n_adjusted++;
+            continue;
+        }
+
+        /* Also crop the layer mask if present */
+        if (lay->lmask) {
+            if (local.w > 0 && local.h > 0 &&
+                (size_t)local.w <= lay->lmask->w &&
+                (size_t)local.h <= lay->lmask->h) {
+                size_t new_npix = (size_t)local.w * local.h;
+                uint8_t *newdata = malloc(new_npix);
+                if (newdata) {
+                    for (int row = 0; row < local.h; row++) {
+                        /* lmask data is stored top-to-bottom (display order) */
+                        size_t src_off = (size_t)(local.y + row) * lay->lmask->w + local.x;
+                        size_t dst_off = (size_t)row * local.w;
+                        memcpy(newdata + dst_off,
+                               (uint8_t *)lay->lmask->data + src_off,
+                               local.w);
+                    }
+                    free(lay->lmask->data);
+                    lay->lmask->data = newdata;
+                    lay->lmask->w = (size_t)local.w;
+                    lay->lmask->h = (size_t)local.h;
+                }
+            }
+        }
+
+        if (crop(lay->fit, &local)) {
+            siril_log_color_message(
+                _("FLIS: crop failed for layer '%s', skipping\n"), "salmon",
+                lay->layer_name ? lay->layer_name : "?");
+            lay->position_x = lx1 - sel.x;
+            lay->position_y = ly1 - sel.y;
+            continue;
+        }
+
+        lay->position_x = ix1 - sel.x;
+        lay->position_y = iy1 - sel.y;
+        n_cropped++;
+    }
+
+    /* Update canvas to selection size */
+    com.uniq->canvas_rx = (guint)sel.w;
+    com.uniq->canvas_ry = (guint)sel.h;
+
+    /* Re-sync gfit to whichever layer is active after the crop */
+    uniq_set_active_layer(com.uniq, com.uniq->active_layer);
+
+    flis_invalidate_composite();
+    siril_log_message(
+        _("FLIS: crop to selection complete — %d layer(s) cropped, %d repositioned\n"),
+        n_cropped, n_adjusted);
+    return 0;
 }
 
 gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
@@ -1967,6 +2181,13 @@ int flis_promote_from_gfit(const gchar *name) {
     base->modified    = g_strdup(base->created);
 
     com.uniq->layers = g_slist_prepend(NULL, base);
+
+    /* Canvas starts at the base layer's pixel dimensions with the base
+     * layer at offset (0,0).  From this point canvas_rx/ry are maintained
+     * independently of the base layer's position. */
+    com.uniq->canvas_rx = gfit->rx;
+    com.uniq->canvas_ry = gfit->ry;
+
     uniq_set_active_layer(com.uniq, 0);
 
     /* com.uniq->filename and fileexist are already correct from

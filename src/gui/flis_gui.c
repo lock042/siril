@@ -2061,6 +2061,39 @@ void on_flis_move_layer_toggled(GtkToggleButton *btn, gpointer data) {
     }
 }
 
+void on_flis_expand_canvas_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!is_current_image_flis()) return;
+    flis_expand_canvas_to_all_layers();
+    flis_gui_update();
+    notify_gfit_data_modified();
+    redraw(REMAP_ALL);
+}
+
+void on_flis_clip_canvas_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!is_current_image_flis()) return;
+    flis_clip_canvas_to_active_layer();
+    flis_gui_update();
+    notify_gfit_data_modified();
+    redraw(REMAP_ALL);
+}
+
+void on_flis_crop_to_selection_activate(GtkMenuItem *item, gpointer data) {
+    (void)item; (void)data;
+    if (!is_current_image_flis()) return;
+    if (com.selection.w <= 0 || com.selection.h <= 0) {
+        siril_message_dialog(GTK_MESSAGE_INFO, _("Crop Layers to Selection"),
+                             _("No selection is active. Draw a selection rectangle first."));
+        return;
+    }
+    if (flis_crop_all_layers_to_selection()) return;
+    delete_selected_area();
+    flis_gui_update();
+    notify_gfit_data_modified();
+    redraw(REMAP_ALL);
+}
+
 /*
  * Export the currently selected FLIS layer to a plain FITS file.
  *

@@ -299,8 +299,8 @@ gboolean is_inside_of_sel(pointi zoomed, double zoom) {
    Returns true if point was inside, false otherwise.
 */
 static gboolean clamp2image(pointi* pt) {
-	gint crx = (gint)flis_canvas_rx();
-	gint cry = (gint)flis_canvas_ry();
+	gint crx = (gint)canvas_rx();
+	gint cry = (gint)canvas_ry();
 	gboolean x_inside = FALSE;
 	if (pt->x < 0) {
 		pt->x = 0;
@@ -354,8 +354,8 @@ GdkModifierType get_primary() {
 }
 
 void enforce_ratio_and_clamp() {
-	gint crx = (gint)flis_canvas_rx();
-	gint cry = (gint)flis_canvas_ry();
+	gint crx = (gint)canvas_rx();
+	gint cry = (gint)canvas_ry();
 	if (gui.ratio > 0.0
 		&& !(gui.freezeX && gui.freezeY)) {
 		// Enforce a ratio for the selection
@@ -493,10 +493,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	/* Compute layer-local pixel index early — needed by both the histogram
 	 * and the density label.  For an offset non-base FLIS layer the cursor
 	 * may be inside the canvas (inside==TRUE) but outside the layer. */
-	guint canvas_ry = flis_canvas_ry();
 	size_t pixel_idx = 0;
 	gboolean in_layer = inside &&
-	    flis_canvas_to_pixel_index(zoomed.x, zoomed.y, canvas_ry, &pixel_idx);
+	    flis_canvas_to_pixel_index(zoomed.x, zoomed.y, canvas_ry(), &pixel_idx);
 
 	if (in_layer) {
 		histogram_update_cursor_value(pixel_idx);
@@ -551,10 +550,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		int coords_width = 3;
 		int vport = select_vport(gui.cvport);
 
-		guint crx = flis_canvas_rx();
-		if (crx >= 1000 || canvas_ry >= 1000)
+		if (canvas_rx() >= 1000 || canvas_ry() >= 1000)
 			coords_width = 4;
-		if (crx >= 10000 || canvas_ry >= 10000)
+		if (canvas_rx() >= 10000 || canvas_ry() >= 10000)
 			coords_width = 5;
 		if (vport < MASK_VPORT) {
 			if (gfit->type == DATA_USHORT && gfit->pdata[vport] != NULL) {

@@ -594,6 +594,32 @@
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="flis_expand_canvas_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Expand Canvas to All Layers</property>
+        <signal name="activate" handler="on_flis_expand_canvas_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_clip_canvas_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Clip Canvas to Current Layer</property>
+        <signal name="activate" handler="on_flis_clip_canvas_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="flis_crop_to_selection_item">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Crop All Layers to Selection</property>
+        <signal name="activate" handler="on_flis_crop_to_selection_activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="flis_merge_down_item">
         <property name="visible">True</property>
         <property name="label" translatable="yes">Merge Down</property>

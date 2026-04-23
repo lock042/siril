@@ -487,11 +487,22 @@ typedef struct {
 	gboolean    fileexist;
 	char       *comment;
 
+	/* ---- Canvas size -------------------------------------------------- */
+	guint       canvas_rx;          /* Canvas width in pixels.  Initialised
+									from the base layer on file open or
+									promotion and stored in FLISSIZX.
+									Maintained independently: moving the
+									base layer does not change this value;
+									only explicit canvas operations (expand,
+									clip) or a geometric transform applied
+									to the base layer updates it.         */
+	guint       canvas_ry;          /* Canvas height in pixels (FLISSIZY). */
+
 	/* ---- Layer list --------------------------------------------------- */
 	GSList     *layers;             /* Ordered list of flis_layer_t*.
 									Sorted ascending by layer_order
 									for compositing; lowest order is
-									the base layer (defines canvas).   */
+									the base layer.                    */
 	GSList     *groups;             /* List of flis_group_t*, unsorted.
 									Each group is a named container for
 									a subset of layers.                */

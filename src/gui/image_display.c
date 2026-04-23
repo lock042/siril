@@ -663,10 +663,11 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
     /* When building a group sub-composite the caller passes the main-canvas
      * dimensions so that layer positions (which are in canvas coordinates)
      * are resolved correctly and the output buffer matches the canvas stride
-     * expected by the blending-back code.  Fall back to the base layer's own
-     * dimensions for the top-level composite call. */
-    const guint W  = (canvas_W > 0) ? canvas_W : (guint)base->fit->rx;
-    const guint H  = (canvas_H > 0) ? canvas_H : (guint)base->fit->ry;
+     * expected by the blending-back code.  For the top-level composite use
+     * canvas_rx/ry() so that an expanded or clipped canvas is respected even
+     * when the base layer's pixel dimensions have not changed. */
+    const guint W  = (canvas_W > 0) ? canvas_W : canvas_rx();
+    const guint H  = (canvas_H > 0) ? canvas_H : canvas_ry();
     const size_t N = (size_t)W * H;
 
     fits *out = calloc(1, sizeof(fits));
@@ -2205,9 +2206,9 @@ static void draw_roi(const draw_data_t *dd) {
 
 static void draw_selection(const draw_data_t* dd) {
 	if (com.selection.w > 0 && com.selection.h > 0) {
-		if ((com.selection.x + com.selection.w > (gint)flis_canvas_rx()) ||
-		(com.selection.y + com.selection.h > (gint)flis_canvas_ry())) {
-			rectangle area = {0, 0, (gint)flis_canvas_rx(), (gint)flis_canvas_ry()};
+		if ((com.selection.x + com.selection.w > (gint)canvas_rx()) ||
+		(com.selection.y + com.selection.h > (gint)canvas_ry())) {
+			rectangle area = {0, 0, (gint)canvas_rx(), (gint)canvas_ry()};
 			memcpy(&com.selection, &area, sizeof(rectangle));
 		}
 		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
@@ -3064,8 +3065,8 @@ static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
 	gdouble resolution = get_wcs_image_resolution(gfit);
 	if (resolution <= 0) return;
-	double width = (double) flis_canvas_rx();
-	double height = (double) flis_canvas_ry();
+	double width = (double) canvas_rx();
+	double height = (double) canvas_ry();
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
@@ -3226,7 +3227,7 @@ static void draw_analysis(const draw_data_t* dd) {
 		g_free(str);
 		/* fwhm center */
 		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
-		cairo_move_to(cr, flis_canvas_rx() / 2.0, (flis_canvas_ry() / 2.0) + size);
+		cairo_move_to(cr, canvas_rx() / 2.0, (canvas_ry() / 2.0) + size);
 		cairo_show_text(cr, str);
 		cairo_stroke(cr);
 		g_free(str);
@@ -3371,16 +3372,10 @@ double get_zoom_val() {
 	window_height = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
 	if (gfit->rx == 0 || gfit->ry == 0 || window_height <= 1 || window_width <= 1)
 		return 1.0;
-	fits *fit = gfit;
-	if (is_current_image_flis() && com.uniq && com.uniq->layers) {
-		flis_layer_t *base = (flis_layer_t *)com.uniq->layers->data;
-		if (base && base->fit)
-			fit = base->fit;
-	}
-	if (fit->rx == 0 || fit->ry == 0)
+	if (canvas_rx() == 0 || canvas_ry() == 0)
 		return 1.0;
-	double wtmp = (double) window_width / (double) fit->rx;
-	double htmp = (double) window_height / (double) fit->ry;
+	double wtmp = (double) window_width  / (double) canvas_rx();
+	double htmp = (double) window_height / (double) canvas_ry();
 	return min(wtmp, htmp);
 }
 
@@ -3739,8 +3734,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 
 	dd.zoom = get_zoom_val();
-	dd.image_width = flis_canvas_rx();
-	dd.image_height = flis_canvas_ry();
+	dd.image_width = canvas_rx();
+	dd.image_height = canvas_ry();
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 
 	GVariant *state = g_action_get_state(action_neg);
@@ -3848,8 +3843,8 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	dd.window_width = gtk_widget_get_allocated_width(widget);
 	dd.window_height = gtk_widget_get_allocated_height(widget);
 	dd.zoom = get_zoom_val();
-	dd.image_width = flis_canvas_rx();
-	dd.image_height = flis_canvas_ry();
+	dd.image_width = canvas_rx();
+	dd.image_height = canvas_ry();
 	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
 	dd.neg_view = g_variant_get_boolean(state);
 	g_variant_unref(state);

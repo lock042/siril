@@ -1683,8 +1683,8 @@ gpointer generic_image_worker(gpointer p) {
 			/* ---- Geometry correction setup --------------------------------
 			 * Must happen before the loop so we have the canvas dims and
 			 * rotation coefficients before any hooks change fit->rx/ry. */
-			gint _grp_canvas_rx_before = (gint)flis_canvas_rx();
-			gint _grp_canvas_ry_before = (gint)flis_canvas_ry();
+			gint _grp_canvas_rx_before = (gint)canvas_rx();
+			gint _grp_canvas_ry_before = (gint)canvas_ry();
 
 			gboolean _is_rotation = (args->image_hook == rotation_image_hook);
 			gboolean _is_mirrorx  = (args->image_hook == mirrorx_image_hook);
@@ -1726,7 +1726,7 @@ gpointer generic_image_worker(gpointer p) {
 					_new_canvas_ry = _grp_canvas_rx_before;
 				}
 				/* For 180° the dims are unchanged; for general angles the
-				 * new canvas size is read from flis_canvas_rx() after the
+				 * new canvas size is read from canvas_rx() after the
 				 * base layer's hook call below (updated inline). */
 			}
 			/* ---- End geometry setup --------------------------------------- */
@@ -1839,12 +1839,22 @@ gpointer generic_image_worker(gpointer p) {
 					}
 				}
 
+				/* After any geometric hook on the base layer: sync the
+				 * independently-tracked canvas size.  Moving the base layer
+				 * (position_x/y) does not reach here, so this only fires for
+				 * operations that actually change the pixel dimensions. */
+				if (_lay == _grp_base && !args->retval && _lay->fit &&
+				    is_current_image_flis() && com.uniq) {
+					com.uniq->canvas_rx = _lay->fit->rx;
+					com.uniq->canvas_ry = _lay->fit->ry;
+				}
+
 				/* For general (non-90°-multiple) rotation: after the base
 				 * layer's hook, read the actual new canvas dims from the
 				 * updated base fit so subsequent layers use the right centre. */
 				if (_is_rotation && _lay == _grp_base) {
-					_new_canvas_rx = (gint)flis_canvas_rx();
-					_new_canvas_ry = (gint)flis_canvas_ry();
+					_new_canvas_rx = (gint)canvas_rx();
+					_new_canvas_ry = (gint)canvas_ry();
 				}
 
 				if (_is_resample && _rs_geom && _lay != _grp_base) {
@@ -1967,7 +1977,7 @@ gpointer generic_image_worker(gpointer p) {
 				if (_is_mirrorx) {
 					/* mirrorx = vertical flip (swaps rows).
 					 * Reflect each member's canvas y-position. */
-					guint _ch = flis_canvas_ry();
+					guint _ch = canvas_ry();
 					for (GSList *l = _grp_members; l; l = l->next) {
 						flis_layer_t *_lay = l->data;
 						if (_lay && _lay->fit)
@@ -1978,7 +1988,7 @@ gpointer generic_image_worker(gpointer p) {
 				} else if (_is_mirrory) {
 					/* mirrory = horizontal flip (flip_top_to_bottom + rotate_pi).
 					 * Reflect each member's canvas x-position. */
-					guint _cw = flis_canvas_rx();
+					guint _cw = canvas_rx();
 					for (GSList *l = _grp_members; l; l = l->next) {
 						flis_layer_t *_lay = l->data;
 						if (_lay && _lay->fit)
