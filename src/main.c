@@ -85,11 +85,6 @@
 // Forward decl to avoid including all of photometric_cc.h
 void initialize_spcc_mirrors();
 
-/* the global variables of the whole project */
-cominfo com = { 0 };	// the core data struct
-guiinfo gui = { 0 };	// the gui data struct
-fits gfit;	// currently loaded image
-
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
 static gchar *main_option_initfile = NULL;

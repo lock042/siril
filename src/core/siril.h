@@ -929,10 +929,8 @@ struct cominf {
 	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
 };
 
-#ifndef MAIN
 extern guiinfo gui;
 extern cominfo com;		// the main data struct
 extern fits gfit;		// currently loaded image
-#endif
 
 #endif /*SIRIL */

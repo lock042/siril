@@ -55,5 +55,5 @@ set_target_properties(htmesh PROPERTIES
 #endif ()
 
 # If you wish to compile the HTMesh perl wrapper, uncomment this, rebuild and copy the library into /usr/lib/, because we will use it as a shared object. See README in the perl wrapper directory (kstars/kstars/data/tools/HTMesh-*) for more details.
-#set_property(TARGET htmesh PROPERTY POSITION_INDEPENDENT_CODE YES)
+set_property(TARGET htmesh PROPERTY POSITION_INDEPENDENT_CODE YES)
 

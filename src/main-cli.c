@@ -71,11 +71,6 @@
 #include "io/siril_pythonmodule.h"
 #include "gui/progress_and_log.h"
 
-/* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
-fits gfit;	// currently loaded image
-
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
 static gchar *main_option_initfile = NULL;

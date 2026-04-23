@@ -20,6 +20,8 @@ configure_file(output : 'config.h',
 # Generate Siril static library with all sources
 
 src_files = [
+  'global.c',
+
   'algos/anscombe.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
@@ -304,14 +306,16 @@ siril_resources = gnome.compile_resources(
   source_dir : [ '..', '.' ],
   c_name : 'siril_resource')
 
-siril_lib = static_library('siril',
+siril_lib = both_libraries('siril',
                            siril_resources[0], src_files,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
-                           cpp_args : siril_cpp_flag)
+                           cpp_args : siril_cpp_flag,
+                           link_args : siril_link_arg,
+                           install: true)
 
-siril_dep = declare_dependency(link_with: siril_lib,
+siril_dep = declare_dependency(link_with: siril_lib.get_static_lib(),
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
@@ -322,7 +326,7 @@ siril_dep = declare_dependency(link_with: siril_lib,
 
 siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        dependencies: siril_dep,
-                       link_whole: siril_lib,
+                       link_whole: siril_lib.get_static_lib(),
                        link_args : siril_link_arg,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
@@ -335,7 +339,7 @@ siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
 
 siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        dependencies: siril_dep,
-                       link_whole: siril_lib,
+                       link_whole: siril_lib.get_static_lib(),
                        link_args : siril_link_arg,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
