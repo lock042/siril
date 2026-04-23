@@ -646,20 +646,27 @@ static void flis_blend_chroma_pixel(float opacity,
  * USHORT sources are converted to float once per layer, not per pixel.
  * The inner loops are tagged with omp simd for auto-vectorisation.
  * ------------------------------------------------------------------------- */
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite);
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+                                          guint canvas_W, guint canvas_H);
 
 fits *flis_render_layers(GSList *layers) {
-    return flis_render_layers_internal(layers, FALSE);
+    return flis_render_layers_internal(layers, FALSE, 0, 0);
 }
 
-static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite) {
+static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
+                                          guint canvas_W, guint canvas_H) {
     if (!layers) return NULL;
 
     flis_layer_t *base = (flis_layer_t *)layers->data;
     if (!base || !base->fit) return NULL;
 
-    const guint W  = base->fit->rx;
-    const guint H  = base->fit->ry;
+    /* When building a group sub-composite the caller passes the main-canvas
+     * dimensions so that layer positions (which are in canvas coordinates)
+     * are resolved correctly and the output buffer matches the canvas stride
+     * expected by the blending-back code.  Fall back to the base layer's own
+     * dimensions for the top-level composite call. */
+    const guint W  = (canvas_W > 0) ? canvas_W : (guint)base->fit->rx;
+    const guint H  = (canvas_H > 0) ? canvas_H : (guint)base->fit->ry;
     const size_t N = (size_t)W * H;
 
     fits *out = calloc(1, sizeof(fits));
@@ -714,7 +721,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite)
             }
 
             GSList *_ms = flis_group_get_layers(_grp);
-            fits *_sub = flis_render_layers_internal(_ms, TRUE);
+            fits *_sub = flis_render_layers_internal(_ms, TRUE, W, H);
             g_slist_free(_ms);
             if (!_sub) continue;
 
