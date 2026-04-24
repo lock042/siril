@@ -2138,9 +2138,8 @@ gboolean flis_canvas_to_pixel_index(gint cx, gint cy_disp, guint canvas_ry,
     gint layer_rx     = (gint)gfit->rx;
     gint layer_ry     = (gint)gfit->ry;
     gint local_x      = cx - pos_x;
-    /* position_y is in FITS (bottom-up) coords; convert to a FITS y within
-     * the layer: fits_y_in_layer = canvas_fits_y - position_y
-     *                            = (canvas_ry - 1 - cy_disp) - position_y  */
+    /* position_y is in display coords (0=top of canvas, increasing downward).
+     * Convert the canvas display coordinate to a FITS y within the layer. */
     gint local_fits_y = (gint)canvas_ry - 1 - cy_disp - pos_y;
 
     if (local_x < 0 || local_x >= layer_rx ||

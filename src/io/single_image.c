@@ -592,11 +592,20 @@ void notify_gfit_data_modified() {
 			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
+		/* For FLIS, ensure the composite is current before remap_all() fills
+		 * the Cairo buffers.  This must happen after histogram computation
+		 * (which uses the active layer) and before the remap (which must see
+		 * the up-to-date composite). */
+		if (is_current_image_flis())
+			flis_composite_build();
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
-		 * protect the write with com.mutex to prevent a data race. */
+		 * protect the write with com.mutex to prevent a data race.
+		 * For FLIS, flis_init_display_levels() calibrates from the composite
+		 * (RGB) so the stretch sliders reflect the displayed image, not the
+		 * mono active layer. */
 		g_mutex_lock(&com.mutex);
-		init_layers_hi_and_lo_values(gui.sliders);
+		flis_init_display_levels(gui.sliders);
 		g_mutex_unlock(&com.mutex);
 	}
 }

@@ -16,6 +16,7 @@ typedef enum {
 void flis_invalidate_composite(void);
 void flis_composite_free(void);
 int  flis_composite_build(void);   /* rebuild if dirty; no-op if already current */
+void flis_init_display_levels(sliders_mode force_minmax); /* init hi/lo from composite for FLIS, gfit otherwise */
 
 /* flis_render_layers: composites a GSList of flis_layer_t* into a newly
  * allocated float-RGB fits*.  The caller must clearfits()+free() the result.

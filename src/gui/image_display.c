@@ -793,7 +793,7 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
                         const gint    ox = 0, oy = 0;
                         const gint    x0 = 0, x1 = (gint)W;
                         const gint    y0 = 0, y1 = (gint)H;
-                        const guint   lW = W, lH = H;
+                        const guint   lW = W;
                         const float   tr = 1.f, tg = 1.f, tb = 1.f;
                         if (first_layer) {
                             FLIS_BASE_LOOP(tr, tg, tb);
@@ -874,8 +874,9 @@ static fits *flis_render_layers_internal(GSList *layers, gboolean sub_composite,
         const uint8_t *mask_data = (lmask && lay->lmask_active) ? (const uint8_t *)lmask->data : NULL;
 
         /* Intersection of the layer rectangle with the canvas.
-         * position_y is in FITS convention (origin bottom-left), convert to
-         * top-down canvas row: oy = H - position_y - lH.
+         * position_y is in display convention (0=top, increasing downward).
+         * oy = H - position_y - lH converts to the FITS row of the layer
+         * bottom in the output buffer (which is FITS-ordered, row 0=bottom).
          * For full-canvas: ox=0, oy=0, lW=W, lH=H → x0=0,x1=W,y0=0,y1=H. */
         const gint  ox  = lay->position_x;
         const guint lW  = (guint)lfit->rx;
@@ -943,6 +944,23 @@ int flis_composite_build(void) {
     siril_debug_print("FLIS composite rebuilt (%ux%u)\n",
                       (guint)result->rx, (guint)result->ry);
     return 0;
+}
+
+/* Initialise display hi/lo slider values from the right source.
+ * For a FLIS image, use the composite so that RGB statistics drive the LUT
+ * rather than the (possibly mono) active layer.  For everything else, use
+ * gfit directly.  Must be called with any required mutex held by the caller
+ * (typically com.mutex, matching the existing call sites). */
+void flis_init_display_levels(sliders_mode force_minmax) {
+    if (is_current_image_flis() && flis_display_composite) {
+        invalidate_stats_from_fit(flis_display_composite);
+        fits *saved = gfit;
+        gfit = flis_display_composite;
+        init_layers_hi_and_lo_values(force_minmax);
+        gfit = saved;
+    } else {
+        init_layers_hi_and_lo_values(force_minmax);
+    }
 }
 
 /* Public: is a FLIS composite currently active?
@@ -3580,77 +3598,6 @@ void remap_all() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
-		copy_roi_into_gfit();
-
-	/* FLIS mode: build the layer composite and temporarily substitute it
-	 * for gfit so the existing remap pipeline processes the composited
-	 * image unchanged.  gfit is restored after remapping so all science
-	 * operations (statistics, histogram, tools) continue to see the
-	 * active layer's data.
-	 *
-	 * The swap is safe because redraw() runs on the GTK main thread via
-	 * redraw_idle(), and no other GTK callback can interleave with it. */
-	fits *saved_gfit = NULL;
-	if (doremap == REMAP_ALL && is_current_image_flis()) {
-		if (flis_composite_build()) {
-			siril_log_color_message(
-			    _("FLIS: composite build failed, displaying active layer\n"),
-			    "salmon");
-			/* Fall through: gfit (active layer) is used as-is */
-		}
-		if (flis_display_composite) {
-			/* Swap gfit to the composite BEFORE calling init_layers_hi_and_lo_values.
-			 * That function uses gfit implicitly; calling it before the swap would
-			 * calibrate gui.lo/hi to the active layer's statistics (mono), not the
-			 * composite's.  With a mismatched LUT, the composite display is identical
-			 * before and after operations on non-active layers — making undo/redo
-			 * appear non-functional.  Swapping first ensures the LUT always matches
-			 * the actual data being displayed. */
-			saved_gfit = gfit;
-			gfit = flis_display_composite;
-
-			/* For mask tint rendering: remap_all_vports() and remap() check
-			 * gfit->mask for the tint overlay, but the composite has no mask.
-			 * Borrow either the processing mask or the layer mask (depending on
-			 * flis_show_layer_mask) onto the composite so the tint renders
-			 * correctly.  The pointer is cleared after remapping so the
-			 * composite does not take ownership of the mask.
-			 *
-			 * tmp_lmask is stack-allocated and valid for the duration of
-			 * remap_all_vports() / remap() below — do not use after restore. */
-			static mask_t tmp_lmask;
-			flis_mask_source_layer = NULL;
-			gfit->mask        = NULL;
-			gfit->mask_active = FALSE;
-
-			for (GSList *node = com.uniq->layers; node; node = node->next) {
-				flis_layer_t *lay = (flis_layer_t *)node->data;
-				if (!lay || lay->fit != saved_gfit)
-					continue;
-
-				if (flis_show_layer_mask && lay->lmask) {
-					/* Show layer mask as tint */
-					tmp_lmask.bitpix  = lay->lmask->bitpix;
-					tmp_lmask.data    = lay->lmask->data;
-					gfit->mask        = &tmp_lmask;
-					gfit->mask_active = lay->lmask_active;
-					flis_mask_source_layer = lay;
-				} else if (!flis_show_layer_mask && saved_gfit->mask) {
-					/* Show processing mask as tint */
-					gfit->mask        = saved_gfit->mask;
-					gfit->mask_active = saved_gfit->mask_active;
-					if (saved_gfit->mask_active)
-						flis_mask_source_layer = lay;
-				}
-				break;
-			}
-
-			invalidate_stats_from_fit(gfit);
-			init_layers_hi_and_lo_values(gui.sliders);
-		}
-	}
-
 
 	switch (doremap) {
 		case REDRAW_OVERLAY:
@@ -3664,16 +3611,6 @@ void redraw(remap_type doremap) {
 			break;
 		default:
 			siril_debug_print("UNKNOWN REMAP\n\n");
-	}
-
-	/* Restore gfit to the active layer before any further code runs */
-	if (saved_gfit) {
-		/* Clear the borrowed mask pointer from the composite — the composite
-		 * does not own the mask and must not free or reference it. */
-		gfit->mask        = NULL;
-		gfit->mask_active = FALSE;
-		gfit = saved_gfit;
-		flis_mask_source_layer = NULL;
 	}
 
 	request_gtk_redraw_of_cvport();
