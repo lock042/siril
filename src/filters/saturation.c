@@ -198,7 +198,6 @@ static gboolean satu_preview_idle(gpointer p) {
 static gboolean satu_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-	populate_roi();
 	if (args->retval == 0) {
 		gfit_modified_update_gui();
 	}
@@ -244,8 +243,10 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
 	args->mask_aware = TRUE;
-	if (!for_preview)
+	if (!for_preview) {
 		args->log_hook = satu_log_hook;
+		args->populate_roi_on_complete = TRUE;
+	}
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -283,6 +284,7 @@ static void satu_close(gboolean revert) {
 	if (revert) {
 		if (satu_amount != 0.0) {
 			copy_backup_to_gfit();
+			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
 	}

@@ -220,6 +220,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
+		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}
 

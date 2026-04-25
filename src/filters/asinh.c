@@ -50,7 +50,6 @@ static gboolean asinh_preview_idle(gpointer p) {
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
 		gfit_modified_update_gui();
@@ -103,6 +102,8 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	if (!for_preview)
+		args->populate_roi_on_complete = TRUE;
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -150,6 +151,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
+			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
 	} else {
@@ -543,6 +545,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->custom_undo = TRUE;
+	args->populate_roi_on_complete = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);
 

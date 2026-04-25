@@ -756,7 +756,6 @@ gboolean deconvolve_img_idle(gpointer arg) {
 	// If not previewing, apply the changes to the main image
 	if (!data->previewing) {
 		copy_gfit_to_backup();
-		populate_roi();
 	}
 	gfit_modified_update_gui();
 
@@ -903,6 +902,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		worker_args->max_threads = com.max_thread;
 		worker_args->for_preview = FALSE;
 		worker_args->for_roi = FALSE;
+		worker_args->populate_roi_on_complete = TRUE;
 
 		start_in_new_thread(generic_image_worker, worker_args);
 	}

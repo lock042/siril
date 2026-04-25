@@ -68,7 +68,6 @@ static gboolean median_apply_idle(gpointer p) {
 	stop_processing_thread();
 	if (args->retval == 0) {
 		copy_gfit_to_backup();
-		populate_roi();
 		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
@@ -186,6 +185,8 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	if (!for_preview)
+		args->populate_roi_on_complete = TRUE;
 
 	generic_image_worker(args);
 }

@@ -1624,6 +1624,21 @@ the_end:;
 	/* Capture mask state while writer lock is held and before idles are posted. */
 	args->has_mask = (argfit->mask != NULL);
 
+	/* populate_roi() reads gfit pixel data; call it here, while we still hold
+	 * the writer lock, rather than from the idle function on the GTK thread.
+	 * When args->fit is &gui.roi.fit the worker's lock is on that structure, not
+	 * on gfit, so we must acquire a reader lock on gfit explicitly.  When
+	 * args->fit IS gfit we already hold its writer lock, which covers reads. */
+	if (args->populate_roi_on_complete && !com.script && !com.python_command && !com.headless) {
+		if (argfit != gfit) {
+			g_rw_lock_reader_lock(&gfit->rwlock);
+			populate_roi();
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+		} else {
+			populate_roi();
+		}
+	}
+
 	// Cleanup / idles
 	if (args->command) {
 		if (com.headless) {
