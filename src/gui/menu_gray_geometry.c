@@ -129,6 +129,7 @@ static void rotate_gui(fits *fit) {
 static gboolean fast_rotation_idle(gpointer p)
 {
     struct generic_img_args *args = (struct generic_img_args *)p;
+    stop_processing_thread();
 
     if (args->retval == 0) {
         gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
@@ -452,20 +453,6 @@ gboolean binxy_hide_on_delete(GtkWidget *widget) {
  * RESAMPLE
  */
 
-/* Idle function for resample */
-static gboolean resample_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		gfit_modified_update_gui();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
@@ -511,7 +498,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;  // Resample needs space for transformation
 	args->image_hook = resample_image_hook;
-	args->idle_function = resample_idle;
+	args->idle_function = binning_idle;
 	args->description = _("Resample");
 	args->verbose = TRUE;
 	args->user = params;

@@ -50,18 +50,6 @@ void median_roi_callback() {
 	gfit_modified_update_gui();
 }
 
-/* Idle function for preview updates */
-static gboolean median_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Idle function for final application */
 static gboolean median_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
@@ -177,7 +165,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = median_image_hook;
-	args->idle_function = for_preview ? median_preview_idle : median_apply_idle; // No idle function for command execution
+	args->idle_function = for_preview ? NULL : median_apply_idle; // No idle function for command execution
 	args->description = _("Median filter");
 	args->command_updates_gfit = TRUE;
 	args->verbose = !for_preview; // Only verbose for final application

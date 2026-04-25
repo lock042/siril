@@ -34,18 +34,6 @@ int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return asinhlut(fit, params->beta, params->offset, params->human_luminance, params->clip_mode);
 }
 
-/* Idle function for preview updates */
-static gboolean asinh_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Idle function for final application */
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
@@ -94,7 +82,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.0f; // asinh needs roughly 1x image size for working memory
 	args->image_hook = asinh_image_hook;
-	args->idle_function = for_preview ? asinh_preview_idle : asinh_apply_idle;
+	args->idle_function = for_preview ? NULL : asinh_apply_idle;
 	args->description = _("Asinh stretch");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;

@@ -285,6 +285,8 @@ void child_mutex_unlock();
 
 /* Single image processing worker and hooks */
 gboolean end_generic_image(gpointer p);
+gboolean end_generic_image_update_gfit(gpointer p);
+gboolean end_generic_image_reset_cursor(gpointer p);
 gpointer generic_image_worker(gpointer p);
 
 /* Mask worker */

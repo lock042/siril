@@ -1384,17 +1384,6 @@ int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return ccm_process(params, fit);
 }
 
-/* Idle function for final application */
-gboolean ccm_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Create and launch CCM processing */
 int ccm_process_with_worker(ccm matrix, float power) {
 	// Check if image is RGB
@@ -1431,7 +1420,7 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->fit = target_fit;
 	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
 	args->image_hook = ccm_single_image_hook;
-	args->idle_function = ccm_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;

@@ -1380,13 +1380,21 @@ gboolean end_generic_mask(gpointer p) {
 	return FALSE;
 }
 
-static gboolean end_generic_image_update_gfit(gpointer p) {
+gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
 		queue_redraw_mask();
 	free_generic_img_args(args);
+	return FALSE;
+}
+
+gboolean end_generic_image_reset_cursor(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 

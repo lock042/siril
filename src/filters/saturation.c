@@ -184,17 +184,6 @@ int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return 1;
 }
 
-static gboolean satu_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 static gboolean satu_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
@@ -235,7 +224,7 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = saturation_image_hook;
-	args->idle_function = for_preview ? satu_preview_idle : satu_apply_idle;
+	args->idle_function = for_preview ? NULL : satu_apply_idle;
 	args->description = _("Saturation");
 	args->verbose = !for_preview;
 	args->user = params;

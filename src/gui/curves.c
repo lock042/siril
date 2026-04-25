@@ -296,7 +296,7 @@ static int curves_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->fit = for_roi ? &gui.roi.fit : gfit;
 	args->mem_ratio = 2.0f; // Curves need memory for depth conversions
 	args->image_hook = curve_image_hook;
-	args->idle_function = for_preview ? curve_preview_idle : curve_apply_idle;
+	args->idle_function = curve_preview_idle;
 	args->description = _("Curve Transformation");
 	args->verbose = !for_preview;
 	args->user = params;
@@ -483,20 +483,6 @@ gboolean curve_preview_idle(gpointer p) {
 	return FALSE;
 }
 
-/* Idle function for final application */
-gboolean curve_apply_idle(gpointer p) {
-	// Update clipped pixels after processing completes
-	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	_update_clipped_pixels(data);
-
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 
 static gboolean is_curves_log_scale() {

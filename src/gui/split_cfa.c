@@ -30,13 +30,6 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
-static gboolean cfa_extract_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
 
 void on_split_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("split_cfa_dialog");
@@ -179,7 +172,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 		args->fit = gfit;
 		args->image_hook = cfa_extract_image_hook;
-		args->idle_function = cfa_extract_idle;
+		args->idle_function = end_generic_image_reset_cursor;
 		args->description = _("CFA Extraction");
 		args->verbose = TRUE;
 		args->custom_undo = TRUE;
