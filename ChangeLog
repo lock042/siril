@@ -27,6 +27,16 @@ siril-1.4.3
 * Allow certain python scripts to be run automatically at startup (!1001)
 * Added -async option to pyscript command (!1015)
 
+
+siril-1.4.2-HF1
+04/08/26
+
+**Fixes**
+* Fixed wide chars handling in paths for Windows (#1936)
+
+**Improvements**
+* Removes deprecated build environment msys2/mingw64 from Windows build scripts
+
 siril-1.4.2
 02/18/26
 
