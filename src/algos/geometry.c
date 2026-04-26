@@ -1673,12 +1673,13 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 	                             params->clamp);
 	}
 
-	// If a selection is set, we set it to the entire image
+	// If a selection is set, expand it to cover the entire (rotated) image.
+	// The GUI update (new_selection_zone) is deferred to the completion idle so
+	// it runs after remap_all() has refreshed the Cairo buffers.
 	if (com.selection.w > 0 && com.selection.h > 0) {
 		g_mutex_lock(&com.mutex);
 		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
 		g_mutex_unlock(&com.mutex);
-		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
 	return retval;

@@ -27,6 +27,8 @@ void queue_redraw(remap_type doremap); // call redraw from another thread
 void queue_redraw_and_wait_for_it(remap_type doremap); // call redraw from another thread and wait for it
 gboolean redraw_mask_idle(gpointer p);
 void queue_redraw_mask(); // queue a redraw of the mask only
+void block_drawarea_handlers(void);   // block viewport draw signal handlers (GTK main thread only)
+void unblock_drawarea_handlers(void); // unblock viewport draw signal handlers (GTK main thread only)
 
 double get_zoom_val();	// for image_interactions
 

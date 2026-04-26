@@ -1065,6 +1065,27 @@ static void request_gtk_redraw_of_cvport() {
 	gtk_widget_queue_draw(widget);
 }
 
+/* forward declaration — redraw_drawingarea is defined later in this file */
+gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data);
+
+/* Block / unblock the draw signal handler on all viewports.  Must be called
+ * from the GTK main thread.  Used by generic_image_worker (via
+ * execute_idle_and_wait_for_it) to prevent redraws with stale Cairo buffers
+ * while the worker is running. */
+void block_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_block_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
+}
+
+void unblock_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_unblock_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
+}
+
 static void draw_empty_image(const draw_data_t* dd) {
 	static GdkPixbuf *siril_pix = NULL;
 	cairo_t *cr = dd->cr;

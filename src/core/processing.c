@@ -823,6 +823,16 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
+static gboolean block_drawarea_idle(gpointer p) {
+	block_drawarea_handlers();
+	return FALSE;
+}
+
+static gboolean unblock_drawarea_idle(gpointer p) {
+	unblock_drawarea_handlers();
+	return FALSE;
+}
+
 /* Must only ever be used for GTK updates. Do not call any functions that mess about
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
@@ -1555,6 +1565,14 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
 
+	/* Block viewport draw signal handlers for the entire duration of the
+	 * worker so that UI updates (progress bar, log, hook-side gui_function
+	 * idles) cannot trigger a repaint with stale Cairo buffers.
+	 * app_paintable is TRUE on those widgets so the previous frame stays
+	 * visible while the handlers are blocked. */
+	if (!com.headless && !com.script && !com.python_command)
+		execute_idle_and_wait_for_it(block_drawarea_idle, NULL);
+
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
@@ -1646,6 +1664,11 @@ the_end:;
 			populate_roi();
 		}
 	}
+
+	/* Cairo buffers are up to date; re-enable viewport redraws so the
+	 * completion idle is the first to paint the updated image. */
+	if (!com.headless && !com.script && !com.python_command)
+		execute_idle_and_wait_for_it(unblock_drawarea_idle, NULL);
 
 	// Cleanup / idles
 	if (args->command) {

@@ -132,6 +132,11 @@ static gboolean fast_rotation_idle(gpointer p)
     stop_processing_thread();
 
     if (args->retval == 0) {
+        /* If the hook expanded a selection to the full image, notify the GUI
+         * now that Cairo buffers are up to date (avoids a stale-buffer redraw
+         * that would otherwise happen via gui_function() from the worker). */
+        if (com.selection.w > 0 && com.selection.h > 0)
+            new_selection_zone(NULL);
         gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
                                      refreshes previews — all in one call  */
         update_zoom_label();      /* reads the now-correct zoom state       */

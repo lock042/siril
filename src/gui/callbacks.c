@@ -1951,6 +1951,13 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
 	gui.view[MASK_VPORT].drawarea = lookup_widget("drawingareamask");
+	/* We own the full surface for each viewport; tell GTK not to pre-clear it
+	 * to the CSS background before our draw handler runs.  This ensures that
+	 * when the handler is temporarily blocked (during generic_image_worker)
+	 * the previous frame remains visible instead of the viewport going blank. */
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			gtk_widget_set_app_paintable(gui.view[i].drawarea, TRUE);
 	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
