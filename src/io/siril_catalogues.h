@@ -297,8 +297,7 @@ void free_sky_object_query(void *p);
 int check_conesearch_args(conesearch_args *args);
 conesearch_args *init_conesearch_args();
 conesearch_params *init_conesearch_params();
-int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads);
-// int execute_conesearch(conesearch_params *params);
+int execute_conesearch(conesearch_params *params);
 int execute_show_command(show_params *params);
 
 #ifdef __cplusplus
