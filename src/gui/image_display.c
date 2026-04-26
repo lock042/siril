@@ -2606,6 +2606,21 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		return TRUE;
 	}
 
+	/* While generic_image_worker is running the remap buffers are stale.
+	 * Repaint from the cached display surface so the previous correct frame
+	 * stays visible — this overwrites any CSS background GTK may have cleared
+	 * to before invoking the handler, avoiding a grey flash. */
+	if (g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
+		g_mutex_lock(&gui.cairo_mutex);
+		cairo_surface_t *cached = gui.view[dd.vport].disp_surface;
+		if (cached) {
+			cairo_set_source_surface(cr, cached, 0, 0);
+			cairo_paint(cr);
+		}
+		g_mutex_unlock(&gui.cairo_mutex);
+		return FALSE;
+	}
+
 	/* catch and compute rendering data */
 	dd.cr = cr;
 	dd.window_width = gtk_widget_get_allocated_width(widget);
