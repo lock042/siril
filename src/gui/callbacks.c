@@ -574,6 +574,18 @@ gboolean set_cutoff_sliders_values_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Remap gfit with the new display mode during a sequence operation.
+ * Uses trylock so it never blocks the GTK thread; if the lock fails the
+ * completion idle will repaint when the job finishes. */
+static gboolean try_remap_for_mode_change_idle(gpointer p) {
+	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
+		remap_all();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		redraw(REMAP_ALL);
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!gtk_check_menu_item_get_active(checkmenuitem)) return;
 
@@ -605,9 +617,19 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
+		if (processing_is_job_active()) {
+			/* A sequence operation is running — gfit is not being written by
+			 * the worker, but notify_gfit_data_modified() has a blanket guard
+			 * that skips the remap when any job is active.  Post a small idle
+			 * that tries a reader lock and remaps directly if it succeeds.
+			 * (For single-image ops the menu is insensitive so we won't reach
+			 * here in that case.) */
+			siril_add_idle(try_remap_for_mode_change_idle, NULL);
+		} else {
+			notify_gfit_data_modified();
+			redraw(REMAP_ALL);
+			gui_function(redraw_previews, NULL);
+		}
 	}
 }
 

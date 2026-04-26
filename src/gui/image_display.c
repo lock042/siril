@@ -2606,19 +2606,28 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 		return TRUE;
 	}
 
-	/* While generic_image_worker is running the remap buffers are stale.
-	 * Repaint from the cached display surface so the previous correct frame
-	 * stays visible — this overwrites any CSS background GTK may have cleared
-	 * to before invoking the handler, avoiding a grey flash. */
+	/* While generic_image_worker is running the remap buffers (gfit pixel
+	 * data) are stale.  Repaint from the cached display surface so the
+	 * previous correct frame stays visible, avoiding a grey flash.
+	 *
+	 * If disp_surface was invalidated — e.g. the user changed zoom level or
+	 * resized the window during a long operation — fall through to a normal
+	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
+	 * holds the full-resolution remapped image and is safe to read from the
+	 * GTK thread.  draw_main_image() will re-render buf into a fresh
+	 * disp_surface at the new viewport geometry without touching gfit. */
 	if (g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
 		g_mutex_lock(&gui.cairo_mutex);
 		cairo_surface_t *cached = gui.view[dd.vport].disp_surface;
 		if (cached) {
 			cairo_set_source_surface(cr, cached, 0, 0);
 			cairo_paint(cr);
+			g_mutex_unlock(&gui.cairo_mutex);
+			return FALSE;
 		}
 		g_mutex_unlock(&gui.cairo_mutex);
-		return FALSE;
+		/* disp_surface invalidated by viewport change; buf is still valid —
+		 * fall through to rebuild disp_surface from buf */
 	}
 
 	/* catch and compute rendering data */

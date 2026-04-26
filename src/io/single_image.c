@@ -453,6 +453,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	// compute new min and max if needed for display and update sliders
 	set_cutoff_sliders_values();
 
+	/* re-enable the display-mode menu disabled at the start of single-image ops */
+	gtk_widget_set_sensitive(lookup_widget("menu_display_button"), TRUE);
+
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
 		redraw(REMAP_ALL);
 	else

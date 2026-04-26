@@ -823,6 +823,12 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
+static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
+	gtk_widget_set_sensitive(lookup_widget("menu_display_button"),
+			GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
 
 /* Must only ever be used for GTK updates. Do not call any functions that mess about
  * with files using this idle, it can break python scripts */
@@ -1556,13 +1562,14 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
 
-	/* Suppress viewport redraws for the duration of the worker.  Any draw
-	 * event that fires while this flag is set (from progress-bar updates,
-	 * log messages, hook-side gui_function idles, or OS expose events) will
-	 * repaint from the cached display surface instead of recalculating from
-	 * the remap buffers, which are stale until remap_all() runs. */
-	if (!com.headless && !com.script && !com.python_command)
+	/* For single-image operations (args->fit == gfit) the remap buffers are
+	 * stale until remap_all() runs, so suppress viewport redraws and disable
+	 * the display-mode menu for the duration.  Sequence operations leave gfit
+	 * untouched, so neither suppression is needed there. */
+	if (!com.headless && !com.script && !com.python_command && args->fit == gfit) {
 		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
+		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
+	}
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
