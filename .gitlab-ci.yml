@@ -250,6 +250,7 @@ win64-native:
     SPW_NAME: siril-python$SPW_VERSION
     SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
     PY_OUT: "/c/siril-python" #used in siril-package.sh
+    BRANCH: $CI_COMMIT_REF_SLUG
   tags:
     - saas-windows-medium-amd64
   needs: []
