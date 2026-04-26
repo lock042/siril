@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/processing_thread.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
@@ -1563,7 +1564,10 @@ void set_output_filename_to_sequence_name() {
 
 gboolean show_or_hide_mask_tab_idle(gpointer p) {
 	if (com.headless) return FALSE;
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	/* Use trylock: if a processing job holds the write lock (e.g. during
+	 * application shutdown) we skip the update rather than deadlocking. */
+	if (!g_rw_lock_reader_trylock(&gfit->rwlock))
+		return FALSE;
 	gboolean has_mask = (gfit->mask != NULL);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
@@ -2362,10 +2366,24 @@ gboolean restore_paned_position(gpointer user_data) {
 }
 
 void gtk_main_quit() {
+	/* Pump the GTK main loop until any active processing job finishes or a
+	 * timeout expires.  Cancellation is requested by siril_quit() before
+	 * calling us.  Pumping lets any pending execute_idle_and_wait_for_it
+	 * callbacks dispatch so the worker can unblock, see the cancel flag, and
+	 * release gfit->rwlock before we attempt cleanup that also needs it
+	 * (e.g. close_single_image → show_or_hide_mask_tab_idle).  Without this,
+	 * the main thread deadlocks: worker holds the write lock waiting for an
+	 * idle, main thread waits for the write lock. */
+	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
+	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem..."), "blue");
+	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
+		if (g_main_context_pending(g_main_context_default()))
+			g_main_context_iteration(g_main_context_default(), FALSE);
+		else
+			g_usleep(1000);
+	}
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	// Don't call processing_system_shutdown(); the user wants to quit the program so we do so immediately
-	// whereas processing_system_shutdown() will wait for the next call to processing_should_continue()
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	writeinitfile();		// save settings (like window positions)
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
@@ -2404,6 +2422,9 @@ gboolean siril_quit(void) {
 		}
 	}
 
+	/* Signal any running processing job to abort before the GTK main loop
+	 * stops — jobs check processing_should_continue() in their frame loops. */
+	processing_request_cancel();
 	gtk_main_quit();
 	return TRUE; // Proceed with quit
 }

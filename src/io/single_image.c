@@ -441,6 +441,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	siril_debug_print("end of gfit operation - idle function\n");
 	stop_processing_thread();
 
+	// Check the mask tab visibility is correct
+	show_or_hide_mask_tab_idle(NULL);
+
 	refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
 
 	/* update bit depth selector */
@@ -470,7 +473,6 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 /* to be called after each operation that modifies the content of gfit, at the
  * end of a processing operation, not for previews */
 void gfit_modified_update_gui() {
-	siril_debug_print("end of gfit operation\n");
 	gui_function(end_gfit_operation, NULL);
 }
 
