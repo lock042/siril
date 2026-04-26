@@ -28,10 +28,6 @@ void free_scnr_data(void *args);
 int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 gchar *scnr_log_hook(gpointer p, log_hook_detail detail);
 
-/* Idle functions */
-gboolean scnr_preview_idle(gpointer p);
-gboolean scnr_apply_idle(gpointer p);
-
 const char *scnr_type_to_string(scnr_type t);
 
 #endif /* SRC_FILTERS_SCNR_H_ */

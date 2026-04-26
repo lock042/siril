@@ -860,7 +860,7 @@ int process_starnet(int nb) {
 	args->fit = gfit;
 	args->mem_ratio = 3.0f;
 	args->image_hook = starnet_single_image_hook;
-	args->idle_function = starnet_single_image_idle;
+	args->idle_function = NULL;
 	args->description = _("StarNet");
 	args->verbose = TRUE;
 	args->user = starnet_params;

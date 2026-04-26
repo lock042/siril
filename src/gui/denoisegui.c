@@ -210,6 +210,7 @@ static void denoise_close_internal(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
 		copy_backup_to_gfit();
+		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	} else {
 		invalidate_stats_from_fit(gfit);

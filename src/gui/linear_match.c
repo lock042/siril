@@ -61,13 +61,6 @@ gboolean linearmatch_hide_on_delete(GtkWidget *widget) {
 	return TRUE;
 }
 
-static gboolean linearmatch_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
 
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
@@ -100,7 +93,7 @@ void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->image_hook = linear_match_image_hook;
 	args->log_hook = linear_match_log_hook;
-	args->idle_function = linearmatch_idle;
+	args->idle_function = end_generic_image_reset_cursor;
 	args->description = _("Linear Match");
 	args->verbose = TRUE;
 	args->user = data;

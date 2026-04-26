@@ -269,38 +269,54 @@ void processing_system_shutdown(void) {
     if (!worker_running)
         return;
 
-    /* Push a QUIT sentinel to stop the worker cleanly.
-     *
-     * We deliberately do NOT set worker_running = FALSE and broadcast before
-     * pushing the sentinel, because the !worker_running early-exit in the
-     * worker loop fires before the queue is checked — causing the QUIT job to
-     * be left in the queue unprocessed and its internal mutex/cond to leak.
-     *
-     * By pushing QUIT first the worker either:
-     *   (a) is already waiting in g_cond_wait -> wakes on the signal, pops
-     *       QUIT, calls processing_job_free, and breaks; or
-     *   (b) is executing a job -> finishes, loops back, sees QUIT in the
-     *       queue, processes it, and breaks.
-     *
-     * worker_running is set to FALSE only after g_thread_join so that the
-     * !worker_running guard above continues to work for the lifetime of the
-     * thread.
-     */
-    ProcessingJob *quit = g_new0(ProcessingJob, 1);
-    quit->type = PROCESSING_JOB_QUIT;
-    quit->fire_and_forget = TRUE;   /* no mutex/cond needed for QUIT */
+    /* Cancel any running job so it can exit its frame loop quickly. */
+    processing_request_cancel();
 
-    g_mutex_lock(&queue_mutex);
-    g_queue_push_tail(&job_queue, quit);
-    g_cond_signal(&queue_cond);
-    g_mutex_unlock(&queue_mutex);
+    if (com.headless) {
+        /*
+         * CLI / headless mode: execute_idle_and_wait_for_it is a no-op, so
+         * the worker can never be blocked waiting for an idle callback that
+         * needs the GTK main loop.  A clean join is safe here.
+         *
+         * Push a QUIT sentinel so the worker exits its loop cleanly rather
+         * than reading worker_running=FALSE before the queue is drained.
+         */
+        ProcessingJob *quit = g_new0(ProcessingJob, 1);
+        quit->type = PROCESSING_JOB_QUIT;
+        quit->fire_and_forget = TRUE;
 
-    g_thread_join(worker_thread);
-    worker_thread  = NULL;
-    worker_running = FALSE;
+        g_mutex_lock(&queue_mutex);
+        g_queue_push_tail(&job_queue, quit);
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
 
-    g_mutex_clear(&queue_mutex);
-    g_cond_clear(&queue_cond);
+        g_thread_join(worker_thread);
+        worker_thread  = NULL;
+        worker_running = FALSE;
+
+        g_mutex_clear(&queue_mutex);
+        g_cond_clear(&queue_cond);
+    } else {
+        /*
+         * GUI mode: gtk_main_quit() was already called before reaching here,
+         * so the GTK main loop is no longer running.  If the worker is blocked
+         * inside execute_idle_and_wait_for_it (waiting for an idle that will
+         * never be dispatched), g_thread_join() would deadlock.
+         *
+         * Application close is unconditional — just wake the worker in case
+         * it is idle-waiting on queue_cond, then abandon the thread.  The
+         * process is about to exit; the OS reclaims all resources.
+         */
+        g_mutex_lock(&queue_mutex);
+        worker_running = FALSE;
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
+
+        /* Do NOT join and do NOT clear queue_mutex/queue_cond: the worker
+         * thread may still be running and using them.  The OS handles
+         * cleanup on process exit. */
+        worker_thread = NULL;
+    }
 
     /* Allow re-initialization if init is called again after shutdown. */
     g_atomic_int_set(&system_initialized, 0);

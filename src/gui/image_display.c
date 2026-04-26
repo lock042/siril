@@ -1065,6 +1065,27 @@ static void request_gtk_redraw_of_cvport() {
 	gtk_widget_queue_draw(widget);
 }
 
+/* forward declaration — redraw_drawingarea is defined later in this file */
+gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data);
+
+/* Block / unblock the draw signal handler on all viewports.  Must be called
+ * from the GTK main thread.  Used by generic_image_worker (via
+ * execute_idle_and_wait_for_it) to prevent redraws with stale Cairo buffers
+ * while the worker is running. */
+void block_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_block_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
+}
+
+void unblock_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_unblock_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
+}
+
 static void draw_empty_image(const draw_data_t* dd) {
 	static GdkPixbuf *siril_pix = NULL;
 	cairo_t *cr = dd->cr;
@@ -2583,6 +2604,30 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (dd.vport == -1) {
 		fprintf(stderr, "Could not find the vport for the draw callback\n");
 		return TRUE;
+	}
+
+	/* While generic_image_worker is running the remap buffers (gfit pixel
+	 * data) are stale.  Repaint from the cached display surface so the
+	 * previous correct frame stays visible, avoiding a grey flash.
+	 *
+	 * If disp_surface was invalidated — e.g. the user changed zoom level or
+	 * resized the window during a long operation — fall through to a normal
+	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
+	 * holds the full-resolution remapped image and is safe to read from the
+	 * GTK thread.  draw_main_image() will re-render buf into a fresh
+	 * disp_surface at the new viewport geometry without touching gfit. */
+	if (g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
+		g_mutex_lock(&gui.cairo_mutex);
+		cairo_surface_t *cached = gui.view[dd.vport].disp_surface;
+		if (cached) {
+			cairo_set_source_surface(cr, cached, 0, 0);
+			cairo_paint(cr);
+			g_mutex_unlock(&gui.cairo_mutex);
+			return FALSE;
+		}
+		g_mutex_unlock(&gui.cairo_mutex);
+		/* disp_surface invalidated by viewport change; buf is still valid —
+		 * fall through to rebuild disp_surface from buf */
 	}
 
 	/* catch and compute rendering data */

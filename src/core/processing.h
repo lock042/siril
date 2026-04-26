@@ -191,6 +191,10 @@ struct generic_img_args {
 	gboolean custom_undo; // if TRUE, operation handles its own undo state (required for stretches so they can handle the "revert ICC if no stretch applied" issue)
 	gboolean mask_aware; // Whether the operation is mask-aware or not
 	gboolean has_mask;   // Captured from fit->mask before writer unlock; used by end_generic_image_update_gfit
+	/* When TRUE, populate_roi() is called in the worker thread (while the fit's
+	 * rwlock is held) instead of in the idle function, keeping gfit reads on the
+	 * processing thread. */
+	gboolean populate_roi_on_complete;
 };
 
 struct generic_mask_args {
@@ -281,6 +285,8 @@ void child_mutex_unlock();
 
 /* Single image processing worker and hooks */
 gboolean end_generic_image(gpointer p);
+gboolean end_generic_image_update_gfit(gpointer p);
+gboolean end_generic_image_reset_cursor(gpointer p);
 gpointer generic_image_worker(gpointer p);
 
 /* Mask worker */

@@ -928,6 +928,11 @@ struct guiinf {
 	// cairo_mutex guards gui.view[].buf and Cairo display surfaces;
 	// held by display-update code on main thread and any worker that composites into the buffers
 	GMutex cairo_mutex;
+	/* Set atomically by generic_image_worker before any UI updates; cleared
+	 * just before the completion idle is posted.  When set, redraw_drawingarea
+	 * repaints from the cached display surface instead of recalculating, so
+	 * the previous correct frame stays visible with no grey flash. */
+	gint suppress_drawarea_redraw;
 };
 
 struct common_icc {

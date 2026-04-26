@@ -53,18 +53,6 @@ gchar *clahe_log_hook(gpointer p, log_hook_detail detail) {
 	return message;
 }
 
-/* Idle function for preview / final application updates */
-static gboolean clahe_worker_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 /* Helper function to get current widget values */
 static void get_clahe_values(double *clip, int *tileSize) {
@@ -97,7 +85,7 @@ static int clahe_process_with_worker(gboolean for_preview) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f; // CLAHE needs additional memory for tile processing
 	args->image_hook = clahe_image_hook;
-	args->idle_function = clahe_worker_idle;
+	args->idle_function = NULL;
 	args->description = _("CLAHE");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;
@@ -202,7 +190,7 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;
 	args->image_hook = clahe_image_hook;
-	args->idle_function = clahe_worker_idle;
+	args->idle_function = NULL;
 	args->description = _("CLAHE");
 	args->verbose = TRUE;
 	args->user = params;

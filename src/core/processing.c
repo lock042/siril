@@ -823,6 +823,13 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
+static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
+	gtk_widget_set_sensitive(lookup_widget("menu_display_button"),
+			GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
+
 /* Must only ever be used for GTK updates. Do not call any functions that mess about
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
@@ -1380,13 +1387,21 @@ gboolean end_generic_mask(gpointer p) {
 	return FALSE;
 }
 
-static gboolean end_generic_image_update_gfit(gpointer p) {
+gboolean end_generic_image_update_gfit(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
 		queue_redraw_mask();
 	free_generic_img_args(args);
+	return FALSE;
+}
+
+gboolean end_generic_image_reset_cursor(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args*) p;
+	stop_processing_thread();
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
@@ -1547,6 +1562,15 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
 
+	/* For single-image operations (args->fit == gfit) the remap buffers are
+	 * stale until remap_all() runs, so suppress viewport redraws and disable
+	 * the display-mode menu for the duration.  Sequence operations leave gfit
+	 * untouched, so neither suppression is needed there. */
+	if (!com.headless && !com.script && !com.python_command && args->fit == gfit) {
+		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
+		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
+	}
+
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
@@ -1623,6 +1647,25 @@ the_end:;
 	int retval = args->retval;
 	/* Capture mask state while writer lock is held and before idles are posted. */
 	args->has_mask = (argfit->mask != NULL);
+
+	/* populate_roi() reads gfit pixel data; call it here, while we still hold
+	 * the writer lock, rather than from the idle function on the GTK thread.
+	 * When args->fit is &gui.roi.fit the worker's lock is on that structure, not
+	 * on gfit, so we must acquire a reader lock on gfit explicitly.  When
+	 * args->fit IS gfit we already hold its writer lock, which covers reads. */
+	if (args->populate_roi_on_complete && !com.script && !com.python_command && !com.headless) {
+		if (argfit != gfit) {
+			g_rw_lock_reader_lock(&gfit->rwlock);
+			populate_roi();
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+		} else {
+			populate_roi();
+		}
+	}
+
+	/* Cairo buffers are up to date; re-enable full viewport redraws so the
+	 * completion idle paints the updated image. */
+	g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
 
 	// Cleanup / idles
 	if (args->command) {

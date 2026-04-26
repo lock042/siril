@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/processing_thread.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
@@ -574,6 +575,18 @@ gboolean set_cutoff_sliders_values_idle(gpointer p) {
 	return FALSE;
 }
 
+/* Remap gfit with the new display mode during a sequence operation.
+ * Uses trylock so it never blocks the GTK thread; if the lock fails the
+ * completion idle will repaint when the job finishes. */
+static gboolean try_remap_for_mode_change_idle(gpointer p) {
+	if (g_rw_lock_reader_trylock(&gfit->rwlock)) {
+		remap_all();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		redraw(REMAP_ALL);
+	}
+	return FALSE;
+}
+
 void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
 	if (!gtk_check_menu_item_get_active(checkmenuitem)) return;
 
@@ -605,9 +618,19 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
+		if (processing_is_job_active()) {
+			/* A sequence operation is running — gfit is not being written by
+			 * the worker, but notify_gfit_data_modified() has a blanket guard
+			 * that skips the remap when any job is active.  Post a small idle
+			 * that tries a reader lock and remaps directly if it succeeds.
+			 * (For single-image ops the menu is insensitive so we won't reach
+			 * here in that case.) */
+			siril_add_idle(try_remap_for_mode_change_idle, NULL);
+		} else {
+			notify_gfit_data_modified();
+			redraw(REMAP_ALL);
+			gui_function(redraw_previews, NULL);
+		}
 	}
 }
 
@@ -1541,7 +1564,10 @@ void set_output_filename_to_sequence_name() {
 
 gboolean show_or_hide_mask_tab_idle(gpointer p) {
 	if (com.headless) return FALSE;
-	g_rw_lock_reader_lock(&gfit->rwlock);
+	/* Use trylock: if a processing job holds the write lock (e.g. during
+	 * application shutdown) we skip the update rather than deadlocking. */
+	if (!g_rw_lock_reader_trylock(&gfit->rwlock))
+		return FALSE;
 	gboolean has_mask = (gfit->mask != NULL);
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
@@ -1951,6 +1977,13 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
 	gui.view[MASK_VPORT].drawarea = lookup_widget("drawingareamask");
+	/* We own the full surface for each viewport; tell GTK not to pre-clear it
+	 * to the CSS background before our draw handler runs.  This ensures that
+	 * when the handler is temporarily blocked (during generic_image_worker)
+	 * the previous frame remains visible instead of the viewport going blank. */
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			gtk_widget_set_app_paintable(gui.view[i].drawarea, TRUE);
 	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
 	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
@@ -2333,10 +2366,24 @@ gboolean restore_paned_position(gpointer user_data) {
 }
 
 void gtk_main_quit() {
+	/* Pump the GTK main loop until any active processing job finishes or a
+	 * timeout expires.  Cancellation is requested by siril_quit() before
+	 * calling us.  Pumping lets any pending execute_idle_and_wait_for_it
+	 * callbacks dispatch so the worker can unblock, see the cancel flag, and
+	 * release gfit->rwlock before we attempt cleanup that also needs it
+	 * (e.g. close_single_image → show_or_hide_mask_tab_idle).  Without this,
+	 * the main thread deadlocks: worker holds the write lock waiting for an
+	 * idle, main thread waits for the write lock. */
+	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
+	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem..."), "blue");
+	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
+		if (g_main_context_pending(g_main_context_default()))
+			g_main_context_iteration(g_main_context_default(), FALSE);
+		else
+			g_usleep(1000);
+	}
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
-	// Don't call processing_system_shutdown(); the user wants to quit the program so we do so immediately
-	// whereas processing_system_shutdown() will wait for the next call to processing_should_continue()
 	kill_child_process((GPid) -1, TRUE); // kill running child processes if any
 	writeinitfile();		// save settings (like window positions)
 	cmsUnregisterPlugins(); // unregister any lcms2 plugins
@@ -2375,6 +2422,9 @@ gboolean siril_quit(void) {
 		}
 	}
 
+	/* Signal any running processing job to abort before the GTK main loop
+	 * stops — jobs check processing_should_continue() in their frame loops. */
+	processing_request_cancel();
 	gtk_main_quit();
 	return TRUE; // Proceed with quit
 }
