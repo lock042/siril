@@ -214,6 +214,7 @@ endif
 siril_share = get_option('prefix') + '/' + get_option('datadir') + '/'
 siril_datadir = siril_share + meson.project_name() + '/'
 siril_locale = get_option('prefix') + '/' + get_option('localedir') + '/'
+siril_include = get_option('prefix') + '/include'
 
 ################################################################################
 # Dependencies
@@ -297,6 +298,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   opt_var.add_cmake_defines({'OPTION_OMP': false})
+  opt_var.set_install(false)
   if get_option('buildtype').startswith('debug')
     opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
   endif
