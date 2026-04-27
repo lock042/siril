@@ -13682,35 +13682,9 @@ static conesearch_params* parse_conesearch_args(int nb) {
 
 int process_conesearch(int nb) {
 	conesearch_params *params = parse_conesearch_args(nb);
-	if (!params) {
+	if (!params)
 		return CMD_ARG_ERROR;
-	}
-
-	// Set destructor (assuming free_conesearch_params exists)
-	params->destroy_fn = (destructor)free_conesearch_params;
-
-	// Allocate and initialize generic_img_args
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		free_conesearch_params(params);
-		PRINT_ALLOC_ERR;
-		return CMD_ALLOC_ERROR;
-	}
-	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = conesearch_image_hook;
-	args->description = _("Cone search");
-	args->verbose = TRUE;
-	args->command_updates_gfit = FALSE;
-	args->command = TRUE;
-	args->user = params;
-	args->log_hook = NULL;
-
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
-		return CMD_GENERIC_ERROR;
-	}
-	return CMD_OK;
+	return execute_conesearch(params);
 }
 
 int process_catsearch(int nb) {
