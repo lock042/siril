@@ -683,7 +683,8 @@ static void gradient_descent_to_dim_spot(const float *image, int *px, int *py, i
  * script which is (c) Franklin Marek and licensed as GPL-v3.0-or-later.
  */
 static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
-		gboolean grad_descent, const char **error, threading_type threads) {
+		gboolean grad_descent, const char **error, threading_type threads,
+		const rectangle *bbox) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	GSList *list = NULL;
@@ -705,6 +706,13 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 	clearfits(tmp);
 	free(tmp);
 
+	/* Determine bounding box for sample placement */
+	gboolean use_bbox = (bbox && bbox->w > 0 && bbox->h > 0);
+	int sel_x0 = use_bbox ? bbox->x : 0;
+	int sel_y0 = use_bbox ? bbox->y : 0;
+	int sel_w  = use_bbox ? bbox->w : nx;
+	int sel_h  = use_bbox ? bbox->h : ny;
+
 	/* minimum coordinate so get_sample() succeeds */
 	int margin = radius + 1;
 
@@ -720,59 +728,82 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 	/* ---- Border points ---- */
 	/* 4 corners */
 	int corners[4][2] = {
-		{margin,          margin},
-		{nx - margin - 1, margin},
-		{margin,          ny - margin - 1},
-		{nx - margin - 1, ny - margin - 1},
+		{sel_x0 + margin,             sel_y0 + margin},
+		{sel_x0 + sel_w - margin - 1, sel_y0 + margin},
+		{sel_x0 + margin,             sel_y0 + sel_h - margin - 1},
+		{sel_x0 + sel_w - margin - 1, sel_y0 + sel_h - margin - 1},
 	};
 	for (int i = 0; i < 4; i++) {
 		int x = corners[i][0], y = corners[i][1];
 		if (grad_descent)
 			gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
-		background_sample *s = get_sample(image, x, y, nx, ny);
-		ACCEPT_SAMPLE(s, list);
+		if (!use_bbox || (x >= sel_x0 && x < sel_x0 + sel_w &&
+				y >= sel_y0 && y < sel_y0 + sel_h)) {
+			background_sample *s = get_sample(image, x, y, nx, ny);
+			ACCEPT_SAMPLE(s, list);
+		}
 	}
 
 	/* 5 evenly-spaced points along top and bottom edges */
 	for (int k = 0; k < 5; k++) {
-		int x = margin + k * (nx - 2 * margin) / 4;
+		int x = (sel_x0 + margin) + k * (sel_w - 2 * margin) / 4;
 		/* top */
-		int xt = x, yt = margin;
-		if (grad_descent)
-			gradient_descent_to_dim_spot(image, &xt, &yt, nx, ny);
-		background_sample *st = get_sample(image, xt, yt, nx, ny);
-		ACCEPT_SAMPLE(st, list);
+		{
+			int xt = x, yt = sel_y0 + margin;
+			if (grad_descent)
+				gradient_descent_to_dim_spot(image, &xt, &yt, nx, ny);
+			if (!use_bbox || (xt >= sel_x0 && xt < sel_x0 + sel_w &&
+					yt >= sel_y0 && yt < sel_y0 + sel_h)) {
+				background_sample *st = get_sample(image, xt, yt, nx, ny);
+				ACCEPT_SAMPLE(st, list);
+			}
+		}
 		/* bottom */
-		int xb = x, yb = ny - margin - 1;
-		if (grad_descent)
-			gradient_descent_to_dim_spot(image, &xb, &yb, nx, ny);
-		background_sample *sb = get_sample(image, xb, yb, nx, ny);
-		ACCEPT_SAMPLE(sb, list);
+		{
+			int xb = x, yb = sel_y0 + sel_h - margin - 1;
+			if (grad_descent)
+				gradient_descent_to_dim_spot(image, &xb, &yb, nx, ny);
+			if (!use_bbox || (xb >= sel_x0 && xb < sel_x0 + sel_w &&
+					yb >= sel_y0 && yb < sel_y0 + sel_h)) {
+				background_sample *sb = get_sample(image, xb, yb, nx, ny);
+				ACCEPT_SAMPLE(sb, list);
+			}
+		}
 	}
 
 	/* 5 evenly-spaced points along left and right edges */
 	for (int k = 0; k < 5; k++) {
-		int y = margin + k * (ny - 2 * margin) / 4;
+		int y = (sel_y0 + margin) + k * (sel_h - 2 * margin) / 4;
 		/* left */
-		int xl = margin, yl = y;
-		if (grad_descent)
-			gradient_descent_to_dim_spot(image, &xl, &yl, nx, ny);
-		background_sample *sl = get_sample(image, xl, yl, nx, ny);
-		ACCEPT_SAMPLE(sl, list);
+		{
+			int xl = sel_x0 + margin, yl = y;
+			if (grad_descent)
+				gradient_descent_to_dim_spot(image, &xl, &yl, nx, ny);
+			if (!use_bbox || (xl >= sel_x0 && xl < sel_x0 + sel_w &&
+					yl >= sel_y0 && yl < sel_y0 + sel_h)) {
+				background_sample *sl = get_sample(image, xl, yl, nx, ny);
+				ACCEPT_SAMPLE(sl, list);
+			}
+		}
 		/* right */
-		int xr = nx - margin - 1, yr = y;
-		if (grad_descent)
-			gradient_descent_to_dim_spot(image, &xr, &yr, nx, ny);
-		background_sample *sr = get_sample(image, xr, yr, nx, ny);
-		ACCEPT_SAMPLE(sr, list);
+		{
+			int xr = sel_x0 + sel_w - margin - 1, yr = y;
+			if (grad_descent)
+				gradient_descent_to_dim_spot(image, &xr, &yr, nx, ny);
+			if (!use_bbox || (xr >= sel_x0 && xr < sel_x0 + sel_w &&
+					yr >= sel_y0 && yr < sel_y0 + sel_h)) {
+				background_sample *sr = get_sample(image, xr, yr, nx, ny);
+				ACCEPT_SAMPLE(sr, list);
+			}
+		}
 	}
 
 	/* ---- Random interior points from 4 quadrants ---- */
 	int pts_per_quad = MAX(1, nb_samples / 4);
-	int half_nx = nx / 2, half_ny = ny / 2;
+	int half_nx = sel_x0 + sel_w / 2, half_ny = sel_y0 + sel_h / 2;
 
-	int qxs[2] = {0, half_nx}, qxe[2] = {half_nx, nx};
-	int qys[2] = {0, half_ny}, qye[2] = {half_ny, ny};
+	int qxs[2] = {sel_x0, half_nx}, qxe[2] = {half_nx, sel_x0 + sel_w};
+	int qys[2] = {sel_y0, half_ny}, qye[2] = {half_ny, sel_y0 + sel_h};
 
 	for (int qi = 0; qi < 4; qi++) {
 		int xs = qxs[qi % 2], xe = qxe[qi % 2];
@@ -808,8 +839,12 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 			x = CLAMP(x, min_x, max_x);
 			y = CLAMP(y, min_y, max_y);
 			if ((double)image[y * nx + x] < threshold) {
-				if (grad_descent)
+				if (grad_descent) {
 					gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
+					if (use_bbox && (x < sel_x0 || x >= sel_x0 + sel_w ||
+							y < sel_y0 || y >= sel_y0 + sel_h))
+						continue;
+				}
 				background_sample *s = get_sample(image, x, y, nx, ny);
 				if (s && s->min > 0.0) {
 					list = g_slist_prepend(list, s);
@@ -830,7 +865,7 @@ static GSList *generate_samples_random(fits *fit, int nb_samples, int size,
 	return list;
 }
 
-GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads) {
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads, const rectangle *bbox) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
@@ -848,13 +883,20 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		free(image);
 		return NULL;
 	}
+
+	gboolean use_bbox = (bbox && bbox->w > 0 && bbox->h > 0);
+	int sel_x0 = use_bbox ? bbox->x : 0;
+	int sel_y0 = use_bbox ? bbox->y : 0;
+	int sel_w  = use_bbox ? bbox->w : nx;
+	int sel_h  = use_bbox ? bbox->h : ny;
+
 	int boxes_width = nb_per_line * size + 2;	// leave a margin of 1 px on the sides
-	float spacing = (nx - boxes_width) / (float)(nb_per_line-1);
+	float spacing = (sel_w - boxes_width) / (float)(nb_per_line-1);
 	int radius = size / 2;
 
 	// Calculate nb_per_column using the same spacing as x-axis
 	int nb_per_column = 1;
-	while (nb_per_column * size + round_to_int((nb_per_column - 1) * spacing) < (ny - 2))
+	while (nb_per_column * size + round_to_int((nb_per_column - 1) * spacing) < (sel_h - 2))
 		nb_per_column++;
 	nb_per_column--;
 	if (nb_per_column == 0) {
@@ -864,9 +906,9 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 		return NULL;
 	}
 
-	// Calculate symmetric placement for y-axis
+	// Calculate symmetric placement for y-axis within the region
 	int total_grid_height = nb_per_column * size + (nb_per_column - 1) * round_to_int(spacing);
-	int available_height = ny - 2;  // subtract margins
+	int available_height = sel_h - 2;  // subtract margins
 	int y_offset = (available_height - total_grid_height) / 2 + 1;  // +1 for the margin
 
 	guint nb = nb_per_line * nb_per_column;
@@ -874,10 +916,14 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 	int k = 0;
 	for (int i = 0; i < nb_per_line; i++) {
 		for (int j = 0; j < nb_per_column; j++) {
-			int x = round_to_int(i * (spacing + size)) + radius + 1;
-			int y = y_offset + round_to_int(j * (spacing + size)) + radius;
-			if (grad_descent)
+			int x = sel_x0 + round_to_int(i * (spacing + size)) + radius + 1;
+			int y = sel_y0 + y_offset + round_to_int(j * (spacing + size)) + radius;
+			if (grad_descent) {
 				gradient_descent_to_dim_spot(image, &x, &y, nx, ny);
+				if (use_bbox && (x < sel_x0 || x >= sel_x0 + sel_w ||
+						y < sel_y0 || y >= sel_y0 + sel_h))
+					continue;
+			}
 			background_sample *sample = get_sample(image, x, y, nx, ny);
 			if (sample) {
 				mad[k++] = fabs(sample->median[RLAYER] - median);
@@ -1078,10 +1124,14 @@ int generate_background_samples(int nb_of_samples, double tolerance, gboolean ra
 	free_background_sample_list(com.grad_samples);
 	const char *err = NULL;
 	g_rw_lock_reader_lock(&gfit->rwlock);
+	const rectangle *sel = (com.selection.w > 0 && com.selection.h > 0) ? &com.selection : NULL;
+	if (sel)
+		siril_debug_print("BGE: constraining sample placement to selection (%d,%d %dx%d)\n",
+			sel->x, sel->y, sel->w, sel->h);
 	if (randomize) {
-		com.grad_samples = generate_samples_random(gfit, nb_of_samples, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED);
+		com.grad_samples = generate_samples_random(gfit, nb_of_samples, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED, sel);
 	} else {
-		com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED);
+		com.grad_samples = generate_samples(gfit, nb_of_samples, tolerance, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED, sel);
 	}
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", err ? _(err) : _("unknown error"));
@@ -1566,9 +1616,9 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	const char *err;
 	GSList *samples;
 	if (b_args->randomize) {
-		samples = generate_samples_random(fit, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+		samples = generate_samples_random(fit, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
 	} else {
-		samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+		samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
 	}
 	if (!samples) {
 		siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
@@ -1688,9 +1738,9 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		const char *err;
 		GSList *samples;
 		if (b_args->randomize) {
-			samples = generate_samples_random(subchannel, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+			samples = generate_samples_random(subchannel, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
 		} else {
-			samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads);
+			samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
 		}
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));

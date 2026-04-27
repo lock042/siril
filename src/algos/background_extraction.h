@@ -53,7 +53,7 @@ typedef struct sample {
 
 int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
-GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads);
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads, const rectangle *bbox);
 GSList* add_background_sample(GSList *list, fits *fit, point pt, gboolean grad_descent);
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
