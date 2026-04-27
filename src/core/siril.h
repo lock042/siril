@@ -713,6 +713,7 @@ typedef struct {
 } version_number;
 
 typedef struct cut_struct {
+	destructor destroy_fn; // must be first — called by free_generic_img_args
 	point cut_start;			// point marking start of cut line
 	point cut_end;			// point dragged while selecting the cut line
 	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut

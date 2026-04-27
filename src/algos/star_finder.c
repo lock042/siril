@@ -1379,6 +1379,14 @@ gpointer findstar_worker(gpointer p) {
 	fits *green_fit = NULL;
 	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
+	/* Acquire a reader lock on the source fit for the duration of all pixel and
+	 * metadata reads (copyfits, peaker, WCS extraction).  Lock the original fit
+	 * and keep a stable pointer to it so we unlock the right rwlock even if
+	 * args->im.fit is temporarily redirected to green_fit below.
+	 * Not converted to generic_image_worker because of the dual single-image /
+	 * sequence path and the complex surrounding GUI state management. */
+	fits *locked_fit = args->im.fit;
+	g_rw_lock_reader_lock(&locked_fit->rwlock);
 	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
 		orig = args->im.fit;
@@ -1439,6 +1447,8 @@ gpointer findstar_worker(gpointer p) {
 	} else {
 		goto END;
 	}
+	g_rw_lock_reader_unlock(&locked_fit->rwlock);
+	locked_fit = NULL;
 
 	if (args->update_GUI)
 		update_star_list(stars, TRUE, com.python_script);
@@ -1466,6 +1476,8 @@ gpointer findstar_worker(gpointer p) {
 	else if (!args->update_GUI)
 		free_fitted_stars(stars);
 END:
+	if (locked_fit)
+		g_rw_lock_reader_unlock(&locked_fit->rwlock);
 	if (args->update_GUI)
 		execute_idle_and_wait_for_it(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);

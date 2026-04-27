@@ -556,11 +556,16 @@ static long calculate_jpeg_size(struct savedial_data *args) {
     /* We only need the filename; savejpg() will reopen it */
     close(fd);
 
-    /* Save JPEG */
+    /* Acquire a reader lock while encoding gfit as JPEG.  Not converted to
+     * generic_image_worker: this is an output-size estimation helper, not
+     * an image-processing hook. */
+    g_rw_lock_reader_lock(&gfit->rwlock);
     if (savejpg(tmp_template, gfit, args->quality, FALSE)) {
         siril_debug_print("Failed to save JPEG to temporary file");
+        g_rw_lock_reader_unlock(&gfit->rwlock);
         goto cleanup;
     }
+    g_rw_lock_reader_unlock(&gfit->rwlock);
 
     /* Get file size */
     GStatBuf stat_buf;
@@ -640,6 +645,12 @@ static gpointer mini_save_dialog(gpointer p) {
 	args->retval = 0;
 
 	if (args->filename[0] != '\0') {
+		/* The TYPEFITS path modifies gfit keywords/bitpix before saving, so
+		 * acquire a writer lock for the entire switch; other paths only read
+		 * gfit but holding the writer lock is also correct for them.
+		 * Not converted to generic_image_worker: this is a save/output
+		 * operation, not an image-processing hook. */
+		g_rw_lock_writer_lock(&gfit->rwlock);
 		switch (type_of_image) {
 		case TYPEBMP:
 			args->retval = savebmp(args->filename, gfit);
@@ -710,6 +721,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = saveNetPBM(args->filename, gfit);
 			break;
 		}
+		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 	siril_add_idle(end_save, args);
 	return NULL;
@@ -745,6 +757,9 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 
 	if (!processing_is_job_active() && gtk_toggle_button_get_active(button)) {
 		if (!processing_is_job_active()) {
+			/* calculate_jpeg_size_thread uses start_in_new_thread directly:
+			 * it is an output-size estimation helper, not an image-processing
+			 * hook; a reader lock on gfit is held inside the worker. */
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
@@ -770,6 +785,7 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 		}
 		initialize_data(args);
 		if (!processing_is_job_active()) {
+			/* See on_size_estimate_toggle_toggled above. */
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
@@ -790,6 +806,10 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
 	if (test_for_viewer_mode()) {
+		/* mini_save_dialog uses start_in_new_thread directly: the TYPEFITS path
+		 * modifies gfit keywords/bitpix before writing, requiring a writer lock
+		 * (held inside the worker).  It is a save/output operation, not an
+		 * image-processing hook, so generic_image_worker is not appropriate. */
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
@@ -809,6 +829,7 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	initialize_data(args);
 	if (test_for_viewer_mode()) {
+		/* See on_button_savepopup_clicked above. */
 		if (!start_in_new_thread(mini_save_dialog, args)) {
 			g_free(args->copyright);
 			g_free(args->description);
@@ -838,6 +859,7 @@ void on_header_save_as_button_clicked() {
 				set_cursor_waiting(TRUE);
 				initialize_data(args);
 				if (test_for_viewer_mode()) {
+					/* See on_button_savepopup_clicked above. */
 					if (!start_in_new_thread(mini_save_dialog, args)) {
 						g_free(args->description);
 						g_free(args->copyright);

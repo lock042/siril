@@ -2375,7 +2375,7 @@ void gtk_main_quit() {
 	 * the main thread deadlocks: worker holds the write lock waiting for an
 	 * idle, main thread waits for the write lock. */
 	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
-	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem..."), "blue");
+	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem...\n"), "blue");
 	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
 		if (g_main_context_pending(g_main_context_default()))
 			g_main_context_iteration(g_main_context_default(), FALSE);
@@ -2643,6 +2643,8 @@ void on_checkseqbutton_clicked(GtkButton *button, gpointer user_data) {
 
 	args->retvalue = 0;
 	set_cursor_waiting(TRUE);
+	/* checkSeq uses start_in_new_thread directly: scans the filesystem for
+	 * sequences; no gfit access. */
 	if (!start_in_new_thread(checkSeq, args)) {
 		free(args);
 	}

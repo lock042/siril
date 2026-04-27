@@ -435,23 +435,23 @@ static siril_catalogue *get_catstars(struct compstars_arg *args, siril_cat_index
 	}
 }
 
-gpointer compstars_worker(gpointer p) {
-	int retval;
-	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
-	struct compstars_arg *args = (struct compstars_arg *) p;
+/* image_hook for the read-only generic_image_worker path.
+ * The framework acquires a reader lock on gargs->fit->rwlock before calling
+ * this and releases it on return, so no manual locking is needed here. */
+static int compstars_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct compstars_arg *args = gargs->user;
 	sky_object_query_args *query_args = NULL;
-	g_rw_lock_reader_lock(&args->fit->rwlock);
-	//0. check pre-requisites
-	if (!has_wcs(args->fit)) {
+	int retval;
+
+	if (!has_wcs(fit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		retval = 1;
-		goto end;
+		return 1;
 	}
 	g_assert(args->cat == CAT_APASS || args->cat == CAT_NOMAD);
 
 	// 1. search for the variable star
-	query_args = init_sky_object_query(); // for the reference star
-	query_args->fit = args->fit;
+	query_args = init_sky_object_query();
+	query_args->fit = fit;
 	query_args->name = g_strdup(args->target_name);
 	query_args->server = QUERY_SERVER_SIMBAD_PHOTO;
 	retval = cached_object_lookup(query_args);
@@ -473,21 +473,19 @@ gpointer compstars_worker(gpointer p) {
 	double radius;
 	args->cat_stars = get_catstars(args, args->cat, &radius);
 	if (!args->cat_stars) {
-		retval = 1;
 		siril_log_color_message(_("No comparison stars found in the image, aborting\n"), "red");
+		retval = 1;
 		goto end;
 	}
-	// and check the target star is relatively well centered - warn if not
-	double dist = compute_coords_distance(args->cat_stars->center_ra, args->cat_stars->center_dec, args->target_star->ra, args->target_star->dec); // in degrees
-	if (dist > 0.2 * radius) {
+	double dist = compute_coords_distance(args->cat_stars->center_ra, args->cat_stars->center_dec, args->target_star->ra, args->target_star->dec);
+	if (dist > 0.2 * radius)
 		siril_log_color_message("Target star is off the center of field of view by %.1f arcmin, photometry results may be impacted\n", "salmon", dist * 60.);
-	}
 
 	// 3. get variable stars catalogues if any
 	int cat2discard = com.pref.phot_set.discard_var_catalogues;
 	if (cat2discard > 0) {
 		for (int i = 0; i < MAX_VAR_CAT; i++) {
-			if (cat2discard & ( 1 << i )) {
+			if (cat2discard & (1 << i)) {
 				siril_catalogue *siril_cat_var = get_catstars(args, var_cat[i], NULL);
 				if (siril_cat_var)
 					args->var_stars_cat = g_list_prepend(args->var_stars_cat, siril_cat_var);
@@ -499,18 +497,42 @@ gpointer compstars_worker(gpointer p) {
 	retval = sort_compstars(args);
 
 end:
-	g_rw_lock_reader_unlock(&args->fit->rwlock);
-	args->retval = retval;
-	args->has_GUI = TRUE;
-	if (!com.headless && com.python_command) {
-		execute_idle_and_wait_for_it(end_compstars, args);
-	}
-	else if (!siril_add_idle(end_compstars, args)) {
-		args->has_GUI = FALSE;
-		end_compstars(args);	// we still need to free all
-	}
 	free_sky_object_query(query_args);
-	return GINT_TO_POINTER(retval);
+	args->retval = retval;
+	args->has_GUI = TRUE; // idle is always called from the GTK thread
+	return retval;
+}
+
+/* Completion idle: extracts the compstars_arg from the generic wrapper,
+ * calls end_compstars for display/cleanup, then frees the generic args. */
+static gboolean compstars_idle(gpointer p) {
+	struct generic_img_args *gargs = (struct generic_img_args *)p;
+	struct compstars_arg *args = gargs->user;
+	gargs->user = NULL; // prevent free_generic_img_args from double-freeing
+	free_generic_img_args(gargs);
+	return end_compstars(args);
+}
+
+/* Launch the comparison-stars analysis via the generic_image_worker read-only
+ * path.  Ownership of args transfers to the framework on success; on failure
+ * the caller must free args with free_compstars_arg(). */
+gboolean launch_compstars_worker(struct compstars_arg *args, gboolean command) {
+	args->destroy_fn = free_compstars_arg;
+	struct generic_img_args *gargs = calloc(1, sizeof(struct generic_img_args));
+	gargs->fit = args->fit;
+	gargs->image_hook = compstars_image_hook;
+	gargs->idle_function = compstars_idle;
+	gargs->description = _("Comparison stars");
+	gargs->verbose = TRUE;
+	gargs->command = command;
+	gargs->read_only = TRUE;
+	gargs->user = args;
+	if (!start_in_new_thread(generic_image_worker, gargs)) {
+		gargs->user = NULL;
+		free_generic_img_args(gargs);
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /* generates subtitles for the dat file header and the plots based on what's available */

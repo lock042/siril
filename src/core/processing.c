@@ -1562,6 +1562,75 @@ gpointer generic_image_worker(gpointer p) {
 	gboolean undo_state = FALSE;
 	gchar* desc = g_strdup(args->description);
 
+	/* ── Read-only fast path ──────────────────────────────────────────────────
+	 * For operations that only read fit without modifying it: acquire a reader
+	 * lock instead of a writer lock and skip all write-side work (undo state,
+	 * FITS history, mask handling, gfit-modified notification, ROI repopulation,
+	 * viewport redraw suppression).  The idle dispatch mirrors the write path but
+	 * always uses end_generic_image as the fallback (no gfit display update
+	 * needed) and, when command=TRUE in GUI mode, still uses
+	 * execute_idle_and_wait_for_it so that scripts block until the idle finishes.
+	 */
+	if (args->read_only) {
+		set_progress_bar_data(NULL, PROGRESS_RESET);
+		gettimeofday(&t_start, NULL);
+		args->retval = 0;
+
+		if (args->max_threads < 1)
+			args->max_threads = com.max_thread;
+
+		if (args->description && verbose) {
+			gchar *rdesc = g_strdup_printf(_("%s: processing...\n"), args->description);
+			siril_log_color_message(rdesc, "green");
+			g_free(rdesc);
+		}
+
+		set_progress_bar_data(_("Processing image..."), 0.1f);
+
+		g_rw_lock_reader_lock(&com.pref_rwlock);
+		g_rw_lock_reader_lock(&args->fit->rwlock);
+
+		if (args->image_hook(args, args->fit, args->max_threads)) {
+			siril_log_color_message(_("%s image processing failed.\n"), "red", args->description);
+			args->retval = 1;
+		}
+
+		g_rw_lock_reader_unlock(&args->fit->rwlock);
+		g_rw_lock_reader_unlock(&com.pref_rwlock);
+
+		int ro_retval = args->retval;
+		GSourceFunc ro_idle = args->idle_function ? args->idle_function : end_generic_image;
+
+		if (args->command) {
+			if (com.headless) {
+				stop_processing_thread();
+				free_generic_img_args(args);
+			} else {
+				execute_idle_and_wait_for_it(ro_idle, args);
+			}
+		} else if (args->idle_function) {
+			siril_add_idle(args->idle_function, args);
+		} else {
+			siril_add_idle(end_generic_image, args);
+		}
+
+		if (ro_retval)
+			set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+		else
+			set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+
+		if (verbose) {
+			siril_log_color_message(_("%s %s.\n"), "green", desc,
+					ro_retval ? _("failed") : _("succeeded"));
+			gettimeofday(&t_end, NULL);
+			show_time(t_start, t_end);
+		}
+		g_free(desc);
+		return GINT_TO_POINTER(ro_retval);
+	}
+
+	/* ── Write path (original behaviour) ────────────────────────────────────*/
+
 	/* For single-image operations (args->fit == gfit) the remap buffers are
 	 * stale until remap_all() runs, so suppress viewport redraws and disable
 	 * the display-mode menu for the duration.  Sequence operations leave gfit

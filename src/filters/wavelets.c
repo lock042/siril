@@ -258,10 +258,15 @@ gpointer extract_plans(gpointer p) {
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
+	/* Reader lock protects copyfits() reads from args->fit (= gfit) for all
+	 * plans.  Not converted to generic_image_worker: writes multiple output
+	 * files and is tightly coupled to the wavelet dialog state machine. */
+	g_rw_lock_reader_lock(&args->fit->rwlock);
 	for (i = 0; i < args->Nbr_Plan; i++) {
 		gchar *filename, *msg;
 		if (copyfits(args->fit, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 			siril_log_message(_("Could not copy image, aborting\n"));
+			g_rw_lock_reader_unlock(&args->fit->rwlock);
 			siril_add_idle(end_wavelets_filter, args);
 			return GINT_TO_POINTER(1);
 		}
@@ -269,10 +274,11 @@ gpointer extract_plans(gpointer p) {
 		msg = g_strdup_printf(_("Extracting %s..."), filename);
 		set_progress_bar_data(msg, (float)i / args->Nbr_Plan);
 		get_wavelet_layers(&fit, args->Nbr_Plan, i, args->Type, -1);
-		savefits(filename, &fit);
+		savefits(filename, &fit); // savefits writes to disk, not to args->fit
 		g_free(filename);
 		g_free(msg);
 	}
+	g_rw_lock_reader_unlock(&args->fit->rwlock);
 	clearfits(&fit);
 	siril_add_idle(end_wavelets_filter, args);
 	return GINT_TO_POINTER(0);
@@ -387,6 +393,11 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	args->Type_Transform = Type_Transform;
 
 	set_cursor_waiting(TRUE);
+	/* wavelet_transform_worker uses start_in_new_thread directly: it is tightly
+	 * coupled to the wavelet dialog preview/apply state machine (copy_backup_to_gfit,
+	 * clear_backup, wavelet_compute_idle) and already holds a correct reader lock
+	 * internally for the pixel-read phase.  Routing through generic_image_worker
+	 * would require disentangling that state machine for no safety benefit. */
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
 		free(args);
 		set_cursor_waiting(FALSE);
@@ -431,6 +442,9 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = gfit;
+	/* extract_plans uses start_in_new_thread directly: it writes multiple output
+	 * files and is tightly coupled to the wavelet dialog state.  A reader lock
+	 * on gfit is held inside the worker for the copyfits() calls. */
 	if (!start_in_new_thread(extract_plans, args))
 		free(args);
 }

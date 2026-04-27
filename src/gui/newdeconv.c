@@ -796,6 +796,9 @@ void on_bdeconv_symkern_toggled(GtkToggleButton *button, gpointer user_data) {
 	// Recalculate parameters might update ratio based on this toggle
 	calculate_parameters();
 	estk_data *args = bdeconv_fill_estk_from_gui();
+	/* estimate_only uses start_in_new_thread directly: it is not purely
+	 * read-only (calls undo_save_state and may modify com.stars), and has
+	 * complex state around previewing, FFTW setup, and kernel generation. */
 	start_in_new_thread(estimate_only, args);
 }
 

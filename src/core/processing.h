@@ -195,6 +195,11 @@ struct generic_img_args {
 	 * rwlock is held) instead of in the idle function, keeping gfit reads on the
 	 * processing thread. */
 	gboolean populate_roi_on_complete;
+	/* When TRUE: acquire a reader lock instead of a writer lock; skip undo state,
+	 * FITS history, mask handling, and gfit-modified notifications. Use this for
+	 * workers that only read from fit without modifying it (photometry, profiles,
+	 * histograms, etc.). Defaults to FALSE so zero-initialised structs are safe. */
+	gboolean read_only;
 };
 
 struct generic_mask_args {

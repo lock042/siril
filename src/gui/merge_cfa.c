@@ -469,6 +469,9 @@ void apply_to_img() {
 	args->pattern = pattern;
 
 	set_cursor_waiting(TRUE);
+	/* merge_cfa_img_worker uses start_in_new_thread directly: it replaces gfit
+	 * pixel data with a merged CFA image, requiring a writer lock (held inside
+	 * the worker) and complex post-processing (close_single_image, create_uniq). */
 	if (!start_in_new_thread(merge_cfa_img_worker, args)) {
 		free_merge_cfa_img_data(args);
 		set_cursor_waiting(FALSE);

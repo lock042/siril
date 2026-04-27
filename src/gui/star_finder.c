@@ -246,6 +246,9 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		args->selection = com.selection;
 	}
 
+	/* findstar_worker uses start_in_new_thread directly: it has a complex dual
+	 * single-image / sequence path with GUI star-list updates and coordinate
+	 * export.  A reader lock is acquired inside the worker for pixel access. */
 	if (!start_in_new_thread(findstar_worker, args)) {
 		free(args);
 	}

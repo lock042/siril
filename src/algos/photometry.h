@@ -60,6 +60,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
 
 struct catmag_data {
+	destructor destroy_fn; // must be first — called by free_generic_img_args
 	siril_cat_index catalogue;
 	gboolean limit_BV;	// NOMAD
 	float refBV, dBV;
@@ -67,6 +68,6 @@ struct catmag_data {
 	float refT, dT;
 	fits *fit;
 };
-gpointer catmag_mono_worker(gpointer arg);
+gboolean launch_catmag_worker(struct catmag_data *args);
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

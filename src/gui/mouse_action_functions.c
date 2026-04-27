@@ -750,6 +750,9 @@ mouse_function_metadata save_on_click_action = { save_on_click,
 	if (single_image_is_loaded() && com.uniq->fileexist) {
 		savefits(com.uniq->filename, gfit);
 	} else {
+		/* mouse_save_as just opens the GTK save-as dialog; it does not access
+		 * gfit directly and does not need a lock. start_in_new_thread is used
+		 * only to avoid blocking the mouse callback on the GTK main thread. */
 		start_in_new_thread(mouse_save_as, NULL);
 	}
 	return TRUE;
@@ -759,6 +762,7 @@ mouse_function_metadata save_as_on_click_action = { save_as_on_click,
 	NAME_SAVE_AS_ON_CLICK_ACTION, N_("This action saves the current image with a new name"), FALSE, MOUSE_REF_SAVE_AS };
 
 gboolean save_as_on_click(mouse_data *data) {
+	/* See save_on_click above. */
 	start_in_new_thread(mouse_save_as, NULL);
 	return TRUE;
 }

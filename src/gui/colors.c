@@ -413,6 +413,9 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args);
 	} else {
 		copy_fits_metadata(gfit, args->fit);
+		/* extract_channels uses start_in_new_thread directly: it operates on a
+		 * pre-copied fits struct (args->fit) already separated from gfit on the
+		 * calling thread; no gfit access occurs in the worker itself. */
 		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
 			free(args->fit);

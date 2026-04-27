@@ -210,5 +210,6 @@ static void on_catmag_response(GtkDialog* self, gint response_id, gpointer user_
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	struct catmag_data *worker_args = malloc(sizeof(struct catmag_data));
 	memcpy(worker_args, &args, sizeof(struct catmag_data));
-	start_in_new_thread(catmag_mono_worker, worker_args);
+	if (!launch_catmag_worker(worker_args))
+		free(worker_args);
 }

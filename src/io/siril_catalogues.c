@@ -1157,6 +1157,10 @@ int execute_conesearch(conesearch_params *params) {
 		return CMD_GENERIC_ERROR;
 	}
 
+	/* conesearch_worker uses start_in_new_thread directly: it performs network
+	 * I/O before needing gfit, so holding the reader lock for the full network
+	 * request duration would be excessive.  The worker acquires a reader lock
+	 * only for the brief WCS projection phase. */
 	if (!start_in_new_thread(conesearch_worker, args)) {
 		free_conesearch_args(args);
 		return CMD_GENERIC_ERROR;
@@ -1198,6 +1202,8 @@ int execute_show_command(show_params *params) {
 				(params->display_tag == BOOL_NOT_SET) ?
 						(gboolean) has_field(siril_cat, NAME) :
 						(gboolean) params->display_tag;
+		/* See above: network I/O precedes gfit access; reader lock is acquired
+		 * only for the WCS projection phase inside conesearch_worker. */
 		if (!start_in_new_thread(conesearch_worker, args)) {
 			free_conesearch_args(args);
 			return CMD_GENERIC_ERROR;
@@ -1218,6 +1224,7 @@ int execute_show_command(show_params *params) {
 		siril_catalog_append_item(siril_cat, item);
 		siril_catalog_free_item(item);
 		free(item);
+		/* See above: reader lock acquired only inside conesearch_worker. */
 		if (!start_in_new_thread(conesearch_worker, args)) {
 			free_conesearch_args(args);
 			return CMD_GENERIC_ERROR;

@@ -8,6 +8,7 @@
 #include "io/siril_catalogues.h"
 
 struct compstars_arg {
+	destructor destroy_fn; // must be first — called by free_generic_img_args
 	// feature input
 	fits *fit; // the fits image
 	gchar *target_name;	// star name to be looked-up on online sources
@@ -37,7 +38,7 @@ typedef struct {
 struct compstars_arg* init_compstars_arg();
 void free_compstars_arg(gpointer p);
 
-gpointer compstars_worker(gpointer arg);
+gboolean launch_compstars_worker(struct compstars_arg *args, gboolean command);
 
 int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
 		gboolean use_comp1, gboolean use_comp2, fits *first);

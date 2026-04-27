@@ -237,6 +237,7 @@ static void initialize_convert() {
 	args->output_type = output_type;
 	args->multiple_output = multiple;
 	gettimeofday(&(args->t_start), NULL);
+	/* convert_thread_worker: file format conversion pipeline; no gfit access. */
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
 		g_free(args->destroot);

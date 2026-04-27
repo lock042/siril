@@ -27,6 +27,11 @@ void measure_line(fits* fit, point start, point finish, gboolean pref_as);
 void initialize_cut_struct(cut_struct *arg);
 gboolean cut_struct_is_valid(cut_struct *arg);
 void free_cut_args(cut_struct *arg);
+/* Launch a single-image cut profile via generic_image_worker (read-only path).
+ * Selects the correct hook (profile / tri / cfa) from arg->tri / arg->cfa.
+ * Ownership of arg transfers to the framework on success; caller frees on failure. */
+gboolean launch_cut_single(cut_struct *arg);
+/* Low-level workers used by the sequence path (cut_image_hook in apply_cut_to_sequence). */
 gpointer cut_profile(gpointer p);
 gpointer tri_cut(gpointer p);
 gpointer cfa_cut(gpointer p);

@@ -1241,6 +1241,9 @@ int process_rebayer(int nb){
 	args->pattern = pattern;
 
 	set_cursor_waiting(TRUE);
+	/* rebayer_cmd_worker uses start_in_new_thread directly: it replaces gfit
+	 * pixel data with a merged CFA image, requiring a writer lock (held inside
+	 * the worker) and complex post-processing (close_single_image, create_uniq). */
 	if (!start_in_new_thread(rebayer_cmd_worker, args)) {
 		free_rebayer_cmd_data(args);
 		set_cursor_waiting(FALSE);
@@ -4160,6 +4163,8 @@ int process_wavelet(int nb) {
 	args->Nbr_Plan = Nbr_Plan;
 	args->Type_Transform = Type_Transform;
 
+	/* wavelet_transform_worker uses start_in_new_thread directly: tightly coupled
+	 * to the wavelet dialog state machine; holds a correct reader lock internally. */
 	if (!start_in_new_thread(wavelet_transform_worker, args)) {
 		free(args);
 		return CMD_GENERIC_ERROR;
@@ -6103,6 +6108,8 @@ int process_pm(int nb) {
 		args->rescale = FALSE;
 	}
 
+	/* apply_pixel_math_operation uses start_in_new_thread directly: it
+	 * may write to gfit or a new fits depending on the expression. */
 	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
 		g_free(args->expression1);
 		clearfits(fit);
@@ -6115,28 +6122,25 @@ int process_pm(int nb) {
 }
 
 struct psf_cmd_data {
+	destructor destroy_fn; // must be first — called by free_generic_img_args
 	int channel;
 	rectangle selection;
 };
 
-static gpointer psf_cmd_worker(gpointer p) {
-	struct psf_cmd_data *args = (struct psf_cmd_data *)p;
+static int psf_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct psf_cmd_data *data = gargs->user;
 	starprofile profile = com.pref.starfinder_conf.profile;
 	psf_error error = PSF_NO_ERR;
-	g_rw_lock_reader_lock(&gfit->rwlock);
-	struct phot_config *ps = phot_set_adjusted_for_image(gfit);
-	psf_star *result = psf_get_minimisation(gfit, args->channel, &args->selection, TRUE, FALSE, ps, TRUE, profile, &error);
+	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+	psf_star *result = psf_get_minimisation(fit, data->channel, &data->selection, TRUE, FALSE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
-		gchar *str = format_psf_result(result, &args->selection, gfit, NULL);
+		gchar *str = format_psf_result(result, &data->selection, fit, NULL);
 		siril_log_message("%s\n", str);
 		g_free(str);
+		free_psf(result);
 	}
-	g_rw_lock_reader_unlock(&gfit->rwlock);
-	free_psf(result);
-	free(args);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+	return 0;
 }
 
 int process_psf(int nb){
@@ -6164,11 +6168,21 @@ int process_psf(int nb){
 		}
 	}
 
-	struct psf_cmd_data *args = calloc(1, sizeof(struct psf_cmd_data));
-	args->channel = channel;
-	args->selection = com.selection;
-	if (!start_in_new_thread(psf_cmd_worker, args)) {
-		free(args);
+	struct psf_cmd_data *data = calloc(1, sizeof(struct psf_cmd_data));
+	data->destroy_fn = NULL; // no heap members beyond the struct itself; free() suffices
+	data->channel = channel;
+	data->selection = com.selection;
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = psf_image_hook;
+	args->description = _("PSF");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->read_only = TRUE;
+	args->user = data;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -6611,6 +6625,8 @@ int process_light_curve(int nb) {
 	args->display_graph = has_GUI;
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
+	/* light_curve_worker uses start_in_new_thread directly: sequence operation
+	 * (seqpsf loop over multiple frames), not a single-image worker. */
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		g_free(args->target_descr);
 		free(args->areas);
@@ -7004,68 +7020,53 @@ int process_bgnoise(int nb) {
 }
 
 struct histo_cmd_data {
+	destructor destroy_fn; // must be first — called by free_generic_img_args
 	int nlayer;
 };
 
-static gpointer histo_cmd_worker(gpointer p) {
-	struct histo_cmd_data *args = (struct histo_cmd_data *)p;
+static int histo_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct histo_cmd_data *data = gargs->user;
 	GError *error = NULL;
 	const gchar *clayer;
 
-	g_rw_lock_reader_lock(&gfit->rwlock);
 	image_cfa_warning_check();
-	gsl_histogram *histo = computeHisto(gfit, args->nlayer);
-	if (!isrgb(gfit))
-		clayer = "bw";		//if B&W
-	else
-		clayer = channel_number_to_name(args->nlayer);
-	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
+	gsl_histogram *histo = computeHisto(fit, data->nlayer);
+	clayer = isrgb(fit) ? channel_number_to_name(data->nlayer) : "bw";
 
+	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
 	GFile *file = g_file_new_for_path(filename);
 	g_free(filename);
 
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
-
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "Cannot save histo\n");
 		}
 		g_object_unref(file);
 		gsl_histogram_free(histo);
-		free(args);
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
+		return 1;
 	}
-	gint retval = 0;
+	int retval = 0;
 	for (size_t i = 0; i < USHRT_MAX + 1; i++) {
 		gchar *buffer = g_strdup_printf("%zu %d\n", i, (int) gsl_histogram_get(histo, i));
-
 		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
 			g_free(buffer);
 			g_clear_error(&error);
-			g_object_unref(output_stream);
-			g_object_unref(file);
-			gsl_histogram_free(histo);
-			free(args);
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
+			retval = 1;
+			break;
 		}
 		g_free(buffer);
 	}
-
-	siril_log_message(_("The file %s has been created for the %s layer.\n"), g_file_peek_path(file), clayer);
+	if (!retval)
+		siril_log_message(_("The file %s has been created for the %s layer.\n"), g_file_peek_path(file), clayer);
 
 	g_object_unref(output_stream);
 	g_object_unref(file);
 	gsl_histogram_free(histo);
-	free(args);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(retval);
+	return retval;
 }
 
 int process_histo(int nb) {
@@ -7075,10 +7076,20 @@ int process_histo(int nb) {
 	if (end == word[1] || nlayer > 3 || nlayer < 0)
 		return CMD_INVALID_IMAGE;
 
-	struct histo_cmd_data *args = calloc(1, sizeof(struct histo_cmd_data));
-	args->nlayer = nlayer;
-	if (!start_in_new_thread(histo_cmd_worker, args)) {
-		free(args);
+	struct histo_cmd_data *data = calloc(1, sizeof(struct histo_cmd_data));
+	data->destroy_fn = NULL; // no heap members; free() suffices
+	data->nlayer = nlayer;
+
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = histo_image_hook;
+	args->description = _("Histogram");
+	args->verbose = TRUE;
+	args->command = TRUE;
+	args->read_only = TRUE;
+	args->user = data;
+	if (!start_in_new_thread(generic_image_worker, args)) {
+		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -7797,6 +7808,8 @@ int process_findstar(int nb) {
 		args->save_eqcoords = FALSE;
 	}
 
+	/* findstar_worker uses start_in_new_thread directly: dual single-image /
+	 * sequence path with GUI star-list updates; reader lock is held inside. */
 	if (!start_in_new_thread(findstar_worker, args)) {
 		g_free(args->starfile);
 		free(args);
@@ -9111,6 +9124,9 @@ int process_split(int nb){
 
 	args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 
+	/* extract_channels uses start_in_new_thread directly: it operates on a
+	 * pre-copied fits struct (args->fit) already separated from gfit on the
+	 * calling thread; no gfit access occurs in the worker itself. */
 	if (!start_in_new_thread(extract_channels, args)) {
 		clearfits(args->fit);
 		free(args->fit);
@@ -10387,6 +10403,8 @@ int process_link(int nb) {
 	args->output_type = SEQ_REGULAR; // fallback if symlink does not work
 	args->make_link = TRUE;
 	gettimeofday(&(args->t_start), NULL);
+	/* convert_thread_worker uses start_in_new_thread directly: file format
+	 * conversion pipeline; no direct gfit access in the worker. */
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		free(args->destroot);
 		g_strfreev(args->list);
@@ -10540,6 +10558,8 @@ int process_convert(int nb) {
 	args->multiple_output = FALSE;
 	args->make_link = make_link;
 	gettimeofday(&(args->t_start), NULL);
+	/* convert_thread_worker uses start_in_new_thread directly: file format
+	 * conversion pipeline; no direct gfit access in the worker. */
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		free(args->destroot);
 		g_strfreev(args->list);
@@ -10957,6 +10977,8 @@ int process_register(int nb) {
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
+	/* register_thread_func uses start_in_new_thread directly: registration is a
+	 * complex sequence pipeline that manages its own locking internally. */
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;
 		goto terminate_register_on_error;
@@ -11373,6 +11395,7 @@ int process_seq_applyreg(int nb) {
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 
+	/* See process_register above. */
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;
 		goto terminate_register_on_error;
@@ -11839,6 +11862,8 @@ int process_stackall(int nb) {
 
 	gettimeofday(&arg->t_start, NULL);
 
+	/* stackall_worker uses start_in_new_thread directly: high-level stacking
+	 * orchestration that runs multiple stacking pipelines in sequence. */
 	if (!start_in_new_thread(stackall_worker, arg)) {
 		g_free(arg->seqfile);
 		g_free(arg->result_file);
@@ -11973,6 +11998,7 @@ int process_stackone(int nb) {
 
 	gettimeofday(&arg->t_start, NULL);
 
+	/* stackone_worker: single-sequence stacking pipeline; manages its own locking. */
 	if (!start_in_new_thread(stackone_worker, arg)) {
 		g_free(arg->result_file);
 		g_free(arg->seqfile);
@@ -12307,6 +12333,8 @@ int process_calibrate_single(int nb) {
 	data->filename = g_strdup(word[1]);
 	data->prepro_args = prepro;
 
+	/* calibrate_single_worker: single-image preprocessing pipeline (bias/dark/flat
+	 * calibration); manages its own locking internally. */
 	if (!start_in_new_thread(calibrate_single_worker, data)) {
 		clear_preprocessing_data(prepro);
 		free(prepro);
@@ -12573,6 +12601,8 @@ int process_extract(int nb) {
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = gfit;
 	siril_log_message(_("Extracting wavelets (%d plans)\n"), Nbr_Plan);
+	/* extract_plans uses start_in_new_thread directly: writes multiple output files;
+	 * a reader lock on gfit is held inside the worker for copyfits() calls. */
 	if (!start_in_new_thread(extract_plans, args)) {
 		free(args);
 		return CMD_ARG_ERROR;
@@ -13505,6 +13535,9 @@ int process_platesolve(int nb) {
 	args->fit = gfit;
 	args->numthreads = com.max_thread;
 	process_plate_solver_input(args);
+	/* plate_solver uses start_in_new_thread directly: it writes WCS and star
+	 * data to gfit (writer lock held internally) and has complex online/offline,
+	 * single-image/sequence paths. */
 	if (!start_in_new_thread(plate_solver, args)) {
 		retval = CMD_GENERIC_ERROR;
 		goto clean_and_exit_platesolve;
@@ -13791,10 +13824,8 @@ int process_findcompstars(int nb) {
 	args->max_emag = emag;
 	args->nina_file = g_strdup(nina_file);
 
-	if (!start_in_new_thread(compstars_worker, args)) {
-		g_free(args->target_name);
-		g_free(args->nina_file);
-		free(args);
+	if (!launch_compstars_worker(args, TRUE)) {
+		free_compstars_arg(args);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -14180,21 +14211,11 @@ int process_profile(int nb) {
 	cut_args->display_graph = (!com.script); // we can display the plot if not in a script
 	cut_args->save_png_too = TRUE;
 
-	if (cut_args->cfa) {
-		if (!start_in_new_thread(cfa_cut, cut_args)) {
-			free_cut_args(cut_args);
-			return CMD_ARG_ERROR;
-		}
-	} else if (cut_args->tri) {
-		if (!start_in_new_thread(tri_cut, cut_args)) {
-			free_cut_args(cut_args);
-			return CMD_ARG_ERROR;
-		}
-	} else {
-		if (!start_in_new_thread(cut_profile, cut_args)) {
-			free_cut_args(cut_args);
-			return CMD_ARG_ERROR;
-		}
+	/* launch_cut_single uses the read-only generic_image_worker path, which
+	 * acquires a reader lock on gfit for the duration of the hook. */
+	if (!launch_cut_single(cut_args)) {
+		free_cut_args(cut_args);
+		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
 }
@@ -14432,6 +14453,7 @@ int process_trixel(int nb) {
 			return CMD_LOAD_IMAGE_FIRST;
 		if (!has_wcs(gfit))
 			return CMD_FOR_PLATE_SOLVED;
+		/* list_trixels / write_trixels: local catalogue maintenance; no gfit access. */
 		start_in_new_thread(list_trixels, NULL);
 	} else if (!strcmp(word[2], "-p"))
 		start_in_new_thread(write_trixels, NULL);
@@ -14778,8 +14800,11 @@ int process_catmag_mono(int nb) {
 		args->catalogue = CAT_GAIADR3;
 	}
 	args->fit = gfit;
-	start_in_new_thread(catmag_mono_worker, args);
-	return 0;
+	if (!launch_catmag_worker(args)) {
+		free(args);
+		return CMD_GENERIC_ERROR;
+	}
+	return CMD_OK;
 }
 
 // Process functions refactored

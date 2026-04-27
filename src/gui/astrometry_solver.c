@@ -476,6 +476,9 @@ static void start_image_plate_solve() {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!fill_plate_solver_structure_from_GUI(args)) {
 		if (!args->for_sequence) {
+			/* plate_solver uses start_in_new_thread directly: it writes WCS
+			 * data and optionally star data to gfit, requiring a writer lock.
+			 * It is architecturally complex (online/offline, single/sequence). */
 			if (!start_in_new_thread(plate_solver, args)) {
 				free_astrometry_data(args);
 			}

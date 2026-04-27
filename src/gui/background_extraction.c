@@ -178,6 +178,9 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	args->tolerance = keep_all ? -1.0 : get_tolerance_value();
 
 	set_cursor_waiting(TRUE);
+	/* bkg_generate_worker uses start_in_new_thread directly: it delegates all
+	 * gfit access (and its reader lock) to generate_background_samples(), which
+	 * manages its own lock internally. */
 	if (!start_in_new_thread(bkg_generate_worker, args)) {
 		free(args);
 		set_cursor_waiting(FALSE);

@@ -1200,6 +1200,8 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	args->fit = fit;
 
+	/* apply_pixel_math_operation: may write to gfit or a new fits struct;
+	 * manages its own locking internally. */
 	if (!start_in_new_thread(apply_pixel_math_operation, args)) {
 		g_free(args->expression1);
 		g_free(args->expression2);
