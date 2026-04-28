@@ -293,7 +293,7 @@ int ddp(fits *a, float level, float coeff, float sigma) {
 	if (!ret) {
 		char log[90];
 		sprintf(log, "DDP stretch, threshold: %.2f, multiplier: %.2f, sigma: %.1f", level, coeff, sigma);
-		a->history = g_slist_append(a->history, strdup(log));
+		a->history = g_slist_append(a->history, g_strdup(log));
 	}
 	return ret;
 }
@@ -306,6 +306,7 @@ int visu(fits *fit, int low, int high) {
 	gui.lo = low;
 	gui.hi = high;
 	set_cutoff_sliders_values();
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	return 0;

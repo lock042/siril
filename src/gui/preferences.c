@@ -72,11 +72,13 @@ static void reset_swapdir() {
 
 	dir = g_get_tmp_dir();
 
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	if (g_strcmp0(dir, com.pref.swap_dir)) {
 		g_free(com.pref.swap_dir);
 		com.pref.swap_dir = g_strdup(dir);
 		gtk_file_chooser_set_filename(swap_dir, dir);
 	}
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 }
 
 static void update_debayer_preferences() {
@@ -124,6 +126,8 @@ static void update_astrometry_preferences() {
 		g_free(com.pref.catalogue_paths[5]);
 		com.pref.catalogue_paths[5] = newpath;
 	}
+
+	com.pref.astrometry.gaia_cache_duration = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")));
 
 	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
 	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")));
@@ -569,7 +573,9 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 	if (g_access(dir, W_OK)) {
 		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(swap_dir, com.pref.swap_dir);
+		g_rw_lock_reader_unlock(&com.pref_rwlock);
 		return;
 	}
 	if (sw_dir) {
@@ -588,7 +594,9 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 	if (g_access(path, X_OK)) {
 		gchar *msg = siril_log_color_message(_("You don't have permission to execute this file: %s\n"), "red", path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
+		g_rw_lock_reader_unlock(&com.pref_rwlock);
 		return;
 	}
 	st_version = starnet_executablecheck(path);
@@ -622,7 +630,9 @@ void on_filechooser_starnet_weights_file_set(GtkFileChooserButton *fileChooser, 
 	if (g_access(path, R_OK)) {
 		gchar *msg = siril_log_color_message(_("You don't have permission to read this file: %s\n"), "red", path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		g_rw_lock_reader_lock(&com.pref_rwlock);
 		gtk_file_chooser_set_filename(starnet_weights, com.pref.starnet_weights);
+		g_rw_lock_reader_unlock(&com.pref_rwlock);
 		return;
 	}
 	if (st_weights) {
@@ -674,6 +684,7 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 
 void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
+	g_rw_lock_reader_lock(&com.pref_rwlock);
 	preferences *pref = &com.pref;
 	/* tab FITS/SER Debayer */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_use_header")), pref->debayer.use_bayer_header);
@@ -727,6 +738,7 @@ void update_preferences_from_model() {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")), pref->astrometry.gaia_cache_duration);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_sampling_tolerance")), pref->astrometry.percent_scale_range);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")), pref->astrometry.radius_degrees);
@@ -810,7 +822,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 512 ? 2 : (pref->gui.thumbnail_size == 256 ? 1 : 0));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_tint")), pref->gui.mask_tints_vports);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_ui_mask_tint")), pref->gui.mask_tints_vports);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mask_bitpix")), pref->default_mask_bitpix == 8 ? 0 : pref->default_mask_bitpix == 16 ? 1 : pref->default_mask_bitpix == 32 ? 2 : 3);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
@@ -924,6 +936,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
+	g_rw_lock_reader_unlock(&com.pref_rwlock);
 }
 
 static void set_icc_filechooser_directories() {
@@ -997,6 +1010,12 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 #else
 	fill_script_repo_tree(FALSE);
 #endif
+#ifndef HAVE_SQLITE
+	// Hide UI for cache if we don't have SQLite
+	gtk_widget_set_visible(lookup_widget("gaia_cache_duration_label"), FALSE);
+	gtk_widget_set_visible(lookup_widget("gaia_cache_duration"), FALSE);
+	gtk_widget_set_visible(lookup_widget("clean_gaia_cache"), FALSE);
+#endif
 }
 
 gboolean check_pref_sanity(gchar **error) {
@@ -1029,8 +1048,10 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_pref_sanity(&err)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong value"), err);
 	} else {
+		g_rw_lock_writer_lock(&com.pref_rwlock);
 		free_preferences(&com.pref);
 		dump_ui_to_global_var();
+		g_rw_lock_writer_unlock(&com.pref_rwlock);
 #ifdef HAVE_LIBGIT2
 		if (!com.pref.use_scripts_repository)
 			on_disable_gitscripts();
@@ -1055,7 +1076,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		refresh_icc_transforms();
 		if (single_image_is_loaded() || sequence_is_loaded()) {
 			color_manage(gfit, gfit->color_managed);
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		}
 		siril_close_dialog("settings_window");
 		update_reg_interface(TRUE); // To update UI with new preferences
@@ -1076,7 +1097,9 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			_("Do you really want to reset all preferences to default value?"),
 			_("Reset Preferences"));
 	if (confirm) {
+		g_rw_lock_writer_lock(&com.pref_rwlock);
 		initialize_default_settings();
+		g_rw_lock_writer_unlock(&com.pref_rwlock);
 		update_preferences_from_model();
 		update_custom_gamut = FALSE;
 	}
@@ -1127,15 +1150,21 @@ void on_button_python_reset_venv_clicked(gpointer user_data) {
 /* these one are not on the preference dialog */
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.prepro.cfa = gtk_toggle_button_get_active(button);
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 }
 
 void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.prepro.equalize_cfa = gtk_toggle_button_get_active(button);
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 }
 
 void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
+	g_rw_lock_writer_lock(&com.pref_rwlock);
 	com.pref.prepro.fix_xtrans = gtk_toggle_button_get_active(button);
+	g_rw_lock_writer_unlock(&com.pref_rwlock);
 }
 
 /* ********************************** */

@@ -66,6 +66,7 @@ preferences pref_init = {
 	.graxpert_path = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
+	.startup_scripts = NULL,
 	.use_scripts_repository = TRUE,
 	.auto_script_update = TRUE,
 	.drizz_weight_match_bitpix = FALSE,
@@ -209,6 +210,7 @@ preferences pref_init = {
 	.astrometry = {
 		.update_default_scale = TRUE,
 		.percent_scale_range = 20,
+		.gaia_cache_duration = 90,
 		.sip_correction_order = 3,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
@@ -428,7 +430,7 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
-
+	{ "astrometry", "gaia_cache_duration", STYPE_INT, N_("Lifetime in days of items in Gaia online cache"), &com.pref.astrometry.gaia_cache_duration, { .range_int = { 7, 3650 } } },
 	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
 	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
@@ -503,6 +505,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
 	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
+	{ "gui", "startup_scripts", STYPE_STRLIST, N_("list of scripts selected to run at startup"), &com.pref.startup_scripts },
 	{ "gui", "warn_scripts_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_scripts_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },

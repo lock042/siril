@@ -751,7 +751,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	void *buf = NULL;
 	void *dest = NULL;
 	cmsHTRANSFORM save_transform = NULL;
-	gboolean threaded = !get_thread_run();
+	gboolean threaded = !processing_in_worker_thread();
 	if (fit->color_managed && fit->icc_profile) {
 		// Transform the data
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
@@ -1443,7 +1443,7 @@ int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	cmsHTRANSFORM save_transform = NULL;
 	if (fit->color_managed && fit->icc_profile) {
 		void *buf = NULL;
-		gboolean threaded = !get_thread_run();
+		gboolean threaded = !processing_in_worker_thread();
 		gboolean src_is_float = (fit->type == DATA_FLOAT);
 		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
 		size_t npixels = fit->rx * fit->ry;
@@ -1923,7 +1923,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		samples_per_pixel = 1;
 	}
 
-	gboolean threaded = get_thread_run();
+	gboolean threaded = processing_in_worker_thread();
 	cmsHTRANSFORM save_transform = NULL;
 	cmsUInt32Number trans_type;
 	if (fit->color_managed && fit->icc_profile) {
@@ -2923,7 +2923,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		return OPEN_IMAGE_ERROR;
 	}
 
-	gboolean threaded = !get_thread_run();
+	gboolean threaded = !processing_in_worker_thread();
 
 	if (bit_depth > 8) { /* high bit depth */
 		const float scale = bit_depth == 10 ? 1023.f : bit_depth == 12 ? 4095.f : 65535.f;
@@ -2935,9 +2935,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 			for (int i = 0; i < width * nrow; i++) {
 				r = (int) ( ( (float) (0x0fff & (src[i * nchannels + RLAYER]))  / scale) * 65535.0f + 0.5f);
 				g = (int) ( ( (float) (0x0fff & (src[i * nchannels + GLAYER]))  / scale) * 65535.0f + 0.5f);
@@ -2958,9 +2955,6 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 		for (int row = 0; row < height; row += stride) {
 			int nrow = (row + stride > height ? height - row : stride);
 			WORD r, g, b;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 			for (int i = 0; i < width * nrow; i++) {
 				r = udata[i * nchannels + RLAYER];
 				g = udata[i * nchannels + GLAYER];
@@ -3142,7 +3136,7 @@ int readjxl(const char* name, fits *fit) {
 }
 
 int savejxl(const char *name, fits *fit, int effort, double quality, gboolean force_8bit) {
-	gboolean threaded = !get_thread_run();
+	gboolean threaded = !processing_in_worker_thread();
 
 	char *filename = strdup(name);
 	if (!g_str_has_suffix(filename, ".jxl")) {

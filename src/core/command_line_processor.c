@@ -193,7 +193,7 @@ int execute_command(int wordnb) {
 	}
 
 	if ((commands[i].prerequires & REQ_CMD_NO_THREAD) != 0) {
-		if (get_thread_run()) {
+		if (processing_is_job_active()) {
 			return CMD_THREAD_RUNNING;
 		}
 	}
@@ -207,7 +207,7 @@ int execute_command(int wordnb) {
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
 		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {
-			notify_gfit_modified();
+			gfit_modified_update_gui();
 		} else {
 			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
@@ -274,8 +274,7 @@ static gboolean end_script(gpointer p) {
 	clear_status_bar();
 	gui_function(set_GUI_CWD, NULL);
 	gui_function(update_MenuItem, NULL);
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	gfit_modified_update_gui();
 	gui_function(redraw_previews, NULL);
 	update_zoom_label();
 	update_display_fwhm();
@@ -397,6 +396,7 @@ gpointer execute_script(gpointer p) {
 
 	if (!com.headless) {
 		com.script = FALSE;
+		notify_gfit_data_modified();
 		gui_function(end_script, NULL);
 	}
 
@@ -572,7 +572,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 	if (line[0] == '\0' || line[0] == '\n')
 		return CMD_NOT_FOUND;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
+		if (processing_is_job_active() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return CMD_THREAD_RUNNING;
 		}
@@ -625,14 +625,10 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		}
 
 		if (wait_for_completion && ret != CMD_NO_WAIT) {
-			while (get_thread_run()) {
-				if (waiting_for_thread()) {
-					ret = CMD_GENERIC_ERROR;  // Command failed during execution
-					break;
-				}
-				g_usleep(100000);  // Sleep for 100ms to avoid busy waiting
-				remove_child_from_children((GPid) -2); // remove processing thread from list
-			}
+			remove_child_from_children((GPid) -2);   /* tidy child list first    */
+			gpointer job_retval = waiting_for_thread();
+			if (GPOINTER_TO_INT(job_retval))
+				ret = CMD_GENERIC_ERROR;
 		}
 		free(myline);
 	}

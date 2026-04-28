@@ -429,6 +429,11 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 	temp = NULL;
 }
 
+/* Called from the sequence image_hook (cut_image_hook in apply_cut_to_sequence).
+ * The sequence path stays on start_in_new_thread because the sequence framework
+ * manages threading and locking for individual frames.  For the single-image
+ * path use launch_cut_single() instead, which routes through generic_image_worker
+ * with a reader lock. */
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	gchar *spl_legend = NULL;
@@ -956,6 +961,342 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
+/* ── Single-image image hooks for generic_image_worker (read-only path) ─────
+ *
+ * The three functions below are the single-image equivalents of cut_profile,
+ * tri_cut, and cfa_cut.  They use the same pixel-reading logic but are called
+ * from generic_image_worker, which:
+ *   • holds a reader lock on fit->rwlock for the entire hook duration,
+ *   • dispatches end_generic_image as the completion idle (stopping the thread
+ *     and freeing args), and
+ *   • calls free_cut_args (set as destroy_fn) to release the cut_struct.
+ *
+ * As a result the hooks must NOT dispatch end_generic themselves, must NOT
+ * free the cut_struct, and may dispatch the siril_plot idle freely (it is
+ * queued, not run synchronously, so the reader lock is not held when it runs).
+ */
+
+static int cut_profile_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	cut_struct *arg = gargs->user;
+	gchar *spl_legend = NULL;
+	int retval = 0;
+	gchar *filename = NULL, *imagefilename = NULL;
+	double starty = fit->ry - 1 - arg->cut_start.y;
+	double endy = fit->ry - 1 - arg->cut_end.y;
+	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) {
+		retval = 1;
+		goto END;
+	}
+	build_profile_filenames(arg, &filename, &imagefilename);
+	point delta;
+	delta.x = arg->cut_end.x - arg->cut_start.x;
+	delta.y = endy - starty;
+	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (length < 1.) {
+		retval = 1;
+		goto END;
+	}
+	int nbr_points = (int) length;
+	double point_spacing = length / nbr_points;
+	gboolean xscale = spectroscopy_selections_are_valid(arg);
+	double conversionfactor = get_conversion_factor(fit);
+	if (arg->pref_as && !xscale && conversionfactor != -DBL_MAX)
+		point_spacing *= conversionfactor;
+	double point_spacing_x = (double) delta.x / nbr_points;
+	double point_spacing_y = (double) delta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
+	r = malloc(nbr_points * sizeof(double));
+	if (fit->naxes[2] > 1) {
+		g = malloc(nbr_points * sizeof(double));
+		b = malloc(nbr_points * sizeof(double));
+	}
+	x = malloc(nbr_points * sizeof(double));
+	double zero = 0.0, spectro_spacing = 1.0;
+	if (xscale)
+		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
+	for (int i = 0 ; i < nbr_points ; i++) {
+		if (xscale)
+			x[i] = arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
+		else
+			x[i] = i * point_spacing;
+		if (hv)
+			r[i] = nointerp(fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 0, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+		else
+			r[i] = interp(fit, (double) (arg->cut_start.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 0, arg->width, point_spacing_x, point_spacing_y);
+		if (fit->naxes[2] > 1) {
+			if (fabs(point_spacing_x) == 1. || fabs(point_spacing_y) == 1.) {
+				g[i] = nointerp(fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 1, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+				b[i] = nointerp(fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 2, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+			} else {
+				g[i] = interp(fit, (double) (arg->cut_start.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 1, arg->width, point_spacing_x, point_spacing_y);
+				b[i] = interp(fit, (double) (arg->cut_start.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 2, arg->width, point_spacing_x, point_spacing_y);
+			}
+		}
+	}
+	if (arg->mode == CUT_MONO) {
+		if (fit->naxes[2] == 3) {
+			if (arg->vport == 1) { for (int i = 0 ; i < nbr_points ; i++) r[i] = g[i]; spl_legend = g_strdup("G"); }
+			else if (arg->vport == 2) { for (int i = 0 ; i < nbr_points ; i++) r[i] = b[i]; spl_legend = g_strdup("B"); }
+			else if (arg->vport > 2) { for (int i = 0 ; i < nbr_points ; i++) r[i] = (r[i] + g[i] + b[i]) / 3.0; spl_legend = g_strdup("L"); }
+			else spl_legend = g_strdup("R");
+		} else {
+			spl_legend = g_strdup("Mono");
+		}
+	} else {
+		spl_legend = g_strdup("R");
+	}
+	gchar *xlabel = NULL, *title = cut_make_title(arg, xscale);
+	if (xscale)
+		xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
+	else if (arg->pref_as && conversionfactor != -DBL_MAX)
+		xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+	else
+		xlabel = g_strdup_printf(_("Distance along cut / px"));
+	siril_plot_set_title(spl_data, title);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+	siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
+	siril_plot_set_savename(spl_data, "profile");
+	if (fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
+		siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
+		siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
+		siril_plot_set_nth_color(spl_data, 2, (double[3]){0., 1., 0.});
+		siril_plot_set_nth_color(spl_data, 3, (double[3]){0., 0., 1.});
+	}
+	if (arg->save_dat)
+		siril_plot_save_dat(spl_data, filename, FALSE);
+	if (arg->save_png_too || !arg->display_graph)
+		siril_plot_save_png(spl_data, imagefilename, 0, 0);
+	if (!arg->display_graph) {
+		free_siril_plot_data(spl_data);
+		spl_data = NULL;
+	}
+	g_free(title);
+	g_free(xlabel);
+END:
+	g_free(filename);
+	g_free(imagefilename);
+	g_free(spl_legend);
+	free(x); free(r); free(g); free(b);
+	arg->vport = -1;
+	if (arg->display_graph && spl_data)
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+	else
+		free_siril_plot_data(spl_data);
+	return retval;
+}
+
+static int tri_cut_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	cut_struct *arg = gargs->user;
+	int retval = 0;
+	char *filename = NULL, *imagefilename = NULL;
+	double starty = fit->ry - 1 - arg->cut_start.y;
+	double endy = fit->ry - 1 - arg->cut_end.y;
+	double *x = NULL, *r[3] = { 0 };
+	gchar *spllabels[3] = { NULL };
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) { retval = 1; goto END; }
+	build_profile_filenames(arg, &filename, &imagefilename);
+	point delta = { arg->cut_end.x - arg->cut_start.x, endy - starty };
+	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (length < 1.) { retval = 1; free_siril_plot_data(spl_data); spl_data = NULL; goto END; }
+	int nbr_points = (int) length;
+	double point_spacing = length / nbr_points;
+	gboolean do_spec = spectroscopy_selections_are_valid(arg);
+	double conversionfactor = get_conversion_factor(fit);
+	if (arg->pref_as && !do_spec && conversionfactor != -DBL_MAX)
+		point_spacing *= conversionfactor;
+	double point_spacing_x = (double) delta.x / nbr_points;
+	double point_spacing_y = (double) delta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
+	for (int i = 0 ; i < 3 ; i++) r[i] = malloc(nbr_points * sizeof(double));
+	x = malloc(nbr_points * sizeof(double));
+	double zero = 0.0, spectro_spacing = 1.0;
+	if (do_spec) calc_zero_and_spacing(arg, &zero, &spectro_spacing);
+	for (int i = 0 ; i < nbr_points ; i++) {
+		x[i] = do_spec ? (arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing) : i * point_spacing;
+	}
+	for (int offset = -1 ; offset < 2 ; offset++) {
+		double offstartx = arg->cut_start.x - (offset * point_spacing_y * arg->step);
+		double offstarty = starty + (offset * point_spacing_x * arg->step);
+		gboolean single_channel = (arg->vport == 0 || arg->vport == 1 || arg->vport == 2);
+		gboolean redvport = arg->vport < 3 ? arg->vport : 0;
+		for (int i = 0 ; i < nbr_points ; i++) {
+			if (hv) r[offset+1][i] = nointerp(fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, redvport, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+			else r[offset+1][i] = interp(fit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), redvport, arg->width, point_spacing_x, point_spacing_y);
+			if (fit->naxes[2] > 1 && (!single_channel)) {
+				if (fabs(point_spacing_x) == 1. || fabs(point_spacing_y) == 1.) {
+					r[offset+1][i] += nointerp(fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 1, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+					r[offset+1][i] += nointerp(fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 2, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+				} else {
+					r[offset+1][i] += interp(fit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 1, arg->width, point_spacing_x, point_spacing_y);
+					r[offset+1][i] += interp(fit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 2, arg->width, point_spacing_x, point_spacing_y);
+				}
+			}
+		}
+		if (fit->naxes[2] == 3)
+			for (int i = 0 ; i < nbr_points ; i++) r[offset+1][i] /= 3.0;
+	}
+	if (do_spec) {
+		for (int i = 0 ; i < nbr_points ; i++) { r[2][i] = (r[0][i] + r[2][i]) / 2.0; r[0][i] = (double) i; }
+		int degree = arg->bg_poly_order;
+		double *coeffs = calloc(degree + 1, sizeof(double));
+		double *uncertainties = calloc(degree + 1, sizeof(double));
+		double sigma;
+		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
+		GString *text = g_string_new(_("Coefficients: y = "));
+		for (int i = 0 ; i <= degree ; i++) {
+			gchar *tmp = (i == 0) ? g_strdup_printf("%.2e (±%.2e) ", coeffs[0], uncertainties[0])
+				: (coeffs[i] >= 0.0 ? g_strdup_printf("+ %.2e (±%.2e) * x^%d ", coeffs[i], uncertainties[i], i)
+						     : g_strdup_printf("- %.2e (±%.2e) * x^%d ", -coeffs[i], uncertainties[i], i));
+			text = g_string_append(text, tmp); g_free(tmp);
+		}
+		gchar *coeffs_text = g_string_free(text, FALSE);
+		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
+		siril_log_color_message("%s\nFit σ: %.2e\n", "blue", coeffs_text, sigma);
+		g_free(coeffs_text);
+		for (int i = 0 ; i < nbr_points ; i++) { r[0][i] = evaluate_polynomial(coeffs, degree, (double) i); r[1][i] -= r[0][i]; }
+		free(coeffs); free(uncertainties);
+	}
+	if (arg->vport == 0) spllabels[1] = do_spec ? g_strdup(_("Intensity")) : (fit->naxes[2] == 3 ? g_strdup(_("R")) : g_strdup(_("Mono")));
+	else if (arg->vport == 1) spllabels[1] = g_strdup(_("G"));
+	else if (arg->vport == 2) spllabels[1] = g_strdup(_("B"));
+	else spllabels[1] = do_spec ? g_strdup(_("Intensity")) : g_strdup(_("L"));
+	if (do_spec) { spllabels[0] = g_strdup_printf(_("Fitted background")); spllabels[2] = g_strdup_printf(_("Measured background")); }
+	else { spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step); spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step); }
+	gchar *xlabel = NULL, *title = cut_make_title(arg, FALSE);
+	if (do_spec) xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
+	else if (arg->pref_as && conversionfactor != -DBL_MAX) xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+	else xlabel = g_strdup_printf(_("Distance along cut / px"));
+	siril_plot_set_title(spl_data, title);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_set_savename(spl_data, "profile");
+	if (!do_spec || arg->plot_spectro_bg) siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
+	siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
+	if (!do_spec || arg->plot_spectro_bg) siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
+	if (arg->save_dat) siril_plot_save_dat(spl_data, filename, FALSE);
+	if (arg->save_png_too || !arg->display_graph) siril_plot_save_png(spl_data, imagefilename, 0, 0);
+	if (!arg->display_graph) { free_siril_plot_data(spl_data); spl_data = NULL; }
+	g_free(title); g_free(xlabel);
+END:
+	g_free(filename); g_free(imagefilename);
+	free(x);
+	for (int i = 0 ; i < 3 ; i++) { free(r[i]); g_free(spllabels[i]); }
+	if (arg->display_graph && spl_data)
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+	else
+		free_siril_plot_data(spl_data);
+	return retval;
+}
+
+static int cfa_cut_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	cut_struct *arg = gargs->user;
+	int retval = 0, ret = 0;
+	double *x = NULL, *r[4] = { 0 };
+	char *filename = NULL, *imagefilename = NULL;
+	fits cfa[4];
+	memset(cfa, 0, 4 * sizeof(fits));
+	siril_plot_data *spl_data = init_siril_plot_data();
+	if (!spl_data) { retval = 1; goto END; }
+	build_profile_filenames(arg, &filename, &imagefilename);
+	sensor_pattern pattern = get_validated_cfa_pattern(fit, FALSE, FALSE);
+	if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+		siril_log_color_message(_("Error: failed to read CFA pattern or invalid found.\n"), "red");
+		retval = 1; free_siril_plot_data(spl_data); spl_data = NULL; goto END;
+	}
+	const gchar *pattern_str = filter_pattern[pattern];
+	if (fit->type == DATA_USHORT) ret = split_cfa_ushort(fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]);
+	else ret = split_cfa_float(fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]);
+	if (ret) {
+		siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+		retval = 1; free_siril_plot_data(spl_data); spl_data = NULL; goto END;
+	}
+	point cut_start_cfa = { (int) (arg->cut_start.x / 2), (int) (arg->cut_start.y / 2) };
+	point cut_end_cfa   = { (int) (arg->cut_end.x   / 2), (int) (arg->cut_end.y   / 2) };
+	double starty = (fit->ry / 2) - 1 - cut_start_cfa.y;
+	double endy   = (fit->ry / 2) - 1 - cut_end_cfa.y;
+	point cdelta = { cut_end_cfa.x - cut_start_cfa.x, endy - starty };
+	double length = sqrt(cdelta.x * cdelta.x + cdelta.y * cdelta.y);
+	if (length < 1.) { retval = 1; free_siril_plot_data(spl_data); spl_data = NULL; goto END; }
+	int nbr_points = (int) length;
+	double point_spacing = length / nbr_points;
+	double conversionfactor = get_conversion_factor(fit);
+	if (arg->pref_as && conversionfactor != -DBL_MAX) point_spacing *= conversionfactor;
+	double point_spacing_x = (double) cdelta.x / nbr_points;
+	double point_spacing_y = (double) cdelta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
+	for (int i = 0 ; i < 4 ; i++) r[i] = malloc(nbr_points * sizeof(double));
+	x = malloc(nbr_points * sizeof(double));
+	for (int j = 0 ; j < 4 ; j++) {
+		for (int i = 0 ; i < nbr_points ; i++) {
+			x[i] = i * point_spacing;
+			if (hv) r[j][i] = nointerp(&cfa[j], cut_start_cfa.x + point_spacing_x * i, starty + point_spacing_y * i, 0, 1, (int) point_spacing_x, (int) point_spacing_y);
+			else r[j][i] = interp(&cfa[j], (double) (cut_start_cfa.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 0, 1, point_spacing_x, point_spacing_y);
+		}
+	}
+	gchar *xlabel = NULL, *title = cut_make_title(arg, FALSE);
+	if (arg->pref_as && conversionfactor != -DBL_MAX) xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+	else xlabel = g_strdup_printf(_("Distance along cut / px"));
+	siril_plot_set_title(spl_data, title);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_set_savename(spl_data, "profile");
+	gboolean first_green = TRUE;
+	for (int i = 0; i < 4; i++) {
+		double color[3] = { 0.0, 0.0, 0.0 };
+		const char *label;
+		switch (pattern_str[i]) {
+			case 'R': label = "Red"; color[0] = 1.0; break;
+			case 'G': label = first_green ? "Green1" : "Green2";
+				color[0] = first_green ? 0.078 : 0.196; color[1] = first_green ? 0.392 : 1.000; color[2] = first_green ? 0.078 : 0.196;
+				first_green = FALSE; break;
+			case 'B': label = "Blue"; color[2] = 1.0; break;
+			default:  label = "Error"; break;
+		}
+		siril_plot_add_xydata(spl_data, label, nbr_points, x, r[i], NULL, NULL);
+		siril_plot_set_nth_color(spl_data, i + 1, color);
+	}
+	if (arg->save_dat) siril_plot_save_dat(spl_data, filename, FALSE);
+	if (arg->save_png_too || !arg->display_graph) siril_plot_save_png(spl_data, imagefilename, 0, 0);
+	if (!arg->display_graph) { free_siril_plot_data(spl_data); spl_data = NULL; }
+	g_free(title); g_free(xlabel);
+END:
+	g_free(filename); g_free(imagefilename);
+	free(x);
+	for (int i = 0 ; i < 4 ; i++) { free(r[i]); clearfits(&cfa[i]); }
+	if (arg->display_graph && spl_data)
+		siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+	else
+		free_siril_plot_data(spl_data);
+	return retval;
+}
+
+/* Launch a single-image cut profile via the generic_image_worker read-only
+ * path.  Ownership of arg transfers to the framework on success; on failure
+ * the caller must free arg with free_cut_args(). */
+gboolean launch_cut_single(cut_struct *arg) {
+	int (*hook)(struct generic_img_args *, fits *, int);
+	if (arg->cfa)       hook = cfa_cut_image_hook;
+	else if (arg->tri)  hook = tri_cut_image_hook;
+	else                hook = cut_profile_image_hook;
+
+	arg->destroy_fn = (destructor)free_cut_args;
+	struct generic_img_args *gargs = calloc(1, sizeof(struct generic_img_args));
+	gargs->fit = arg->fit;
+	gargs->image_hook = hook;
+	gargs->description = _("Intensity profile");
+	gargs->verbose = TRUE;
+	gargs->read_only = TRUE;
+	gargs->user = arg;
+	if (!start_in_new_thread(generic_image_worker, gargs)) {
+		gargs->user = NULL;
+		free_generic_img_args(gargs);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 static void update_spectro_coords() {
 	GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
 	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
@@ -1017,24 +1358,13 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gui.cut.fit = gfit;
 		gui.cut.seq = NULL;
 		gui.cut.display_graph = TRUE;
-		// We have to pass a dynamically allocated copy of gui.cut
-		// otherwise start_in_new_thread() can try to free gui.cut
-		// if the processing thread is already running
 		cut_struct *p = malloc(sizeof(cut_struct));
 		memcpy(p, &gui.cut, sizeof(cut_struct));
-		if (p->tri) {
-			siril_debug_print("Tri-profile\n");
-			if (!start_in_new_thread(tri_cut, p))
-				free(p);
-		} else if (p->cfa) {
-			siril_debug_print("CFA profiling\n");
-			if (!start_in_new_thread(cfa_cut, p))
-				free(p);
-		} else {
-			siril_debug_print("Single profile\n");
-			if (!start_in_new_thread(cut_profile, p))
-				free(p);
-		}
+		/* launch_cut_single uses the read-only generic_image_worker path,
+		 * which acquires a reader lock on gfit and dispatches the hook and
+		 * idle without manual locking in the cut code. */
+		if (!launch_cut_single(p))
+			free_cut_args(p);
 	}
 }
 

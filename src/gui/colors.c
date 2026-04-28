@@ -152,6 +152,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	delete_selected_area();
 
 	update_gfit_histogram_if_needed();
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -281,6 +282,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	populate_roi();
 	delete_selected_area();
 
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	update_gfit_histogram_if_needed();
@@ -320,6 +322,7 @@ void negative_processing() {
 	invalidate_stats_from_fit(gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -360,7 +363,7 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	static GtkEntry *channel_extract_entry[3] = { NULL, NULL, NULL };
 	static GtkComboBox *combo_extract_channel = NULL;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
@@ -410,6 +413,9 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args);
 	} else {
 		copy_fits_metadata(gfit, args->fit);
+		/* extract_channels uses start_in_new_thread directly: it operates on a
+		 * pre-copied fits struct (args->fit) already separated from gfit on the
+		 * calling thread; no gfit access occurs in the worker itself. */
 		if (!start_in_new_thread(extract_channels, args)) {
 			clearfits(args->fit);
 			free(args->fit);

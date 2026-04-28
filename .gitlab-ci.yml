@@ -182,12 +182,12 @@ macos:
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
     CCACHE_MAXSIZE: "500Mi"
-    ORKA_RUNNER: sonoma-2
+    ORKA_RUNNER: sequoia-7
     PACKAGE_REGISTRY_URL: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: 5bcfbecdf28cd11a89e820118a36df0019cb5281
+    SM_REPO_REF: b36e7eba5dd191caf7e7017c3fd5eaf3c5ee5640
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
   script:
     # Clone the repo containing all the build scripts.
@@ -230,7 +230,7 @@ win64-native:
   stage: packaging
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   cache:
     key: "cache-windows-small1-${MSYSTEM}"
     paths:
@@ -242,7 +242,7 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
-    SDW_VERSION: 56
+    SDW_VERSION: 63
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
@@ -250,6 +250,7 @@ win64-native:
     SPW_NAME: siril-python$SPW_VERSION
     SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
     PY_OUT: "/c/siril-python" #used in siril-package.sh
+    BRANCH: $CI_COMMIT_REF_SLUG
   tags:
     - saas-windows-medium-amd64
   needs: []
@@ -357,7 +358,7 @@ win64-native-installer:
     *run_ondemand_schedule_tag
   parallel:
     matrix:
-      - MSYSTEM: [ "MINGW64", "UCRT64" ]
+      - MSYSTEM: [ "UCRT64" ]
   variables:
     CHERE_INVOKING: "yes"
   tags:

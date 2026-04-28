@@ -33,9 +33,6 @@ void free_starnet_args(void *ptr);
 /* Image processing hook for single images */
 int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
-/* Idle function for single images */
-gboolean starnet_single_image_idle(gpointer p);
-
 starnet_version starnet_executablecheck(gchar* executable);
 gpointer do_starnet(gpointer p);  // Legacy function for backward compatibility
 void apply_starnet_to_sequence(struct multi_output_data *multi_args);

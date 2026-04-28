@@ -122,6 +122,7 @@ struct astrometry_config {
 	// common to siril and asnet solvers
 	gboolean update_default_scale;	// update default focal length and pixel size from the result
 	int percent_scale_range;	// percent below and above the expected sampling to allow
+	int gaia_cache_duration;        // duration in days to keep the gaia local cache
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
 	int max_seconds_run;		// maximum seconds of CPU time to try solving
@@ -437,6 +438,7 @@ struct pref_struct {
 	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
 	GSList *selected_scripts;
+	GSList *startup_scripts;
 	gboolean use_scripts_repository;
 	gboolean auto_script_update; // automatically update scripts repository at startup
 	gboolean drizz_weight_match_bitpix; // Drizzle weights match seq bitpix. Default: FALSE

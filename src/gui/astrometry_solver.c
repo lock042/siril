@@ -457,10 +457,11 @@ gboolean end_plate_solver(gpointer p) {
 		refresh_annotations(FALSE);
 		close_astrometry_dialog();
 		/* ****** */
-		if (args->image_flipped)
+		if (args->image_flipped) {
 			redraw(REMAP_ALL);
-		else
+		} else {
 			redraw(REDRAW_OVERLAY);
+		}
 	}
 	if (args->image_flipped)
 		clear_stars_list(TRUE);
@@ -475,6 +476,9 @@ static void start_image_plate_solve() {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	if (!fill_plate_solver_structure_from_GUI(args)) {
 		if (!args->for_sequence) {
+			/* plate_solver uses start_in_new_thread directly: it writes WCS
+			 * data and optionally star data to gfit, requiring a writer lock.
+			 * It is architecturally complex (online/offline, single/sequence). */
 			if (!start_in_new_thread(plate_solver, args)) {
 				free_astrometry_data(args);
 			}

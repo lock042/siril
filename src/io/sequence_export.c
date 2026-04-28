@@ -354,7 +354,7 @@ static gpointer export_sequence(gpointer ptr) {
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gboolean icc_msg_given = FALSE;
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
-		if (!get_thread_run()) {
+		if (!processing_should_continue()) {
 			retval = -1;
 			aborted = TRUE;
 			goto free_and_reset_progress_bar;
@@ -754,6 +754,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
+	/* export_sequence: sequence export pipeline; no direct gfit access. */
 	if (!start_in_new_thread(export_sequence, args)) {
 		g_free(args->basename);
 		free(args);

@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
-#include "gui/callbacks.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -98,10 +97,10 @@ void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
 	if (fit == gfit && !com.script) {
-		if (com.python_script) {
-			execute_idle_and_wait_for_it(cm_worker, &data);
-		} else {
+		if (g_main_context_is_owner(g_main_context_default())) {
 			cm_worker(&data);
+		} else {
+			execute_idle_and_wait_for_it(cm_worker, &data);
 		}
 	}
 }
@@ -559,6 +558,7 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	if (!profiles_identical(old_monitor, gui.icc.monitor)) {
 		refresh_icc_transforms();
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 	}
 	cmsCloseProfile(old_monitor);
@@ -582,6 +582,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_toggle_button_set_active(togglebutton, FALSE);
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 }
@@ -657,7 +658,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 			siril_log_message(_("Output device proofing profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
 			g_mutex_unlock(&soft_proof_profile_mutex);
 			refresh_icc_transforms();
-			queue_redraw(REMAP_ALL);
+			notify_gfit_data_modified();
+			redraw(REMAP_ALL);
 			return;
 		} else {
 			if (!no_file) {
@@ -670,7 +672,8 @@ void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer
 	}
 	g_mutex_unlock(&soft_proof_profile_mutex);
 	refresh_icc_transforms();
-	queue_redraw(REMAP_ALL);
+	notify_gfit_data_modified();
+	redraw(REMAP_ALL);
 }
 
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {
@@ -1214,7 +1217,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	cmsUInt32Number srctype, desttype;
 	size_t npixels = fit->rx * fit->ry;
 	// convert from fit->icc_profile to profile
-	gboolean threaded = !get_thread_run();
+	gboolean threaded = !processing_in_worker_thread();
 	srctype = get_planar_formatter_type(fit_colorspace, fit->type, FALSE);
 	desttype = get_planar_formatter_type(target_colorspace, fit->type, FALSE);
 	cmsHTRANSFORM transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, srctype, profile, desttype, com.pref.icc.export_intent, com.icc.rendering_flags);
@@ -1322,7 +1325,8 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 		if (fit == gfit && !com.headless) {
 			set_source_information();
 			refresh_icc_transforms();
-			notify_gfit_modified();
+			notify_gfit_data_modified();
+			gfit_modified_update_gui();
 		}
 		set_cursor_waiting(FALSE);
 	}
@@ -1354,7 +1358,8 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 	if (fit == gfit) {
 		set_source_information();
 		refresh_icc_transforms();
-		notify_gfit_modified();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	}
 	set_cursor_waiting(FALSE);
 }
@@ -1585,4 +1590,75 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 	siril_add_idle(end_generic, NULL);
+}
+
+/* ---- Image processing hooks for generic_image_worker ---- */
+
+void free_icc_data(void *p) {
+	struct icc_data *args = (struct icc_data *)p;
+	if (!args) return;
+	if (args->profile)
+		cmsCloseProfile(args->profile);
+	free(args);
+}
+
+/* Hook for profile removal. Calls siril_colorspace_transform with NULL
+ * to remove the profile and disable color management. */
+int icc_remove_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	siril_colorspace_transform(fit, NULL);
+	return 0;
+}
+
+gchar *icc_remove_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("ICC profile removed"));
+}
+
+/* Hook for profile assignment (no pixel transform).
+ * Clears the existing profile first to force the assign-only path
+ * in siril_colorspace_transform, then assigns the new profile. */
+int icc_assign_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct icc_data *args = (struct icc_data *)gargs->user;
+	if (fit->icc_profile) {
+		cmsCloseProfile(fit->icc_profile);
+		fit->icc_profile = NULL;
+	}
+	siril_colorspace_transform(fit, args->profile);
+	if (!fit->icc_profile) {
+		siril_log_color_message(_("Error assigning ICC profile.\n"), "red");
+		color_manage(fit, FALSE);
+		return 1;
+	}
+	return 0;
+}
+
+gchar *icc_assign_log_hook(gpointer p, log_hook_detail detail) {
+	struct icc_data *args = (struct icc_data *)p;
+	gchar *desc = siril_color_profile_get_description(args->profile);
+	gchar *ret = g_strdup_printf(_("Assigned ICC profile: %s"), desc);
+	g_free(desc);
+	return ret;
+}
+
+/* Hook for color space conversion (may transform pixels).
+ * Sets the processing intent from args->intent then calls
+ * siril_colorspace_transform which handles pixel conversion. */
+int icc_convert_to_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct icc_data *args = (struct icc_data *)gargs->user;
+	cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
+	com.pref.icc.processing_intent = args->intent;
+	siril_colorspace_transform(fit, args->profile);
+	com.pref.icc.processing_intent = temp_intent;
+	if (!fit->icc_profile) {
+		siril_log_color_message(_("Error converting ICC color space.\n"), "red");
+		return 1;
+	}
+	return 0;
+}
+
+gchar *icc_convert_to_log_hook(gpointer p, log_hook_detail detail) {
+	struct icc_data *args = (struct icc_data *)p;
+	gchar *desc = siril_color_profile_get_description(args->profile);
+	gchar *ret = g_strdup_printf(_("Converted to ICC profile: %s"), desc);
+	g_free(desc);
+	return ret;
 }

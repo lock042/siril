@@ -223,27 +223,3 @@ int epf_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return edge_preserving_filter(params);
 }
 
-/* Idle function for preview updates */
-gboolean epf_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-/* Idle function for final application */
-gboolean epf_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-
-	return FALSE;
-}

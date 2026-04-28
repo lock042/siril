@@ -287,6 +287,8 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	args->display_graph = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(display_curve));
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
+	/* light_curve_worker uses start_in_new_thread directly: it is a sequence
+	 * operation (seqpsf loop over multiple frames), not a single-image worker. */
 	if (!start_in_new_thread(light_curve_worker, args)) {
 		free(args);
 		g_free(nina_file);

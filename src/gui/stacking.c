@@ -122,7 +122,7 @@ static void start_stacking() {
 		force32b = GTK_TOGGLE_BUTTON(lookup_widget("check_force32b"));
 	}
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
@@ -212,6 +212,8 @@ static void start_stacking() {
 	/* Stacking. Result is in gfit if success */
 	struct stacking_args *params = calloc(1, sizeof(struct stacking_args));
 	stacking_args_deep_copy(&stackparam, params);
+	/* stack_function_handler uses start_in_new_thread directly: stacking is a
+	 * complex multi-image pipeline that manages its own locking internally. */
 	if (!start_in_new_thread(stack_function_handler, params)) {
 		stacking_args_deep_free(params);
 	}

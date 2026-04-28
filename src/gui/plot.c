@@ -1983,7 +1983,7 @@ gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 
 gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		set_cursor_waiting(TRUE);
 	} else {
 		/* trick to get default cursor */

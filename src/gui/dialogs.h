@@ -34,5 +34,6 @@ SirilWidget* siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction acti
 SirilWidget* siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action);
 gint siril_dialog_run(SirilWidget *widgetdialog);
 void siril_widget_destroy(SirilWidget *widgetdialog);
+int number_of_dialogs();
 
 #endif /* SRC_GUI_DIALOGS_H_ */

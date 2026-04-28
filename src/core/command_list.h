@@ -24,6 +24,7 @@ static command commands[] = {
 	{"calibrate", 1, "calibrate sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-all] [-prefix=] [-fitseq]", process_calibrate, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
 	{"calibrate_single", 1, "calibrate_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=]", process_calibrate_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
 	{"capabilities", 0, "capabilities", process_capabilities, STR_CAPABILITIES, TRUE, REQ_CMD_NONE},
+	{"catmag", 0, "catmag [reftemp] [dtemp]", process_catmag_mono, STR_CATMAG, TRUE, REQ_CMD_NO_THREAD | REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"catsearch", 1, "catsearch name", process_catsearch, STR_CATSEARCH, TRUE, REQ_CMD_NONE},
 	{"ccm", 9, "ccm m00 m01 m02 m10 m11 m12 m20 m21 m22 [gamma]", process_ccm, STR_CCM, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB},
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE, REQ_CMD_NONE},
@@ -49,6 +50,7 @@ static command commands[] = {
 	{"dumpheader", 0, "dumpheader", process_dumpheader, STR_DUMPHEADER, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"entropy", 0, "entropy", process_entropy, STR_ENTROPY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"eqcrop", 4, "eqcrop ra1 dec1 ra2 dec2 [ { -marginpx= | -marginasec= } ] [-minsize=]", process_eqcrop, STR_EQCROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"epf", 0, "epf [-guided] [-d=] [-si=] [-ss=] [-mod=] [-guideimage=][-mask]", process_epf, STR_EPF, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"exit", 0, "exit", process_exit, STR_EXIT, TRUE, REQ_CMD_NONE},
 	{"extract", 1, "extract NbPlans", process_extract, STR_EXTRACT, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -152,7 +154,7 @@ static command commands[] = {
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pwd", 0, "pwd", process_pwd, STR_PWD, TRUE, REQ_CMD_NONE},
-	{"pyscript", 1, "pyscript scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
+	{"pyscript", 1, "pyscript [-async] scriptname.py [script_argv]", process_pyscript, STR_PYSCRIPT, TRUE, REQ_CMD_NONE},
 
 	{"register", 1, "register sequencename [-2pass] [-selected] [-prefix=] [-scale=]\n"
 					"register sequencename ... [-layer=] [-transf=] [-minpairs=] [-maxstars=] [-nostarlist] [-disto=]\n"

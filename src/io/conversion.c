@@ -250,7 +250,6 @@ gchar *initialize_converters() {
 	string = g_string_append(string, ".");
 	text = g_string_free(string, FALSE);
 
-	siril_log_message(_("Supported file types: %s\n"), text);
 	return text;
 }
 
@@ -432,6 +431,7 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->multiple_output = FALSE;
 	args->make_link = FALSE;
 	gettimeofday(&(args->t_start), NULL);
+	/* convert_thread_worker: file format conversion; no direct gfit access. */
 	if (!start_in_new_thread(convert_thread_worker, args)) {
 		g_strfreev(args->list);
 		g_free(args->destroot);
@@ -580,7 +580,7 @@ static gboolean end_convert(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	struct timeval t_end;
 
-	if (!args->retval && get_thread_run() && args->nb_converted_files > 0) {
+	if (!args->retval && processing_should_continue() && args->nb_converted_files > 0) {
 		// load the sequence unless it's in another directory
 		char *converted_seqname = NULL;
 		if (!string_is_a_path(args->destroot)) {
@@ -714,7 +714,7 @@ gpointer convert_thread_worker(gpointer p) {
 			open_next_input_seq(&convert);
 		}
 		// reader is freed elsewhere
-	} while (com.run_thread);
+	} while (processing_should_continue());
 	siril_debug_print("conversion scheduling loop finished, waiting for first read task to signal\n");
 	g_mutex_lock(&args->pool_mutex);
 	while (convert.first <= 0) {
@@ -1077,7 +1077,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (rwdata->writer->have_seqwriter)
 		seqwriter_wait_for_memory();
 
-	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
+	if (!processing_should_continue() || g_atomic_int_get(&conv->fatal_error)) {
 		handle_error(rwdata);
 		signal_memory_limit(conv);
 		return;
@@ -1117,7 +1117,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	}
 	readjust_memory_limits(conv, fit);
 
-	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
+	if (!processing_should_continue() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
 		free(fit);

@@ -742,7 +742,15 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 	gboolean stars_needs_freeing = FALSE;
 
 	// Check if we already have stars in com.stars
-	if (starcount(com.stars) < 1) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int comstar_count_masks = starcount(com.stars);
+	if (comstar_count_masks >= 1) {
+		stars = com.stars;
+		nb_stars = comstar_count_masks;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (comstar_count_masks < 1) {
 		// Need to detect stars
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
@@ -776,9 +784,6 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 			return 1;
 		}
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		nb_stars = starcount(com.stars);
 	}
 
 	if (nb_stars < 1 || !stars) {
@@ -1075,28 +1080,34 @@ int mask_threshold(fits *fit, float min_val, float max_val, float feather_width)
 	switch (fit->mask->bitpix) {
 		case 8: {
 			uint8_t *m = (uint8_t*) fit->mask->data;
+			uint8_t uint8min = roundf_to_BYTE(actual_min);
+			uint8_t uint8max = roundf_to_BYTE(actual_max);
 			if (!do_feather) {
-				#pragma omp parallel for simd schedule(static)
+				#pragma omp parallel for schedule(static)
 				for (size_t i = 0; i < npixels; i++) {
-					m[i] = (m[i] >= actual_min && m[i] <= actual_max) ? UCHAR_MAX : 0;
+					uint8_t v = m[i];
+					m[i] = ((uint8_t)(v - uint8min) <= (uint8_t)(uint8max - uint8min)) * 255;
 				}
 			} else {
-				#pragma omp parallel for simd schedule(static)
+				#pragma omp parallel for schedule(static)
 				for (size_t i = 0; i < npixels; i++) {
-					float v = (float) m[i];
-					float t;
-					if (v >= actual_min && v <= actual_max) {
-						t = 1.f;
-					} else if (v >= feather_lo && v < actual_min) {
-						t = (v - feather_lo) * inv_feather;
-						t = t * t * (3.f - 2.f * t);
-					} else if (v > actual_max && v <= feather_hi) {
-						t = (feather_hi - v) * inv_feather;
-						t = t * t * (3.f - 2.f * t);
-					} else {
-						t = 0.f;
-					}
-					m[i] = (uint8_t) (t * UCHAR_MAX + 0.5f);
+					float v = (float)m[i];
+
+					float t_lo = (v - feather_lo) * inv_feather;
+					float t_hi = (feather_hi - v) * inv_feather;
+
+					t_lo = fminf(fmaxf(t_lo, 0.f), 1.f);
+					t_hi = fminf(fmaxf(t_hi, 0.f), 1.f);
+
+					t_lo = t_lo * t_lo * (3.f - 2.f * t_lo);
+					t_hi = t_hi * t_hi * (3.f - 2.f * t_hi);
+
+					float t =
+						(v >= actual_min && v <= actual_max) * 1.f +
+						(v >= feather_lo && v < actual_min)  * t_lo +
+						(v > actual_max && v <= feather_hi)  * t_hi;
+
+					m[i] = (uint8_t)(t * 255.f + 0.5f);
 				}
 			}
 			break;

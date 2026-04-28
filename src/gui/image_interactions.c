@@ -33,9 +33,10 @@
 #include "io/image_format_fits.h"
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
-#include "image_display.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "gui/histo_display.h"
 #include "progress_and_log.h"
 
 //#define DEBUG_SCROLL
@@ -482,6 +483,13 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gboolean inside = clamp2image(&zoomed);
 	//siril_debug_print("pointer at %g, %g, in image it's %d, %d (pointer is%s inside)\n",
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
+	if (inside) {
+		histogram_update_cursor_value(zoomed.x, zoomed.y);
+	} else {
+		/* Curseur hors de l'image, effacer la barre */
+		histogram_clear_cursor_value();
+	}
+
 
 	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb", "labeldensity_mask" };
 	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb", "labelwcs_mask" };
@@ -695,7 +703,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 
 	/* don't change cursor if thread is running or if Python
 	 claims the thread */
-	if (get_thread_run() || com.python_claims_thread) return FALSE;
+	if (processing_is_job_active() || processing_is_reserved_for_python()) return FALSE;
 
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
@@ -748,7 +756,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run() || com.python_claims_thread) {
+		if (processing_is_job_active() || processing_is_reserved_for_python()) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */
@@ -760,7 +768,7 @@ void on_drawingarea_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		if (get_thread_run() || com.python_claims_thread) {
+		if (processing_is_job_active() || processing_is_reserved_for_python()) {
 			set_cursor_waiting(TRUE);
 		} else {
 			/* trick to get default cursor */

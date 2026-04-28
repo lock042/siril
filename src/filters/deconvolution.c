@@ -155,19 +155,21 @@ void reset_conv_args(estk_data* args) {
 }
 
 void reset_conv_kernel() {
+	g_mutex_lock(&com.mutex);
 	if (com.kernel != NULL) {
 		free(com.kernel);
 		com.kernel = NULL;
 		com.kernelchannels = 1;
 		com.kernelsize = 0;
 	}
+	g_mutex_unlock(&com.mutex);
 }
 
 void reset_conv_controls_and_args() {
 	estk_data *tmp_args = alloc_estk_data();
 	if (!tmp_args) return;
 
-	if (!get_thread_run())
+	if (!processing_is_job_active())
 		reset_conv_args(tmp_args);
 	gui_function(reset_conv_controls, tmp_args);
 
@@ -363,7 +365,7 @@ int get_kernel(estk_data *args) {
 					com.kernel = estimate_kernel(args, com.fftw_max_thread);
 					break;
 			}
-			if (get_thread_run())
+			if (processing_should_continue())
 				siril_log_message(_("Kernel estimation complete.\n"));
 			break;
 		case PSF_SELECTION: // Kernel from selection
@@ -377,7 +379,9 @@ int get_kernel(estk_data *args) {
 				retval = 0;
 				goto END;
 			}
+			g_rw_lock_reader_lock(&com.stars_lock);
 			if (!(com.stars && com.stars[0])) {
+				g_rw_lock_reader_unlock(&com.stars_lock);
 				siril_log_color_message(_("Error: no stars detected. Run findstar or select stars using Dynamic PSF dialog first.\n"), "red");
 				retval = 1;
 				goto END;
@@ -389,6 +393,7 @@ int get_kernel(estk_data *args) {
 				makegaussian(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f,args->psf_ratio, -args->psf_angle);
 			else
 				makemoffat(com.kernel, args->ks, args->psf_fwhm, 1.f, +0.5f, -0.5f, args->psf_beta, args->psf_ratio, -args->psf_angle);
+			g_rw_lock_reader_unlock(&com.stars_lock);
 
 			break;
 		case PSF_MANUAL: // Kernel from provided parameters
@@ -448,8 +453,10 @@ int get_kernel(estk_data *args) {
 	else
 		siril_log_message(_("PSF made in top down orientation.\n"));
 #endif
+	g_mutex_lock(&com.mutex);
 	com.kernelsize = (!com.kernel) ? 0 : args->ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args->kchans;
+	g_mutex_unlock(&com.mutex);
 	if (args->psftype != PSF_PREVIOUS) {
 		gui_function(DrawPSF, NULL);
 	}
@@ -527,7 +534,11 @@ gpointer estimate_only(gpointer p) {
 		goto ENDEST;
 	}
 
-	if (args->psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	gboolean have_stars_est = (com.stars && com.stars[0]);
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (args->psftype == PSF_STARS && !have_stars_est) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
 		star_finder_params sfpar;
@@ -542,9 +553,12 @@ gpointer estimate_only(gpointer p) {
 
 		int nb_stars;
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
-		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
+		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
-		if (!com.stars || nb_stars == 0) {
+		g_rw_lock_writer_lock(&com.stars_lock);
+		com.stars = detected;
+		g_rw_lock_writer_unlock(&com.stars_lock);
+		if (!detected || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			retval = 1;
 			goto ENDEST;
@@ -557,6 +571,7 @@ gpointer estimate_only(gpointer p) {
 		int i = 0;
 		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
 		int n = 0;
+		g_rw_lock_reader_lock(&com.stars_lock);
 		while (com.stars[i]) {
 			double fwhmx, fwhmy;
 			char *unit;
@@ -570,6 +585,7 @@ gpointer estimate_only(gpointer p) {
 			}
 			i++;
 		}
+		g_rw_lock_reader_unlock(&com.stars_lock);
 		if (n > 0) {
 			args->psf_fwhm = (float) FWHMx / (float) n;
 			FWHMy = (float) FWHMy / (float) n;
@@ -678,7 +694,11 @@ gpointer deconvolve(gpointer p) {
 		retval = 1;
 		goto ENDDECONV;
 	}
-	if (args->psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	gboolean have_stars_deconv = (com.stars && com.stars[0]);
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (args->psftype == PSF_STARS && !have_stars_deconv) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
 		star_finder_params sfpar;
@@ -693,8 +713,11 @@ gpointer deconvolve(gpointer p) {
 
 		int nb_stars;
 		int chan = args->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
-		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
+		psf_star **detected = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
+		g_rw_lock_writer_lock(&com.stars_lock);
+		com.stars = detected;
+		g_rw_lock_writer_unlock(&com.stars_lock);
 		if (retval || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDDECONV;
@@ -751,7 +774,7 @@ gpointer deconvolve(gpointer p) {
 		yuvdata = malloc(npixels * args->fit->naxes[2] * sizeof(float));
 #ifdef _OPENMP
 		threads = sequence_is_running ? 1 : com.max_thread;
-#pragma omp parallel for simd num_threads(threads) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			rgb_to_yuvf(args->fdata[i], args->fdata[i + npixels], args->fdata[i + 2 * npixels], &yuvdata[i], &yuvdata[i + npixels], &yuvdata[i + 2 * npixels]);
@@ -761,7 +784,7 @@ gpointer deconvolve(gpointer p) {
 		args->fdata = yuvdata; // fdata now points to the Y part of yuvdata
 	}
 
-	if (get_thread_run() || sequence_is_running == 1) {
+	if (processing_should_continue() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
 		gettimeofday(&t_start, NULL);
@@ -800,7 +823,7 @@ gpointer deconvolve(gpointer p) {
 		args->nchans = 3;
 		args->fdata = malloc(npixels * args->nchans * sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel for simd num_threads(threads) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static)
 #endif
 		for (int i = 0 ; i < npixels ; i++) {
 			yuv_to_rgbf(yuvdata[i], yuvdata[i + npixels], yuvdata[i + 2 * npixels], &args->fdata[i], &args->fdata[i + npixels], &args->fdata[i + 2 * npixels]);
@@ -809,7 +832,7 @@ gpointer deconvolve(gpointer p) {
 	}
 
 	// Update the fit with the result
-	if (get_thread_run()) {
+	if (processing_should_continue()) {
 		if (args->fit->type == DATA_FLOAT) {
 			memcpy(args->fit->fdata, args->fdata, args->ndata * sizeof(float));
 			if (com.pref.force_16bit)
@@ -834,7 +857,6 @@ ENDDECONV:
 	}
 	if (stars_need_clearing) {
 		clear_stars_list(TRUE);
-		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
 

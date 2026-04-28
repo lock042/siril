@@ -182,27 +182,6 @@ int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return scnr_process(params, fit);
 }
 
-/* Idle function for preview updates */
-gboolean scnr_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-/* Idle function for final application */
-gboolean scnr_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 /* Create and launch SCNR processing */
 static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
@@ -232,7 +211,7 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	args->fit = for_roi ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.5f; // SCNR needs minimal extra memory
 	args->image_hook = scnr_image_hook;
-	args->idle_function = for_preview ? scnr_preview_idle : scnr_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Subtractive Chromatic Noise Reduction");
 	args->verbose = !for_preview;
 	args->user = params;
@@ -305,7 +284,7 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
 	if (gtk_toggle_button_get_active(preview_button)) {
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	clear_backup();
@@ -322,7 +301,7 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	double amount = gtk_range_get_value(
 			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
@@ -381,10 +360,10 @@ void on_SCNR_parameter_changed(GtkWidget *widget, gpointer user_data) {
 void on_SCNR_roi_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(button)) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	} else {
 		copy_gfit_to_backup();
 		update_image *param = malloc(sizeof(update_image));

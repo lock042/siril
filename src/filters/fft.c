@@ -422,8 +422,9 @@ static void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	gfit_modified_update_gui();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	gui_function(redraw_previews, NULL);
 	g_free(args->type);
 	g_free(args->modulus);
@@ -434,67 +435,75 @@ static gboolean end_fourier_transform(gpointer p) {
 	return FALSE;
 }
 
-gpointer fourier_transform(gpointer p) {
-	struct fft_data *args = (struct fft_data *) p;
-	unsigned int width = args->fit->rx;
-	unsigned int height = args->fit->ry;
+/* Destructor for fft_data - used by free_generic_img_args */
+void free_fft_data(void *p) {
+	struct fft_data *args = (struct fft_data *)p;
+	if (!args)
+		return;
+	g_free(args->type);
+	g_free(args->modulus);
+	g_free(args->phase);
+	free(args);
+}
+
+/* Core FFT computation: reads from fit, writes result back into fit.
+ * Returns 0 on success, non-zero on failure. */
+static int fft_compute_core(struct fft_data *args, fits *fit) {
+	unsigned int width = fit->rx;
+	unsigned int height = fit->ry;
 	int chan;
-	struct timeval t_start, t_end;
+	int retval = 0;
 	fits *tmp = NULL, *tmp1 = NULL, *tmp2 = NULL;
+	data_type type = fit->type;
+
 #ifdef HAVE_FFTW3F_MULTITHREAD
-// Change these lines to use fftw functions if double support is ever required
 	int n = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	fftwf_plan_with_nthreads(n);
 	fprintf(stdout, "fftwf initialized with %d threads\n", n);
 #endif
 
-
 	strategy = FFTW_ESTIMATE;
 	set_wisdom_file();
-    if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
-        siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
+	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
+		siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
 	} else if (fftwf_import_system_wisdom() == 1) {
-        siril_log_message(_("System FFT wisdom imported successfully...\n"));
+		siril_log_message(_("System FFT wisdom imported successfully...\n"));
 	} else {
-        siril_log_message(_("No FFT wisdom found to import...\n"));
+		siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	data_type type = args->fit->type;
 
-	siril_log_color_message(_("Fourier Transform: processing...\n"), "green");
-	gettimeofday(&t_start, NULL);
-	args->retval = 0;
+	/* "Fourier Transform: processing..." is logged by the framework before the hook runs */
 
-	//type must be either "ffti" or "fftd"
 	switch (args->type[3]) {
 	default:
 	case 'd':
 	case 'D':
-		if (new_fit_image(&tmp1, width, height, args->fit->naxes[2], type) ||
-				new_fit_image(&tmp2, width, height, args->fit->naxes[2], type)) {
-			args->retval = 1;
+		if (new_fit_image(&tmp1, width, height, fit->naxes[2], type) ||
+				new_fit_image(&tmp2, width, height, fit->naxes[2], type)) {
+			retval = 1;
 			goto end;
 		}
 
-		for (chan = 0; chan < args->fit->naxes[2]; chan++)
-			FFTD(args->fit, tmp1, tmp2, args->type_order, chan);
+		for (chan = 0; chan < fit->naxes[2]; chan++)
+			FFTD(fit, tmp1, tmp2, args->type_order, chan);
 		strcpy(tmp1->keywords.dft.type, "SPECTRUM");
 		if (savefits(args->modulus, tmp1)) {
-			args->retval = 1;
+			retval = 1;
 			goto end;
 		}
 		strcpy(tmp2->keywords.dft.type, "PHASE");
 		if (savefits(args->phase, tmp2)) {
-			args->retval = 1;
+			retval = 1;
 			goto end;
 		}
 
-		/* We display the modulus on screen */
-		if (copyfits(tmp1, gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-			args->retval = 1;
+		/* Copy modulus into fit for display */
+		if (copyfits(tmp1, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+			retval = 1;
 			goto end;
 		}
 
-		/* we copy the header informations */
+		/* copy the header informations */
 		save_dft_information_in_gfit(tmp1);
 		break;
 	case 'i':
@@ -502,55 +511,96 @@ gpointer fourier_transform(gpointer p) {
 		tmp = calloc(1, sizeof(fits));
 		if (!tmp || readfits(args->modulus, tmp, NULL, FALSE)) {
 			PRINT_ALLOC_ERR;
-			args->retval = 1;
+			retval = 1;
 			goto end;
 		}
 		tmp1 = calloc(1, sizeof(fits));
 		if (!tmp1 || readfits(args->phase, tmp1, NULL, FALSE)) {
 			PRINT_ALLOC_ERR;
-			args->retval = 1;
+			retval = 1;
 			goto end;
 		}
-		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) || (tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
-			args->retval = 1;
+		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) ||
+				(tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
+			retval = 1;
 			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
 			goto end;
 		}
-		if (tmp->keywords.dft.ord[0] == 'C')		// CENTERED
+		if (tmp->keywords.dft.ord[0] == 'C')
 			args->type_order = TYPE_CENTERED;
-		else if (tmp->keywords.dft.ord[0] == 'R')	// REGULAR
+		else if (tmp->keywords.dft.ord[0] == 'R')
 			args->type_order = TYPE_REGULAR;
 		else {
-			args->retval = 1;
+			retval = 1;
 			siril_log_message(_("There is something wrong in your files\n"));
 			goto end;
 		}
 		new_fit_image(&tmp2, width, height, tmp->naxes[2], type);
-		for (chan = 0; chan < args->fit->naxes[2]; chan++)
+		for (chan = 0; chan < fit->naxes[2]; chan++)
 			FFTI(tmp2, tmp, tmp1, args->type_order, chan);
-		/* We display the result on screen */
-		if (copyfits(tmp2, gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-			args->retval = 1;
+		/* Copy inverse transform result into fit for display */
+		if (copyfits(tmp2, fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
+			retval = 1;
 			goto end;
 		}
 	}
 
 end:
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
-        siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
+		siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
-        siril_log_message(_("Siril FFT wisdom update failed...\n"));
+		siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 
-	invalidate_stats_from_fit(args->fit);
+	invalidate_stats_from_fit(fit);
 	if (tmp)  { clearfits(tmp);  free(tmp);  }
 	if (tmp1) { clearfits(tmp1); free(tmp1); }
 	if (tmp2) { clearfits(tmp2); free(tmp2); }
 
+	return retval;
+}
+
+/* generic_image_worker image hook */
+int fft_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct fft_data *args = (struct fft_data *)gargs->user;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	int retval = fft_compute_core(args, fit);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_fourier_transform, args);
+	return retval;
+}
 
+gchar *fft_log_hook(gpointer p, log_hook_detail detail) {
+	struct fft_data *args = (struct fft_data *)p;
+	gboolean is_inverse = (args->type[3] == 'i' || args->type[3] == 'I');
+	if (is_inverse)
+		return g_strdup(_("Fourier Transform (inverse)"));
+	return g_strdup(_("Fourier Transform (direct)"));
+}
+
+/* Idle function for generic_image_worker GUI path - redraws previews */
+gboolean fft_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (args->retval == 0)
+		gfit_modified_update_gui();
+	gui_function(redraw_previews, NULL);
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
+gpointer fourier_transform(gpointer p) {
+	struct fft_data *args = (struct fft_data *) p;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	args->retval = fft_compute_core(args, args->fit);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	if (!args->retval)
+		notify_gfit_data_modified();
+	siril_add_idle(end_fourier_transform, args);
 	return GINT_TO_POINTER(args->retval);
 }
 
@@ -565,7 +615,7 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	static GtkToggleButton *order = NULL;
 	static GtkNotebook* notebookFFT = NULL;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
@@ -619,18 +669,31 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if ((mag != NULL) && (phase != NULL)) {
 		set_cursor_waiting(TRUE);
-		struct fft_data *args = calloc(1, sizeof(struct fft_data));
+		struct fft_data *fft_args = calloc(1, sizeof(struct fft_data));
+		fft_args->destroy_fn = free_fft_data;
+		fft_args->fit = gfit;
+		fft_args->type = type;
+		fft_args->modulus = mag;
+		fft_args->phase = phase;
+		fft_args->type_order = type_order;
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		if (!args) {
+			PRINT_ALLOC_ERR;
+			free_fft_data(fft_args);
+			return;
+		}
 		args->fit = gfit;
-		args->type = type;
-		args->modulus = mag;
-		args->phase = phase;
-		args->type_order = type_order;
-		set_cursor_waiting(TRUE);
-		if (!start_in_new_thread(fourier_transform, args)) {
-			free(args->type);
-			g_free(args->modulus);
-			g_free(args->phase);
-			free(args);
+		args->mem_ratio = 2.0f;
+		args->image_hook = fft_image_hook;
+		args->log_hook = fft_log_hook;
+		args->idle_function = fft_idle;
+		args->description = _("Fourier Transform");
+		args->verbose = TRUE;
+		args->user = fft_args;
+
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
 		}
 	} else {
 		free(type);

@@ -1379,6 +1379,14 @@ gpointer findstar_worker(gpointer p) {
 	fits *green_fit = NULL;
 	fits *orig = NULL;
 	gboolean has_selection = args->selection.w != 0 && args->selection.h != 0;
+	/* Acquire a reader lock on the source fit for the duration of all pixel and
+	 * metadata reads (copyfits, peaker, WCS extraction).  Lock the original fit
+	 * and keep a stable pointer to it so we unlock the right rwlock even if
+	 * args->im.fit is temporarily redirected to green_fit below.
+	 * Not converted to generic_image_worker because of the dual single-image /
+	 * sequence path and the complex surrounding GUI state management. */
+	fits *locked_fit = args->im.fit;
+	g_rw_lock_reader_lock(&locked_fit->rwlock);
 	if (fit_is_cfa(args->im.fit)) {
 		green_fit = calloc(1, sizeof(fits));
 		orig = args->im.fit;
@@ -1439,6 +1447,8 @@ gpointer findstar_worker(gpointer p) {
 	} else {
 		goto END;
 	}
+	g_rw_lock_reader_unlock(&locked_fit->rwlock);
+	locked_fit = NULL;
 
 	if (args->update_GUI)
 		update_star_list(stars, TRUE, com.python_script);
@@ -1466,6 +1476,8 @@ gpointer findstar_worker(gpointer p) {
 	else if (!args->update_GUI)
 		free_fitted_stars(stars);
 END:
+	if (locked_fit)
+		g_rw_lock_reader_unlock(&locked_fit->rwlock);
 	if (args->update_GUI)
 		execute_idle_and_wait_for_it(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
@@ -1478,13 +1490,17 @@ END:
 
 // if channel < 0, returns the max of each channel's robust mean
 // if channel, returns the robust mean for this channel
+// the maximum number of stars found on each analyzed channel is set if non-NULL
+// if it is NULL, the operation is limited to the 200 brightest
 // returns 0 for errors
-float measure_image_FWHM(fits *fit, int channel) {
+float measure_image_FWHM(fits *fit, int channel, int *nbstars) {
 	float fwhm[3];
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
 	gboolean failed = FALSE;
 	int nb_chan = channel < 0 ? (int)fit->naxes[2] : 1;
 	g_assert(nb_chan == 1 || nb_chan == 3);
+	if (nbstars)
+		*nbstars = 0;
 #ifdef _OPENMP
 	int *threads = compute_thread_distribution(nb_chan, com.max_thread);
 #pragma omp parallel for num_threads(com.max_thread) if(nb_chan > 1)
@@ -1499,7 +1515,7 @@ float measure_image_FWHM(fits *fit, int channel) {
 #endif
 		int real_chan = channel < 0 ? chan : channel;
 		psf_star **stars = peaker(&im, real_chan, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
+				NULL, FALSE, nbstars == NULL, 200, com.pref.starfinder_conf.profile, nb_subthreads);
 		if (stars) {
 			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
 			siril_debug_print("FWHM for channel %d: %.3f\n", real_chan, fwhm[chan]);
@@ -1509,6 +1525,8 @@ float measure_image_FWHM(fits *fit, int channel) {
 			free(stars);
 		}
 		else failed = TRUE;
+		if (nbstars)
+			*nbstars = max(*nbstars, nb_stars);
 	}
 #ifdef _OPENMP
 	free(threads);
@@ -1519,3 +1537,4 @@ float measure_image_FWHM(fits *fit, int channel) {
 		return fwhm[0];
 	return max(fwhm[0], max(fwhm[1], fwhm[2]));
 }
+

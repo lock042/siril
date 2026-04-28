@@ -118,8 +118,8 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
     set_progress_bar_data(_("NL-Bayes denoising..."), 0.0);
 
-    if(!get_thread_run()) {
-        siril_debug_print("do_nlbayes: get_thread_run() returned FALSE\n");
+    if(!processing_should_continue()) {
+        siril_debug_print("do_nlbayes: processing_should_continue() returned FALSE\n");
         return EXIT_FAILURE;
     }
     if (do_anscombe) {

@@ -56,7 +56,7 @@ static gboolean update_preview(gpointer user_data) {
 	waiting_for_thread(); // in case function is run in another thread
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
-	// Don't notify_gfit_modified() here, it must be done by the callers
+	// Don't gfit_modified_update_gui() here, it must be done by the callers
 	unlock_roi_mutex();
 	return FALSE;
 }
@@ -179,7 +179,8 @@ void cancel_pending_update() {
 void siril_preview_hide() {
 	copy_backup_to_gfit();
 	clear_backup();
-	notify_gfit_modified();
+	notify_gfit_data_modified();  // remap Cairo buffers to the restored image
+	gfit_modified_update_gui();
 }
 
 void notify_update(gpointer user_data) {

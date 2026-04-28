@@ -34,11 +34,101 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "algos/Def_Wavelet.h"
 #include "wavelets.h"
 
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
+
+/************* wavelet transform worker (wavelet command and GUI compute path) *************/
+
+gpointer wavelet_transform_worker(gpointer p) {
+	struct wavelet_transform_data *args = (struct wavelet_transform_data *)p;
+	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
+			"b_rawdata.wave" };
+	const char *tmpdir = g_get_tmp_dir();
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	int nb_chan = gfit->naxes[2];
+
+	if (gfit->type == DATA_USHORT) {
+		float *Imag = f_vector_alloc(gfit->rx * gfit->ry);
+		if (!Imag) {
+			PRINT_ALLOC_ERR;
+			free(args);
+			g_rw_lock_reader_unlock(&gfit->rwlock);
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
+		}
+		for (int i = 0; i < nb_chan; i++) {
+			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+			wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir,
+					args->Type_Transform, args->Nbr_Plan, gfit->pdata[i]);
+			g_free(dir);
+		}
+		free(Imag);
+	} else if (gfit->type == DATA_FLOAT) {
+		for (int i = 0; i < nb_chan; i++) {
+			gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir,
+					args->Type_Transform, args->Nbr_Plan);
+			g_free(dir);
+		}
+	} else {
+		free(args);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(1);
+	}
+	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), args->Nbr_Plan);
+	free(args);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+/************* wrecons hook (shared with GUI OK path and process_wrecons) *************/
+
+void free_wrecons_data(void *p) {
+	free(p);
+}
+
+int wrecons_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	struct wrecons_data *args = (struct wrecons_data *)gargs->user;
+	const char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave", "b_rawdata.wave" };
+	const char *tmpdir = g_get_tmp_dir();
+	for (int i = 0; i < args->nb_chan; i++) {
+		gchar *dir = g_build_filename(tmpdir, File_Name_Transform[i], NULL);
+		int ret;
+		if (fit->type == DATA_USHORT)
+			ret = wavelet_reconstruct_file(dir, args->coef, fit->pdata[i]);
+		else if (fit->type == DATA_FLOAT)
+			ret = wavelet_reconstruct_file_float(dir, args->coef, fit->fpdata[i]);
+		else {
+			g_free(dir);
+			return 1;
+		}
+		g_free(dir);
+		if (ret) return 1;
+	}
+	return 0;
+}
+
+gchar *wrecons_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Wavelet reconstruction"));
+}
+
+/* Idle function: called after generic_image_worker finishes the wrecons apply */
+static gboolean wrecons_idle(gpointer p) {
+	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
+	if (!args->retval)
+		gfit_modified_update_gui();
+	free_generic_img_args(args);
+	set_cursor_waiting(FALSE);
+	siril_close_dialog("wavelets_dialog");
+	return FALSE;
+}
 
 static void reset_scale_w() {
 	static GtkRange *range_w[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
@@ -74,6 +164,7 @@ static int update_wavelets() {
 		}
 		g_free(dir[i]);
 	}
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	return 0;
 }
@@ -167,10 +258,15 @@ gpointer extract_plans(gpointer p) {
 
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
+	/* Reader lock protects copyfits() reads from args->fit (= gfit) for all
+	 * plans.  Not converted to generic_image_worker: writes multiple output
+	 * files and is tightly coupled to the wavelet dialog state machine. */
+	g_rw_lock_reader_lock(&args->fit->rwlock);
 	for (i = 0; i < args->Nbr_Plan; i++) {
 		gchar *filename, *msg;
 		if (copyfits(args->fit, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 			siril_log_message(_("Could not copy image, aborting\n"));
+			g_rw_lock_reader_unlock(&args->fit->rwlock);
 			siril_add_idle(end_wavelets_filter, args);
 			return GINT_TO_POINTER(1);
 		}
@@ -178,10 +274,11 @@ gpointer extract_plans(gpointer p) {
 		msg = g_strdup_printf(_("Extracting %s..."), filename);
 		set_progress_bar_data(msg, (float)i / args->Nbr_Plan);
 		get_wavelet_layers(&fit, args->Nbr_Plan, i, args->Type, -1);
-		savefits(filename, &fit);
+		savefits(filename, &fit); // savefits writes to disk, not to args->fit
 		g_free(filename);
 		g_free(msg);
 	}
+	g_rw_lock_reader_unlock(&args->fit->rwlock);
 	clearfits(&fit);
 	siril_add_idle(end_wavelets_filter, args);
 	return GINT_TO_POINTER(0);
@@ -215,14 +312,32 @@ void apply_wavelets_cancel() {
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_active = gtk_widget_get_sensitive(lookup_widget("frame_wavelets")) == TRUE;
 	if (is_active && wavelet_show_preview == FALSE) {
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = update_wavelets;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
+		/* Preview was not active: gfit still holds the original pixels.
+		 * Apply the reconstruction via generic_image_worker so that undo
+		 * state is saved automatically before the hook runs. */
+		set_cursor_waiting(TRUE);
+		struct wrecons_data *wrecons_args = calloc(1, sizeof(struct wrecons_data));
+		wrecons_args->destroy_fn = free_wrecons_data;
+		wrecons_args->nb_chan = gfit->naxes[2];
+		for (int i = 0; i < 6; i++)
+			wrecons_args->coef[i] = wavelet_value[i];
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		args->fit = gfit;
+		args->image_hook = wrecons_image_hook;
+		args->log_hook = wrecons_log_hook;
+		args->idle_function = wrecons_idle;
+		args->description = _("Wavelets Transformation");
+		args->verbose = TRUE;
+		args->user = wrecons_args;
+		if (!start_in_new_thread(generic_image_worker, args))
+			free_generic_img_args(args);
+		return;
 	}
+	/* Preview was active: gfit already holds the reconstructed pixels.
+	 * Commit the preview backup as the undo "before" state and close. */
 	undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
 	siril_log_color_message(_("Wavelets Transformation\n"), "green");
-
 	siril_close_dialog("wavelets_dialog");
 }
 
@@ -231,26 +346,27 @@ gboolean on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 	return FALSE;
 }
 
+static gboolean wavelet_compute_idle(gpointer p) {
+	stop_processing_thread();
+	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
+	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
+	reset_scale_w();
+	set_cursor_waiting(FALSE);
+	return FALSE;
+}
+
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 	if (wavelet_show_preview) {
 		copy_backup_to_gfit();
 	}
 
-	int Type_Transform, Nbr_Plan, maxplan, mins, i;
-	int nb_chan = gfit->naxes[2];
-	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
-			"b_rawdata.wave" }, *dir[3];
-	const char *tmpdir;
-
-	tmpdir = g_get_tmp_dir();
-
-	Nbr_Plan = gtk_spin_button_get_value(
+	int Nbr_Plan = gtk_spin_button_get_value(
 			GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")));
-	Type_Transform = gtk_combo_box_get_active(
+	int Type_Transform = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(lookup_widget("combobox_type_w"))) + 1;
 
-	mins = min(gfit->rx, gfit->ry);
-	maxplan = log(mins) / log(2) - 2;
+	int mins = min(gfit->rx, gfit->ry);
+	int maxplan = log(mins) / log(2) - 2;
 
 	if (Nbr_Plan > maxplan) {
 		char *msg = siril_log_message(
@@ -268,40 +384,29 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
 	}
 
-	set_cursor_waiting(TRUE);
-
-	if (gfit->type == DATA_USHORT) {
-		size_t n = gfit->naxes[0] * gfit->naxes[1] * sizeof(float);
-		float *Imag = malloc(n);
-		if (Imag) {
-			for (i = 0; i < nb_chan; i++) {
-				dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
-				strcpy(dir[i], tmpdir);
-				strcat(dir[i], G_DIR_SEPARATOR_S);
-				strcat(dir[i], File_Name_Transform[i]);
-				wavelet_transform_file(Imag, gfit->ry, gfit->rx, dir[i],
-						Type_Transform, Nbr_Plan, gfit->pdata[i]);
-				free(dir[i]);
-			}
-			free(Imag);
-		}
-	} else {
-		for (i = 0; i < nb_chan; i++) {
-			dir[i] = malloc(strlen(tmpdir) + strlen(File_Name_Transform[i]) + 2);
-			strcpy(dir[i], tmpdir);
-			strcat(dir[i], G_DIR_SEPARATOR_S);
-			strcat(dir[i], File_Name_Transform[i]);
-			wavelet_transform_file_float(gfit->fpdata[i], gfit->ry, gfit->rx, dir[i],
-					Type_Transform, Nbr_Plan);
-			free(dir[i]);
-		}
+	struct wavelet_transform_data *args = calloc(1, sizeof(struct wavelet_transform_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
 	}
-	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
-	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
-	reset_scale_w();
-	siril_log_message(_("Wavelet decomposition computed (%d plans)\n"), Nbr_Plan);
-	set_cursor_waiting(FALSE);
-	return;
+	args->Nbr_Plan = Nbr_Plan;
+	args->Type_Transform = Type_Transform;
+
+	set_cursor_waiting(TRUE);
+	/* wavelet_transform_worker uses start_in_new_thread directly: it is tightly
+	 * coupled to the wavelet dialog preview/apply state machine (copy_backup_to_gfit,
+	 * clear_backup, wavelet_compute_idle) and already holds a correct reader lock
+	 * internally for the pixel-read phase.  Routing through generic_image_worker
+	 * would require disentangling that state machine for no safety benefit. */
+	if (!start_in_new_thread(wavelet_transform_worker, args)) {
+		free(args);
+		set_cursor_waiting(FALSE);
+		return;
+	}
+	/* In GUI mode start_in_new_thread is fire-and-forget; the idle below
+	 * re-enables the widgets once the worker completes.  In script mode it
+	 * blocks, but on_button_compute_w_clicked is never called from scripts. */
+	siril_add_idle(wavelet_compute_idle, NULL);
 }
 
 /****************** GUI for Wavelet Layers Extraction *****************/
@@ -337,6 +442,9 @@ void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->Type = Type;
 	args->Nbr_Plan = Nbr_Plan;
 	args->fit = gfit;
+	/* extract_plans uses start_in_new_thread directly: it writes multiple output
+	 * files and is tightly coupled to the wavelet dialog state.  A reader lock
+	 * on gfit is held inside the worker for the copyfits() calls. */
 	if (!start_in_new_thread(extract_plans, args))
 		free(args);
 }
@@ -408,7 +516,7 @@ void on_wavelet_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!wavelet_show_preview) {
 	/* if user click very fast */
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

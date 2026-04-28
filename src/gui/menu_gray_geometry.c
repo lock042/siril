@@ -49,9 +49,8 @@ static gboolean rotation_idle(gpointer p) {
 		gui_function(new_selection_zone, NULL);
 
 		update_zoom_label();
-		redraw(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -127,20 +126,24 @@ static void rotate_gui(fits *fit) {
 }
 
 /* Idle function for fast rotation */
-static gboolean fast_rotation_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
+static gboolean fast_rotation_idle(gpointer p)
+{
+    struct generic_img_args *args = (struct generic_img_args *)p;
+    stop_processing_thread();
 
-	stop_processing_thread();
+    if (args->retval == 0) {
+        /* If the hook expanded a selection to the full image, notify the GUI
+         * now that Cairo buffers are up to date (avoids a stale-buffer redraw
+         * that would otherwise happen via gui_function() from the worker). */
+        if (com.selection.w > 0 && com.selection.h > 0)
+            new_selection_zone(NULL);
+        gfit_modified_update_gui();   /* resets viewport, remaps, redraws,
+                                     refreshes previews — all in one call  */
+        update_zoom_label();      /* reads the now-correct zoom state       */
+    }
 
-	if (args->retval == 0) {
-		update_zoom_label();
-		redraw(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
+    free_generic_img_args(args);
+    return FALSE;
 }
 
 void siril_rotate90() {
@@ -274,9 +277,9 @@ static gboolean mirror_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
 		gui_function(redraw_previews, NULL);
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -385,7 +388,7 @@ static gboolean binning_idle(gpointer p) {
 
 	if (args->retval == 0) {
 		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	free_generic_img_args(args);
@@ -455,20 +458,6 @@ gboolean binxy_hide_on_delete(GtkWidget *widget) {
  * RESAMPLE
  */
 
-/* Idle function for resample */
-static gboolean resample_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gui_function(update_MenuItem, NULL); // WCS not available anymore
-		notify_gfit_modified();
-	}
-
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
@@ -514,7 +503,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = gfit;
 	args->mem_ratio = 2.0f;  // Resample needs space for transformation
 	args->image_hook = resample_image_hook;
-	args->idle_function = resample_idle;
+	args->idle_function = binning_idle;
 	args->description = _("Resample");
 	args->verbose = TRUE;
 	args->user = params;
@@ -664,8 +653,8 @@ static gboolean crop_idle(gpointer p) {
 		delete_selected_area();
 		reset_display_offset();
 		update_zoom_label();
-		notify_gfit_modified();
-		redraw(REMAP_ALL);
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 		gui_function(redraw_previews, NULL);
 		if (args->fit == gfit && gfit->mask_active)
 			queue_redraw_mask();
@@ -724,7 +713,7 @@ void siril_crop() {
 }
 
 void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

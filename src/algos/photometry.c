@@ -27,16 +27,23 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
+#include "algos/siril_wcs.h"
 #include "algos/statistics_float.h"
+#include "algos/star_finder.h"
 #include "algos/comparison_stars.h"
+#include "algos/photometric_cc.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
+#include "io/local_catalogues.h"
+#include "io/siril_catalogues.h"
 #include "opencv/opencv.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
@@ -599,7 +606,9 @@ gpointer light_curve_worker(gpointer arg) {
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
+		g_mutex_lock(&com.mutex);
 		com.selection = args->areas[star_index];
+		g_mutex_unlock(&com.mutex);
 		if (seqpsf(args->seq, args->layer, FALSE, TRUE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
@@ -626,3 +635,144 @@ gpointer light_curve_worker(gpointer arg) {
 	return GINT_TO_POINTER(retval);
 }
 
+/* image_hook for the read-only generic_image_worker path.
+ * The framework holds a reader lock on fit->rwlock for the duration of this
+ * call, so no manual locking is needed. */
+static int catmag_image_hook(struct generic_img_args *gargs, fits *fit, int threads) {
+	int enough_stars = 20; // make configurable?
+	struct catmag_data *args = gargs->user;
+	int nb_stars_in_image = 0;
+	double fwhm = measure_image_FWHM(fit, -1, &nb_stars_in_image);
+	if (nb_stars_in_image < 1 || fwhm == 0.0)
+		fwhm = 6.0;
+	struct phot_config *pset = phot_set_adjusted_for_image(fit);
+	pset->force_radius = FALSE;
+	pset->inner = max(7.0, 3.0 * fwhm);
+	pset->outer = pset->inner + 10;
+	siril_debug_print(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
+			pset->inner, pset->outer);
+
+	siril_catalogue *cat = siril_catalog_fill_from_fit(fit, args->catalogue, -1);
+	if (!cat) {
+		siril_log_message(_("Failed to initialize the catalogue query\n"));
+		free(pset);
+		return 1;
+	}
+	cat->limitmag = compute_mag_limit_from_position_and_fov(cat->center_ra, cat->center_ra, cat->radius * 2.0 / 60., nb_stars_in_image) + 1.;
+	siril_debug_print("catalogue limit magnitude set to %.1f\n", cat->limitmag);
+	cat->phot = TRUE;
+
+	int retval;
+	if (args->catalogue == CAT_LOCAL_GAIA_ASTRO || args->catalogue == CAT_LOCAL_KSTARS)
+		retval = siril_catalog_get_stars_from_local_catalogues(cat);
+	else
+		retval = siril_catalog_get_stars_from_online_catalogues(cat);
+	if (retval < 1) {
+		siril_log_message(_("Failed to get stars from catalog\n"));
+		free(pset);
+		siril_catalog_free(cat);
+		return 1;
+	}
+	siril_debug_print("Found %d stars in the catalog\n", retval);
+	sort_cat_items_by_mag(cat);
+	retval = siril_catalog_project_with_WCS(cat, fit, TRUE, FALSE);
+	if (retval || cat->nbitems < 1) {
+		siril_log_message(_("Failed to project stars from catalog\n"));
+		free(pset);
+		siril_catalog_free(cat);
+		return 1;
+	}
+
+	double *distances = malloc(enough_stars * sizeof(double));
+	float *magnitudes = malloc(enough_stars * sizeof(float));
+	if (!distances || !magnitudes) {
+		free(distances); free(magnitudes); free(pset);
+		siril_catalog_free(cat);
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	int nbgood = 0;
+	for (int i = 0; i < cat->nbitems; i++) {
+		if (nbgood >= enough_stars) {
+			siril_debug_print("found enough stars after trying the brightest %d\n", i + 1);
+			break;
+		}
+		if ((args->limit_temperature && fabs(cat->cat_items[i].teff - args->refT) > args->dT) ||
+				(args->limit_BV && fabs(cat->cat_items[i].BV - args->refBV) > args->dBV))
+			continue;
+		rectangle area = { 0 };
+		if (make_selection_around_a_star(cat->cat_items+i, &area, fit, pset))
+			continue;
+		int layer = fit->naxes[2] == 3 ? 1 : 0;
+		psf_error error = PSF_NO_ERR;
+		psf_star *star = psf_get_minimisation(fit, layer, &area, TRUE, TRUE, pset,
+				FALSE, com.pref.starfinder_conf.profile, &error);
+		if (!star || !star->phot || !star->phot->valid || star->phot->SNR < 3.0) {
+			if (error != PSF_ERR_INVALID_PIX_VALUE && error != PSF_ERR_APERTURE_TOO_SMALL)
+				siril_debug_print("star %d photometry analysis failed (%s)\n", i, psf_error_to_string(error));
+			if (star) free_psf(star);
+			continue;
+		}
+		double dxpos = area.x + star->x0;
+		double dypos = area.y + area.h - star->y0;
+		double fx, fy;
+		display_to_siril(dxpos, dypos, &fx, &fy, fit->ry);
+		double ra, dec;
+		pix2wcs(fit, fx, fy, &ra, &dec);
+		if (ra != 0.0 && dec != 0.0) {
+			double dx = cat->cat_items[i].x - fx;
+			double dy = cat->cat_items[i].y - fy;
+			double dist = sqrt(dx * dx + dy * dy);
+			float diff = cat->cat_items[i].mag - star->phot->mag;
+			distances[nbgood] = dist;
+			magnitudes[nbgood] = diff;
+			nbgood++;
+		}
+		free_psf(star);
+	}
+	if (nbgood <= 0)
+		siril_log_message("No valid star was found\n");
+	double mean, stdev;
+	retval = robustmean(nbgood, distances, &mean, &stdev);
+	if (!retval) {
+		double sum = 0.0;
+		int kept = 0;
+		for (unsigned int i = 0; i < (unsigned int)nbgood; i++) {
+			if (distances[i] - mean > stdev)
+				continue;
+			sum += magnitudes[i];
+			kept++;
+		}
+		if (kept) {
+			double new_ref = sum / (double)kept;
+			siril_log_message("Mean magnitude offset: %.4f (using %d stars)\n", new_ref, kept);
+			com.magOffset = new_ref;
+		}
+		retval = !kept;
+	}
+	free(distances);
+	free(magnitudes);
+	free(pset);
+	siril_catalog_free(cat);
+	return retval;
+}
+
+/* Launch the catalogue magnitude calibration in the processing thread via
+ * generic_image_worker (read-only path).  Ownership of args transfers on
+ * success; on failure the caller must free args. */
+gboolean launch_catmag_worker(struct catmag_data *args) {
+	args->destroy_fn = NULL; // no heap members; free() suffices
+	struct generic_img_args *gargs = calloc(1, sizeof(struct generic_img_args));
+	gargs->fit = args->fit;
+	gargs->image_hook = catmag_image_hook;
+	gargs->description = _("Catalogue magnitude calibration");
+	gargs->verbose = TRUE;
+	gargs->read_only = TRUE;
+	gargs->user = args;
+	if (!start_in_new_thread(generic_image_worker, gargs)) {
+		gargs->user = NULL;
+		free_generic_img_args(gargs);
+		return FALSE;
+	}
+	return TRUE;
+}

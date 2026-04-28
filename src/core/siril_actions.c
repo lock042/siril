@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
+#include "core/processing.h"
 #include "core/undo.h"
 #include "core/masks.h"
 #include "core/siril_update.h"
@@ -45,6 +46,7 @@
 #include "gui/curves.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
+#include "gui/histo_display.h"
 #include "gui/icc_profile.h"
 #include "gui/image_interactions.h"
 #include "gui/open_dialog.h"
@@ -54,7 +56,6 @@
 #include "gui/sequence_list.h"
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
-#include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"
@@ -240,6 +241,19 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	gtk_widget_set_visible(w, !gtk_widget_get_visible(w));
 }
 
+void on_histogram_overlay_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	gboolean new_state = g_variant_get_boolean(state);
+	set_histogram_overlay_visible(new_state);
+	g_simple_action_set_state(action, state);
+}
+
+void on_histogram_overlay_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
@@ -287,6 +301,7 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -319,6 +334,7 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
+	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
@@ -791,6 +807,10 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	siril_open_dialog("compstars");
 }
 
+void catmag_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("catmag");
+}
+
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
 }
@@ -802,18 +822,30 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa()) return;
-	undo_save_state(gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(fix_saturated_stars, NULL);
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = unclip_image_hook;
+	args->log_hook = unclip_log_hook;
+	args->description = _("Unclip stars");
+	args->verbose = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	CHECK_FOR_OPENED_DIALOG;
 	if (!check_ok_if_cfa())
 		return;
-	undo_save_state(gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(do_synthstar, NULL);
+	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+	args->fit = gfit;
+	args->image_hook = synthstar_image_hook;
+	args->log_hook = synthstar_log_hook;
+	args->description = _("Synthetic stars");
+	args->verbose = TRUE;
+	if (!start_in_new_thread(generic_image_worker, args))
+		free_generic_img_args(args);
 }
 
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

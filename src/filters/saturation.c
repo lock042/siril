@@ -184,23 +184,11 @@ int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return 1;
 }
 
-static gboolean satu_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 static gboolean satu_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-	populate_roi();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	clear_backup();
@@ -236,7 +224,7 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.0f;
 	args->image_hook = saturation_image_hook;
-	args->idle_function = for_preview ? satu_preview_idle : satu_apply_idle;
+	args->idle_function = for_preview ? NULL : satu_apply_idle;
 	args->description = _("Saturation");
 	args->verbose = !for_preview;
 	args->user = params;
@@ -244,8 +232,10 @@ static int satu_process_with_worker(gboolean for_preview) {
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
 	args->mask_aware = TRUE;
-	if (!for_preview)
+	if (!for_preview) {
 		args->log_hook = satu_log_hook;
+		args->populate_roi_on_complete = TRUE;
+	}
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -283,7 +273,8 @@ static void satu_close(gboolean revert) {
 	if (revert) {
 		if (satu_amount != 0.0) {
 			copy_backup_to_gfit();
-			notify_gfit_modified();
+			notify_gfit_data_modified();
+			gfit_modified_update_gui();
 		}
 	}
 	roi_supported(FALSE);
@@ -356,8 +347,7 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();
-		notify_gfit_modified();
-		redraw(REMAP_ALL);
+		gfit_modified_update_gui();
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -389,8 +379,9 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	satu_show_preview = gtk_toggle_button_get_active(button);
 	if (!satu_show_preview) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		copy_backup_to_gfit();
+		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();

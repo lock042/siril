@@ -450,8 +450,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 // idle function executed at the end of the Cosmetic Correction processing
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
-	notify_gfit_modified();
-	redraw(REMAP_ALL);
+	gfit_modified_update_gui();
 	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
@@ -912,6 +911,18 @@ void free_cosmetic_data(void *ptr) {
 	free(ptr);
 }
 
+/* Log hook for file-based cosmetic correction (cosme command path) */
+gchar *cosme_log_hook(gpointer p, log_hook_detail detail) {
+	struct cosme_data *args = (struct cosme_data *)p;
+	gchar *path = g_file_get_path(args->file);
+	gchar *basename = g_path_get_basename(path ? path : "");
+	gchar *msg = g_strdup_printf(_("Cosmetic correction (file: %s%s)"),
+			basename, args->is_cfa ? _(", CFA") : "");
+	g_free(basename);
+	g_free(path);
+	return msg;
+}
+
 /* Image processing hook for generic_image_worker */
 int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct cosme_data *params = (struct cosme_data *)args->user;
@@ -927,7 +938,7 @@ gboolean cosme_idle(gpointer p) {
 	stop_processing_thread();
 
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 
 	// Free using the generic cleanup which will call the destructor

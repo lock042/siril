@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+gboolean first_start_cb(gpointer user_data);
+
 void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data);
 void on_press_seq_field();
 gboolean launch_clipboard_survey(gpointer user_data);
@@ -51,6 +53,7 @@ int copy_rendering_settings();
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 void show_or_hide_mask_tab();
+gboolean show_or_hide_mask_tab_idle(gpointer p);
 
 int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
 void update_display_selection();
