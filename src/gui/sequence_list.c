@@ -1014,24 +1014,26 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 
 	if (!sequence_is_loaded()) return FALSE;
 
+	if (com.seq.type != SEQ_REGULAR) return FALSE;
+
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip, &model, &path, &iter)) {
 		return FALSE;
 	}
 	char buffer[512];
-	fits fit = { 0 };
+	char filename[256];
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
-	if (seq_read_frame_metadata(&com.seq, real_index, &fit)) {
-		return FALSE;
-	}
 
-	if (fit.keywords.filename[0] == '\0') return FALSE;
+	fit_sequence_get_image_filename_checkext(&com.seq, real_index, filename);
+	gchar *original_filename = get_original_filename_from_fits(filename);
 
-	g_snprintf(buffer, 511, "<b>Original filename:</b> %s", fit.keywords.filename);
-	clearfits(&fit);
+	if (original_filename == NULL) return FALSE;
+
+	g_snprintf(buffer, 511, "<b>Original filename:</b> %s", original_filename);
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 	gtk_tree_path_free(path);
+	g_free(original_filename);
 
 	return TRUE;
 }
