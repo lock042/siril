@@ -937,8 +937,7 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 	double threshold = median + mad0 * tolerance;
 	if (tolerance < 0.0)
 		siril_debug_print("Background gradient: %d samples per line, no threshold\n", nb_per_line);
-	else
-		siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
+	else siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
 
 	/* remove bad samples */
 	GSList *l = list;
