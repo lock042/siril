@@ -97,10 +97,11 @@ static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *in
 
 static void bayer_pattern_read(fits *fit, const char *comment, KeywordInfo *info) {
 	/* Handle some bad BAYER PATTERN from Maxim DL */
-	if (strstr(fit->keywords.bayer_pattern, "INVALID")) {
-		siril_debug_print("Ignoring INVALID Bayer pattern\n");
+	if (strstr(fit->keywords.bayer_pattern, "INVALID") ||
+		strstr(fit->keywords.bayer_pattern, "NONE")) {
+		siril_debug_print("Ignoring INVALID or NONE Bayer pattern\n");
 		fit->keywords.bayer_pattern[0] = '\0';
-	}
+		}
 }
 
 static void binning_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
