@@ -935,14 +935,18 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 	double mad0 = histogram_median_float(mad, k, TRUE);
 	free(mad);
 	double threshold = median + mad0 * tolerance;
-	siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
+	if (tolerance < 0.0)
+		siril_debug_print("Background gradient: %d samples per line, no threshold\n", nb_per_line);
+	else
+		siril_debug_print("Background gradient: %d samples per line, threshold %f\n", nb_per_line, threshold);
+
 	/* remove bad samples */
 	GSList *l = list;
 	while (l != NULL) {
 		background_sample *sample = (background_sample*) l->data;
 		/* Store next element's pointer before removing it */
 		GSList *next = g_slist_next(l);
-		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold || sample->min == 0.0) {
+		if (sample->median[RLAYER] <= 0.0 || (tolerance > 0.0 && sample->median[RLAYER] >= threshold)) {
 			free(sample);
 			list = g_slist_delete_link(list, l);
 		}
