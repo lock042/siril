@@ -75,15 +75,28 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 		return NULL;
 	}
 	wcsdst->flag = -1;
-	int statuscpy = wcssub(0, wcssrc, &nsub, axes, wcsdst);
+	if (wcssrc->lin.dispre && strcmp(wcssrc->lin.dispre->dtype[0], "SIP") != 0) {
+		disfree(wcssrc->lin.dispre);
+		wcssrc->lin.dispre = NULL;
+	}
+	if (wcssrc->lin.disseq && strcmp(wcssrc->lin.disseq->dtype[0], "SIP") != 0) {
+		disfree(wcssrc->lin.disseq);
+		wcssrc->lin.disseq = NULL;
+	}
+	int statuscpy = wcssub(1, wcssrc, &nsub, axes, wcsdst);
 	if (statuscpy) {
 		if (status)
 			*status = statuscpy;
 		wcsfree(wcsdst);
 		return NULL;
 	}
-	wcsdst->flag = 0;
-	wcsset(wcsdst);
+	int statusset = wcsset(wcsdst);
+	if (statusset) {
+		if (status)
+			*status = statusset;
+		wcsfree(wcsdst);
+		return NULL;
+	}
 	if (status)
 		*status = 0;
 	return wcsdst;
@@ -105,7 +118,8 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 		for (int i = 0; i < nwcs; i++) {
 			/* Find the master celestial WCS coordinates */
 			wcsprm_t *prm = data + i;
-			wcsset(prm); // is it necessary?
+			prm->flag = 1;
+			wcsset(prm); // needed to populate the lat and lng members
 			if (prm->lng >= 0 && prm->lat >= 0
 					&& (prm->alt[0] == '\0' || prm->alt[0] == ' ')) {
 				int status = -1;
