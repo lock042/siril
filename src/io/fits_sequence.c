@@ -134,10 +134,10 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		if (!homogeneous)
 			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
 		// this is printed too often, maybe we can add a verbose flag?
-		*nb_im = nb_images;
 		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
 	}
+	*nb_im = nb_images;
 	return status;
 }
 
