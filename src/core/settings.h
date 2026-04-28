@@ -477,6 +477,9 @@ struct settings_access {
 	};
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 struct settings_access *get_all_settings();
 struct settings_access *get_key_settings(const char *group, const char *key);
 
@@ -489,5 +492,8 @@ void initialize_default_settings();
 void set_wisdom_file();
 
 void update_gain_from_gfit();
+#ifdef __cplusplus
+}
+#endif
 
 #endif

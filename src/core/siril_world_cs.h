@@ -30,6 +30,9 @@
 
 typedef struct _SirilWorldCS SirilWorldCS;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 SirilWorldCS *siril_world_cs_ref(SirilWorldCS *world_cs);
 SirilWorldCS *siril_world_cs_copy(SirilWorldCS *world_cs);
 void siril_world_cs_unref(SirilWorldCS *world_cs);
@@ -50,5 +53,8 @@ void siril_world_cs_get_dec_deg_min_sec(SirilWorldCS *world_cs, int *deg, int *m
 
 double parse_hms(const char *objctra);
 double parse_dms(const char *objctdec);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_CORE_SIRIL_WORLD_CS_H_ */

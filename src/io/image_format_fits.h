@@ -6,14 +6,17 @@
 
 #define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
 
-/****************** image_format_fits.h ******************/
-void read_fits_header(fits *fit);
-char *copy_header(fits *fit);
-
 typedef struct {
 	char *key;
 	char *value;
 } header_record;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+void read_fits_header(fits *fit);
+char *copy_header(fits *fit);
+
 GSList *read_header_keyvals_strings(fitsfile *fptr);
 cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr);
 int read_icc_profile_from_fits(fits *fit);
@@ -93,5 +96,7 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 int read_drizz_fits_area(const gchar *name, int layer, rectangle *area, int ry, float *drizz);
 
 void interpolate_nongreen(fits *fit);
-
+#ifdef __cplusplus
+}
+#endif
 #endif

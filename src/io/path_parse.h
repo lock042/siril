@@ -65,8 +65,14 @@ typedef enum {
 	PATHPARSE_MODE_WRITE_NOFAIL
 } pathparse_mode;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status);
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status);
 pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

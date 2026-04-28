@@ -115,6 +115,9 @@ typedef struct {
 	point *center;
 } near_solve_data;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void open_astrometry_dialog();
 void close_astrometry_dialog();
 void process_plate_solver_input(struct astrometry_data *args);
@@ -154,5 +157,8 @@ gboolean end_plate_solver(gpointer p);
 gboolean end_platesolve_sequence(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */
