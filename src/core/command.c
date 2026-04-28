@@ -8762,6 +8762,8 @@ int process_subsky(int nb) {
 	gboolean randomize = FALSE;
 	gboolean grad_descent = FALSE;
 
+	double border_value = 0.0;
+	gboolean border_is_percent = FALSE;
 	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
 
@@ -8854,6 +8856,29 @@ int process_subsky(int nb) {
 		else if (!g_strcmp0(arg, "-gradient")) {
 			grad_descent = TRUE;
 		}
+		else if (g_str_has_prefix(arg, "-border=")) {
+			char *next, *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				free(prefix);
+				return CMD_ARG_ERROR;
+			}
+			border_value = g_ascii_strtod(value, &next);
+			if (next == value || border_value < 0.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				free(prefix);
+				return CMD_ARG_ERROR;
+			}
+			if (*next == '%') {
+				border_is_percent = TRUE;
+				next++;
+			}
+			if (*next != '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				free(prefix);
+				return CMD_ARG_ERROR;
+			}
+		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 			free(prefix);
@@ -8875,6 +8900,8 @@ int process_subsky(int nb) {
 	bkg_args->from_ui = FALSE;
 	bkg_args->randomize = randomize;
 	bkg_args->grad_descent = grad_descent;
+	bkg_args->border_value = border_value;
+	bkg_args->border_is_percent = border_is_percent;
 	siril_debug_print("dithering: %s\n", dithering ? "enabled" : "disabled");
 
 	if (is_sequence) {
@@ -8900,7 +8927,23 @@ int process_subsky(int nb) {
 				retval = 0;
 			}
 		} else {
-			retval = generate_background_samples(samples, tolerance, randomize, grad_descent);
+			rectangle border_bbox;
+			const rectangle *override_bbox = NULL;
+			if (border_value > 0.0) {
+				int bx, by;
+				if (border_is_percent) {
+					bx = (int)(gfit->rx * border_value / 100.0 + 0.5);
+					by = (int)(gfit->ry * border_value / 100.0 + 0.5);
+				} else {
+					bx = (int)(border_value + 0.5);
+					by = (int)(border_value + 0.5);
+				}
+				if (bx >= (int)gfit->rx / 2) bx = (int)gfit->rx / 2 - 1;
+				if (by >= (int)gfit->ry / 2) by = (int)gfit->ry / 2 - 1;
+				border_bbox = (rectangle){ bx, by, (int)gfit->rx - 2 * bx, (int)gfit->ry - 2 * by };
+				override_bbox = &border_bbox;
+			}
+			retval = generate_background_samples(samples, tolerance, randomize, grad_descent, override_bbox);
 		}
 		if (!retval) {
 			struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));

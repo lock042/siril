@@ -143,6 +143,7 @@ struct bkg_generate_args {
 	double tolerance;
 	gboolean randomize;
 	gboolean grad_descent;
+	rectangle sel; /* copy of com.selection captured on the GTK thread at click time */
 };
 
 /* Idle: runs on the GTK thread after sample generation completes */
@@ -164,7 +165,8 @@ static gboolean bkg_generate_idle(gpointer p) {
 /* Worker: runs in the processing thread, reads gfit to compute samples */
 static gpointer bkg_generate_worker(gpointer p) {
 	struct bkg_generate_args *args = (struct bkg_generate_args *)p;
-	int retval = generate_background_samples(args->nb_of_samples, args->tolerance, args->randomize, args->grad_descent);
+	const rectangle *sel = (args->sel.w > 0 && args->sel.h > 0) ? &args->sel : NULL;
+	int retval = generate_background_samples(args->nb_of_samples, args->tolerance, args->randomize, args->grad_descent, sel);
 	if (retval) {
 		/* Pass NULL to signal failure; args is freed here */
 		free(args);
@@ -196,6 +198,7 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	args->tolerance = keep_all ? -1.0 : get_tolerance_value();
 	args->randomize = is_randomize_checked();
 	args->grad_descent = is_grad_descent_checked();
+	args->sel = com.selection; /* capture on GTK thread before worker starts */
 
 	set_cursor_waiting(TRUE);
 	if (!start_in_new_thread(bkg_generate_worker, args)) {

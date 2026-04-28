@@ -38,6 +38,8 @@ struct background_data {
 	gboolean is_cfa;
 	gboolean randomize;    /* use random dark-area sampling instead of grid */
 	gboolean grad_descent; /* optimize each sample position to a local dark minimum */
+	double border_value;        /* >0: exclude a border strip from sample placement */
+	gboolean border_is_percent; /* TRUE = border_value is % of image dimension; FALSE = pixels */
 };
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
@@ -57,7 +59,7 @@ GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size,
 GSList* add_background_sample(GSList *list, fits *fit, point pt, gboolean grad_descent);
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
-int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent);
+int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent, const rectangle *override_bbox);
 /* dead code — no call sites; superseded by remove_gradient_image_hook:
 gpointer remove_gradient_from_image(gpointer p);
 gpointer remove_gradient_from_cfa_image(gpointer p); */

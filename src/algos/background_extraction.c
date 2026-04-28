@@ -1119,14 +1119,14 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 }
 
 /* generates samples and stores them in com.grad_samples */
-int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent) {
+int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent, const rectangle *override_bbox) {
 	g_mutex_lock(&bgsamples_mutex);
 	free_background_sample_list(com.grad_samples);
 	const char *err = NULL;
 	g_rw_lock_reader_lock(&gfit->rwlock);
-	const rectangle *sel = (com.selection.w > 0 && com.selection.h > 0) ? &com.selection : NULL;
+	const rectangle *sel = (override_bbox && override_bbox->w > 0 && override_bbox->h > 0) ? override_bbox : NULL;
 	if (sel)
-		siril_debug_print("BGE: constraining sample placement to selection (%d,%d %dx%d)\n",
+		siril_debug_print("BGE: constraining sample placement to region (%d,%d %dx%d)\n",
 			sel->x, sel->y, sel->w, sel->h);
 	if (randomize) {
 		com.grad_samples = generate_samples_random(gfit, nb_of_samples, SAMPLE_SIZE, grad_descent, &err, MULTI_THREADED, sel);
@@ -1602,6 +1602,23 @@ int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int th
 
 /** Apply for sequence **/
 
+/* Compute the inset bbox obtained by excluding a border strip from all sides.
+ * pixel_scale allows halving the pixel border for CFA subchannels (pass 0.5). */
+static rectangle compute_border_bbox(int rx, int ry, double border_value, gboolean border_is_percent, double pixel_scale) {
+	int bx, by;
+	if (border_is_percent) {
+		bx = (int)(rx * border_value / 100.0 + 0.5);
+		by = (int)(ry * border_value / 100.0 + 0.5);
+	} else {
+		bx = (int)(border_value * pixel_scale + 0.5);
+		by = (int)(border_value * pixel_scale + 0.5);
+	}
+	if (bx >= rx / 2) bx = rx / 2 - 1;
+	if (by >= ry / 2) by = ry / 2 - 1;
+	rectangle bbox = { bx, by, rx - 2 * bx, ry - 2 * by };
+	return bbox;
+}
+
 static int background_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
@@ -1613,12 +1630,19 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		return 1;
 	}
 
+	rectangle border_bbox;
+	const rectangle *bbox = NULL;
+	if (b_args->border_value > 0.0) {
+		border_bbox = compute_border_bbox(fit->rx, fit->ry, b_args->border_value, b_args->border_is_percent, 1.0);
+		bbox = &border_bbox;
+	}
+
 	const char *err;
 	GSList *samples;
 	if (b_args->randomize) {
-		samples = generate_samples_random(fit, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
+		samples = generate_samples_random(fit, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, bbox);
 	} else {
-		samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
+		samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, bbox);
 	}
 	if (!samples) {
 		siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
@@ -1735,12 +1759,23 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 			return 1;
 		}
 
+		rectangle sub_border_bbox;
+		const rectangle *sub_bbox = NULL;
+		if (b_args->border_value > 0.0) {
+			/* CFA subchannels are half the original image size in each dimension;
+			 * pixel borders must be scaled accordingly */
+			sub_border_bbox = compute_border_bbox(subchannel->rx, subchannel->ry,
+				b_args->border_value, b_args->border_is_percent,
+				b_args->border_is_percent ? 1.0 : 0.5);
+			sub_bbox = &sub_border_bbox;
+		}
+
 		const char *err;
 		GSList *samples;
 		if (b_args->randomize) {
-			samples = generate_samples_random(subchannel, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
+			samples = generate_samples_random(subchannel, b_args->nb_of_samples, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, sub_bbox);
 		} else {
-			samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, NULL);
+			samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, b_args->grad_descent, &err, (threading_type)threads, sub_bbox);
 		}
 		if (!samples) {
 			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
