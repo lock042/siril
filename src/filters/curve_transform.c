@@ -328,66 +328,97 @@ static inline float sigmoid(float x) {
 }
 
 // ------------------------------------------------------------------------
-// MASK GENERATION (Gaussian Blur)
+// MASK GENERATION (Gaussian Blur approximated with box filters)
 // ------------------------------------------------------------------------
 
-static void gaussian_blur_buffer(float *buffer, int w, int h, float sigma) {
-	if (sigma <= 0.1f) return;
-
-	int r = (int)ceilf(sigma * 3.0f);
-	int ksize = 2 * r + 1;
-	float *kernel = malloc(ksize * sizeof(float));
-	float sum = 0.0f;
-	for (int i = 0; i < ksize; i++) {
-		float x = i - r;
-		kernel[i] = expf(-(x * x) / (2.0f * sigma * sigma));
-		sum += kernel[i];
-	}
-	for (int i = 0; i < ksize; i++) kernel[i] /= sum;
-
-	float *temp = malloc(w * h * sizeof(float));
-	if (!temp || !kernel) {
-		free(kernel); free(temp);
-		return;
-	}
-
+// O(n) separable box blur pass along rows.
+static void box_blur_h(const float *src, float *dst, int w, int h, int r) {
+	float inv = 1.0f / (2 * r + 1);
 	#ifdef _OPENMP
 	#pragma omp parallel for schedule(static)
 	#endif
 	for (int y = 0; y < h; y++) {
-		for (int x = 0; x < w; x++) {
-			float val = 0.0f;
-			for (int k = -r; k <= r; k++) {
-				int px = x + k;
-				px = (px < 0) ? -px : (px >= w) ? 2 * w - px - 2 : px;
-				if (px < 0) px = 0;
-				if (px >= w) px = w - 1;
-
-				val += buffer[y * w + px] * kernel[k + r];
-			}
-			temp[y * w + x] = val;
+		const float *row = src + y * w;
+		float *out = dst + y * w;
+		// Accumulate initial window
+		float acc = 0.0f;
+		for (int x = -r; x <= r; x++) {
+			int px = (x < 0) ? -x : (x >= w) ? 2 * w - x - 2 : x;
+			if (px < 0) px = 0;
+			if (px >= w) px = w - 1;
+			acc += row[px];
+		}
+		out[0] = acc * inv;
+		for (int x = 1; x < w; x++) {
+			int add = x + r;
+			int rem = x - r - 1;
+			if (add >= w) add = 2 * w - add - 2;
+			if (add < 0) add = 0;
+			if (add >= w) add = w - 1;
+			if (rem < 0) rem = -rem;
+			if (rem >= w) rem = 2 * w - rem - 2;
+			if (rem < 0) rem = 0;
+			if (rem >= w) rem = w - 1;
+			acc += row[add] - row[rem];
+			out[x] = acc * inv;
 		}
 	}
+}
 
+// O(n) separable box blur pass along columns.
+static void box_blur_v(const float *src, float *dst, int w, int h, int r) {
+	float inv = 1.0f / (2 * r + 1);
 	#ifdef _OPENMP
 	#pragma omp parallel for schedule(static)
 	#endif
 	for (int x = 0; x < w; x++) {
-		for (int y = 0; y < h; y++) {
-			float val = 0.0f;
-			for (int k = -r; k <= r; k++) {
-				int py = y + k;
-				py = (py < 0) ? -py : (py >= h) ? 2 * h - py - 2 : py;
-				if (py < 0) py = 0;
-				if (py >= h) py = h - 1;
-
-				val += temp[py * w + x] * kernel[k + r];
-			}
-			buffer[y * w + x] = val;
+		float acc = 0.0f;
+		for (int y = -r; y <= r; y++) {
+			int py = (y < 0) ? -y : (y >= h) ? 2 * h - y - 2 : y;
+			if (py < 0) py = 0;
+			if (py >= h) py = h - 1;
+			acc += src[py * w + x];
+		}
+		dst[0 * w + x] = acc * inv;
+		for (int y = 1; y < h; y++) {
+			int add = y + r;
+			int rem = y - r - 1;
+			if (add >= h) add = 2 * h - add - 2;
+			if (add < 0) add = 0;
+			if (add >= h) add = h - 1;
+			if (rem < 0) rem = -rem;
+			if (rem >= h) rem = 2 * h - rem - 2;
+			if (rem < 0) rem = 0;
+			if (rem >= h) rem = h - 1;
+			acc += src[add * w + x] - src[rem * w + x];
+			dst[y * w + x] = acc * inv;
 		}
 	}
+}
 
-	free(kernel);
+// Approximate a Gaussian blur using 3 successive box blurs (O(n) total).
+// Box radius from sigma: r = round(sqrt((12*sigma^2/n + 1)) / 2 - 0.5), n=3.
+static void gaussian_blur_buffer(float *buffer, int w, int h, float sigma) {
+	if (sigma <= 0.1f) return;
+
+	float *temp = malloc(w * h * sizeof(float));
+	if (!temp) return;
+
+	// Ideal box radii for 3-pass approximation of a Gaussian
+	float ideal = sqrtf((12.0f * sigma * sigma / 3.0f) + 1.0f);
+	int wl = (int)ideal;
+	if (wl % 2 == 0) wl--;
+	int wu = wl + 2;
+	float m = (12.0f * sigma * sigma - 3.0f * wl * wl - 12.0f * wl - 9.0f) / (-4.0f * wl - 4.0f);
+	int r[3];
+	for (int i = 0; i < 3; i++)
+		r[i] = ((i < (int)roundf(m)) ? wl : wu) / 2;
+
+	for (int pass = 0; pass < 3; pass++) {
+		box_blur_h(buffer, temp, w, h, r[pass]);
+		box_blur_v(temp, buffer, w, h, r[pass]);
+	}
+
 	free(temp);
 }
 

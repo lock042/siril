@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/processing_thread.h"
 #include "core/icc_profile.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
@@ -745,6 +746,8 @@ static int curves_update_preview() {
 
 static void curves_update_image() {
 	set_cursor_waiting(TRUE);
+	if (processing_is_job_active())
+		stop_processing_thread();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = curves_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(curves_preview_check);
