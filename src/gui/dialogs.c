@@ -28,7 +28,7 @@
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
 #include "filters/epf.h"
-#include "filters/clahe.h"
+#include "gui/clahe.h"
 #include "filters/median.h"
 #include "filters/saturation.h"
 #include "filters/unpurple.h"
