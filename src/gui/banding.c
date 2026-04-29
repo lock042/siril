@@ -24,6 +24,7 @@
 
 #include "core/siril.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "filters/banding.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"

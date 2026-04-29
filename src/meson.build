@@ -254,6 +254,7 @@ src_files_gui = [
   'gui/cosmetic_correction.c',
   'gui/fft.c',
   'gui/rgradient.c',
+  'gui/saturation.c',
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
   'gui/denoisegui.c',

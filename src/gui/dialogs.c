@@ -30,7 +30,7 @@
 #include "filters/epf.h"
 #include "gui/clahe.h"
 #include "filters/median.h"
-#include "filters/saturation.h"
+#include "gui/saturation.h"
 #include "filters/unpurple.h"
 #include "filters/wavelets.h"
 

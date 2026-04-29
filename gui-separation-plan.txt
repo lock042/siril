@@ -299,7 +299,7 @@ simplest first to build momentum):
 [X] 3.5  src/filters/clahe.c → keep processing; new src/gui/clahe.c
          (11 GUI calls, 6 raw GTK calls — includes preview pattern)
 
-[ ] 3.6  src/filters/saturation.c → keep processing; new src/gui/saturation.c
+[X] 3.6  src/filters/saturation.c → keep processing; new src/gui/saturation.c
          (13 GUI calls, 9 raw GTK calls — includes ROI callback pattern)
 
 [ ] 3.7  src/filters/scnr.c → keep processing; new src/gui/scnr.c
