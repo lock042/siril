@@ -286,11 +286,11 @@ simplest first to build momentum):
 [X] 3.1  src/filters/banding.c → keep processing; new src/gui/banding.c
          (4 GUI calls, 8 raw GTK calls — straightforward split)
 
-[i] 3.2  src/filters/cosmetic_correction.c → keep processing;
+[X] 3.2  src/filters/cosmetic_correction.c → keep processing;
           new src/gui/cosmetic_correction.c
          (3 GUI calls, 11 raw GTK calls)
 
-[ ] 3.3  src/filters/fft.c → keep processing; new src/gui/fft.c
+[i] 3.3  src/filters/fft.c → keep processing; new src/gui/fft.c
          (6 GUI calls, 8 raw GTK calls)
 
 [ ] 3.4  src/filters/rgradient.c → keep processing; new src/gui/rgradient.c
