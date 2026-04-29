@@ -97,7 +97,6 @@ int curve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
 gchar *curves_log_hook(gpointer p, log_hook_detail detail);
 gboolean curve_preview_idle(gpointer p);
-gboolean curve_apply_idle(gpointer p);
 
 // EXPOSED MATH FUNCTIONS (Crucial for GUI)
 void linear_fit(GList *points, double *slopes);

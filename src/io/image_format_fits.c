@@ -1311,7 +1311,9 @@ void clearfits_header(fits *fit) {
 	reset_wcsdata(fit);
 	if (fit == gfit && is_preview_active())
 		clear_backup();
-	memset(fit, 0, sizeof(fits));
+	memset(fit, 0, offsetof(struct ffit, rwlock));
+	// Do not mess with the rwlock, this must only be engaged with using g_rwlock_* functions
+	// and preserving the lock in a fits struct being copied into relies on it not being cleared here
 }
 
 // reset a fit data structure, deallocates everything in it and zero the data
@@ -2027,6 +2029,14 @@ int save_opened_fits(fits *f) {
 	return 0;
 }
 
+/* Shallow copy of a fits struct excluding the GRWLock which is not safe to
+ * copy.
+ * */
+
+static inline void ffit_clone_without_lock(fits *dst, const fits *src) {
+	memcpy(dst, src, offsetof(fits, rwlock));
+}
+
 /* Duplicates some of a fits data into another, with various options; the third
  * parameter, oper, indicates with bits what operations will be done:
  *
@@ -2049,6 +2059,7 @@ int save_opened_fits(fits *f) {
  * flags should be used:	CP_ALLOC | CP_COPYA | CP_FORMAT
  *
  */
+
 int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	int depth, i;
 	size_t nbdata = from->naxes[0] * from->naxes[1];
@@ -2059,9 +2070,10 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 	if ((oper & CP_FORMAT)) {
 		// free anything that might need deallocating in to
-		clearfits(to);
+		clearfits(to); // does not clear to->rwlock
 		// copying metadata, not data or stats which are kept null
-		memcpy(to, from, sizeof(fits));
+		ffit_clone_without_lock(to, from); // preserves to's existing lock. Essential for copying
+					// temporary working fits back into gfit
 		to->naxis = depth == 3 ? 3 : from->naxis;
 		to->naxes[2] = depth;
 		if (depth != from->naxes[2]) {
@@ -2258,7 +2270,7 @@ int fits_change_depth(fits *fit, int layers) {
 int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	size_t nbdata = from->naxes[0] * from->naxes[1];
 	// copying metadata, not data or stats which are kept null
-	memcpy(to, from, sizeof(fits));
+	ffit_clone_without_lock(to, from);
 	to->naxis = 2;
 	to->naxes[2] = 1L;
 	to->maxi = -1.0;

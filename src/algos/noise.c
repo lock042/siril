@@ -59,6 +59,12 @@ gpointer noise_worker(gpointer p) {
 		gettimeofday(&args->t_start, NULL);
 	}
 
+	gboolean rwlocked = FALSE;
+	if (args->fit == gfit) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		rwlocked = TRUE;
+	}
+
 	imstats *stats[3];
 	int retval = compute_all_channels_statistics_single_image(args->fit, STATS_SIGMEAN, MULTI_THREADED, stats);
 	for (int chan = 0; chan < args->fit->naxes[2]; chan++) {
@@ -90,6 +96,9 @@ gpointer noise_worker(gpointer p) {
 		if (args->fit->type == DATA_FLOAT)
 			args->mean_noise *= USHRT_MAX_DOUBLE;
 	}
+
+	if (rwlocked)
+		g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (args->use_idle) {
 		siril_add_idle(end_noise, args);

@@ -247,8 +247,11 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	if (!com.headless)
+	if (!com.headless) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
 		open_single_image_from_gfit(NULL);
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+	}
 	return FALSE;
 }
 
@@ -355,6 +358,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	 does the things necessary when key aspects may have
 	 changed (eg changed number of channels, bitpix etc.)*/
 
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
 	sliders_mode_set_state(gui.sliders);
@@ -368,6 +372,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 
 	remap_all();
 	update_gfit_histogram_if_needed();
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	redraw(REMAP_ALL);
 	return FALSE;
 }
@@ -436,6 +441,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	siril_debug_print("end of gfit operation - idle function\n");
 	stop_processing_thread();
 
+	// Check the mask tab visibility is correct
+	show_or_hide_mask_tab_idle(NULL);
+
 	refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
 
 	/* update bit depth selector */
@@ -447,6 +455,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 
 	// compute new min and max if needed for display and update sliders
 	set_cutoff_sliders_values();
+
+	/* re-enable the display-mode menu disabled at the start of single-image ops */
+	gtk_widget_set_sensitive(lookup_widget("menu_display_button"), TRUE);
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
 		redraw(REMAP_ALL);
@@ -462,7 +473,6 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 /* to be called after each operation that modifies the content of gfit, at the
  * end of a processing operation, not for previews */
 void gfit_modified_update_gui() {
-	siril_debug_print("end of gfit operation\n");
 	gui_function(end_gfit_operation, NULL);
 }
 
@@ -484,10 +494,16 @@ void notify_gfit_data_modified() {
 	invalidate_stats_from_fit(gfit);
 	// The following are only required in GUI mode
 	if (!com.headless) {
+		/* Hold histogram_mutex across the invalidate+recompute pair so the
+		 * main thread never sees a partially-nullified layers_hist[] array.
+		 * update_histo_mtf() on the main thread acquires the same mutex. */
+		g_mutex_lock(&com.histogram_mutex);
 		invalidate_gfit_histogram();
 		// Skip expensive pixel work mid-script; display is flushed at script end.
-		if (com.script && !com.python_script)
+		if (com.script && !com.python_script) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
+		}
 		/* Do not remap if a job on the worker thread is currently writing gfit.
 		 * The worker calls this function itself from within generic_image_worker,
 		 * so we must allow that path through — hence the processing_in_worker_thread()
@@ -495,9 +511,22 @@ void notify_gfit_data_modified() {
 		 * GTK slider callback during a Python script command) would race against the
 		 * worker reading/writing gfit pixel data.  The job's own call, and the
 		 * subsequent end_gfit_operation idle, will update the display correctly. */
-		if (!processing_in_worker_thread() && processing_is_job_active())
+		if (!processing_in_worker_thread() && processing_is_job_active()) {
+			g_mutex_unlock(&com.histogram_mutex);
 			return;
+		}
+		/* If a ROI is active and contains processed data, merge it back into
+		 * gfit now — before computing the histogram and before remap_all()
+		 * builds the Cairo display buffers — so that both operations see the
+		 * fully-updated pixel data.  This is the correct point to do this:
+		 * redraw() must remain a pure "repaint from Cairo buffers" function
+		 * and must not write gfit. */
+		if (gui.roi.active && gui.roi.operation_supports_roi &&
+				((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) ||
+				 (gfit->type == DATA_USHORT && gui.roi.fit.data)))
+			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
+		g_mutex_unlock(&com.histogram_mutex);
 		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
 		 * protect the write with com.mutex to prevent a data race. */

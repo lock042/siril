@@ -542,6 +542,14 @@ static void remap(int vport) {
 
 static void remap_all_vports() {
 	gboolean inverted;
+	/* Snapshot gui.hi/gui.lo: init_layers_hi_and_lo_values() may write them
+	 * from the worker thread concurrently while this path runs from
+	 * remap_all() called directly on the worker (via notify_gfit_data_modified). */
+	g_mutex_lock(&com.mutex);
+	WORD remap_hi = gui.hi;
+	WORD remap_lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
 	/* Cache the GtkApplicationWindow and GAction pointers on first call —
 	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
@@ -758,10 +766,10 @@ static void remap_all_vports() {
 				const int cc = gfit->color_managed ? c : 0;
 				for (x = 0; x < width; ++x) {
 					WORD val = linebuf[c][x];
-					if (gui.cut_over && val > gui.hi) {	// cut
+					if (gui.cut_over && val > remap_hi) {	// cut
 						linebuf_byte[c][x] = 0;
 					} else {
-						linebuf_byte[c][x] = index[cc][val - gui.lo < 0 ? 0 : val - gui.lo];
+						linebuf_byte[c][x] = index[cc][val - remap_lo < 0 ? 0 : val - remap_lo];
 					}
 					if (inverted)
 						linebuf_byte[c][x] = UCHAR_MAX - linebuf_byte[c][x];
@@ -924,7 +932,11 @@ static int make_hd_index_for_current_display(int vport) {
 }
 
 static int make_index_for_current_display(int vport) {
-	float slope, delta = gui.hi - gui.lo;
+	g_mutex_lock(&com.mutex);
+	WORD lo = gui.lo;
+	WORD hi = gui.hi;
+	g_mutex_unlock(&com.mutex);
+	float slope, delta = hi - lo;
 	int i;
 	BYTE *index;
 	float pxl;
@@ -1051,6 +1063,27 @@ static void request_gtk_redraw_of_cvport() {
 	//siril_debug_print("image redraw requested (vport %d)\n", gui.cvport);
 	GtkWidget *widget = gui.view[gui.cvport].drawarea;
 	gtk_widget_queue_draw(widget);
+}
+
+/* forward declaration — redraw_drawingarea is defined later in this file */
+gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data);
+
+/* Block / unblock the draw signal handler on all viewports.  Must be called
+ * from the GTK main thread.  Used by generic_image_worker (via
+ * execute_idle_and_wait_for_it) to prevent redraws with stale Cairo buffers
+ * while the worker is running. */
+void block_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_block_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
+}
+
+void unblock_drawarea_handlers(void) {
+	for (int i = 0; i < MAXVPORT; i++)
+		if (gui.view[i].drawarea)
+			g_signal_handlers_unblock_by_func(gui.view[i].drawarea,
+					redraw_drawingarea, NULL);
 }
 
 static void draw_empty_image(const draw_data_t* dd) {
@@ -1503,8 +1536,10 @@ static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
 
-	if (com.stars && !com.script && (single_image_is_loaded() || sequence_is_loaded())) {
+	if (!com.script && (single_image_is_loaded() || sequence_is_loaded()) &&
+			g_rw_lock_reader_trylock(&com.stars_lock)) {
 		/* com.stars is a NULL-terminated array */
+		if (com.stars) {
 		cairo_set_dash(cr, NULL, 0, 0);
 		cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
@@ -1550,6 +1585,8 @@ static void draw_stars(const draw_data_t* dd) {
 
 			i++;
 		}
+		} // if (com.stars)
+		g_rw_lock_reader_unlock(&com.stars_lock);
 	}
 
 	/* quick photometry */
@@ -2423,6 +2460,7 @@ void copy_roi_into_gfit() {
 	size_t npixels_roi = gui.roi.selection.w * gui.roi.selection.h;
 	if (npixels_roi == 0 || com.script || com.python_command)
 		return;
+	g_rw_lock_writer_lock(&gfit->rwlock);
 	size_t npixels_gfit = gfit->rx * gfit->ry;
 	if (gui.roi.fit.type != gfit->type) {
 		size_t roi_ndata = gui.roi.fit.rx * gui.roi.fit.ry * gui.roi.fit.naxes[2];
@@ -2476,6 +2514,7 @@ void copy_roi_into_gfit() {
 			}
 		}
 	}
+	g_rw_lock_writer_unlock(&gfit->rwlock);
 }
 
 void remap_all() {
@@ -2493,8 +2532,6 @@ void remap_all() {
 
 void redraw(remap_type doremap) {
 	if (com.script && !com.python_script) return;
-	if (gui.roi.active && gui.roi.operation_supports_roi &&((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) || (gfit->type == DATA_USHORT && gui.roi.fit.data)))
-		copy_roi_into_gfit();
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
@@ -2531,9 +2568,13 @@ void queue_redraw_and_wait_for_it(remap_type doremap) {
 }
 
 gboolean redraw_mask_idle(gpointer p) {
+	g_rw_lock_reader_lock(&gfit->rwlock);
 	if (gfit->mask && gfit->mask->data)
 		remap_mask(gfit->mask);
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 	if (com.pref.gui.mask_tints_vports) {
+		/* Reader lock released before this call: notify_gfit_data_modified()
+		 * may call copy_roi_into_gfit() which acquires the writer lock. */
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL); // need to remap all to tint the image vports correctly
 	}
@@ -2563,6 +2604,30 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (dd.vport == -1) {
 		fprintf(stderr, "Could not find the vport for the draw callback\n");
 		return TRUE;
+	}
+
+	/* While generic_image_worker is running the remap buffers (gfit pixel
+	 * data) are stale.  Repaint from the cached display surface so the
+	 * previous correct frame stays visible, avoiding a grey flash.
+	 *
+	 * If disp_surface was invalidated — e.g. the user changed zoom level or
+	 * resized the window during a long operation — fall through to a normal
+	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
+	 * holds the full-resolution remapped image and is safe to read from the
+	 * GTK thread.  draw_main_image() will re-render buf into a fresh
+	 * disp_surface at the new viewport geometry without touching gfit. */
+	if (g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
+		g_mutex_lock(&gui.cairo_mutex);
+		cairo_surface_t *cached = gui.view[dd.vport].disp_surface;
+		if (cached) {
+			cairo_set_source_surface(cr, cached, 0, 0);
+			cairo_paint(cr);
+			g_mutex_unlock(&gui.cairo_mutex);
+			return FALSE;
+		}
+		g_mutex_unlock(&gui.cairo_mutex);
+		/* disp_surface invalidated by viewport change; buf is still valid —
+		 * fall through to rebuild disp_surface from buf */
 	}
 
 	/* catch and compute rendering data */

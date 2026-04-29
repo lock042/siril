@@ -144,7 +144,7 @@ static int epf_process_with_worker(gboolean for_preview, gboolean for_roi) {
 	args->fit = for_roi ? &gui.roi.fit : gfit;
 	args->mem_ratio = 3.0f; // EPF needs memory for conversions and modulation
 	args->image_hook = epf_image_hook;
-	args->idle_function = for_preview ? epf_preview_idle : epf_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Edge Preserving Filter");
 	args->verbose = !for_preview;
 	args->user = params;

@@ -843,6 +843,7 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
+		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}
 	if (revert_icc_profile && !single_image_stretch_applied) {
@@ -1146,17 +1147,25 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		apply_curve_to_sequence(args);
 	} else {
 		fit = gfit;
-		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
+		gboolean preview_active = gtk_toggle_button_get_active(curves_preview_check);
+
+		if (preview_active && !gui.roi.active) {
+			// The curve is already applied to gfit via preview; commit and reset for next operation
+			populate_roi();
+			clear_backup();
+			clear_display_histogram();
+			single_image_stretch_applied = TRUE;
+			curves_startup();
+			reset_cursors_and_values(FALSE);
+			set_cursor("default");
+			return;
+		}
+
+		// Preview not active or ROI active: apply the curve now, defer reinit to curve_apply_idle
 		copy_backup_to_gfit();
-
-		curves_process_with_worker(FALSE, FALSE);
-
-		single_image_stretch_applied = TRUE;
 		populate_roi();
-
+		curves_process_with_worker(FALSE, gui.roi.active);
+		single_image_stretch_applied = TRUE;
 		set_cursor("default");
 	}
 }

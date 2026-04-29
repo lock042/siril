@@ -19,14 +19,17 @@
  */
 
 #include "core/siril.h"
-#include "core/command.h"
-#include "core/command_line_processor.h"
+#include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+
 
 void on_split_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("split_cfa_dialog");
@@ -103,22 +106,81 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		siril_debug_print("Scaling %d\n",scaling);
+		siril_debug_print("Scaling %d\n", scaling);
+
+		/* Compute base filename before starting the thread */
+		gchar *filename = NULL;
+		if (sequence_is_loaded() && !single_image_is_loaded()) {
+			filename = g_path_get_basename(com.seq.seqname);
+		} else if (com.uniq && com.uniq->filename) {
+			char *tmp = remove_ext_from_filename(com.uniq->filename);
+			filename = g_path_get_basename(tmp);
+			free(tmp);
+		}
+
+		struct cfa_extract_args *cfa_args = calloc(1, sizeof(struct cfa_extract_args));
+		cfa_args->destroy_fn = free_cfa_extract_args;
+		cfa_args->operation = method;
+		cfa_args->scaling = scaling;
+
 		switch (method) {
-			case 0:
-				process_split_cfa(0);
+			case 0: /* split_cfa */
+				cfa_args->channel[0] = g_strdup_printf("CFA0_%s%s", filename, com.pref.ext);
+				cfa_args->channel[1] = g_strdup_printf("CFA1_%s%s", filename, com.pref.ext);
+				cfa_args->channel[2] = g_strdup_printf("CFA2_%s%s", filename, com.pref.ext);
+				cfa_args->channel[3] = g_strdup_printf("CFA3_%s%s", filename, com.pref.ext);
 				break;
-			case 1:
-				extract_Ha(scaling);
+			case 1: /* extractHa */
+				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
+				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
+					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha.\n"), "red");
+					free_cfa_extract_args(cfa_args);
+					g_free(filename);
+					return;
+				}
+				cfa_args->channel[0] = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 				break;
-			case 2:
-				extract_HaOIII(scaling);
+			case 2: /* extractHaOIII */
+				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
+				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
+					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract Ha/OIII channels.\n"), "red");
+					free_cfa_extract_args(cfa_args);
+					g_free(filename);
+					return;
+				}
+				cfa_args->channel[0] = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
+				cfa_args->channel[1] = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 				break;
-			case 3:
-				process_extractGreen(0);
+			case 3: /* extractGreen */
+				cfa_args->pattern = get_validated_cfa_pattern(gfit, FALSE, FALSE);
+				if (cfa_args->pattern < BAYER_FILTER_MIN || cfa_args->pattern > BAYER_FILTER_MAX) {
+					siril_log_color_message(_("This image does not have a Bayer CFA pattern, cannot extract green channel.\n"), "red");
+					free_cfa_extract_args(cfa_args);
+					g_free(filename);
+					return;
+				}
+				cfa_args->channel[0] = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 				break;
 			default:
-				fprintf(stderr, "unhandled case!\n");
+				siril_debug_print("unhandled case!\n");
+				free_cfa_extract_args(cfa_args);
+				g_free(filename);
+				return;
+		}
+		g_free(filename);
+
+		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
+		args->fit = gfit;
+		args->image_hook = cfa_extract_image_hook;
+		args->idle_function = end_generic_image_reset_cursor;
+		args->description = _("CFA Extraction");
+		args->verbose = TRUE;
+		args->custom_undo = TRUE;
+		args->user = cfa_args;
+		set_cursor_waiting(TRUE);
+		if (!start_in_new_thread(generic_image_worker, args)) {
+			free_generic_img_args(args);
+			set_cursor_waiting(FALSE);
 		}
 	}
 }

@@ -113,7 +113,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 	args->fit = for_roi ? &gui.roi.fit : gfit;
 	args->mem_ratio = 2.0f; // unpurple needs some extra memory
 	args->image_hook = unpurple_image_hook;
-	args->idle_function = for_preview ? unpurple_preview_idle : unpurple_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Unpurple Filter");
 	args->verbose = !for_preview;
 	args->user = params;

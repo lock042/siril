@@ -110,6 +110,7 @@ int banding_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 /* Idle function for single image processing */
 static gboolean banding_single_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
+	stop_processing_thread();
 
 	if (args->retval == 0) {
 		gfit_modified_update_gui();
@@ -117,8 +118,6 @@ static gboolean banding_single_idle(gpointer p) {
 
 	// Free using the generic cleanup which will call the destructor
 	free_generic_img_args(args);
-
-	stop_processing_thread();
 	return FALSE;
 }
 

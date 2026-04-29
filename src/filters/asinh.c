@@ -34,23 +34,10 @@ int asinh_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return asinhlut(fit, params->beta, params->offset, params->human_luminance, params->clip_mode);
 }
 
-/* Idle function for preview updates */
-static gboolean asinh_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Idle function for final application */
 static gboolean asinh_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
-	populate_roi();
 	if (args->retval == 0) {
 		single_image_stretch_applied = TRUE;
 		gfit_modified_update_gui();
@@ -95,7 +82,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.0f; // asinh needs roughly 1x image size for working memory
 	args->image_hook = asinh_image_hook;
-	args->idle_function = for_preview ? asinh_preview_idle : asinh_apply_idle;
+	args->idle_function = for_preview ? NULL : asinh_apply_idle;
 	args->description = _("Asinh stretch");
 	args->verbose = !for_preview; // Only verbose for final application
 	args->user = params;
@@ -103,6 +90,8 @@ static int asinh_process_with_worker(gboolean for_preview) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	if (!for_preview)
+		args->populate_roi_on_complete = TRUE;
 
 	if (for_preview)
 		generic_image_worker(args);
@@ -150,6 +139,7 @@ static void asinh_close(gboolean revert, gboolean revert_icc_profile) {
 
 		if (stretch_value != 0.0f || black_value != 0.0f) {
 			copy_backup_to_gfit();
+			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
 	} else {
@@ -543,6 +533,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->for_preview = FALSE;
 	args->for_roi = FALSE;
 	args->custom_undo = TRUE;
+	args->populate_roi_on_complete = TRUE;
 
 	start_in_new_thread(generic_image_worker, args);
 

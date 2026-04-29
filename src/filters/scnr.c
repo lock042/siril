@@ -182,27 +182,6 @@ int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return scnr_process(params, fit);
 }
 
-/* Idle function for preview updates */
-gboolean scnr_preview_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
-/* Idle function for final application */
-gboolean scnr_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 /* Create and launch SCNR processing */
 static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
@@ -232,7 +211,7 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 	args->fit = for_roi ? &gui.roi.fit : gfit;
 	args->mem_ratio = 1.5f; // SCNR needs minimal extra memory
 	args->image_hook = scnr_image_hook;
-	args->idle_function = for_preview ? scnr_preview_idle : scnr_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Subtractive Chromatic Noise Reduction");
 	args->verbose = !for_preview;
 	args->user = params;

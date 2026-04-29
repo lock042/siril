@@ -29,6 +29,33 @@
 *    I N T E R N A L   T Y P E S   A N D   S T A T E
 *****************************************************************************/
 
+/* Internal job type — used by the queue machinery. */
+typedef enum {
+    PROCESSING_JOB_NORMAL,
+    PROCESSING_JOB_QUIT
+} ProcessingJobType;
+
+/*
+ * Job descriptor.  For blocking jobs (script / python-command context) the
+ * mutex and cond are initialised so the submitter can wait on completion.
+ * For fire-and-forget jobs they are left uninitialised — no one ever waits
+ * on them, and the worker frees the struct immediately after execution.
+ */
+typedef struct _ProcessingJob {
+    ProcessingJobType  type;
+    ProcessingFunc     func;
+    gpointer           data;
+    gpointer           result;
+
+    gboolean           fire_and_forget;
+
+    /* Initialised only when fire_and_forget == FALSE. */
+    GMutex             mutex;
+    GCond              cond;
+    gboolean           completed;
+} ProcessingJob;
+
+
 /* ── Queue and worker ───────────────────────────────────────────────────── */
 
 static GThread  *worker_thread  = NULL;
@@ -36,6 +63,14 @@ static GMutex    queue_mutex;               /* guards everything below       */
 static GCond     queue_cond;               /* worker wait + external waiters */
 static GQueue    job_queue      = G_QUEUE_INIT;
 static gboolean  worker_running = FALSE;
+
+/*
+ * Guard against double-initialization.  Without this, calling init() twice
+ * would create two worker threads with no way to stop the first, leaking
+ * its GThread, queue_mutex, and queue_cond.
+ * Must use gint for g_atomic_int_* compatibility.
+ */
+static gint      system_initialized = 0;
 
 /* Thread-local flag: non-NULL only on the worker thread itself. */
 static GPrivate  worker_tls = G_PRIVATE_INIT(NULL);
@@ -76,37 +111,50 @@ static gboolean python_reserved = FALSE;
 * submitter's job->cond.  The immediately-following waiting_for_thread()
 * call consumes it without needing to wait again.
 *
+* pending_result_valid is kept separate from pending_result because NULL
+* (0) is a legitimate return value from a ProcessingFunc — it cannot serve
+* as a sentinel to indicate "no result cached".
+*
 * Protected by queue_mutex.
 */
 static gpointer pending_result       = NULL;
 static gboolean pending_result_valid = FALSE;
 
-/* ── Active-job reference ────────────────────────────────────────────────
+/* ── Active-job flag ─────────────────────────────────────────────────────
 *
-* Points to the job currently being executed, or NULL between jobs.
-* Used by waiting_for_thread() when no cached result is available
-* (fire-and-forget GUI path where we need to wait on the job finishing).
+* TRUE while the worker is executing a job.  Used by waiting_for_thread()
+* to wait on fire-and-forget job completion via queue_cond.
 *
 * Protected by queue_mutex.
 */
-static ProcessingJob *active_job = NULL;
+static gboolean active_job_running = FALSE;
+
+/* ── Pseudo-PID for child list tracking ────────────────────────────────── */
+#define PROCESSING_THREAD_PSEUDO_PID ((GPid) -2)
 
 /*****************************************************************************
 *    I N T E R N A L   H E L P E R S
 *****************************************************************************/
 
 static void processing_job_free(ProcessingJob *job) {
-	g_mutex_clear(&job->mutex);
-	g_cond_clear(&job->cond);
-	g_free(job);
+    if (!job->fire_and_forget) {
+        g_mutex_clear(&job->mutex);
+        g_cond_clear(&job->cond);
+    }
+    g_free(job);
 }
 
 /*
 * Returns TRUE when the calling context requires the submission to block.
-* False → fire-and-forget (GUI, arbitrary threads that are not scripts).
+* False -> fire-and-forget (GUI, arbitrary threads that are not scripts).
+*
+* NOTE: This captures transient global state (com.script, com.python_command)
+* at submission time.  These flags should remain stable for the duration of
+* any single command's execution; callers must ensure they are not modified
+* concurrently with a call to processing_submit_job or start_in_new_thread.
 */
 static gboolean context_requires_wait(void) {
-	return com.script || com.python_command;
+    return com.script || com.python_command;
 }
 
 /*****************************************************************************
@@ -114,86 +162,88 @@ static gboolean context_requires_wait(void) {
 *****************************************************************************/
 
 static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
-	/* Mark this thread so processing_in_worker_thread() returns TRUE here. */
-	g_private_set(&worker_tls, GINT_TO_POINTER(1));
+    /* Mark this thread so processing_in_worker_thread() returns TRUE here. */
+    g_private_set(&worker_tls, GINT_TO_POINTER(1));
 
-	for (;;) {
+    for (;;) {
 
-		/* ── Wait for a job ──────────────────────────────────────────── */
-		g_mutex_lock(&queue_mutex);
-		while (worker_running && g_queue_is_empty(&job_queue))
-			g_cond_wait(&queue_cond, &queue_mutex);
+        /* ── Wait for a job ──────────────────────────────────────────── */
+        g_mutex_lock(&queue_mutex);
+        while (worker_running && g_queue_is_empty(&job_queue))
+            g_cond_wait(&queue_cond, &queue_mutex);
 
-		if (!worker_running) {
-			g_mutex_unlock(&queue_mutex);
-			break;
-		}
+        if (!worker_running) {
+            g_mutex_unlock(&queue_mutex);
+            break;
+        }
 
-		ProcessingJob *job = g_queue_pop_head(&job_queue);
-		g_mutex_unlock(&queue_mutex);
+        ProcessingJob *job = g_queue_pop_head(&job_queue);
+        g_mutex_unlock(&queue_mutex);
 
-		if (!job)
-			break;
+        if (!job)
+            break;
 
-		if (job->type == PROCESSING_JOB_QUIT) {
-			processing_job_free(job);
-			break;
-		}
+        if (job->type == PROCESSING_JOB_QUIT) {
+            processing_job_free(job);
+            break;
+        }
 
-		/* ── Prepare ─────────────────────────────────────────────────── */
+        /* ── Prepare ─────────────────────────────────────────────────── */
 
-		/* Clear any stale cancellation from the previous job. */
-		g_atomic_int_set(&cancel_flag, 0);
+        /* Clear any stale cancellation from the previous job. */
+        g_atomic_int_set(&cancel_flag, 0);
 
-		/* Mark slot occupied. */
-		g_atomic_int_set(&job_active_flag, 1);
+        /* Mark slot occupied. */
+        g_atomic_int_set(&job_active_flag, 1);
 
-		/* Publish active_job so waiting_for_thread() can find us. */
-		g_mutex_lock(&queue_mutex);
-		active_job = job;
-		g_mutex_unlock(&queue_mutex);
+        /* Publish active-job flag so waiting_for_thread() can find us. */
+        g_mutex_lock(&queue_mutex);
+        active_job_running = TRUE;
+        g_mutex_unlock(&queue_mutex);
 
-		/* ── Execute ─────────────────────────────────────────────────── */
+        /* ── Execute ─────────────────────────────────────────────────── */
 
-		job->result = job->func(job->data);
+        job->result = job->func(job->data);
 
-		/* ── Publish result ──────────────────────────────────────────── */
+        /* ── Publish result ──────────────────────────────────────────── */
 
-		/*
-		* Order matters:
-		*   1. Clear job_active_flag *before* the broadcast so that any
-		*      thread waking on queue_cond and re-reading the flag sees 0.
-		*   2. Then lock queue_mutex, update shared result state, broadcast.
-		*   3. Then signal the per-job cond (unblocks blocking submitters).
-		*   4. Free if fire-and-forget.
-		*/
-		g_atomic_int_set(&job_active_flag, 0);
+        /*
+        * Order matters:
+        *   1. Clear job_active_flag *before* the broadcast so that any
+        *      thread waking on queue_cond and re-reading the flag sees 0.
+        *   2. Then lock queue_mutex, update shared result state, broadcast.
+        *   3. For blocking jobs, signal the per-job cond.
+        *   4. Free fire-and-forget jobs.
+        */
+        g_atomic_int_set(&job_active_flag, 0);
 
-		g_mutex_lock(&queue_mutex);
-		active_job = NULL;
-		/* Only cache the result for blocking (script/python-command) jobs.
-		* Fire-and-forget jobs have no caller waiting on pending_result, and
-		* overwriting it would corrupt the result of a subsequent blocking
-		* job whose waiting_for_thread() call consumes it.               */
-		if (!job->fire_and_forget) {
-			pending_result       = job->result;
-			pending_result_valid = TRUE;
-		}
-		g_cond_broadcast(&queue_cond);
-		g_mutex_unlock(&queue_mutex);
+        g_mutex_lock(&queue_mutex);
+        active_job_running = FALSE;
+        /* Only cache the result for blocking (script/python-command) jobs.
+        * Fire-and-forget jobs have no caller waiting on pending_result, and
+        * overwriting it would corrupt the result of a subsequent blocking
+        * job whose waiting_for_thread() call consumes it.               */
+        if (!job->fire_and_forget) {
+            pending_result       = job->result;
+            pending_result_valid = TRUE;
+        }
+        g_cond_broadcast(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
 
-		/* Unblock any thread that called processing_wait_for_job() or the
-		* blocking path inside processing_submit_job. */
-		g_mutex_lock(&job->mutex);
-		job->completed = TRUE;
-		g_cond_broadcast(&job->cond);
-		g_mutex_unlock(&job->mutex);
+        if (job->fire_and_forget) {
+            /* No waiter exists; free immediately. */
+            processing_job_free(job);
+        } else {
+            /* Unblock the submitter waiting in processing_submit_job. */
+            g_mutex_lock(&job->mutex);
+            job->completed = TRUE;
+            g_cond_broadcast(&job->cond);
+            g_mutex_unlock(&job->mutex);
+            /* Submitter owns and frees the job. */
+        }
+    }
 
-		if (job->fire_and_forget)
-			processing_job_free(job);
-	}
-
-	return NULL;
+    return NULL;
 }
 
 /*****************************************************************************
@@ -201,149 +251,172 @@ static gpointer worker_thread_main(gpointer user_data G_GNUC_UNUSED) {
 *****************************************************************************/
 
 void processing_system_init(void) {
-	g_mutex_init(&queue_mutex);
-	g_cond_init(&queue_cond);
-	worker_running = TRUE;
-	worker_thread  = g_thread_new("processing", worker_thread_main, NULL);
+    /*
+    * Guard against double-initialization.  Without this, calling init()
+    * twice would create two worker threads with no way to stop the first,
+    * leaking its GThread, queue_mutex, and queue_cond.
+    */
+    if (!g_atomic_int_compare_and_exchange(&system_initialized, 0, 1))
+        return;
+
+    g_mutex_init(&queue_mutex);
+    g_cond_init(&queue_cond);
+    worker_running = TRUE;
+    worker_thread  = g_thread_new("processing", worker_thread_main, NULL);
 }
 
 void processing_system_shutdown(void) {
-	if (!worker_running)
-		return;
+    if (!worker_running)
+        return;
 
-	/* Push a QUIT sentinel to stop the worker cleanly.
-	 *
-	 * We deliberately do NOT set worker_running = FALSE and broadcast before
-	 * pushing the sentinel, because the !worker_running early-exit in the
-	 * worker loop fires before the queue is checked — causing the QUIT job to
-	 * be left in the queue unprocessed and its internal mutex/cond to leak.
-	 *
-	 * By pushing QUIT first the worker either:
-	 *   (a) is already waiting in g_cond_wait → wakes on the signal, pops
-	 *       QUIT, calls processing_job_free, and breaks; or
-	 *   (b) is executing a job → finishes, loops back, sees QUIT in the
-	 *       queue, processes it, and breaks.
-	 *
-	 * worker_running is set to FALSE only after g_thread_join so that the
-	 * !worker_running guard above continues to work for the lifetime of the
-	 * thread.
-	 */
-	ProcessingJob *quit = g_new0(ProcessingJob, 1);
-	quit->type = PROCESSING_JOB_QUIT;
-	g_mutex_init(&quit->mutex);
-	g_cond_init(&quit->cond);
+    /* Cancel any running job so it can exit its frame loop quickly. */
+    processing_request_cancel();
 
-	g_mutex_lock(&queue_mutex);
-	g_queue_push_tail(&job_queue, quit);
-	g_cond_signal(&queue_cond);
-	g_mutex_unlock(&queue_mutex);
+    if (com.headless) {
+        /*
+         * CLI / headless mode: execute_idle_and_wait_for_it is a no-op, so
+         * the worker can never be blocked waiting for an idle callback that
+         * needs the GTK main loop.  A clean join is safe here.
+         *
+         * Push a QUIT sentinel so the worker exits its loop cleanly rather
+         * than reading worker_running=FALSE before the queue is drained.
+         */
+        ProcessingJob *quit = g_new0(ProcessingJob, 1);
+        quit->type = PROCESSING_JOB_QUIT;
+        quit->fire_and_forget = TRUE;
 
-	g_thread_join(worker_thread);
-	worker_thread  = NULL;
-	worker_running = FALSE;
+        g_mutex_lock(&queue_mutex);
+        g_queue_push_tail(&job_queue, quit);
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
 
-	g_mutex_clear(&queue_mutex);
-	g_cond_clear(&queue_cond);
+        g_thread_join(worker_thread);
+        worker_thread  = NULL;
+        worker_running = FALSE;
+
+        g_mutex_clear(&queue_mutex);
+        g_cond_clear(&queue_cond);
+    } else {
+        /*
+         * GUI mode: gtk_main_quit() was already called before reaching here,
+         * so the GTK main loop is no longer running.  If the worker is blocked
+         * inside execute_idle_and_wait_for_it (waiting for an idle that will
+         * never be dispatched), g_thread_join() would deadlock.
+         *
+         * Application close is unconditional — just wake the worker in case
+         * it is idle-waiting on queue_cond, then abandon the thread.  The
+         * process is about to exit; the OS reclaims all resources.
+         */
+        g_mutex_lock(&queue_mutex);
+        worker_running = FALSE;
+        g_cond_signal(&queue_cond);
+        g_mutex_unlock(&queue_mutex);
+
+        /* Do NOT join and do NOT clear queue_mutex/queue_cond: the worker
+         * thread may still be running and using them.  The OS handles
+         * cleanup on process exit. */
+        worker_thread = NULL;
+    }
+
+    /* Allow re-initialization if init is called again after shutdown. */
+    g_atomic_int_set(&system_initialized, 0);
 }
 
 /*****************************************************************************
 *    C O R E   S U B M I S S I O N
 *****************************************************************************/
 
-ProcessingJob *processing_submit_job(ProcessingFunc func, gpointer data) {
-	g_return_val_if_fail(func != NULL, NULL);
+/*
+* processing_submit_job — submit a job to the processing queue.
+*
+* Returns TRUE if the job was successfully queued (or executed synchronously
+* in the re-entrant case), FALSE if submission was rejected (e.g. Python
+* reservation active when called from the GTK main thread).
+*/
+gboolean processing_submit_job(ProcessingFunc func, gpointer data) {
+    g_return_val_if_fail(func != NULL, FALSE);
 
-	/* ── Re-entrant call from the worker thread ─────────────────────── */
-	/*
-	* If we are already on the worker thread a new submission would deadlock
-	* (the worker is busy executing us; it can't pick up the new job).
-	* Run synchronously instead, then cache the result.
-	*/
-	if (processing_in_worker_thread()) {
-		gpointer result = func(data);
-		g_mutex_lock(&queue_mutex);
-		pending_result       = result;
-		pending_result_valid = TRUE;
-		g_mutex_unlock(&queue_mutex);
-		return NULL;
-	}
+    /* ── Re-entrant call from the worker thread ─────────────────────── */
+    /*
+    * If we are already on the worker thread a new submission would deadlock
+    * (the worker is busy executing us; it can't pick up the new job).
+    * Run synchronously instead, then cache the result.
+    */
+    if (processing_in_worker_thread()) {
+        gpointer result = func(data);
+        g_mutex_lock(&queue_mutex);
+        pending_result       = result;
+        pending_result_valid = TRUE;
+        g_mutex_unlock(&queue_mutex);
+        return TRUE;
+    }
 
-	/* ── Python-reservation gate ─────────────────────────────────────── */
-	/*
-	* If Python has reserved the slot, block until it is released — unless
-	* we are on the GTK main thread, where blocking would prevent idles from
-	* dispatching and deadlock the worker.  In that case return NULL and
-	* let the caller handle the rejection (start_in_new_thread returns FALSE).
-	*
-	* Non-GTK background threads (script thread, Python thread, etc.) simply
-	* wait here; this is safe because none of them run the GTK main loop.
-	*/
-	if (g_main_context_is_owner(g_main_context_default())) {
-		g_mutex_lock(&queue_mutex);
-		gboolean reserved = python_reserved;
-		g_mutex_unlock(&queue_mutex);
-		if (reserved) {
-			siril_debug_print("processing_submit_job: Python reservation active, "
-							"cannot submit from GTK main thread\n");
-			return NULL;
-		}
-	} else {
-		g_mutex_lock(&queue_mutex);
-		while (python_reserved)
-			g_cond_wait(&queue_cond, &queue_mutex);
-		g_mutex_unlock(&queue_mutex);
-	}
+    /* ── Python-reservation gate ─────────────────────────────────────── */
+    /*
+    * If Python has reserved the slot, block until it is released — unless
+    * we are on the GTK main thread, where blocking would prevent idles from
+    * dispatching and deadlock the worker.  In that case return FALSE and
+    * let the caller handle the rejection.
+    *
+    * Non-GTK background threads (script thread, Python thread, etc.) simply
+    * wait here; this is safe because none of them run the GTK main loop.
+    */
+    if (g_main_context_is_owner(g_main_context_default())) {
+        g_mutex_lock(&queue_mutex);
+        gboolean reserved = python_reserved;
+        g_mutex_unlock(&queue_mutex);
+        if (reserved) {
+            siril_log_color_message(
+                _("Processing thread is reserved by Python; "
+                  "cannot submit from GTK main thread.\n"),
+                "salmon");
+            return FALSE;
+        }
+    } else {
+        g_mutex_lock(&queue_mutex);
+        while (python_reserved)
+            g_cond_wait(&queue_cond, &queue_mutex);
+        g_mutex_unlock(&queue_mutex);
+    }
 
-	/* ── Build and queue the job ─────────────────────────────────────── */
+    /* ── Build and queue the job ─────────────────────────────────────── */
 
-	gboolean must_wait = context_requires_wait();
+    gboolean must_wait = context_requires_wait();
 
-	ProcessingJob *job = g_new0(ProcessingJob, 1);
-	job->type           = PROCESSING_JOB_NORMAL;
-	job->func           = func;
-	job->data           = data;
-	job->fire_and_forget = !must_wait;
-	g_mutex_init(&job->mutex);
-	g_cond_init(&job->cond);
+    ProcessingJob *job = g_new0(ProcessingJob, 1);
+    job->type           = PROCESSING_JOB_NORMAL;
+    job->func           = func;
+    job->data           = data;
+    job->fire_and_forget = !must_wait;
 
-	g_mutex_lock(&queue_mutex);
-	g_queue_push_tail(&job_queue, job);
-	g_cond_signal(&queue_cond);
-	g_mutex_unlock(&queue_mutex);
+    if (must_wait) {
+        g_mutex_init(&job->mutex);
+        g_cond_init(&job->cond);
+    }
 
-	/* ── Blocking path (script / python-command context) ─────────────── */
+    g_mutex_lock(&queue_mutex);
+    g_queue_push_tail(&job_queue, job);
+    g_cond_signal(&queue_cond);
+    g_mutex_unlock(&queue_mutex);
 
-	if (must_wait) {
-		/*
-		* Block until the worker signals job->cond.  By that point the
-		* worker has already written pending_result (see worker loop), so
-		* the next waiting_for_thread() call retrieves it instantly.
-		*/
-		g_mutex_lock(&job->mutex);
-		while (!job->completed)
-			g_cond_wait(&job->cond, &job->mutex);
-		g_mutex_unlock(&job->mutex);
+    /* ── Blocking path (script / python-command context) ─────────────── */
 
-		processing_job_free(job);
-		return NULL;   /* caller gets nothing to wait on — already done */
-	}
+    if (must_wait) {
+        /*
+        * Block until the worker signals job->cond.  By that point the
+        * worker has already written pending_result (see worker loop), so
+        * the next waiting_for_thread() call retrieves it instantly.
+        */
+        g_mutex_lock(&job->mutex);
+        while (!job->completed)
+            g_cond_wait(&job->cond, &job->mutex);
+        g_mutex_unlock(&job->mutex);
 
-	/* ── Fire-and-forget path (GUI / arbitrary threads) ─────────────── */
+        processing_job_free(job);
+    }
 
-	return job;   /* caller may pass to processing_wait_for_job if needed */
-}
-
-void processing_wait_for_job(ProcessingJob *job) {
-	if (!job)
-		return;
-	g_mutex_lock(&job->mutex);
-	while (!job->completed)
-		g_cond_wait(&job->cond, &job->mutex);
-	g_mutex_unlock(&job->mutex);
-	/* NOTE: for fire-and-forget jobs the worker calls processing_job_free()
-	 * immediately after setting job->completed and broadcasting job->cond
-	 * (see worker loop).  By the time we return here the job handle may
-	 * already be freed.  Callers MUST NOT access *job after this point. */
+    /* Fire-and-forget path: job is now owned by the worker. */
+    return TRUE;
 }
 
 /*****************************************************************************
@@ -351,28 +424,28 @@ void processing_wait_for_job(ProcessingJob *job) {
 *****************************************************************************/
 
 void processing_request_cancel(void) {
-	g_atomic_int_set(&cancel_flag, 1);
+    g_atomic_int_set(&cancel_flag, 1);
 }
 
 /*
 * processing_should_continue — FOR WORKER FUNCTIONS ONLY.
 *
-* Returns TRUE  → no cancellation requested; keep processing frames.
-* Returns FALSE → cancellation was requested; abort the current job.
+* Returns TRUE  -> no cancellation requested; keep processing frames.
+* Returns FALSE -> cancellation was requested; abort the current job.
 *
 * Do not use this to test whether a job is currently active from outside a
 * worker; use processing_is_job_active() for that purpose.
 */
 gboolean processing_should_continue(void) {
-	return g_atomic_int_get(&cancel_flag) == 0;
+    return g_atomic_int_get(&cancel_flag) == 0;
 }
 
 gboolean processing_is_job_active(void) {
-	return g_atomic_int_get(&job_active_flag) != 0;
+    return g_atomic_int_get(&job_active_flag) != 0;
 }
 
 gboolean processing_in_worker_thread(void) {
-	return g_private_get(&worker_tls) != NULL;
+    return g_private_get(&worker_tls) != NULL;
 }
 
 /*****************************************************************************
@@ -380,281 +453,291 @@ gboolean processing_in_worker_thread(void) {
 *****************************************************************************/
 
 int claim_thread_for_python(void) {
-	/*
-	* In the new design com.thread is never set (the worker thread is an
-	* internal implementation detail).  We gate purely on job_active_flag and
-	* the queue being empty.
-	*/
-	if (is_an_image_processing_dialog_opened()) {
-		fprintf(stderr, "A Siril image processing dialog is open. "
-				"It must be closed before Python can claim the processing thread.\n");
-		return 2;
-	}
+    /*
+    * In the new design com.thread is never set (the worker thread is an
+    * internal implementation detail).  We gate purely on job_active_flag and
+    * the queue being empty.
+    */
+    if (is_an_image_processing_dialog_opened()) {
+        siril_log_color_message(
+            _("A Siril image processing dialog is open. "
+              "It must be closed before Python can claim the processing thread.\n"),
+            "salmon");
+        return 2;
+    }
 
-	g_mutex_lock(&queue_mutex);
+    g_mutex_lock(&queue_mutex);
 
-	if (python_reserved) {
-		fprintf(stderr, "Processing thread is already reserved by Python.\n");
-		g_mutex_unlock(&queue_mutex);
-		return 1;
-	}
+    if (python_reserved) {
+        siril_log_color_message(
+            _("Processing thread is already reserved by Python.\n"),
+            "salmon");
+        g_mutex_unlock(&queue_mutex);
+        return 1;
+    }
 
-	/*
-	* Wait until any running job finishes and the pending queue drains.
-	* The worker broadcasts queue_cond after each job completes (with
-	* job_active_flag already cleared), so this wakes reliably.
-	*/
-	while (g_atomic_int_get(&job_active_flag) ||
-		!g_queue_is_empty(&job_queue)) {
-		g_cond_wait(&queue_cond, &queue_mutex);
-	}
+    /*
+    * Wait until any running job finishes and the pending queue drains.
+    * The worker broadcasts queue_cond after each job completes (with
+    * job_active_flag already cleared), so this wakes reliably.
+    */
+    while (g_atomic_int_get(&job_active_flag) ||
+        !g_queue_is_empty(&job_queue)) {
+        g_cond_wait(&queue_cond, &queue_mutex);
+    }
 
-	python_reserved = TRUE;
-	g_mutex_unlock(&queue_mutex);
-	set_cursor_waiting(TRUE);
-	return 0;
+    python_reserved = TRUE;
+    g_mutex_unlock(&queue_mutex);
+    set_cursor_waiting(TRUE);
+    return 0;
 }
 
 void python_releases_thread(void) {
-	g_mutex_lock(&queue_mutex);
-	python_reserved = FALSE;
-	g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
-										processing_submit_job              */
-	g_mutex_unlock(&queue_mutex);
-	set_cursor_waiting(FALSE);
+    g_mutex_lock(&queue_mutex);
+    python_reserved = FALSE;
+    g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
+                                        processing_submit_job              */
+    g_mutex_unlock(&queue_mutex);
+    set_cursor_waiting(FALSE);
 }
 
 gboolean processing_is_reserved_for_python(void) {
-	g_mutex_lock(&queue_mutex);
-	gboolean reserved = python_reserved;
-	g_mutex_unlock(&queue_mutex);
-	return reserved;
+    g_mutex_lock(&queue_mutex);
+    gboolean reserved = python_reserved;
+    g_mutex_unlock(&queue_mutex);
+    return reserved;
 }
+
 /*****************************************************************************
 *    C O M P A T I B I L I T Y   W R A P P E R S
 *****************************************************************************/
 
 gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
-	/*
-	* Re-entrant submissions (from within a running job) bypass all guards:
-	* processing_submit_job will run func() synchronously in that case.
-	*/
-	if (!processing_in_worker_thread()) {
+    /*
+    * Re-entrant submissions (from within a running job) bypass all guards:
+    * processing_submit_job will run func() synchronously in that case.
+    */
+    if (!processing_in_worker_thread()) {
 
-		/* ── Busy guard ──────────────────────────────────────────────────
-		*
-		* In the old design start_in_new_thread refused to start if
-		* com.run_thread was set.  We restore that invariant: only one job
-		* may be active at a time from the perspective of the external API.
-		* This prevents rapid GUI triggers (e.g. multiple menu clicks) from
-		* stacking up jobs that operate on the same gfit with arguments
-		* captured at different points in time, producing dimension
-		* mismatches and corrupted state in the worker (manifests as
-		* "unknown interpolation type" from OpenCV for rotation jobs).
-		*
-		* We test job_active_flag rather than the queue length because a
-		* queued-but-not-yet-started job is just as problematic as one
-		* already running.
-		*/
-		if (processing_is_job_active()) {
-			fprintf(stderr, "The processing thread is busy, stop it first.\n");
-			return FALSE;
-		}
+        /* ── Busy guard ──────────────────────────────────────────────────
+        *
+        * In the old design start_in_new_thread refused to start if
+        * com.run_thread was set.  We restore that invariant: only one job
+        * may be active at a time from the perspective of the external API.
+        * This prevents rapid GUI triggers (e.g. multiple menu clicks) from
+        * stacking up jobs that operate on the same gfit with arguments
+        * captured at different points in time, producing dimension
+        * mismatches and corrupted state in the worker (manifests as
+        * "unknown interpolation type" from OpenCV for rotation jobs).
+        *
+        * We test job_active_flag rather than the queue length because a
+        * queued-but-not-yet-started job is just as problematic as one
+        * already running.
+        */
+        if (processing_is_job_active()) {
+            siril_log_color_message(
+                _("The processing thread is busy, stop it first.\n"),
+                "salmon");
+            return FALSE;
+        }
 
-		/* ── Python-reservation gate ─────────────────────────────────── */
-		if (g_main_context_is_owner(g_main_context_default())) {
-			g_mutex_lock(&queue_mutex);
-			gboolean reserved = python_reserved;
-			g_mutex_unlock(&queue_mutex);
-			if (reserved) {
-				fprintf(stderr, "The processing thread is reserved by Python; "
-						"cannot start a job from the GTK main thread.\n");
-				return FALSE;
-			}
-		}
+        /*
+        * Mark the slot active immediately, before the job reaches the
+        * worker.  This closes the window between pushing to the queue and
+        * the worker's own g_atomic_int_set, during which a second rapid
+        * caller could pass the busy guard above.  The worker will set it
+        * again before executing; the double-set is harmless.
+        */
+        g_atomic_int_set(&job_active_flag, 1);
+    }
 
-		/*
-		* Mark the slot active immediately, before the job reaches the
-		* worker.  This closes the window between pushing to the queue and
-		* the worker's own g_atomic_int_set, during which a second rapid
-		* caller could pass the busy guard above.  The worker will set it
-		* again before executing; the double-set is harmless.
-		*/
-		g_atomic_int_set(&job_active_flag, 1);
-	}
+    if (!com.headless)
+        set_cursor_waiting(TRUE);
 
-	if (!com.headless)
-		set_cursor_waiting(TRUE);
+    if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
+                   "Siril processing thread"))
+        siril_log_color_message(
+            _("Warning: failed to add processing thread to child list\n"),
+            "salmon");
 
-	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread"))
-		siril_log_color_message(
-			_("Warning: failed to add processing thread to child list\n"),
-			"salmon");
+    /*
+    * Submit the job.  processing_submit_job handles the Python-reservation
+    * gate internally — we do NOT duplicate that check here to avoid a
+    * TOCTOU race (checking python_reserved, releasing the mutex, then
+    * having processing_submit_job re-check under the same mutex).
+    *
+    * If submission fails, we must clean up the state we just acquired so
+    * that the processing system is not left in a permanently broken state.
+    */
+    if (!processing_submit_job(func, data)) {
+        if (!processing_in_worker_thread())
+            g_atomic_int_set(&job_active_flag, 0);
+        if (!com.headless)
+            set_cursor_waiting(FALSE);
+        remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
+        return FALSE;
+    }
 
-	processing_submit_job(func, data);
-	return TRUE;
+    return TRUE;
 }
 
 gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
-	/*
-	* The caller has already claimed the active slot via reserve_thread(), which
-	* sets job_active_flag = 1.  We must NOT delegate to start_in_new_thread()
-	* because that function's busy guard tests processing_is_job_active() and
-	* would immediately reject the submission with "The processing thread is
-	* busy" — even though the reservation was made legitimately.
-	*
-	* Instead we reproduce the submission path from start_in_new_thread while
-	* skipping only that guard.  We still honour the Python-reservation gate.
-	*/
+    /*
+    * The caller has already claimed the active slot via reserve_thread(), which
+    * sets job_active_flag = 1.  We must NOT delegate to start_in_new_thread()
+    * because that function's busy guard tests processing_is_job_active() and
+    * would immediately reject the submission with "The processing thread is
+    * busy" — even though the reservation was made legitimately.
+    *
+    * Instead we reproduce the submission path from start_in_new_thread while
+    * skipping only that guard.  The Python-reservation gate is handled
+    * inside processing_submit_job, avoiding a TOCTOU race.
+    */
 
-	/* Python-reservation gate (GTK-main-thread path only — background threads
-	 * would have blocked in processing_submit_job if python_reserved). */
-	if (g_main_context_is_owner(g_main_context_default()) &&
-	    processing_is_reserved_for_python()) {
-		fprintf(stderr, "The processing thread is reserved by Python; "
-		        "cannot start a reserved job from the GTK main thread.\n");
-		return FALSE;
-	}
+    if (!com.headless)
+        set_cursor_waiting(TRUE);
 
-	if (!com.headless)
-		set_cursor_waiting(TRUE);
+    if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
+                   "Siril processing thread"))
+        siril_log_color_message(
+            _("Warning: failed to add processing thread to child list\n"),
+            "salmon");
 
-	if (!add_child((GPid) -2, INT_PROC_THREAD, "Siril processing thread"))
-		siril_log_color_message(
-			_("Warning: failed to add processing thread to child list\n"),
-			"salmon");
+    /* job_active_flag is already 1 from reserve_thread(); no need to set it
+     * again.  The worker sets it once more before executing, which is harmless. */
+    if (!processing_submit_job(func, data)) {
+        if (!com.headless)
+            set_cursor_waiting(FALSE);
+        remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
+        return FALSE;
+    }
 
-	/* job_active_flag is already 1 from reserve_thread(); no need to set it
-	 * again.  The worker sets it once more before executing, which is harmless. */
-	processing_submit_job(func, data);
-	return TRUE;
+    return TRUE;
 }
 
 gpointer waiting_for_thread(void) {
-	gpointer result = NULL;
+    gpointer result = NULL;
 
-	/* ── Guard: never block the GTK main thread ──────────────────────── */
-	/*
-	* If called from the GTK main thread a running fire-and-forget job may
-	* itself need the GTK main thread to dispatch an idle via
-	* execute_idle_and_wait_for_it.  Blocking here would deadlock.
-	*
-	* In practice, the CMD_NOTIFY_GFIT_MODIFIED path in execute_command only
-	* calls waiting_for_thread() for commands that modify gfit synchronously
-	* (no thread), so no job is in flight and the fast-path below returns 0
-	* immediately anyway.  The guard is a safety net for any future caller.
-	*/
-	if (g_main_context_is_owner(g_main_context_default()))
-		return GINT_TO_POINTER(0);
+    /* ── Guard: never block the GTK main thread ──────────────────────── */
+    /*
+    * If called from the GTK main thread a running fire-and-forget job may
+    * itself need the GTK main thread to dispatch an idle via
+    * execute_idle_and_wait_for_it.  Blocking here would deadlock.
+    *
+    * In practice, the CMD_NOTIFY_GFIT_MODIFIED path in execute_command only
+    * calls waiting_for_thread() for commands that modify gfit synchronously
+    * (no thread), so no job is in flight and the fast-path below returns 0
+    * immediately anyway.  The guard is a safety net for any future caller.
+    */
+    if (g_main_context_is_owner(g_main_context_default()))
+        return GINT_TO_POINTER(0);
 
-	g_mutex_lock(&queue_mutex);
+    g_mutex_lock(&queue_mutex);
 
-	/* ── Fast path: result cached by a prior blocking submit ─────────── */
-	/*
-	* In script / python-command context, start_in_new_thread already blocked
-	* until the job finished.  The worker deposited the result in
-	* pending_result before signalling; we just retrieve it here.
-	*/
-	if (pending_result_valid) {
-		result               = pending_result;
-		pending_result       = NULL;
-		pending_result_valid = FALSE;
-		g_mutex_unlock(&queue_mutex);
-		goto strip_and_return;
-	}
+    /* ── Fast path: result cached by a prior blocking submit ─────────── */
+    /*
+    * In script / python-command context, start_in_new_thread already blocked
+    * until the job finished.  The worker deposited the result in
+    * pending_result before signalling; we just retrieve it here.
+    */
+    if (pending_result_valid) {
+        result               = pending_result;
+        pending_result       = NULL;
+        pending_result_valid = FALSE;
+        g_mutex_unlock(&queue_mutex);
+        goto strip_and_return;
+    }
 
-	/* ── Slow path: fire-and-forget job may still be running ──────────── */
-	/*
-	* This path is taken when waiting_for_thread() is called from a non-GTK
-	* background thread (e.g. the processcommand wait_for_completion path
-	* with com.python_command=FALSE but wait_for_completion=TRUE) and the job
-	* was submitted fire-and-forget.  We wait on queue_cond, which the worker
-	* broadcasts after every job completion.
-	*
-	* NOTE: for fire-and-forget jobs pending_result is never set by the worker
-	* (see worker loop comment — overwriting it would corrupt a subsequent
-	* blocking job's result).  Therefore the result of the awaited job is NOT
-	* recoverable here and this function will return 0.  All command-path
-	* callers that need the return value must ensure they submit via a blocking
-	* context (com.script = TRUE or com.python_command = TRUE) so that the
-	* fast path above is taken instead.
-	*/
-	while (active_job != NULL)
-		g_cond_wait(&queue_cond, &queue_mutex);
+    /* ── Slow path: fire-and-forget job may still be running ──────────── */
+    /*
+    * This path is taken when waiting_for_thread() is called from a non-GTK
+    * background thread (e.g. the processcommand wait_for_completion path
+    * with com.python_command=FALSE but wait_for_completion=TRUE) and the job
+    * was submitted fire-and-forget.  We wait on queue_cond, which the worker
+    * broadcasts after every job completion.
+    *
+    * IMPORTANT: If a new job starts between the fast-path check above and
+    * entering this loop, we may end up waiting for the wrong job.  The
+    * pending_result_valid re-check after the loop mitigates this: if a
+    * blocking job completed while we were waiting, its result is returned.
+    *
+    * NOTE: for fire-and-forget jobs pending_result is never set by the worker
+    * (see worker loop comment — overwriting it would corrupt a subsequent
+    * blocking job's result).  Therefore the result of the awaited job is NOT
+    * recoverable here and this function will return 0.  All command-path
+    * callers that need the return value must ensure they submit via a blocking
+    * context (com.script = TRUE or com.python_command = TRUE) so that the
+    * fast path above is taken instead.
+    */
+    while (active_job_running)
+        g_cond_wait(&queue_cond, &queue_mutex);
 
-	if (pending_result_valid) {
-		result               = pending_result;
-		pending_result       = NULL;
-		pending_result_valid = FALSE;
-	}
+    if (pending_result_valid) {
+        result               = pending_result;
+        pending_result       = NULL;
+        pending_result_valid = FALSE;
+    }
 
-	g_mutex_unlock(&queue_mutex);
+    g_mutex_unlock(&queue_mutex);
 
 strip_and_return:
-	/* Strip CMD_NOTIFY_GFIT_MODIFIED from the job's return value, matching
-	* the behaviour of the old g_thread_join-based implementation.          */
-	return GINT_TO_POINTER(GPOINTER_TO_INT(result) & ~CMD_NOTIFY_GFIT_MODIFIED);
+    /* Strip CMD_NOTIFY_GFIT_MODIFIED from the job's return value, matching
+    * the behaviour of the old g_thread_join-based implementation.          */
+    return GINT_TO_POINTER(GPOINTER_TO_INT(result) & ~CMD_NOTIFY_GFIT_MODIFIED);
 }
 
 void stop_processing_thread(void) {
-	/*
-	* In the old design this function joined com.thread, which was the source
-	* of the intermittent deadlock (the worker would call it while blocked in
-	* execute_idle_and_wait_for_it, causing a self-join via the GTK idle).
-	*
-	* In the new design the persistent worker thread is never stopped between
-	* jobs.  This function's only responsibilities are:
-	*   1. Signal cancellation so the running job aborts its frame loop.
-	*   2. Remove the processing-thread entry from the child list.
-	*   3. Reset the wait cursor.
-	*
-	* All three operations are non-blocking and safe to call from any thread,
-	* including the worker itself (end_generic is called from within jobs in
-	* the !run_idle / script-mode fallback path).
-	*/
-	processing_request_cancel();
-	remove_child_from_children((GPid) -2);
-	if (!com.headless)
-		set_cursor_waiting(FALSE);
-}
-
-/* Compatibility shim — see header. */
-void set_thread_run(gboolean b) {
-	siril_debug_print("set_thread_run(%d)\n", b);
-	if (!b)
-		processing_request_cancel();
-	/* b=TRUE is a no-op: job_active_flag is managed by the worker. */
+    /*
+    * In the old design this function joined com.thread, which was the source
+    * of the intermittent deadlock (the worker would call it while blocked in
+    * execute_idle_and_wait_for_it, causing a self-join via the GTK idle).
+    *
+    * In the new design the persistent worker thread is never stopped between
+    * jobs.  This function's only responsibilities are:
+    *   1. Signal cancellation so the running job aborts its frame loop.
+    *   2. Remove the processing-thread entry from the child list.
+    *   3. Reset the wait cursor.
+    *
+    * All three operations are non-blocking and safe to call from any thread,
+    * including the worker itself (end_generic is called from within jobs in
+    * the !run_idle / script-mode fallback path).
+    */
+    processing_request_cancel();
+    remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
+    if (!com.headless)
+        set_cursor_waiting(FALSE);
 }
 
 gboolean reserve_thread(void) {
-	/*
-	* Atomically claim the active slot for a short synchronous operation.
-	* Returns FALSE if already active (another job or reservation in progress).
-	*
-	* Also clears cancel_flag, mirroring what the worker does at the start of
-	* each queued job.  This matters for synchronous callers (compositing
-	* alignment, etc.) that call generic_sequence_worker directly with
-	* already_in_a_thread=TRUE: those use processing_should_continue() to poll for abort,
-	* so a stale cancel_flag left by a previous stop_processing_thread() call
-	* would cause them to terminate immediately on the first frame.
-	*/
-	if (!g_atomic_int_compare_and_exchange(&job_active_flag, 0, 1))
-		return FALSE;
-	g_atomic_int_set(&cancel_flag, 0);
-	return TRUE;
+    /*
+    * Atomically claim the active slot for a short synchronous operation.
+    * Returns FALSE if already active (another job or reservation in progress).
+    *
+    * Also clears cancel_flag, mirroring what the worker does at the start of
+    * each queued job.  This matters for synchronous callers (compositing
+    * alignment, etc.) that call generic_sequence_worker directly with
+    * already_in_a_thread=TRUE: those use processing_should_continue() to poll
+    * for abort, so a stale cancel_flag left by a previous
+    * stop_processing_thread() call would cause them to terminate immediately
+    * on the first frame.
+    */
+    if (!g_atomic_int_compare_and_exchange(&job_active_flag, 0, 1))
+        return FALSE;
+    g_atomic_int_set(&cancel_flag, 0);
+    return TRUE;
 }
 
 void unreserve_thread(void) {
-	g_atomic_int_set(&job_active_flag, 0);
-	/* Broadcast so claim_thread_for_python waiters can re-evaluate. */
-	g_mutex_lock(&queue_mutex);
-	g_cond_broadcast(&queue_cond);
-	g_mutex_unlock(&queue_mutex);
+    g_atomic_int_set(&job_active_flag, 0);
+    /* Broadcast so claim_thread_for_python waiters can re-evaluate. */
+    g_mutex_lock(&queue_mutex);
+    g_cond_broadcast(&queue_cond);
+    g_mutex_unlock(&queue_mutex);
 }
 
 gboolean end_generic(gpointer arg G_GNUC_UNUSED) {
-	stop_processing_thread();
-	return FALSE;
+    stop_processing_thread();
+    return FALSE;
 }
 
 /*
@@ -668,20 +751,26 @@ gboolean end_generic(gpointer arg G_GNUC_UNUSED) {
  *
  * Do NOT use for jobs that call execute_idle_and_wait_for_it — those
  * would deadlock if the main thread is blocked here.
+ *
+ * Memory ordering: g_atomic_int_get() provides acquire semantics, which is
+ * sufficient for the boolean job_active_flag.  The worker sets this flag to
+ * 0 (release) before broadcasting queue_cond, establishing a happens-before
+ * relationship that ensures the worker's side effects are visible once this
+ * loop exits.
  */
 void cancel_and_wait_for_preview(void) {
-	if (!processing_is_job_active())
-		return;
-	processing_request_cancel();
-	/* Pump the GTK main loop (non-blocking iterations) while the worker
-	 * finishes.  The worker does not need the main thread; we add a brief
-	 * sleep to avoid spinning 100% CPU. */
-	while (processing_is_job_active()) {
-		if (g_main_context_pending(g_main_context_default()))
-			g_main_context_iteration(g_main_context_default(), FALSE);
-		else
-			g_usleep(1000); /* 1 ms */
-	}
+    if (!processing_is_job_active())
+        return;
+    processing_request_cancel();
+    /* Pump the GTK main loop (non-blocking iterations) while the worker
+     * finishes.  The worker does not need the main thread; we add a brief
+     * sleep to avoid spinning 100% CPU. */
+    while (processing_is_job_active()) {
+        if (g_main_context_pending(g_main_context_default()))
+            g_main_context_iteration(g_main_context_default(), FALSE);
+        else
+            g_usleep(1000); /* 1 ms */
+    }
 }
 
 /*
@@ -695,16 +784,19 @@ void cancel_and_wait_for_preview(void) {
  *
  * Returns FALSE if the job could not be started (same semantics as
  * start_in_new_thread).
+ *
+ * Memory ordering: see cancel_and_wait_for_preview for the acquire/release
+ * relationship between job_active_flag and queue_cond.
  */
 gboolean start_and_wait_from_main_thread(ProcessingFunc func, gpointer data) {
-	if (!start_in_new_thread(func, data))
-		return FALSE;
-	/* Pump the GTK main loop while the worker finishes. */
-	while (processing_is_job_active()) {
-		if (g_main_context_pending(g_main_context_default()))
-			g_main_context_iteration(g_main_context_default(), FALSE);
-		else
-			g_usleep(1000);
-	}
-	return TRUE;
+    if (!start_in_new_thread(func, data))
+        return FALSE;
+    /* Pump the GTK main loop while the worker finishes. */
+    while (processing_is_job_active()) {
+        if (g_main_context_pending(g_main_context_default()))
+            g_main_context_iteration(g_main_context_default(), FALSE);
+        else
+            g_usleep(1000);
+    }
+    return TRUE;
 }

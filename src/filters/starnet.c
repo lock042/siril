@@ -994,28 +994,6 @@ int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 	return GPOINTER_TO_INT(result);
 }
 
-/* Idle function for generic_image_worker - single images */
-gboolean starnet_single_image_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	starnet_data *params = (starnet_data *)args->user;
-
-	stop_processing_thread();
-
-	if (args->retval == 0) {
-		// Save undo state with descriptive message
-		gchar *undo_msg = g_strdup_printf(_("StarNet: stretch=%s, upscale=%s, stride=%s"),
-			params->linear ? _("yes") : _("no"),
-			params->upscale ? _("yes") : _("no"),
-			params->customstride ? params->stride : _("default"));
-		g_free(undo_msg);
-
-		gfit_modified_update_gui();
-	}
-
-	// Free using the generic cleanup which will call the destructor
-	free_generic_img_args(args);
-	return FALSE;
-}
 
 
 #endif
