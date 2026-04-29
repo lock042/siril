@@ -26,7 +26,7 @@
 #include "gui/message_dialog.h"
 #include "gui/curves.h"
 #include "algos/background_extraction.h"
-#include "filters/asinh.h"
+#include "gui/asinh.h"
 #include "filters/epf.h"
 #include "gui/clahe.h"
 #include "gui/median.h"

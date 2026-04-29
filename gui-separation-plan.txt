@@ -311,10 +311,10 @@ simplest first to build momentum):
 [X] 3.9  src/filters/wavelets.c → keep processing; new src/gui/wavelets.c
          (14 GUI calls, 15 raw GTK calls — includes preview)
 
-[ ] 3.10 src/filters/asinh.c → keep processing; new src/gui/asinh.c
+[X] 3.10 src/filters/asinh.c → keep processing; new src/gui/asinh.c
          (16 GUI calls, 12 raw GTK calls — includes preview + ROI)
 
-[ ] 3.11 src/filters/deconvolution.c (+ deconvolution/*.cpp) →
+[X] 3.11 src/filters/deconvolution.c (+ deconvolution/*.cpp) →
           keep processing in filters/; src/gui/newdeconv.c already exists
           — audit what is still in filters/ that belongs in gui/newdeconv.c
          (6 GUI calls in deconvolution.c; 1 each in deconvolution/*.cpp)

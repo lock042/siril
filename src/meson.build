@@ -249,6 +249,7 @@ src_files_gui = [
 
   'gui/about_dialog.c',
   'gui/annotate.c',
+  'gui/asinh.c',
   'gui/banding.c',
   'gui/clahe.c',
   'gui/cosmetic_correction.c',
