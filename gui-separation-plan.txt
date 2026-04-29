@@ -283,10 +283,10 @@ callbacks, create a corresponding src/gui/X.c following the epf.c model:
 The following files need this treatment (ordered roughly by coupling count,
 simplest first to build momentum):
 
-[ ] 3.1  src/filters/banding.c → keep processing; new src/gui/banding.c
+[X] 3.1  src/filters/banding.c → keep processing; new src/gui/banding.c
          (4 GUI calls, 8 raw GTK calls — straightforward split)
 
-[ ] 3.2  src/filters/cosmetic_correction.c → keep processing;
+[i] 3.2  src/filters/cosmetic_correction.c → keep processing;
           new src/gui/cosmetic_correction.c
          (3 GUI calls, 11 raw GTK calls)
 

@@ -249,6 +249,11 @@ src_files_gui = [
 
   'gui/about_dialog.c',
   'gui/annotate.c',
+  'gui/banding.c',
+  'gui/clahe.c',
+  'gui/cosmetic_correction.c',
+  'gui/fft.c',
+  'gui/rgradient.c',
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
   'gui/denoisegui.c',
