@@ -52,6 +52,9 @@ static int selected_source = -1;
 static gboolean is_arcsec = FALSE;
 static gboolean use_photometry = FALSE;
 
+static int cached_real_index = -1;
+static gchar *cached_original_filename = NULL;
+
 struct _seq_list {
 	GtkTreeView *tview;
 	sequence *seq;
@@ -138,6 +141,11 @@ static void update_seqlist_dialog_combo(int layer) {
 	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
+
+	// siril_debug_print("Resetting cached filename and index\n");
+	g_free(cached_original_filename);
+	cached_original_filename = NULL;
+	cached_real_index = -1;
 }
 
 static void initialize_title() {
@@ -1021,10 +1029,22 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 	}
 	char buffer[512];
 	char filename[256];
-	gint real_index = get_real_index_from_index_in_list(model, &iter);
+	gchar *original_filename = NULL;
 
-	fit_sequence_get_image_filename_checkext(&com.seq, real_index, filename);
-	gchar *original_filename = get_original_filename_from_fits(filename);
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
+	if (real_index != cached_real_index) {
+		g_free(cached_original_filename);
+		cached_original_filename = NULL;
+		cached_real_index = real_index;
+		fit_sequence_get_image_filename_checkext(&com.seq, real_index, filename);
+		original_filename = get_original_filename_from_fits(filename);
+		if (original_filename) {
+			cached_original_filename = g_strdup(original_filename);
+		}
+	} else {
+		original_filename = g_strdup(cached_original_filename);
+		// siril_debug_print("Re-using cached filename\n");
+	}
 
 	if (original_filename == NULL) return FALSE;
 
