@@ -23,6 +23,8 @@ siril-1.4.3
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
 * Added None as a keyword value for BAYERPAT
+* Fixed crash when loading some Hubble images (#1932)
+* Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
 
 **Improvements**
 * Added SirilInterface.open_dialog()
