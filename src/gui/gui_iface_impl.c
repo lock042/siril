@@ -32,6 +32,7 @@
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
+#include "gui/image_interactions.h"
 
 /* ── Group A: Progress ───────────────────────────────────────────────────── */
 
@@ -93,6 +94,21 @@ static void impl_redraw_image_sync(SirilRedrawType remap) {
 	queue_redraw_and_wait_for_it((remap_type)remap);
 }
 
+static void impl_delete_selection(void) {
+	delete_selected_area();
+}
+
+/* ── Groups E, F, G: no-op placeholders until phases 4–5 wire them up ── */
+
+static void impl_on_sequence_opened(void) {}
+static void impl_on_image_loaded(void) {}
+static void impl_on_image_closed(void) {}
+static void impl_show_panel(const char *panel_name, gboolean visible) {
+	(void)panel_name; (void)visible;
+}
+static void impl_update_status_bar(void) {}
+static void impl_update_menu_state(void) {}
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 void siril_register_gui_iface(void) {
@@ -106,4 +122,11 @@ void siril_register_gui_iface(void) {
 	gui_iface.redraw_image       = impl_redraw_image;
 	gui_iface.redraw_image_async = impl_redraw_image_async;
 	gui_iface.redraw_image_sync  = impl_redraw_image_sync;
+	gui_iface.delete_selection   = impl_delete_selection;
+	gui_iface.on_sequence_opened = impl_on_sequence_opened;
+	gui_iface.on_image_loaded    = impl_on_image_loaded;
+	gui_iface.on_image_closed    = impl_on_image_closed;
+	gui_iface.show_panel         = impl_show_panel;
+	gui_iface.update_status_bar  = impl_update_status_bar;
+	gui_iface.update_menu_state  = impl_update_menu_state;
 }

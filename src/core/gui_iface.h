@@ -115,6 +115,26 @@ typedef struct {
 	void     (*redraw_image_async)(SirilRedrawType remap);
 	/* Queue a redraw from any thread and block until it completes. */
 	void     (*redraw_image_sync)(SirilRedrawType remap);
+	/* Clear any active selection rectangle from the image display. */
+	void     (*delete_selection)(void);
+
+	/* E – Sequence / image state notifications ----------------------------- */
+	/* Called after a sequence is fully opened and ready for use. */
+	void     (*on_sequence_opened)(void);
+	/* Called after a single image is loaded into gfit and displayed. */
+	void     (*on_image_loaded)(void);
+	/* Called when the current single image is closed/unloaded. */
+	void     (*on_image_closed)(void);
+
+	/* F – Panel / tab switching -------------------------------------------- */
+	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */
+	void     (*show_panel)(const char *panel_name, gboolean visible);
+
+	/* G – Misc GUI state --------------------------------------------------- */
+	/* Refresh the main-window status bar (disk space, memory, zoom, …). */
+	void     (*update_status_bar)(void);
+	/* Sync menu/toolbar enable-state to current application state. */
+	void     (*update_menu_state)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

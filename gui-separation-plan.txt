@@ -263,7 +263,7 @@ the modules that cannot be cleanly split using Pattern A.
          - gui_iface global defined here with stubs as defaults; GUI build
            calls siril_register_gui_iface() to override with GTK impls.
 
-[ ] 2.4  Extend gui_iface.h with groups E–G incrementally
+[X] 2.4  Extend gui_iface.h with groups E–G incrementally
          - Add slots as phases 4–5 demand them; do not pre-populate.
 
 ─────────────────────────────────────────────────────────────────────────────

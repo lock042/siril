@@ -76,6 +76,18 @@ static void stub_close_dialog(const char *id) { (void)id; }
 static void stub_redraw_image(SirilRedrawType remap)       { (void)remap; }
 static void stub_redraw_image_async(SirilRedrawType remap) { (void)remap; }
 static void stub_redraw_image_sync(SirilRedrawType remap)  { (void)remap; }
+static void stub_delete_selection(void) {}
+
+static void stub_on_sequence_opened(void) {}
+static void stub_on_image_loaded(void) {}
+static void stub_on_image_closed(void) {}
+
+static void stub_show_panel(const char *panel_name, gboolean visible) {
+	(void)panel_name; (void)visible;
+}
+
+static void stub_update_status_bar(void) {}
+static void stub_update_menu_state(void) {}
 
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
@@ -90,4 +102,11 @@ SirilGuiInterface gui_iface = {
 	.redraw_image       = stub_redraw_image,
 	.redraw_image_async = stub_redraw_image_async,
 	.redraw_image_sync  = stub_redraw_image_sync,
+	.delete_selection   = stub_delete_selection,
+	.on_sequence_opened = stub_on_sequence_opened,
+	.on_image_loaded    = stub_on_image_loaded,
+	.on_image_closed    = stub_on_image_closed,
+	.show_panel         = stub_show_panel,
+	.update_status_bar  = stub_update_status_bar,
+	.update_menu_state  = stub_update_menu_state,
 };
