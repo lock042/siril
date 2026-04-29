@@ -1,0 +1,614 @@
+GUI/Processing Separation Plan for Siril
+=========================================
+Generated: 2026-04-29
+
+BACKGROUND & FINDINGS
+======================
+
+Goal: Separate GTK-specific code from processing logic so that the codebase
+can later adopt GTK4 (or another toolkit) by swapping only the GUI layer,
+without touching algorithms, I/O, registration, stacking, or filters.
+
+GUIDING PATTERNS
+----------------
+
+Two canonical patterns govern this work:
+
+Pattern A – Filter / algorithm split (epf.c model)
+  src/filters/X.c  – pure processing: data types, apply functions, sequence
+                     wrappers. No GTK, no gui/ includes.
+  src/gui/X.c      – all GTK callbacks, signal handlers, static widget
+                     pointers, preview logic. Calls into filters/X.c for the
+                     actual work.
+  This is already done for epf.c; every filter and algorithm file that mixes
+  processing and GUI code should be brought to this state.
+
+Pattern B – Widget initialisation (init_statics model)
+  Within every src/gui/X.c file, widget pointers are held as static typed
+  variables at file scope (e.g. static GtkSpinButton *spin_foo = NULL).
+  A single setup_X_widgets() function (or X_dialog_init_statics() following
+  the existing convention) populates them via gtk_builder_get_object() and
+  is called once from the dialog's "show" signal handler. All other functions
+  in the file use the cached pointer directly.
+  lookup_widget() is not called outside src/gui/ at all; within src/gui/ it
+  is replaced by the init_statics pattern wherever that has not yet been done.
+
+Current state (from callgraph.db analysis):
+  - 5,905 functions across ~250 source files
+  - 201 unique GUI functions are called from non-GUI code
+  - ~70 non-GUI source files contain at least one cross-boundary call
+  - src/core/siril.h includes <gtk/gtk.h> directly, contaminating every
+    translation unit that includes it (i.e. almost the entire codebase)
+  - Most-called GUI symbols from non-GUI code:
+      268x  lookup_widget          (src/gui/utils.c)
+      152x  set_progress_bar_data  (src/gui/progress_and_log.c)
+      145x  set_cursor_waiting     (src/gui/progress_and_log.c)
+       53x  siril_open_dialog      (src/gui/dialogs.c)
+       37x  redraw                 (src/gui/image_display.c)
+       34x  execute_idle_and_wait_for_it (src/gui/utils.c)
+
+  Most-coupled non-GUI files (unique GUI calls):
+      53  src/core/siril_actions.c
+      44  src/io/single_image.c
+      41  src/io/sequence.c
+      40  src/core/command.c
+      23  src/compositing/compositing.c
+      22  src/io/siril_pythoncommands.c
+      16  src/filters/asinh.c (+ several other filters)
+      12  src/core/command_line_processor.c
+      10  src/core/undo.c
+      10  src/core/processing.c
+      10  src/core/icc_profile.c
+
+  Additionally, compositing/compositing.c makes 89 unique raw gtk_*/gdk_*
+  calls directly and is effectively a GUI file living in the wrong directory.
+
+INTERFACE GROUPS FOR THE RESIDUAL ABSTRACTION LAYER
+=====================================================
+
+After applying Pattern A the number of cross-boundary calls drops
+substantially. The calls that remain in core/, io/, stacking/, and
+registration/ (which cannot simply be split because they are not dialog/
+filter hybrids) need a thin abstraction layer. These divide into:
+
+  A. Progress / Status
+       set_progress_bar_data, set_cursor_waiting
+       → gui_iface: report_progress(fraction, message), set_busy(bool)
+
+  B. Logging
+       gui_log_message
+       → already bridged via siril_log.c; decouple the hard call
+
+  C. Modal dialogs
+       siril_message_dialog, siril_confirm_dialog, siril_open_dialog,
+       siril_close_dialog, queue_*_message_dialog, siril_data_dialog
+       → gui_iface: message(), confirm(), open_named(), close_named()
+
+  D. Image display / redraw
+       redraw, queue_redraw, queue_redraw_and_wait_for_it, remap, remap_all,
+       invalidate_gfit_histogram, refresh_histogram_if_visible
+       → gui_iface: invalidate(), redraw_async(), redraw_sync()
+
+  E. Sequence / image state notifications
+       update_sequences_list, fill_sequence_list, clear_sequence_list,
+       sequence_list_change_current, display_filename, adjust_reginfo,
+       adjust_refimage, update_reg_interface, update_stack_interface,
+       update_prepro_interface, set_layers_for_registration, adjust_sellabel,
+       set_cutoff_sliders_*, set_display_mode, sliders_mode_set_state,
+       initialize_display_mode, update_gfit_histogram_if_needed, etc.
+       → gui_iface: on_sequence_opened(), on_sequence_changed(),
+                    on_image_loaded(), on_image_closed()
+
+  F. Tab / window switching
+       control_window_switch_to_tab, show_or_hide_mask_tab,
+       toggle_histogram_window_visibility, etc.
+       → gui_iface: switch_tab(), show_panel()
+
+  G. Misc GUI state
+       set_GUI_CAMERA, set_GUI_DiskSpace, set_GUI_MEM,
+       update_display_fwhm, update_zoom_label, update_spinCPU,
+       script_widgets_enable, queue_activate_action_if_enabled
+       → gui_iface: update_status_bar(), update_menu_state()
+
+SEQUENCED TASK CHECKLIST
+=========================
+
+─────────────────────────────────────────────────────────────────────────────
+RECOMMENDED EXECUTION ORDER AND WAYS OF WORKING
+─────────────────────────────────────────────────────────────────────────────
+
+Read the entire plan at the start of each session. Note which elements of the
+plan have already been completed, and which remain to be done. If tasks were
+specified in your prompt, check that they match up with the next steps required
+to be done in the plan. Carry out the prompted steps. If the step you start
+is marked as "i" (in progress) check to see if there are uncommitted changes
+indicating previous partial completion. When starting a step,
+mark it as "i" in the check box. On completion of each step commit the change
+in git with a 1-line commit message referencing the step in the plan, and update
+this plan by marking the step as complete (X), for progress tracking.
+
+Foundation first:
+  1.1 → 1.2 → 1.3 → 1.4 → 1.5   (remove GTK from siril.h)
+  2.1 → 2.2 → 2.3                  (define interface)
+
+Pattern A splits — create the src/gui/X.c files (any order within group,
+simplest first to build momentum):
+  3.1 → 3.2 → 3.3 → 3.4 → 3.5   (banding, cosmetic, fft, rgradient, clahe)
+  3.6 → 3.7 → 3.8 → 3.9 → 3.10  (saturation, scnr, median, wavelets, asinh)
+  3.11 → 3.12 → 3.13 → 3.14     (deconvolution, ccd-inspector, compstars, search)
+  3.15–3.22                        (algos: colors, geometry, noise, stats, etc.)
+  3.23                             (compositing.c → gui/)
+
+Widget init + pervasive call routing (4.1–4.3 during/after splits; 4.4–4.8
+  can proceed in parallel with later splits):
+  4.1  (init_statics in each new gui file — done as part of each 3.x task)
+  4.2  (convert pre-existing gui files to init_statics)
+  4.3  (sweep for any remaining lookup_widget outside gui/)
+  4.4 → 4.5 → 4.6 → 4.7 → 4.8   (progress, cursor, log, dialogs, redraw)
+
+Processing module cleanup (any order):
+  5.1 → 5.2 → 5.3 → 5.4 → 5.5 → 5.6 → 5.7 → 5.8 → 5.9
+  5.10 → 5.11 → 5.12 → 5.13 → 5.14 → 5.15
+
+Structural surgery (hardest; save for later):
+  6.1 → 6.2   (sequence.c, single_image.c)
+  6.3 → 6.4   (command.c, command_line_processor.c)
+  6.5          (siril_actions.c move)
+  6.6 → 6.7 → 6.8  (python, sequence_export, pixelMath)
+
+Enforcement:
+  7.1 → 7.2 → 7.3 → 7.4 (→ 7.5)
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 1 – ELIMINATE GTK FROM SHARED HEADERS  (foundational, do first)
+─────────────────────────────────────────────────────────────────────────────
+
+[X] 1.1  Audit src/core/siril.h
+         - Identify every GTK/GDK type embedded in the data structures
+           defined in siril.h (fits, sequence, image_info, cominfo, etc.).
+         - Make a list of structs that carry GtkWidget*, cairo_surface_t*,
+           or other GTK-typed fields.
+         - Document findings before touching any code.
+
+[X] 1.2  Replace GTK types in core data structures
+         - For each GTK-typed field found in 1.1, either:
+             a) Replace with a void* or opaque handle type, or
+             b) Move the field into a parallel "gui_state" struct declared
+                only in GUI compilation units.
+         - Prefer (a) for fields accessed from processing code,
+           (b) for fields touched only in gui/.
+
+[X] 1.3  Remove #include <gtk/gtk.h> from src/core/siril.h
+         - Replace with #include <glib.h> (keep GLib; it is not GTK).
+         - Add a forward-declaration block for any opaque GTK types still
+           referenced via void* or handle.
+         - Build with HAVE_GUI=0 guard to confirm CLI build is clean.
+
+[X] 1.4  Fix cascading GTK includes in non-gui headers
+         - After 1.3, do a build pass and fix each include error in headers
+           (src/core/proto.h, src/algos/*.h, src/filters/*.h, src/io/*.h,
+           src/registration/*.h, etc.) one file at a time.
+         - Do not add back gtk/gtk.h; instead forward-declare or move the
+           offending type.
+
+[X] 1.5  Ensure CLI build (main-cli.c) compiles without GTK at all
+         - Add/update the HAVE_GUI=0 meson option to exclude all gui/ source
+           files and confirm no GTK symbol appears in the CLI link.
+         - This becomes the regression test for all subsequent phases.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 2 – DEFINE THE RESIDUAL GUI ABSTRACTION INTERFACE  (architecture)
+─────────────────────────────────────────────────────────────────────────────
+
+These interfaces are needed only for core/, io/, stacking/, registration/ —
+the modules that cannot be cleanly split using Pattern A.
+
+[ ] 2.1  Create src/core/gui_iface.h
+         - Define the abstract interface as a struct of function pointers
+           (C vtable pattern), covering interface groups A–G above.
+         - Start minimal: Progress (A), Logging (B), Dialogs (C), Display (D).
+         - All pointer slots default to NULL; callers guard with
+           if (gui_iface.fn) gui_iface.fn(...).
+         - Example sketch:
+             typedef struct {
+               void (*set_progress)(double fraction, const char *msg);
+               void (*set_busy)(gboolean busy);
+               void (*redraw_image)(void);
+               void (*message_dialog)(const char *title, const char *msg);
+               int  (*confirm_dialog)(const char *title, const char *msg);
+               void (*on_sequence_opened)(void);
+               void (*on_image_loaded)(void);
+               /* ... */
+             } SirilGuiInterface;
+             extern SirilGuiInterface gui_iface;
+
+[ ] 2.2  Create src/gui/gui_iface_impl.c
+         - Implement each slot by delegating to existing GTK functions in gui/.
+         - Register at startup (in main.c, after GTK init, before worker
+           threads start).
+
+[ ] 2.3  Create src/core/gui_iface_stubs.c
+         - No-op or stderr-logging implementations for each slot.
+         - Linked into the CLI build in place of gui_iface_impl.c.
+
+[ ] 2.4  Extend gui_iface.h with groups E–G incrementally
+         - Add slots as phases 4–5 demand them; do not pre-populate.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 3 – SPLIT FILTER AND ALGORITHM FILES  (Pattern A, systematic)
+─────────────────────────────────────────────────────────────────────────────
+
+For each filter/algorithm file that mixes processing logic with GTK
+callbacks, create a corresponding src/gui/X.c following the epf.c model:
+  - src/filters/X.c retains only the processing functions and the public
+    apply_X() / apply_X_to_sequence() entry points. Zero GTK includes.
+  - src/gui/X.c contains all GtkWidget* statics, setup_X_widgets(), all
+    on_X_* signal handlers, and the preview glue. It includes filters/X.h
+    for the processing entry points.
+  - src/gui/X.h declares only what other gui files need (e.g.
+    toggle_X_window_visibility if called from siril_actions.c).
+
+The following files need this treatment (ordered roughly by coupling count,
+simplest first to build momentum):
+
+[ ] 3.1  src/filters/banding.c → keep processing; new src/gui/banding.c
+         (4 GUI calls, 8 raw GTK calls — straightforward split)
+
+[ ] 3.2  src/filters/cosmetic_correction.c → keep processing;
+          new src/gui/cosmetic_correction.c
+         (3 GUI calls, 11 raw GTK calls)
+
+[ ] 3.3  src/filters/fft.c → keep processing; new src/gui/fft.c
+         (6 GUI calls, 8 raw GTK calls)
+
+[ ] 3.4  src/filters/rgradient.c → keep processing; new src/gui/rgradient.c
+         (6 GUI calls, 5 raw GTK calls)
+
+[ ] 3.5  src/filters/clahe.c → keep processing; new src/gui/clahe.c
+         (11 GUI calls, 6 raw GTK calls — includes preview pattern)
+
+[ ] 3.6  src/filters/saturation.c → keep processing; new src/gui/saturation.c
+         (13 GUI calls, 9 raw GTK calls — includes ROI callback pattern)
+
+[ ] 3.7  src/filters/scnr.c → keep processing; new src/gui/scnr.c
+         (14 GUI calls, 14 raw GTK calls — includes ROI + preview)
+
+[ ] 3.8  src/filters/median.c → keep processing; new src/gui/median.c
+         (14 GUI calls, 8 raw GTK calls)
+
+[ ] 3.9  src/filters/wavelets.c → keep processing; new src/gui/wavelets.c
+         (14 GUI calls, 15 raw GTK calls — includes preview)
+
+[ ] 3.10 src/filters/asinh.c → keep processing; new src/gui/asinh.c
+         (16 GUI calls, 12 raw GTK calls — includes preview + ROI)
+
+[ ] 3.11 src/filters/deconvolution.c (+ deconvolution/*.cpp) →
+          keep processing in filters/; src/gui/newdeconv.c already exists
+          — audit what is still in filters/ that belongs in gui/newdeconv.c
+         (6 GUI calls in deconvolution.c; 1 each in deconvolution/*.cpp)
+
+[ ] 3.12 src/algos/ccd-inspector.c → keep processing; new src/gui/ccd-inspector.c
+         (5 GUI calls, 5 raw GTK calls — draws directly on a GtkWidget)
+
+[ ] 3.13 src/algos/comparison_stars.c → keep processing;
+          extend src/gui/compstars.c (already exists)
+         (4 GUI calls, 3 raw GTK calls)
+
+[ ] 3.14 src/algos/search_objects.c → keep processing;
+          move GUI callbacks to existing or new src/gui/search_objects.c
+         (2 GUI calls, 2 raw GTK calls)
+
+[ ] 3.15 src/algos/colors.c → keep processing;
+          GUI notifications moved to src/gui/colors.c (already exists) or
+          routed through gui_iface
+         (2 GUI calls: invalidate_gfit_histogram, populate_roi)
+
+[ ] 3.16 src/algos/geometry.c → keep processing;
+          move GUI calls into a new src/gui/geometry.c wrapper
+         (6 GUI calls — clear_stars_list, delete_selected_area, on_clear_roi,
+          reset_display_offset, show_or_hide_mask_tab, update_zoom_label)
+
+[ ] 3.17 src/algos/noise.c → keep processing;
+          2 GUI calls only (no new file needed); route through gui_iface in
+          phase 4
+
+[ ] 3.18 src/algos/statistics.c → keep processing;
+          computeStat (statistics_list.c) → gui_iface.on_stats_ready();
+          siril_open_dialog and set_cursor_waiting → gui_iface in phase 4
+         (3 GUI calls)
+
+[ ] 3.19 src/algos/photometry.c → keep processing;
+          drawPlot, notify_new_photometry, queue_redraw, redraw
+          → gui_iface.on_photometry_changed() in phase 4
+         (4 GUI calls)
+
+[ ] 3.20 src/algos/astrometry_solver.c — 1 GUI call (set_progress_bar_data),
+          handled entirely by phase 4.1; no new file needed
+
+[ ] 3.21 src/algos/background_extraction.c — 2 GUI calls,
+          handled entirely by phase 4.1/4.2/4.4; no new file needed
+
+[ ] 3.22 src/algos/star_finder.c — 3 GUI calls
+          (execute_idle_and_wait_for_it, update_sequences_list,
+          update_star_list); route through gui_iface in phase 4
+
+[ ] 3.23 src/compositing/compositing.c → move entirely to src/gui/compositing.c
+         - compositing.c makes 89 unique raw GTK calls; it is a GUI file.
+         - The algorithm portions (align_rgb.c, filters.c) stay in
+           compositing/ and are clean after phases 3–4.
+         - Update meson.build, headers, and forward-declarations.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 4 – WIDGET INIT STANDARDISATION AND PERVASIVE CALL ROUTING
+─────────────────────────────────────────────────────────────────────────────
+
+With all filter/algorithm GUI code now living in src/gui/X.c files, this
+phase (a) locks in the init_statics widget pattern across all of gui/, and
+(b) routes the remaining high-volume cross-boundary calls through gui_iface
+for the modules that could not be split using Pattern A.
+
+[ ] 4.1  Apply init_statics pattern to every new src/gui/X.c from phase 3
+         - Each file written in phase 3 must hold widget pointers as static
+           typed variables at file scope and populate them in a single
+           setup_X_widgets() function called from the dialog's "show"
+           signal handler, following the convention in src/gui/epf.c.
+         - Canonical form:
+             static GtkSpinButton *spin_sigma = NULL;
+             static GtkToggleButton *btn_preview = NULL;
+
+             static void setup_foo_widgets(void) {
+                 if (spin_sigma) return;          // already initialised
+                 spin_sigma  = GTK_SPIN_BUTTON(gtk_builder_get_object(
+                                   gui.builder, "spin_foo_sigma"));
+                 btn_preview = GTK_TOGGLE_BUTTON(gtk_builder_get_object(
+                                   gui.builder, "foo_preview"));
+             }
+
+             void on_foo_dialog_show(GtkWidget *w, gpointer ud) {
+                 setup_foo_widgets();
+                 /* ... */
+             }
+         - No call to lookup_widget() should appear in any file created in
+           phase 3; all widget access goes through the static pointers.
+
+[ ] 4.2  Convert pre-existing src/gui/ files to init_statics (one at a time)
+         - For every pre-existing src/gui/X.c that still calls lookup_widget(),
+           apply the same init_statics pattern.
+         - Work file by file; suggest starting with files that have the
+           fewest remaining lookup_widget() calls.
+
+[ ] 4.3  Eliminate lookup_widget() from all non-gui source files
+         - After phases 3 and 4.1–4.2 the majority of call-sites will already
+           be gone. Sweep for any stragglers outside src/gui/:
+             * Files being split later (core/, io/): move the widget
+               interaction into a gui/ wrapper and call it via gui_iface or
+               pass the result as a parameter.
+         - Goal: lookup_widget() has zero callers outside src/gui/.
+
+[ ] 4.4  Route set_progress_bar_data through gui_iface
+         - Replace all remaining ~152 call-sites in non-GUI code with
+           gui_iface.set_progress(fraction, message).
+         - Keep set_progress_bar_data() in gui/ as the implementation.
+         - Files: stacking, registration, io/conversion.c,
+           io/sequence_export.c, and any algos not covered by phase 3.
+
+[ ] 4.5  Route set_cursor_waiting through gui_iface
+         - ~145 call-sites; fold into set_busy(TRUE/FALSE).
+
+[ ] 4.6  Decouple gui_log_message from siril_log.c
+         - siril_log.c currently calls gui_log_message() (in gui/) directly.
+         - Replace with a registered callback in gui_iface.
+         - CLI stub writes to stderr; removes the last outbound dependency
+           from core/siril_log.c.
+
+[ ] 4.7  Route queue_*_message_dialog and siril_message_dialog through gui_iface
+         - ~26 call-sites in non-GUI code.
+         - Replace with gui_iface.message_dialog() / gui_iface.error_dialog().
+         - Stub writes to stderr.
+
+[ ] 4.8  Route redraw / queue_redraw through gui_iface
+         - ~37 call-sites across remaining algos, io, stacking.
+         - Replace with gui_iface.redraw_image() and
+           gui_iface.redraw_image_async().
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 5 – CLEAN UP REMAINING PROCESSING MODULES  (via gui_iface)
+─────────────────────────────────────────────────────────────────────────────
+
+These modules cannot be split using Pattern A (they are not dialog hosts)
+so they route residual GUI calls through gui_iface.
+
+[ ] 5.1  src/stacking/ (stacking.c, stackminmax.c, normalization.c,
+          median_and_mean.c, upscaling.c)
+         - Most calls are progress (fixed in 4.4/4.5).
+         - Remaining display-state notifications (set_cutoff_sliders_*,
+           set_display_mode, sliders_mode_set_state, sequence_list_change_current,
+           update_stack_interface) → gui_iface.on_stack_complete() /
+           gui_iface.on_sequence_changed().
+
+[ ] 5.2  src/registration/ (3stars.c, applyreg.c, global.c, registration.c,
+          shift_methods.c)
+         - clear_stars_list, update_star_list, add_star → gui_iface.on_stars_changed()
+         - get_registration_layer_from_GUI → replace with a parameter passed
+           from the GUI caller at the start of the registration run.
+         - update_reg_interface, control_window_switch_to_tab → gui_iface.
+
+[ ] 5.3  src/core/processing.c and processing_thread.c
+         - Route execute_idle_and_wait_for_it, populate_roi,
+           queue_redraw_mask, script_widgets_enable, set_cursor_waiting,
+           set_progress_bar_data, show_child_process_selection_dialog,
+           show_or_hide_mask_tab, update_sequences_list through gui_iface.
+         - is_an_image_processing_dialog_opened: add a gui_iface.
+           is_dialog_open() slot.
+
+[ ] 5.4  src/core/undo.c (10 GUI calls)
+         - copy_*_backup, is_preview_active → gui_iface.IPreview slots.
+         - redraw, redraw_mask_idle, siril_preview_hide,
+           on_clear_roi / on_set_roi → gui_iface notifications.
+         - undo.c should have zero direct GUI dependencies after this.
+
+[ ] 5.5  src/core/icc_profile.c (10 GUI calls)
+         - check_gfit_profile_identical_to_monitor, copy_gfit_icc_to_backup,
+           execute_idle_and_wait_for_it, is_preview_active, redraw,
+           set_cursor_waiting, set_source_information, siril_confirm_dialog,
+           siril_message_dialog → gui_iface slots.
+
+[ ] 5.6  src/core/preprocess.c (5 GUI calls)
+         - Progress calls fixed by 4.4/4.5. Remaining lookup_widget call:
+           move the widget read into gui/preprocess_gui.c and pass the
+           result as a parameter.
+
+[ ] 5.7  src/core/OS_utils.c (4 GUI calls)
+         - Add gui_iface.update_disk_space() and gui_iface.update_mem_usage()
+           slots. Route error/warning dialogs through gui_iface.
+
+[ ] 5.8  src/core/masks.c (5 GUI calls)
+         - show_or_hide_mask_tab → gui_iface. Remaining lookup_widget calls:
+           move into gui/masks_gui.c.
+
+[ ] 5.9  src/core/siril.c (4 GUI calls)
+         - computeHisto, computeHisto_Selection, redraw,
+           set_cutoff_sliders_values are image-load-completion notifications
+           → route through gui_iface.on_image_loaded().
+
+[ ] 5.10 src/core/siril_networking.c and siril_update.c
+         - Progress calls fixed by 3.1.
+         - siril_update.c also calls gaia_check / check_gaia_archive_status
+           (in gui/photometric_cc.c) → invert: have the GUI register a
+           callback for update-status events.
+
+[ ] 5.11 src/core/siril_language.c (1 GUI call: lookup_widget)
+         - Move the widget lookup into gui/ and pass the result as a parameter.
+
+[ ] 5.12 src/core/signals.c (1 GUI call: gtk_main_quit)
+         - Replace with g_main_loop_quit() on the main loop reference, or
+           gui_iface.quit_application(), so the signal handler works in
+           headless mode too.
+
+[ ] 5.13 src/io/siril_catalogues.c, siril_git.c, conversion.c,
+          fits_keywords.c, image_format_fits.c, image_formats_libraries.c,
+          ser.c  (1–4 GUI calls each)
+         - Mostly progress/redraw (fixed by phases 4.4/4.5/4.8).
+         - siril_git.c uses gui_mutex_lock/unlock: replace with the GLib
+           mutex from core or a gui_iface.run_in_gui_thread() callback.
+         - image_formats_libraries.c: single lookup_widget; move to gui/.
+
+[ ] 5.14 src/opencv/opencv.cpp (2 GUI calls: remap, show_or_hide_mask_tab)
+         - Route through gui_iface.
+
+[ ] 5.15 src/livestacking/livestacking.c (7 GUI calls)
+         - Route progress and redraw through gui_iface.
+         - livestacking/gui.c is already a separate file; confirm that
+           separation is maintained and the new calls do not re-merge.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 6 – REFACTOR HEAVILY COUPLED "GLUE" FILES  (structural surgery)
+─────────────────────────────────────────────────────────────────────────────
+
+These files are essentially GUI controllers that ended up in core/ or io/.
+
+[ ] 6.1  src/io/sequence.c  (41 GUI calls)
+         - Identify the pure-data operations (loading, unloading, seeking,
+           filtering) vs the UI-notification calls that follow them.
+         - Replace the large cluster of "after loading a sequence, update the
+           UI" calls with a single gui_iface.on_sequence_opened() call that
+           the GUI implements to do all its own updating (fill_sequence_list,
+           set_cutoff_sliders_*, set_display_mode, initialize_display_mode,
+           initialize_cut_struct, set_GUI_CAMERA, update_seqlist, etc.).
+         - Add gui_iface.on_sequence_closed() and
+           gui_iface.on_sequence_frame_changed() as needed.
+         - Result: sequence.c contains no GUI calls.
+
+[ ] 6.2  src/io/single_image.c  (44 GUI calls)
+         - Same strategy as 6.1: replace all 44 calls with
+           gui_iface.on_image_loaded() and gui_iface.on_image_closed()
+           notifications.
+
+[ ] 6.3  src/core/command.c  (40 GUI calls)
+         - Progress/dialog/redraw calls: fixed by phases 4 & 5.
+         - Operations that manipulate display state (mirrorx_gui,
+           toggle_histogram_window_visibility, etc.): the command should
+           call the underlying processing function directly and emit a
+           gui_iface notification rather than calling the GUI function
+           by name.
+
+[ ] 6.4  src/core/command_line_processor.c  (12 GUI calls + 39 raw GTK)
+         - The raw GTK calls involve the script console text widget.
+           Extract into src/gui/script_console.c and communicate through
+           an IConsole slot in gui_iface.
+
+[ ] 6.5  src/core/siril_actions.c  (53 GUI calls — largest coupling)
+         - siril_actions.c implements GAction callbacks wired to the GTK
+           application action map. It is inherently GUI code.
+         - Move src/core/siril_actions.c → src/gui/siril_actions.c.
+           Update meson.build and all headers.
+         - Any processing logic inline in action callbacks should be
+           extracted to core/ or algos/ first so it can be called from
+           both the GUI and CLI.
+         - After the move, siril_actions.c is allowed to call gui/ directly.
+
+[ ] 6.6  src/io/siril_pythoncommands.c and siril_pythonmodule.c
+          (22 + 11 GUI calls)
+         - Define a dedicated IPythonUI interface group in gui_iface covering
+           these calls; implement in gui/python_gui_iface.c.
+         - Ensures the Python bridge works in both GUI and headless mode.
+
+[ ] 6.7  src/io/sequence_export.c  (7 GUI calls + 16 raw GTK)
+         - Contains export logic mixed with file-chooser widget management.
+         - Move the file-chooser/filter setup into src/gui/; pass the chosen
+           path back to the export logic as a parameter.
+
+[ ] 6.8  src/pixelMath/pixel_math_runner.c  (13 GUI calls + 60 raw GTK)
+         - Heavy user of lookup_widget and gtk_filter_add; effectively a
+           GUI controller.
+         - Split: keep the expression-evaluation engine in pixelMath/; move
+           the widget management into a new src/gui/pixelmath.c.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
+─────────────────────────────────────────────────────────────────────────────
+
+[ ] 7.1  Add a headless (no-GTK) build target to meson.build
+         - Option: -Dgui=disabled excludes src/gui/ entirely.
+         - Links gui_iface_stubs.c instead of gui_iface_impl.c.
+         - All processing libraries must compile cleanly under this target.
+
+[ ] 7.2  Add CI job for headless build
+         - meson build -Dgui=disabled && ninja in CI to catch regressions.
+
+[ ] 7.3  Enforce GTK-free headers with a lint step
+         - CI check: grep for #include <gtk/gtk.h> in any file outside
+           src/gui/ and src/main.c; fail the build if found.
+         - Also flag direct gtk_* / gdk_* function calls outside src/gui/.
+
+[ ] 7.4  Review meson.build dependency declarations
+         - Processing libraries should declare no GTK dependency.
+         - Only the gui/ subdir and main.c should link against GTK.
+
+[ ] 7.5  Update pkg-config / library split (optional, long-term)
+         - Consider packaging the processing core as a static library
+           (libsiril-core) with no GTK dependency, usable by CLI, GUI,
+           and tests alike. This makes the boundary machine-checkable at
+           link time.
+
+─────────────────────────────────────────────────────────────────────────────
+PHASE 8 – TESTING AND VALIDATION  (ongoing throughout)
+─────────────────────────────────────────────────────────────────────────────
+
+[ ] 8.1  Run existing test suite after each phase
+         - src/tests/ contains unit tests; ensure they still pass.
+
+[ ] 8.2  Manual smoke-test GUI build after each phase
+         - Open a FITS file, run calibration, run stacking, check histogram,
+           run a filter with live preview — verify no regressions.
+
+[ ] 8.3  Manual smoke-test CLI build after phases 1, 4, 5, 7
+         - Run a representative script; verify output identical to GUI build.
+
+[ ] 8.4  Add regression tests for GUI-independent processing
+         - Where sequence.c / single_image.c are cleaned up, add tests that
+           call them directly without a GTK environment.
+
+─────────────────────────────────────────────────────────────────────────────
+END OF PLAN
+─────────────────────────────────────────────────────────────────────────────
