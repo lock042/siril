@@ -1,4 +1,5 @@
 #ifndef SRC_FILTERS_REMIXER_H_
+#include <gtk/gtk.h>
 #define SRC_FILTERS_REMIXER_H_
 
 #define CALL_FROM_STARNET 1

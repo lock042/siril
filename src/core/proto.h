@@ -4,6 +4,7 @@
 #include <math.h> // for fabs() in test_double_eq
 #include <sys/time.h>
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
 #define int64 int64_hack_

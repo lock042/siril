@@ -21,6 +21,8 @@
 #include "siril_plot.h"
 
 #include <cairo.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk/gdk.h>
 #ifdef CAIRO_HAS_SVG_SURFACE
 #include <cairo/cairo-svg.h>
 #endif

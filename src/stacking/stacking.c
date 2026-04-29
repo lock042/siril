@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 
 #include "core/siril.h"
+#include "gui/gui_state.h" /* TODO phase 5.1: route gui.sliders/lo/hi through gui_iface */
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"

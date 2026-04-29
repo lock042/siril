@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #include "core/siril_world_cs.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"

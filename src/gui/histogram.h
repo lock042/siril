@@ -1,4 +1,5 @@
 #ifndef _HIST_H_
+#include <gtk/gtk.h>
 #define _HIST_H_
 
 #include "filters/mtf.h"

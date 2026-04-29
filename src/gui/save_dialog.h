@@ -1,4 +1,5 @@
 #ifndef SRC_GUI_SAVE_DIALOG_H_
+#include <gtk/gtk.h>
 #define SRC_GUI_SAVE_DIALOG_H_
 
 /* Savedialog data from GUI */

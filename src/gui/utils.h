@@ -19,7 +19,9 @@
  */
 #ifndef SRC_GUI_UTILS_H_
 #define SRC_GUI_UTILS_H_
+#include <gtk/gtk.h>
 #include "core/siril.h"
+#include "gui/gui_state.h"
 
 typedef enum {
 	FILE_CONVERSION,

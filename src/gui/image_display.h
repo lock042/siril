@@ -1,4 +1,5 @@
 #ifndef _IMAGE_DISPLAY_H_
+#include <gtk/gtk.h>
 #define _IMAGE_DISPLAY_H_
 
 #include "core/siril.h"

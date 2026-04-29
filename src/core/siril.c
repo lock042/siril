@@ -24,6 +24,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "gui/gui_state.h" /* TODO phase 5.9: route gui.lo/hi access through gui_iface */
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/arithm.h"

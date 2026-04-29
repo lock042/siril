@@ -41,6 +41,9 @@
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 
+/* forward-declared here after being removed from algos/astrometry_solver.h (plan 1.4) */
+void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
+
 enum {
 	COLUMN_RESOLVER,// string
 	COLUMN_NAME,	// string

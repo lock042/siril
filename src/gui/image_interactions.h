@@ -1,4 +1,5 @@
 #ifndef _IMAGE_INTERACTIONS_H_
+#include <gtk/gtk.h>
 #define _IMAGE_INTERACTIONS_H_
 
 #include "core/siril.h"

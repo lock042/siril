@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef SRC_GUI_SIRIL_WINDOW_H_
+#include <gtk/gtk.h>
 #define SRC_GUI_SIRIL_WINDOW_H_
 
 typedef enum {

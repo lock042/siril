@@ -1,4 +1,5 @@
 #ifndef SRC_FILTERS_STARNETGUI_H_
+#include <gtk/gtk.h>
 #define SRC_FILTERS_STARNETGUI_H_
 
 void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data);

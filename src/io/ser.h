@@ -11,6 +11,7 @@
 #endif
 #include "core/siril.h"
 #include "io/seqwriter.h"
+#include "core/gtk_forward_decls.h"
 
 /* This file is part of Siril, https://free-astro.org/
  *

@@ -1,4 +1,5 @@
 #ifndef _DECONVOLUTION_GUI_H
+#include <gtk/gtk.h>
 #define _DECONVOLUTION_GUI_H
 
 #include "filters/deconvolution/deconvolution.h"

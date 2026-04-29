@@ -3,6 +3,7 @@
 
 #include <fitsio.h>
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 
 #define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
 

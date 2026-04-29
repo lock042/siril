@@ -32,6 +32,7 @@
 #include <execinfo.h>
 #endif
 
+#include <gtk/gtk.h> /* TODO phase 5.12: replace gtk_main_quit with g_main_loop_quit via gui_iface */
 #include "core/siril.h"
 #include "core/proto.h"
 
