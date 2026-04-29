@@ -302,7 +302,7 @@ simplest first to build momentum):
 [X] 3.6  src/filters/saturation.c → keep processing; new src/gui/saturation.c
          (13 GUI calls, 9 raw GTK calls — includes ROI callback pattern)
 
-[ ] 3.7  src/filters/scnr.c → keep processing; new src/gui/scnr.c
+[X] 3.7  src/filters/scnr.c → keep processing; new src/gui/scnr.c
          (14 GUI calls, 14 raw GTK calls — includes ROI + preview)
 
 [ ] 3.8  src/filters/median.c → keep processing; new src/gui/median.c
