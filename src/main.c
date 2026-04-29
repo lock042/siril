@@ -61,6 +61,7 @@
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
