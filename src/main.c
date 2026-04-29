@@ -76,6 +76,7 @@
 #include "core/siril_networking.h"
 #include "io/siril_pythonmodule.h"
 #include "core/siril_update.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "io/sequence.h"
@@ -476,6 +477,7 @@ static void siril_app_activate(GApplication *application) {
 		update_splash_progress(_("Loading user interface..."), 0.65);
 		load_ui_files();
 		init_histogram_overlay();
+		siril_register_gui_iface();
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
 		GtkWidget *control_window = lookup_widget("control_window");

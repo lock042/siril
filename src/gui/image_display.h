@@ -1,14 +1,13 @@
 #ifndef _IMAGE_DISPLAY_H_
-#include <gtk/gtk.h>
 #define _IMAGE_DISPLAY_H_
 
+#include <gtk/gtk.h>
 #include "core/siril.h"
+#include "core/gui_iface.h"   /* SirilRedrawType, REDRAW_OVERLAY/REDRAW_IMAGE/REMAP_ALL */
 
-typedef enum {
-	REDRAW_OVERLAY, // only overlays changed
-	REDRAW_IMAGE,   // the image changed, render it and overlays
-	REMAP_ALL       // the image data changed, remap and render all
-} remap_type;
+/* Backward-compatibility alias: existing callers use remap_type; new code
+ * should use SirilRedrawType from core/gui_iface.h directly. */
+typedef SirilRedrawType remap_type;
 
 void check_gfit_profile_identical_to_monitor();
 

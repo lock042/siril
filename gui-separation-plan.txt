@@ -127,6 +127,33 @@ mark it as "i" in the check box. On completion of each step commit the change
 in git with a 1-line commit message referencing the step in the plan, and update
 this plan by marking the step as complete (X), for progress tracking.
 
+Note that you can use callgraph.db for analysis of the code. This can be
+regenerated after changes by calling python3 callgraph.py (the venv in cgvenv must
+be active for this to work). Example usage is as follows:
+
+    -- What does a function call?
+    SELECT callee_name, call_line FROM calls
+      JOIN functions ON calls.caller_id = functions.id
+      WHERE functions.name = 'my_func' ORDER BY call_line;
+
+    -- What calls a function?
+    SELECT f.name, f.file, f.line FROM calls
+      JOIN functions f ON calls.caller_id = f.id
+      WHERE calls.callee_name = 'my_func';
+
+    -- What global vars does a function use?
+    SELECT var_name, var_type, use_line FROM var_uses
+      JOIN functions ON var_uses.function_id = functions.id
+      WHERE functions.name = 'my_func' ORDER BY use_line;
+
+    -- All functions in a file:
+    SELECT name, line FROM functions WHERE file LIKE '%filename%' ORDER BY line;
+
+    -- Functions that use a specific global:
+    SELECT DISTINCT f.name, f.file FROM var_uses vu
+      JOIN functions f ON vu.function_id = f.id
+      WHERE vu.var_name = 'com' ORDER BY f.name;
+
 Foundation first:
   1.1 → 1.2 → 1.3 → 1.4 → 1.5   (remove GTK from siril.h)
   2.1 → 2.2 → 2.3                  (define interface)
@@ -203,7 +230,7 @@ PHASE 2 – DEFINE THE RESIDUAL GUI ABSTRACTION INTERFACE  (architecture)
 These interfaces are needed only for core/, io/, stacking/, registration/ —
 the modules that cannot be cleanly split using Pattern A.
 
-[ ] 2.1  Create src/core/gui_iface.h
+[X] 2.1  Create src/core/gui_iface.h
          - Define the abstract interface as a struct of function pointers
            (C vtable pattern), covering interface groups A–G above.
          - Start minimal: Progress (A), Logging (B), Dialogs (C), Display (D).
@@ -221,15 +248,20 @@ the modules that cannot be cleanly split using Pattern A.
                /* ... */
              } SirilGuiInterface;
              extern SirilGuiInterface gui_iface;
+         - Also defines SirilRedrawType (moved from image_display.h) and
+           SirilMessageType (replaces GtkMessageType in the interface).
+         - PROGRESS_* constants moved here from progress_and_log.h.
 
-[ ] 2.2  Create src/gui/gui_iface_impl.c
+[X] 2.2  Create src/gui/gui_iface_impl.c
          - Implement each slot by delegating to existing GTK functions in gui/.
          - Register at startup (in main.c, after GTK init, before worker
            threads start).
 
-[ ] 2.3  Create src/core/gui_iface_stubs.c
+[X] 2.3  Create src/core/gui_iface_stubs.c
          - No-op or stderr-logging implementations for each slot.
          - Linked into the CLI build in place of gui_iface_impl.c.
+         - gui_iface global defined here with stubs as defaults; GUI build
+           calls siril_register_gui_iface() to override with GTK impls.
 
 [ ] 2.4  Extend gui_iface.h with groups E–G incrementally
          - Add slots as phases 4–5 demand them; do not pre-populate.
