@@ -283,6 +283,7 @@ src_files_gui = [
   'gui/image_interactions.c',
   'gui/linear_match.c',
   'gui/masks_gui.c',
+  'gui/median.c',
   'gui/menu_gray_geometry.c',
   'gui/menu_gray_selection.c',
   'gui/merge_cfa.c',
@@ -319,6 +320,7 @@ src_files_gui = [
   'gui/unpurple.c',
   'gui/user_polygons.c',
   'gui/utils.c',
+  'gui/wavelets.c',
 ]
 
 enable_gui = get_option('gui').enabled()

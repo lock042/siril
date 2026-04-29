@@ -29,10 +29,10 @@
 #include "filters/asinh.h"
 #include "filters/epf.h"
 #include "gui/clahe.h"
-#include "filters/median.h"
+#include "gui/median.h"
 #include "gui/saturation.h"
 #include "filters/unpurple.h"
-#include "filters/wavelets.h"
+#include "gui/wavelets.h"
 
 #include "gui/newdeconv.h"
 #include "filters/nlbayes/call_nlbayes.h"

@@ -305,10 +305,10 @@ simplest first to build momentum):
 [X] 3.7  src/filters/scnr.c → keep processing; new src/gui/scnr.c
          (14 GUI calls, 14 raw GTK calls — includes ROI + preview)
 
-[ ] 3.8  src/filters/median.c → keep processing; new src/gui/median.c
+[X] 3.8  src/filters/median.c → keep processing; new src/gui/median.c
          (14 GUI calls, 8 raw GTK calls)
 
-[ ] 3.9  src/filters/wavelets.c → keep processing; new src/gui/wavelets.c
+[X] 3.9  src/filters/wavelets.c → keep processing; new src/gui/wavelets.c
          (14 GUI calls, 15 raw GTK calls — includes preview)
 
 [ ] 3.10 src/filters/asinh.c → keep processing; new src/gui/asinh.c
