@@ -199,7 +199,6 @@ src_files = [
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',
 
-  'livestacking/gui.c',
   'livestacking/livestacking.c',
 
   'opencv/opencv.cpp',
@@ -208,6 +207,44 @@ src_files = [
   'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
+
+  'pixelMath/pixel_math_runner.c',
+  'pixelMath/tinyexpr.c',
+
+  'registration/3stars.c',
+  'registration/comet.c',
+  'registration/global.c',
+  'registration/matching/match.c',
+  'registration/matching/atpmatch.c',
+  'registration/matching/misc.c',
+  'registration/matching/apply_match.c',
+  'registration/astrometric.c',
+  'registration/distorsion.c',
+  'registration/registration.c',
+  'registration/applyreg.c',
+  'registration/shift_methods.c',
+
+  'stacking/blending.c',
+  'stacking/median_and_mean.c',
+  'stacking/normalization.c',
+  'stacking/rejection_float.c',
+  'stacking/siril_fit_linear.c',
+  'stacking/stacking.c',
+  'stacking/stackminmax.c',
+  'stacking/sum.c',
+  'stacking/upscaling.c',
+
+  'rt/boxblur.cc',
+  'rt/gauss.cc',
+  'rt/rt_algo.cc'
+]
+
+# GUI-only source files (require GTK; excluded when -Dgui=disabled).
+# These will be progressively cleaned up through plan phases 3–6 so that
+# all remaining GUI calls in the core list above are routed through
+# gui_iface instead.
+src_files_gui = [
+  'livestacking/gui.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',
@@ -273,37 +310,10 @@ src_files = [
   'gui/unpurple.c',
   'gui/user_polygons.c',
   'gui/utils.c',
-
-  'pixelMath/pixel_math_runner.c',
-  'pixelMath/tinyexpr.c',
-
-  'registration/3stars.c',
-  'registration/comet.c',
-  'registration/global.c',
-  'registration/matching/match.c',
-  'registration/matching/atpmatch.c',
-  'registration/matching/misc.c',
-  'registration/matching/apply_match.c',
-  'registration/astrometric.c',
-  'registration/distorsion.c',
-  'registration/registration.c',
-  'registration/applyreg.c',
-  'registration/shift_methods.c',
-
-  'stacking/blending.c',
-  'stacking/median_and_mean.c',
-  'stacking/normalization.c',
-  'stacking/rejection_float.c',
-  'stacking/siril_fit_linear.c',
-  'stacking/stacking.c',
-  'stacking/stackminmax.c',
-  'stacking/sum.c',
-  'stacking/upscaling.c',
-
-  'rt/boxblur.cc',
-  'rt/gauss.cc',
-  'rt/rt_algo.cc'
 ]
+
+enable_gui = get_option('gui').enabled()
+src_files_all = enable_gui ? src_files + src_files_gui : src_files
 
 # Define the resource file
 gnome = import('gnome')
@@ -313,7 +323,7 @@ siril_resources = gnome.compile_resources(
   c_name : 'siril_resource')
 
 siril_lib = static_library('siril',
-                           siril_resources[0], src_files,
+                           siril_resources[0], src_files_all,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
@@ -326,8 +336,9 @@ siril_dep = declare_dependency(link_with: siril_lib,
 # Custom target for glib-compile-resources
 
 ################################################################################
-# Build gui executable
+# Build gui executable (only when -Dgui=enabled, the default)
 
+if enable_gui
 siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
@@ -337,6 +348,7 @@ siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        install : true,
                        win_subsystem : 'console',
                       )
+endif
 
 ################################################################################
 # Build cli executable
