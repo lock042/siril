@@ -290,10 +290,10 @@ simplest first to build momentum):
           new src/gui/cosmetic_correction.c
          (3 GUI calls, 11 raw GTK calls)
 
-[i] 3.3  src/filters/fft.c → keep processing; new src/gui/fft.c
+[X] 3.3  src/filters/fft.c → keep processing; new src/gui/fft.c
          (6 GUI calls, 8 raw GTK calls)
 
-[ ] 3.4  src/filters/rgradient.c → keep processing; new src/gui/rgradient.c
+[i] 3.4  src/filters/rgradient.c → keep processing; new src/gui/rgradient.c
          (6 GUI calls, 5 raw GTK calls)
 
 [ ] 3.5  src/filters/clahe.c → keep processing; new src/gui/clahe.c
