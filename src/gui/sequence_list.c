@@ -1036,8 +1036,14 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 		g_free(cached_original_filename);
 		cached_original_filename = NULL;
 		cached_real_index = real_index;
-		fit_sequence_get_image_filename_checkext(&com.seq, real_index, filename);
-		original_filename = get_original_filename_from_fits(filename);
+		fit_sequence_get_image_filename(&com.seq, real_index, filename, TRUE);
+		if (!is_symlink_file(filename)) // it's a real file, we try to read its header
+			original_filename = get_original_filename_from_fits(filename);
+		else {
+			gchar *original_filepath = g_file_read_link(filename, NULL);
+			original_filename = g_path_get_basename(original_filepath);
+			g_free(original_filepath);
+		}
 		if (original_filename) {
 			cached_original_filename = g_strdup(original_filename);
 		}
