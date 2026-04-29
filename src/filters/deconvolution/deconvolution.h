@@ -102,6 +102,18 @@ EXTERNC typedef struct estk_data {
     gboolean mask_aware; // Added for mask operations
 } estk_data;
 
+/* Forward declaration for sequence type (full definition in core/siril.h).
+ * Only used as a pointer here, so a forward declaration is sufficient. */
+typedef struct sequ sequence;
+
+/* Sequence processing container; used by filters/deconvolution.c and gui/newdeconv.c */
+typedef struct deconvolution_sequence_data {
+	sequence *seq;
+	char *seqEntry;
+	estk_data *deconv_data;
+	gboolean from_command;
+} deconvolution_sequence_data;
+
 EXTERNC void free_estk_data(void *p);
 EXTERNC estk_data *alloc_estk_data();
 EXTERNC gchar *makepsf_log_hook(gpointer p, log_hook_detail detail);

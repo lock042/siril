@@ -20,30 +20,32 @@
 #include <fftw3.h>
 #include <math.h>
 #include <assert.h>
-#include <locale.h>
-#include <gdk/gdk.h>
 #include "core/siril.h"
-#include "core/siril_date.h"
-#include "core/command.h"
-#include "algos/colors.h"
-#include "io/single_image.h"
-#include "io/image_format_fits.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/message_dialog.h"
-#include "gui/PSF_list.h"
-#include "gui/registration_preview.h"
+#include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
-#include "gui/progress_and_log.h"
-#include "gui/newdeconv.h"
-#include "filters/deconvolution/deconvolution.h"
-#include "filters/synthstar.h"
+#include "core/gui_iface.h"
+#include "core/settings.h"
+#include "gui/callbacks.h"
+#include "gui/gui_state.h"
+#include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
+#include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
+#include "filters/deconvolution/deconvolution.h"
+#include "filters/synthstar.h"
+
+/* Forward declarations for GUI idle callbacks invoked via gui_function() */
+gboolean DrawPSF(gpointer user_data);
+gboolean set_kernel_size_in_gui(gpointer user_data);
+gboolean reset_conv_controls(gpointer user_data);
+
+/* Forward declaration for star-list GUI callback */
+void clear_stars_list(gboolean refresh_GUI);
 
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
@@ -165,17 +167,6 @@ void reset_conv_kernel() {
 	g_mutex_unlock(&com.mutex);
 }
 
-void reset_conv_controls_and_args() {
-	estk_data *tmp_args = alloc_estk_data();
-	if (!tmp_args) return;
-
-	if (!processing_is_job_active())
-		reset_conv_args(tmp_args);
-	gui_function(reset_conv_controls, tmp_args);
-
-	tmp_args->destroy_fn(tmp_args);
-}
-
 void check_orientation(estk_data *args) {
 	int npixels = com.kernelsize * com.kernelsize;
 	int ndata = npixels * com.kernelchannels;
@@ -214,9 +205,9 @@ int load_kernel(gchar* filename, estk_data *args) {
 	}
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
-		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		// no need to check com.script as it is built into the siril_message_dialog function
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Wrong PSF size"),
+				_("PSF file does not contain a square PSF. Cannot load this file."));
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -631,7 +622,7 @@ gpointer estimate_only(gpointer p) {
 		}
 	}
 
-	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, _("Starting PSF computation..."));
 	START_TIMER;
 	get_kernel(args);
 	END_TIMER;
@@ -726,7 +717,7 @@ gpointer deconvolve(gpointer p) {
 	}
 	com.fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	set_wisdom_file();
 	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
@@ -755,7 +746,7 @@ gpointer deconvolve(gpointer p) {
 	// Get the kernel
 	if (args->psftype != PSF_PREVIOUS) {
 		if (sequence_is_running == 0)
-			set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
+			gui_iface.set_progress(PROGRESS_PULSATE, _("Starting PSF estimation..."));
 		get_kernel(args);
 }
 	if (!com.kernel) {
@@ -786,7 +777,7 @@ gpointer deconvolve(gpointer p) {
 
 	if (processing_should_continue() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
-			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
+			gui_iface.set_progress(0, _("Starting non-blind deconvolution..."));
 		gettimeofday(&t_start, NULL);
 		// Non-blind deconvolution stage
 		switch (args->nonblindtype) {
@@ -947,7 +938,7 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 		data->deconv_data->destroy_fn(data->deconv_data);
 
 	free(data);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 
 	sequence_is_running = 0;
 	return retval;
@@ -971,7 +962,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	estk_data *args = data->deconv_data;
 
-	set_progress_bar_data(_("Deconvolution. Processing sequence..."), 0.);
+	gui_iface.set_progress(0, _("Deconvolution. Processing sequence..."));
 	remove_prefixed_sequence_files(seqargs->seq, seqargs->new_seq_prefix);
 	remove_prefixed_star_files(seqargs->seq, seqargs->new_seq_prefix);
 	if (args->psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {

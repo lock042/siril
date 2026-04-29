@@ -5,12 +5,7 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "core/siril.h"
 
-typedef struct deconvolution_sequence_data {
-	sequence *seq;
-	char* seqEntry;
-	estk_data *deconv_data;
-	gboolean from_command;
-} deconvolution_sequence_data;
+/* deconvolution_sequence_data is defined in filters/deconvolution/deconvolution.h */
 
 void reset_conv_args(estk_data* args);
 gboolean reset_conv_controls(gpointer user_data);

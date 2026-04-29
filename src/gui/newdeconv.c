@@ -23,6 +23,7 @@
 #include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/command.h"
 #include "io/single_image.h"
@@ -267,6 +268,17 @@ gboolean reset_conv_controls(gpointer user_data) {
 	gtk_spin_button_set_value(bdeconv_ncomp, args_ptr->compensationfactor);
 
 	return FALSE;
+}
+
+void reset_conv_controls_and_args() {
+	estk_data *tmp_args = alloc_estk_data();
+	if (!tmp_args) return;
+
+	if (!processing_is_job_active())
+		reset_conv_args(tmp_args);
+	gui_function(reset_conv_controls, tmp_args);
+
+	tmp_args->destroy_fn(tmp_args);
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
