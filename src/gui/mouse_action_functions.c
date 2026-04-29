@@ -325,7 +325,8 @@ static gboolean draw_poly_release(mouse_data *data) {
 	gui.drawing_polygon = FALSE;
 	*data->mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	UserPolygon *poly = create_user_polygon_from_points(gui.drawing_polypoints);
-	add_existing_polygon(poly, &gui.poly_ink, gui.poly_fill);
+	double ink[4] = { gui.poly_ink.red, gui.poly_ink.green, gui.poly_ink.blue, gui.poly_ink.alpha };
+	add_existing_polygon(poly, ink, gui.poly_fill);
 	queue_redraw(REDRAW_OVERLAY);
 	// Free and NULL gui.drawing_polypoints
 	g_slist_free_full(gui.drawing_polypoints, free);

@@ -1463,33 +1463,31 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								  polygon->color[0],
+						 polygon->color[1],
+						 polygon->color[2],
+						 polygon->color[3]);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
 			}
 			cairo_close_path(cr);
-			// Fill the polygon
 			cairo_fill_preserve(cr);
-			// Draw the outline
+			/* slightly darker outline when filled */
 			cairo_set_source_rgba(cr,
-								  polygon->color.red * 0.8, // Slightly darker outline if filled
-						 polygon->color.green * 0.8,
-						 polygon->color.blue * 0.8,
-						 polygon->color.alpha);
+								  polygon->color[0] * 0.8,
+						 polygon->color[1] * 0.8,
+						 polygon->color[2] * 0.8,
+						 polygon->color[3]);
 			cairo_stroke(cr);
 			cairo_restore(cr);
 		} else {
 			cairo_save(cr);
-			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								  polygon->color[0],
+						 polygon->color[1],
+						 polygon->color[2],
+						 polygon->color[3]);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
