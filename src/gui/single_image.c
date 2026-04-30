@@ -32,8 +32,8 @@ static const char *drawing_area[] = { "drawingarear", "drawingareag", "drawingar
 
 void siril_drag_single_image_set_dest() {
 	for (int i = 0; i < G_N_ELEMENTS(drawing_area); i++) {
-		gtk_drag_dest_set(lookup_widget(drawing_area[i]), GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP | GTK_DEST_DEFAULT_HIGHLIGHT, NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-		gtk_drag_dest_add_uri_targets(lookup_widget(drawing_area[i]));
+		gtk_drag_dest_set(GTK_WIDGET(gtk_builder_get_object(gui.builder, drawing_area[i])), GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP | GTK_DEST_DEFAULT_HIGHLIGHT, NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
+		gtk_drag_dest_add_uri_targets(GTK_WIDGET(gtk_builder_get_object(gui.builder, drawing_area[i])));
 	}
 }
 

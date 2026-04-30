@@ -127,14 +127,14 @@ static GtkWidget *get_widget_by_id(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	if (entry.get_window)
 		return entry.get_window();
-	return lookup_widget(entry.identifier);
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
 static GtkWidget *get_widget_by_index(int index) {
 	SirilDialogEntry entry = entries[index];
 	if (entry.get_window)
 		return entry.get_window();
-	return lookup_widget(entry.identifier);
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, entry.identifier));
 }
 
 static gboolean check_escape(GtkWidget *widget, GdkEventKey *event,
@@ -183,7 +183,7 @@ void siril_open_dialog(gchar *id) {
 		gtk_window_set_position(win, GTK_WIN_POS_CENTER);
 	}
 	gtk_window_set_type_hint(win, GDK_WINDOW_TYPE_HINT_DIALOG);
-	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
+	gtk_window_set_transient_for(win, GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
 	if (entry.type == IMAGE_PROCESSING_DIALOG) {

@@ -255,8 +255,8 @@ void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
 					ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
 					dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
 
-					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_ra_entry")), ra);
-					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_dec_entry")), dec);
+					gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(gui.builder, "show_ra_entry")), ra);
+					gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(gui.builder, "show_dec_entry")), dec);
 
 					g_free(ra), g_free(dec);
 					siril_world_cs_unref(world_cs);

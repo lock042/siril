@@ -227,7 +227,7 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	if (data->appmap) {
 		action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), data->action_name);
 	} else {
-		GtkWidget *win = lookup_widget("control_window");
+		GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 		if (!win) {
 			siril_log_color_message(_("activate_action_if_enabled(): control_window not found\n"), "red");
 			data->result = ACTION_WINDOW_MISSING;

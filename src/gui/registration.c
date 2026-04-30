@@ -225,7 +225,7 @@ static void registration_init_statics() {
 		checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
 		toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
 		toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
-		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 
 		// additional statics
 		spin[0] = GTK_WIDGET(stackspin4);
@@ -391,7 +391,7 @@ void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		SirilWidget *widgetdialog;
 		GtkFileChooser *dialog = NULL;
-		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);

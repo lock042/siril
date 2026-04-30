@@ -33,21 +33,30 @@
 
 #include "filters/linear_match.h"
 
+static GtkFileChooser *lm_ref_chooser = NULL;
+static GtkSpinButton *lm_high_spin = NULL;
+static GtkSpinButton *lm_low_spin = NULL;
+
+static void linear_match_init_statics(void) {
+	if (lm_ref_chooser) return;
+	lm_ref_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
+	lm_high_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_high"));
+	lm_low_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_low"));
+}
+
 static gchar *get_reference_filename() {
-	GtkFileChooser *linearmatch_ref = GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch"));
-	return siril_file_chooser_get_filename(linearmatch_ref);
+	linear_match_init_statics();
+	return siril_file_chooser_get_filename(lm_ref_chooser);
 }
 
 static gdouble get_high_rejection() {
-	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spin_linearmatch_high"));
-
-	return gtk_spin_button_get_value(button);
+	linear_match_init_statics();
+	return gtk_spin_button_get_value(lm_high_spin);
 }
 
 static gdouble get_low_rejection() {
-	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spin_linearmatch_low"));
-
-	return gtk_spin_button_get_value(button);
+	linear_match_init_statics();
+	return gtk_spin_button_get_value(lm_low_spin);
 }
 
 /*** callbacks **/

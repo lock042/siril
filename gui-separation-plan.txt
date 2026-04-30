@@ -403,11 +403,38 @@ for the modules that could not be split using Pattern A.
          - No call to lookup_widget() should appear in any file created in
            phase 3; all widget access goes through the static pointers.
 
-[ ] 4.2  Convert pre-existing src/gui/ files to init_statics (one at a time)
+[i] 4.2  Convert pre-existing src/gui/ files to init_statics (one at a time)
          - For every pre-existing src/gui/X.c that still calls lookup_widget(),
            apply the same init_statics pattern.
          - Work file by file; suggest starting with files that have the
            fewest remaining lookup_widget() calls.
+         - Note - so far the following files in src/gui have been converted
+           in 4.2:
+           * python_gui.c
+           * annotate.c
+           * registration.c
+           * single_image.c
+           * dialogs.c
+           * linear_match.c
+           * siril-window.c
+           * PSF_list.c
+           * about_dialog.c
+           * conversion.c
+           * fix_xtrans.c
+           * git_gui.c
+           * histo_display.c
+           * image_display.c
+           * image_interactions.c
+           * keywords_tree.c
+           * message_dialog.c
+           * mouse_action_preferences.c
+           * progress_and_log.c
+           * registration_preview.c
+           * script_menu.c
+           * siril_intro.c
+           * split_cfa.c
+           * statistics_list.c
+           * utils.c
 
 [ ] 4.3  Eliminate lookup_widget() from all non-gui source files
          - After phases 3 and 4.1–4.2 the majority of call-sites will already
