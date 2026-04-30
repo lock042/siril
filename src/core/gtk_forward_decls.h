@@ -40,8 +40,7 @@
  * TODO (plan 5.13): move thumbnailing API into gui/ wrappers.       */
 typedef struct _GdkPixbuf GdkPixbuf;
 
-/* GtkEntry — parameter of search_object() in algos/search_objects.h.
- * TODO (plan 3.14): split search_objects.c into processing / gui parts. */
+/* GtkEntry — parameter of search_object() in gui/search_objects.h. */
 typedef struct _GtkEntry GtkEntry;
 
 /* GtkButton — GTK callback declared in algos/astrometry_solver.h.

@@ -326,11 +326,11 @@ simplest first to build momentum):
           extend src/gui/compstars.c (already exists)
          (4 GUI calls, 3 raw GTK calls)
 
-[ ] 3.14 src/algos/search_objects.c → keep processing;
+[X] 3.14 src/algos/search_objects.c → keep processing;
           move GUI callbacks to existing or new src/gui/search_objects.c
          (2 GUI calls, 2 raw GTK calls)
 
-[ ] 3.15 src/algos/colors.c → keep processing;
+[X] 3.15 src/algos/colors.c → keep processing;
           GUI notifications moved to src/gui/colors.c (already exists) or
           routed through gui_iface
          (2 GUI calls: invalidate_gfit_histogram, populate_roi)
