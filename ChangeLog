@@ -7,6 +7,7 @@ siril-1.4.3
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
 * Added None as a keyword value for BAYERPAT
+* Fixed file extension handling in Save As dialog (#1748)
 
 **Improvements**
 * Added SirilInterface.open_dialog()
