@@ -357,14 +357,14 @@ simplest first to build momentum):
 [X] 3.20 src/algos/astrometry_solver.c — 1 GUI call (set_progress_bar_data),
           handled entirely by phase 4.1; no new file needed
 
-[ ] 3.21 src/algos/background_extraction.c — 2 GUI calls,
+[X] 3.21 src/algos/background_extraction.c — 2 GUI calls,
           handled entirely by phase 4.1/4.2/4.4; no new file needed
 
-[ ] 3.22 src/algos/star_finder.c — 3 GUI calls
+[X] 3.22 src/algos/star_finder.c — 3 GUI calls
           (execute_idle_and_wait_for_it, update_sequences_list,
           update_star_list); route through gui_iface in phase 4
 
-[ ] 3.23 src/compositing/compositing.c → move entirely to src/gui/compositing.c
+[X] 3.23 src/compositing/compositing.c → move entirely to src/gui/compositing.c
          - compositing.c makes 89 unique raw GTK calls; it is a GUI file.
          - The algorithm portions (align_rgb.c, filters.c) stay in
            compositing/ and are clean after phases 3–4.

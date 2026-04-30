@@ -72,7 +72,6 @@ src_files = [
   'algos/lcms_acceleration/threaded_split.c',
 
   'compositing/align_rgb.c',
-  'compositing/compositing.c',
   'compositing/filters.c',
 
   'core/arithm.c',
@@ -322,6 +321,7 @@ src_files_gui = [
   'gui/star_finder.c',
   'gui/starnetgui.c',
   'gui/statistics_list.c',
+  'gui/compositing.c',
   'gui/unpurple.c',
   'gui/user_polygons.c',
   'gui/utils.c',

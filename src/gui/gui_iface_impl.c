@@ -38,6 +38,7 @@
 #include "gui/callbacks.h"
 #include "gui/geometry.h"
 #include "gui/plot.h"
+#include "gui/PSF_list.h"
 #include "gui/siril_plot.h"
 #include "gui/utils.h"
 
@@ -70,7 +71,7 @@ static GtkMessageType to_gtk_msg_type(SirilMessageType type) {
 
 static void impl_message_dialog(SirilMessageType type, const char *title,
                                 const char *text) {
-	siril_message_dialog(to_gtk_msg_type(type), (char *)title, (char *)text);
+	queue_message_dialog(to_gtk_msg_type(type), title, text);
 }
 
 static gboolean impl_confirm_dialog(const char *title, const char *msg,
@@ -165,6 +166,13 @@ static void impl_show_siril_plot(gpointer spl_data) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 }
 
+/* ── Group K: Star list ──────────────────────────────────────────────────── */
+
+static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
+                                  gboolean wait) {
+	update_star_list(stars, update_psf_list, wait);
+}
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 void siril_register_gui_iface(void) {
@@ -191,4 +199,5 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_stats_ready        = impl_on_stats_ready;
 	gui_iface.on_photometry_changed = impl_on_photometry_changed;
 	gui_iface.show_siril_plot       = impl_show_siril_plot;
+	gui_iface.update_star_list      = impl_update_star_list;
 }

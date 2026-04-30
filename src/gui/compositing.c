@@ -54,8 +54,7 @@
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
-#include "compositing.h"
-#include "filters.h"
+#include "compositing/filters.h"
 
 #undef DEBUG
 

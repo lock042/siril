@@ -42,6 +42,10 @@
 
 #include <glib.h>   /* gboolean, gchar — GLib only, no GTK */
 
+/* Forward declaration for Group K — avoids including siril.h or PSF.h */
+struct fwhm_struct;
+typedef struct fwhm_struct psf_star;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -153,6 +157,11 @@ typedef struct {
 	void     (*on_photometry_changed)(void);
 	/* Open a new siril-plot window for the given siril_plot_data pointer. */
 	void     (*show_siril_plot)(gpointer spl_data);
+
+	/* K – Star list -------------------------------------------------------- */
+	/* Update the star list display and optionally the PSF list panel. */
+	void     (*update_star_list)(psf_star **stars, gboolean update_psf_list,
+	                             gboolean wait);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

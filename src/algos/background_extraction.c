@@ -40,7 +40,7 @@
 #include "io/sequence.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
-#include "gui/message_dialog.h"
+#include "core/gui_iface.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
 
@@ -1199,7 +1199,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_error_message_dialog(_("Not enough samples."), error ? error : _("Insufficient samples"));
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error ? error : _("Insufficient samples"));
 			if (!args->from_ui) {
 				g_mutex_lock(&bgsamples_mutex);
 				free_background_sample_list(com.grad_samples);
@@ -1371,7 +1371,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_error_message_dialog(_("Not enough samples."), error);
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error);
 			if (!args->from_ui) {
 				g_mutex_lock(&bgsamples_mutex);
 				free_background_sample_list(com.grad_samples);
@@ -1520,7 +1520,7 @@ int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int th
 					g_mutex_unlock(&bgsamples_mutex);
 				}
 				cfachans_cleanup(cfachans);
-				queue_error_message_dialog(_("Not enough samples."), error);
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error);
 				return 1;
 			}
 			convert_fits_to_img(subchannel, image, 0, args->dither);
@@ -1573,7 +1573,7 @@ int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int th
 			if (!interpolation_worked) {
 				free(image);
 				free(background);
-				queue_error_message_dialog(_("Not enough samples."), error ? error : _("Insufficient samples"));
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough samples."), error ? error : _("Insufficient samples"));
 				if (!args->from_ui) {
 					g_mutex_lock(&bgsamples_mutex);
 					free_background_sample_list(com.grad_samples);
