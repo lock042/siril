@@ -275,6 +275,7 @@ src_files_gui = [
   'gui/epf.c',
   'gui/gui_iface_impl.c',
   'gui/fix_xtrans_af.c',
+  'gui/geometry.c',
   'gui/git_gui.c',
   'gui/histo_display.c',
   'gui/histogram.c',

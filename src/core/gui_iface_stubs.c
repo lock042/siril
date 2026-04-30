@@ -88,25 +88,31 @@ static void stub_show_panel(const char *panel_name, gboolean visible) {
 
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
+static void stub_on_geometry_changed(void) {}
+static void stub_on_mask_state_changed(void) {}
+static void stub_on_crop_complete(void) {}
 
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
-	.set_progress       = stub_set_progress,
-	.set_busy           = stub_set_busy,
-	.log_message        = stub_log_message,
-	.message_dialog     = stub_message_dialog,
-	.confirm_dialog     = stub_confirm_dialog,
-	.open_dialog        = stub_open_dialog,
-	.close_dialog       = stub_close_dialog,
-	.redraw_image       = stub_redraw_image,
-	.redraw_image_async = stub_redraw_image_async,
-	.redraw_image_sync  = stub_redraw_image_sync,
-	.delete_selection   = stub_delete_selection,
-	.on_sequence_opened = stub_on_sequence_opened,
-	.on_image_loaded    = stub_on_image_loaded,
-	.on_image_closed    = stub_on_image_closed,
-	.show_panel         = stub_show_panel,
-	.update_status_bar  = stub_update_status_bar,
-	.update_menu_state  = stub_update_menu_state,
+	.set_progress         = stub_set_progress,
+	.set_busy             = stub_set_busy,
+	.log_message          = stub_log_message,
+	.message_dialog       = stub_message_dialog,
+	.confirm_dialog       = stub_confirm_dialog,
+	.open_dialog          = stub_open_dialog,
+	.close_dialog         = stub_close_dialog,
+	.redraw_image         = stub_redraw_image,
+	.redraw_image_async   = stub_redraw_image_async,
+	.redraw_image_sync    = stub_redraw_image_sync,
+	.delete_selection     = stub_delete_selection,
+	.on_sequence_opened   = stub_on_sequence_opened,
+	.on_image_loaded      = stub_on_image_loaded,
+	.on_image_closed      = stub_on_image_closed,
+	.show_panel           = stub_show_panel,
+	.update_status_bar    = stub_update_status_bar,
+	.update_menu_state    = stub_update_menu_state,
+	.on_geometry_changed  = stub_on_geometry_changed,
+	.on_mask_state_changed= stub_on_mask_state_changed,
+	.on_crop_complete     = stub_on_crop_complete,
 };

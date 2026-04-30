@@ -335,12 +335,12 @@ simplest first to build momentum):
           routed through gui_iface
          (2 GUI calls: invalidate_gfit_histogram, populate_roi)
 
-[ ] 3.16 src/algos/geometry.c → keep processing;
+[X] 3.16 src/algos/geometry.c → keep processing;
           move GUI calls into a new src/gui/geometry.c wrapper
          (6 GUI calls — clear_stars_list, delete_selected_area, on_clear_roi,
           reset_display_offset, show_or_hide_mask_tab, update_zoom_label)
 
-[ ] 3.17 src/algos/noise.c → keep processing;
+[X] 3.17 src/algos/noise.c → keep processing;
           2 GUI calls only (no new file needed); route through gui_iface in
           phase 4
 

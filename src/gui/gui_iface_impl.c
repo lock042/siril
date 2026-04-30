@@ -28,11 +28,15 @@
 
 #include <gtk/gtk.h>
 #include "core/gui_iface.h"
+#include "core/proto.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
+#include "gui/callbacks.h"
+#include "gui/geometry.h"
+#include "gui/utils.h"
 
 /* ── Group A: Progress ───────────────────────────────────────────────────── */
 
@@ -98,35 +102,68 @@ static void impl_delete_selection(void) {
 	delete_selected_area();
 }
 
-/* ── Groups E, F, G: no-op placeholders until phases 4–5 wire them up ── */
+/* ── Groups E, F: no-op placeholders until phases 4–5 wire them up ── */
 
 static void impl_on_sequence_opened(void) {}
 static void impl_on_image_loaded(void) {}
 static void impl_on_image_closed(void) {}
+
+/* ── Group F: Panel / tab switching ─────────────────────────────────────── */
+
 static void impl_show_panel(const char *panel_name, gboolean visible) {
-	(void)panel_name; (void)visible;
+	if (g_strcmp0(panel_name, "output_logs") == 0) {
+		if (visible)
+			control_window_switch_to_tab(OUTPUT_LOGS);
+		return;
+	}
+	(void)visible;
 }
-static void impl_update_status_bar(void) {}
-static void impl_update_menu_state(void) {}
+
+/* ── Group G: Misc GUI state ─────────────────────────────────────────────── */
+
+static void impl_update_status_bar(void) {
+	gui_function(update_zoom_label_idle, NULL);
+}
+
+static void impl_update_menu_state(void) {
+	gui_function(update_MenuItem, NULL);
+}
+
+/* ── Group H: Geometry / ROI / Mask state ────────────────────────────────── */
+
+static void impl_on_geometry_changed(void) {
+	on_clear_roi();
+}
+
+static void impl_on_mask_state_changed(void) {
+	show_or_hide_mask_tab();
+}
+
+static void impl_on_crop_complete(void) {
+	gui_function(crop_gui_updates, NULL);
+}
 
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 void siril_register_gui_iface(void) {
-	gui_iface.set_progress       = impl_set_progress;
-	gui_iface.set_busy           = impl_set_busy;
-	gui_iface.log_message        = impl_log_message;
-	gui_iface.message_dialog     = impl_message_dialog;
-	gui_iface.confirm_dialog     = impl_confirm_dialog;
-	gui_iface.open_dialog        = impl_open_dialog;
-	gui_iface.close_dialog       = impl_close_dialog;
-	gui_iface.redraw_image       = impl_redraw_image;
-	gui_iface.redraw_image_async = impl_redraw_image_async;
-	gui_iface.redraw_image_sync  = impl_redraw_image_sync;
-	gui_iface.delete_selection   = impl_delete_selection;
-	gui_iface.on_sequence_opened = impl_on_sequence_opened;
-	gui_iface.on_image_loaded    = impl_on_image_loaded;
-	gui_iface.on_image_closed    = impl_on_image_closed;
-	gui_iface.show_panel         = impl_show_panel;
-	gui_iface.update_status_bar  = impl_update_status_bar;
-	gui_iface.update_menu_state  = impl_update_menu_state;
+	gui_iface.set_progress          = impl_set_progress;
+	gui_iface.set_busy              = impl_set_busy;
+	gui_iface.log_message           = impl_log_message;
+	gui_iface.message_dialog        = impl_message_dialog;
+	gui_iface.confirm_dialog        = impl_confirm_dialog;
+	gui_iface.open_dialog           = impl_open_dialog;
+	gui_iface.close_dialog          = impl_close_dialog;
+	gui_iface.redraw_image          = impl_redraw_image;
+	gui_iface.redraw_image_async    = impl_redraw_image_async;
+	gui_iface.redraw_image_sync     = impl_redraw_image_sync;
+	gui_iface.delete_selection      = impl_delete_selection;
+	gui_iface.on_sequence_opened    = impl_on_sequence_opened;
+	gui_iface.on_image_loaded       = impl_on_image_loaded;
+	gui_iface.on_image_closed       = impl_on_image_closed;
+	gui_iface.show_panel            = impl_show_panel;
+	gui_iface.update_status_bar     = impl_update_status_bar;
+	gui_iface.update_menu_state     = impl_update_menu_state;
+	gui_iface.on_geometry_changed   = impl_on_geometry_changed;
+	gui_iface.on_mask_state_changed = impl_on_mask_state_changed;
+	gui_iface.on_crop_complete      = impl_on_crop_complete;
 }

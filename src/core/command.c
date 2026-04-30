@@ -42,6 +42,7 @@
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
@@ -14765,7 +14766,7 @@ int process_eqcrop(int nb) {
 		return retval;
 
 	gfit_modified_update_gui();
-	gui_function(crop_gui_updates, NULL);
+	gui_iface.on_crop_complete();
 
 	return CMD_OK;
 }

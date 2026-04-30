@@ -135,6 +135,14 @@ typedef struct {
 	void     (*update_status_bar)(void);
 	/* Sync menu/toolbar enable-state to current application state. */
 	void     (*update_menu_state)(void);
+
+	/* H – Geometry / ROI / Mask state ------------------------------------- */
+	/* Called before a geometry-altering operation; clears ROI if active. */
+	void     (*on_geometry_changed)(void);
+	/* Called when a mask is removed or its visibility state changes. */
+	void     (*on_mask_state_changed)(void);
+	/* Called after a crop completes; clears stars, selection, display offset. */
+	void     (*on_crop_complete)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */
