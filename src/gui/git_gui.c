@@ -43,6 +43,22 @@ static GtkListStore *list_store = NULL;
 static gchar *current_search_text = NULL;
 static gboolean filter_enabled = FALSE;
 static GtkTreeModelFilter *filter_model = NULL;
+static GtkTreeView *git_treeview_scripts = NULL;
+static GtkWindow *git_control_window = NULL;
+static GtkWidget *git_pref_auto_updates = NULL;
+static GtkWidget *git_manual_sync_btn = NULL;
+static GtkWidget *git_spcc_sync_startup = NULL;
+static GtkWidget *git_spcc_manual_sync = NULL;
+
+static void git_gui_init_statics(void) {
+	if (git_treeview_scripts) return;
+	git_treeview_scripts = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview_scripts"));
+	git_control_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	git_pref_auto_updates = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_script_automatic_updates"));
+	git_manual_sync_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "manual_script_sync_button"));
+	git_spcc_sync_startup = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spcc_repo_sync_at_startup"));
+	git_spcc_manual_sync = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spcc_repo_manual_sync"));
+}
 static GtkTreeModelSort *sort_model = NULL;
 
 static const char *bg_color[] = {"WhiteSmoke", "#1B1B1B"};
@@ -292,7 +308,8 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 * It is executed safely in the GTK thread if as_idle is true. */
 void fill_script_repo_tree(gboolean as_idle) {
 
-	GtkTreeView *tview = GTK_TREE_VIEW(lookup_widget("treeview_scripts"));
+	git_gui_init_statics();
+	GtkTreeView *tview = git_treeview_scripts;
 	if (as_idle)
 		gdk_threads_add_idle(fill_script_repo_tree_idle, tview);
 	else
@@ -332,8 +349,8 @@ void on_treeview_scripts_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 	gchar *contents = NULL;
 	gsize length;
 	GtkTreeIter iter;
-	GtkTreeModel *model =
-		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+	git_gui_init_statics();
+	GtkTreeModel *model = gtk_tree_view_get_model(git_treeview_scripts);
 
 	if (!gtk_tree_model_get_iter(model, &iter, path))
 		return;
@@ -396,7 +413,7 @@ gboolean on_treeview_scripts_button_press(GtkWidget *widget, GdkEventButton *eve
 				// Create dialog to ask for revision count
 				GtkWidget *dialog = gtk_dialog_new_with_buttons(
 					_("Select Revision"),
-					GTK_WINDOW(lookup_widget("control_window")),
+					git_control_window,
 					GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 					_("_Cancel"), GTK_RESPONSE_CANCEL,
 					_("_OK"), GTK_RESPONSE_OK,
@@ -516,7 +533,8 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *
 	gchar *script_path = NULL;
 
 	path = gtk_tree_path_new_from_string(char_path);
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+	git_gui_init_statics();
+	model = gtk_tree_view_get_model(git_treeview_scripts);
 
 	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE) {
 		gtk_tree_path_free(path);
@@ -585,7 +603,8 @@ void on_script_list_startup_toggled(GtkCellRendererToggle *cell_renderer, gchar 
 	gchar *script_path = NULL;
 
 	path = gtk_tree_path_new_from_string(char_path);
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview_scripts")));
+	git_gui_init_statics();
+	model = gtk_tree_view_get_model(git_treeview_scripts);
 
 	if (gtk_tree_model_get_iter(model, &iter, path) == FALSE) {
 		gtk_tree_path_free(path);
@@ -680,9 +699,10 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	if (com.pref.use_scripts_repository) {
 		g_thread_unref(g_thread_new("update_scripts", initialize_scripts, NULL));
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
-	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(lookup_widget("treeview_scripts"), (com.pref.use_scripts_repository && gui.script_repo_available));
+	git_gui_init_statics();
+	gtk_widget_set_sensitive(git_pref_auto_updates, com.pref.use_scripts_repository);
+	gtk_widget_set_sensitive(git_manual_sync_btn, (com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(GTK_WIDGET(git_treeview_scripts), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -690,13 +710,15 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (com.pref.spcc.use_spcc_repository) {
 		g_thread_unref(g_thread_new("update_spcc", initialize_spcc, NULL));
 	}
-	gtk_widget_set_sensitive(lookup_widget("spcc_repo_sync_at_startup"), com.pref.spcc.use_spcc_repository);
-	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
+	git_gui_init_statics();
+	gtk_widget_set_sensitive(git_spcc_sync_startup, com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(git_spcc_manual_sync, (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
 }
 #else
 
 void hide_git_widgets() {
-	gtk_widget_set_visible(lookup_widget("frame_gitscripts"), FALSE);
+	GtkWidget *frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_gitscripts"));
+	gtk_widget_set_visible(frame, FALSE);
 }
 
 // We still need to provide placeholder callbacks to prevent GTK critical

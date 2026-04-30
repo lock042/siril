@@ -30,6 +30,18 @@
 #include "io/single_image.h"
 
 static GtkListStore *list_store = NULL;
+static GtkToggleButton *stat_checkbutton = NULL;
+static GtkToggleButton *stat_cfa_checkbutton = NULL;
+static GtkLabel *stat_name_label = NULL;
+static GtkLabel *stat_selec_label = NULL;
+
+static void statistics_list_init_statics(void) {
+	if (stat_checkbutton) return;
+	stat_checkbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "statCheckButton"));
+	stat_cfa_checkbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "cfastatsCheckButton"));
+	stat_name_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statNameLabel"));
+	stat_selec_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statSelecLabel"));
+}
 
 static const char *first_colour[] = { "WhiteSmoke", "#1B1B1B" };
 static const char *second_colour[] = { "Powder Blue", "#39394A" };
@@ -117,15 +129,13 @@ static double get_value_from_stat(imstats *stat, int index) {
 
 static void init_dialog() {
 	static GtkTreeSelection *selection = NULL;
-	static GtkWidget *cfacheck = NULL;
 	get_statlist_store();
-	if (!selection) {
+	statistics_list_init_statics();
+	if (!selection)
 		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection9"));
-		cfacheck = lookup_widget("cfastatsCheckButton");
-	}
 
 	gtk_list_store_clear(list_store);
-	gtk_widget_set_sensitive(cfacheck, gfit->rx > 0 && gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0');
+	gtk_widget_set_sensitive(GTK_WIDGET(stat_cfa_checkbutton), gfit->rx > 0 && gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0');
 }
 
 static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
@@ -172,18 +182,13 @@ void on_statButtonClose_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void computeStat() {
-	GtkToggleButton *checkButton, *cfaCheckButton;
-	GtkLabel *statNameLabel, *statSelecLabel;
 	gboolean normalized, use_cfa;
 	int channel;
 	gchar *name, *selection;
 
-	checkButton = GTK_TOGGLE_BUTTON(lookup_widget("statCheckButton"));
-	cfaCheckButton = GTK_TOGGLE_BUTTON(lookup_widget("cfastatsCheckButton"));
-	statNameLabel = GTK_LABEL(lookup_widget("statNameLabel"));
-	statSelecLabel = GTK_LABEL(lookup_widget("statSelecLabel"));
-	normalized = gtk_toggle_button_get_active(checkButton);
-	use_cfa = gtk_toggle_button_get_active(cfaCheckButton);
+	statistics_list_init_statics();
+	normalized = gtk_toggle_button_get_active(stat_checkbutton);
+	use_cfa = gtk_toggle_button_get_active(stat_cfa_checkbutton);
 
 	if (single_image_is_loaded())
 		name = g_strdup_printf("%s", com.uniq->filename);
@@ -193,7 +198,7 @@ void computeStat() {
 	else
 		name = g_strdup_printf(_("unknown image"));
 
-	gtk_label_set_text(statNameLabel, name);
+	gtk_label_set_text(stat_name_label, name);
 	g_free(name);
 
 	if (com.selection.h && com.selection.w) {
@@ -203,7 +208,7 @@ void computeStat() {
 		selection = g_strdup_printf(_("No selection"));
 	}
 
-	gtk_label_set_text(statSelecLabel, selection);
+	gtk_label_set_text(stat_selec_label, selection);
 	g_free(selection);
 
 	init_dialog();

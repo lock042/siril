@@ -49,6 +49,37 @@
 
 void on_get_scripts_clicked(gpointer user_data);
 static GtkWidget *menuscript = NULL;
+static GtkTextView *script_path_textview = NULL;
+static GtkWidget *script_tab_conversion = NULL;
+static GtkWidget *script_tab_sequence = NULL;
+static GtkWidget *script_tab_calibration = NULL;
+static GtkWidget *script_tab_registration = NULL;
+static GtkWidget *script_tab_plot = NULL;
+static GtkWidget *script_tab_stacking = NULL;
+static GtkWidget *script_command_entry = NULL;
+static GtkWidget *script_notebook1 = NULL;
+static GtkWidget *script_headerbar = NULL;
+static GtkWidget *script_toolbarbox = NULL;
+static GtkStack *script_stack_pref = NULL;
+static GtkWidget *script_scripts_page = NULL;
+
+static void script_menu_init_statics(void) {
+	if (menuscript) return;
+	menuscript = GTK_WIDGET(gtk_builder_get_object(gui.builder, "header_scripts_button"));
+	script_path_textview = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "GtkTxtScriptPath"));
+	script_tab_conversion = GTK_WIDGET(gtk_builder_get_object(gui.builder, "conversion_tab"));
+	script_tab_sequence = GTK_WIDGET(gtk_builder_get_object(gui.builder, "sequence_tab"));
+	script_tab_calibration = GTK_WIDGET(gtk_builder_get_object(gui.builder, "calibration_tab"));
+	script_tab_registration = GTK_WIDGET(gtk_builder_get_object(gui.builder, "registration_tab"));
+	script_tab_plot = GTK_WIDGET(gtk_builder_get_object(gui.builder, "plot_tab"));
+	script_tab_stacking = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stacking_tab"));
+	script_command_entry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "command"));
+	script_notebook1 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "notebook1"));
+	script_headerbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "headerbar"));
+	script_toolbarbox = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toolbarbox"));
+	script_stack_pref = GTK_STACK(gtk_builder_get_object(gui.builder, "stack_pref"));
+	script_scripts_page = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scripts_page"));
+}
 
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
@@ -72,14 +103,9 @@ static GSList *initialize_script_paths(){
 }
 
 static void add_path_to_gtkText(gchar *path) {
-	static GtkTextBuffer *tbuf = NULL;
-	static GtkTextView *text = NULL;
+	script_menu_init_statics();
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(script_path_textview);
 	GtkTextIter iter;
-
-	if (!tbuf) {
-		text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
-		tbuf = gtk_text_view_get_buffer(text);
-	}
 
 	gtk_text_buffer_get_end_iter(tbuf, &iter);
 	gtk_text_buffer_insert(tbuf, &iter, path, strlen(path));
@@ -89,12 +115,12 @@ static void add_path_to_gtkText(gchar *path) {
 	gtk_text_buffer_get_end_iter(tbuf, &iter);
 	GtkTextMark *insert_mark = gtk_text_buffer_get_insert(tbuf);
 	gtk_text_buffer_place_cursor(tbuf, &iter);
-	gtk_text_view_scroll_to_mark(text, insert_mark, 0.0, TRUE, 0.0, 1.0);
+	gtk_text_view_scroll_to_mark(script_path_textview, insert_mark, 0.0, TRUE, 0.0, 1.0);
 }
 
 static void clear_gtk_list() {
-	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
+	script_menu_init_statics();
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(script_path_textview);
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
@@ -102,26 +128,17 @@ static void clear_gtk_list() {
 }
 
 void script_widgets_enable(gboolean status) {
-	GtkWidget *tab1 = lookup_widget("conversion_tab");
-	GtkWidget *tab2 = lookup_widget("sequence_tab");
-	GtkWidget *tab3 = lookup_widget("calibration_tab");
-	GtkWidget *tab4 = lookup_widget("registration_tab");
-	GtkWidget *tab5 = lookup_widget("plot_tab");
-	GtkWidget *tab6 = lookup_widget("stacking_tab");
-	GtkWidget *command = lookup_widget("command");
-	GtkWidget *notebook1 = lookup_widget("notebook1");
-	GtkWidget *headerbar = lookup_widget("headerbar");
-	GtkWidget *toolbarbox = lookup_widget("toolbarbox");
-	gtk_widget_set_sensitive(tab1, status);
-	gtk_widget_set_sensitive(tab2, status);
-	gtk_widget_set_sensitive(tab3, status);
-	gtk_widget_set_sensitive(tab4, status);
-	gtk_widget_set_sensitive(tab5, status);
-	gtk_widget_set_sensitive(tab6, status);
-	gtk_widget_set_sensitive(command, status);
-	gtk_widget_set_sensitive(notebook1, status);
-	gtk_widget_set_sensitive(headerbar, status);
-	gtk_widget_set_sensitive(toolbarbox, status);
+	script_menu_init_statics();
+	gtk_widget_set_sensitive(script_tab_conversion, status);
+	gtk_widget_set_sensitive(script_tab_sequence, status);
+	gtk_widget_set_sensitive(script_tab_calibration, status);
+	gtk_widget_set_sensitive(script_tab_registration, status);
+	gtk_widget_set_sensitive(script_tab_plot, status);
+	gtk_widget_set_sensitive(script_tab_stacking, status);
+	gtk_widget_set_sensitive(script_command_entry, status);
+	gtk_widget_set_sensitive(script_notebook1, status);
+	gtk_widget_set_sensitive(script_headerbar, status);
+	gtk_widget_set_sensitive(script_toolbarbox, status);
 }
 
 gboolean script_widgets_idle(gpointer user_data) {
@@ -322,8 +339,7 @@ static GtkWidget* get_py_submenu(const gchar *script_path, GtkWidget *menu_py, G
 static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	GSList *list, *script_paths, *s;
 
-	if (!menuscript)
-		menuscript = lookup_widget("header_scripts_button");
+	script_menu_init_statics();
 
 	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
@@ -617,16 +633,11 @@ gpointer refresh_script_menu_in_thread(gpointer user_data) {
 
 GSList *get_list_from_preferences_dialog() {
 	GSList *list = NULL;
-	static GtkTextBuffer *tbuf = NULL;
-	static GtkTextView *text = NULL;
+	script_menu_init_statics();
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(script_path_textview);
 	GtkTextIter start, end;
 	gchar *txt;
 	gint i = 0;
-
-	if (!tbuf) {
-		text = GTK_TEXT_VIEW(lookup_widget("GtkTxtScriptPath"));
-		tbuf = gtk_text_view_get_buffer(text);
-	}
 	gtk_text_buffer_get_bounds(tbuf, &start, &end);
 	txt = gtk_text_buffer_get_text(tbuf, &start, &end, TRUE);
 	if (txt) {
@@ -656,5 +667,6 @@ GSList *set_list_to_preferences_dialog(GSList *list) {
 
 void on_get_scripts_clicked(gpointer user_data) {
 	siril_open_dialog("settings_window");
-	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
+	script_menu_init_statics();
+	gtk_stack_set_visible_child(script_stack_pref, script_scripts_page);
 }

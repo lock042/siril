@@ -50,7 +50,7 @@ void gui_mutex_unlock() {
 
 static gboolean set_label_text_idle(gpointer p) {
 	struct _label_data *args = (struct _label_data *) p;
-	GtkWidget *widget = lookup_widget(args->label_name);
+	GtkWidget *widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, args->label_name));
 	GtkLabel *label = GTK_LABEL(widget);
 
 	if (args->class_to_add || args->class_to_remove) {
@@ -96,10 +96,13 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
 }
 
+static GtkNotebook *utils_notebook_center_box = NULL;
+
 static gboolean switch_tab(gpointer user_data) {
 	main_tabs tab = (main_tabs) GPOINTER_TO_INT(user_data);
-	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
-	gtk_notebook_set_current_page(notebook, tab);
+	if (!utils_notebook_center_box)
+		utils_notebook_center_box = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+	gtk_notebook_set_current_page(utils_notebook_center_box, tab);
 	return FALSE;
 }
 

@@ -1308,10 +1308,10 @@ void init_histogram_overlay(void) {
 	siril_debug_print("Initializing histogram overlay...\n");
 
 	/* Get all 4 drawing area widgets */
-	histo_state.rgb_area = lookup_widget("drawingareargb");
-	histo_state.r_area = lookup_widget("drawingarear");
-	histo_state.g_area = lookup_widget("drawingareag");
-	histo_state.b_area = lookup_widget("drawingareab");
+	histo_state.rgb_area = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareargb"));
+	histo_state.r_area = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingarear"));
+	histo_state.g_area = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareag"));
+	histo_state.b_area = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareab"));
 
 	histo_state.logarithmic = (com.pref.gui.display_histogram_mode == LOG_DISPLAY);
 

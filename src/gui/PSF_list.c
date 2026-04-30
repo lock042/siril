@@ -41,6 +41,18 @@
 #include "algos/star_finder.h"
 
 static GtkListStore *liststore_stars = NULL;
+static GtkStatusbar *psf_statusbar = NULL;
+static GtkTreeView *psf_treeview = NULL;
+static GtkWindow *psf_stars_list_window = NULL;
+static GtkToggleButton *psf_toggle_star_centered = NULL;
+
+static void psf_list_init_statics(void) {
+	if (psf_statusbar) return;
+	psf_statusbar = GTK_STATUSBAR(gtk_builder_get_object(gui.builder, "statusbar_PSF"));
+	psf_treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	psf_stars_list_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "stars_list_window"));
+	psf_toggle_star_centered = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_star_centered"));
+}
 
 enum {
 	COLUMN_CHANNEL,		// int
@@ -376,9 +388,8 @@ static gint get_index_of_selected_star(gdouble x, gdouble y) {
 static void display_status() {
 	gchar *text;
 	int i = 0;
-	GtkStatusbar *statusbar;
 
-	statusbar = GTK_STATUSBAR(lookup_widget("statusbar_PSF"));
+	psf_list_init_statics();
 
 	g_rw_lock_reader_lock(&com.stars_lock);
 	while (com.stars && com.stars[i])
@@ -394,12 +405,13 @@ static void display_status() {
 	} else {
 		text = g_strdup_printf(_("Star %d of %d"), gui.selected_star + 1, i);
 	}
-	gtk_statusbar_push(statusbar, COUNT_STATE, text);
+	gtk_statusbar_push(psf_statusbar, COUNT_STATE, text);
 	g_free(text);
 }
 
 void set_iter_of_clicked_psf(double x, double y) {
-	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
+	psf_list_init_statics();
+	GtkTreeView *treeview = psf_treeview;
 	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
 	GtkTreeIter iter;
 	gboolean valid;
@@ -436,7 +448,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gtk_tree_path_free(path);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
-			gtk_window_present(GTK_WINDOW(lookup_widget("stars_list_window")));
+			gtk_window_present(psf_stars_list_window);
 			display_status();
 			redraw(REDRAW_OVERLAY);
 			return;
@@ -622,7 +634,8 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
 static void save_stars_dialog() {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
-	GtkWindow *parent = GTK_WINDOW(lookup_widget("stars_list_window"));
+	psf_list_init_statics();
+	GtkWindow *parent = psf_stars_list_window;
 	gint res;
 
 	widgetdialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
@@ -856,9 +869,10 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 	GValue value_x = G_VALUE_INIT;
 	GValue value_y = G_VALUE_INIT;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
-	GtkWidget *widget = lookup_widget(area[gui.cvport]);
+	psf_list_init_statics();
+	GtkWidget *widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, area[gui.cvport]));
 
-	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	GtkTreeView *treeView = psf_treeview;
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
@@ -880,7 +894,7 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 		// Set this to draw blue crosshairs
 		gui.selected_star = get_index_of_selected_star(x0, y0);
 		// Centre selected star
-		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("toggle_star_centered"));
+		GtkToggleButton *toggle = psf_toggle_star_centered;
 		if (gtk_toggle_button_get_active(toggle)) {
 			double z = get_zoom_val();
 			gui.display_offset.x = (gtk_widget_get_allocated_width(widget) / 2 - x0 * z);
