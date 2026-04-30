@@ -33,24 +33,31 @@
 #include "gui/utils.h"
 #include "io/single_image.h"
 
+static GtkEntry *rgradient_xc = NULL, *rgradient_yc = NULL;
+static GtkRange *rgradient_scale_radial = NULL, *rgradient_scale_rot = NULL;
+
+static void rgradient_dialog_init_statics(void) {
+	if (rgradient_xc) return;
+	rgradient_xc = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_rgradient_xc"));
+	rgradient_yc = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_rgradient_yc"));
+	rgradient_scale_radial = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_radial_rgradient"));
+	rgradient_scale_rot = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_rot_rgradient"));
+}
+
 static double get_xc(void) {
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("entry_rgradient_xc"));
-	return g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	return g_ascii_strtod(gtk_entry_get_text(rgradient_xc), NULL);
 }
 
 static double get_yc(void) {
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("entry_rgradient_yc"));
-	return g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	return g_ascii_strtod(gtk_entry_get_text(rgradient_yc), NULL);
 }
 
 static double get_dR(void) {
-	GtkRange *range = GTK_RANGE(lookup_widget("scale_radial_rgradient"));
-	return gtk_range_get_value(range);
+	return gtk_range_get_value(rgradient_scale_radial);
 }
 
 static double get_da(void) {
-	GtkRange *range = GTK_RANGE(lookup_widget("scale_rot_rgradient"));
-	return gtk_range_get_value(range);
+	return gtk_range_get_value(rgradient_scale_rot);
 }
 
 static int rgradient_process_with_worker(void) {
@@ -134,18 +141,20 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
+	rgradient_dialog_init_statics();
 	rgradient_process_with_worker();
 }
 
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
+	rgradient_dialog_init_statics();
 	if (com.selection.h && com.selection.w) {
 		psf_error error = PSF_NO_ERR;
 		psf_star *result = psf_get_minimisation(gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, PSF_GAUSSIAN, &error);
 		if (result && error == PSF_NO_ERR) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);
+			gtk_entry_set_text(rgradient_xc, x0);
 			gchar *y0 = g_strdup_printf("%.3lf", com.selection.y + com.selection.h - result->y0);
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_yc")), y0);
+			gtk_entry_set_text(rgradient_yc, y0);
 			g_free(x0);
 			g_free(y0);
 		} else {

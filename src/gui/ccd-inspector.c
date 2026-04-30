@@ -46,6 +46,16 @@ static char *edge_w[] = {
 		"right_bottom"
 };
 
+static GtkWidget *edge_panels[9] = { NULL };
+static GtkWidget *edge_dialog_widget = NULL;
+
+static void ccd_inspector_init_statics(void) {
+	if (edge_panels[0]) return;
+	for (int i = 0; i < 9; i++)
+		edge_panels[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, edge_w[i]));
+	edge_dialog_widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "edge_dialog"));
+}
+
 static void set_edge_square(gchar **panel) {
 	int cvport = gfit->naxes[2] > 1 ? RGB_VPORT : RED_VPORT;
 
@@ -72,8 +82,9 @@ static void set_edge_square(gchar **panel) {
 	image_width = (int) ((double)image_width / scale);
 	image_height = (int) ((double) image_height / scale);
 
+	ccd_inspector_init_statics();
 	for (int i = 0; i < G_N_ELEMENTS(edge_w); i++)
-		gtk_widget_queue_draw(lookup_widget(panel[i]));
+		gtk_widget_queue_draw(edge_panels[i]);
 }
 
 gboolean on_left_top_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -204,22 +215,16 @@ gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 void compute_aberration_inspector(void) {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
+		ccd_inspector_init_statics();
 		int widget_size = com.pref.analysis.mosaic_window / 3;
-
-		gtk_widget_set_size_request(lookup_widget("left_top"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("center_top"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("right_top"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("left_center"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("center_center"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("right_center"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("left_bottom"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("center_bottom"), widget_size, widget_size);
-		gtk_widget_set_size_request(lookup_widget("right_bottom"), widget_size, widget_size);
+		for (int i = 0; i < 9; i++)
+			gtk_widget_set_size_request(edge_panels[i], widget_size, widget_size);
 		set_edge_square(edge_w);
 	}
 }
 
 void redraw_aberration_inspector(void) {
-	if (!gtk_widget_is_visible(lookup_widget("edge_dialog"))) return;
+	ccd_inspector_init_statics();
+	if (!gtk_widget_is_visible(edge_dialog_widget)) return;
 	compute_aberration_inspector();
 }

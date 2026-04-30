@@ -35,6 +35,13 @@
 #include "gui/utils.h"
 #include "io/single_image.h"
 
+static GtkWidget *median_roi_preview_btn = NULL;
+
+static void median_dialog_init_statics(void) {
+	if (median_roi_preview_btn) return;
+	median_roi_preview_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "Median_roi_preview"));
+}
+
 static void fill_median_params_from_gui(struct median_filter_data *params, gboolean for_preview) {
 	if (!params)
 		return;
@@ -77,7 +84,7 @@ static void fill_median_params_from_gui(struct median_filter_data *params, gbool
 
 void median_roi_callback(void) {
 	gui.roi.operation_supports_roi = TRUE;
-	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
+	gtk_widget_set_visible(median_roi_preview_btn, gui.roi.active);
 	copy_backup_to_gfit();
 	gfit_modified_update_gui();
 }
@@ -102,8 +109,9 @@ void median_close(void) {
 }
 
 void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
+	median_dialog_init_statics();
 	roi_supported(TRUE);
-	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
+	gtk_widget_set_visible(median_roi_preview_btn, gui.roi.active);
 	copy_gfit_to_backup();
 	add_roi_callback(median_roi_callback);
 }
@@ -126,7 +134,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	copy_backup_to_gfit();
 
 	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
-	gboolean for_preview = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
+	gboolean for_preview = ((GtkWidget*) button == median_roi_preview_btn);
 	fill_median_params_from_gui(params, for_preview);
 
 	if (!for_preview && !com.script) {

@@ -41,6 +41,7 @@ static GtkWidget *apass_radio = NULL;
 static GtkWidget *check_narrow = NULL;
 static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
 static GtkWidget *auto_data_grp;
+static GtkToggleToolButton *annotate_button = NULL;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -53,7 +54,9 @@ static gboolean end_compstars(gpointer p) {
 	if (args->has_GUI && !args->retval) {
 		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (!load_siril_cat_to_temp(args->comp_stars)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+			if (!annotate_button)
+			annotate_button = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
+		GtkToggleToolButton *button = annotate_button;
 			refresh_found_objects();
 			if (!gtk_toggle_tool_button_get_active(button)) {
 				gtk_toggle_tool_button_set_active(button, TRUE);

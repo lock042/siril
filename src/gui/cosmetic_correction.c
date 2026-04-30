@@ -32,6 +32,24 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
+static GtkWidget *cosme_apply_btn = NULL;
+static GtkToggleButton *cosme_check_cold = NULL, *cosme_check_hot = NULL;
+static GtkToggleButton *cosme_cfa = NULL, *cosme_seq = NULL;
+static GtkSpinButton *cosme_sigma_cold = NULL, *cosme_sigma_hot = NULL;
+static GtkEntry *cosme_seq_entry = NULL;
+
+static void cosmetic_dialog_init_statics(void) {
+	if (cosme_apply_btn) return;
+	cosme_apply_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_cosmetic_ok"));
+	cosme_check_cold = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkSigColdBox"));
+	cosme_check_hot = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkSigHotBox"));
+	cosme_cfa = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "cosmCFACheckBox"));
+	cosme_sigma_cold = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinSigCosmeColdBox"));
+	cosme_sigma_hot = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinSigCosmeHotBox"));
+	cosme_seq = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkCosmeticSeq"));
+	cosme_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryCosmeticSeq"));
+}
+
 /* Idle function for the old autoDetectThreaded path */
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
@@ -64,63 +82,43 @@ gboolean cosmetic_hide_on_delete(GtkWidget *widget) {
 }
 
 void on_checkSigCosme_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	static GtkWidget *cosmeticApply = NULL;
-	static GtkToggleButton *checkCosmeSigCold = NULL;
-	static GtkToggleButton *checkCosmeSigHot = NULL;
-	gboolean checkCold, checkHot;
-
-	if (cosmeticApply == NULL) {
-		cosmeticApply = lookup_widget("button_cosmetic_ok");
-		checkCosmeSigCold = GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"));
-		checkCosmeSigHot = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHotBox"));
-	}
-	checkCold = gtk_toggle_button_get_active(checkCosmeSigCold);
-	checkHot = gtk_toggle_button_get_active(checkCosmeSigHot);
-	gtk_widget_set_sensitive(cosmeticApply, checkCold || checkHot);
+	cosmetic_dialog_init_statics();
+	gboolean checkCold = gtk_toggle_button_get_active(cosme_check_cold);
+	gboolean checkHot = gtk_toggle_button_get_active(cosme_check_hot);
+	gtk_widget_set_sensitive(cosme_apply_btn, checkCold || checkHot);
 }
 
 void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
-	GtkEntry *cosmeticSeqEntry;
-	GtkToggleButton *CFA, *seq;
-	GtkSpinButton *sigma[2];
-	GtkAdjustment *adjCosmeAmount;
-
-	CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheckBox"));
-	sigma[0] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
-	sigma[1] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
-	seq = GTK_TOGGLE_BUTTON(lookup_widget("checkCosmeticSeq"));
-	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
-	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
+	cosmetic_dialog_init_statics();
+	GtkAdjustment *adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
 	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 
-	if (gtk_toggle_button_get_active(
-				GTK_TOGGLE_BUTTON(lookup_widget("checkSigColdBox"))))
-		args->sigma[0] = gtk_spin_button_get_value(sigma[0]);
+	if (gtk_toggle_button_get_active(cosme_check_cold))
+		args->sigma[0] = gtk_spin_button_get_value(cosme_sigma_cold);
 	else
 		args->sigma[0] = -1.0;
 
-	if (gtk_toggle_button_get_active(
-				GTK_TOGGLE_BUTTON(lookup_widget("checkSigHotBox"))))
-		args->sigma[1] = gtk_spin_button_get_value(sigma[1]);
+	if (gtk_toggle_button_get_active(cosme_check_hot))
+		args->sigma[1] = gtk_spin_button_get_value(cosme_sigma_hot);
 	else
 		args->sigma[1] = -1.0;
 
-	args->is_cfa = gtk_toggle_button_get_active(CFA);
+	args->is_cfa = gtk_toggle_button_get_active(cosme_cfa);
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
 	args->fit = gfit;
-	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
+	args->seqEntry = strdup(gtk_entry_get_text(cosme_seq_entry));
 	set_cursor_waiting(TRUE);
 
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+	if (gtk_toggle_button_get_active(cosme_seq) && sequence_is_loaded()) {
 		if (args->seqEntry && args->seqEntry[0] == '\0') {
 			free(args->seqEntry);
 			args->seqEntry = strdup("cc_");
 		}
 		args->seq = &com.seq;
 		args->threading = SINGLE_THREADED;
-		gtk_toggle_button_set_active(seq, FALSE);
+		gtk_toggle_button_set_active(cosme_seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
 		args->threading = MULTI_THREADED;

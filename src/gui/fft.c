@@ -35,6 +35,21 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
+static GtkNotebook *fft_notebook = NULL;
+static GtkToggleButton *fft_centered = NULL;
+static GtkEntry *fft_mag_entry = NULL, *fft_phase_entry = NULL;
+static GtkFileChooser *fft_filechooser_mag = NULL, *fft_filechooser_phase = NULL;
+
+static void fft_dialog_init_statics(void) {
+	if (fft_notebook) return;
+	fft_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_fft"));
+	fft_centered = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "fft_centered"));
+	fft_mag_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "fftd_mag_entry"));
+	fft_phase_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "fftd_phase_entry"));
+	fft_filechooser_mag = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_mag"));
+	fft_filechooser_phase = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_phase"));
+}
+
 /* Idle function for the generic_image_worker path */
 static gboolean fft_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
@@ -53,22 +68,14 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *mag, *phase;
 	char *type = NULL, page;
 	int type_order = -1;
-	static GtkToggleButton *order = NULL;
-	static GtkNotebook* notebookFFT = NULL;
 
 	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
-	if (notebookFFT == NULL) {
-		notebookFFT = GTK_NOTEBOOK(
-				gtk_builder_get_object(gui.builder, "notebook_fft"));
-		order = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "fft_centered"));
-	}
-
-	page = gtk_notebook_get_current_page(notebookFFT);
+	fft_dialog_init_statics();
+	page = gtk_notebook_get_current_page(fft_notebook);
 
 	if (page == 0) {
 		if (sequence_is_loaded()) {
@@ -84,17 +91,14 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 
-		GtkEntry *entry_mag = GTK_ENTRY(lookup_widget("fftd_mag_entry"));
-		GtkEntry *entry_phase = GTK_ENTRY(lookup_widget("fftd_phase_entry"));
-
-		type_order = !gtk_toggle_button_get_active(order);
+		type_order = !gtk_toggle_button_get_active(fft_centered);
 		type = strdup("fftd");
-		mag = g_strdup(gtk_entry_get_text(entry_mag));
-		phase = g_strdup(gtk_entry_get_text(entry_phase));
+		mag = g_strdup(gtk_entry_get_text(fft_mag_entry));
+		phase = g_strdup(gtk_entry_get_text(fft_phase_entry));
 	} else {
 		type = strdup("ffti");
-		mag = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")));
-		phase = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_phase")));
+		mag = siril_file_chooser_get_filename(fft_filechooser_mag);
+		phase = siril_file_chooser_get_filename(fft_filechooser_phase);
 
 		if (mag == NULL || phase == NULL) {
 			char *msg = siril_log_message(_("Select magnitude and phase before !\n"));

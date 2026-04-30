@@ -32,6 +32,22 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
+static GtkRange *banding_scale_amount = NULL, *banding_scale_invsigma = NULL;
+static GtkToggleButton *banding_protect_highlights = NULL, *banding_vertical = NULL, *banding_seq = NULL;
+static GtkEntry *banding_seq_entry = NULL;
+static GtkWidget *banding_spin_invsigma = NULL;
+
+static void banding_dialog_init_statics(void) {
+	if (banding_scale_amount) return;
+	banding_scale_amount = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_amount"));
+	banding_scale_invsigma = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_fixbanding_invsigma"));
+	banding_protect_highlights = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_fixbanding"));
+	banding_vertical = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingVertical"));
+	banding_seq = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkBandingSeq"));
+	banding_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBandingSeq"));
+	banding_spin_invsigma = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_fixbanding_invsigma"));
+}
+
 static gboolean banding_single_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
@@ -56,11 +72,6 @@ gboolean banding_hide_on_delete(GtkWidget *widget) {
 void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	static GtkRange *range_amount = NULL;
-	static GtkRange *range_invsigma = NULL;
-	static GtkToggleButton *toggle_protect_highlights_banding = NULL,
-		*vertical = NULL, *seq = NULL;
-	static GtkEntry *bandingSeqEntry = NULL;
 	double amount, invsigma;
 	gboolean protect_highlights;
 
@@ -69,24 +80,15 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	if (range_amount == NULL) {
-		range_amount = GTK_RANGE(lookup_widget("scale_fixbanding_amount"));
-		range_invsigma = GTK_RANGE(lookup_widget("scale_fixbanding_invsigma"));
-		toggle_protect_highlights_banding = GTK_TOGGLE_BUTTON(
-				lookup_widget("checkbutton_fixbanding"));
-		vertical = GTK_TOGGLE_BUTTON(lookup_widget("checkBandingVertical"));
-		seq = GTK_TOGGLE_BUTTON(lookup_widget("checkBandingSeq"));
-		bandingSeqEntry = GTK_ENTRY(lookup_widget("entryBandingSeq"));
-	}
-	amount = gtk_range_get_value(range_amount);
-	invsigma = gtk_range_get_value(range_invsigma);
-	protect_highlights = gtk_toggle_button_get_active(
-			toggle_protect_highlights_banding);
-	gboolean applyRotation = gtk_toggle_button_get_active(vertical);
+	banding_dialog_init_statics();
+	amount = gtk_range_get_value(banding_scale_amount);
+	invsigma = gtk_range_get_value(banding_scale_invsigma);
+	protect_highlights = gtk_toggle_button_get_active(banding_protect_highlights);
+	gboolean applyRotation = gtk_toggle_button_get_active(banding_vertical);
 
 	set_cursor_waiting(TRUE);
 
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+	if (gtk_toggle_button_get_active(banding_seq) && sequence_is_loaded()) {
 		struct banding_data *seq_args = new_banding_data();
 		if (!seq_args) {
 			PRINT_ALLOC_ERR;
@@ -94,7 +96,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 
-		const char *entry_text = gtk_entry_get_text(bandingSeqEntry);
+		const char *entry_text = gtk_entry_get_text(banding_seq_entry);
 		seq_args->seqEntry = strdup((entry_text && entry_text[0] != '\0') ? entry_text : "unband_");
 		seq_args->protect_highlights = protect_highlights;
 		seq_args->amount = amount;
@@ -103,7 +105,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		seq_args->seq = &com.seq;
 		seq_args->fit = NULL;
 
-		gtk_toggle_button_set_active(seq, FALSE);
+		gtk_toggle_button_set_active(banding_seq, FALSE);
 		apply_banding_to_sequence(seq_args);
 	} else {
 		struct banding_data *params = new_banding_data();
@@ -153,16 +155,8 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 
 void on_checkbutton_fixbanding_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	static GtkWidget *scalebandingHighlightBox = NULL;
-	static GtkWidget *spinbandingHighlightBox = NULL;
-	gboolean is_active;
-
-	if (scalebandingHighlightBox == NULL) {
-		scalebandingHighlightBox = lookup_widget("scale_fixbanding_invsigma");
-		spinbandingHighlightBox = lookup_widget("spin_fixbanding_invsigma");
-	}
-
-	is_active = gtk_toggle_button_get_active(togglebutton);
-	gtk_widget_set_sensitive(scalebandingHighlightBox, is_active);
-	gtk_widget_set_sensitive(spinbandingHighlightBox, is_active);
+	banding_dialog_init_statics();
+	gboolean is_active = gtk_toggle_button_get_active(togglebutton);
+	gtk_widget_set_sensitive(GTK_WIDGET(banding_scale_invsigma), is_active);
+	gtk_widget_set_sensitive(banding_spin_invsigma, is_active);
 }

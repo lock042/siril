@@ -34,6 +34,18 @@
 #include "gui/utils.h"
 #include "io/single_image.h"
 
+static GtkToggleButton *satu_preview_btn = NULL;
+static GtkComboBox *satu_combo = NULL;
+static GtkRange *satu_scale = NULL, *satu_scale_bkg = NULL;
+
+static void satu_dialog_init_statics(void) {
+	if (satu_preview_btn) return;
+	satu_preview_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "satu_preview"));
+	satu_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_saturation"));
+	satu_scale = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_satu"));
+	satu_scale_bkg = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_satu_bkg"));
+}
+
 static double satu_amount, background_factor;
 static int satu_hue_type;
 static gboolean satu_show_preview;
@@ -93,7 +105,7 @@ static int satu_process_with_worker(gboolean for_preview) {
 }
 
 static int satu_update_preview(void) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")))) {
+	if (gtk_toggle_button_get_active(satu_preview_btn)) {
 		copy_backup_to_gfit();
 		return satu_process_with_worker(TRUE);
 	}
@@ -143,7 +155,7 @@ gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview"))))
+	if (gtk_toggle_button_get_active(satu_preview_btn))
 		copy_backup_to_gfit();
 
 	satu_process_with_worker(FALSE);
@@ -155,18 +167,19 @@ void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
+	satu_dialog_init_statics();
 	satu_startup();
 	satu_amount = 0.0;
 	satu_hue_type = 6;
 	background_factor = 1.0;
 
 	set_notify_block(TRUE);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), satu_hue_type);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
+	gtk_combo_box_set_active(satu_combo, satu_hue_type);
+	gtk_range_set_value(satu_scale, satu_amount);
+	gtk_range_set_value(satu_scale_bkg, background_factor);
 	set_notify_block(FALSE);
 
-	satu_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")));
+	satu_show_preview = gtk_toggle_button_get_active(satu_preview_btn);
 }
 
 void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
@@ -183,10 +196,10 @@ void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	double prev_satu = satu_amount;
 
 	set_notify_block(TRUE);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), 0);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), 1);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")), TRUE);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), 6);
+	gtk_range_set_value(satu_scale, 0);
+	gtk_range_set_value(satu_scale_bkg, 1);
+	gtk_toggle_button_set_active(satu_preview_btn, TRUE);
+	gtk_combo_box_set_active(satu_combo, 6);
 	set_notify_block(FALSE);
 
 	if (prev_satu != 0.0) {

@@ -65,6 +65,7 @@ static GtkLabel *bdeconv_starprofile_text = NULL, *bdeconv_starfwhm_text = NULL,
 static GtkToggleButton *bdeconv_psfblind = NULL, *bdeconv_psfstars = NULL, *bdeconv_psfmanual = NULL, *bdeconv_psfprevious = NULL, *bdeconv_psfselection = NULL;
 static GtkSpinButton *bdeconv_ks = NULL, *bdeconv_psfratio = NULL, *bdeconv_psfwhm = NULL, *bdeconv_psfangle = NULL, *bdeconv_psfbeta = NULL, *airy_pixelsize = NULL, *airy_wl = NULL, *airy_fl = NULL, *airy_diameter = NULL, *airy_obstruction = NULL, *bdeconv_gflambda = NULL, *bdeconv_gamma = NULL, *bdeconv_iters = NULL, *bdeconv_lambdaratio = NULL, *bdeconv_lambdamin = NULL, *bdeconv_scalefactor = NULL, *bdeconv_upsampleblur = NULL, *bdeconv_downsampleblur = NULL, *bdeconv_kthresh = NULL, *bdeconv_kl1 = NULL, *bdeconv_ncomp = NULL, *bdeconv_ntries = NULL, *bdeconv_nouter = NULL, *bdeconv_ninner = NULL, *bdeconv_finaliters = NULL, *bdeconv_alpha = NULL, *bdeconv_stopcriterion = NULL, *bdeconv_stepsize = NULL;
 static GtkToggleButton *bdeconv_multiscale = NULL, *bdeconv_betterkernel = NULL, *bdeconv_symkern = NULL, *bdeconv_stopping_toggle = NULL, *bdeconv_seqapply = NULL;
+static GtkWidget *bdeconv_control_window = NULL;
 
 void bdeconv_dialog_init_statics() {
 	if (bdeconv_close == NULL) {
@@ -151,6 +152,7 @@ void bdeconv_dialog_init_statics() {
 		bdeconv_symkern = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_symkern"));
 		bdeconv_stopping_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_stopping_toggle"));
 		bdeconv_seqapply = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_seqapply"));
+		bdeconv_control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	}
 }
 
@@ -350,7 +352,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, version, DECONVOLUTION_TIPS_URL);
 	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
-	GtkWidget* win = lookup_widget("control_window");
+	GtkWidget* win = bdeconv_control_window;
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
 			gtk_get_current_event_time(), NULL);
 #else

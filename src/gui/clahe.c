@@ -32,11 +32,21 @@
 #include "gui/siril_preview.h"
 #include "gui/utils.h"
 
+static GtkSpinButton *clahe_spin = NULL, *clahe_tile_spin = NULL;
+static GtkToggleButton *clahe_preview_btn = NULL;
+
+static void clahe_dialog_init_statics(void) {
+	if (clahe_spin) return;
+	clahe_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_clahe"));
+	clahe_tile_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "clahe_tiles_size_spin"));
+	clahe_preview_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "clahe_preview"));
+}
+
 static void get_clahe_values(double *clip, int *tileSize) {
 	if (clip)
-		*clip = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")));
+		*clip = gtk_spin_button_get_value(clahe_spin);
 	if (tileSize)
-		*tileSize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")));
+		*tileSize = gtk_spin_button_get_value(clahe_tile_spin);
 }
 
 static int clahe_process_with_worker(gboolean for_preview) {
@@ -72,7 +82,7 @@ static int clahe_process_with_worker(gboolean for_preview) {
 }
 
 static int clahe_update_preview(void) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")))) {
+	if (gtk_toggle_button_get_active(clahe_preview_btn)) {
 		copy_backup_to_gfit();
 		return clahe_process_with_worker(TRUE);
 	}
@@ -115,16 +125,16 @@ void on_CLAHE_dialog_close(GtkDialog *dialog, gpointer user_data) {
 
 void on_clahe_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")), 2);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")), 8);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")), TRUE);
+	gtk_spin_button_set_value(clahe_spin, 2);
+	gtk_spin_button_set_value(clahe_tile_spin, 8);
+	gtk_toggle_button_set_active(clahe_preview_btn, TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
 
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
+	param->show_preview = gtk_toggle_button_get_active(clahe_preview_btn);
 	notify_update((gpointer) param);
 }
 
@@ -132,7 +142,7 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")))) {
+	if (gtk_toggle_button_get_active(clahe_preview_btn)) {
 		copy_backup_to_gfit();
 	}
 
@@ -170,30 +180,31 @@ void on_clahe_Apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_CLAHE_dialog_show(GtkWidget *widget, gpointer user_data) {
+	clahe_dialog_init_statics();
 	clahe_startup();
 
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")), 8);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")), 2.0);
+	gtk_spin_button_set_value(clahe_tile_spin, 8);
+	gtk_spin_button_set_value(clahe_spin, 2.0);
 	set_notify_block(FALSE);
 
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
+	param->show_preview = gtk_toggle_button_get_active(clahe_preview_btn);
 	notify_update((gpointer) param);
 }
 
 void on_spin_clahe_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
+	param->show_preview = gtk_toggle_button_get_active(clahe_preview_btn);
 	notify_update((gpointer) param);
 }
 
 void on_clahe_tiles_size_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = clahe_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")));
+	param->show_preview = gtk_toggle_button_get_active(clahe_preview_btn);
 	notify_update((gpointer) param);
 }
 

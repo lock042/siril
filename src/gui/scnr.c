@@ -33,6 +33,23 @@
 #include "gui/utils.h"
 #include "io/single_image.h"
 
+static GtkToggleButton *scnr_roi_preview = NULL;
+static GtkComboBox *scnr_combo = NULL;
+static GtkScale *scnr_scale = NULL;
+static GtkLabel *scnr_label56 = NULL;
+static GtkSpinButton *scnr_spin = NULL;
+static GtkToggleButton *scnr_preserve_light = NULL;
+
+static void scnr_dialog_init_statics(void) {
+	if (scnr_roi_preview) return;
+	scnr_roi_preview = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "SCNR_roi_preview"));
+	scnr_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr"));
+	scnr_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "scale_scnr"));
+	scnr_label56 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label56"));
+	scnr_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_scnr"));
+	scnr_preserve_light = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "preserve_light"));
+}
+
 static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
                                     gboolean for_preview, gboolean for_roi) {
 	struct scnr_data *params = new_scnr_data();
@@ -75,16 +92,10 @@ static int scnr_process_with_worker(scnr_type type, double amount, gboolean pres
 }
 
 static int scnr_update_preview(void) {
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	if (gtk_toggle_button_get_active(preview_button)) {
-		int type = gtk_combo_box_get_active(
-				GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
-		GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "preserve_light"));
-		gboolean preserve = gtk_toggle_button_get_active(light_button);
-		double amount = gtk_range_get_value(
-				GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
-
+	if (gtk_toggle_button_get_active(scnr_roi_preview)) {
+		int type = gtk_combo_box_get_active(scnr_combo);
+		gboolean preserve = gtk_toggle_button_get_active(scnr_preserve_light);
+		double amount = gtk_range_get_value(GTK_RANGE(scnr_scale));
 		copy_backup_to_gfit();
 		return scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
 	}
@@ -95,14 +106,14 @@ void scnr_change_between_roi_and_image(void) {
 	gui.roi.operation_supports_roi = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
+	param->show_preview = gtk_toggle_button_get_active(scnr_roi_preview);
 	notify_update((gpointer) param);
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
+	scnr_dialog_init_statics();
 	roi_supported(TRUE);
-	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
+	gtk_widget_set_visible(GTK_WIDGET(scnr_roi_preview), gui.roi.active);
 
 	copy_gfit_to_backup();
 	add_roi_callback(scnr_change_between_roi_and_image);
@@ -111,19 +122,15 @@ void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 		scnr_change_between_roi_and_image();
 	}
 
-	GtkComboBox *comboscnr = GTK_COMBO_BOX(
-			gtk_builder_get_object(gui.builder, "combo_scnr"));
-	int type = gtk_combo_box_get_active(comboscnr);
-
+	int type = gtk_combo_box_get_active(scnr_combo);
 	if (type == -1)
-		gtk_combo_box_set_active(comboscnr, 0);
+		gtk_combo_box_set_active(scnr_combo, 0);
 }
 
 void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 	roi_supported(FALSE);
 
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	if (gtk_toggle_button_get_active(preview_button)) {
+	if (gtk_toggle_button_get_active(scnr_roi_preview)) {
 		copy_backup_to_gfit();
 		gfit_modified_update_gui();
 	}
@@ -134,26 +141,21 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
-	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
-	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(gui.builder, "preserve_light"));
-	gboolean preserve = gtk_toggle_button_get_active(light_button);
-	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
+	int type = gtk_combo_box_get_active(scnr_combo);
+	gboolean preserve = gtk_toggle_button_get_active(scnr_preserve_light);
+	double amount = gtk_range_get_value(GTK_RANGE(scnr_scale));
 
 	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
-	gboolean is_preview = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
+	gboolean is_preview = ((GtkWidget*) button == GTK_WIDGET(scnr_roi_preview));
 
 	if (is_preview) {
 		scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
 	} else {
-		GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-		if (gtk_toggle_button_get_active(preview_button)) {
+		if (gtk_toggle_button_get_active(scnr_roi_preview)) {
 			copy_backup_to_gfit();
 		}
 
@@ -168,27 +170,21 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
-	int type = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_scnr")));
-	GtkScale *scale = GTK_SCALE(lookup_widget("scale_scnr"));
-	GtkLabel *label = GTK_LABEL(lookup_widget("label56"));
-	GtkSpinButton *spinButton = GTK_SPIN_BUTTON(lookup_widget("spin_scnr"));
-
-	gtk_widget_set_sensitive(GTK_WIDGET(scale), type > 1);
-	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
-	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
+	int type = gtk_combo_box_get_active(scnr_combo);
+	gtk_widget_set_sensitive(GTK_WIDGET(scnr_scale), type > 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(scnr_label56), type > 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(scnr_spin), type > 1);
 
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
+	param->show_preview = gtk_toggle_button_get_active(scnr_roi_preview);
 	notify_update((gpointer) param);
 }
 
 void on_SCNR_parameter_changed(GtkWidget *widget, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
+	param->show_preview = gtk_toggle_button_get_active(scnr_roi_preview);
 	notify_update((gpointer) param);
 }
 

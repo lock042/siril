@@ -22,6 +22,21 @@
 #include "filters/asinh.h"
 #include "gui/asinh.h"
 
+static GtkSpinButton *asinh_spin_stretch = NULL, *asinh_spin_black = NULL;
+static GtkToggleButton *asinh_toggle_rgb = NULL, *asinh_preview_btn = NULL;
+static GtkComboBox *asinh_clipmode_combo = NULL;
+static GtkWidget *asinh_clip_settings_widget = NULL;
+
+static void asinh_dialog_init_statics(void) {
+	if (asinh_spin_stretch) return;
+	asinh_spin_stretch = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_asinh"));
+	asinh_spin_black = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "black_point_spin_asinh"));
+	asinh_toggle_rgb = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_RGBspace"));
+	asinh_clipmode_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "asinh_clipmode"));
+	asinh_preview_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "asinh_preview"));
+	asinh_clip_settings_widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "asinh_clip_settings"));
+}
+
 // Original ICC profile, in case we don't apply a stretch and need to revert
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
@@ -41,13 +56,13 @@ static gboolean asinh_apply_idle(gpointer p) {
 /* Helper function to get current widget values */
 static void get_asinh_values(float *stretch, float *black, gboolean *rgb_space, clip_mode_t *clipmode) {
 	if (stretch)
-		*stretch = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_asinh")));
+		*stretch = gtk_spin_button_get_value(asinh_spin_stretch);
 	if (black)
-		*black = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh")));
+		*black = gtk_spin_button_get_value(asinh_spin_black);
 	if (rgb_space)
-		*rgb_space = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace")));
+		*rgb_space = gtk_toggle_button_get_active(asinh_toggle_rgb);
 	if (clipmode)
-		*clipmode = (clip_mode_t)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("asinh_clipmode")));
+		*clipmode = (clip_mode_t)gtk_combo_box_get_active(asinh_clipmode_combo);
 }
 
 /* Create and launch asinh processing */
@@ -90,7 +105,7 @@ static int asinh_process_with_worker(gboolean for_preview) {
 
 /* Update preview using the worker */
 static int asinh_update_preview() {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")))) {
+	if (gtk_toggle_button_get_active(asinh_preview_btn)) {
 		copy_backup_to_gfit();
 		return asinh_process_with_worker(TRUE);
 	}
@@ -101,7 +116,7 @@ void asinh_change_between_roi_and_image() {
 	gui.roi.operation_supports_roi = TRUE;
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
+	param->show_preview = gtk_toggle_button_get_active(asinh_preview_btn);
 	notify_update((gpointer) param);
 }
 
@@ -176,11 +191,8 @@ gboolean asinh_hide_on_delete(GtkWidget *widget) {
 }
 
 void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
-	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
-	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
-	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
-	GtkWidget *clipmode = lookup_widget("asinh_clip_settings");
-	gtk_widget_set_visible(clipmode, (gfit->naxes[2] == 3));
+	asinh_dialog_init_statics();
+	gtk_widget_set_visible(asinh_clip_settings_widget, (gfit->naxes[2] == 3));
 
 	if (gui.rendering_mode == LINEAR_DISPLAY)
 		setup_stretch_sliders();
@@ -207,10 +219,10 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	asinh_startup();
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_rgb, TRUE);
-	gtk_spin_button_set_value(spin_stretch, 0.0f);
-	gtk_spin_button_set_value(spin_black_p, 0.0f);
-	gtk_spin_button_set_increments(spin_black_p, 0.001, 0.01);
+	gtk_toggle_button_set_active(asinh_toggle_rgb, TRUE);
+	gtk_spin_button_set_value(asinh_spin_stretch, 0.0f);
+	gtk_spin_button_set_value(asinh_spin_black, 0.0f);
+	gtk_spin_button_set_increments(asinh_spin_black, 0.001, 0.01);
 	set_notify_block(FALSE);
 }
 
@@ -218,7 +230,7 @@ void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview"))))
+	if (gtk_toggle_button_get_active(asinh_preview_btn))
 		copy_backup_to_gfit();
 
 	remove_roi_callback(asinh_change_between_roi_and_image);
@@ -268,24 +280,24 @@ gboolean on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
 
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace")), TRUE);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh")), 0);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asinh")), 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("asinh_clipmode")), 2);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")), TRUE);
+	gtk_toggle_button_set_active(asinh_toggle_rgb, TRUE);
+	gtk_spin_button_set_value(asinh_spin_black, 0);
+	gtk_spin_button_set_value(asinh_spin_stretch, 0);
+	gtk_combo_box_set_active(asinh_clipmode_combo, 2);
+	gtk_toggle_button_set_active(asinh_preview_btn, TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
+	param->show_preview = gtk_toggle_button_get_active(asinh_preview_btn);
 	notify_update((gpointer) param);
 }
 
 void on_asinh_parameter_changed(GtkWidget *widget, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = asinh_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")));
+	param->show_preview = gtk_toggle_button_get_active(asinh_preview_btn);
 	notify_update((gpointer) param);
 }
 

@@ -42,18 +42,39 @@
 static float wavelet_value[6];
 static gboolean wavelet_show_preview;
 
-static void reset_scale_w() {
-	static GtkRange *range_w[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+static GtkRange *wavelets_scale_w[6] = { NULL };
+static GtkSpinButton *wavelets_plans_spin = NULL;
+static GtkToggleButton *wavelets_preview_btn = NULL;
+static GtkWidget *wavelets_frame = NULL, *wavelets_reset_btn = NULL;
+static GtkComboBox *wavelets_type_combo = NULL;
+static GtkSpinButton *wavelets_extract_spin = NULL;
+static GtkComboBox *wavelets_extract_interp = NULL;
+static GtkWidget *wavelets_box_w[6] = { NULL };
 
-	set_notify_block(TRUE);
+static void wavelets_dialog_init_statics(void) {
+	if (wavelets_plans_spin) return;
+	char name[20];
 	for (int i = 0; i < 6; i++) {
-		char widget_name[10];
-		sprintf(widget_name, "scale_w%d", i);
-		range_w[i] = GTK_RANGE(lookup_widget(widget_name));
-		gtk_range_set_value(range_w[i], 1.f);
+		snprintf(name, sizeof(name), "scale_w%d", i);
+		wavelets_scale_w[i] = GTK_RANGE(gtk_builder_get_object(gui.builder, name));
+		snprintf(name, sizeof(name), "box_w%d", i);
+		wavelets_box_w[i] = GTK_WIDGET(gtk_builder_get_object(gui.builder, name));
 	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")), 6);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("wavelet_preview")), TRUE);
+	wavelets_plans_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_plans_w"));
+	wavelets_preview_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "wavelet_preview"));
+	wavelets_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame_wavelets"));
+	wavelets_reset_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_reset_w"));
+	wavelets_type_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobox_type_w"));
+	wavelets_extract_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_extract_w"));
+	wavelets_extract_interp = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_interpolation_extract_w"));
+}
+
+static void reset_scale_w() {
+	set_notify_block(TRUE);
+	for (int i = 0; i < 6; i++)
+		gtk_range_set_value(wavelets_scale_w[i], 1.f);
+	gtk_spin_button_set_value(wavelets_plans_spin, 6);
+	gtk_toggle_button_set_active(wavelets_preview_btn, TRUE);
 	set_notify_block(FALSE);
 }
 
@@ -102,32 +123,33 @@ static gboolean wrecons_idle(gpointer p) {
 
 static gboolean wavelet_compute_idle(gpointer p) {
 	stop_processing_thread();
-	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), TRUE);
-	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), TRUE);
+	gtk_widget_set_sensitive(wavelets_frame, TRUE);
+	gtk_widget_set_sensitive(wavelets_reset_btn, TRUE);
 	reset_scale_w();
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
 void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
-	wavelet_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("wavelet_preview")));
+	wavelets_dialog_init_statics();
+	wavelet_show_preview = gtk_toggle_button_get_active(wavelets_preview_btn);
 	wavelets_startup();
 }
 
 void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("frame_wavelets"), FALSE);
-	gtk_widget_set_sensitive(lookup_widget("button_reset_w"), FALSE);
+	gtk_widget_set_sensitive(wavelets_frame, FALSE);
+	gtk_widget_set_sensitive(wavelets_reset_btn, FALSE);
 	clear_backup();
 }
 
 void on_button_reset_w_clicked(GtkButton *button, gpointer user_data) {
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type_w")), 1);
+	gtk_combo_box_set_active(wavelets_type_combo, 1);
 	reset_scale_w();
 	update_wavelets();
 }
 
 void apply_wavelets_cancel(void) {
-	if (gtk_widget_get_sensitive(lookup_widget("frame_wavelets")) == TRUE) {
+	if (gtk_widget_get_sensitive(wavelets_frame) == TRUE) {
 		reset_scale_w();
 		update_wavelets();
 	}
@@ -135,7 +157,7 @@ void apply_wavelets_cancel(void) {
 }
 
 void on_button_ok_w_clicked(GtkButton *button, gpointer user_data) {
-	gboolean is_active = gtk_widget_get_sensitive(lookup_widget("frame_wavelets")) == TRUE;
+	gboolean is_active = gtk_widget_get_sensitive(wavelets_frame) == TRUE;
 	if (is_active && wavelet_show_preview == FALSE) {
 		/* Preview was not active: gfit still holds the original pixels.
 		 * Apply the reconstruction via generic_image_worker so that undo
@@ -176,10 +198,8 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 		copy_backup_to_gfit();
 	}
 
-	int Nbr_Plan = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")));
-	int Type_Transform = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(lookup_widget("combobox_type_w"))) + 1;
+	int Nbr_Plan = gtk_spin_button_get_value(wavelets_plans_spin);
+	int Type_Transform = gtk_combo_box_get_active(wavelets_type_combo) + 1;
 
 	int mins = min(gfit->rx, gfit->ry);
 	int maxplan = log(mins) / log(2) - 2;
@@ -190,8 +210,7 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 				maxplan);
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), msg);
 		Nbr_Plan = maxplan;
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")), Nbr_Plan);
+		gtk_spin_button_set_value(wavelets_plans_spin, Nbr_Plan);
 	}
 
 	if (Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE) {
@@ -224,17 +243,9 @@ void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_extract_w_ok_clicked(GtkButton *button, gpointer user_data) {
 	int Nbr_Plan, Type, maxplan, mins;
-	static GtkSpinButton *Spin_Nbr_Plan = NULL;
-	static GtkComboBox *Combo_Wavelets_Type = NULL;
 
-	if (Spin_Nbr_Plan == NULL) {
-		Spin_Nbr_Plan = GTK_SPIN_BUTTON(lookup_widget("spinbutton_extract_w"));
-		Combo_Wavelets_Type = GTK_COMBO_BOX(
-				lookup_widget("combo_interpolation_extract_w"));
-	}
-
-	Nbr_Plan = gtk_spin_button_get_value(Spin_Nbr_Plan);
-	Type = gtk_combo_box_get_active(Combo_Wavelets_Type) + 1;// 1: linear, 2: bspline
+	Nbr_Plan = gtk_spin_button_get_value(wavelets_extract_spin);
+	Type = gtk_combo_box_get_active(wavelets_extract_interp) + 1;// 1: linear, 2: bspline
 
 	set_cursor_waiting(TRUE);
 	mins = min(gfit->rx, gfit->ry);
@@ -262,13 +273,9 @@ void on_button_extract_w_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_spinbutton_plans_w_value_changed(GtkSpinButton *button, gpointer user_data) {
-	int i;
 	gint current_value = gtk_spin_button_get_value_as_int(button);
-	for (i = 0; i < 6; i++) {
-		gchar *tmp = g_strdup_printf("box_w%d", i);
-		gtk_widget_set_visible(lookup_widget(tmp), current_value > i);
-		g_free(tmp);
-	}
+	for (int i = 0; i < 6; i++)
+		gtk_widget_set_visible(wavelets_box_w[i], current_value > i);
 }
 
 void on_spin_w0_value_changed(GtkSpinButton *button, gpointer user_data) {

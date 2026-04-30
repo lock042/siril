@@ -379,7 +379,7 @@ phase (a) locks in the init_statics widget pattern across all of gui/, and
 (b) routes the remaining high-volume cross-boundary calls through gui_iface
 for the modules that could not be split using Pattern A.
 
-[ ] 4.1  Apply init_statics pattern to every new src/gui/X.c from phase 3
+[X] 4.1  Apply init_statics pattern to every new src/gui/X.c from phase 3
          - Each file written in phase 3 must hold widget pointers as static
            typed variables at file scope and populate them in a single
            setup_X_widgets() function called from the dialog's "show"
