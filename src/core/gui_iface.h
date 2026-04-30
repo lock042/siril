@@ -143,6 +143,16 @@ typedef struct {
 	void     (*on_mask_state_changed)(void);
 	/* Called after a crop completes; clears stars, selection, display offset. */
 	void     (*on_crop_complete)(void);
+
+	/* I – Statistics ------------------------------------------------------- */
+	/* Called to populate and open the statistics dialog for the current image. */
+	void     (*on_stats_ready)(void);
+
+	/* J – Photometry ------------------------------------------------------- */
+	/* Called after photometry data is updated; refreshes the plot panel. */
+	void     (*on_photometry_changed)(void);
+	/* Open a new siril-plot window for the given siril_plot_data pointer. */
+	void     (*show_siril_plot)(gpointer spl_data);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

@@ -310,6 +310,7 @@ src_files_gui = [
   'gui/search_objects.c',
   'gui/sequence_list.c',
   'gui/single_image.c',
+  'gui/statistics.c',
   'gui/siril_css.c',
   'gui/siril_intro.c',
   'gui/siril_preview.c',

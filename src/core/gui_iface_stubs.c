@@ -91,6 +91,9 @@ static void stub_update_menu_state(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
 static void stub_on_crop_complete(void) {}
+static void stub_on_stats_ready(void) {}
+static void stub_on_photometry_changed(void) {}
+static void stub_show_siril_plot(gpointer spl_data) { (void)spl_data; }
 
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
@@ -115,4 +118,7 @@ SirilGuiInterface gui_iface = {
 	.on_geometry_changed  = stub_on_geometry_changed,
 	.on_mask_state_changed= stub_on_mask_state_changed,
 	.on_crop_complete     = stub_on_crop_complete,
+	.on_stats_ready       = stub_on_stats_ready,
+	.on_photometry_changed= stub_on_photometry_changed,
+	.show_siril_plot      = stub_show_siril_plot,
 };

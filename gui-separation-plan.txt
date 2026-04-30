@@ -344,17 +344,17 @@ simplest first to build momentum):
           2 GUI calls only (no new file needed); route through gui_iface in
           phase 4
 
-[ ] 3.18 src/algos/statistics.c → keep processing;
+[X] 3.18 src/algos/statistics.c → keep processing;
           computeStat (statistics_list.c) → gui_iface.on_stats_ready();
           siril_open_dialog and set_cursor_waiting → gui_iface in phase 4
          (3 GUI calls)
 
-[ ] 3.19 src/algos/photometry.c → keep processing;
+[X] 3.19 src/algos/photometry.c → keep processing;
           drawPlot, notify_new_photometry, queue_redraw, redraw
           → gui_iface.on_photometry_changed() in phase 4
          (4 GUI calls)
 
-[ ] 3.20 src/algos/astrometry_solver.c — 1 GUI call (set_progress_bar_data),
+[X] 3.20 src/algos/astrometry_solver.c — 1 GUI call (set_progress_bar_data),
           handled entirely by phase 4.1; no new file needed
 
 [ ] 3.21 src/algos/background_extraction.c — 2 GUI calls,
