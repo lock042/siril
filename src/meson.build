@@ -262,6 +262,7 @@ src_files_gui = [
   'gui/denoisegui.c',
   'gui/background_extraction.c',
   'gui/callbacks.c',
+  'gui/ccd-inspector.c',
   'gui/colors.c',
   'gui/catmag.c',
   'gui/compstars.c',

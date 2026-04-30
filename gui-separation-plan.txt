@@ -319,7 +319,7 @@ simplest first to build momentum):
           — audit what is still in filters/ that belongs in gui/newdeconv.c
          (6 GUI calls in deconvolution.c; 1 each in deconvolution/*.cpp)
 
-[ ] 3.12 src/algos/ccd-inspector.c → keep processing; new src/gui/ccd-inspector.c
+[X] 3.12 src/algos/ccd-inspector.c → keep processing; new src/gui/ccd-inspector.c
          (5 GUI calls, 5 raw GTK calls — draws directly on a GtkWidget)
 
 [ ] 3.13 src/algos/comparison_stars.c → keep processing;

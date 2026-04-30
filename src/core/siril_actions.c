@@ -37,6 +37,7 @@
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "compositing/compositing.h"
 #include "filters/synthstar.h"
 #include "gui/about_dialog.h"

@@ -17,26 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_ALGOS_CCD_INSPECTOR_H_
-#define SRC_ALGOS_CCD_INSPECTOR_H_
+#ifndef SRC_GUI_CCD_INSPECTOR_H_
+#define SRC_GUI_CCD_INSPECTOR_H_
 
-struct tilt_struct {
-	point pt[4];
-	double fwhm[4];
-	double fwhm_centre;
-};
+void compute_aberration_inspector(void);
+void redraw_aberration_inspector(void);
 
-struct tilt_data {
-	fits *fit;
-	sequence *seq;
-	gboolean draw_polygon;
-	int nbstars;
-	float m, m1, m2, m3, m4, mr1, mr2;
-};
-
-void clear_sensor_tilt(void);
-int draw_sensor_tilt(fits *fit);
-
-void apply_tilt_to_sequence(struct tilt_data *tilt_args);
-
-#endif /* SRC_ALGOS_CCD_INSPECTOR_H_ */
+#endif /* SRC_GUI_CCD_INSPECTOR_H_ */

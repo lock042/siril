@@ -109,6 +109,7 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/fitting.h"

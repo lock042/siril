@@ -30,6 +30,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
