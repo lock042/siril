@@ -30,16 +30,17 @@
 #ifdef HAVE_LIBHEIF
 #include <libheif/heif.h>
 #endif
+#ifdef HAVE_LIBJPEG
+#include <setjmp.h>
+#include <jpeglib.h>
+#endif
 #ifdef HAVE_LIBXISF
 #include "io/SirilXISFWraper.h"
 #endif
 #ifdef HAVE_LIBJXL
 #include "io/SirilJpegXLWrapper.h"
 #endif
-#ifdef HAVE_LIBJPEG
-#include <setjmp.h>
-#include <jpeglib.h>
-#endif
+
 #include "dialog_preview.h"
 
 #ifdef HAVE_LIBJPEG
