@@ -8,6 +8,8 @@ siril-1.4.3
 * Fixed Windows pipes naming (#1921)
 * Added None as a keyword value for BAYERPAT
 * Fixed file extension handling in Save As dialog (#1748)
+* Fixed crash when loading some Hubble images (#1932)
+* Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
 
 **Improvements**
 * Added SirilInterface.open_dialog()
