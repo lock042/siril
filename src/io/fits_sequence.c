@@ -66,7 +66,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		if (type != IMAGE_HDU) continue;
 
 		// Skip image HDUs named as ICC profiles or thumbnails
-		// Skip image HDUs with HDRLET, see table 2-5 in 
+		// Skip image HDUs with HDRLET, WCS and D2IM, see table 2-5 in 
 		// https://hst-docs.stsci.edu/wfc3dhb/files/148330471/148330472/1/1724772756109/wfc3dhb2024_final.pdf
 		char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 		int status2 = 0;
@@ -74,10 +74,9 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		printf("HDU %d: type=%d, EXTNAME=%s\n", i + 1, type, extname);
 		if (g_str_has_prefix(extname, "ICCProfile")
 			|| g_str_has_prefix(extname, "Thumbnail")
-			|| g_str_has_prefix(extname, "HDRLET")) {
-			// TODO do we really want to keep those?
-			//|| g_str_has_prefix(extname, "WCS")) {
-			// || g_str_has_prefix(extname, "D2IM")) {
+			|| g_str_has_prefix(extname, "HDRLET")
+			|| g_str_has_prefix(extname, "WCS")
+			|| g_str_has_prefix(extname, "D2IM")) {
 			printf("Skipping HDU %d with EXTNAME=%s\n", i + 1, extname);
 			continue;
 		}
