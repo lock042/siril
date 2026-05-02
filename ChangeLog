@@ -14,11 +14,13 @@ siril-1.5.0
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
 
+**Fixes**
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+
 siril-1.4.3
 --/--/--
 
 **Fixes**
-* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 * Fixed use-after-free error that caused a crash if the python module fails to install
