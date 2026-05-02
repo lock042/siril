@@ -18,6 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* config.h must come first so HAVE_LIBJPEG is defined before we test it.
+ * On Windows, jpeglib headers pull in <windows.h> which defines TBYTE as a
+ * typedef.  Include them before siril.h so that winnt.h runs before fitsio.h
+ * (which redefines TBYTE as a numeric constant), avoiding a redefinition error.
+ * jpeglib.h also requires <stdio.h> for FILE and size_t. */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_LIBJPEG
+#include <stdio.h>
+#include <setjmp.h>
+#include <jpeglib.h>
+#endif
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -29,10 +43,6 @@
 
 #ifdef HAVE_LIBHEIF
 #include <libheif/heif.h>
-#endif
-#ifdef HAVE_LIBJPEG
-#include <setjmp.h>
-#include <jpeglib.h>
 #endif
 #ifdef HAVE_LIBXISF
 #include "io/SirilXISFWraper.h"
