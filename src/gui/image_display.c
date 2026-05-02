@@ -89,7 +89,7 @@ static int allocate_full_surface(struct image_view *view) {
 	/* Cairo surfaces are limited to 32767 px per side (int16_t internally).
 	 * For images that exceed this limit, scale down to at most 4096 px per
 	 * side so the display buffer stays within reasonable memory bounds.
-	 * (Step 2 — GtkGLArea — will provide full-resolution tile rendering.) */
+	 * (Step 2 - GtkGLArea - will provide full-resolution tile rendering.) */
 #define SIRIL_MAX_SURFACE_DIM 4096
 	double scale = 1.0;
 	if (gfit->rx > 32767 || gfit->ry > 32767)
@@ -632,7 +632,7 @@ static void remap_all_vports() {
 	WORD remap_lo = gui.lo;
 	g_mutex_unlock(&com.mutex);
 
-	/* Cache the GtkApplicationWindow and GAction pointers on first call —
+	/* Cache the GtkApplicationWindow and GAction pointers on first call -
 	 * same reasoning as in remap() above. */
 	static GtkApplicationWindow *app_win = NULL;
 	static GAction *action_neg_cached = NULL;
@@ -1157,7 +1157,7 @@ static void request_gtk_redraw_of_cvport() {
 	gtk_widget_queue_draw(widget);
 }
 
-/* forward declaration — redraw_drawingarea is defined later in this file */
+/* forward declaration - redraw_drawingarea is defined later in this file */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data);
 
 /* Block / unblock the draw signal handler on all viewports.  Must be called
@@ -1274,7 +1274,146 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(layout);
 }
 
+/* Fill disp_surface at full image resolution when zoom >= 1.0 on images that
+ * exceed Cairo's 32767-pixel limit (gui.surface_scale < 1.0).  Reads directly
+ * from gfit pixel data and applies the same LUT as the regular remap path,
+ * avoiding the blurry upscale of the downsampled full_surface.
+ * Must be called with gui.cairo_mutex held.
+ * Returns TRUE on success, FALSE on allocation failure. */
+static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
+                                 WORD remap_hi, WORD remap_lo) {
+	unsigned char *disp_data = cairo_image_surface_get_data(view->disp_surface);
+	const int disp_stride = cairo_image_surface_get_stride(view->disp_surface);
+	if (!disp_data) return FALSE;
+
+	const int win_w = dd->window_width;
+	const int win_h = dd->window_height;
+	const int img_w = (int)gfit->rx;
+	const int img_h = (int)gfit->ry;
+	const double zoom  = dd->zoom;
+	const double off_x = gui.display_offset.x;
+	const double off_y = gui.display_offset.y;
+
+	const gboolean inverted = dd->neg_view;
+	const gboolean cut_over = gui.cut_over;
+	const gboolean hd_mode  = (gui.rendering_mode == STF_DISPLAY &&
+	                            gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	const gboolean is_rgb   = (dd->vport == RGB_VPORT);
+
+	/* x range of screen columns that overlap the image */
+	const int dx_first = MAX(0, (int)floor(off_x));
+	const int dx_last  = MIN(win_w - 1, (int)ceil(off_x + (double)img_w * zoom) - 1);
+	const int visible_w = (dx_last >= dx_first) ? (dx_last - dx_first + 1) : 0;
+
+	/* Clear entire surface to opaque black */
+	memset(disp_data, 0, (size_t)win_h * disp_stride);
+	if (visible_w <= 0) return TRUE;
+
+	/* RGB path: per-row channel buffers + optional ICC transform */
+	BYTE *lb_rgb = NULL;
+	gboolean do_transform = FALSE;
+	cmsHTRANSFORM transform = NULL;
+	if (is_rgb) {
+		lb_rgb = malloc((size_t)visible_w * 3);
+		if (!lb_rgb) return FALSE;
+		lock_display_transform();
+		if (gfit->color_managed && gui.icc.proofing_transform && !identical &&
+				!gui.icc.same_primaries) {
+			do_transform = TRUE;
+			transform = gui.icc.proofing_transform;
+		}
+		unlock_display_transform();
+	}
+
+	for (int dy = 0; dy < win_h; dy++) {
+		/* Screen row → image buf row → gfit row.
+		 * buf stores rows bottom-up (gfit row 0 = buf last row), so we flip. */
+		const double fy  = (dy - off_y) / zoom;
+		const int buf_row = (int)fy;
+		if (buf_row < 0 || buf_row >= img_h) continue;
+		const int iy = img_h - 1 - buf_row;
+
+		uint32_t *row_out = (uint32_t *)(disp_data + dy * disp_stride);
+
+		if (!is_rgb) {
+			/* Single-channel vport: mirrors REMAP_WRITE_PIXEL logic */
+			const int vp = (dd->vport < 3) ? dd->vport : 0;
+			const int ti = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels) ? vp : 0;
+			const BYTE *lut = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int ix = (int)((dx - off_x) / zoom);
+				if ((unsigned)ix >= (unsigned)img_w) continue;
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE val;
+				if (gfit->type == DATA_FLOAT) {
+					val = hd_mode
+						? lut[float_to_max_range(gfit->fpdata[vp][si], gui.hd_remap_max)]
+						: lut[roundf_to_WORD(gfit->fpdata[vp][si] * USHRT_MAX_SINGLE)];
+				} else {
+					const WORD sv = gfit->pdata[vp][si];
+					val = hd_mode ? lut[(guint)sv * gui.hd_remap_max / USHRT_MAX] : lut[sv];
+				}
+				if (inverted) val = UCHAR_MAX - val;
+				row_out[dx] = 0xFF000000u | ((uint32_t)val << 16) | ((uint32_t)val << 8) | val;
+			}
+		} else {
+			/* RGB composite vport: mirrors remap_all_vports logic */
+			BYTE *lb_r = lb_rgb;
+			BYTE *lb_g = lb_rgb + visible_w;
+			BYTE *lb_b = lb_rgb + 2 * visible_w;
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int ix = (int)((dx - off_x) / zoom);
+				const int li = dx - dx_first;
+				if ((unsigned)ix >= (unsigned)img_w) {
+					lb_r[li] = lb_g[li] = lb_b[li] = 0;
+					continue;
+				}
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE *channels[3] = { lb_r, lb_g, lb_b };
+				for (int c = 0; c < 3; c++) {
+					const int cc = gfit->color_managed ? c : 0;
+					WORD w;
+					if (gfit->type == DATA_FLOAT)
+						w = roundf_to_WORD(gfit->fpdata[c][si] * USHRT_MAX_SINGLE);
+					else
+						w = gfit->pdata[c][si];
+					const int sh = (int)w - remap_lo;
+					BYTE val = (cut_over && w > remap_hi) ? 0 : gui.remap_index[cc][sh < 0 ? 0 : sh];
+					if (inverted) val = UCHAR_MAX - val;
+					channels[c][li] = val;
+				}
+			}
+
+			if (do_transform && transform)
+				cmsDoTransformLineStride(transform, lb_rgb, lb_rgb, visible_w, 1,
+					visible_w * 3, visible_w * 3, visible_w, visible_w);
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int li = dx - dx_first;
+				row_out[dx] = 0xFF000000u
+					| ((uint32_t)lb_r[li] << 16)
+					| ((uint32_t)lb_g[li] <<  8)
+					|  (uint32_t)lb_b[li];
+			}
+		}
+	}
+
+	free(lb_rgb);
+	cairo_surface_flush(view->disp_surface);
+	cairo_surface_mark_dirty(view->disp_surface);
+	return TRUE;
+}
+
 static void draw_vport(const draw_data_t* dd) {
+	/* Snapshot lo/hi before cairo_mutex to preserve lock ordering
+	 * (remap takes com.mutex then cairo_mutex; never the reverse). */
+	g_mutex_lock(&com.mutex);
+	WORD remap_hi = gui.hi;
+	WORD remap_lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
 	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
@@ -1290,6 +1429,17 @@ static void draw_vport(const draw_data_t* dd) {
 		}
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
+
+		/* For large images at zoom >= 1.0 (surface_scale < 1.0), paint at full
+		 * resolution directly from gfit data rather than upscaling the small
+		 * surface.
+		 * Skip when generic_image_worker is running: gfit->pdata may be
+		 * mid-modification; fall back to view->buf via full_surface instead. */
+		const gboolean do_hires = (gui.surface_scale < 1.0 && dd->zoom >= 1.0
+		                           && !g_atomic_int_get(&gui.suppress_drawarea_redraw));
+		if (do_hires && fill_hires_disp(dd, view, remap_hi, remap_lo)) {
+			/* hires surface filled - skip standard surface paint */
+		} else {
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
 		cairo_matrix_t y_reflection_matrix, flipped_matrix;
 		cairo_matrix_init_identity(&y_reflection_matrix);
@@ -1315,6 +1465,7 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
 		cairo_paint(cached_cr);
 		cairo_destroy(cached_cr);
+		}
 
 //		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
 //				view->view_width, view->view_height);
@@ -1720,7 +1871,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
 		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
-		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
+		cairo_show_text(cr, "V");  // was missing - stroke on empty path was a no-op
 		cairo_stroke(cr);
 	}
 
@@ -2695,49 +2846,6 @@ void queue_redraw(remap_type doremap) {
 	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
 }
 
-/* Red badge at top-center of viewport when zoom exceeds surface resolution.
- * Beyond surface_scale the surface pixels are magnified and the display no
- * longer represents individual image pixels. */
-static void draw_upscale_warning(const draw_data_t *dd) {
-	if (gui.surface_scale >= 1.0 || dd->zoom < 1.0)
-		return;
-
-	cairo_t *cr = dd->cr;
-	cairo_save(cr);
-
-	/* After draw_vport(), the CTM is initial_CTM * gui.display_matrix.
-	 * Applying gui.image_matrix (the inverse) restores the CTM to
-	 * initial_CTM — i.e. widget-local pixel coordinates where (0,0) is
-	 * the top-left of the drawing area and 1 unit = 1 screen pixel. */
-	cairo_transform(cr, &gui.image_matrix);
-
-	const char *msg = _("Upscaled preview");
-	PangoLayout *layout = pango_cairo_create_layout(cr);
-	PangoFontDescription *font_desc = pango_font_description_from_string("Sans Bold 11");
-	pango_layout_set_font_description(layout, font_desc);
-	pango_font_description_free(font_desc);
-	pango_layout_set_text(layout, msg, -1);
-
-	int text_w, text_h;
-	pango_layout_get_pixel_size(layout, &text_w, &text_h);
-
-	const double pad_x = 10.0, pad_y = 5.0, margin = 10.0;
-	double bw = text_w + 2.0 * pad_x;
-	double bh = text_h + 2.0 * pad_y;
-	double bx = ((double)dd->window_width - bw) / 2.0;
-	double by = margin;
-
-	cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.55);
-	cairo_rectangle(cr, bx, by, bw, bh);
-	cairo_fill(cr);
-
-	cairo_set_source_rgba(cr, 1.0, 0.25, 0.25, 1.0);
-	cairo_move_to(cr, bx + pad_x, by + pad_y);
-	pango_cairo_show_layout(cr, layout);
-
-	g_object_unref(layout);
-	cairo_restore(cr);
-}
 
 /* callback for GtkDrawingArea, draw event */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -2759,8 +2867,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	 * data) are stale.  Repaint from the cached display surface so the
 	 * previous correct frame stays visible, avoiding a grey flash.
 	 *
-	 * If disp_surface was invalidated — e.g. the user changed zoom level or
-	 * resized the window during a long operation — fall through to a normal
+	 * If disp_surface was invalidated - e.g. the user changed zoom level or
+	 * resized the window during a long operation - fall through to a normal
 	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
 	 * holds the full-resolution remapped image and is safe to read from the
 	 * GTK thread.  draw_main_image() will re-render buf into a fresh
@@ -2775,7 +2883,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			return FALSE;
 		}
 		g_mutex_unlock(&gui.cairo_mutex);
-		/* disp_surface invalidated by viewport change; buf is still valid —
+		/* disp_surface invalidated by viewport change; buf is still valid -
 		 * fall through to rebuild disp_surface from buf */
 	}
 
@@ -2869,9 +2977,6 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	/* allow custom rendering */
 	if (gui.draw_extra)
 		gui.draw_extra(&dd);
-
-	/* warn when zoom exceeds surface resolution (large image workaround) */
-	draw_upscale_warning(&dd);
 
 	return FALSE;
 }
