@@ -304,8 +304,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib-8.3.tar.bz2",
-                    "sha256": "431ea3417927bbc02b89bfa3415dc0b4668b0f21a3b46fb8a3525e2fcf614508"
+                    "url": "https://www.atnf.csiro.au/computing/software/wcs/wcslib-releases/wcslib-8.6.tar.bz2",
+                    "sha256": "e030423605a199ef090fe742bc901a82d9e6b3a77e010e211cdd6d2cd067cd5a"
                 }
             ]
         },
