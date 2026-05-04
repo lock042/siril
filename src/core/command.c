@@ -7090,7 +7090,7 @@ int process_tilt(int nb) {
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
 		siril_log_message(_("Clearing tilt information\n"));
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	} else {
 		gui_iface.set_busy(TRUE);
 		draw_sensor_tilt(gfit);
@@ -8266,7 +8266,7 @@ int process_clear(int nb) {
 int process_clearstar(int nb){
 	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	gfit_modified_update_gui();
-	queue_redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	gui_function(redraw_previews, NULL);
 	return CMD_OK;
 }
@@ -14465,12 +14465,12 @@ int process_disto(int nb) {
 		return CMD_WRONG_N_ARG;
 	if (nb == 1) {
 		gui.show_wcs_disto	= TRUE;
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	}
 	if (!strcmp(word[1], "clear")) {
 		gui.show_wcs_disto	= FALSE;
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	} else {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);

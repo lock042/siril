@@ -1307,7 +1307,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+		gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list
@@ -1509,7 +1509,7 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 		int id = get_unused_polygon_id();
 		polygon->id = id;
 		gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);
 	} else {

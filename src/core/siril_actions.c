@@ -261,7 +261,7 @@ void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user
 		if (gui.icc.iso12646)
 			disable_iso12646_conditions(FALSE, TRUE, TRUE);
 		reset_display_offset();
-		redraw(REDRAW_IMAGE);
+		gui_iface.redraw_image(REDRAW_IMAGE);
 	} else {
 		gui.zoom_value = get_zoom_val();
 	}
@@ -296,14 +296,14 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 	gui.zoom_value = ZOOM_NONE;
 	reset_display_offset();
 	update_zoom_label();
-	redraw(REDRAW_IMAGE);
+	gui_iface.redraw_image(REDRAW_IMAGE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
 	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	gui_iface.set_busy(FALSE);
 }
@@ -321,7 +321,7 @@ void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data
 	g_simple_action_set_state(action, state);
 	free(gui.qphot);
 	gui.qphot = NULL;
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -336,7 +336,7 @@ void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 	g_simple_action_set_state(action, state);
 	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	gui_iface.set_busy(FALSE);
 }
@@ -488,13 +488,13 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	gui.show_wcs_grid = g_variant_get_boolean(state);
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -518,7 +518,7 @@ void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) 
 	drawframe = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawframe_check")));
 	gtk_toggle_button_set_active(drawframe, g_variant_get_boolean(state));
 	g_simple_action_set_state(action, state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -580,7 +580,7 @@ void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 
 	} else {
 		clear_sensor_tilt();
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 	g_simple_action_set_state(action, state);
 	gui_iface.set_busy(FALSE);
@@ -602,7 +602,7 @@ void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data
 	gui_iface.set_busy(TRUE);
 
 	gui.show_wcs_disto = g_variant_get_boolean(state);
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 	g_simple_action_set_state(action, state);
 
 	gui_iface.set_busy(FALSE);
@@ -714,7 +714,7 @@ void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
 	}
 	siril_open_dialog("rotation_dialog");
-	redraw(REDRAW_OVERLAY);
+	gui_iface.redraw_image(REDRAW_OVERLAY);
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

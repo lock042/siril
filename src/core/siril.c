@@ -308,7 +308,7 @@ int visu(fits *fit, int low, int high) {
 	gui.hi = high;
 	set_cutoff_sliders_values();
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
 	return 0;
 }

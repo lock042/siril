@@ -1435,7 +1435,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			free_background_sample_list(com.grad_samples);
 			com.grad_samples = NULL;
 			sample_mutex_unlock();
-			queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+			gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
@@ -2584,7 +2584,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (!com.headless) {
 				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
 				g_thread_join(thread);
-				queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+				gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 			}
 			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
@@ -2662,7 +2662,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				int32_t id = GINT32_FROM_BE(*(int*) payload);
 				gboolean deleted = delete_user_polygon(id);
-				queue_redraw(REDRAW_OVERLAY);
+				gui_iface.redraw_image_async(REDRAW_OVERLAY);
 				if (!deleted) {
 					siril_debug_print("Failed to delete user polygon with id %d\n", id);
 					const char* error_msg = _("Invalid payload length");
@@ -3237,7 +3237,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						// Set STF
 						gui.rendering_mode = stf;
 						execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
@@ -3266,7 +3266,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 					// Schedule the UI update on the GTK thread
 					execute_idle_and_wait_for_it(chain_channels_idle_callback, GINT_TO_POINTER(state));
-					queue_redraw_and_wait_for_it(REMAP_ALL);
+					gui_iface.redraw_image_sync(REMAP_ALL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set slider state - invalid payload length");
@@ -3322,7 +3322,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					} else {
 						// Set slider mode only
 						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
@@ -3359,7 +3359,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						gui.lo = lo;
 						gui.hi = hi;
 						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
-						queue_redraw_and_wait_for_it(REMAP_ALL);
+						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
 				} else {
@@ -3390,7 +3390,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					TO_BE64_INTO(yoff, values[1], double);
 					gui.display_offset.x = xoff;
 					gui.display_offset.y = yoff;
-					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");
@@ -3422,7 +3422,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					if (zoom == ZOOM_FIT)
 						reset_display_offset();
 					execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
-					queue_redraw_and_wait_for_it(REDRAW_IMAGE);
+					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
 					const char* error_msg = _("Failed to set display offset - invalid payload length");

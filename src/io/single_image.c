@@ -349,7 +349,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	remap_all();
 	update_gfit_histogram_if_needed();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
 }
 
@@ -373,7 +373,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	remap_all();
 	update_gfit_histogram_if_needed();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
 }
 
@@ -460,9 +460,9 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")), TRUE);
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
-		redraw(REMAP_ALL);
+		gui_iface.redraw_image(REMAP_ALL);
 	else
-		queue_redraw(REMAP_ALL);	// queues a redraw if !com.script
+		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
 
 	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
 
@@ -519,7 +519,7 @@ void notify_gfit_data_modified() {
 		 * gfit now — before computing the histogram and before remap_all()
 		 * builds the Cairo display buffers — so that both operations see the
 		 * fully-updated pixel data.  This is the correct point to do this:
-		 * redraw() must remain a pure "repaint from Cairo buffers" function
+		 * gui_iface.redraw_image() must remain a pure "repaint from Cairo buffers" function
 		 * and must not write gfit. */
 		if (gui.roi.active && gui.roi.operation_supports_roi &&
 				((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) ||

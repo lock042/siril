@@ -812,7 +812,7 @@ static gpointer live_stacker(gpointer arg) {
 				first_stacking_result = FALSE;
 			} else {
 				remap_all();
-				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
+				gui_iface.redraw_image_async(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}
 		g_free(result_filename);

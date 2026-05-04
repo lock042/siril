@@ -551,7 +551,7 @@ static gboolean end_stacking(gpointer p) {
 		/* update menus */
 		gui_function(update_MenuItem, NULL);
 
-		redraw(REMAP_ALL);
+		gui_iface.redraw_image(REMAP_ALL);
 		gui_function(redraw_previews, NULL);
 		sequence_list_change_current();
 		update_stack_interface(TRUE);

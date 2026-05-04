@@ -1088,7 +1088,7 @@ static gboolean end_conesearch(gpointer p) {
 				gtk_toggle_tool_button_set_active(button, TRUE);
 			} else {
 				refresh_found_objects();
-				redraw(REDRAW_OVERLAY);
+				gui_iface.redraw_image(REDRAW_OVERLAY);
 			}
 		}
 	}
@@ -1171,7 +1171,7 @@ int execute_show_command(show_params *params) {
 
 	if (params->clear) { // this is safe even in script/headless,used by the command, not the UI
 		purge_user_catalogue(CAT_AN_USER_TEMP);
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 	siril_catalogue *siril_cat = siril_catalog_new(CAT_SHOW);	

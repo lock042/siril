@@ -21,6 +21,7 @@
 
 
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/registration.h"
@@ -235,7 +236,7 @@ void get_the_registration_area(struct registration_args *regargs, const struct r
 			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", regargs->selection.x,
 					regargs->selection.y, regargs->selection.w,
 					regargs->selection.h);
-			redraw(REDRAW_OVERLAY);
+			gui_iface.redraw_image(REDRAW_OVERLAY);
 			break;
 	}
 }

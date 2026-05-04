@@ -481,12 +481,21 @@ for the modules that could not be split using Pattern A.
            Deferred: siril_update.c siril_data_dialog (phase 5.10);
            siril_pythoncommands.c modal path using struct message_data (phase 6.6).
 
-[ ] 4.8  Route redraw / queue_redraw through gui_iface
+[X] 4.8  Route redraw / queue_redraw through gui_iface
          - ~37 call-sites across remaining algos, io, stacking.
          - Replace with gui_iface.redraw_image() and
            gui_iface.redraw_image_async().
          - Do as much of this using scripting as possible, to minimize
            token use for exact pattern changes.
+         - DONE: 50 replacements across 14 files via replace_redraw.py.
+           redraw() → gui_iface.redraw_image()
+           queue_redraw() → gui_iface.redraw_image_async()
+           queue_redraw_and_wait_for_it() → gui_iface.redraw_image_sync()
+           src/registration/registration.c gained #include "core/gui_iface.h".
+           Standalone remap_all() calls left in place; cleaned up per-file
+           in phases 5-6 (sequence.c/6.1, single_image.c/6.2, livestacking/5.15).
+           execute_idle_and_wait_for_it(redraw_mask_idle,...) in
+           siril_pythoncommands.c left for phase 6.6.
 
 ─────────────────────────────────────────────────────────────────────────────
 PHASE 5 – CLEAN UP REMAINING PROCESSING MODULES  (via gui_iface)

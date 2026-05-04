@@ -633,7 +633,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 	gui_function(init_right_tab, NULL);
 
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	drawPlot();
 	return FALSE;
 }
@@ -759,7 +759,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		remap_all();
-		redraw(REMAP_ALL);
+		gui_iface.redraw_image(REMAP_ALL);
 		if (seq->is_variable)
 			clear_previews();
 		else
@@ -2188,7 +2188,7 @@ gboolean end_seqpsf(gpointer p) {
 		set_layers_for_registration();	// update display of available reg data
 		drawPlot();
 		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 proper_ending:
