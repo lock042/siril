@@ -305,6 +305,7 @@ src_files_gui = [
   'gui/registration_preview.c',
   'gui/remixer.c',
   'gui/save_dialog.c',
+  'gui/script_console.c',
   'gui/script_menu.c',
   'gui/search_objects.c',
   'gui/sequence_list.c',

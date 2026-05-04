@@ -43,10 +43,9 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
-#include "gui/utils.h"
-#include "gui/cut.h"
+#include "core/gui_iface.h"
 #include "gui/callbacks.h"
-#include "gui/message_dialog.h"
+#include "gui/gui_state.h"
 #include "gui/plot.h"
 #include "gui/registration.h"
 #include "ser.h"
@@ -92,46 +91,8 @@
  * single images when a sequence is loaded or not.
  */
 
-static void fillSeqAviExport() {
-	char width[6], height[6];
-	GtkEntry *heightEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight")));
-	GtkEntry *widthEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth")));
-
-	g_snprintf(width, sizeof(width), "%d", com.seq.rx);
-	g_snprintf(height, sizeof(width), "%d", com.seq.ry);
-	gtk_entry_set_text(widthEntry, width);
-	gtk_entry_set_text(heightEntry, height);
-	if (com.seq.type == SEQ_SER) {
-		GtkEntry *entryAviFps = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviFps")));
-
-		if (com.seq.ser_file != NULL) {
-			char fps[7];
-
-			if (com.seq.ser_file->fps <= 0.0) {
-				g_snprintf(fps, sizeof(fps), "25.000");
-			} else {
-				g_snprintf(fps, sizeof(fps), "%2.3lf", com.seq.ser_file->fps);
-			}
-			gtk_entry_set_text(entryAviFps, fps);
-		}
-	}
-}
-
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq);
-
-gboolean populate_seqcombo(gpointer user_data) {
-	const gchar *realname = (const gchar*) user_data;
-	control_window_switch_to_tab(IMAGE_SEQ);
-	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
-	gtk_combo_box_text_remove_all(combo_box_text);
-	gchar *rname = g_path_get_basename(realname);
-	gtk_combo_box_text_append(combo_box_text, 0, rname);
-	g_signal_handlers_block_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_text), 0);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	g_free(rname);
-	return FALSE;
-}
+/* fillSeqAviExport and populate_seqcombo moved to gui/gui_iface_impl.c */
 
 /* normalizes sequence name
  * takes a string and
@@ -160,7 +121,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *dirname = g_path_get_dirname(realname);
 	if (!siril_change_dir(dirname, NULL)) {
 		writeinitfile();
-		gui_function(set_GUI_CWD, NULL);
+		gui_iface.set_gui_cwd();
 	}
 	g_free(dirname);
 
@@ -198,7 +159,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *fname = g_path_get_basename(name);
 	if (!set_seq(fname) && !com.script) {
 		/* if it loads, make it selected and only element in the list of sequences */
-		gui_function(populate_seqcombo, realname);
+		gui_iface.populate_seq_combo(realname);
 	}
 	else retval = 1;
 	g_free(fname);
@@ -595,53 +556,7 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 	return TRUE;
 }
 
-static gboolean set_seq_gui(gpointer user_data) {
-	sequence *seq = (sequence *) user_data;
-	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-	set_cutoff_sliders_values();	// update values for contrast sliders for this image
-	int layer = set_layers_for_registration();	// set layers in the combo box for registration
-	update_seqlist(layer);
-	fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-	set_output_filename_to_sequence_name();
-	sliders_mode_set_state(gui.sliders);
-	initialize_display_mode();
-	update_zoom_label();
-	reset_plot(); // reset all plots
-	reset_3stars();
-
-	/* initialize image-related runtime data */
-	set_display_mode();		// display the display mode in the combo box
-	display_filename();		// display filename in gray window
-	gui_function(set_precision_switch, NULL); // set precision on screen
-	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
-	update_reg_interface(FALSE);	// change the registration prereq message
-	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-	adjust_reginfo();		// change registration displayed/editable values
-	update_gfit_histogram_if_needed();
-	adjust_sellabel();
-	fillSeqAviExport();	// fill GtkEntry of export box
-
-	/* update menus */
-	update_MenuItem(NULL);
-	/* update parameters in GUI */
-	set_GUI_CAMERA();
-
-	/* redraw and display image */
-	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
-	gui_function(init_right_tab, NULL);
-
-	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
-	drawPlot();
-	return FALSE;
-}
-
-static void free_cbbt_layers() {
-	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "comboboxreglayer")));
-	gtk_combo_box_text_remove_all(cbbt_layers);
-}
+/* set_seq_gui and free_cbbt_layers moved to gui/gui_iface_impl.c */
 
 /* load a sequence and initializes everything that relates */
 gboolean set_seq(gpointer user_data){
@@ -709,7 +624,7 @@ gboolean set_seq(gpointer user_data){
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (!com.script && !com.headless) {
-		execute_idle_and_wait_for_it(set_seq_gui, seq);
+		gui_iface.on_sequence_opened();
 	}
 
 	free(seq);
@@ -1692,34 +1607,7 @@ gboolean check_seq_is_variable(const sequence *seq) {
 }
 
 
-gboolean close_sequence_idle(gpointer data) {
-	fprintf(stdout, "closing sequence idle\n");
-	free_cbbt_layers();
-	clear_sequence_list();
-	clear_stars_list(TRUE);
-	reset_3stars();
-	clear_previews();
-	free_reference_image();
-	update_stack_interface(TRUE);
-	adjust_sellabel();
-	update_seqlist(-1);
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
-	/* unselect the sequence in the sequence list if it's not the one
-	 * being loaded */
-	if (!data) { // loading_sequence_from_combo
-		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
-		gtk_combo_box_set_active(seqcombo, -1);
-	}
-	return FALSE;
-}
-
-static void close_sequence_gui(gboolean loading_sequence_from_combo) {
-	if (com.script || com.python_command)
-		execute_idle_and_wait_for_it(close_sequence_idle,
-				GINT_TO_POINTER(loading_sequence_from_combo));
-	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
-}
+/* close_sequence_idle and close_sequence_gui moved to gui/gui_iface_impl.c */
 
 /* Close the com.seq sequence */
 void close_sequence(int loading_sequence_from_combo) {
@@ -1735,7 +1623,7 @@ void close_sequence(int loading_sequence_from_combo) {
 		initialize_sequence(&com.seq, FALSE);
 
 		if (!com.headless)
-			close_sequence_gui(loading_sequence_from_combo);
+			gui_iface.on_sequence_closed(loading_sequence_from_combo);
 	}
 }
 

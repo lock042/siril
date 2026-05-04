@@ -195,7 +195,7 @@ int process_load(int nb){
 	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
-	gui_function(launch_clipboard_survey, NULL);
+	gui_iface.launch_clipboard_survey();
 	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
 }
 
@@ -421,7 +421,7 @@ int process_save(int nb){
 			adjust_sellabel();
 		}
 	}
-	gui_function(set_precision_switch, NULL);
+	gui_iface.on_precision_changed();
 
 	g_free(filename);
 	g_free(savename);
@@ -1198,7 +1198,7 @@ static gpointer rebayer_cmd_worker(gpointer p) {
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	if (!com.script) {
-		gui_function(open_single_image_from_gfit, NULL);
+		gui_iface.on_image_loaded();
 	}
 	free_rebayer_cmd_data(data);
 	siril_add_idle(end_generic, NULL);
@@ -3051,7 +3051,7 @@ int process_update_key(int nb) {
 
 		updateFITSKeyword(gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
-	gui_function(refresh_keywords_dialog, NULL);
+	gui_iface.refresh_keywords_dialog();
 
 	g_free(key);
 	g_free(value);
@@ -3279,7 +3279,7 @@ int process_cd(int nb) {
 			com.pref.wd = g_strdup(com.wd);
 			writeinitfile();
 		}
-		gui_function(set_GUI_CWD, NULL);
+		gui_iface.set_gui_cwd();
 	}
 	else {   /* chdir failed */
 	/*
@@ -3771,7 +3771,7 @@ int process_ghs(int nb, int stretchtype) {
 	}
 	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
-	if (gui.roi.active)
+	if (gui_iface.roi_is_active())
 		populate_roi();
 
 	return CMD_OK;
@@ -7549,16 +7549,8 @@ int process_new(int nb){
 
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(filename, FALSE);
-	gui_function(open_single_image_from_gfit, NULL);
-	if (!com.headless) {
-		if (g_main_context_is_owner(g_main_context_default())) {
-			// it is safe to call the function directly
-			open_single_image_from_gfit(NULL);
-		} else {
-			// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-			execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
-		}
-	}
+	if (!com.headless)
+		gui_iface.on_image_loaded();
 	return CMD_OK;
 }
 
@@ -8248,18 +8240,10 @@ int process_cdg(int nb) {
 	return CMD_OK;
 }
 
-static gboolean clear_log_buffer(gpointer user_data) {
-	GtkTextView *text = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "output")));
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
-	GtkTextIter start_iter, end_iter;
-	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
-	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
-	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
-	return FALSE;
-}
+/* clear_log_buffer moved to gui/gui_iface_impl.c (clear_log_buffer_idle) */
 
 int process_clear(int nb) {
-	gui_function(clear_log_buffer, NULL);
+	gui_iface.clear_log_buffer();
 	return CMD_OK;
 }
 
@@ -8267,7 +8251,7 @@ int process_clearstar(int nb){
 	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	gfit_modified_update_gui();
 	gui_iface.redraw_image_async(REDRAW_OVERLAY);
-	gui_function(redraw_previews, NULL);
+	gui_iface.redraw_previews();
 	return CMD_OK;
 }
 
@@ -12477,7 +12461,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	gui_function(update_spinCPU, GINT_TO_POINTER(0));
+	gui_iface.update_spin_cpu();
 
 	return CMD_OK;
 }
@@ -12726,7 +12710,7 @@ int process_boxselect(int nb){
 	g_mutex_unlock(&com.mutex);
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
-		gui_function(new_selection_zone, NULL);
+		gui_iface.new_selection_zone();
 	return CMD_OK;
 }
 
@@ -14464,12 +14448,12 @@ int process_disto(int nb) {
 	if (nb > 2)
 		return CMD_WRONG_N_ARG;
 	if (nb == 1) {
-		gui.show_wcs_disto	= TRUE;
+		gui_iface.set_wcs_overlay(TRUE);
 		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	}
 	if (!strcmp(word[1], "clear")) {
-		gui.show_wcs_disto	= FALSE;
+		gui_iface.set_wcs_overlay(FALSE);
 		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	} else {

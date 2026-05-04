@@ -711,7 +711,7 @@ PHASE 6 – REFACTOR HEAVILY COUPLED "GLUE" FILES  (structural surgery)
 
 These files are essentially GUI controllers that ended up in core/ or io/.
 
-[ ] 6.1  src/io/sequence.c  (41 GUI calls)
+[X] 6.1  src/io/sequence.c  (41 GUI calls)
          - Identify the pure-data operations (loading, unloading, seeking,
            filtering) vs the UI-notification calls that follow them.
          - Replace the large cluster of "after loading a sequence, update the
@@ -722,15 +722,52 @@ These files are essentially GUI controllers that ended up in core/ or io/.
          - Add gui_iface.on_sequence_closed() and
            gui_iface.on_sequence_frame_changed() as needed.
          - Result: sequence.c contains no GUI calls.
+         DONE: fillSeqAviExport, set_seq_gui, free_cbbt_layers, close_sequence_idle,
+         populate_seqcombo moved to gui/gui_iface_impl.c. on_sequence_opened() and
+         on_sequence_closed(loading_next) implemented. sequence.c call sites routed
+         through gui_iface; seq_load_image retained GUI calls (documented as GUI-only).
+         gui/utils.h, cut.h, message_dialog.h removed from sequence.c. seq.h updated.
+         populate_seqcombo/set_GUI_CWD calls in main.c and gui/single_image.c routed.
 
-[ ] 6.2  src/io/single_image.c  (44 GUI calls)
+[X] 6.2  src/io/single_image.c  (44 GUI calls)
          - Same strategy as 6.1: replace all 44 calls with
            gui_iface.on_image_loaded() and gui_iface.on_image_closed()
            notifications.
+         DONE: free_image_data_gui moved to gui/gui_iface_impl.c; on_image_closed()
+         implemented with full 3-path threading logic. on_image_loaded() implemented
+         (calls open_single_image_from_gfit which stays in single_image.c). free_image_data()
+         call sites route through gui_iface.on_image_closed(). end_open_single_image
+         routes through gui_iface.on_image_loaded(). gfit_modified_update_gui uses
+         gui_iface.execute_idle_sync. gui_function(set_precision_switch/redraw_previews)
+         routed. end_gfit_operation, notify_gfit_data_modified remain in single_image.c
+         (complex; deferred to Phase 6 continuation).
 
-[ ] 6.3  src/core/command.c  (40 GUI calls)
+[X] 6.3  src/core/command.c  (40 GUI calls)
          - Progress/dialog/redraw calls: fixed by phases 4 & 5.
          - Operations that manipulate display state (mirrorx_gui,
+         DONE: 15 gui_function() calls and gui.* struct accesses routed through
+         new and existing gui_iface slots: launch_clipboard_survey, on_precision_changed,
+         on_image_loaded (×3), refresh_keywords_dialog, set_gui_cwd, clear_log_buffer,
+         redraw_previews, update_spin_cpu, new_selection_zone, roi_is_active,
+         get_active_vport (select_vport×5), set_wcs_overlay (×2). clear_log_buffer
+         static removed (body moved to gui_iface_impl.c). show_command_help slot added.
+
+[ ] 6.4  src/core/command_line_processor.c  (12 GUI calls + 39 raw GTK)
+         - The raw GTK calls involve the script console text widget.
+           Extract into src/gui/script_console.c and communicate through
+           an IConsole slot in gui_iface.
+         DONE: Created gui/script_console.c (added to meson.build) with:
+         update_log_icon, log_status_bar_idle_callback, display_command_on_status_bar,
+         clear_status_bar, end_script, history_add_line, on_command_activate,
+         on_command_key_press_event, show_command_help_popup, on_match_selected,
+         completion_match_func, init_completion_command, init_controller_command,
+         init_command, on_GtkCommandHelper_clicked.
+         command_line_processor.c: display_command_on_status_bar → gui_iface.console_set_status;
+         gui_function(end_script) → gui_iface.end_script_gui; gui.roi.active →
+         gui_iface.roi_is_active; populate_roi → gui_iface.populate_roi;
+         control_window_switch_to_tab → gui_iface.show_panel; show_command_help_popup →
+         gui_iface.show_command_help. 5 gui/ includes become removable.
+         13 new gui_iface slots total across groups E/F/G/Q for 6.1-6.4.
            toggle_histogram_window_visibility, etc.): the command should
            call the underlying processing function directly and emit a
            gui_iface notification rather than calling the GUI function

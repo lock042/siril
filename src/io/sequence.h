@@ -12,7 +12,7 @@ typedef enum {
 	CACHE_NEWER = 1
 } cache_status;
 
-gboolean populate_seqcombo(gpointer user_data);
+/* populate_seqcombo is a GUI-only idle — defined in gui/gui_iface_impl.c */
 int	read_single_sequence(char *realname, image_type imagetype);
 char *normalize_seqname(char *name, gboolean add_underscore);
 int	check_seq();

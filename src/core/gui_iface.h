@@ -138,6 +138,10 @@ typedef struct {
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
 	void     (*on_sequence_opened)(void);
+	/* Called when the current sequence is closed/unloaded.
+	 * loading_next: TRUE when immediately loading another sequence (skip
+	 * deselecting the combo box). */
+	void     (*on_sequence_closed)(gboolean loading_next);
 	/* Called after a single image is loaded into gfit and displayed. */
 	void     (*on_image_loaded)(void);
 	/* Called when the current single image is closed/unloaded. */
@@ -149,6 +153,8 @@ typedef struct {
 	void     (*update_sequences_list)(const char *seqname);
 	/* Open/display gfit as a single image in the main window. */
 	void     (*open_single_image_from_gfit)(void);
+	/* Populate the sequence-selector combo with realname as the only entry. */
+	void     (*populate_seq_combo)(const char *realname);
 
 	/* F – Panel / tab switching -------------------------------------------- */
 	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */
@@ -181,14 +187,34 @@ typedef struct {
 	/* F additions – Application lifecycle -------------------------------- */
 	/* Quit the application's main event loop. */
 	void     (*quit_application)(void);
+	/* Update the CWD display label in the main window. */
+	void     (*set_gui_cwd)(void);
 
-	/* G additions – Channel / precision display state -------------------- */
+	/* G additions – Channel / precision / command state ----------------- */
 	/* Called when the channel count of gfit may have changed. */
 	void     (*on_channel_count_changed)(void);
 	/* Called when the data type (float/ushort) of gfit has changed. */
 	void     (*on_precision_changed)(void);
 	/* Refresh the script menu on the GTK main thread (serialised). */
 	void     (*refresh_script_menu)(void);
+	/* Refresh the keywords-tree dialog from current gfit keywords. */
+	void     (*refresh_keywords_dialog)(void);
+	/* Show/hide the WCS distortion overlay on the image canvas. */
+	void     (*set_wcs_overlay)(gboolean show);
+	/* Launch the photometric/SPCC catalogue survey dialog. */
+	void     (*launch_clipboard_survey)(void);
+	/* Clear the main log text buffer. */
+	void     (*clear_log_buffer)(void);
+	/* Update the CPU-thread-count spin button. */
+	void     (*update_spin_cpu)(void);
+	/* Sync the selection-rectangle UI state from com.selection. */
+	void     (*new_selection_zone)(void);
+	/* Return the currently active display viewport index. */
+	int      (*get_active_vport)(void);
+	/* Return TRUE if the star-following toggle is active. */
+	gboolean (*get_star_follow_state)(void);
+	/* Show the command help popup for the current console command. */
+	void     (*show_command_help)(void);
 	/* Update the memory-usage label (used_bytes = current RSS). */
 	void     (*update_mem_usage)(guint64 used_bytes);
 	/* Update a disk-space label (space_bytes = free bytes, label_id = widget name). */
@@ -269,6 +295,14 @@ typedef struct {
 	void     (*check_icc_identical_to_monitor)(void);
 	/* Update the image source/profile information labels in the main window. */
 	void     (*set_source_information)(void);
+
+	/* Q – Script console -------------------------------------------------- */
+	/* Append msg to the script-log status bar; line is the script line number. */
+	void     (*console_set_status)(const char *msg, int line);
+	/* Clear the script-log status bar. */
+	void     (*console_clear_status)(void);
+	/* Run all post-script GUI cleanup on the GTK main thread. */
+	void     (*end_script_gui)(void);
 
 	/* P – Livestacking GUI lifecycle --------------------------------------- */
 	/* Called when livestacking starts; switches display mode and hides toolbar. */

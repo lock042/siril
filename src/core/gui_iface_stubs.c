@@ -166,6 +166,23 @@ static void stub_livestacking_setup_gui(gboolean has_dark, gboolean has_flat,
 }
 static void stub_livestacking_teardown_gui(void) {}
 
+/* 6.1–6.4 additions */
+static void stub_on_sequence_closed(gboolean loading_next) { (void)loading_next; }
+static void stub_populate_seq_combo(const char *realname) { (void)realname; }
+static void stub_set_gui_cwd(void) {}
+static void stub_refresh_keywords_dialog(void) {}
+static void stub_set_wcs_overlay(gboolean show) { (void)show; }
+static void stub_launch_clipboard_survey(void) {}
+static void stub_clear_log_buffer(void) {}
+static void stub_update_spin_cpu(void) {}
+static void stub_new_selection_zone(void) {}
+static int  stub_get_active_vport(void) { return 0; }
+static void stub_console_set_status(const char *msg, int line) { (void)msg; (void)line; }
+static void stub_console_clear_status(void) {}
+static void stub_end_script_gui(void) {}
+static gboolean stub_get_star_follow_state(void) { return FALSE; }
+static void stub_show_command_help(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -236,4 +253,19 @@ SirilGuiInterface gui_iface = {
 	.clear_backup                = stub_clear_backup,
 	.livestacking_setup_gui      = stub_livestacking_setup_gui,
 	.livestacking_teardown_gui   = stub_livestacking_teardown_gui,
+	.on_sequence_closed          = stub_on_sequence_closed,
+	.populate_seq_combo          = stub_populate_seq_combo,
+	.set_gui_cwd                 = stub_set_gui_cwd,
+	.refresh_keywords_dialog     = stub_refresh_keywords_dialog,
+	.set_wcs_overlay             = stub_set_wcs_overlay,
+	.launch_clipboard_survey     = stub_launch_clipboard_survey,
+	.clear_log_buffer            = stub_clear_log_buffer,
+	.update_spin_cpu             = stub_update_spin_cpu,
+	.new_selection_zone          = stub_new_selection_zone,
+	.get_active_vport            = stub_get_active_vport,
+	.console_set_status          = stub_console_set_status,
+	.console_clear_status        = stub_console_clear_status,
+	.end_script_gui              = stub_end_script_gui,
+	.get_star_follow_state       = stub_get_star_follow_state,
+	.show_command_help           = stub_show_command_help,
 };

@@ -549,8 +549,8 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 				} else {
 					set_seq(path);
 					if (!com.script) {
-						populate_seqcombo(path);
-						gui_function(set_GUI_CWD, NULL);
+						gui_iface.populate_seq_combo(path);
+						gui_iface.set_gui_cwd();
 					}
 				}
 				g_free(sequence_dir);

@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
@@ -86,8 +87,8 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 									g_free(com.pref.wd);
 								com.pref.wd = g_strdup(com.wd);
 								if (!com.script) {
-									populate_seqcombo(filename);
-									gui_function(set_GUI_CWD, NULL);
+									gui_iface.populate_seq_combo(filename);
+									gui_iface.set_gui_cwd();
 								}
 							}
 							g_free(sequence_dir);

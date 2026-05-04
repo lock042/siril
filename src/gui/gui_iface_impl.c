@@ -34,8 +34,13 @@
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
+#include "algos/background_extraction.h"
+#include "algos/ccd-inspector.h"
+#include "gui/cut.h"
+#include "gui/dialogs.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
+#include "gui/keywords_tree.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/callbacks.h"
@@ -49,6 +54,10 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
 #include "gui/siril_preview.h"
+#include "gui/script_console.h"
+#include "gui/user_polygons.h"
+#include "io/annotation_catalogues.h"
+#include "io/sequence.h"
 #include "livestacking/gui.h"
 #include "gui/registration.h"
 #include "gui/script_menu.h"
@@ -128,11 +137,7 @@ static void impl_queue_redraw_mask(void) {
 	queue_redraw_mask();
 }
 
-/* ── Groups E, F: no-op placeholders until phases 4–5 wire them up ── */
-
-static void impl_on_sequence_opened(void) {}
-static void impl_on_image_loaded(void) {}
-static void impl_on_image_closed(void) {}
+/* ── Groups E, F: no-op placeholders (filled in by 6.1/6.2 impls below) ── */
 
 /* Called after stacking completes successfully on the GTK main thread.
  * Consolidates all display-state update calls that were previously scattered
@@ -254,6 +259,293 @@ static void impl_execute_idle_sync(GSourceFunc func, gpointer data) {
 
 static GPid impl_select_child_process(GSList *children) {
 	return show_child_process_selection_dialog(children);
+}
+
+/* ── Steps 6.1–6.4: sequence / image / command / console slots ──────────── */
+
+/* Helper: free the sequence comboboxreglayer before closing a sequence. */
+static void free_cbbt_layers(void) {
+	GtkComboBoxText *cbbt = GTK_COMBO_BOX_TEXT(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "comboboxreglayer")));
+	gtk_combo_box_text_remove_all(cbbt);
+}
+
+/* Helper: fill the AVI-export size fields from the current sequence. */
+static void fillSeqAviExport(void) {
+	char width[6], height[6];
+	GtkEntry *heightEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight")));
+	GtkEntry *widthEntry  = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth")));
+	g_snprintf(width,  sizeof(width),  "%d", com.seq.rx);
+	g_snprintf(height, sizeof(height), "%d", com.seq.ry);
+	gtk_entry_set_text(widthEntry,  width);
+	gtk_entry_set_text(heightEntry, height);
+	if (com.seq.type == SEQ_SER && com.seq.ser_file) {
+		GtkEntry *fpsEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviFps")));
+		char fps[7];
+		if (com.seq.ser_file->fps <= 0.0)
+			g_snprintf(fps, sizeof(fps), "25.000");
+		else
+			g_snprintf(fps, sizeof(fps), "%2.3lf", com.seq.ser_file->fps);
+		gtk_entry_set_text(fpsEntry, fps);
+	}
+}
+
+/* GTK idle: update all GUI widgets after a sequence is opened. */
+static gboolean set_seq_gui(gpointer user_data) {
+	sequence *seq = (sequence *) user_data;
+	init_layers_hi_and_lo_values(MIPSLOHI);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	int layer = set_layers_for_registration();
+	update_seqlist(layer);
+	fill_sequence_list(seq, max(layer, 0), FALSE);
+	set_output_filename_to_sequence_name();
+	sliders_mode_set_state(gui.sliders);
+	initialize_display_mode();
+	update_zoom_label();
+	reset_plot();
+	reset_3stars();
+	set_display_mode();
+	display_filename();
+	gui_function(set_precision_switch, NULL);
+	adjust_refimage(seq->current);
+	update_prepro_interface(seq->type == SEQ_REGULAR ||
+	                        seq->type == SEQ_FITSEQ ||
+	                        seq->type == SEQ_SER);
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	adjust_reginfo();
+	update_gfit_histogram_if_needed();
+	adjust_sellabel();
+	fillSeqAviExport();
+	update_MenuItem(NULL);
+	set_GUI_CAMERA();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
+	notify_gfit_data_modified();
+	gui_iface.redraw_image(REMAP_ALL);
+	drawPlot();
+	return FALSE;
+}
+
+/* GTK idle: clean up GUI state when a sequence is closed. */
+static gboolean close_sequence_idle(gpointer data) {
+	free_cbbt_layers();
+	clear_sequence_list();
+	clear_stars_list(TRUE);
+	reset_3stars();
+	clear_previews();
+	free_reference_image();
+	update_stack_interface(TRUE);
+	adjust_sellabel();
+	update_seqlist(-1);
+	free_cut_args(&gui.cut);
+	initialize_cut_struct(&gui.cut);
+	if (!data) {
+		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(
+			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
+		gtk_combo_box_set_active(seqcombo, -1);
+	}
+	return FALSE;
+}
+
+/* GTK idle: populate the sequence selector with a single entry. */
+static gboolean populate_seqcombo(gpointer user_data) {
+	const gchar *realname = (const gchar *) user_data;
+	control_window_switch_to_tab(IMAGE_SEQ);
+	GtkComboBoxText *combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
+	gtk_combo_box_text_remove_all(combo);
+	gchar *rname = g_path_get_basename(realname);
+	gtk_combo_box_text_append(combo, 0, rname);
+	g_signal_handlers_block_by_func(GTK_COMBO_BOX(combo),
+		on_seqproc_entry_changed, NULL);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(combo),
+		on_seqproc_entry_changed, NULL);
+	g_free(rname);
+	return FALSE;
+}
+
+static void impl_on_sequence_opened(void) {
+	if (g_main_context_is_owner(g_main_context_default()))
+		set_seq_gui(&com.seq);
+	else
+		execute_idle_and_wait_for_it(set_seq_gui, &com.seq);
+}
+
+static void impl_on_sequence_closed(gboolean loading_next) {
+	if (g_main_context_is_owner(g_main_context_default()))
+		close_sequence_idle(GINT_TO_POINTER(loading_next));
+	else
+		execute_idle_and_wait_for_it(close_sequence_idle,
+		                             GINT_TO_POINTER(loading_next));
+}
+
+static void impl_populate_seq_combo(const char *realname) {
+	gui_function(populate_seqcombo, (gpointer)realname);
+}
+
+/* GTK idle: free_image_data_gui — moved from io/single_image.c */
+static gboolean free_image_data_gui(gpointer p) {
+	disable_iso12646_conditions(TRUE, FALSE, FALSE);
+	clear_user_polygons();
+	delete_selected_area();
+	reset_plot();
+	siril_close_preview_dialogs();
+	display_filename();
+	update_zoom_label();
+	update_display_fwhm();
+	adjust_sellabel();
+	gui_function(update_MenuItem, NULL);
+	reset_3stars();
+	gui_function(close_tab, NULL);
+	free_cut_args(&gui.cut);
+	initialize_cut_struct(&gui.cut);
+
+	GtkComboBox *binning = GTK_COMBO_BOX(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "combobinning")));
+	GtkEntry *focal_entry  = GTK_ENTRY(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "focal_entry")));
+	GtkEntry *pitchX_entry = GTK_ENTRY(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "pitchX_entry")));
+	GtkEntry *pitchY_entry = GTK_ENTRY(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "pitchY_entry")));
+	g_signal_handlers_block_by_func(focal_entry,  on_focal_entry_changed,  NULL);
+	g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+	g_signal_handlers_block_by_func(binning,       on_combobinning_changed, NULL);
+
+	clear_stars_list(TRUE);
+	clear_backup();
+	clear_sampling_setting_box();
+	sample_mutex_lock();
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+	sample_mutex_unlock();
+	cleanup_annotation_catalogues(TRUE);
+	reset_display_offset();
+	reset_menu_toggle_button();
+	reset_zoom_default();
+	free(gui.qphot);
+	gui.qphot = NULL;
+	gui.show_wcs_disto = FALSE;
+	clear_sensor_tilt();
+
+	g_signal_handlers_unblock_by_func(focal_entry,  on_focal_entry_changed,  NULL);
+	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
+	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
+	g_signal_handlers_unblock_by_func(binning,       on_combobinning_changed, NULL);
+	siril_debug_print("free_image_data_idle() complete\n");
+
+	for (int vport = 0; vport < MAXVPORT; vport++) {
+		struct image_view *view = &gui.view[vport];
+		if (view->buf) { free(view->buf); view->buf = NULL; }
+		if (view->full_surface) {
+			cairo_surface_destroy(view->full_surface);
+			view->full_surface = NULL;
+		}
+		view->full_surface_stride = 0;
+		view->full_surface_height = 0;
+		if (view->disp_surface) {
+			cairo_surface_destroy(view->disp_surface);
+			view->disp_surface = NULL;
+		}
+		view->view_width = -1;
+		view->view_height = -1;
+	}
+	clear_previews();
+	free_reference_image();
+	siril_debug_print("free_image_data_gui() complete\n");
+	return FALSE;
+}
+
+static void impl_on_image_closed(void) {
+	if (com.script || com.python_command)
+		execute_idle_and_wait_for_it(free_image_data_gui, NULL);
+	else if (!g_main_context_is_owner(g_main_context_default()))
+		siril_add_idle(free_image_data_gui, NULL);
+	else
+		free_image_data_gui(NULL);
+}
+
+static void impl_on_image_loaded(void) {
+	if (g_main_context_is_owner(g_main_context_default()))
+		open_single_image_from_gfit(NULL);
+	else
+		execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
+}
+
+/* ── Clear-log-buffer idle (moved from command.c) ────────────────────────── */
+static gboolean clear_log_buffer_idle(gpointer user_data) {
+	GtkTextView *text = GTK_TEXT_VIEW(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "output")));
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
+	GtkTextIter start_iter, end_iter;
+	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
+	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
+	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+	return FALSE;
+}
+
+/* ── 6.1–6.4 slot implementations ────────────────────────────────────────── */
+
+static void impl_set_gui_cwd(void) {
+	gui_function(set_GUI_CWD, NULL);
+}
+
+static void impl_refresh_keywords_dialog(void) {
+	gui_function(refresh_keywords_dialog, NULL);
+}
+
+static void impl_set_wcs_overlay(gboolean show) {
+	gui.show_wcs_disto = show;
+}
+
+static void impl_launch_clipboard_survey(void) {
+	gui_function(launch_clipboard_survey, NULL);
+}
+
+static void impl_clear_log_buffer(void) {
+	gui_function(clear_log_buffer_idle, NULL);
+}
+
+static void impl_update_spin_cpu(void) {
+	gui_function(update_spinCPU, GINT_TO_POINTER(0));
+}
+
+static void impl_new_selection_zone(void) {
+	gui_function(new_selection_zone, NULL);
+}
+
+static int impl_get_active_vport(void) {
+	return select_vport(gui.cvport);
+}
+
+static void impl_console_set_status(const char *msg, int line) {
+	console_log_status(msg, line);
+}
+
+static void impl_console_clear_status(void) {
+	gui_function((GSourceFunc)console_clear_status_bar, NULL);
+}
+
+static void impl_end_script_gui(void) {
+	gui_function(end_script, NULL);
+}
+
+static gboolean impl_get_star_follow_state(void) {
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "followStarCheckButton")));
+	return gtk_toggle_button_get_active(follow);
+}
+
+static void impl_show_command_help(void) {
+	/* show_command_help_popup is in command_line_processor.c; route via gui_function
+	 * by calling it with the "command" entry widget as the argument. */
+	GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "command")));
+	gui_function((GSourceFunc)show_command_help_popup, entry);
 }
 
 /* ── Steps 5.6–5.10: additional slots ───────────────────────────────────── */
@@ -450,9 +742,23 @@ void siril_register_gui_iface(void) {
 	gui_iface.redraw_image_sync      = impl_redraw_image_sync;
 	gui_iface.delete_selection       = impl_delete_selection;
 	gui_iface.queue_redraw_mask      = impl_queue_redraw_mask;
-	gui_iface.on_sequence_opened     = impl_on_sequence_opened;
-	gui_iface.on_image_loaded        = impl_on_image_loaded;
-	gui_iface.on_image_closed        = impl_on_image_closed;
+	gui_iface.on_sequence_opened      = impl_on_sequence_opened;
+	gui_iface.on_sequence_closed      = impl_on_sequence_closed;
+	gui_iface.populate_seq_combo      = impl_populate_seq_combo;
+	gui_iface.on_image_loaded         = impl_on_image_loaded;
+	gui_iface.on_image_closed         = impl_on_image_closed;
+	gui_iface.set_gui_cwd             = impl_set_gui_cwd;
+	gui_iface.refresh_keywords_dialog = impl_refresh_keywords_dialog;
+	gui_iface.set_wcs_overlay         = impl_set_wcs_overlay;
+	gui_iface.launch_clipboard_survey = impl_launch_clipboard_survey;
+	gui_iface.clear_log_buffer        = impl_clear_log_buffer;
+	gui_iface.update_spin_cpu         = impl_update_spin_cpu;
+	gui_iface.new_selection_zone      = impl_new_selection_zone;
+	gui_iface.get_active_vport        = impl_get_active_vport;
+	gui_iface.console_set_status      = impl_console_set_status;
+	gui_iface.console_clear_status    = impl_console_clear_status;
+	gui_iface.end_script_gui          = impl_end_script_gui;
+	/* on_image_loaded and on_image_closed are wired above in the 6.1/6.2 block */
 	gui_iface.on_stack_complete      = impl_on_stack_complete;
 	gui_iface.update_sequences_list  = impl_update_sequences_list;
 	gui_iface.show_panel             = impl_show_panel;
@@ -504,4 +810,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.clear_backup                = impl_clear_backup;
 	gui_iface.livestacking_setup_gui      = impl_livestacking_setup_gui;
 	gui_iface.livestacking_teardown_gui   = impl_livestacking_teardown_gui;
+	gui_iface.get_star_follow_state       = impl_get_star_follow_state;
+	gui_iface.show_command_help           = impl_show_command_help;
 }

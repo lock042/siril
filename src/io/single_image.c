@@ -71,81 +71,7 @@ void close_single_image() {
 	free_image_data();
 }
 
-static gboolean free_image_data_gui(gpointer p) {
-	disable_iso12646_conditions(TRUE, FALSE, FALSE);
-	//reset_compositing_module();
-	clear_user_polygons(); // clear list of user polygons
-	delete_selected_area(); // this triggers a redraw
-	reset_plot(); // clear existing plot if any
-	siril_close_preview_dialogs();
-	/* It is better to close all other dialog. Indeed, some dialog are not compatible with all images */
-	display_filename();
-	update_zoom_label();
-	update_display_fwhm();
-	adjust_sellabel();
-	gui_function(update_MenuItem, NULL);
-	reset_3stars();
-	gui_function(close_tab, NULL);	// close Green and Blue tabs
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
-
-	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
-	GtkEntry* focal_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "focal_entry")));
-	GtkEntry* pitchX_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pitchX_entry")));
-	GtkEntry* pitchY_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pitchY_entry")));
-	// avoid redrawing plot while com.seq has not been updated
-	g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
-	g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
-	g_signal_handlers_block_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
-	g_signal_handlers_block_by_func(binning, on_combobinning_changed, NULL);
-	clear_stars_list(TRUE);
-	clear_backup();
-	clear_sampling_setting_box();	// clear focal and pixel pitch info
-	sample_mutex_lock();
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = NULL;
-	sample_mutex_unlock();
-	cleanup_annotation_catalogues(TRUE);
-	reset_display_offset();
-	reset_menu_toggle_button();
-	reset_zoom_default();
-	free(gui.qphot);
-	gui.qphot = NULL;
-	gui.show_wcs_disto = FALSE;
-	clear_sensor_tilt();
-	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
-	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
-	g_signal_handlers_unblock_by_func(pitchY_entry, on_pitchY_entry_changed, NULL);
-	g_signal_handlers_unblock_by_func(binning, on_combobinning_changed, NULL);
-	siril_debug_print("free_image_data_idle() complete\n");
-
-	/* free display image data */
-	for (int vport = 0; vport < MAXVPORT; vport++) {
-		struct image_view *view = &gui.view[vport];
-		if (view->buf) {
-			free(view->buf);
-			view->buf = NULL;
-		}
-		if (view->full_surface) {
-			cairo_surface_destroy(view->full_surface);
-			view->full_surface = NULL;
-		}
-		view->full_surface_stride = 0;
-		view->full_surface_height = 0;
-
-		if (view->disp_surface) {
-			cairo_surface_destroy(view->disp_surface);
-			view->disp_surface = NULL;
-		}
-		view->view_width = -1;
-		view->view_height= -1;
-	}
-	clear_previews();
-	free_reference_image();
-	siril_debug_print("free_image_data_gui() complete\n");
-	return FALSE;
-}
-
+/* free_image_data_gui moved to gui/gui_iface_impl.c */
 /* frees resources when changing sequence or closing a single image */
 void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
@@ -170,15 +96,8 @@ void free_image_data() {
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
 
-	if (!com.headless) {
-		if (com.script || com.python_command) {
-			execute_idle_and_wait_for_it(free_image_data_gui, NULL);
-		} else if (!g_main_context_is_owner(g_main_context_default())) {
-			siril_add_idle(free_image_data_gui, NULL);
-		} else {
-			free_image_data_gui(NULL);
-		}
-	}
+	if (!com.headless)
+		gui_iface.on_image_closed();
 	clearfits(gfit);
 	siril_debug_print("free_image_data() complete\n");
 }
@@ -249,7 +168,7 @@ gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
 	if (!com.headless) {
 		g_rw_lock_reader_lock(&gfit->rwlock);
-		open_single_image_from_gfit(NULL);
+		gui_iface.on_image_loaded();
 		g_rw_lock_reader_unlock(&gfit->rwlock);
 	}
 	return FALSE;
@@ -447,7 +366,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
 
 	/* update bit depth selector */
-	gui_function(set_precision_switch, NULL);
+	gui_iface.on_precision_changed();
 
 	/* update display of gfit name (useful if it changes) */
 	adjust_sellabel();
@@ -464,7 +383,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	else
 		gui_iface.redraw_image_async(REMAP_ALL);	// queues a redraw if !com.script
 
-	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
+	gui_iface.redraw_previews();
 
 	gui_iface.set_busy(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
@@ -473,7 +392,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 /* to be called after each operation that modifies the content of gfit, at the
  * end of a processing operation, not for previews */
 void gfit_modified_update_gui() {
-	gui_function(end_gfit_operation, NULL);
+	gui_iface.execute_idle_sync(end_gfit_operation, NULL);
 }
 
 /* Must be called on the data-processing thread (worker or script thread) after
