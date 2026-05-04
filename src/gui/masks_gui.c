@@ -94,6 +94,17 @@ static GtkSpinButton *spin_feather_distance = NULL;
 static GtkComboBox *combo_feather_type = NULL;
 static GtkSpinButton *spin_multiply_factor = NULL;
 
+/* Sync the mask-enable toggle button without triggering its signal handler. */
+gboolean set_mask_active_idle(gpointer p) {
+	gboolean state = GPOINTER_TO_INT(p);
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_enable_check")));
+	g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
+	gtk_toggle_button_set_active(button, state);
+	g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
+	return FALSE;
+}
+
+
 static void masks_gui_init_statics(void) {
 	if (combo_mask_from_image_type) return;
 	combo_mask_from_image_type = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mask_from_image_type"));

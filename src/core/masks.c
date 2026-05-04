@@ -27,12 +27,7 @@
 #include "algos/statistics.h"
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
 #include "gui/histogram.h"
-#include "gui/message_dialog.h"
-#include "gui/image_display.h"
-#include "gui/utils.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV
@@ -43,20 +38,10 @@ void free_mask(mask_t* mask) {
 	free(mask);
 }
 
-gboolean set_mask_active_idle(gpointer p) {
-	gboolean state = GPOINTER_TO_INT(p);
-	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_enable_check")));
-	g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
-	gtk_toggle_button_set_active(button, state);
-	g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
-	return FALSE;
-}
-
 void set_mask_active(fits *fit, gboolean state) {
 	fit->mask_active = state;
-	if (fit == gfit && !com.headless) {
-		gui_function(set_mask_active_idle, GINT_TO_POINTER(state));
-	}
+	if (fit == gfit)
+		gui_iface.update_mask_enable(state);
 }
 
 // Create a test mask : the left half of the image has mask value 255,
@@ -114,7 +99,7 @@ int mask_create_test(fits *fit, uint8_t bitpix) {
 		}
 	}
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 FAST_MATH_POP
@@ -169,7 +154,7 @@ int mask_create_ones_like(fits *fit, uint8_t bitpix) {
 			return 1;
 	}
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 FAST_MATH_POP
@@ -196,7 +181,7 @@ int mask_create_zeroes_like(fits *fit, uint8_t bitpix) {
 		return 1;
 	}
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 
@@ -281,7 +266,7 @@ int mask_create_from_channel(fits *fit, fits *source, int chan, uint8_t bitpix) 
 		}
 	}
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 FAST_MATH_POP
@@ -367,7 +352,7 @@ int mask_create_from_luminance(fits *fit, fits *source, float rw, float gw, floa
 	}
 
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 FAST_MATH_POP
@@ -555,7 +540,7 @@ int mask_create_from_chromaticity_luminance(fits *fit, fits *source,
 
 	free(temp_mask);
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	return 0;
 }
 FAST_MATH_POP
@@ -878,7 +863,7 @@ int mask_create_from_stars(fits *fit, float n_fwhm, uint8_t bitpix) {
 		free_fitted_stars(stars);
 
 	set_mask_active(fit, TRUE);
-	show_or_hide_mask_tab();
+	gui_iface.on_mask_state_changed();
 	siril_log_message(_("Star mask created successfully.\n"));
 	return 0;
 }

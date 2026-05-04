@@ -33,7 +33,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #define STR_INDIR(x) #x 
 #define STR(x) STR_INDIR(x)

@@ -41,6 +41,8 @@
 #include "gui/callbacks.h"
 #include "gui/geometry.h"
 #include "gui/gui_state.h"
+#include "gui/masks_gui.h"
+#include "gui/photometric_cc.h"
 #include "gui/plot.h"
 #include "gui/PSF_list.h"
 #include "gui/registration_preview.h"
@@ -253,6 +255,52 @@ static GPid impl_select_child_process(GSList *children) {
 	return show_child_process_selection_dialog(children);
 }
 
+/* ── Steps 5.6–5.10: additional slots ───────────────────────────────────── */
+
+/* Group C addition */
+static void impl_data_dialog(SirilMessageType type, const char *title,
+                             const char *text, const char *data) {
+	siril_data_dialog(to_gtk_msg_type(type), (char *)title, (char *)text,
+	                  (gchar *)data);
+}
+
+/* Group D addition */
+static void impl_redraw_previews(void) {
+	gui_function(redraw_previews, NULL);
+}
+
+/* Group E addition */
+static void impl_open_single_image_from_gfit(void) {
+	gui_function(open_single_image_from_gfit, NULL);
+}
+
+/* Group G additions */
+static void impl_update_mem_usage(guint64 used_bytes) {
+	set_GUI_MEM(used_bytes, "labelmem");
+}
+
+static void impl_update_disk_space(gint64 space_bytes, const char *label_id) {
+	set_GUI_DiskSpace(space_bytes, label_id);
+}
+
+static void impl_update_mask_enable(gboolean state) {
+	gui_function(set_mask_active_idle, GINT_TO_POINTER(state));
+}
+
+static void impl_set_display_range(int lo, int hi) {
+	gui.lo = lo;
+	gui.hi = hi;
+	set_cutoff_sliders_values();
+}
+
+static void impl_check_gaia_status(void) {
+	check_gaia_archive_status();
+}
+
+static void impl_trigger_gaia_check(void) {
+	gaia_check(NULL);
+}
+
 /* ── Group D additions: Histogram / image modification state ─────────────── */
 
 static void impl_invalidate_histogram(void) {
@@ -403,4 +451,13 @@ void siril_register_gui_iface(void) {
 	gui_iface.copy_gfit_icc_to_backup     = impl_copy_gfit_icc_to_backup;
 	gui_iface.check_icc_identical_to_monitor = impl_check_icc_identical_to_monitor;
 	gui_iface.set_source_information      = impl_set_source_information;
+	gui_iface.data_dialog                 = impl_data_dialog;
+	gui_iface.redraw_previews             = impl_redraw_previews;
+	gui_iface.open_single_image_from_gfit = impl_open_single_image_from_gfit;
+	gui_iface.update_mem_usage            = impl_update_mem_usage;
+	gui_iface.update_disk_space           = impl_update_disk_space;
+	gui_iface.update_mask_enable          = impl_update_mask_enable;
+	gui_iface.set_display_range           = impl_set_display_range;
+	gui_iface.check_gaia_status           = impl_check_gaia_status;
+	gui_iface.trigger_gaia_check          = impl_trigger_gaia_check;
 }

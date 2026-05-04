@@ -28,16 +28,13 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
-#include "gui/utils.h"
+#include "core/gui_iface.h"
 #include "core/siril_update.h"
 
 #if defined(HAVE_LIBCURL)
 #include "yyjson.h"
 #include "core/siril_networking.h"
 #include "core/processing.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
@@ -445,7 +442,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	gint build_revision = 0;
 	gchar *msg = NULL;
 	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
+	SirilMessageType message_type = SIRIL_MSG_ERROR;
 
 	// Parse JSON
 	yyjson_read_err err = { 0 };
@@ -460,7 +457,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
 		msg = check_version(last_version, &(args->verbose), &data);
-		message_type = GTK_MESSAGE_INFO;
+		message_type = SIRIL_MSG_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
 	}
@@ -468,7 +465,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	if (args->verbose) {
 		gui_iface.set_busy(FALSE);
 		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
+			gui_iface.data_dialog(message_type, _("Software Update"), msg, data);
 		}
 	}
 
@@ -625,7 +622,7 @@ static gboolean end_notifier_idle(gpointer p) {
 		goto end_notifier_idle_error;
 	GSList *validNotifications = NULL;
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.show_panel("output_logs", TRUE);
 
 	// Fetch and parse JSON file from URL and populate validNotifications list
 	if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
@@ -790,7 +787,7 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	}
 	spcc_mirrors_checked = TRUE;
 	/* pre-check the Gaia archive status */
-	check_gaia_archive_status();
+	gui_iface.check_gaia_status();
 
 end_spcc_mirrors_error:
 	gui_iface.set_busy(FALSE);
@@ -882,7 +879,7 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		free(content);
 		spcc_mirrors_checked = TRUE;
 		/* pre-check the Gaia archive status */
-		gaia_check(NULL);
+		gui_iface.trigger_gaia_check();
 	}
 }
 

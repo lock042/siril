@@ -31,9 +31,9 @@
 #include "algos/statistics.h"
 #include "algos/fix_xtrans_af.h"
 #include "filters/cosmetic_correction.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/progress_and_log.h"
+#include <gtk/gtk.h>
+#include "core/gui_iface.h"
+#include "gui/gui_state.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "algos/demosaicing.h"
@@ -965,7 +965,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 			args->output_seqtype = SEQ_REGULAR;
 		args->allow_32bit_output = !com.pref.force_16bit && args->output_seqtype != SEQ_SER;
 		gui_iface.set_busy(TRUE);
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.show_panel("output_logs", TRUE);
 		start_sequence_preprocessing(args);
 	} else {
 		int retval;
@@ -973,7 +973,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		args->output_seqtype = SEQ_REGULAR;
 		args->allow_32bit_output = !com.pref.force_16bit;
 		gui_iface.set_busy(TRUE);
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.show_panel("output_logs", TRUE);
 
 		retval = calibrate_single_image(args);
 
@@ -983,8 +983,8 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 			gui_iface.set_progress(PROGRESS_NONE, _("Error in preprocessing."));
 		else {
 			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-			invalidate_gfit_histogram();
-			gui_function(open_single_image_from_gfit, NULL);
+			gui_iface.invalidate_histogram();
+			gui_iface.open_single_image_from_gfit();
 		}
 		gui_iface.set_busy(FALSE);
 	}

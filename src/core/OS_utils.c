@@ -73,9 +73,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
+#include "core/gui_iface.h"
 #include "git-version.h"
 
 #include "OS_utils.h"
@@ -339,9 +337,9 @@ gboolean is_space_disk_available(const gchar *disk) {
 gboolean update_displayed_memory(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
-	set_GUI_MEM(get_used_RAM_memory(), "labelmem");
-	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
-	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
+	gui_iface.update_mem_usage(get_used_RAM_memory());
+	gui_iface.update_disk_space(find_space(com.wd), "labelFreeSpace");
+	gui_iface.update_disk_space(find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
 }
 

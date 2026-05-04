@@ -138,6 +138,23 @@ static void stub_copy_gfit_icc_to_backup(void) {}
 static void stub_check_icc_identical_to_monitor(void) {}
 static void stub_set_source_information(void) {}
 
+/* Additional slots (5.6–5.10) */
+static void stub_data_dialog(SirilMessageType type, const char *title,
+                             const char *text, const char *data) {
+	stub_message_dialog(type, title, text);
+	if (data) fprintf(stderr, "%s\n", data);
+}
+static void stub_redraw_previews(void) {}
+static void stub_open_single_image_from_gfit(void) {}
+static void stub_update_mem_usage(guint64 used_bytes) { (void)used_bytes; }
+static void stub_update_disk_space(gint64 space_bytes, const char *label_id) {
+	(void)space_bytes; (void)label_id;
+}
+static void stub_update_mask_enable(gboolean state) { (void)state; }
+static void stub_set_display_range(int lo, int hi) { (void)lo; (void)hi; }
+static void stub_check_gaia_status(void) {}
+static void stub_trigger_gaia_check(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -193,4 +210,13 @@ SirilGuiInterface gui_iface = {
 	.copy_gfit_icc_to_backup     = stub_copy_gfit_icc_to_backup,
 	.check_icc_identical_to_monitor = stub_check_icc_identical_to_monitor,
 	.set_source_information      = stub_set_source_information,
+	.data_dialog                 = stub_data_dialog,
+	.redraw_previews             = stub_redraw_previews,
+	.open_single_image_from_gfit = stub_open_single_image_from_gfit,
+	.update_mem_usage            = stub_update_mem_usage,
+	.update_disk_space           = stub_update_disk_space,
+	.update_mask_enable          = stub_update_mask_enable,
+	.set_display_range           = stub_set_display_range,
+	.check_gaia_status           = stub_check_gaia_status,
+	.trigger_gaia_check          = stub_trigger_gaia_check,
 };

@@ -114,6 +114,10 @@ typedef struct {
 	void     (*close_dialog)(const char *id);
 	/* Returns TRUE if an image-processing dialog is currently open. */
 	gboolean (*is_dialog_open)(void);
+	/* Rich-data dialog (e.g. update notes); data is optional supplementary
+	 * text shown below the main message (may be NULL). */
+	void     (*data_dialog)(SirilMessageType type, const char *title,
+	                        const char *text, const char *data);
 
 	/* D – Image display ---------------------------------------------------- */
 	/* Synchronous redraw (call only from the GTK main thread). */
@@ -126,6 +130,8 @@ typedef struct {
 	void     (*delete_selection)(void);
 	/* Queue a redraw of the mask overlay only (from any thread). */
 	void     (*queue_redraw_mask)(void);
+	/* Refresh all preview windows (registration / filter previews). */
+	void     (*redraw_previews)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
@@ -139,6 +145,8 @@ typedef struct {
 	/* Update the sequence list display; seqname is the basename to select,
 	 * or NULL to refresh without changing selection. */
 	void     (*update_sequences_list)(const char *seqname);
+	/* Open/display gfit as a single image in the main window. */
+	void     (*open_single_image_from_gfit)(void);
 
 	/* F – Panel / tab switching -------------------------------------------- */
 	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */
@@ -173,6 +181,18 @@ typedef struct {
 	void     (*on_channel_count_changed)(void);
 	/* Called when the data type (float/ushort) of gfit has changed. */
 	void     (*on_precision_changed)(void);
+	/* Update the memory-usage label (used_bytes = current RSS). */
+	void     (*update_mem_usage)(guint64 used_bytes);
+	/* Update a disk-space label (space_bytes = free bytes, label_id = widget name). */
+	void     (*update_disk_space)(gint64 space_bytes, const char *label_id);
+	/* Sync the mask-enable toggle button to state (blocks its signal handler). */
+	void     (*update_mask_enable)(gboolean state);
+	/* Set the display lo/hi cutoff values and refresh slider widgets. */
+	void     (*set_display_range)(int lo, int hi);
+	/* Trigger a Gaia archive connectivity check. */
+	void     (*check_gaia_status)(void);
+	/* Initiate an on-demand Gaia catalogue check. */
+	void     (*trigger_gaia_check)(void);
 
 	/* H – Geometry / ROI / Mask state ------------------------------------- */
 	/* Called before a geometry-altering operation; clears ROI if active. */

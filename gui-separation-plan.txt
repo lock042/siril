@@ -595,29 +595,57 @@ so they route residual GUI calls through gui_iface.
          icc_profile.c still has GTK signal handlers and gui/ includes — these belong
          to a future Pattern A split (Phase 6).
 
-[ ] 5.6  src/core/preprocess.c (5 GUI calls)
+[X] 5.6  src/core/preprocess.c (5 GUI calls)
          - Progress calls fixed by 4.4/4.5. Remaining lookup_widget call:
            move the widget read into gui/preprocess_gui.c and pass the
            result as a parameter.
+         DONE: control_window_switch_to_tab → gui_iface.show_panel; invalidate_
+         gfit_histogram → gui_iface.invalidate_histogram; gui_function(open_
+         single_image_from_gfit) → new slot; added <gtk/gtk.h> + gui/gui_state.h
+         directly since on_GtkButtonPreprocess_clicked GTK callbacks remain (full
+         Pattern A split deferred to Phase 6).
 
-[ ] 5.7  src/core/OS_utils.c (4 GUI calls)
+[X] 5.7  src/core/OS_utils.c (4 GUI calls)
          - Add gui_iface.update_disk_space() and gui_iface.update_mem_usage()
            slots. Route error/warning dialogs through gui_iface.
+         DONE: update_displayed_memory() now calls gui_iface.update_mem_usage
+         (used_bytes) and gui_iface.update_disk_space(bytes, label_id) with
+         computed values; removed all 3 gui/ includes from OS_utils.c.
+         message_dialog calls were already via gui_iface.
 
-[ ] 5.8  src/core/masks.c (5 GUI calls)
+[X] 5.8  src/core/masks.c (5 GUI calls)
          - show_or_hide_mask_tab → gui_iface. Remaining lookup_widget calls:
            move into gui/masks_gui.c.
+         DONE: set_mask_active_idle moved from masks.c to gui/masks_gui.c and
+         declared in masks_gui.h; added gui_iface.update_mask_enable slot
+         (calls gui_function(set_mask_active_idle,...) via impl). All 7
+         show_or_hide_mask_tab() calls → gui_iface.on_mask_state_changed().
+         Removed callbacks.h, dialogs.h, message_dialog.h, image_display.h,
+         utils.h; kept gui/histogram.h (for mtf_data, create_mtf_data,
+         destroy_mtf_data used in mask autostretch operations).
 
-[ ] 5.9  src/core/siril.c (4 GUI calls)
+[X] 5.9  src/core/siril.c (4 GUI calls)
          - computeHisto, computeHisto_Selection, redraw,
            set_cutoff_sliders_values are image-load-completion notifications
            → route through gui_iface.on_image_loaded().
+         DONE: visu() routed: gui.lo/hi + set_cutoff_sliders_values() →
+         new gui_iface.set_display_range(lo,hi); gui_function(redraw_previews)
+         → new gui_iface.redraw_previews(). gui/gui_state.h and 4 other gui/
+         includes removed. gui/histogram_utils.h kept (computeHisto used in
+         entropy() — not image-load related; full split deferred to Phase 6).
 
-[ ] 5.10 src/core/siril_networking.c and siril_update.c
+[X] 5.10 src/core/siril_networking.c and siril_update.c
          - Progress calls fixed by 3.1.
          - siril_update.c also calls gaia_check / check_gaia_archive_status
            (in gui/photometric_cc.c) → invert: have the GUI register a
            callback for update-status events.
+         DONE: networking.c: removed gui/progress_and_log.h (all progress
+         calls already via gui_iface); added core/gui_iface.h directly.
+         siril_update.c: removed 3 gui/ includes; added core/gui_iface.h;
+         GtkMessageType → SirilMessageType; siril_data_dialog → gui_iface.
+         data_dialog (new slot); control_window_switch_to_tab → gui_iface.
+         show_panel; check_gaia_archive_status / gaia_check → new slots
+         gui_iface.check_gaia_status / trigger_gaia_check.
 
 [ ] 5.11 src/core/siril_language.c (1 GUI call: lookup_widget)
          - Move the widget lookup into gui/ and pass the result as a parameter.
