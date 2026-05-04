@@ -56,6 +56,41 @@ static gboolean zoom_action_zooms_to_fit = FALSE;
 static GtkWidget *rotation_dlg = NULL;
 static GtkWidget *cut_dialog = NULL, *dynpsf_dlg = NULL;
 static GtkLabel *label_wn1_x = NULL, *label_wn1_y = NULL, *label_wn2_x = NULL, *label_wn2_y = NULL;
+static GtkCheckMenuItem *maf_mi_free = NULL, *maf_mi_preserve = NULL;
+static GtkCheckMenuItem *maf_mi_16_9 = NULL, *maf_mi_4_3 = NULL, *maf_mi_3_2 = NULL;
+static GtkCheckMenuItem *maf_mi_1_1 = NULL, *maf_mi_3_4 = NULL, *maf_mi_2_3 = NULL, *maf_mi_9_16 = NULL;
+static GtkWidget *maf_mi_all = NULL;
+static GtkCheckMenuItem *maf_mi_guides_0 = NULL, *maf_mi_guides_2 = NULL;
+static GtkCheckMenuItem *maf_mi_guides_3 = NULL, *maf_mi_guides_5 = NULL;
+static GtkToggleButton *maf_bkg_grad_descent = NULL;
+static GtkNotebook *maf_notebook_center_box = NULL;
+
+static void mouse_action_functions_init_statics(void) {
+	if (rotation_dlg) return;
+	rotation_dlg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "rotation_dialog"));
+	label_wn1_x = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_wn1_x"));
+	label_wn1_y = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_wn1_y"));
+	label_wn2_x = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_wn2_x"));
+	label_wn2_y = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_wn2_y"));
+	cut_dialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_dialog"));
+	dynpsf_dlg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stars_list_window"));
+	maf_mi_free = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_free"));
+	maf_mi_preserve = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_preserve"));
+	maf_mi_16_9 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_16_9"));
+	maf_mi_4_3 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_4_3"));
+	maf_mi_3_2 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_3_2"));
+	maf_mi_1_1 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_1_1"));
+	maf_mi_3_4 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_3_4"));
+	maf_mi_2_3 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_2_3"));
+	maf_mi_9_16 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_9_16"));
+	maf_mi_all = GTK_WIDGET(gtk_builder_get_object(gui.builder, "menuitem_selection_all"));
+	maf_mi_guides_0 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_guides_0"));
+	maf_mi_guides_2 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_guides_2"));
+	maf_mi_guides_3 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_guides_3"));
+	maf_mi_guides_5 = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "menuitem_selection_guides_5"));
+	maf_bkg_grad_descent = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bkg_grad_descent_button"));
+	maf_notebook_center_box = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_center_box"));
+}
 
 /* Mouse release functions should be coded as static gboolean function(mouse_data *)
  * and only be referenced from the button press functions further down this file: if
@@ -79,22 +114,23 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 	}
 
 	// selection submenu
+	mouse_action_functions_init_statics();
 	double original_ratio = (double)gfit->rx / (double)gfit->ry;
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_free")), gui.ratio == 0.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_preserve")), gui.ratio == original_ratio);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_16_9")), gui.ratio == 16.0 / 9.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_4_3")), gui.ratio == 4.0 / 3.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_3_2")), gui.ratio == 3.0 / 2.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_1_1")), gui.ratio == 1.0 / 1.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_3_4")), gui.ratio == 3.0 / 4.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_2_3")), gui.ratio == 2.0 / 3.0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_9_16")), gui.ratio == 9.0 / 16.0);
-	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_preserve"), is_a_single_image_loaded || sequence_is_loaded());
-	gtk_widget_set_sensitive(lookup_widget("menuitem_selection_all"), is_a_single_image_loaded || sequence_is_loaded());
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_0")), com.pref.gui.selection_guides == 0);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_2")), com.pref.gui.selection_guides == 2);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_3")), com.pref.gui.selection_guides == 3);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("menuitem_selection_guides_5")), com.pref.gui.selection_guides == 5);
+	gtk_check_menu_item_set_active(maf_mi_free, gui.ratio == 0.0);
+	gtk_check_menu_item_set_active(maf_mi_preserve, gui.ratio == original_ratio);
+	gtk_check_menu_item_set_active(maf_mi_16_9, gui.ratio == 16.0 / 9.0);
+	gtk_check_menu_item_set_active(maf_mi_4_3, gui.ratio == 4.0 / 3.0);
+	gtk_check_menu_item_set_active(maf_mi_3_2, gui.ratio == 3.0 / 2.0);
+	gtk_check_menu_item_set_active(maf_mi_1_1, gui.ratio == 1.0 / 1.0);
+	gtk_check_menu_item_set_active(maf_mi_3_4, gui.ratio == 3.0 / 4.0);
+	gtk_check_menu_item_set_active(maf_mi_2_3, gui.ratio == 2.0 / 3.0);
+	gtk_check_menu_item_set_active(maf_mi_9_16, gui.ratio == 9.0 / 16.0);
+	gtk_widget_set_sensitive(GTK_WIDGET(maf_mi_preserve), is_a_single_image_loaded || sequence_is_loaded());
+	gtk_widget_set_sensitive(maf_mi_all, is_a_single_image_loaded || sequence_is_loaded());
+	gtk_check_menu_item_set_active(maf_mi_guides_0, com.pref.gui.selection_guides == 0);
+	gtk_check_menu_item_set_active(maf_mi_guides_2, com.pref.gui.selection_guides == 2);
+	gtk_check_menu_item_set_active(maf_mi_guides_3, com.pref.gui.selection_guides == 3);
+	gtk_check_menu_item_set_active(maf_mi_guides_5, com.pref.gui.selection_guides == 5);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -140,15 +176,7 @@ static void do_popup_maskmenu(GtkWidget *my_widget, GdkEventButton *event) {
 }
 
 void cache_widgets() {
-	if (!rotation_dlg) {
-		rotation_dlg = lookup_widget("rotation_dialog");
-		label_wn1_x = GTK_LABEL(lookup_widget("label_wn1_x"));
-		label_wn1_y = GTK_LABEL(lookup_widget("label_wn1_y"));
-		label_wn2_x = GTK_LABEL(lookup_widget("label_wn2_x"));
-		label_wn2_y = GTK_LABEL(lookup_widget("label_wn2_y"));
-		cut_dialog = lookup_widget("cut_dialog");
-		dynpsf_dlg = lookup_widget("stars_list_window");
-	}
+	mouse_action_functions_init_statics();
 }
 
 // ######### Define functions that can be assigned to mouse buttons #########
@@ -541,7 +569,7 @@ gboolean main_action_click(mouse_data *data) {
 
 				if (pt.x + radius < gfit->rx && pt.y + radius < gfit->ry
 						&& pt.x - radius > 0 && pt.y - radius > 0) {
-					gboolean gd = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_grad_descent_button")));
+					gboolean gd = gtk_toggle_button_get_active(maf_bkg_grad_descent);
 					sample_mutex_lock();
 					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt, gd);
 					sample_mutex_unlock();
@@ -950,7 +978,8 @@ static double tab_accumulator = 0.0;
 
 gboolean scroll_changes_tab(scroll_data *data) {
 	GdkEventScroll *event = data->event;
-	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
+	mouse_action_functions_init_statics();
+	GtkNotebook* notebook = maf_notebook_center_box;
 	gint tab = gtk_notebook_get_current_page(notebook);
 	point delta;
 	gdk_event_get_scroll_deltas((GdkEvent*) data->event, &delta.x, &delta.y);
