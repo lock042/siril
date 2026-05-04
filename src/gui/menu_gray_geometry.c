@@ -30,6 +30,19 @@
 #include "gui/utils.h"
 #include "menu_gray_geometry.h"
 
+static void menu_gray_geometry_init_statics(void);
+
+static GtkSpinButton *mgm_rotation_spin = NULL;
+static GtkComboBox *mgm_rotation_interp_combo = NULL;
+static GtkToggleButton *mgm_rotation_crop_btn = NULL;
+static GtkWidget *mgm_rot_clamp_toggle = NULL;
+static GtkComboBox *mgm_binning_combo = NULL;
+static GtkSpinButton *mgm_binning_spin = NULL;
+static GtkEntry *mgm_crop_entry = NULL;
+static GtkWidget *spinbutton_resample_X = NULL, *spinbutton_resample_Y = NULL,
+	*spinbutton_resample_X_px = NULL, *spinbutton_resample_Y_px = NULL,
+	*button_sample_ratio = NULL, *combo_interpolation = NULL, *toggle_scale_clamp = NULL;
+
 /**
  *  ROTATION
  */
@@ -44,8 +57,8 @@ static gboolean rotation_idle(gpointer p) {
 		// Reset selection to current image size and reset rotation
 		rectangle area = {0, 0, gfit->rx, gfit->ry};
 		memcpy(&com.selection, &area, sizeof(rectangle));
-		gtk_spin_button_set_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
+		menu_gray_geometry_init_statics();
+		gtk_spin_button_set_value(mgm_rotation_spin, 0.);
 		gui_function(new_selection_zone, NULL);
 
 		update_zoom_label();
@@ -62,26 +75,20 @@ static void rotate_gui(fits *fit) {
 		return;
 	if (com.selection.w == 0 || com.selection.h == 0) return;
 
-	static GtkToggleButton *crop_rotation = NULL;
-	double angle = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
-	int interpolation = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(lookup_widget("combo_interpolation_rotation")));
+	menu_gray_geometry_init_statics();
+	double angle = gtk_spin_button_get_value(mgm_rotation_spin);
+	int interpolation = gtk_combo_box_get_active(mgm_rotation_interp_combo);
 	int cropped;
 
-	if (crop_rotation == NULL) {
-		crop_rotation = GTK_TOGGLE_BUTTON(
-				lookup_widget("checkbutton_rotation_crop"));
-	}
-	cropped = gtk_toggle_button_get_active(crop_rotation);
+	cropped = gtk_toggle_button_get_active(mgm_rotation_crop_btn);
 	if ((!cropped) & (com.selection.w < gfit->rx || com.selection.h < gfit->ry)) {
 		cropped = siril_confirm_dialog(_("Crop confirmation"),
 			("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"),
 			_("Crop"));
 		if (cropped)
-			gtk_toggle_button_set_active(crop_rotation, TRUE);
+			gtk_toggle_button_set_active(mgm_rotation_crop_btn, TRUE);
 	}
-	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
+	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mgm_rot_clamp_toggle));
 
 	set_cursor_waiting(TRUE);
 
@@ -262,7 +269,8 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 
 void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer user_data) {
 	gint idx = gtk_combo_box_get_active(combo_box);
-	gtk_widget_set_sensitive(lookup_widget("toggle_rot_clamp"),
+	menu_gray_geometry_init_statics();
+	gtk_widget_set_sensitive(mgm_rot_clamp_toggle,
 	                         idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
@@ -404,8 +412,9 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gboolean mean = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_binning"))) == 0;
-	int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
+	menu_gray_geometry_init_statics();
+	gboolean mean = gtk_combo_box_get_active(mgm_binning_combo) == 0;
+	int factor = gtk_spin_button_get_value_as_int(mgm_binning_spin);
 
 	set_cursor_waiting(TRUE);
 
@@ -469,10 +478,11 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	double sample[2];
-	sample[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-	sample[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
-	int interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
-	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_scale_clamp")));
+	menu_gray_geometry_init_statics();
+	sample[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_X));
+	sample[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spinbutton_resample_Y));
+	int interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(combo_interpolation));
+	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_scale_clamp));
 
 	set_cursor_waiting(TRUE);
 	int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
@@ -529,20 +539,26 @@ void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer 
 void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
 void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
 
-static GtkWidget *spinbutton_resample_X = NULL, *spinbutton_resample_Y = NULL,
-	*spinbutton_resample_X_px = NULL, *spinbutton_resample_Y_px = NULL,
-	*button_sample_ratio = NULL, *combo_interpolation = NULL, *toggle_scale_clamp = NULL;
+static void menu_gray_geometry_init_statics(void) {
+	if (spinbutton_resample_X) return;
+	spinbutton_resample_X = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_X"));
+	spinbutton_resample_Y = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_Y"));
+	spinbutton_resample_X_px = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_X_px"));
+	spinbutton_resample_Y_px = GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinbutton_resample_Y_px"));
+	button_sample_ratio = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_sample_ratio"));
+	combo_interpolation = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_interpolation"));
+	toggle_scale_clamp = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_scale_clamp"));
+	mgm_rotation_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_rotation"));
+	mgm_rotation_interp_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_interpolation_rotation"));
+	mgm_rotation_crop_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_rotation_crop"));
+	mgm_rot_clamp_toggle = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_rot_clamp"));
+	mgm_binning_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobox_binning"));
+	mgm_binning_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbutton_binning"));
+	mgm_crop_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "cropped_entry"));
+}
 
-static void initialize_resample_widgets_if_needed() {
-	if (!spinbutton_resample_X) {
-		spinbutton_resample_X = lookup_widget("spinbutton_resample_X");
-		spinbutton_resample_Y = lookup_widget("spinbutton_resample_Y");
-		spinbutton_resample_X_px = lookup_widget("spinbutton_resample_X_px");
-		spinbutton_resample_Y_px = lookup_widget("spinbutton_resample_Y_px");
-		button_sample_ratio = lookup_widget("button_sample_ratio");
-		combo_interpolation = lookup_widget("combo_interpolation");
-		toggle_scale_clamp = lookup_widget("toggle_scale_clamp");
-	}
+static void initialize_resample_widgets_if_needed(void) {
+	menu_gray_geometry_init_statics();
 }
 
 static void pause_resample_signal_handlers() {
@@ -731,7 +747,8 @@ void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
 
-	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
+	menu_gray_geometry_init_statics();
+	GtkEntry *cropped_entry = mgm_crop_entry;
 
 	args->seq = &com.seq;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));

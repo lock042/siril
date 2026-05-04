@@ -40,14 +40,27 @@ static double mod_b = 1.0, thresh = 0.0, old_thresh = 0.0;
 static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
+static GtkSpinButton *unpurple_spin_mod_b = NULL;
+static GtkSpinButton *unpurple_spin_thresh = NULL;
+static GtkToggleButton *unpurple_stars_btn = NULL;
+static GtkToggleButton *unpurple_preview_btn = NULL;
+
+static void unpurple_init_statics(void) {
+	if (unpurple_spin_mod_b) return;
+	unpurple_spin_mod_b = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_unpurple_mod_b"));
+	unpurple_spin_thresh = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_unpurple_thresh"));
+	unpurple_stars_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "unpurple_stars"));
+	unpurple_preview_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "unpurple_preview"));
+}
+
 /* Helper function to get current widget values */
 static void get_unpurple_values(double *mod_b_out, double *thresh_out, gboolean *withstarmask_out) {
 	if (mod_b_out)
-		*mod_b_out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_mod_b")));
+		*mod_b_out = gtk_spin_button_get_value(unpurple_spin_mod_b);
 	if (thresh_out)
-		*thresh_out = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh")));
+		*thresh_out = gtk_spin_button_get_value(unpurple_spin_thresh);
 	if (withstarmask_out)
-		*withstarmask_out = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_stars")));
+		*withstarmask_out = gtk_toggle_button_get_active(unpurple_stars_btn);
 }
 
 /* Create and launch unpurple processing */
@@ -130,7 +143,7 @@ static int unpurple_process_with_worker(gboolean for_preview, gboolean for_roi) 
 }
 
 static int unpurple_update_preview() {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
+	if (gtk_toggle_button_get_active(unpurple_preview_btn)) {
 		copy_backup_to_gfit();
 		return unpurple_process_with_worker(TRUE, gui.roi.active);
 	}
@@ -142,7 +155,7 @@ void unpurple_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
+	param->show_preview = gtk_toggle_button_get_active(unpurple_preview_btn);
 	notify_update((gpointer)param);
 }
 
@@ -182,9 +195,7 @@ void apply_unpurple_cancel() {
 /*** callbacks **/
 
 void on_unpurple_dialog_show(GtkWidget *widget, gpointer user_data) {
-	GtkSpinButton *spin_unpurple_mod_b = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_mod_b"));
-	GtkSpinButton *spin_unpurple_thresh = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh"));
-
+	unpurple_init_statics();
 	unpurple_startup();
 	clearfits(&starmask);
 
@@ -192,9 +203,9 @@ void on_unpurple_dialog_show(GtkWidget *widget, gpointer user_data) {
 	thresh = 0.0;
 
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(spin_unpurple_mod_b, mod_b);
-	gtk_spin_button_set_value(spin_unpurple_thresh, thresh);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")), FALSE);
+	gtk_spin_button_set_value(unpurple_spin_mod_b, mod_b);
+	gtk_spin_button_set_value(unpurple_spin_thresh, thresh);
+	gtk_toggle_button_set_active(unpurple_preview_btn, FALSE);
 	set_notify_block(FALSE);
 }
 
@@ -207,7 +218,7 @@ void on_unpurple_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 
 	// If preview is on, need to copy backup to gfit first
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
+	if (gtk_toggle_button_get_active(unpurple_preview_btn)) {
 		copy_backup_to_gfit();
 	}
 
@@ -223,16 +234,13 @@ void on_unpurple_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_unpurple_undo_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin_unpurple_mod_b = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_mod_b"));
-	GtkSpinButton *spin_unpurple_thresh = GTK_SPIN_BUTTON(lookup_widget("spin_unpurple_thresh"));
-
 	mod_b = 1.0;
 	thresh = 0.0;
 
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(spin_unpurple_mod_b, mod_b);
-	gtk_spin_button_set_value(spin_unpurple_thresh, thresh);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")), TRUE);
+	gtk_spin_button_set_value(unpurple_spin_mod_b, mod_b);
+	gtk_spin_button_set_value(unpurple_spin_thresh, thresh);
+	gtk_toggle_button_set_active(unpurple_preview_btn, TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
@@ -240,7 +248,7 @@ void on_unpurple_undo_clicked(GtkButton *button, gpointer user_data) {
 	/* default parameters transform image, we need to update preview */
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
+	param->show_preview = gtk_toggle_button_get_active(unpurple_preview_btn);
 	notify_update((gpointer)param);
 }
 
@@ -249,7 +257,7 @@ void on_spin_unpurple_mod_b_value_changed(GtkSpinButton *button, gpointer user_d
 	mod_b = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
+	param->show_preview = gtk_toggle_button_get_active(unpurple_preview_btn);
 	notify_update((gpointer)param);
 }
 
@@ -257,13 +265,13 @@ void on_spin_unpurple_thresh_value_changed(GtkSpinButton *button, gpointer user_
 	thresh = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
+	param->show_preview = gtk_toggle_button_get_active(unpurple_preview_btn);
 	notify_update((gpointer)param);
 }
 
 void on_unpurple_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")))) {
+	if (!gtk_toggle_button_get_active(unpurple_preview_btn)) {
 		/* if user click very fast */
 		cancel_and_wait_for_preview();
 		siril_preview_hide();
@@ -279,6 +287,6 @@ void on_unpurple_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_unpurple_stars_toggled(GtkToggleButton *button, gpointer user_data) {
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("unpurple_preview")));
+	param->show_preview = gtk_toggle_button_get_active(unpurple_preview_btn);
 	notify_update((gpointer)param);
 }
