@@ -43,6 +43,7 @@
 #include "gui/registration_preview.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
+#include "gui/registration.h"
 #include "gui/stacking.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
@@ -197,11 +198,19 @@ static void impl_show_siril_plot(gpointer spl_data) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 }
 
-/* ── Group K: Star list ──────────────────────────────────────────────────── */
+/* ── Groups K, L: Star list / Registration state ─────────────────────────── */
 
 static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
                                   gboolean wait) {
 	update_star_list(stars, update_psf_list, wait);
+}
+
+static void impl_clear_star_list(void) {
+	clear_stars_list(FALSE);
+}
+
+static int impl_get_reg_layer(void) {
+	return get_registration_layer_from_GUI(&com.seq);
 }
 
 /* ── Registration ────────────────────────────────────────────────────────── */
@@ -232,4 +241,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_photometry_changed = impl_on_photometry_changed;
 	gui_iface.show_siril_plot       = impl_show_siril_plot;
 	gui_iface.update_star_list      = impl_update_star_list;
+	gui_iface.clear_star_list       = impl_clear_star_list;
+	gui_iface.get_reg_layer         = impl_get_reg_layer;
 }

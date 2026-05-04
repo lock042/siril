@@ -164,6 +164,13 @@ typedef struct {
 	/* Update the star list display and optionally the PSF list panel. */
 	void     (*update_star_list)(psf_star **stars, gboolean update_psf_list,
 	                             gboolean wait);
+	/* Clear the star list display (equivalent to clear_stars_list(FALSE)). */
+	void     (*clear_star_list)(void);
+
+	/* L – Registration state ----------------------------------------------- */
+	/* Returns the active registration layer from the GUI combo box, or -1 if
+	 * no GUI is available or the selected layer has no registration data. */
+	int      (*get_reg_layer)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

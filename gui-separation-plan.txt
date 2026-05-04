@@ -525,12 +525,26 @@ so they route residual GUI calls through gui_iface.
            registration_preview.h, stacking.h). Only non-GUI code remains
            in src/stacking/ files.
 
-[ ] 5.2  src/registration/ (3stars.c, applyreg.c, global.c, registration.c,
+[X] 5.2  src/registration/ (3stars.c, applyreg.c, global.c, registration.c,
           shift_methods.c)
          - clear_stars_list, update_star_list, add_star → gui_iface.on_stars_changed()
          - get_registration_layer_from_GUI → replace with a parameter passed
            from the GUI caller at the start of the registration run.
          - update_reg_interface, control_window_switch_to_tab → gui_iface.
+         - DONE: Added gui_iface.clear_star_list() and gui_iface.get_reg_layer()
+           slots (gui_iface.h, stubs, impl).
+           global.c: update_star_list → gui_iface.update_star_list (slot existed),
+           clear_stars_list(FALSE) ×2 → gui_iface.clear_star_list(); removed
+           gui/PSF_list.h and gui/progress_and_log.h; added core/gui_iface.h.
+           registration.c: get_registration_layer_from_GUI → gui_iface.get_reg_layer();
+           removed gui/image_display.h (REDRAW_OVERLAY already in gui_iface.h);
+           kept gui/registration.h (still needed for end_register_idle).
+           applyreg.c: control_window_switch_to_tab(OUTPUT_LOGS) → gui_iface.show_panel()
+           (slot already implemented); removed gui/utils.h, gui/progress_and_log.h,
+           gui/message_dialog.h; added core/gui_iface.h directly.
+           shift_methods.c: all calls already via gui_iface from phase 4.4.
+           3stars.c: all GTK calls are in GTK signal handler callbacks; file is
+           effectively a GUI controller — deferred to future phase (gui/ move).
 
 [ ] 5.3  src/core/processing.c and processing_thread.c
          - Route execute_idle_and_wait_for_it, populate_roi,

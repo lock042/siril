@@ -33,12 +33,10 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "drizzle/cdrizzlebox.h"
 #include "drizzle/cdrizzlemap.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/progress_and_log.h"
-#include "gui/utils.h"
-#include "gui/message_dialog.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -1147,7 +1145,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.show_panel("output_logs", TRUE);
 	int retval = 0;
 	int *included = NULL;
 

@@ -99,6 +99,8 @@ static void stub_update_star_list(psf_star **stars, gboolean update_psf_list,
                                   gboolean wait) {
 	(void)stars; (void)update_psf_list; (void)wait;
 }
+static void stub_clear_star_list(void) {}
+static int stub_get_reg_layer(void) { return -1; }
 
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
@@ -128,4 +130,6 @@ SirilGuiInterface gui_iface = {
 	.on_photometry_changed= stub_on_photometry_changed,
 	.show_siril_plot      = stub_show_siril_plot,
 	.update_star_list     = stub_update_star_list,
+	.clear_star_list      = stub_clear_star_list,
+	.get_reg_layer        = stub_get_reg_layer,
 };

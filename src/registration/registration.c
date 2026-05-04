@@ -23,7 +23,6 @@
 #include "core/proto.h"
 #include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
@@ -31,7 +30,7 @@
 
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
-		return get_registration_layer_from_GUI(seq);
+		return gui_iface.get_reg_layer();
 	} else {
 		// find first available regdata
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
