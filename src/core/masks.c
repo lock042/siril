@@ -19,6 +19,7 @@
 */
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "algos/PSF.h"
@@ -678,7 +679,7 @@ int mask_create_from_image(fits *fit, gchar *filename, int chan, uint8_t bitpix,
 		gpointer result = generic_image_worker(gi_args);
 
 		if (result) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Mask creation failed"),
 								_("Failed to create mask."));
 			destroy_mtf_data(gi_data);
 			clearfits(source);
@@ -1455,7 +1456,7 @@ int mask_from_channel_hook(struct generic_mask_args *args) {
 			gpointer result = generic_image_worker(gi_args);
 
 			if (result) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Mask creation failed"),
 									_("Failed to create mask."));
 				destroy_mtf_data(gi_data);
 				clearfits(ffit);
@@ -1533,7 +1534,7 @@ int mask_from_lum_hook(struct generic_mask_args *args) {
 			gpointer result = generic_image_worker(gi_args);
 
 			if (result) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Mask creation failed"),
+				gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Mask creation failed"),
 									_("Failed to create mask."));
 				destroy_mtf_data(gi_data);
 				clearfits(ffit);

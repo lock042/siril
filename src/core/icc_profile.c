@@ -1200,7 +1200,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 			color_manage(fit, TRUE);
 			return;
 		} else {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
+			gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Error"), _("Image number of channels does not match color profile number of channels. Cannot assign this profile to this image."));
 			return;
 		}
 	}
@@ -1210,7 +1210,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 	fit_colorspace_channels = cmsChannelsOf(fit_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Siril only supports representing the image in Gray or RGB color spaces. You cannot assign or convert to non-RGB color profiles"));
 		return;
 	}
 	void *data = NULL;
@@ -1241,7 +1241,7 @@ void siril_colorspace_transform(fits *fit, cmsHPROFILE profile) {
 		color_manage(fit, TRUE);
 		siril_debug_print("siril_colorspace_transform() converted a profile\n");
 	} else {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Failed to create colorspace transform."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error"), _("Failed to create colorspace transform."));
 	}
 }
 
@@ -1310,9 +1310,9 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 
 		else if (com.pref.icc.autoconversion == ICC_ASK_TO_CONVERT) {
 			if (!fit->color_managed) {
-				proceed = siril_confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
+				proceed = gui_iface.confirm_dialog(_("Color Management"), _("The current image is not color managed. Do you want to assign the working color space?"), _("Assign"));
 			} else {
-				proceed = siril_confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
+				proceed = gui_iface.confirm_dialog(_("Color Management"), _("Do you want to convert this image to the working color space?"), _("Convert"));
 			}
 		}
 	}
@@ -1411,7 +1411,7 @@ static void reset_working_profile_to_srgb() {
 }
 
 static void error_loading_profile() {
-	siril_message_dialog(GTK_MESSAGE_ERROR, _("Error loading profile"),
+	gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Error loading profile"),
 						 _("The selected profile could not be loaded or did not contain a valid ICC profile. Defaulting to sRGB."));
 	reset_working_profile_to_srgb();
 }

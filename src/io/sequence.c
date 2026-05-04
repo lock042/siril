@@ -660,7 +660,7 @@ gboolean set_seq(gpointer user_data){
 	int convert = (int)((com.headless));
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = siril_confirm_dialog(_("Deprecated sequence"),
+			convert = gui_iface.confirm_dialog(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
 							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
@@ -2158,7 +2158,7 @@ gboolean end_seqpsf(gpointer p) {
 			for (int i = 0; i < seq->nb_layers; i++)
 				has_any_regdata = has_any_regdata || seq->regparam[i];
 			if (!seq->regparam[layer] && has_any_regdata) {
-				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+				write_to_regdata = gui_iface.confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
 			}

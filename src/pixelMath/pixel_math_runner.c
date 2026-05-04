@@ -1126,7 +1126,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		}
 
 		if (channel == 3 && !single_rgb) {
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Incompatible parameters"),
 					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
 			retval = 1;
 			goto free_expressions;
@@ -1139,7 +1139,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	struct pixel_math_data *args = calloc(1, sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Parameter error"), _("Parameter symbols could not be parsed."));
 		retval = 1;
 		goto free_expressions;
 	}
@@ -1166,7 +1166,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	if (replace_t_with_gfit(args) && gfit->naxes[2] > 1) {
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Incorrect formula"), _("RGB $T cannot be used in this context."));
 		retval = 1;
 		goto free_expressions;
 	}
@@ -1179,7 +1179,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (nb_rows > 0) {
 			if (width != var_fit[0].naxes[0] ||
 				height != var_fit[0].naxes[1]) {
-					queue_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
+					gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Images have different size"),
 						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
 				retval = 1;
 				goto free_expressions;
@@ -1188,7 +1188,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	if (!nb_rows && !args->has_gfit) {
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("No images loaded"), _("You must load images first."));
 		retval = 1;
 		goto free_expressions;
 	}
@@ -1335,7 +1335,7 @@ static void select_image(int nb) {
 						gchar *name = g_path_get_basename(filename);
 						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
 								" (width, height or number of channels).", name);
-						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
+						gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Image must have same dimension"), str);
 						g_free(name);
 						g_free(str);
 
@@ -1409,7 +1409,7 @@ void on_pixel_math_add_var_button_clicked(GtkButton *button, gpointer user_data)
 
 	int nb = get_pixel_math_number_of_rows();
 	if (nb == MAX_IMAGES) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot load new image"),
+		gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Cannot load new image"),
 				_("You've reached the maximum of loaded image file."));
 	} else {
 		select_image(nb);

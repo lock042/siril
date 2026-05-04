@@ -1358,8 +1358,8 @@ static int confirm_exceed_cairomaxdim(gpointer user_data) {
 		"Tune scale ratio to get max dimension smaller than 32767 pixels "
 		"or proceed and post process your images with an external program."));
 	if (regargs->no_output) { // Estimate button was pressed, we just warn
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg);
-	} else if (!siril_confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
+		gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Output too large"), msg);
+	} else if (!gui_iface.confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
 				msg, _("Proceed"))) {
 		regargs->retval = 1;
 	}

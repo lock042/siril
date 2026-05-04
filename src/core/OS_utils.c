@@ -375,19 +375,19 @@ int test_available_space(gint64 req_size) {
 				msg = siril_log_message(_("Compression enabled: There may no be enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
+				gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
 			} else {
 				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
+				gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
 			}
 			res = 0;
 		} else {
 			msg = siril_log_message(_("Not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-			queue_error_message_dialog(_("Not enough disk space"), msg);
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough disk space"), msg);
 			res = 1;
 		}
 		g_free(avail);

@@ -467,12 +467,19 @@ for the modules that could not be split using Pattern A.
            "gui/progress_and_log.h" and calls gui_iface.log_message() directly.
            gui_iface_impl.c already delegated to gui_log_message(); unchanged.
 
-[ ] 4.7  Route queue_*_message_dialog and siril_message_dialog through gui_iface
+[X] 4.7  Route queue_*_message_dialog and siril_message_dialog through gui_iface
          - ~26 call-sites in non-GUI code.
          - Replace with gui_iface.message_dialog() / gui_iface.error_dialog().
          - Stub writes to stderr.
          - Do as much of this using scripting as possible, to minimize
            token use for exact pattern changes.
+         - DONE: 35 replacements across 10 files via replace_dialogs.py.
+           GTK_MESSAGE_* → SIRIL_MSG_* conversions applied throughout.
+           queue_error/warning_message_dialog (2-arg) gained SIRIL_MSG_* first arg.
+           siril_confirm_dialog → gui_iface.confirm_dialog (no arg change).
+           src/core/masks.c and src/io/siril_git.c gained #include "core/gui_iface.h".
+           Deferred: siril_update.c siril_data_dialog (phase 5.10);
+           siril_pythoncommands.c modal path using struct message_data (phase 6.6).
 
 [ ] 4.8  Route redraw / queue_redraw through gui_iface
          - ~37 call-sites across remaining algos, io, stacking.

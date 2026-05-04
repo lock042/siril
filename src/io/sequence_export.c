@@ -692,7 +692,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 
 	// checking regdata is absent, or if present, is only shift
 	if (!test_regdata_is_valid_and_shift(&com.seq, get_registration_layer(&com.seq))) {
-		int confirm = siril_confirm_dialog(_("Registration data found"),
+		int confirm = gui_iface.confirm_dialog(_("Registration data found"),
 			_("Export has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before exporting."),
 			_("Export anyway"));
@@ -747,7 +747,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 	// Display a useful warning because I always forget to remove selection
 	if (args->crop) {
-		gboolean confirm = siril_confirm_dialog(_("Export cropped sequence?"),
+		gboolean confirm = gui_iface.confirm_dialog(_("Export cropped sequence?"),
 				_("An active selection was detected. The exported sequence will only contain data within the drawn selection. You can confirm the crop or cancel it. "
 						"If you choose to click on cancel, the exported sequence will contain all data."), _("Confirm Crop"));
 		args->crop = confirm;

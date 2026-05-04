@@ -71,7 +71,7 @@
 #define CHECK_FOR_OPENED_DIALOG \
     do { \
         if (is_a_dialog_opened()) { \
-            siril_message_dialog(GTK_MESSAGE_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
+            gui_iface.message_dialog(SIRIL_MSG_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
             return; \
         } \
     } while (0)
@@ -405,7 +405,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	if (!(com.selection.h && com.selection.w))
 		return;
 	if (com.selection.w > 300 || com.selection.h > 300) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Current selection is too large"),
+		gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Current selection is too large"),
 				_("To determine the PSF, please make a selection around a star."));
 		return;
 	}
@@ -534,7 +534,7 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 	} else {
 		gboolean confirm = TRUE;
 		if (com.seq.current == RESULT_IMAGE) {
-			confirm = siril_confirm_dialog(_("Save your changes before loading a frame of the sequence."),
+			confirm = gui_iface.confirm_dialog(_("Save your changes before loading a frame of the sequence."),
 					_("The image currently displayed is the result of the previous stack. "
 							"If you load an image from the sequence, you might lose the entire process you performed on the image, "
 							"but not the image itself. You need to save your data before doing this."),
@@ -777,7 +777,7 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (single_image_is_loaded() && siril_confirm_dialog(_("Close current image?"), _("Opening the RGB Composition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
+	if (single_image_is_loaded() && gui_iface.confirm_dialog(_("Close current image?"), _("Opening the RGB Composition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
 		close_single_image();
 	}
 	close_sequence(FALSE);
@@ -785,7 +785,7 @@ void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (single_image_is_loaded() && siril_confirm_dialog(_("Close current image?"), _("Opening the Star Recomposition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
+	if (single_image_is_loaded() && gui_iface.confirm_dialog(_("Close current image?"), _("Opening the Star Recomposition dialog will close the current image without saving. Are you sure?"), _("Yes"))) {
 		close_single_image();
 	}
 	close_sequence(FALSE);
@@ -937,7 +937,7 @@ void clear_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void autostretch_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!gfit || !gfit->mask || !gfit->mask->data) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("No mask present"),
 		                     _("There is no mask to autostretch."));
 		return;
 	}
@@ -967,7 +967,7 @@ void mask_scale_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void invert_mask_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!gfit || !gfit->mask || !gfit->mask->data) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No mask present"),
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("No mask present"),
 		                     _("There is no mask to invert."));
 		return;
 	}

@@ -25,6 +25,7 @@
 */
 
 #include "algos/spcc.h"
+#include "core/gui_iface.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_app_dirs.h"
@@ -633,7 +634,7 @@ int sync_gitscripts_repository(gboolean sync) {
 			"and restart Siril to re-clone the correct repository.\n"),
 			SCRIPT_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Repository Error"), msg);
 		g_free(msg);
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
@@ -938,7 +939,7 @@ int auto_update_gitspcc(gboolean sync) {
 			"and restart Siril to re-clone the correct repository.\n"),
 			SPCC_REPOSITORY_URL, local_path);
 		siril_log_color_message(msg, "red");
-		queue_message_dialog(GTK_MESSAGE_ERROR, _("Repository Error"), msg);
+		gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Repository Error"), msg);
 		g_free(msg);
 		// Make scripts unavailable, as the contents of a random git repository
 		// could be complete rubbish
