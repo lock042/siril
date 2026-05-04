@@ -132,6 +132,8 @@ typedef struct {
 	void     (*queue_redraw_mask)(void);
 	/* Refresh all preview windows (registration / filter previews). */
 	void     (*redraw_previews)(void);
+	/* Remap all display viewports (recalculate display LUT/buffers). */
+	void     (*remap_all_vports)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
@@ -176,11 +178,17 @@ typedef struct {
 	/* Queue an idle mask redraw (may also trigger a full image redraw). */
 	void     (*redraw_mask_idle)(void);
 
+	/* F additions – Application lifecycle -------------------------------- */
+	/* Quit the application's main event loop. */
+	void     (*quit_application)(void);
+
 	/* G additions – Channel / precision display state -------------------- */
 	/* Called when the channel count of gfit may have changed. */
 	void     (*on_channel_count_changed)(void);
 	/* Called when the data type (float/ushort) of gfit has changed. */
 	void     (*on_precision_changed)(void);
+	/* Refresh the script menu on the GTK main thread (serialised). */
+	void     (*refresh_script_menu)(void);
 	/* Update the memory-usage label (used_bytes = current RSS). */
 	void     (*update_mem_usage)(guint64 used_bytes);
 	/* Update a disk-space label (space_bytes = free bytes, label_id = widget name). */
@@ -252,6 +260,8 @@ typedef struct {
 	void     (*copy_gfit_to_backup)(void);
 	/* Copy the gfit ICC profile into the preview backup (after ICC ops). */
 	void     (*copy_gfit_icc_to_backup)(void);
+	/* Discard the preview backup buffer entirely. */
+	void     (*clear_backup)(void);
 
 	/* O – ICC information callbacks --------------------------------------- */
 	/* Check whether gfit's ICC profile matches the monitor profile and update
@@ -259,6 +269,13 @@ typedef struct {
 	void     (*check_icc_identical_to_monitor)(void);
 	/* Update the image source/profile information labels in the main window. */
 	void     (*set_source_information)(void);
+
+	/* P – Livestacking GUI lifecycle --------------------------------------- */
+	/* Called when livestacking starts; switches display mode and hides toolbar. */
+	void     (*livestacking_setup_gui)(gboolean has_dark, gboolean has_flat,
+	                                   int reg_type);
+	/* Called when livestacking stops; restores toolbar visibility. */
+	void     (*livestacking_teardown_gui)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

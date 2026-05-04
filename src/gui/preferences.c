@@ -48,6 +48,42 @@
 #include "io/siril_git.h"
 
 #include "preferences.h"
+
+/* ── Language combo (moved from core/siril_language.c) ────────────────────── */
+
+void siril_language_fill_combo(const gchar *language) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	GList *list = g_hash_table_get_keys(siril_language_get_full_list());
+	gboolean lang_changed = FALSE;
+	int i = 1;
+
+	gtk_combo_box_text_remove_all(lang_combo);
+	gtk_combo_box_text_append(lang_combo, 0, _("System Language"));
+
+	list = g_list_sort(list, (GCompareFunc) locale_compare);
+
+	for (GList *l = list; l; l = l->next) {
+		gtk_combo_box_text_append_text(lang_combo, l->data);
+		gchar *locale = extract_locale_from_string(l->data);
+		if (!g_strcmp0(language, locale)) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), i);
+			lang_changed = TRUE;
+		}
+		g_free(locale);
+		i++;
+	}
+	if (!lang_changed)
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), 0);
+	g_list_free(list);
+}
+
+gchar *get_interface_language(void) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0)
+		return g_strdup("");
+	gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
+	return extract_locale_from_string(str);
+}
 #include "filters/starnet.h"
 
 #ifndef W_OK

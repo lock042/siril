@@ -38,8 +38,7 @@
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "gui/utils.h"
 #include "gui/siril_plot.h"
 
@@ -1517,7 +1516,7 @@ exit_conesearch:
 		if (go_idle) {
 			if (spl_data)
 				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+			gui_iface.execute_idle_sync(end_conesearch, temp_cat);
 			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);

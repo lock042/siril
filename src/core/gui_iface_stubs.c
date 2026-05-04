@@ -155,6 +155,17 @@ static void stub_set_display_range(int lo, int hi) { (void)lo; (void)hi; }
 static void stub_check_gaia_status(void) {}
 static void stub_trigger_gaia_check(void) {}
 
+/* Steps 5.11–5.15 */
+static void stub_remap_all_vports(void) {}
+static void stub_quit_application(void) { exit(0); }
+static void stub_refresh_script_menu(void) {}
+static void stub_clear_backup(void) {}
+static void stub_livestacking_setup_gui(gboolean has_dark, gboolean has_flat,
+                                        int reg_type) {
+	(void)has_dark; (void)has_flat; (void)reg_type;
+}
+static void stub_livestacking_teardown_gui(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -219,4 +230,10 @@ SirilGuiInterface gui_iface = {
 	.set_display_range           = stub_set_display_range,
 	.check_gaia_status           = stub_check_gaia_status,
 	.trigger_gaia_check          = stub_trigger_gaia_check,
+	.remap_all_vports            = stub_remap_all_vports,
+	.quit_application            = stub_quit_application,
+	.refresh_script_menu         = stub_refresh_script_menu,
+	.clear_backup                = stub_clear_backup,
+	.livestacking_setup_gui      = stub_livestacking_setup_gui,
+	.livestacking_teardown_gui   = stub_livestacking_teardown_gui,
 };

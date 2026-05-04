@@ -30,7 +30,6 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/siril_app_dirs.h"
-#include "gui/utils.h"
 
 #include "siril_language.h"
 
@@ -92,7 +91,7 @@ static GHashTable *parse_locale_codes(GHashTable *table) {
 /* extract locale from a string following this pattern:
  * xxxxxxxxx [locale]
  */
-static gchar *extract_locale_from_string(const gchar *str) {
+gchar *extract_locale_from_string(const gchar *str) {
 	gchar *locale = g_strstr_len(str, -1, "[");
 	return g_strndup(locale + 1, strlen(locale) - 2);
 }
@@ -133,7 +132,7 @@ void siril_language_parser_init() {
 	full_lang_list = parse_locale_codes(l10n_lang_list);
 }
 
-static gint locale_compare(gconstpointer *a, gconstpointer *b) {
+gint locale_compare(gconstpointer a, gconstpointer b) {
 	const gchar *s1 = (const gchar *) a;
 	const gchar *s2 = (const gchar *) b;
 
@@ -147,32 +146,8 @@ static gint locale_compare(gconstpointer *a, gconstpointer *b) {
 	return result;
 }
 
-void siril_language_fill_combo(const gchar *language) {
-	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
-	GList *list = g_hash_table_get_keys(full_lang_list);
-	gboolean lang_changed = FALSE;
-	int i = 1;
-
-	gtk_combo_box_text_remove_all(lang_combo);
-	gtk_combo_box_text_append(lang_combo, 0, _("System Language"));
-
-	list = g_list_sort(list, (GCompareFunc) locale_compare);
-
-	for (GList *l = list; l; l = l->next) {
-		gtk_combo_box_text_append_text(lang_combo, l->data);
-		gchar *locale = extract_locale_from_string(l->data);
-		if (!g_strcmp0(language, locale)) {
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), i);
-			lang_changed = TRUE;
-		}
-		g_free(locale);
-		i++;
-	}
-	if (!lang_changed) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), 0);
-	}
-
-	g_list_free(list);
+GHashTable *siril_language_get_full_list(void) {
+	return full_lang_list;
 }
 
 void language_init(const gchar *language) {
@@ -193,13 +168,5 @@ void language_init(const gchar *language) {
 	setlocale(LC_NUMERIC, "C");
 }
 
-gchar *get_interface_language() {
-	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
-
-	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0) {
-		return g_strdup("");
-	} else {
-		gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
-		return extract_locale_from_string(str);
-	}
-}
+/* siril_language_fill_combo and get_interface_language are GUI functions
+ * defined in gui/preferences.c (they are only called from gui/ code). */

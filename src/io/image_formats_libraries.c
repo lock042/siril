@@ -65,8 +65,8 @@
 #include "io/fits_keywords.h"
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
+#include "core/gui_iface.h"
 #include "gui/utils.h"
-#include "gui/progress_and_log.h"
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {

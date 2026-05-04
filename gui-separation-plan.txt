@@ -647,29 +647,63 @@ so they route residual GUI calls through gui_iface.
          show_panel; check_gaia_archive_status / gaia_check → new slots
          gui_iface.check_gaia_status / trigger_gaia_check.
 
-[ ] 5.11 src/core/siril_language.c (1 GUI call: lookup_widget)
+[X] 5.11 src/core/siril_language.c (1 GUI call: lookup_widget)
          - Move the widget lookup into gui/ and pass the result as a parameter.
+         DONE: siril_language_fill_combo and get_interface_language (both only
+         called from gui/) moved to gui/preferences.c. extract_locale_from_string,
+         locale_compare made non-static; siril_language_get_full_list() accessor
+         added; all declared in siril_language.h. gui/utils.h removed from
+         siril_language.c; zero GUI dependencies.
 
-[ ] 5.12 src/core/signals.c (1 GUI call: gtk_main_quit)
+[X] 5.12 src/core/signals.c (1 GUI call: gtk_main_quit)
          - Replace with g_main_loop_quit() on the main loop reference, or
            gui_iface.quit_application(), so the signal handler works in
            headless mode too.
+         DONE: gtk_main_quit() → gui_iface.quit_application() (new slot);
+         <gtk/gtk.h> removed from signals.c; core/gui_iface.h added.
 
-[ ] 5.13 src/io/siril_catalogues.c, siril_git.c, conversion.c,
+[X] 5.13 src/io/siril_catalogues.c, siril_git.c, conversion.c,
           fits_keywords.c, image_format_fits.c, image_formats_libraries.c,
           ser.c  (1–4 GUI calls each)
          - Mostly progress/redraw (fixed by phases 4.4/4.5/4.8).
          - siril_git.c uses gui_mutex_lock/unlock: replace with the GLib
            mutex from core or a gui_iface.run_in_gui_thread() callback.
          - image_formats_libraries.c: single lookup_widget; move to gui/.
+         DONE: siril_catalogues.c: execute_idle_and_wait_for_it →
+         gui_iface.execute_idle_sync; removed gui/image_display.h and
+         gui/progress_and_log.h.
+         siril_git.c: gui_mutex_lock/execute_idle_and_wait_for_it/unlock →
+         new gui_iface.refresh_script_menu() slot; removed message_dialog.h,
+         photometric_cc.h, gui/utils.h; added gui/gui_state.h directly (still
+         accesses gui.script_repo_available — deferred to Phase 6).
+         conversion.c, image_formats_libraries.c, ser.c: removed
+         gui/progress_and_log.h (vestigial); fits_keywords.c: kept
+         gui/keywords_tree.h (refresh_keywords_dialog used).
+         image_format_fits.c: is_preview_active → gui_iface.is_preview_active,
+         clear_backup → new gui_iface.clear_backup slot; removed
+         gui/progress_and_log.h and gui/siril_preview.h; added <gtk/gtk.h>
+         directly (GdkPixbuf types used elsewhere in file).
+         image_formats_libraries.c and ser.c: also needed <gtk/gtk.h> for
+         GdkPixbuf — kept gui/utils.h for former (has gtk callbacks).
 
-[ ] 5.14 src/opencv/opencv.cpp (2 GUI calls: remap, show_or_hide_mask_tab)
+[X] 5.14 src/opencv/opencv.cpp (2 GUI calls: remap, show_or_hide_mask_tab)
          - Route through gui_iface.
+         DONE: show_or_hide_mask_tab() → gui_iface.on_mask_state_changed();
+         gui/callbacks.h → core/gui_iface.h. The cv::remap() OpenCV function
+         is not a Siril GUI call; no action needed.
 
-[ ] 5.15 src/livestacking/livestacking.c (7 GUI calls)
+[X] 5.15 src/livestacking/livestacking.c (7 GUI calls)
          - Route progress and redraw through gui_iface.
          - livestacking/gui.c is already a separate file; confirm that
            separation is maintained and the new calls do not re-merge.
+         DONE: clear_stars_list(FALSE) → gui_iface.clear_star_list();
+         remap_all() → new gui_iface.remap_all_vports() slot;
+         gdk_threads_add_idle(livestacking_first_result_idle) → siril_add_idle;
+         !com.headless teardown block → gui_iface.livestacking_teardown_gui();
+         !com.headless setup block → gui_iface.livestacking_setup_gui(dark,flat,reg)
+         (new slot; impl: STF mode, set_display_mode, force_unlinked, toolbox, config).
+         Removed gui/utils.h, gui/PSF_list.h, gui/image_display.h, gui/callbacks.h.
+         livestacking/gui.c separation confirmed intact.
 
 ─────────────────────────────────────────────────────────────────────────────
 PHASE 6 – REFACTOR HEAVILY COUPLED "GLUE" FILES  (structural surgery)

@@ -48,7 +48,7 @@
 #include "io/seqwriter.h"
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "conversion.h"
 
 #ifdef HAVE_LIBRAW

@@ -32,10 +32,8 @@
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/siril_update.h" // for the version_number struct
-#include "gui/message_dialog.h"
-#include "gui/photometric_cc.h"
+#include "gui/gui_state.h"
 #include "gui/script_menu.h" // for SCRIPT_EXT TODO: after python3 is merged, move this out of src/gui
-#include "gui/utils.h"
 #include "io/siril_git.h"
 #include "io/siril_pythonmodule.h"
 #include <assert.h>
@@ -785,9 +783,7 @@ cleanup:
 // Called at the end of setting up the venv
 gpointer update_repo_scripts_list_and_menu_in_thread() {
 	update_repo_scripts_list();
-	gui_mutex_lock();
-	execute_idle_and_wait_for_it(refresh_script_menu_idle, NULL);
-	gui_mutex_unlock();
+	gui_iface.refresh_script_menu();
 
 	return GINT_TO_POINTER(0);
 }

@@ -32,8 +32,8 @@
 #include <execinfo.h>
 #endif
 
-#include <gtk/gtk.h> /* TODO phase 5.12: replace gtk_main_quit with g_main_loop_quit via gui_iface */
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 
 #include "signals.h"
@@ -50,7 +50,7 @@ static void signal_handled(int s) {
 		switch (s) {
 #ifndef _WIN32
 		case SIGINT: // useful for devs who often use CTRL+C
-			gtk_main_quit();
+			gui_iface.quit_application();
 			break;
 #endif
 		case SIGSEGV:

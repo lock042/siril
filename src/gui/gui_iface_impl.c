@@ -49,6 +49,7 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
 #include "gui/siril_preview.h"
+#include "livestacking/gui.h"
 #include "gui/registration.h"
 #include "gui/script_menu.h"
 #include "gui/stacking.h"
@@ -301,6 +302,43 @@ static void impl_trigger_gaia_check(void) {
 	gaia_check(NULL);
 }
 
+/* ── Steps 5.11–5.15: additional slots ───────────────────────────────────── */
+
+static void impl_remap_all_vports(void) {
+	remap_all();
+}
+
+static void impl_quit_application(void) {
+	gtk_main_quit();
+}
+
+static void impl_refresh_script_menu(void) {
+	gui_mutex_lock();
+	execute_idle_and_wait_for_it(refresh_script_menu_idle, NULL);
+	gui_mutex_unlock();
+}
+
+static void impl_clear_backup(void) {
+	clear_backup();
+}
+
+static void impl_livestacking_setup_gui(gboolean has_dark, gboolean has_flat,
+                                        int reg_type) {
+	gui.rendering_mode = STF_DISPLAY;
+	set_display_mode();
+	force_unlinked_channels();
+	GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
+	if (gtk_widget_is_visible(toolbar))
+		show_hide_toolbox();
+	livestacking_display_config(has_dark, has_flat, (transformation_type)reg_type);
+}
+
+static void impl_livestacking_teardown_gui(void) {
+	GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
+	if (!gtk_widget_is_visible(toolbar))
+		show_hide_toolbox();
+}
+
 /* ── Group D additions: Histogram / image modification state ─────────────── */
 
 static void impl_invalidate_histogram(void) {
@@ -460,4 +498,10 @@ void siril_register_gui_iface(void) {
 	gui_iface.set_display_range           = impl_set_display_range;
 	gui_iface.check_gaia_status           = impl_check_gaia_status;
 	gui_iface.trigger_gaia_check          = impl_trigger_gaia_check;
+	gui_iface.remap_all_vports            = impl_remap_all_vports;
+	gui_iface.quit_application            = impl_quit_application;
+	gui_iface.refresh_script_menu         = impl_refresh_script_menu;
+	gui_iface.clear_backup                = impl_clear_backup;
+	gui_iface.livestacking_setup_gui      = impl_livestacking_setup_gui;
+	gui_iface.livestacking_teardown_gui   = impl_livestacking_teardown_gui;
 }
