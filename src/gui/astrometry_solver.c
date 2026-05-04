@@ -97,61 +97,61 @@ void reset_astrometry_checks() {
 static void load_all_ips_statics() {
 	if (!flipbutton) {
 		// toggles
-		flipbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_IPS_flip"));
-		automagbutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
-		DEC_S = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButtonIPS_S"));
-		manualbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_IPS_manual"));
-		downsamplebutton = GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button"));
-		autocropbutton = GTK_TOGGLE_BUTTON(lookup_widget("autocrop_ips_button"));
-		autocatbutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
-		nonearbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_nonear"));
-		blindposbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_ignorepos"));
-		blindresbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_ignoreres"));
-		seqsolvebutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_seqsolve"));
-		seqnocache = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_nocache"));
-		seqskipsolved = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_skipsolved"));
-		sequseheadercoords = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheadercoords"));
-		sequseheaderpixel = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderpixel"));
-		sequseheaderfocal = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderfocal"));
-		sequseforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
-		masterbutton = GTK_TOGGLE_BUTTON(lookup_widget("master_ips_button"));
-		distomaster_save_button = GTK_BUTTON(lookup_widget("distomaster_save_button"));
+		flipbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkButton_IPS_flip"));
+		automagbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "GtkCheckButton_Mag_Limit"));
+		DEC_S = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "GtkCheckButtonIPS_S"));
+		manualbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkButton_IPS_manual"));
+		downsamplebutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "downsample_ips_button"));
+		autocropbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "autocrop_ips_button"));
+		autocatbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "GtkCheckButton_OnlineCat"));
+		nonearbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_nonear"));
+		blindposbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_ignorepos"));
+		blindresbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_ignoreres"));
+		seqsolvebutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_seqsolve"));
+		seqnocache = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_nocache"));
+		seqskipsolved = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_skipsolved"));
+		sequseheadercoords = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_sequseheadercoords"));
+		sequseheaderpixel = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_sequseheaderpixel"));
+		sequseheaderfocal = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_sequseheaderfocal"));
+		sequseforreg = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_IPS_useforreg"));
+		masterbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "master_ips_button"));
+		distomaster_save_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "distomaster_save_button"));
 		// combos
-		catalogbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
-		orderbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
-		solverbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_solver"));
-		serverbox = GTK_COMBO_BOX(lookup_widget("combo_server_ips"));
+		catalogbox = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "ComboBoxIPSCatalog"));
+		orderbox = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "ComboBoxIPS_order"));
+		solverbox = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "ComboBoxIPS_solver"));
+		serverbox = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_server_ips"));
 		// labels
-		cataloglabel = GTK_LABEL(lookup_widget("astrometry_catalog_label"));
-		radiuslabel = GTK_LABEL(lookup_widget("label_IPS_radius"));
+		cataloglabel = GTK_LABEL(gtk_builder_get_object(gui.builder, "astrometry_catalog_label"));
+		radiuslabel = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_IPS_radius"));
 		// spins
-		magspin = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Mag_Limit"));
-		radiusspin =  GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_radius"));
-		RA_h = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_h"));
-		RA_m = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_RA_m"));
-		DEC_d = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_deg"));
-		DEC_m = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Dec_m"));
+		magspin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_Mag_Limit"));
+		radiusspin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_radius"));
+		RA_h = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_RA_h"));
+		RA_m = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_RA_m"));
+		DEC_d = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_Dec_deg"));
+		DEC_m = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "GtkSpinIPS_Dec_m"));
 		// entries
-		focalentry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
-		pixelentry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
-		resolutionentry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_resolution"));
-		RA_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_RA_s"));
-		DEC_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_Dec_s"));
-		searchentry = GTK_ENTRY(lookup_widget("GtkSearchIPS"));
-		distomaster_entry = GTK_ENTRY(lookup_widget("distomaster_entry"));
+		focalentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkEntry_IPS_focal"));
+		pixelentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkEntry_IPS_pixels"));
+		resolutionentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkEntry_IPS_resolution"));
+		RA_s = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkEntryIPS_RA_s"));
+		DEC_s = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkEntryIPS_Dec_s"));
+		searchentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "GtkSearchIPS"));
+		distomaster_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "distomaster_entry"));
 		// list store
-		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(gui.builder,"liststoreIPS"));
+		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststoreIPS"));
 		// selection
 		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "gtkselectionIPS"));
 		// treeview
-		treeviewIPS = GTK_TREE_VIEW(lookup_widget("GtkTreeViewIPS"));
+		treeviewIPS = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "GtkTreeViewIPS"));
 		// expanders
-		cataloguesexp = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
-		stardetectionexp = GTK_EXPANDER(lookup_widget("Frame_IPS_star_detection"));
-		sequenceexp = GTK_EXPANDER(lookup_widget("Frame_IPS_sequence"));
+		cataloguesexp = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "labelIPSCatalogParameters"));
+		stardetectionexp = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "Frame_IPS_star_detection"));
+		sequenceexp = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "Frame_IPS_sequence"));
 		// box
-		IPSbox_seq_info = GTK_BOX(lookup_widget("IPSbox_seq_info"));
-		//window
+		IPSbox_seq_info = GTK_BOX(gtk_builder_get_object(gui.builder, "IPSbox_seq_info"));
+		// window
 		astrometry_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "astrometry_dialog"));
 	}
 }
@@ -413,7 +413,7 @@ static void update_image_parameters_GUI() {
 gboolean end_process_catsearch(gpointer p) {
 	sky_object_query_args *args = (sky_object_query_args*)p;
 	if (!com.script && !args->retval) {
-		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
 		// purge_user_catalogue(CAT_AN_USER_TEMP);
 		refresh_annotation_visibility();
 		if (!gtk_toggle_tool_button_get_active(button)) {
