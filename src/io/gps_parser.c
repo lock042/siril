@@ -195,8 +195,8 @@ int parse_gps_image(fits *fit, struct _qhy_struct *qhy_header) {
 	if (qhy_header->image_width > 12000 || qhy_header->image_height > 9000 ||
 			qhy_header->longitude < -180.0 || qhy_header->longitude > 360.0 ||
 			qhy_header->latitude < -90.0 || qhy_header->latitude > 90.0 ||
+			js_end < js_start ||
 			js_end - js_start > round_to_int(fit->keywords.exposure) + 1 ||
-			js_end - js_start < 0 ||
 			offset_s < -900 || offset_s > 900) { // allow 15 minutes of clock offset
 		siril_log_message(_("Extracted metadata seems incorrect, assuming this is not an image containing some\n"));
 		return 1;

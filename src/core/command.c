@@ -14799,7 +14799,7 @@ int process_gps(int nb) {
 	int retval = gps_extract_image_hook(&args, 0, 0, gfit, NULL, MULTI_THREADED);
 	if (!retval) {
 		siril_log_message(_("Successfully extracted metadata and cropped %d row(s) of the image\n"), crop_rows);
-		notify_gfit_modified();
+		notify_gfit_data_modified();
 	}
 	else retval = CMD_INVALID_IMAGE;
 	return retval;
@@ -14808,6 +14808,10 @@ int process_gps(int nb) {
 int process_seq_gps_extract(int nb) {
         sequence *seq = load_sequence(word[1], NULL);
         if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
         int crop_rows = 6; // matching the QHY bug on most cameras in 2023
         if (nb == 3) {
@@ -14815,10 +14819,17 @@ int process_seq_gps_extract(int nb) {
                         gchar *end;
                         char *arg = word[2] + 6;
                         crop_rows = g_ascii_strtoull(arg, &end, 10);
-                        if (end == arg || crop_rows > 6)
+                        if (end == arg || crop_rows > 6) {
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
                                 return CMD_ARG_ERROR;
+			}
                 }
-                else return CMD_ARG_ERROR;
+                else {
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
+			return CMD_ARG_ERROR;
+		}
 
         }
         struct generic_seq_args *args = create_default_seqargs(seq);
