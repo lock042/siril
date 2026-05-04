@@ -443,7 +443,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #ifdef _OPENMP
 #pragma omp parallel num_threads(threads)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -480,7 +480,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 #endif
 		// Separate loop for Ha site interpolation so this works for all Bayer patterns
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -660,7 +660,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(threads)
 {
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -698,7 +698,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 #endif
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 	for (int row = 0; row < in->ry - 1; row += 2) {
 		size_t offset = row * in->rx;
@@ -1136,5 +1136,90 @@ void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
 		free_multi_args(multi_args);
 		free_generic_seq_args(args, TRUE);
 	}
+}
+
+/* ---- Single-image CFA extraction hook for generic_image_worker ---- */
+
+void free_cfa_extract_args(void *p) {
+	struct cfa_extract_args *args = (struct cfa_extract_args *)p;
+	for (int i = 0; i < 4; i++)
+		g_free(args->channel[i]);
+	free(args);
+}
+
+int cfa_extract_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	struct cfa_extract_args *cfa = (struct cfa_extract_args *)args->user;
+	int ret = 0;
+
+	switch (cfa->operation) {
+		case 0: { /* split_cfa */
+			fits f0 = {0}, f1 = {0}, f2 = {0}, f3 = {0};
+			if (fit->type == DATA_USHORT)
+				ret = split_cfa_ushort(fit, &f0, &f1, &f2, &f3);
+			else if (fit->type == DATA_FLOAT)
+				ret = split_cfa_float(fit, &f0, &f1, &f2, &f3);
+			else { ret = 1; break; }
+			if (!ret) {
+				if (fit->type == DATA_USHORT)
+					ret = save1fits16(cfa->channel[0], &f0, 0) ||
+					      save1fits16(cfa->channel[1], &f1, 0) ||
+					      save1fits16(cfa->channel[2], &f2, 0) ||
+					      save1fits16(cfa->channel[3], &f3, 0);
+				else
+					ret = save1fits32(cfa->channel[0], &f0, 0) ||
+					      save1fits32(cfa->channel[1], &f1, 0) ||
+					      save1fits32(cfa->channel[2], &f2, 0) ||
+					      save1fits32(cfa->channel[3], &f3, 0);
+			}
+			clearfits(&f0); clearfits(&f1); clearfits(&f2); clearfits(&f3);
+			break;
+		}
+		case 1: { /* extractHa */
+			fits f_Ha = {0};
+			if (fit->type == DATA_USHORT)
+				ret = extractHa_ushort(fit, &f_Ha, cfa->pattern, cfa->scaling);
+			else if (fit->type == DATA_FLOAT)
+				ret = extractHa_float(fit, &f_Ha, cfa->pattern, cfa->scaling);
+			else { ret = 1; break; }
+			if (!ret)
+				ret = (fit->type == DATA_USHORT) ?
+				    save1fits16(cfa->channel[0], &f_Ha, 0) :
+				    save1fits32(cfa->channel[0], &f_Ha, 0);
+			clearfits(&f_Ha);
+			break;
+		}
+		case 2: { /* extractHaOIII */
+			fits f_Ha = {0}, f_OIII = {0};
+			if (fit->type == DATA_USHORT)
+				ret = extractHaOIII_ushort(fit, &f_Ha, &f_OIII, cfa->pattern, cfa->scaling, threads);
+			else if (fit->type == DATA_FLOAT)
+				ret = extractHaOIII_float(fit, &f_Ha, &f_OIII, cfa->pattern, cfa->scaling, threads);
+			else { ret = 1; break; }
+			if (!ret)
+				ret = (fit->type == DATA_USHORT) ?
+				    save1fits16(cfa->channel[0], &f_Ha, 0) || save1fits16(cfa->channel[1], &f_OIII, 0) :
+				    save1fits32(cfa->channel[0], &f_Ha, 0) || save1fits32(cfa->channel[1], &f_OIII, 0);
+			clearfits(&f_Ha);
+			clearfits(&f_OIII);
+			break;
+		}
+		case 3: { /* extractGreen */
+			fits f_green = {0};
+			if (fit->type == DATA_USHORT)
+				ret = extractGreen_ushort(fit, &f_green, cfa->pattern);
+			else if (fit->type == DATA_FLOAT)
+				ret = extractGreen_float(fit, &f_green, cfa->pattern);
+			else { ret = 1; break; }
+			if (!ret)
+				ret = (fit->type == DATA_USHORT) ?
+				    save1fits16(cfa->channel[0], &f_green, 0) :
+				    save1fits32(cfa->channel[0], &f_green, 0);
+			clearfits(&f_green);
+			break;
+		}
+		default:
+			ret = 1;
+	}
+	return ret;
 }
 

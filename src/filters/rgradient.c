@@ -203,17 +203,6 @@ int rgradient_image_hook(struct generic_img_args *args, fits *fit, int nb_thread
 	return apply_rgradient_filter(params);
 }
 
-/* Idle function for rgradient */
-gboolean rgradient_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 static double get_xc() {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("entry_rgradient_xc"));
 	return g_ascii_strtod(gtk_entry_get_text(entry), NULL);
@@ -286,7 +275,7 @@ static int rgradient_process_with_worker() {
 	args->mem_ratio = 3.0f; // Need memory for two temporary images
 	args->image_hook = rgradient_image_hook;
 	args->log_hook = rgradient_log_hook;
-	args->idle_function = rgradient_idle;
+	args->idle_function = NULL;
 	args->description = _("Rotational Gradient");
 	args->verbose = TRUE;
 	args->user = params;
@@ -320,7 +309,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

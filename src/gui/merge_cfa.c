@@ -20,6 +20,8 @@
 
 #include "core/siril.h"
 #include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
+#include "core/processing.h"
+#include "core/processing_thread.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/siril_wcs.h"
@@ -340,65 +342,136 @@ void apply_to_seq() {
 		free_sequence(seq3, TRUE);
 }
 
+/* Worker data for single-image merge */
+struct merge_cfa_img_data {
+	gchar *f_cfa0, *f_cfa1, *f_cfa2, *f_cfa3;
+	sensor_pattern pattern;
+	gboolean success;
+};
+
+static void free_merge_cfa_img_data(struct merge_cfa_img_data *data) {
+	g_free(data->f_cfa0);
+	g_free(data->f_cfa1);
+	g_free(data->f_cfa2);
+	g_free(data->f_cfa3);
+	free(data);
+}
+
+static gboolean merge_cfa_img_idle(gpointer p) {
+	struct merge_cfa_img_data *data = (struct merge_cfa_img_data *)p;
+	stop_processing_thread();
+	if (data->success) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		gui_function(open_single_image_from_gfit, NULL);
+		initialize_display_mode();
+		update_zoom_label();
+		display_filename();
+		gui_function(set_precision_switch, NULL);
+		sliders_mode_set_state(gui.sliders);
+		set_cutoff_sliders_max_values();
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		set_cutoff_sliders_values();
+		set_display_mode();
+		redraw(REMAP_ALL);
+		sequence_list_change_current();
+		reset_controls();
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_close_dialog("merge_cfa_dialog");
+	}
+	set_cursor_waiting(FALSE);
+	free_merge_cfa_img_data(data);
+	return FALSE;
+}
+
+static gpointer merge_cfa_img_worker(gpointer p) {
+	struct merge_cfa_img_data *data = (struct merge_cfa_img_data *)p;
+	fits c0 = { 0 }, c1 = { 0 }, c2 = { 0 }, c3 = { 0 };
+	int retval = readfits(data->f_cfa0, &c0, NULL, FALSE);
+	retval += readfits(data->f_cfa1, &c1, NULL, FALSE);
+	retval += readfits(data->f_cfa2, &c2, NULL, FALSE);
+	retval += readfits(data->f_cfa3, &c3, NULL, FALSE);
+	if (retval) {
+		siril_log_color_message(_("Error loading files!\n"), "red");
+		clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
+		data->success = FALSE;
+		siril_add_idle(merge_cfa_img_idle, data);
+		return GINT_TO_POINTER(1);
+	}
+	fits *out = merge_cfa(&c0, &c1, &c2, &c3, data->pattern);
+	clearfits(&c0); clearfits(&c1); clearfits(&c2); clearfits(&c3);
+	if (!out) {
+		siril_log_color_message(_("Merge CFA failed.\n"), "red");
+		data->success = FALSE;
+		siril_add_idle(merge_cfa_img_idle, data);
+		return GINT_TO_POINTER(1);
+	}
+	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	g_rw_lock_writer_lock(&gfit->rwlock);
+	close_single_image();
+	copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copy_fits_metadata(out, gfit);
+	update_sampling_information(gfit, 0.5f);
+	update_bayer_pattern_information(gfit, data->pattern);
+	free_wcs(gfit);
+	update_fits_header(gfit);
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+	clearfits(out);
+	free(out);
+	clear_stars_list(TRUE);
+	com.seq.current = UNRELATED_IMAGE;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+		com.uniq->comment = strdup(_("Bayer pattern merge"));
+	if (!com.headless) {
+		notify_gfit_data_modified();
+		init_layers_hi_and_lo_values(MIPSLOHI);
+	}
+	data->success = TRUE;
+	siril_add_idle(merge_cfa_img_idle, data);
+	return GINT_TO_POINTER(0);
+}
+
 void apply_to_img() {
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	sensor_pattern pattern = (sensor_pattern) p;
-	fits *out = NULL;
-	if (!(cfa0_loaded && cfa1_loaded && cfa2_loaded && cfa3_loaded)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
-				_("Merge CFA cannot proceed"));
-	} else {
-		gboolean x_compat = (cfa0.naxes[0] == cfa1.naxes[0] && cfa1.naxes[0] == cfa2.naxes[0] && cfa2.naxes[0] == cfa3.naxes[0]);
-		gboolean y_compat = (cfa0.naxes[1] == cfa1.naxes[1] && cfa1.naxes[1] == cfa2.naxes[1] && cfa2.naxes[1] == cfa3.naxes[1]);
-		gboolean c_compat = (cfa0.naxes[2] == cfa1.naxes[2] && cfa1.naxes[2] == cfa2.naxes[2] && cfa2.naxes[2] == cfa3.naxes[2] && cfa3.naxes[2] == 1);
-		gboolean t_compat = (cfa0.type == cfa1.type && cfa1.type == cfa2.type && cfa2.type == cfa3.type);
-		if (!(x_compat && y_compat && c_compat && t_compat)) {
-			siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
-			if(!x_compat)
-				siril_log_message(_("X dimensions incompatible\n"));
-			if(!y_compat)
-				siril_log_message(_("Y dimensions incompatible\n"));
-			if(!c_compat)
-				siril_log_message(_("Channels not all mono\n"));
-			if(!t_compat)
-				siril_log_message(_("Input files not all the same bit depth\n"));
-			return;
-		} else {
-			set_cursor_waiting(TRUE);
-			out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
-			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
-			close_single_image();
-			copyfits(out, gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			copy_fits_metadata(out, gfit);
-			update_sampling_information(gfit, 0.5f);
-			update_bayer_pattern_information(gfit, pattern);
 
-			free_wcs(gfit);
-			update_fits_header(gfit);
-			clearfits(out);
-			free(out);
-			clear_stars_list(TRUE);
-			com.seq.current = UNRELATED_IMAGE;
-			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
-				com.uniq->comment = strdup(_("Bayer pattern merge"));
-			gui_function(open_single_image_from_gfit, NULL);
-			initialize_display_mode();
-			update_zoom_label();
-			display_filename();
-			gui_function(set_precision_switch, NULL);
-			sliders_mode_set_state(gui.sliders);
-			init_layers_hi_and_lo_values(MIPSLOHI);
-			set_cutoff_sliders_max_values();
-			set_cutoff_sliders_values();
-			set_display_mode();
-			redraw(REMAP_ALL);
-			sequence_list_change_current();
-			set_cursor_waiting(FALSE);
-			reset_controls();
-			control_window_switch_to_tab(OUTPUT_LOGS);
-			siril_close_dialog("merge_cfa_dialog");
-		}
+	if (!(cfa0_loaded && cfa1_loaded && cfa2_loaded && cfa3_loaded)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
+				_("Merge CFA cannot proceed"));
+		return;
+	}
+
+	gboolean x_compat = (cfa0.naxes[0] == cfa1.naxes[0] && cfa1.naxes[0] == cfa2.naxes[0] && cfa2.naxes[0] == cfa3.naxes[0]);
+	gboolean y_compat = (cfa0.naxes[1] == cfa1.naxes[1] && cfa1.naxes[1] == cfa2.naxes[1] && cfa2.naxes[1] == cfa3.naxes[1]);
+	gboolean c_compat = (cfa0.naxes[2] == cfa1.naxes[2] && cfa1.naxes[2] == cfa2.naxes[2] && cfa2.naxes[2] == cfa3.naxes[2] && cfa3.naxes[2] == 1);
+	gboolean t_compat = (cfa0.type == cfa1.type && cfa1.type == cfa2.type && cfa2.type == cfa3.type);
+	if (!(x_compat && y_compat && c_compat && t_compat)) {
+		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		if (!x_compat)
+			siril_log_message(_("X dimensions incompatible\n"));
+		if (!y_compat)
+			siril_log_message(_("Y dimensions incompatible\n"));
+		if (!c_compat)
+			siril_log_message(_("Channels not all mono\n"));
+		if (!t_compat)
+			siril_log_message(_("Input files not all the same bit depth\n"));
+		return;
+	}
+
+	/* Snapshot filenames before handing off to the worker */
+	struct merge_cfa_img_data *args = calloc(1, sizeof(struct merge_cfa_img_data));
+	if (!args)
+		return;
+	args->f_cfa0 = g_strdup(f_cfa0);
+	args->f_cfa1 = g_strdup(f_cfa1);
+	args->f_cfa2 = g_strdup(f_cfa2);
+	args->f_cfa3 = g_strdup(f_cfa3);
+	args->pattern = pattern;
+
+	set_cursor_waiting(TRUE);
+	if (!start_in_new_thread(merge_cfa_img_worker, args)) {
+		free_merge_cfa_img_data(args);
+		set_cursor_waiting(FALSE);
 	}
 }
 

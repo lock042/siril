@@ -191,7 +191,7 @@ int register_shift_dft(struct registration_args *args) {
 #endif
 	for (frame = 0; frame < args->seq->number; ++frame) {
 		if (abort) continue;
-		if (args->run_in_thread && !get_thread_run()) {
+		if (args->run_in_thread && !processing_should_continue()) {
 			abort = 1;
 			continue;
 		}
@@ -437,7 +437,7 @@ int register_kombat(struct registration_args *args) {
 		for (frame = 0; frame < args->seq->number; frame++) {
 			if (abort)
 				continue;
-			if (args->run_in_thread && !get_thread_run()) {
+			if (args->run_in_thread && !processing_should_continue()) {
 				abort = 1;
 				continue;
 			}
@@ -571,7 +571,7 @@ int register_shift_fwhm(struct registration_args *args) {
 
 	/* Second step: align image by aligning star coordinates together */
 	for (frame = 0; frame < args->seq->number; frame++) {
-		if (args->run_in_thread && !get_thread_run())
+		if (args->run_in_thread && !processing_should_continue())
 			break;
 		if (args->filters.filter_included && !args->seq->imgparam[frame].incl) {
 			// current_regdata was set with identity matrices

@@ -53,6 +53,7 @@ int copy_rendering_settings();
 void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 void show_or_hide_mask_tab();
+gboolean show_or_hide_mask_tab_idle(gpointer p);
 
 int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
 void update_display_selection();

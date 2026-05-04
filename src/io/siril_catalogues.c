@@ -1117,57 +1117,6 @@ int check_conesearch_args(conesearch_args *args) {
 	return 0;
 }
 
-int conesearch_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	conesearch_params *params = (conesearch_params *)args->user;
-
-	if (!has_wcs(fit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return 1;
-	}
-
-	// Preparing the catalogue query
-	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(fit, params->cat, params->limit_mag);
-	siril_cat->phot = params->photometric;
-	if (params->cat == CAT_IMCCE) {
-		if (params->obscode) {
-			siril_cat->IAUcode = g_strdup(params->obscode);
-			if (params->default_obscode_used) {
-				siril_log_message(_("Using default observatory code %s\n"), params->obscode);
-			}
-		} else {
-			siril_cat->IAUcode = g_strdup("500");
-			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
-		}
-	} else if (params->obscode) {
-		g_free(params->obscode);
-		params->obscode = NULL;
-	}
-	if (params->cat == CAT_LOCAL_TRIX)
-		siril_cat->trixel = params->trixel;
-
-	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
-
-	conesearch_args *cone_args = init_conesearch_args();
-	cone_args->fit = fit;
-	cone_args->siril_cat = siril_cat;
-	cone_args->has_GUI = !com.script;
-	cone_args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
-	cone_args->display_tag = (params->display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_tag;
-	cone_args->outfilename = g_strdup(params->outfilename);
-	cone_args->compare = params->compare;
-
-	if (check_conesearch_args(cone_args)) {
-		free_conesearch_args(cone_args);
-		return 1;
-	}
-
-	// Call the worker directly
-	int retval = GPOINTER_TO_INT(conesearch_worker(cone_args));
-	// Cleanup of the conesearch_args is done by conesearch_worker
-	return retval;
-}
-
-/*
 int execute_conesearch(conesearch_params *params) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -1175,15 +1124,13 @@ int execute_conesearch(conesearch_params *params) {
 		return CMD_FOR_PLATE_SOLVED;
 	}
 
-	// Preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(gfit, params->cat, params->limit_mag);
 	siril_cat->phot = params->photometric;
 	if (params->cat == CAT_IMCCE) {
 		if (params->obscode) {
 			siril_cat->IAUcode = g_strdup(params->obscode);
-			if (params->default_obscode_used) {
+			if (params->default_obscode_used)
 				siril_log_message(_("Using default observatory code %s\n"), params->obscode);
-			}
 		} else {
 			siril_cat->IAUcode = g_strdup("500");
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
@@ -1205,7 +1152,7 @@ int execute_conesearch(conesearch_params *params) {
 	args->outfilename = g_strdup(params->outfilename);
 	args->compare = params->compare;
 	free_conesearch_params(params);
-	if (check_conesearch_args(args)) { // can't fail for now
+	if (check_conesearch_args(args)) {
 		free_conesearch_args(args);
 		return CMD_GENERIC_ERROR;
 	}
@@ -1216,7 +1163,6 @@ int execute_conesearch(conesearch_params *params) {
 	}
 	return CMD_OK;
 }
-*/
 int execute_show_command(show_params *params) {
 	if (!has_wcs(gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -1294,6 +1240,7 @@ gpointer conesearch_worker(gpointer p) {
 	double stardiam = 0.0;
 	gboolean hide_display_tag = FALSE;
 	gboolean free_dx = TRUE;
+	gboolean rwlocked = FALSE;
 
 	// Check initial args
 	if (!siril_cat) {
@@ -1323,6 +1270,10 @@ gpointer conesearch_worker(gpointer p) {
 	}
 
 	// Project using WCS
+	if (args->fit == gfit) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		rwlocked = TRUE;
+	}
 	if (siril_catalog_project_with_WCS(siril_cat, args->fit, TRUE, TRUE)) {
 		if (siril_cat->projected == CAT_PROJ_WCS)
 			siril_log_color_message(_("No item found in the image\n"), "salmon");
@@ -1553,6 +1504,8 @@ gpointer conesearch_worker(gpointer p) {
 
 exit_conesearch:
 	{
+		if (rwlocked)
+			g_rw_lock_reader_unlock(&gfit->rwlock);
 		gboolean go_idle = args->has_GUI;
 		if ((retval || !args->has_GUI) && temp_cat) {
 			siril_catalog_free(temp_cat);

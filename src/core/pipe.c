@@ -51,10 +51,8 @@
 #include "core/siril_log.h"
 #include "pipe.h"
 #include "command_line_processor.h"
-//#include "processing.h"
-	void stop_processing_thread();	// avoid including everything
-	gpointer waiting_for_thread();
-	gboolean get_thread_run();
+#include "io/single_image.h"
+#include "core/processing_thread.h"
 #include "gui/progress_and_log.h"
 
 #ifdef _WIN32
@@ -264,7 +262,7 @@ int enqueue_command(char *command) {
 	if (!strncmp(command, "cancel", 6))
 		return 1;
 	if (!strcmp(command, "ping")) {
-		if (get_thread_run())
+		if (processing_is_job_active())
 			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
 		else {
 			gchar *str = g_strdup_printf("%s\n", command);
@@ -361,7 +359,7 @@ void *read_pipe(void *p) {
 				CloseHandle(hPipe_r);
 				hPipe_r = INVALID_HANDLE_VALUE;
 				empty_command_queue();
-				if (get_thread_run()) {
+				if (processing_is_job_active()) {
 					stop_processing_thread();
 					pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 				}
@@ -448,7 +446,7 @@ void *read_pipe(void *p) {
 				pipe_fd_r = -1;
 				if (read_return == PIPE_READ_ERROR) {
 					empty_command_queue();
-					if (get_thread_run()) {
+					if (processing_is_job_active()) {
 						stop_processing_thread();
 						pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
 					}
@@ -495,7 +493,22 @@ void *process_commands(void *p) {
 
 		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command_name);
 
+		/* Set com.script so processing_submit_job blocks until the job
+		 * finishes and deposits the result in pending_result, which
+		 * waiting_for_thread() can then retrieve correctly.  Without this,
+		 * fire-and-forget jobs never set pending_result and
+		 * waiting_for_thread() always returns 0, hiding command errors. */
+		gboolean was_script = com.script;
+		com.script = TRUE;
 		int retval = execute_command(wordnb);
+		com.script = was_script;
+
+		/* The com.script flag suppressed notify_gfit_data_modified()'s remap
+		 * work during execute_command (matching the script-mode display-deferral
+		 * behaviour).  If this pipe command is not itself inside a true script,
+		 * flush the display now that the result is ready. */
+		if (!was_script && !com.headless)
+			notify_gfit_data_modified();
 
 		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();

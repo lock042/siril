@@ -38,6 +38,7 @@
 #include "core/undo.h"
 #include "curves.h"
 #include "histogram.h"
+#include "histogram_utils.h"
 #include "filters/curve_transform.h"
 
 /* The gsl_histogram, documented here:
@@ -122,7 +123,7 @@ void curves_dialog_init_statics() {
 	}
 }
 
-static void set_histogram(gsl_histogram *histo, int layer);
+
 
 static void clear_display_histogram() {
 	if (display_histogram[0]) {
@@ -140,6 +141,7 @@ static void update_do_channel() {
 }
 
 static int curves_update_preview();
+static gboolean curve_apply_idle(gpointer p);
 
 static void curves_update_image() {
 	set_cursor_waiting(TRUE);
@@ -219,7 +221,8 @@ static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_pr
 	}
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
-		notify_gfit_modified();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	}
 
 	if (revert_icc_profile && !single_image_stretch_applied) {
@@ -409,9 +412,7 @@ void draw_curve_points(cairo_t *cr, int width, int height) {
 // erase image and redraw the background color and grid
 void erase_curves_histogram_display(cairo_t *cr, int width, int height) {
 	// clear all with background color
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
+	fill_histo_background(cr, width, height);
 
 	update_do_channel();
 	if (gtk_toggle_tool_button_get_active(curves_grid_toggle))
@@ -477,37 +478,32 @@ gboolean curve_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
 }
 
-/* Idle function for final application */
-gboolean curve_apply_idle(gpointer p) {
-	// Update clipped pixels after processing completes
-	size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	_update_clipped_pixels(data);
 
+
+static gboolean curve_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		size_t data = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+		_update_clipped_pixels(data);
+		gfit_modified_update_gui();
+		clear_backup();
+		clear_display_histogram();
+		curves_startup();
+		reset_cursors_and_values(FALSE);
 	}
 	free_generic_img_args(args);
 	return FALSE;
 }
 
-
 static gboolean is_curves_log_scale() {
 	return (gtk_toggle_button_get_active(curves_log_check));
-}
-
-static void set_histogram(gsl_histogram *histo, int layer) {
-	g_assert(layer >= 0 && layer < MAXVPORT);
-	if (com.layers_hist[layer])
-		gsl_histogram_free(com.layers_hist[layer]);
-	com.layers_hist[layer] = histo;
 }
 
 /* Public functions */
@@ -516,7 +512,7 @@ static void set_histogram(gsl_histogram *histo, int layer) {
 void update_gfit_curves_histogram_if_needed() {
 	invalidate_gfit_histogram();
 	if (gtk_widget_get_visible(curves_dialog)) {
-		compute_histo_for_fit(fit);
+		compute_histo_for_fit(fit);   // shared version: no sat/toggle-names side effects
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
 }
@@ -546,8 +542,9 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	erase_curves_histogram_display(cr, width, height);
 
+	gboolean is_mono = fit ? (fit->naxes[2] == 1) : FALSE;
 	for (i = 0; i < MAXVPORT; i++)
-		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale());
+		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale(), is_mono);
 
 	draw_curve(cr, width, height);
 	draw_curve_points(cr, width, height);
@@ -614,26 +611,26 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_toggle_button_set_active(curves_sequence_check, FALSE);
 		apply_curve_to_sequence(args);
 	} else {
-		// the apply button resets everything after recomputing with the current values
 		fit = gfit;
-		// janky undo preparation to account for ICC usage
-		// this is purely a shallow copy, it MUST NOT be cleared with clearfits
-		fits undo_fit = {0};
-		memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
-		undo_fit.icc_profile = original_icc;
-		undo_fit.color_managed = original_icc != NULL;
+		gboolean preview_active = gtk_toggle_button_get_active(curves_preview_check);
+
+		if (preview_active && !gui.roi.active) {
+			// The curve is already applied to gfit via preview; commit and reset for next operation
+			populate_roi();
+			clear_backup();
+			clear_display_histogram();
+			single_image_stretch_applied = TRUE;
+			curves_startup();
+			reset_cursors_and_values(FALSE);
+			set_cursor("default");
+			return;
+		}
+
+		// Preview not active or ROI active: apply the curve now, defer reinit to curve_apply_idle
 		copy_backup_to_gfit();
-
-		curves_process_with_worker(FALSE, FALSE);
-
-		single_image_stretch_applied = TRUE;
 		populate_roi();
-
-		clear_backup();
-		clear_display_histogram();
-		// reinit
-		curves_startup();
-		reset_cursors_and_values(FALSE);
+		curves_process_with_worker(FALSE, gui.roi.active);
+		single_image_stretch_applied = TRUE;
 		set_cursor("default");
 	}
 }
@@ -974,7 +971,7 @@ gboolean on_curves_y_entry_focus_out_event(GtkWidget *widget, GdkEvent *event, g
 void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(curves_preview_check)) {
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();

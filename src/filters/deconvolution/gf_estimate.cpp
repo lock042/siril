@@ -328,7 +328,7 @@ void gf_kernel(img_t<T>& kernel, const img_t<T>& img,
         phaseRetrieval(kernel, blurredPatch, powerSpectrum, kernelSize, opts);
         siril_debug_print("pr\n");
 
-        if (!get_thread_run()) {
+        if (!processing_should_continue()) {
             siril_debug_print("Thread stopped, aborting...\n");
             break;
         }

@@ -143,7 +143,10 @@ siril_common_SOURCES = \
 	core/pipe.h \
 	core/preprocess.c \
 	core/preprocess.h \
+	core/processing_thread.c \
+	core/processing_thread.h \
 	core/processing.c \
+	core/processing.h \
 	core/sequence_filtering.c \
 	core/sequence_filtering.h \
 	core/settings.c \
@@ -292,6 +295,8 @@ siril_common_SOURCES = \
 	gui/histo_display.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/histogram_utils.c \
+	gui/histogram_utils.h \
 	gui/keywords_tree.c \
 	gui/keywords_tree.h \
 	gui/icc_profile.c \

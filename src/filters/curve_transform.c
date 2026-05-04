@@ -67,33 +67,43 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 	if (from->type == DATA_USHORT) {
 		float norm = (float) get_normalized_value(from);
 		float inv_norm = 1.f / norm;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
-#endif
+		// Build a LUT: all 65536 possible input values mapped once,
+		// avoiding per-pixel GList traversal in the interpolation functions.
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+		if (params->algorithm == LINEAR) {
+			for (int v = 0; v <= USHRT_MAX; v++)
+				lut[v] = roundf_to_WORD(linear_interpolate(v * inv_norm, params->points, slopes) * norm);
+		} else {
+			for (int v = 0; v <= USHRT_MAX; v++)
+				lut[v] = roundf_to_WORD(cubic_spline_interpolate(v * inv_norm, &cspline_data) * norm);
+		}
 		for (size_t i = 0; i < from->naxes[2]; i++) {
 			if (params->do_channel[i]) {
-				for (size_t j = 0; j < layersize; j++) {
-					float pixel_value = from->pdata[i][j] * inv_norm;
-					if (params->algorithm == LINEAR)
-						to->pdata[i][j] = roundf_to_WORD(linear_interpolate(pixel_value, params->points, slopes) * norm);
-					else if (params->algorithm == CUBIC_SPLINE)
-						to->pdata[i][j] = roundf_to_WORD(cubic_spline_interpolate(pixel_value, &cspline_data) * norm);
-				}
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
+				for (size_t j = 0; j < layersize; j++)
+					to->pdata[i][j] = lut[from->pdata[i][j]];
 			} else
 				memcpy(to->pdata[i], from->pdata[i], layersize * sizeof(WORD));
 		}
+		free(lut);
 	} else if (from->type == DATA_FLOAT) {
+		// Hoist the algorithm dispatch outside the pixel loop
+		for (size_t i = 0; i < from->naxes[2]; i++) {
+			if (params->do_channel[i]) {
+				if (params->algorithm == LINEAR) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
-		for (size_t i = 0; i < from->naxes[2]; i++) {
-			if (params->do_channel[i]) {
-				for (size_t j = 0; j < layersize; j++) {
-					float pixel_value = from->fpdata[i][j];
-					if (params->algorithm == LINEAR)
-						to->fpdata[i][j] = linear_interpolate(pixel_value, params->points, slopes);
-					else if (params->algorithm == CUBIC_SPLINE)
-						to->fpdata[i][j] = cubic_spline_interpolate(pixel_value, &cspline_data);
+					for (size_t j = 0; j < layersize; j++)
+						to->fpdata[i][j] = linear_interpolate(from->fpdata[i][j], params->points, slopes);
+				} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
+#endif
+					for (size_t j = 0; j < layersize; j++)
+						to->fpdata[i][j] = cubic_spline_interpolate(from->fpdata[i][j], &cspline_data);
 				}
 			} else
 				memcpy(to->fpdata[i], from->fpdata[i], layersize * sizeof(float));
@@ -103,11 +113,12 @@ void apply_curve(fits *from, fits *to, struct curve_params *params, gboolean mul
 }
 
 void linear_fit(GList *points, double *slopes) {
-	g_assert(g_list_length(points) >= 2);
+	int n = g_list_length(points);
+	g_assert(n >= 2);
 
 	// Precalculate the slope between each pair of points
 	GList *current = points;
-	for (int i = 0; i < g_list_length(points) - 1; i++) {
+	for (int i = 0; i < n - 1; i++) {
 		point *point1 = (point *) current->data;
 		point *point2 = (point *) current->next->data;
 		slopes[i] = (point2->y - point1->y) / (point2->x - point1->x);

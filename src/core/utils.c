@@ -1387,6 +1387,10 @@ gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
 		}
 		g_free(uri);
 	}
+	/* Fallback for Save dialogs where the typed name has no URI yet
+	 * (gtk_file_chooser_get_uri returns NULL before the file exists). */
+	if (!filename)
+		filename = gtk_file_chooser_get_current_name(chooser);
 	return filename;
 }
 

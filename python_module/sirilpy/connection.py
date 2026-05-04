@@ -5862,32 +5862,34 @@ class SirilInterface:
         """
         self._mask_update_polygon(poly, False)
 
-     def open_dialog(self, dialog: DialogID):
+    def open_dialog(self, dialog: DialogID):
         """
         Opens a Siril GUI dialog. Introduced in sirilpy version 1.0.20.
 
         Args:
             dialog (DialogID): Specifies the dialog to open.
 
+        Returns:
+            True if the dialog-opening action succeeded
+            False if the dialog-opening action failed (e.g. because the criteria were not met)
+
         Raises:
-            ValueError: if the parameter is not a DialogID.
+            TypeError: if the parameter is not a DialogID.
             SirilError: if the method is called headless or an error occurs.
         """
 
         if not isinstance(dialog, DialogID):
             raise TypeError(f"dialog must be a DialogID, got {type(dialog).__name__}")
 
-        # Convert dialog ID to network byte order bytes
-        dialog_payload = struct.pack('!I', dialog.value)  # '!I' for network byte order uint32_t
-
-        response = self._request_data(_Command.OPEN_DIALOG, payload=dialog_payload)
-
-        if response is None:
-            return None
-
         try:
-            # Assuming the response is a null-terminated UTF-8 encoded string
-            filename = response.decode('utf-8').rstrip('\x00')
-            return filename
+            # Convert dialog ID to network byte order bytes
+            dialog_payload = struct.pack('!I', dialog.value)  # '!I' for network byte order uint32_t
+
+            response = self._execute_command(_Command.OPEN_DIALOG, payload=dialog_payload)
+
+            if response is None:
+                return False
+            else:
+                return response
         except Exception as e:
-            raise SirilError(f"Error in open_dialog(): {e}") from e
+            raise SirilError(_("Error in open_dialog: {)").format(e)) from e

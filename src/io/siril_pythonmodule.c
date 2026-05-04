@@ -713,18 +713,6 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
 	fit->naxes[2] = info->channels;
-	if (fit == gfit) {
-		if (!com.headless) {
-			if (g_main_context_is_owner(g_main_context_default())) {
-				// it is safe to call the function directly
-				update_single_image_from_gfit(NULL);
-			} else {
-				// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-				execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
-			}
-		}
-		siril_debug_print("set_*_pixeldata: updating gfit\n");
-	}
 	// Cleanup shared memory
 	#ifdef _WIN32
 		UnmapViewOfFile(shm_ptr);
@@ -3162,8 +3150,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		if (cleanup->python_conn) {
 			// If we had the python thread lock and failed to release it, release it now
 			if (cleanup->python_conn->thread_claimed) {
-				com.python_claims_thread = FALSE;
-				set_cursor_waiting(FALSE);
+				python_releases_thread(); /* also calls set_cursor_waiting(FALSE) */
 				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 			}
 
@@ -3349,6 +3336,10 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+
+	// Force UTF8 mode
+	env = g_environ_setenv(env, "PYTHONUTF8", "1", TRUE);
+
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
 	gboolean success = FALSE;
 	gchar *working_dir = NULL;

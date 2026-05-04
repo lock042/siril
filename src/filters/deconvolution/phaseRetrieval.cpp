@@ -26,7 +26,7 @@ SOFTWARE.
 #include <complex>
 #include <cassert>
 #include "algos/siril_random.h"
-#include "core/processing.h" // for get_thread_run()
+#include "core/processing.h" // for processing_should_continue()
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
@@ -206,7 +206,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
 #endif
         for (int k = 0; k < opts.Ntries; k++) {
 
-            if (!get_thread_run()) continue;
+            if (!processing_should_continue()) continue;
 
             // retrieve one possible kernel
             singlePhaseRetrieval(kernel, magnitude, kernelSize, opts.Ninner);

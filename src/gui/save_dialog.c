@@ -313,6 +313,8 @@ static void filter_changed(gpointer user_data) {
 	GtkFileChooser *chooser = GTK_FILE_CHOOSER(user_data);
 	GtkFileFilter *filter = gtk_file_chooser_get_filter(chooser);
 	gchar *filename = siril_file_chooser_get_filename(chooser);
+	if (!filename)
+		return;
 	char *file_no_ext = remove_ext_from_filename(filename);
 	image_type format = get_image_type_from_filter(filter);
 	gchar *new_filename = NULL;
@@ -695,14 +697,12 @@ static gpointer mini_save_dialog(gpointer p) {
 			gfit->checksum = args->checksum;
 			args->retval = savefits(args->filename, gfit);
 			if (!args->retval && single_image_is_loaded()) {
-				com.uniq->filename = strdup(args->filename);
-				// com.uniq->filename is handled by libc functions so we can't use g_strdup_printf directly
-				if (!g_str_has_suffix(args->filename, com.pref.ext)) {
-					gchar* tempfilename = g_strdup_printf("%s%s", args->filename, com.pref.ext);
-					free(com.uniq->filename);  // Free the previously allocated memory
-					com.uniq->filename = strdup(tempfilename);
-					g_free(tempfilename);  // Use g_free for GLib allocated memory
-				}
+				/* Use the same extension logic as savefits() so the tracked
+				 * filename always matches the file actually written on disk. */
+				gchar *actual = set_right_extension(args->filename);
+				free(com.uniq->filename);
+				com.uniq->filename = strdup(actual);
+				g_free(actual);
 				com.uniq->fileexist = TRUE;
 			}
 			break;
@@ -743,8 +743,8 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 	}
 	initialize_data(args);
 
-	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
-		if (!get_thread_run()) {
+	if (!processing_is_job_active() && gtk_toggle_button_get_active(button)) {
+		if (!processing_is_job_active()) {
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);
@@ -769,7 +769,7 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			return;
 		}
 		initialize_data(args);
-		if (!get_thread_run()) {
+		if (!processing_is_job_active()) {
 			if (!start_in_new_thread(calculate_jpeg_size_thread, args)) {
 				g_free(args->copyright);
 				g_free(args->description);

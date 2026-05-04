@@ -882,7 +882,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		sig = cmsGetColorSpace(image_profile);
 		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 		lab_type = TYPE_Lab_16_PLANAR;
-		threaded = !get_thread_run();
+		threaded = !processing_in_worker_thread();
 		// We use sRGB as the fallback for non-color managed images
 		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, INTENT_PERCEPTUAL, com.icc.rendering_flags);
 		cmsCloseProfile(cielab_profile);
@@ -1018,7 +1018,7 @@ static gpointer extract_channels_float(gpointer p) {
 			sig = cmsGetColorSpace(image_profile);
 			trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
 			lab_type = TYPE_Lab_FLT_PLANAR;
-			threaded = !get_thread_run();
+			threaded = !processing_in_worker_thread();
 			transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 			cmsCloseProfile(cielab_profile);
 			cmsCloseProfile(image_profile);
@@ -1384,17 +1384,6 @@ int ccm_single_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return ccm_process(params, fit);
 }
 
-/* Idle function for final application */
-gboolean ccm_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		notify_gfit_modified();
-	}
-	free_generic_img_args(args);
-	return FALSE;
-}
-
 /* Create and launch CCM processing */
 int ccm_process_with_worker(ccm matrix, float power) {
 	// Check if image is RGB
@@ -1431,7 +1420,7 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->fit = target_fit;
 	args->mem_ratio = 1.5f; // CCM needs minimal extra memory
 	args->image_hook = ccm_single_image_hook;
-	args->idle_function = ccm_apply_idle;
+	args->idle_function = NULL;
 	args->description = _("Color Conversion Matrix");
 	args->verbose = TRUE;
 	args->user = params;

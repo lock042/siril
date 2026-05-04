@@ -197,7 +197,7 @@ void denoise_change_between_roi_and_image() {
 	copy_backup_to_gfit();
 	// If we are showing the preview, update it after the ROI change.
 	restore_roi();
-	notify_gfit_modified();
+	gfit_modified_update_gui();
 }
 
 static void denoise_startup() {
@@ -210,7 +210,8 @@ static void denoise_close_internal(gboolean revert) {
 	set_cursor_waiting(TRUE);
 	if (revert) {
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
 	} else {
 		invalidate_stats_from_fit(gfit);
 	}
@@ -279,7 +280,7 @@ gboolean denoise_preview_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	return FALSE;
@@ -290,7 +291,7 @@ gboolean denoise_apply_idle(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args *)p;
 	stop_processing_thread();
 	if (args->retval == 0) {
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	}
 	free_generic_img_args(args);
 	// Close dialog after successful apply
@@ -350,10 +351,10 @@ void on_denoise_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(button)) {
 		/* if user click very fast */
-		waiting_for_thread();
+		cancel_and_wait_for_preview();
 		siril_preview_hide();
 		copy_backup_to_gfit();
-		notify_gfit_modified();
+		gfit_modified_update_gui();
 	} else {
 		copy_gfit_to_backup();
 		update_image *param = malloc(sizeof(update_image));

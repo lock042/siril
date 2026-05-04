@@ -217,7 +217,7 @@ typedef struct {
 static gboolean activate_action_idle_cb(gpointer user_data) {
 	ActionIdleData *data = (ActionIdleData*) user_data;
 	if (!data || !data->action_name) {
-		siril_log_color_message(_("activate_action_if_enabled(): incorrect or NULL data"), "red");
+		siril_log_color_message(_("activate_action_if_enabled(): incorrect or NULL data\n"), "red");
 		data->result = ACTION_NULL_DATA;
 		return FALSE;
 	}
@@ -229,7 +229,7 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	} else {
 		GtkWidget *win = lookup_widget("control_window");
 		if (!win) {
-			siril_log_color_message(_("activate_action_if_enabled(): control_window not found"), "red");
+			siril_log_color_message(_("activate_action_if_enabled(): control_window not found\n"), "red");
 			data->result = ACTION_WINDOW_MISSING;
 			return FALSE;
 		}
@@ -237,13 +237,12 @@ static gboolean activate_action_idle_cb(gpointer user_data) {
 	}
 
 	if (!action) {
-		siril_log_color_message(_("activate_action_if_enabled(): action '%s' not found"), "red", data->action_name);
+		siril_log_color_message(_("activate_action_if_enabled(): action '%s' not found\n"), "red", data->action_name);
 		data->result = ACTION_NOT_FOUND;
 		return FALSE;
 	}
 
 	if (!g_action_get_enabled(action)) {
-		siril_log_color_message(_("activate_action_if_enabled(): action '%s' is not enabled"), "salmon", data->action_name);
 		data->result = ACTION_DISABLED;
 		return FALSE;
 	}

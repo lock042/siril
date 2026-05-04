@@ -388,28 +388,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			}
 			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
 		}
-		// Allocate and initialize generic_img_args
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		if (!args) {
-			free_conesearch_params(params_cone);
-			PRINT_ALLOC_ERR;
-			return;
-		}
-		args->fit = gfit;
-		args->mem_ratio = 1.0f;
-		args->image_hook = conesearch_image_hook;
-		args->description = _("Cone search");
-		args->verbose = TRUE;
-		args->command_updates_gfit = FALSE;
-		args->command = FALSE;
-		args->user = params_cone;
-		args->log_hook = NULL;
-
-		if (!start_in_new_thread(generic_image_worker, args)) {
-			siril_log_color_message(_("Error: failed to start conesearch image worker\n"), "red");
-			free_generic_img_args(args);
-			return;
-		}
+		execute_conesearch(params_cone);
 		break;
 	case SHOW_PAGE:
 		params_show = parse_show_ui();

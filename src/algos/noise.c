@@ -59,6 +59,12 @@ gpointer noise_worker(gpointer p) {
 		gettimeofday(&args->t_start, NULL);
 	}
 
+	gboolean rwlocked = FALSE;
+	if (args->fit == gfit) {
+		g_rw_lock_reader_lock(&gfit->rwlock);
+		rwlocked = TRUE;
+	}
+
 	imstats *stats[3];
 	int retval = compute_all_channels_statistics_single_image(args->fit, STATS_SIGMEAN, MULTI_THREADED, stats);
 	for (int chan = 0; chan < args->fit->naxes[2]; chan++) {
@@ -91,6 +97,9 @@ gpointer noise_worker(gpointer p) {
 			args->mean_noise *= USHRT_MAX_DOUBLE;
 	}
 
+	if (rwlocked)
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+
 	if (args->use_idle) {
 		siril_add_idle(end_noise, args);
 		args = NULL;
@@ -106,7 +115,7 @@ int process_bgnoise(int nb);
 
 // called by the GUI, uses the processing thread
 void evaluate_noise_in_image() {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}

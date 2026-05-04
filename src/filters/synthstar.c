@@ -53,9 +53,6 @@ void makeairy(float *psf, const int size, const float lum, const float xoff, con
 
 	// Following the formulae at the Wikipedia "Airy disk" article
 	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f) * pixel_size;
@@ -85,9 +82,6 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 	float a = powf(cosf(anglerad)/alphax, 2.f) + powf(sinf(anglerad)/alphay, 2.f);
 	float b = powf(sinf(anglerad)/alphax, 2.f) + powf(cosf(anglerad)/alphay, 2.f);
 	float c = 2.f * sinf(anglerad) * cosf(anglerad) * (1.f/(alphax * alphax) - 1.f/(alphay * alphay));
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoff + 0.5f);
@@ -113,9 +107,6 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	float a = powf(cosf(anglerad), 2.f) / tssx + powf(sinf(anglerad), 2.f) / tssy;
 	float b = sinf(2 * anglerad) / (2 * tssx) - sinf(2 * anglerad) / (2 * tssy);
 	float c = powf(sinf(anglerad), 2.f) / tssx + powf(cosf(anglerad), 2.f) / tssy;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = (x - xoffset + 0.5f);
@@ -148,9 +139,6 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = 0.f;
 			} else {
 				int count = 0;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
 				for (int randiter = 0 ; randiter < maxranditer; randiter++) {
 					float xrandoff = siril_random_float();
 					float yrandoff = siril_random_float();
@@ -313,28 +301,27 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
-gpointer fix_saturated_stars(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	reprofile_saturated_stars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+/* generic_image_worker hooks */
+int synthstar_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return generate_synthstars(fit) < 0 ? 1 : 0;
 }
 
-gpointer do_synthstar(gpointer data) {
-	// Remove unused argument warnings
-	(void) data;
-	generate_synthstars(gfit);
-	siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(0);
+gchar *synthstar_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Synthetic stars"));
+}
+
+int unclip_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	return reprofile_saturated_stars(fit) < 0 ? 1 : 0;
+}
+
+gchar *unclip_log_hook(gpointer p, log_hook_detail detail) {
+	return g_strdup(_("Unclip stars"));
 }
 
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	char *msg = siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
-	msg[strlen(msg) - 1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	set_progress_bar_data(_("Star synthesis (full star mask creation): processing..."), PROGRESS_RESET);
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;
@@ -342,7 +329,15 @@ int generate_synthstars(fits *fit) {
 	int nb_stars = 0;
 	psf_star **stars = NULL;
 
-	if (starcount(com.stars) < 1) {
+	g_rw_lock_reader_lock(&com.stars_lock);
+	int comstar_count = starcount(com.stars);
+	if (comstar_count >= 1) {
+		stars = com.stars;
+		nb_stars = comstar_count;
+	}
+	g_rw_lock_reader_unlock(&com.stars_lock);
+
+	if (comstar_count < 1) {
 		// Set up starfinder_data structure
 		struct starfinder_data *sf_data = calloc(1, sizeof(struct starfinder_data));
 		if (!sf_data) {
@@ -379,9 +374,6 @@ int generate_synthstars(fits *fit) {
 			return -1;
 		}
 		stars_needs_freeing = TRUE;
-	} else {
-		stars = com.stars;
-		nb_stars = starcount(com.stars);
 	}
 
 	if (nb_stars < 1 || !stars) {
@@ -478,7 +470,7 @@ int generate_synthstars(fits *fit) {
 	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
-		if (!get_thread_run())
+		if (!processing_should_continue())
 			stopcalled = TRUE;
 		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
 		if (!stopcalled) {
@@ -553,7 +545,7 @@ int generate_synthstars(fits *fit) {
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
-#pragma omp for simd schedule(static)
+#pragma omp for schedule(static)
 #endif
 			for (size_t n = 0; n < npixels; n++) {
 				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
@@ -636,8 +628,10 @@ int generate_synthstars(fits *fit) {
 			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -737,7 +731,7 @@ int reprofile_saturated_stars(fits *fit) {
 		double total = fit->naxes[2] * nb_stars;
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
-			if (!get_thread_run())
+			if (!processing_should_continue())
 				stopcalled = TRUE;
 			set_progress_bar_data(NULL, (double) (n * fit->naxes[2] + chan) / total);
 			if (stars[n]->has_saturated && !stopcalled) {
@@ -822,8 +816,10 @@ int reprofile_saturated_stars(fits *fit) {
 	} else
 		free(buf[RLAYER]);
 
-	if (fit == gfit && !stopcalled)
-		notify_gfit_modified();
+	if (fit == gfit && !stopcalled) {
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);

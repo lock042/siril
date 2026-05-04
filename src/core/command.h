@@ -78,9 +78,7 @@ int	process_eqcrop(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);
-int	extract_Ha(extraction_scaling scaling);
 int	process_extractHa(int nb);
-int	extract_HaOIII(extraction_scaling scaling);
 int	process_extractHaOIII(int nb);
 
 int	process_fdiv(int nb);

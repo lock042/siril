@@ -540,8 +540,9 @@ gboolean main_action_click(mouse_data *data) {
 
 				if (pt.x + radius < gfit->rx && pt.y + radius < gfit->ry
 						&& pt.x - radius > 0 && pt.y - radius > 0) {
+					gboolean gd = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_grad_descent_button")));
 					sample_mutex_lock();
-					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt);
+					com.grad_samples = add_background_sample(com.grad_samples, gfit, pt, gd);
 					sample_mutex_unlock();
 
 					redraw(REDRAW_OVERLAY);

@@ -601,8 +601,10 @@ static gpointer live_stacker(gpointer arg) {
 			com.script = TRUE;
 			open_single_image(filename);
 			com.script = script_bkp;
-			if (!com.headless)
+			if (!com.headless) {
+				notify_gfit_data_modified();
 				execute_idle_and_wait_for_it(end_image_loading, NULL);
+			}
 		}
 
 		siril_debug_print("Adding file to input sequence\n");
@@ -808,6 +810,7 @@ static gpointer live_stacker(gpointer arg) {
 				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
+				remap_all();
 				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}

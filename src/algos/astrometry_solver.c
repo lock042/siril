@@ -47,6 +47,7 @@
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
 #include "io/gps_parser.h"
@@ -62,8 +63,8 @@
 #define TRANS_SANITY_CHECK 0.1 // TRANS sanity check to validate the first TRANS structure
 #define NB_GRID_POINTS 7 // the number of points in one direction to create the X,Y meshgrid for inverse polynomial fiiting
 
-#define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->ret = SOLVE_CANCELLED; goto clearup;}
-#define CHECK_FOR_CANCELLATION if (!get_thread_run()) { ret = SOLVE_CANCELLED; goto clearup; }
+#define CHECK_FOR_CANCELLATION_RET if (!processing_should_continue()) { args->ret = SOLVE_CANCELLED; goto clearup;}
+#define CHECK_FOR_CANCELLATION if (!processing_should_continue()) { ret = SOLVE_CANCELLED; goto clearup; }
 
 #undef DEBUG		/* get some of diagnostic output */
 #define ASTROMETRY_DEBUG 0
@@ -885,6 +886,12 @@ gpointer plate_solver(gpointer p) {
 	args->ret = SOLVE_OK;
 	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
+	gboolean rwlocked = FALSE;
+	if (!args->for_sequence) {
+		g_rw_lock_writer_lock(&args->fit->rwlock);
+		rwlocked = TRUE;
+	}
+
 	if (args->verbose) {
 		if (args->solver == SOLVER_LOCALASNET) {
 			siril_log_message(_("Plate solving image with astrometry.net for a field of view of %.2f degrees\n"), args->used_fov / 60.0);
@@ -972,8 +979,8 @@ gpointer plate_solver(gpointer p) {
 			while (stars[nb_stars])
 				nb_stars++;
 		} else { // we need to make a copy of com.stars as we will alter the coordinates
-			stars = com.stars;
-			if (stars) {
+			g_rw_lock_reader_lock(&com.stars_lock);
+			if (com.stars) {
 				while (com.stars[nb_stars])
 					nb_stars++;
 				stars = new_fitted_stars(nb_stars);
@@ -983,6 +990,7 @@ gpointer plate_solver(gpointer p) {
 					stars[s]->ypos = com.stars[s]->ypos;
 				}
 			}
+			g_rw_lock_reader_unlock(&com.stars_lock);
 		}
 	}
 	CHECK_FOR_CANCELLATION_RET;
@@ -1098,6 +1106,8 @@ gpointer plate_solver(gpointer p) {
 	}
 
 clearup:
+	if (rwlocked)
+		g_rw_lock_writer_unlock(&args->fit->rwlock);
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);
@@ -1130,6 +1140,8 @@ clearup:
 	if (!args->for_sequence) {
 		if (asnet_running && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
+		if (args->image_flipped && !com.headless)
+			notify_gfit_data_modified();
 		siril_add_idle(end_plate_solver, args);
 	}
 	else {
@@ -1144,7 +1156,7 @@ clearup:
 static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	near_solve_data *nswdata = (near_solve_data *)data;
 	int n = g_atomic_int_add(&nswdata->progress, 1) + 1; // g_atomic_int_add returns the atomic before the add
-	if (!get_thread_run() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
+	if (!processing_should_continue() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
 		return;
 	}
 	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
@@ -1288,14 +1300,14 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	} else if (com.pref.astrometry.max_seconds_run > 0) {// we have a time-out specified
 		guint64 timer = 0;
 		guint64 timeout = com.pref.astrometry.max_seconds_run * G_TIME_SPAN_SECOND;
-		while (get_thread_run() && !nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
+		while (processing_should_continue() && !nsdata.solved && g_thread_pool_unprocessed(pool) > 0 && timer < timeout) {
 			g_usleep(G_TIME_SPAN_SECOND);
 			timer += G_TIME_SPAN_SECOND;
 		}
 		if (timer > timeout) {
 			ret = SOLVE_NEAR_TIMEOUT;
 		}
-		if (!com.run_thread) {
+		if (!processing_is_job_active()) {
 			ret = SOLVE_CANCELLED;
 		}
 		g_thread_pool_free(pool, TRUE, TRUE);

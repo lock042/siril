@@ -22,6 +22,7 @@ typedef enum {
 } background_interpolation;
 
 struct background_data {
+	destructor destroy_fn;  /* Must be first member */
 	int nb_of_samples;
 	double tolerance;
 	background_correction correction;
@@ -35,6 +36,10 @@ struct background_data {
 	sequence *seq;
 	char *seqEntry;
 	gboolean is_cfa;
+	gboolean randomize;    /* use random dark-area sampling instead of grid */
+	gboolean grad_descent; /* optimize each sample position to a local dark minimum */
+	double border_value;        /* >0: exclude a border strip from sample placement */
+	gboolean border_is_percent; /* TRUE = border_value is % of image dimension; FALSE = pixels */
 };
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
@@ -50,14 +55,18 @@ typedef struct sample {
 
 int get_background_sample_radius();
 void free_background_sample_list(GSList *list);
-GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads);
-GSList* add_background_sample(GSList *list, fits *fit, point pt);
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, gboolean grad_descent, const char **error, threading_type threads, const rectangle *bbox);
+GSList* add_background_sample(GSList *list, fits *fit, point pt, gboolean grad_descent);
 GSList *add_background_samples(GSList *orig, fits *fit, GSList *pts);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
-int generate_background_samples(int nb_of_samples, double tolerance);
+int generate_background_samples(int nb_of_samples, double tolerance, gboolean randomize, gboolean grad_descent, const rectangle *override_bbox);
+/* dead code — no call sites; superseded by remove_gradient_image_hook:
 gpointer remove_gradient_from_image(gpointer p);
-gpointer remove_gradient_from_cfa_image(gpointer p);
+gpointer remove_gradient_from_cfa_image(gpointer p); */
 void apply_background_extraction_to_sequence(struct background_data *background_args);
+void free_background_data(void *p);
+int remove_gradient_image_hook(struct generic_img_args *gargs, fits *fit, int threads);
+gchar *remove_gradient_log_hook(gpointer p, log_hook_detail detail);
 
 gboolean background_sample_is_valid(background_sample *sample);
 gdouble background_sample_get_size(background_sample *sample);

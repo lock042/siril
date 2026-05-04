@@ -167,7 +167,7 @@ gboolean accept_script_warning_dialog() {
 }
 
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
-	if (get_thread_run()) {
+	if (processing_is_job_active()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
