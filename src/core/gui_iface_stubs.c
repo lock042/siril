@@ -112,6 +112,32 @@ static int stub_get_reg_layer(void) { return -1; }
 static void stub_execute_idle_sync(GSourceFunc func, gpointer data) { func(data); }
 static GPid stub_select_child_process(GSList *children) { (void)children; return (GPid)0; }
 
+/* D additions */
+static void stub_invalidate_histogram(void) {}
+static void stub_update_histogram(void) {}
+static void stub_redraw_mask_idle(void) {}
+
+/* G additions */
+static void stub_on_channel_count_changed(void) {}
+static void stub_on_precision_changed(void) {}
+
+/* H additions */
+static gboolean stub_roi_is_active(void) { return FALSE; }
+static void stub_get_roi_selection(rectangle *rect) { (void)rect; }
+static void stub_clear_roi(void) {}
+static void stub_restore_roi(const rectangle *rect) { (void)rect; }
+static void stub_reset_display_transform(void) {}
+
+/* N – Preview */
+static gboolean stub_is_preview_active(void) { return FALSE; }
+static void stub_hide_preview(void) {}
+static void stub_copy_gfit_to_backup(void) {}
+static void stub_copy_gfit_icc_to_backup(void) {}
+
+/* O – ICC info */
+static void stub_check_icc_identical_to_monitor(void) {}
+static void stub_set_source_information(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -149,6 +175,22 @@ SirilGuiInterface gui_iface = {
 	.update_star_list       = stub_update_star_list,
 	.clear_star_list        = stub_clear_star_list,
 	.get_reg_layer          = stub_get_reg_layer,
-	.execute_idle_sync      = stub_execute_idle_sync,
-	.select_child_process   = stub_select_child_process,
+	.execute_idle_sync           = stub_execute_idle_sync,
+	.select_child_process        = stub_select_child_process,
+	.invalidate_histogram        = stub_invalidate_histogram,
+	.update_histogram            = stub_update_histogram,
+	.redraw_mask_idle            = stub_redraw_mask_idle,
+	.on_channel_count_changed    = stub_on_channel_count_changed,
+	.on_precision_changed        = stub_on_precision_changed,
+	.roi_is_active               = stub_roi_is_active,
+	.get_roi_selection           = stub_get_roi_selection,
+	.clear_roi                   = stub_clear_roi,
+	.restore_roi                 = stub_restore_roi,
+	.reset_display_transform     = stub_reset_display_transform,
+	.is_preview_active           = stub_is_preview_active,
+	.hide_preview                = stub_hide_preview,
+	.copy_gfit_to_backup         = stub_copy_gfit_to_backup,
+	.copy_gfit_icc_to_backup     = stub_copy_gfit_icc_to_backup,
+	.check_icc_identical_to_monitor = stub_check_icc_identical_to_monitor,
+	.set_source_information      = stub_set_source_information,
 };

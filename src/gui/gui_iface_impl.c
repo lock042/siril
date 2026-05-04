@@ -29,10 +29,13 @@
 #include <gtk/gtk.h>
 #include "core/gui_iface.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
 #include "gui/dialogs.h"
+#include "gui/histogram.h"
+#include "gui/icc_profile.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/callbacks.h"
@@ -43,6 +46,7 @@
 #include "gui/registration_preview.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
+#include "gui/siril_preview.h"
 #include "gui/registration.h"
 #include "gui/script_menu.h"
 #include "gui/stacking.h"
@@ -249,6 +253,86 @@ static GPid impl_select_child_process(GSList *children) {
 	return show_child_process_selection_dialog(children);
 }
 
+/* ── Group D additions: Histogram / image modification state ─────────────── */
+
+static void impl_invalidate_histogram(void) {
+	invalidate_gfit_histogram();
+}
+
+static void impl_update_histogram(void) {
+	update_gfit_histogram_if_needed();
+}
+
+static void impl_redraw_mask_idle(void) {
+	redraw_mask_idle(NULL);
+}
+
+/* ── Group G additions: Channel / precision display state ────────────────── */
+
+static void impl_on_channel_count_changed(void) {
+	gui_function(close_tab, NULL);
+}
+
+static void impl_on_precision_changed(void) {
+	gui_function(set_precision_switch, NULL);
+}
+
+/* ── Group H additions: ROI state getters/setters ────────────────────────── */
+
+static gboolean impl_roi_is_active(void) {
+	return gui.roi.active;
+}
+
+static void impl_get_roi_selection(rectangle *rect) {
+	memcpy(rect, &gui.roi.selection, sizeof(rectangle));
+}
+
+static void impl_clear_roi(void) {
+	on_clear_roi();
+}
+
+static void impl_restore_roi(const rectangle *rect) {
+	memcpy(&com.selection, rect, sizeof(rectangle));
+	on_set_roi();
+}
+
+static void impl_reset_display_transform(void) {
+	lock_display_transform();
+	if (gui.icc.proofing_transform) {
+		cmsDeleteTransform(gui.icc.proofing_transform);
+		gui.icc.proofing_transform = NULL;
+	}
+	unlock_display_transform();
+}
+
+/* ── Group N: Preview / backup state ─────────────────────────────────────── */
+
+static gboolean impl_is_preview_active(void) {
+	return is_preview_active();
+}
+
+static void impl_hide_preview(void) {
+	siril_preview_hide();
+}
+
+static void impl_copy_gfit_to_backup(void) {
+	copy_gfit_to_backup();
+}
+
+static void impl_copy_gfit_icc_to_backup(void) {
+	copy_gfit_icc_to_backup();
+}
+
+/* ── Group O: ICC information callbacks ──────────────────────────────────── */
+
+static void impl_check_icc_identical_to_monitor(void) {
+	check_gfit_profile_identical_to_monitor();
+}
+
+static void impl_set_source_information(void) {
+	set_source_information();
+}
+
 /* ── Groups K, L: Star list / Registration state ─────────────────────────── */
 
 static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
@@ -301,6 +385,22 @@ void siril_register_gui_iface(void) {
 	gui_iface.update_star_list       = impl_update_star_list;
 	gui_iface.clear_star_list        = impl_clear_star_list;
 	gui_iface.get_reg_layer          = impl_get_reg_layer;
-	gui_iface.execute_idle_sync      = impl_execute_idle_sync;
-	gui_iface.select_child_process   = impl_select_child_process;
+	gui_iface.execute_idle_sync           = impl_execute_idle_sync;
+	gui_iface.select_child_process        = impl_select_child_process;
+	gui_iface.invalidate_histogram        = impl_invalidate_histogram;
+	gui_iface.update_histogram            = impl_update_histogram;
+	gui_iface.redraw_mask_idle            = impl_redraw_mask_idle;
+	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
+	gui_iface.on_precision_changed        = impl_on_precision_changed;
+	gui_iface.roi_is_active               = impl_roi_is_active;
+	gui_iface.get_roi_selection           = impl_get_roi_selection;
+	gui_iface.clear_roi                   = impl_clear_roi;
+	gui_iface.restore_roi                 = impl_restore_roi;
+	gui_iface.reset_display_transform     = impl_reset_display_transform;
+	gui_iface.is_preview_active           = impl_is_preview_active;
+	gui_iface.hide_preview                = impl_hide_preview;
+	gui_iface.copy_gfit_to_backup         = impl_copy_gfit_to_backup;
+	gui_iface.copy_gfit_icc_to_backup     = impl_copy_gfit_icc_to_backup;
+	gui_iface.check_icc_identical_to_monitor = impl_check_icc_identical_to_monitor;
+	gui_iface.set_source_information      = impl_set_source_information;
 }

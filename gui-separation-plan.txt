@@ -562,17 +562,38 @@ so they route residual GUI calls through gui_iface.
          kept in processing.c; <gtk/gtk.h> added directly for gdk_threads_add_idle
          and GtkButton* in on_processes_button_cancel_clicked signal handler.
 
-[ ] 5.4  src/core/undo.c (10 GUI calls)
+[X] 5.4  src/core/undo.c (10 GUI calls)
          - copy_*_backup, is_preview_active → gui_iface.IPreview slots.
          - redraw, redraw_mask_idle, siril_preview_hide,
            on_clear_roi / on_set_roi → gui_iface notifications.
          - undo.c should have zero direct GUI dependencies after this.
+         DONE: Added 17 new gui_iface slots across groups D/G/H/N/O.
+         undo.c: removed all 6 gui/ includes (utils.h, callbacks.h,
+         image_display.h, histogram.h, progress_and_log.h, siril_preview.h);
+         added core/gui_iface.h. All GUI calls routed: set_precision_switch →
+         on_precision_changed; update_MenuItem → update_menu_state; close_tab →
+         on_channel_count_changed; is_preview_active, siril_preview_hide,
+         copy_gfit_to_backup, redraw_mask_idle, on_clear_roi, on_set_roi
+         routed via N/H group slots; invalidate/update histogram via D-additions;
+         ICC proofing transform reset via reset_display_transform; ROI save/restore
+         via roi_is_active, get_roi_selection, clear_roi, restore_roi.
+         notify_gfit_data_modified kept as-is (io/single_image.h, not a gui/ dep).
 
-[ ] 5.5  src/core/icc_profile.c (10 GUI calls)
+[X] 5.5  src/core/icc_profile.c (10 GUI calls)
          - check_gfit_profile_identical_to_monitor, copy_gfit_icc_to_backup,
            execute_idle_and_wait_for_it, is_preview_active, redraw,
            set_cursor_waiting, set_source_information, siril_confirm_dialog,
            siril_message_dialog → gui_iface slots.
+         DONE: execute_idle_and_wait_for_it → gui_iface.execute_idle_sync in
+         color_manage(); is_preview_active → gui_iface.is_preview_active(),
+         copy_gfit_icc_to_backup → gui_iface.copy_gfit_icc_to_backup(),
+         check_gfit_profile_identical_to_monitor →
+         gui_iface.check_icc_identical_to_monitor() all in refresh_icc_transforms();
+         set_source_information → gui_iface.set_source_information() in
+         icc_auto_assign_or_convert() and icc_auto_assign(). redraw, set_cursor_waiting,
+         siril_confirm_dialog, siril_message_dialog were already gui_iface calls.
+         icc_profile.c still has GTK signal handlers and gui/ includes — these belong
+         to a future Pattern A split (Phase 6).
 
 [ ] 5.6  src/core/preprocess.c (5 GUI calls)
          - Progress calls fixed by 4.4/4.5. Remaining lookup_widget call:

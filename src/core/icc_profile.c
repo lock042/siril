@@ -27,6 +27,7 @@
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "icc_default_profiles.h"
+#include "core/gui_iface.h"
 #include "gui/image_display.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
@@ -100,7 +101,7 @@ void color_manage(fits *fit, gboolean active) {
 		if (g_main_context_is_owner(g_main_context_default())) {
 			cm_worker(&data);
 		} else {
-			execute_idle_and_wait_for_it(cm_worker, &data);
+			gui_iface.execute_idle_sync(cm_worker, &data);
 		}
 	}
 }
@@ -754,9 +755,9 @@ void refresh_icc_transforms() {
 		gui.icc.profile_changed = TRUE;
 
 	}
-	if (is_preview_active())
-		copy_gfit_icc_to_backup();
-	check_gfit_profile_identical_to_monitor();
+	if (gui_iface.is_preview_active())
+		gui_iface.copy_gfit_icc_to_backup();
+	gui_iface.check_icc_identical_to_monitor();
 }
 
 // Returns the full ICC profile data
@@ -1323,7 +1324,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		if (fit == gfit && !com.headless) {
-			set_source_information();
+			gui_iface.set_source_information();
 			refresh_icc_transforms();
 			notify_gfit_data_modified();
 			gfit_modified_update_gui();
@@ -1356,7 +1357,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 		color_manage(fit, FALSE);
 	}
 	if (fit == gfit) {
-		set_source_information();
+		gui_iface.set_source_information();
 		refresh_icc_transforms();
 		notify_gfit_data_modified();
 		gfit_modified_update_gui();

@@ -40,7 +40,8 @@
 #ifndef SRC_CORE_GUI_IFACE_H_
 #define SRC_CORE_GUI_IFACE_H_
 
-#include <glib.h>   /* gboolean, gchar — GLib only, no GTK */
+#include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
+#include "core/settings.h" /* rectangle — used by Group H ROI slots */
 
 /* Forward declaration for Group K — avoids including siril.h or PSF.h */
 struct fwhm_struct;
@@ -159,6 +160,20 @@ typedef struct {
 	 * the gfit read lock). */
 	void     (*populate_roi)(void);
 
+	/* D additions – Histogram / image modification state ------------------ */
+	/* Mark the histogram as stale (call while holding at least a read lock). */
+	void     (*invalidate_histogram)(void);
+	/* Recompute histogram if stale (call while holding at least a read lock). */
+	void     (*update_histogram)(void);
+	/* Queue an idle mask redraw (may also trigger a full image redraw). */
+	void     (*redraw_mask_idle)(void);
+
+	/* G additions – Channel / precision display state -------------------- */
+	/* Called when the channel count of gfit may have changed. */
+	void     (*on_channel_count_changed)(void);
+	/* Called when the data type (float/ushort) of gfit has changed. */
+	void     (*on_precision_changed)(void);
+
 	/* H – Geometry / ROI / Mask state ------------------------------------- */
 	/* Called before a geometry-altering operation; clears ROI if active. */
 	void     (*on_geometry_changed)(void);
@@ -166,6 +181,16 @@ typedef struct {
 	void     (*on_mask_state_changed)(void);
 	/* Called after a crop completes; clears stars, selection, display offset. */
 	void     (*on_crop_complete)(void);
+	/* Returns TRUE if an ROI selection is currently active. */
+	gboolean (*roi_is_active)(void);
+	/* Copy the current ROI selection rectangle into *rect. */
+	void     (*get_roi_selection)(rectangle *rect);
+	/* Clear any active ROI selection. */
+	void     (*clear_roi)(void);
+	/* Set *rect as the new ROI selection and notify the GUI. */
+	void     (*restore_roi)(const rectangle *rect);
+	/* Reset (delete) the ICC proofing display transform under its lock. */
+	void     (*reset_display_transform)(void);
 
 	/* I – Statistics ------------------------------------------------------- */
 	/* Called to populate and open the statistics dialog for the current image. */
@@ -197,6 +222,23 @@ typedef struct {
 	/* Open a dialog to select which child process to kill; returns the chosen
 	 * GPid, or 0 if unavailable (single child or headless). */
 	GPid     (*select_child_process)(GSList *children);
+
+	/* N – Preview / backup state ------------------------------------------ */
+	/* Returns TRUE if a preview effect is currently applied to gfit. */
+	gboolean (*is_preview_active)(void);
+	/* Cancel the active preview and restore gfit from the backup buffer. */
+	void     (*hide_preview)(void);
+	/* Copy gfit pixel data into the preview backup buffer. */
+	void     (*copy_gfit_to_backup)(void);
+	/* Copy the gfit ICC profile into the preview backup (after ICC ops). */
+	void     (*copy_gfit_icc_to_backup)(void);
+
+	/* O – ICC information callbacks --------------------------------------- */
+	/* Check whether gfit's ICC profile matches the monitor profile and update
+	 * the color-management icon accordingly. */
+	void     (*check_icc_identical_to_monitor)(void);
+	/* Update the image source/profile information labels in the main window. */
+	void     (*set_source_information)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */
