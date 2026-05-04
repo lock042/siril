@@ -1,5 +1,5 @@
 siril-1.4.3
---/--/--
+05/07/26
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
@@ -15,7 +15,6 @@ siril-1.4.3
 * Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
 * Added -async option to pyscript command (!1015)
-
 
 siril-1.4.2-HF1
 04/08/26
