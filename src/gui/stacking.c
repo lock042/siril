@@ -54,11 +54,11 @@ stack_method stacking_methods[] = {
 
 void initialize_stacking_methods() {
 	init_stacking_args(&stackparam);
-	GtkComboBoxText *stackcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxstack_methods"));
-	GtkComboBoxText *rejectioncombo = GTK_COMBO_BOX_TEXT(lookup_widget("comborejection"));
-	GtkComboBoxText *weightingcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboweighing"));
-	GtkSpinButton *low = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
-	GtkSpinButton *high = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
+	GtkComboBoxText *stackcombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
+	GtkComboBoxText *rejectioncombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comborejection"));
+	GtkComboBoxText *weightingcombo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboweighing"));
+	GtkSpinButton *low = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stack_siglow_button"));
+	GtkSpinButton *high = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stack_sighigh_button"));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(stackcombo), com.pref.stack.method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(rejectioncombo), com.pref.stack.rej_method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(weightingcombo), com.pref.stack.weighting_method);
@@ -103,23 +103,23 @@ static void start_stacking() {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
 		output_file = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryresultfile"));
 		overwrite = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutoverwrite"));
-		sigSpin[0] = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
-		sigSpin[1] = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
-		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
-		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
-		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
-		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
-		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
-		max_framing = GTK_TOGGLE_BUTTON(lookup_widget("check_maximize_framing"));
-		norm_to_max = lookup_widget("check_normalise_to_max");
-		RGB_equal = lookup_widget("check_RGBequal");
-		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
-		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
-		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
-		feather_dist = GTK_SPIN_BUTTON(lookup_widget("spin_stack_feather_dist"));
-		blend_frame = lookup_widget("stack_blend_frame");
-		overlap_norm = GTK_TOGGLE_BUTTON(lookup_widget("check_norm_overlap"));
-		force32b = GTK_TOGGLE_BUTTON(lookup_widget("check_force32b"));
+		sigSpin[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stack_siglow_button"));
+		sigSpin[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stack_sighigh_button"));
+		rejec_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comborejection"));
+		norm_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combonormalize"));
+		weighing_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboweighing"));
+		force_norm = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkforcenorm"));
+		fast_norm = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkfastnorm"));
+		max_framing = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_maximize_framing"));
+		norm_to_max = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_normalise_to_max"));
+		RGB_equal = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_RGBequal"));
+		rejmaps = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "rejmaps_checkbutton"));
+		merge_rejmaps = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "merge_rejmaps_checkbutton"));
+		upscale_at_stacking = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_upscale_at_stacking"));
+		feather_dist = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_stack_feather_dist"));
+		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
+		overlap_norm = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
+		force32b = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_force32b"));
 	}
 
 	if (processing_is_job_active()) {
@@ -233,9 +233,12 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 }
 
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
-	GtkWidget *widgetnormalize = lookup_widget("combonormalize");
-	GtkWidget *force_norm = lookup_widget("checkforcenorm");
-	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
+	static GtkWidget *widgetnormalize = NULL, *force_norm = NULL, *fast_norm = NULL;
+	if (!widgetnormalize) {
+		widgetnormalize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combonormalize"));
+		force_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkforcenorm"));
+		fast_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkfastnorm"));
+	}
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 }
@@ -297,12 +300,12 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	static GtkWidget *rejmaps = NULL, *merge_rejmaps = NULL;
 
 	if (!labellow) {
-		labellow = lookup_widget("label_low");
-		labelhigh = lookup_widget("label_high");
-		siglow = lookup_widget("stack_siglow_button");
-		sighigh = lookup_widget("stack_sighigh_button");
-		rejmaps = lookup_widget("rejmaps_checkbutton");
-		merge_rejmaps = lookup_widget("merge_rejmaps_checkbutton");
+		labellow = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_low"));
+		labelhigh = GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_high"));
+		siglow = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_siglow_button"));
+		sighigh = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_sighigh_button"));
+		rejmaps = GTK_WIDGET(gtk_builder_get_object(gui.builder, "rejmaps_checkbutton"));
+		merge_rejmaps = GTK_WIDGET(gtk_builder_get_object(gui.builder, "merge_rejmaps_checkbutton"));
 	}
 
 	g_signal_handlers_block_by_func(GTK_SPIN_BUTTON(siglow), on_stack_siglow_button_value_changed, NULL);
@@ -394,7 +397,8 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *merge = lookup_widget("merge_rejmaps_checkbutton");
+	static GtkWidget *merge = NULL;
+	if (!merge) merge = GTK_WIDGET(gtk_builder_get_object(gui.builder, "merge_rejmaps_checkbutton"));
 	gtk_widget_set_sensitive(merge, gtk_toggle_button_get_active(button));
 }
 
@@ -415,40 +419,78 @@ void on_spinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
 }
 
 void on_filter_add1_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter2"), TRUE);
-	gtk_widget_set_visible(lookup_widget("stackspin2"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_add2"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_rem2"), TRUE);
-	gtk_widget_set_visible(lookup_widget("labelfilter2"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_type2"), TRUE);
+	static GtkWidget *combofilter2 = NULL, *stackspin2 = NULL, *filter_add2 = NULL;
+	static GtkWidget *filter_rem2 = NULL, *labelfilter2 = NULL, *filter_type2 = NULL;
+	if (!combofilter2) {
+		combofilter2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combofilter2"));
+		stackspin2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin2"));
+		filter_add2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_add2"));
+		filter_rem2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_rem2"));
+		labelfilter2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelfilter2"));
+		filter_type2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type2"));
+	}
+	gtk_widget_set_visible(combofilter2, TRUE);
+	gtk_widget_set_visible(stackspin2, TRUE);
+	gtk_widget_set_visible(filter_add2, TRUE);
+	gtk_widget_set_visible(filter_rem2, TRUE);
+	gtk_widget_set_visible(labelfilter2, TRUE);
+	gtk_widget_set_visible(filter_type2, TRUE);
 	update_stack_interface(TRUE);
 }
 
 void on_filter_add2_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter3"), TRUE);
-	gtk_widget_set_visible(lookup_widget("stackspin3"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_rem3"), TRUE);
-	gtk_widget_set_visible(lookup_widget("labelfilter3"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_type3"), TRUE);
+	static GtkWidget *combofilter3 = NULL, *stackspin3 = NULL, *filter_rem3 = NULL;
+	static GtkWidget *labelfilter3 = NULL, *filter_type3 = NULL;
+	if (!combofilter3) {
+		combofilter3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combofilter3"));
+		stackspin3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin3"));
+		filter_rem3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_rem3"));
+		labelfilter3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelfilter3"));
+		filter_type3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type3"));
+	}
+	gtk_widget_set_visible(combofilter3, TRUE);
+	gtk_widget_set_visible(stackspin3, TRUE);
+	gtk_widget_set_visible(filter_rem3, TRUE);
+	gtk_widget_set_visible(labelfilter3, TRUE);
+	gtk_widget_set_visible(filter_type3, TRUE);
 	update_stack_interface(TRUE);
 }
 
 void on_filter_rem2_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter2"), FALSE);
-	gtk_widget_set_visible(lookup_widget("stackspin2"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_add2"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_rem2"), FALSE);
-	gtk_widget_set_visible(lookup_widget("labelfilter2"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_type2"), FALSE);
+	static GtkWidget *combofilter2 = NULL, *stackspin2 = NULL, *filter_add2 = NULL;
+	static GtkWidget *filter_rem2 = NULL, *labelfilter2 = NULL, *filter_type2 = NULL;
+	if (!combofilter2) {
+		combofilter2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combofilter2"));
+		stackspin2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin2"));
+		filter_add2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_add2"));
+		filter_rem2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_rem2"));
+		labelfilter2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelfilter2"));
+		filter_type2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type2"));
+	}
+	gtk_widget_set_visible(combofilter2, FALSE);
+	gtk_widget_set_visible(stackspin2, FALSE);
+	gtk_widget_set_visible(filter_add2, FALSE);
+	gtk_widget_set_visible(filter_rem2, FALSE);
+	gtk_widget_set_visible(labelfilter2, FALSE);
+	gtk_widget_set_visible(filter_type2, FALSE);
 	update_stack_interface(TRUE);
 }
 
 void on_filter_rem3_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter3"), FALSE);
-	gtk_widget_set_visible(lookup_widget("stackspin3"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_rem3"), FALSE);
-	gtk_widget_set_visible(lookup_widget("labelfilter3"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_type3"), FALSE);
+	static GtkWidget *combofilter3 = NULL, *stackspin3 = NULL, *filter_rem3 = NULL;
+	static GtkWidget *labelfilter3 = NULL, *filter_type3 = NULL;
+	if (!combofilter3) {
+		combofilter3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combofilter3"));
+		stackspin3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin3"));
+		filter_rem3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_rem3"));
+		labelfilter3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelfilter3"));
+		filter_type3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type3"));
+	}
+	gtk_widget_set_visible(combofilter3, FALSE);
+	gtk_widget_set_visible(stackspin3, FALSE);
+	gtk_widget_set_visible(filter_rem3, FALSE);
+	gtk_widget_set_visible(labelfilter3, FALSE);
+	gtk_widget_set_visible(filter_type3, FALSE);
 	update_stack_interface(TRUE);
 }
 
@@ -462,18 +504,18 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 	static GtkWidget *spin[] = {NULL, NULL, NULL};
 	static GtkWidget *ksig[] = {NULL, NULL, NULL};
 	if (!spin[0]) {
-		spin[0] = lookup_widget("stackspin1");
-		spin[1] = lookup_widget("stackspin2");
-		spin[2] = lookup_widget("stackspin3");
+		spin[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin1"));
+		spin[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin2"));
+		spin[2] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stackspin3"));
 		stackadj[0] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[0]));
 		stackadj[1] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[1]));
 		stackadj[2] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[2]));
-		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
-		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
-		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter3"));
-		ksig[0] = lookup_widget("filter_type1");
-		ksig[1] = lookup_widget("filter_type2");
-		ksig[2] = lookup_widget("filter_type3");
+		filter_combo[0] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter1"));
+		filter_combo[1] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter2"));
+		filter_combo[2] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter3"));
+		ksig[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type1"));
+		ksig[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type2"));
+		ksig[2] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filter_type3"));
 	}
 	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
@@ -569,12 +611,12 @@ static void update_filter_label() {
 	static GtkComboBox *filter_combo[3] = { NULL };
 	static GtkLabel *filter_label[3] = { NULL };
 	if (!filter_combo[0]) {
-		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
-		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
-		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter3"));
-		filter_label[0] = GTK_LABEL(lookup_widget("labelfilter1"));
-		filter_label[1] = GTK_LABEL(lookup_widget("labelfilter2"));
-		filter_label[2] = GTK_LABEL(lookup_widget("labelfilter3"));
+		filter_combo[0] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter1"));
+		filter_combo[1] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter2"));
+		filter_combo[2] = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter3"));
+		filter_label[0] = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter1"));
+		filter_label[1] = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter2"));
+		filter_label[2] = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter3"));
 	}
 
 	for (int filter = 0; filter < 3; filter++) {
@@ -631,21 +673,21 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	gchar *labelbuffer;
 
 	if(!go_stack) {
-		go_stack = lookup_widget("gostack_button");
-		filter_combo = GTK_COMBO_BOX(lookup_widget("combofilter1"));
-		method_combo = GTK_COMBO_BOX(lookup_widget("comboboxstack_methods"));
-		widgetnormalize = lookup_widget("combonormalize");
-		force_norm = lookup_widget("checkforcenorm");
-		fast_norm = lookup_widget("checkfastnorm");
-		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
-		output_norm = lookup_widget("check_normalise_to_max");
-		RGB_equal = lookup_widget("check_RGBequal");
-		max_framing = lookup_widget("check_maximize_framing");
-		upscale_at_stacking = lookup_widget("check_upscale_at_stacking");
-		blend_frame = lookup_widget("stack_blend_frame");
-		overlap_norm = lookup_widget("check_norm_overlap");
-		stack_expander_method = GTK_EXPANDER(lookup_widget("stack_expander_method"));
-		stack_expander_output = GTK_EXPANDER(lookup_widget("stack_expander_output"));
+		go_stack = GTK_WIDGET(gtk_builder_get_object(gui.builder, "gostack_button"));
+		filter_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combofilter1"));
+		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
+		widgetnormalize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combonormalize"));
+		force_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkforcenorm"));
+		fast_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkfastnorm"));
+		result_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "stackfilter_label"));
+		output_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_normalise_to_max"));
+		RGB_equal = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_RGBequal"));
+		max_framing = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_maximize_framing"));
+		upscale_at_stacking = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_upscale_at_stacking"));
+		blend_frame = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_blend_frame"));
+		overlap_norm = GTK_WIDGET(gtk_builder_get_object(gui.builder, "check_norm_overlap"));
+		stack_expander_method = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "stack_expander_method"));
+		stack_expander_output = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "stack_expander_output"));
 	}
 	gboolean seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_method), seqloaded);

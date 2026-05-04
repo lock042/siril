@@ -408,8 +408,10 @@ for the modules that could not be split using Pattern A.
            apply the same init_statics pattern.
          - Work file by file; suggest starting with files that have the
            fewest remaining lookup_widget() calls.
-         - Note - so far the following files in src/gui have been converted
-           in 4.2:
+         - NOTE: the remaining files are all in src/gui/ (no cross-boundary
+           impact) so this task is low priority and deferred until after the
+           more important separation phases are complete.
+         - Files already converted in 4.2:
            * python_gui.c
            * annotate.c
            * registration.c
@@ -435,6 +437,22 @@ for the modules that could not be split using Pattern A.
            * split_cfa.c
            * statistics_list.c
            * utils.c
+           * colors.c
+           * stacking.c
+           * astrometry_solver.c
+           * masks_gui.c
+           * save_dialog.c
+           * plot.c
+           * starnetgui.c
+         - Files remaining to convert (deferred — all are in src/gui/ so
+           no cross-boundary urgency):
+           * cut.c          (74 lookup_widget calls)
+           * icc_profile.c  (85 lookup_widget calls)
+           * remixer.c      (93 lookup_widget calls)
+           * histogram.c    (124 lookup_widget calls)
+           * callbacks.c    (141 lookup_widget calls)
+           * photometric_cc.c (170 lookup_widget calls)
+           * preferences.c  (319 lookup_widget calls)
 
 [ ] 4.3  Eliminate lookup_widget() from all non-gui source files
          - After phases 3 and 4.1–4.2 the majority of call-sites will already
