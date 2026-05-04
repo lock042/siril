@@ -52,6 +52,9 @@ static int selected_source = -1;
 static gboolean is_arcsec = FALSE;
 static gboolean use_photometry = FALSE;
 
+static int cached_real_index = -1;
+static gchar *cached_original_filename = NULL;
+
 struct _seq_list {
 	GtkTreeView *tview;
 	sequence *seq;
@@ -138,6 +141,11 @@ static void update_seqlist_dialog_combo(int layer) {
 	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
+
+	// siril_debug_print("Resetting cached filename and index\n");
+	g_free(cached_original_filename);
+	cached_original_filename = NULL;
+	cached_real_index = -1;
 }
 
 static void initialize_title() {
@@ -1014,24 +1022,44 @@ gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
 
 	if (!sequence_is_loaded()) return FALSE;
 
+	if (com.seq.type != SEQ_REGULAR) return FALSE;
+
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip, &model, &path, &iter)) {
 		return FALSE;
 	}
 	char buffer[512];
-	fits fit = { 0 };
+	char filename[256];
+	gchar *original_filename = NULL;
+
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
-	if (seq_read_frame_metadata(&com.seq, real_index, &fit)) {
-		return FALSE;
+	if (real_index != cached_real_index) {
+		g_free(cached_original_filename);
+		cached_original_filename = NULL;
+		cached_real_index = real_index;
+		fit_sequence_get_image_filename(&com.seq, real_index, filename, TRUE);
+		if (!is_symlink_file(filename)) // it's a real file, we try to read its header
+			original_filename = get_original_filename_from_fits(filename);
+		else {
+			gchar *original_filepath = g_file_read_link(filename, NULL);
+			original_filename = g_path_get_basename(original_filepath);
+			g_free(original_filepath);
+		}
+		if (original_filename) {
+			cached_original_filename = g_strdup(original_filename);
+		}
+	} else {
+		original_filename = g_strdup(cached_original_filename);
+		// siril_debug_print("Re-using cached filename\n");
 	}
 
-	if (fit.keywords.filename[0] == '\0') return FALSE;
+	if (original_filename == NULL) return FALSE;
 
-	g_snprintf(buffer, 511, "<b>Original filename:</b> %s", fit.keywords.filename);
-	clearfits(&fit);
+	g_snprintf(buffer, 511, "<b>Original filename:</b> %s", original_filename);
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 	gtk_tree_path_free(path);
+	g_free(original_filename);
 
 	return TRUE;
 }
