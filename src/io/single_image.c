@@ -90,9 +90,9 @@ static gboolean free_image_data_gui(gpointer p) {
 	initialize_cut_struct(&gui.cut);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
-	GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
-	GtkEntry* pitchX_entry = GTK_ENTRY(lookup_widget("pitchX_entry"));
-	GtkEntry* pitchY_entry = GTK_ENTRY(lookup_widget("pitchY_entry"));
+	GtkEntry* focal_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "focal_entry")));
+	GtkEntry* pitchX_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pitchX_entry")));
+	GtkEntry* pitchY_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pitchY_entry")));
 	// avoid redrawing plot while com.seq has not been updated
 	g_signal_handlers_block_by_func(focal_entry, on_focal_entry_changed, NULL);
 	g_signal_handlers_block_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
@@ -457,7 +457,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	set_cutoff_sliders_values();
 
 	/* re-enable the display-mode menu disabled at the start of single-image ops */
-	gtk_widget_set_sensitive(lookup_widget("menu_display_button"), TRUE);
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")), TRUE);
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
 		redraw(REMAP_ALL);

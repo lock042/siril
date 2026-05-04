@@ -824,7 +824,7 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 }
 
 static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
-	gtk_widget_set_sensitive(lookup_widget("menu_display_button"),
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")),
 			GPOINTER_TO_INT(p));
 	return FALSE;
 }

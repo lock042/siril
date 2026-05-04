@@ -94,15 +94,15 @@
 
 static void fillSeqAviExport() {
 	char width[6], height[6];
-	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
+	GtkEntry *heightEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight")));
+	GtkEntry *widthEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth")));
 
 	g_snprintf(width, sizeof(width), "%d", com.seq.rx);
 	g_snprintf(height, sizeof(width), "%d", com.seq.ry);
 	gtk_entry_set_text(widthEntry, width);
 	gtk_entry_set_text(heightEntry, height);
 	if (com.seq.type == SEQ_SER) {
-		GtkEntry *entryAviFps = GTK_ENTRY(lookup_widget("entryAviFps"));
+		GtkEntry *entryAviFps = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviFps")));
 
 		if (com.seq.ser_file != NULL) {
 			char fps[7];
@@ -122,7 +122,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 gboolean populate_seqcombo(gpointer user_data) {
 	const gchar *realname = (const gchar*) user_data;
 	control_window_switch_to_tab(IMAGE_SEQ);
-	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
+	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
 	gtk_combo_box_text_remove_all(combo_box_text);
 	gchar *rname = g_path_get_basename(realname);
 	gtk_combo_box_text_append(combo_box_text, 0, rname);
@@ -639,7 +639,7 @@ static gboolean set_seq_gui(gpointer user_data) {
 }
 
 static void free_cbbt_layers() {
-	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxreglayer"));
+	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "comboboxreglayer")));
 	gtk_combo_box_text_remove_all(cbbt_layers);
 }
 
@@ -1708,7 +1708,7 @@ gboolean close_sequence_idle(gpointer data) {
 	/* unselect the sequence in the sequence list if it's not the one
 	 * being loaded */
 	if (!data) { // loading_sequence_from_combo
-		GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
+		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(gtk_builder_get_object(gui.builder, "sequence_list_combobox")));
 		gtk_combo_box_set_active(seqcombo, -1);
 	}
 	return FALSE;

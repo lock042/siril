@@ -81,8 +81,8 @@ static gboolean cm_worker(gpointer user_data) {
 	} else {
 		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
 	}
-	GtkWidget *image = lookup_widget("color_managed_icon");
-	GtkWidget *button = lookup_widget("icc_main_window_button");
+	GtkWidget *image = GTK_WIDGET(gtk_builder_get_object(gui.builder, "color_managed_icon"));
+	GtkWidget *button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "icc_main_window_button"));
 	gtk_image_set_from_resource((GtkImage*) image, name);
 	gtk_widget_set_tooltip_text(button, tooltip);
 	g_free(name);
@@ -247,7 +247,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	cmsUInt32Number flags = gui.icc.proofing_flags;
 	if (fit_icc_is_linear(gfit))
 		flags |= cmsFLAGS_NOOPTIMIZE;
-	gboolean gamutcheck = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkgamut")));
+	gboolean gamutcheck = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkgamut"))));
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
@@ -536,8 +536,8 @@ void cleanup_common_profiles() {
 }
 
 void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
-	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
+	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_monitor_profile_active"));
 	gtk_file_chooser_unselect_all(filechooser);
 	cmsHPROFILE old_monitor = copyICCProfile(gui.icc.monitor);
 	g_mutex_lock(&monitor_profile_mutex);
@@ -565,8 +565,8 @@ void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
-	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
+	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_proofing_profile_active"));
 	g_mutex_lock(&soft_proof_profile_mutex);
 
 	gtk_file_chooser_unselect_all(filechooser);
@@ -588,7 +588,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
 	gboolean no_file = FALSE;
 	gboolean active = gtk_toggle_button_get_active(button);
 	g_mutex_lock(&monitor_profile_mutex);
@@ -636,7 +636,7 @@ void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer 
 }
 
 void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
 	gboolean no_file = FALSE;
 	gboolean active = gtk_toggle_button_get_active(button);
 	g_mutex_lock(&soft_proof_profile_mutex);

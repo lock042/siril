@@ -219,7 +219,7 @@ int execute_command(int wordnb) {
 }
 
 static void update_log_icon(gboolean is_running) {
-	GtkImage *image = GTK_IMAGE(lookup_widget("image_log"));
+	GtkImage *image = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "image_log")));
 	if (is_running)
 		gtk_image_set_from_icon_name(image, "gtk-yes", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	else
@@ -234,7 +234,7 @@ struct log_status_bar_idle_data {
 static gboolean log_status_bar_idle_callback(gpointer p) {
 	struct log_status_bar_idle_data *data = (struct log_status_bar_idle_data *) p;
 
-	GtkStatusbar *statusbar_script = GTK_STATUSBAR(lookup_widget("statusbar_script"));
+	GtkStatusbar *statusbar_script = GTK_STATUSBAR(GTK_WIDGET(gtk_builder_get_object(gui.builder, "statusbar_script")));
 	gchar *status;
 	gchar *newline;
 
@@ -264,7 +264,7 @@ static void display_command_on_status_bar(int line, char *myline) {
 }
 
 static void clear_status_bar() {
-	GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
+	GtkStatusbar *bar = GTK_STATUSBAR(GTK_WIDGET(gtk_builder_get_object(gui.builder, "statusbar_script")));
 	gtk_statusbar_remove_all(bar, 0);
 	update_log_icon(FALSE);
 }
@@ -480,7 +480,7 @@ static gboolean show_command_help_popup(gpointer user_data) {
 		helper = g_strdup(_("No help for this command"));
 	}
 
-	GtkWidget *popover = popover_new(lookup_widget("command"), helper);
+	GtkWidget *popover = popover_new(GTK_WIDGET(gtk_builder_get_object(gui.builder, "command")), helper);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_popover_popup(GTK_POPOVER(popover));
 #else
@@ -618,7 +618,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!(com.script || com.python_script) && !com.headless &&
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
-				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
+				gui_function(show_command_help_popup, GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "command"))));
 			}
 			free(myline);
 			return ret;
@@ -747,7 +747,7 @@ static void init_completion_command() {
 	GtkEntryCompletion *completion = gtk_entry_completion_new();
 	GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
 	GtkTreeIter iter;
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("command"));
+	GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "command")));
 
 	gtk_entry_completion_set_model(completion, GTK_TREE_MODEL(model));
 	gtk_entry_completion_set_text_column(completion, COMPLETION_COLUMN);
@@ -771,7 +771,7 @@ static void init_completion_command() {
 }
 
 static void init_controller_command() {
-	GtkWidget *widget = lookup_widget("command");
+	GtkWidget *widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "command"));
 
 #if GTK_CHECK_VERSION(3, 24, 24)
 	GtkEventController *controller = gtk_event_controller_key_new(widget);

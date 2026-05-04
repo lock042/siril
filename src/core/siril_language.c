@@ -148,7 +148,7 @@ static gint locale_compare(gconstpointer *a, gconstpointer *b) {
 }
 
 void siril_language_fill_combo(const gchar *language) {
-	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(lookup_widget("combo_language"));
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
 	GList *list = g_hash_table_get_keys(full_lang_list);
 	gboolean lang_changed = FALSE;
 	int i = 1;
@@ -194,7 +194,7 @@ void language_init(const gchar *language) {
 }
 
 gchar *get_interface_language() {
-	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(lookup_widget("combo_language"));
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0) {
 		return g_strdup("");

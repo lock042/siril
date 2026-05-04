@@ -59,21 +59,21 @@ static rectangle _3boxes[3];
 /* UI functions */
 static void set_registration_ready(gboolean ready) {
 	if (!go_register)
-		go_register = lookup_widget("goregister_button");
+		go_register = GTK_WIDGET(gtk_builder_get_object(gui.builder, "goregister_button"));
 	gtk_widget_set_sensitive(go_register, ready);
 }
 
 static void update_label(gchar* str) {
 	if (!labelreginfo)
-		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+		labelreginfo = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelregisterinfo")));
 	gtk_label_set_text(labelreginfo, str);
 }
 
 static void update_icons(int idx, gboolean OK) {
 	if (!image_3stars[0]) {
-		image_3stars[0] = GTK_IMAGE(lookup_widget("3stars-image1"));
-		image_3stars[1] = GTK_IMAGE(lookup_widget("3stars-image2"));
-		image_3stars[2] = GTK_IMAGE(lookup_widget("3stars-image3"));
+		image_3stars[0] = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "3stars-image1")));
+		image_3stars[1] = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "3stars-image2")));
+		image_3stars[2] = GTK_IMAGE(GTK_WIDGET(gtk_builder_get_object(gui.builder, "3stars-image3")));
 	}
 	gtk_image_set_from_icon_name(image_3stars[idx],
 			OK ? "gtk-yes" : "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
@@ -112,10 +112,10 @@ gboolean _3stars_check_selection() {
 		return FALSE;
 
 	if (!follow) {
-		follow = lookup_widget("followStarCheckButton");
-		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
-		onlyshift = lookup_widget("onlyshift_checkbutton");
+		follow = GTK_WIDGET(gtk_builder_get_object(gui.builder, "followStarCheckButton"));
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "reg_sel_all_combobox"))));
+		labelreginfo = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "labelregisterinfo")));
+		onlyshift = GTK_WIDGET(gtk_builder_get_object(gui.builder, "onlyshift_checkbutton"));
 	}
 	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
 	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
@@ -138,9 +138,9 @@ gboolean _3stars_check_selection() {
 
 void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!three_buttons[0]) {
-		three_buttons[0] = lookup_widget("pickstar1");
-		three_buttons[1] = lookup_widget("pickstar2");
-		three_buttons[2] = lookup_widget("pickstar3");
+		three_buttons[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar1"));
+		three_buttons[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar2"));
+		three_buttons[2] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar3"));
 	}
 	if (!com.selection.w || !com.selection.h) {
 		update_label(_("Draw a selection around the star"));

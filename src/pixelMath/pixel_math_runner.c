@@ -188,11 +188,11 @@ static void init_widgets() {
 		pixel_math_tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview"));
 		pixel_math_tree_model = gtk_tree_view_get_model(pixel_math_tree_view);
 		pixel_math_list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore"));
-		pixel_math_status_bar = GTK_LABEL(lookup_widget("pixel_math_status"));
-		pixel_math_status_bar2 = GTK_LABEL(lookup_widget("pixel_math_status2"));
-		pixel_math_entry_r = GTK_ENTRY(lookup_widget("pixel_math_entry_r"));
-		pixel_math_entry_g = GTK_ENTRY(lookup_widget("pixel_math_entry_g"));
-		pixel_math_entry_b = GTK_ENTRY(lookup_widget("pixel_math_entry_b"));
+		pixel_math_status_bar = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_status")));
+		pixel_math_status_bar2 = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_status2")));
+		pixel_math_entry_r = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_r")));
+		pixel_math_entry_g = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_g")));
+		pixel_math_entry_b = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_b")));
 		pixel_math_treeview_functions = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_functions"));
 		pixel_math_treeview_operators = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_operators"));
 		pixel_math_treeview_presets = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "pixel_math_treeview_presets"));
@@ -204,8 +204,8 @@ static void init_widgets() {
 		pixel_math_list_store_presets = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "pixel_math_liststore_presets"));
 
 #if GTK_CHECK_VERSION(3, 22, 0)
-		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_functions")), TRUE);
-		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_operators")), TRUE);
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_scrolled_functions"))), TRUE);
+		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_scrolled_operators"))), TRUE);
 #endif
 
 		/* Due to a glade bug, this property is often removed, lets code it */
@@ -338,9 +338,9 @@ static gboolean end_pixel_math_operation(gpointer p) {
 }
 
 void on_pm_use_rgb_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_g"), !gtk_toggle_button_get_active(button));
-	gtk_widget_set_sensitive(lookup_widget("pixel_math_entry_b"), !gtk_toggle_button_get_active(button));
-	gtk_label_set_text(GTK_LABEL(lookup_widget("label_RGBK")), gtk_toggle_button_get_active(button) ? _("RGB/K") : _("R"));
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_g")), !gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_b")), !gtk_toggle_button_get_active(button));
+	gtk_label_set_text(GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "label_RGBK"))), gtk_toggle_button_get_active(button) ? _("RGB/K") : _("R"));
 	if (gtk_toggle_button_get_active(button)) entry_has_focus = 0;
 }
 
@@ -442,23 +442,23 @@ static const gchar *get_preset_expr(int i) {
 }
 
 static gboolean is_pm_use_rgb_button_checked() {
-	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pm_use_rgb_button"))));
 }
 
 static gboolean is_pm_rescale_checked() {
-	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rescale_pm_button")));
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "rescale_pm_button"))));
 }
 
 static gboolean is_cumulate_checked() {
-	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_pm_button")));
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cumulate_pm_button"))));
 }
 
 static float get_min_rescale_value() {
-	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_low")));
+	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_pm_low"))));
 }
 
 static float get_max_rescale_value() {
-	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_high")));
+	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_pm_high"))));
 }
 
 static void update_metadata(fits *fit, gboolean do_sum) {
@@ -956,7 +956,7 @@ static guint siril_string_replace_parameter(GString *string, const gchar *find,
 }
 
 static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
-	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
+	GtkEntry *entry_param = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_entry_param")));
 
 	char *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
@@ -1300,7 +1300,7 @@ static void select_image(int nb) {
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
 	gint res;
 
-	dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(lookup_widget("pixel_math_dialog")), action,
+	dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_dialog"))), action,
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,	NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
@@ -1647,7 +1647,7 @@ gboolean on_pixel_math_treeview_key_release_event(GtkWidget *widget, GdkEventKey
 void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 		char *new_text, gpointer user_data) {
 
-	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
+	g_signal_handlers_unblock_by_func(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_treeview")), on_pixel_math_treeview_key_release_event, NULL);
 
 	if (check_for_variable_sanity(new_text)) {
 		/* Value looks fine, we copy it */
@@ -1667,12 +1667,12 @@ void on_cellrenderer_variables_edited(GtkCellRendererText *renderer, char *path,
 
 void on_cellrenderer_variables_editing_started(GtkCellRenderer *renderer,
 		GtkCellEditable *editable, char *path, gpointer user_data) {
-	g_signal_handlers_block_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
+	g_signal_handlers_block_by_func(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_treeview")), on_pixel_math_treeview_key_release_event, NULL);
 }
 
 void on_cellrenderer_variables_editing_canceled(GtkCellRenderer *renderer,
 		gpointer user_data) {
-	g_signal_handlers_unblock_by_func(lookup_widget("pixel_math_treeview"), on_pixel_math_treeview_key_release_event, NULL);
+	g_signal_handlers_unblock_by_func(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixel_math_treeview")), on_pixel_math_treeview_key_release_event, NULL);
 }
 
 void on_pixel_math_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
@@ -1809,6 +1809,6 @@ gboolean on_pixel_math_treeview_presets_key_release_event(GtkWidget *widget, Gdk
 }
 
 void on_rescale_pm_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("spin_pm_low"), gtk_toggle_button_get_active(button));
-	gtk_widget_set_sensitive(lookup_widget("spin_pm_high"), gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_pm_low")), gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spin_pm_high")), gtk_toggle_button_get_active(button));
 }

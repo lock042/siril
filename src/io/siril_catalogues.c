@@ -1081,7 +1081,7 @@ static gboolean end_conesearch(gpointer p) {
 	if (temp_cat) {
 		// purge_user_catalogue(CAT_AN_USER_TEMP); // we don't clear so as to accumulate displays of various conesearches/show commands
 		if (!load_siril_cat_to_temp(temp_cat)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "annotate_button")));
 			// refresh_annotation_to_temp(); // may need to make that an option later on
 			refresh_annotation_visibility();
 			if (!gtk_toggle_tool_button_get_active(button)) {

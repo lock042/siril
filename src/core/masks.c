@@ -44,7 +44,7 @@ void free_mask(mask_t* mask) {
 
 gboolean set_mask_active_idle(gpointer p) {
 	gboolean state = GPOINTER_TO_INT(p);
-	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("mask_enable_check"));
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_enable_check")));
 	g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
 	gtk_toggle_button_set_active(button, state);
 	g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);

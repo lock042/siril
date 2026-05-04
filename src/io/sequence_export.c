@@ -679,10 +679,10 @@ free_and_reset_progress_bar:
 }
 
 void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
-	int selected = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboExport")));
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
+	int selected = gtk_combo_box_get_active(GTK_COMBO_BOX(GTK_WIDGET(gtk_builder_get_object(gui.builder, "comboExport"))));
+	GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryExportSeq")));
 	const char *bname = gtk_entry_get_text(entry);
-	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
+	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "exportNormalize"))));
 
 	if (bname[0] == '\0') {
 		widget_set_class(GTK_WIDGET(entry), "warning", "");
@@ -712,18 +712,18 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		memcpy(&args->crop_area, &com.selection, sizeof(rectangle));
 
 	if (args->output == EXPORT_AVI || args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
-		GtkEntry *fpsEntry = GTK_ENTRY(lookup_widget("entryAviFps"));
+		GtkEntry *fpsEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviFps")));
 		args->film_fps = round_to_int(g_ascii_strtod(gtk_entry_get_text(fpsEntry), NULL));
 		if (args->film_fps <= 0) args->film_fps = 1;
 	}
 	if (args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
 		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustmentqualscale"));
-		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
+		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkAviResize")));
 		args->film_quality = (int)gtk_adjustment_get_value(adjQual);
 		args->resample = gtk_toggle_button_get_active(checkResize);
 		if (args->resample) {
-			GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-			GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
+			GtkEntry *widthEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth")));
+			GtkEntry *heightEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight")));
 			args->dest_width = g_ascii_strtoll(gtk_entry_get_text(widthEntry), NULL, 10);
 			args->dest_height = g_ascii_strtoll(gtk_entry_get_text(heightEntry), NULL, 10);
 			if (args->dest_height == 0 || args->dest_width == 0) {
@@ -761,9 +761,9 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
-	GtkWidget *avi_options = lookup_widget("boxAviOptions");
-	GtkWidget *checkAviResize = lookup_widget("checkAviResize");
-	GtkWidget *quality = lookup_widget("exportQualScale");
+	GtkWidget *avi_options = GTK_WIDGET(gtk_builder_get_object(gui.builder, "boxAviOptions"));
+	GtkWidget *checkAviResize = GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkAviResize"));
+	GtkWidget *quality = GTK_WIDGET(gtk_builder_get_object(gui.builder, "exportQualScale"));
 	int output_type = gtk_combo_box_get_active(box);
 	gtk_widget_set_visible(avi_options, output_type >= EXPORT_AVI);
 	gtk_widget_set_visible(quality, output_type >= EXPORT_MP4);
@@ -771,9 +771,9 @@ void on_comboExport_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_checkAviResize_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkWidget *heightEntry = lookup_widget("entryAviHeight");
-	GtkWidget *widthEntry = lookup_widget("entryAviWidth");
-	GtkWidget *combo_export_preset = lookup_widget("combo_export_preset");
+	GtkWidget *heightEntry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight"));
+	GtkWidget *widthEntry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth"));
+	GtkWidget *combo_export_preset = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_export_preset"));
 	gtk_widget_set_sensitive(heightEntry, gtk_toggle_button_get_active(togglebutton));
 	gtk_widget_set_sensitive(widthEntry, gtk_toggle_button_get_active(togglebutton));
 	gtk_widget_set_sensitive(combo_export_preset, gtk_toggle_button_get_active(togglebutton));
@@ -782,7 +782,7 @@ void on_checkAviResize_toggled(GtkToggleButton *togglebutton, gpointer user_data
 void update_export_crop_label() {
 	static GtkLabel *label = NULL;
 	if (!label)
-		label = GTK_LABEL(lookup_widget("exportLabel"));
+		label = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "exportLabel")));
 	if (com.selection.w && com.selection.h)
 		gtk_label_set_text(label, _("Cropping to selection"));
 	else gtk_label_set_text(label, _("Select area to crop"));
@@ -806,7 +806,7 @@ void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data);
 void on_entryAviWidth_changed(GtkEditable *editable, gpointer user_data) {
 	double ratio, width, height;
 	gchar *c_height;
-	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
+	GtkEntry *heightEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight")));
 
 	if (com.selection.w && com.selection.h) return;
 	ratio = (double) com.seq.ry / (double) com.seq.rx;
@@ -823,7 +823,7 @@ void on_entryAviWidth_changed(GtkEditable *editable, gpointer user_data) {
 void on_entryAviHeight_changed(GtkEditable *editable, gpointer user_data) {
 	double ratio, width, height;
 	gchar *c_width;
-	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
+	GtkEntry *widthEntry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth")));
 
 	if (com.selection.w && com.selection.h) return;
 	ratio = (double) com.seq.rx / (double) com.seq.ry;
@@ -845,8 +845,8 @@ static gboolean g_signal_handlers_is_blocked_by_func(gpointer instance, GFunc fu
 
 void on_combo_export_preset_changed(GtkComboBox *box, gpointer user_data) {
 	int preset = gtk_combo_box_get_active(box);
-	GtkWidget *widthEntry = lookup_widget("entryAviWidth");
-	GtkWidget *heightEntry = lookup_widget("entryAviHeight");
+	GtkWidget *widthEntry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviWidth"));
+	GtkWidget *heightEntry = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entryAviHeight"));
 
 	switch(preset) {
 	default:

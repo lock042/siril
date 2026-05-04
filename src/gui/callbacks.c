@@ -968,7 +968,21 @@ gboolean update_MenuItem(gpointer user_data) {
 	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
 	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
 
-	set_undo_redo_tooltip();
+	/* update undo/redo button tooltips */
+	if (is_undo_available()) {
+		gchar *str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
+		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
+	}
+	if (is_redo_available()) {
+		gchar *str = g_strdup_printf(_("Redo: \"%s\""), com.history[com.hist_display].history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+	}
 
 	/* save and save as */
 	GAction *action_save = g_action_map_lookup_action (G_ACTION_MAP(gtk_window_get_application(GTK_WINDOW(app_win))), "save");

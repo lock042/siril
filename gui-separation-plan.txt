@@ -454,13 +454,16 @@ for the modules that could not be split using Pattern A.
            * photometric_cc.c (170 lookup_widget calls)
            * preferences.c  (319 lookup_widget calls)
 
-[ ] 4.3  Eliminate lookup_widget() from all non-gui source files
+[X] 4.3  Eliminate lookup_widget() from all non-gui source files
          - After phases 3 and 4.1–4.2 the majority of call-sites will already
            be gone. Sweep for any stragglers outside src/gui/:
              * Files being split later (core/, io/): move the widget
                interaction into a gui/ wrapper and call it via gui_iface or
                pass the result as a parameter.
          - Goal: lookup_widget() has zero callers outside src/gui/.
+         - DONE: set_undo_redo_tooltip moved from undo.c → callbacks.c.
+           All remaining calls replaced with gtk_builder_get_object(gui.builder).
+           171 call-sites across 18 non-gui files. Zero callers outside src/gui/.
 
 [ ] 4.4  Route set_progress_bar_data through gui_iface
          - Replace all remaining ~152 call-sites in non-GUI code with
@@ -468,25 +471,35 @@ for the modules that could not be split using Pattern A.
          - Keep set_progress_bar_data() in gui/ as the implementation.
          - Files: stacking, registration, io/conversion.c,
            io/sequence_export.c, and any algos not covered by phase 3.
+         - Do as much of this using scripting as possible, to minimize
+           token use for exact pattern changes.
 
 [ ] 4.5  Route set_cursor_waiting through gui_iface
          - ~145 call-sites; fold into set_busy(TRUE/FALSE).
+         - Do as much of this using scripting as possible, to minimize
+           token use for exact pattern changes.
 
 [ ] 4.6  Decouple gui_log_message from siril_log.c
          - siril_log.c currently calls gui_log_message() (in gui/) directly.
          - Replace with a registered callback in gui_iface.
          - CLI stub writes to stderr; removes the last outbound dependency
            from core/siril_log.c.
+         - Do as much of this using scripting as possible, to minimize
+           token use for exact pattern changes.
 
 [ ] 4.7  Route queue_*_message_dialog and siril_message_dialog through gui_iface
          - ~26 call-sites in non-GUI code.
          - Replace with gui_iface.message_dialog() / gui_iface.error_dialog().
          - Stub writes to stderr.
+         - Do as much of this using scripting as possible, to minimize
+           token use for exact pattern changes.
 
 [ ] 4.8  Route redraw / queue_redraw through gui_iface
          - ~37 call-sites across remaining algos, io, stacking.
          - Replace with gui_iface.redraw_image() and
            gui_iface.redraw_image_async().
+         - Do as much of this using scripting as possible, to minimize
+           token use for exact pattern changes.
 
 ─────────────────────────────────────────────────────────────────────────────
 PHASE 5 – CLEAN UP REMAINING PROCESSING MODULES  (via gui_iface)

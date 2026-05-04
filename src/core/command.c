@@ -6304,7 +6304,7 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 
 gboolean get_followstar_idle(gpointer user_data) {
 	framing_mode *framing = (framing_mode*) user_data;
-	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "followStarCheckButton")));
 	if (gtk_toggle_button_get_active(follow))
 		*framing = FOLLOW_STAR_FRAME;
 	// no need to have an else as framing is already initiated by the caller
@@ -8249,7 +8249,7 @@ int process_cdg(int nb) {
 }
 
 static gboolean clear_log_buffer(gpointer user_data) {
-	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("output"));
+	GtkTextView *text = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "output")));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);

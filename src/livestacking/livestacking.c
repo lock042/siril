@@ -153,7 +153,7 @@ void stop_live_stacking_engine() {
 	unreserve_thread();
 
 	if (!com.headless) {
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
 		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
 		set_cursor_waiting(FALSE);
 	}
@@ -248,7 +248,7 @@ int start_livestacking(gboolean with_filewatcher) {
 		gui.rendering_mode = STF_DISPLAY;
 		set_display_mode();
 		force_unlinked_channels();
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
 		if (gtk_widget_is_visible(toolbar)) show_hide_toolbox();
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
 	}

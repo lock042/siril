@@ -92,12 +92,17 @@
 void initialize_spcc_mirrors();
 void force_paned_restore();
 
+/* the global variables of the whole project */
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
+fits *gfit = NULL;	// currently loaded image
+
 /* Callback to close splash screen and show main window after delay */
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	close_splash_screen();
 
 	/* Make window visible */
-	GtkWidget *control_window = lookup_widget("control_window");
+	GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	gtk_widget_set_opacity(control_window, 1.0);
 
 	force_paned_restore();
@@ -106,11 +111,6 @@ static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 
 	return G_SOURCE_REMOVE;
 }
-
-/* the global variables of the whole project */
-cominfo com = { 0 };	// the core data struct
-guiinfo gui = { 0 };	// the gui data struct
-fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -480,7 +480,7 @@ static void siril_app_activate(GApplication *application) {
 		siril_register_gui_iface();
 
 		/* Make window transparent to keep splash on top but allow GTK calculations */
-		GtkWidget *control_window = lookup_widget("control_window");
+		GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 		gtk_widget_set_opacity(control_window, 0.0);
 
 		/* Passing GApplication to the control center */
@@ -503,8 +503,8 @@ static void siril_app_activate(GApplication *application) {
 		}
 
 #else
-		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
-		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "main_menu_updates")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "frame24")), FALSE);
 #endif
 	}
 

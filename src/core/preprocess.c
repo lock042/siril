@@ -691,10 +691,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 		reffit = *gfit;
 	}
 
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
+	tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "useoffset_button")));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
+		entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "offsetname_entry")));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -756,10 +756,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 		}
 	}
 
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+	tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "usedark_button")));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("darkname_entry"));
+		entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "darkname_entry")));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -804,7 +804,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 
 		if (args->use_dark) {
 			// dark optimization
-			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboDarkOptimize")));
+			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(GTK_WIDGET(gtk_builder_get_object(gui.builder, "comboDarkOptimize"))));
 			args->use_dark_optim = optim != 0;
 			args->use_exposure = optim == 2;
 			const char *error = NULL;
@@ -821,25 +821,25 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 
 			// cosmetic correction
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
+			tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cosmEnabledCheck")));
 			args->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
 
 			if (args->use_cosmetic_correction) {
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
+				tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigCold")));
 				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+					GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeColdBox")));
 					args->sigma[0] = gtk_spin_button_get_value(sigCold);
 				} else args->sigma[0] = -1.0;
 
-				tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
+				tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigHot")));
 				if (gtk_toggle_button_get_active(tbutton)) {
-					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+					GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHotBox")));
 					args->sigma[1] = gtk_spin_button_get_value(sigHot);
 				} else args->sigma[1] = -1.0;
 
 				/* Using Bad Pixel Map ? */
 				const gchar *bad_pixel_f;
-				entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
+				entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "pixelmap_entry")));
 				bad_pixel_f = gtk_entry_get_text(entry);
 				/* test for file */
 				if (bad_pixel_f[0] != '\0') {
@@ -854,7 +854,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 	}
 
 	/* now we want to know which cosmetic correction we choose */
-	GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+	GtkStack *stack = GTK_STACK(GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_cc")));
 	GtkWidget *w = gtk_stack_get_visible_child(stack);
 	args->cc_from_dark = TRUE; // default value
 	if (w) {
@@ -866,10 +866,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 		g_value_unset(&value);
 	}
 
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+	tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "useflat_button")));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
-		entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "flatname_entry")));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
@@ -907,10 +907,10 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 
 			if (args->use_flat) {
-				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkbutton_auto_evaluate")));
 				args->autolevel = gtk_toggle_button_get_active(autobutton);
 				if (!args->autolevel) {
-					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
+					GtkEntry *norm_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entry_flat_norm")));
 					args->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
 				}
 			}
@@ -929,13 +929,13 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("preproseqname_entry"));
-	GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
-	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
-	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
-	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
-	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
-	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
+	GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "preproseqname_entry")));
+	GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "fix_xtrans_af")));
+	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cosmCFACheck")));
+	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkButton_pp_dem")));
+	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkbutton_equalize_cfa")));
+	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_preprocess_excluded")));
+	GtkComboBox *output_type = GTK_COMBO_BOX(GTK_WIDGET(gtk_builder_get_object(gui.builder, "prepro_output_type_combo")));
 
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
@@ -1016,13 +1016,13 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	set_cursor_waiting(TRUE);
-	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeCold")));
-	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHot")));
-	widget[0] = lookup_widget("GtkLabelColdCC");
-	widget[1] = lookup_widget("GtkLabelHotCC");
-	label[0] = GTK_LABEL(lookup_widget("GtkLabelColdCC"));
-	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
-	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
+	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeCold"))));
+	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHot"))));
+	widget[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkLabelColdCC"));
+	widget[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkLabelHotCC"));
+	label[0] = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkLabelColdCC")));
+	label[1] = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkLabelHotCC")));
+	entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "darkname_entry")));
 	filename = gtk_entry_get_text(entry);
 	gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
 	if (status || readfits(expression, &fit, NULL, !com.pref.force_16bit)) {

@@ -391,7 +391,7 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 
 gboolean get_tiff_compression() {
 	if (!com.headless) {
-		GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
+		GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "radiobuttonCompDeflate")));
 		if (gtk_toggle_button_get_active(button))
 			return TRUE;
 	}
@@ -664,13 +664,13 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
 		GtkTextIter itDebut;
 		GtkTextIter itFin;
 
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
+		GtkTextView *description_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Description_txt")));
 		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
 		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
 		gtk_text_buffer_get_end_iter(desbuf, &itFin);
 		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
 
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
+		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Copyright_txt")));
 		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
 		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
 		gtk_text_buffer_get_end_iter(copybuf, &itFin);
@@ -2493,7 +2493,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 	}
 
 	GtkWidget *dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
-			GTK_WINDOW(lookup_widget("control_window")), GTK_DIALOG_MODAL,
+			GTK_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"))), GTK_DIALOG_MODAL,
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
 
