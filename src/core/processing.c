@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <string.h>
 #include <glib.h>
+#include <gtk/gtk.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -38,14 +39,8 @@
 #include "core/masks.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/image_display.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
-#include "gui/progress_and_log.h"
-#include "gui/script_menu.h"
-#include "gui/siril_preview.h"
-#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -117,7 +112,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #ifdef HAVE_FFMS2
 	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
 	if (args->seq->type == SEQ_AVI && !com.headless) {
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
+		gui_iface.set_seq_browser_active(FALSE);
 	}
 #endif
 #ifdef _OPENMP
@@ -422,7 +417,7 @@ the_end:
 	int retval = args->retval;	// so we can free args if needed in the idle
 #ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+		gui_iface.set_seq_browser_active(TRUE); // re-enable the sequence browser if necessary
 #endif
 
 	if (!args->already_in_a_thread) {
@@ -470,7 +465,7 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
-		update_sequences_list(seqname);
+		gui_iface.update_sequences_list(seqname);
 		g_free(seqname);
 		g_free(basename);
 	}
@@ -823,13 +818,6 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
-static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
-	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")),
-			GPOINTER_TO_INT(p));
-	return FALSE;
-}
-
-
 /* Must only ever be used for GTK updates. Do not call any functions that mess about
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
@@ -1093,7 +1081,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	guint children = g_slist_length(com.children);
 	if (children > 1) {
 		child_mutex_unlock();
-		GPid pid = show_child_process_selection_dialog(com.children);
+		GPid pid = gui_iface.select_child_process(com.children);
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
@@ -1108,7 +1096,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	if (!com.headless) {
-		script_widgets_enable(TRUE);
+		gui_iface.script_widgets_enable(TRUE);
 		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	}
 }
@@ -1381,8 +1369,8 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
-	show_or_hide_mask_tab();
-	queue_redraw_mask();
+	gui_iface.on_mask_state_changed();
+	gui_iface.queue_redraw_mask();
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1392,7 +1380,7 @@ gboolean end_generic_image_update_gfit(gpointer p) {
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
-		queue_redraw_mask();
+		gui_iface.queue_redraw_mask();
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -1566,10 +1554,8 @@ gpointer generic_image_worker(gpointer p) {
 	 * stale until remap_all() runs, so suppress viewport redraws and disable
 	 * the display-mode menu for the duration.  Sequence operations leave gfit
 	 * untouched, so neither suppression is needed there. */
-	if (!com.headless && !com.script && !com.python_command && args->fit == gfit) {
-		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
-		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
-	}
+	if (!com.script && !com.python_command && args->fit == gfit)
+		gui_iface.set_suppress_redraws(TRUE);
 
 	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
@@ -1656,16 +1642,16 @@ the_end:;
 	if (args->populate_roi_on_complete && !com.script && !com.python_command && !com.headless) {
 		if (argfit != gfit) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
-			populate_roi();
+			gui_iface.populate_roi();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 		} else {
-			populate_roi();
+			gui_iface.populate_roi();
 		}
 	}
 
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
 	 * completion idle paints the updated image. */
-	g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+	gui_iface.set_suppress_redraws(FALSE);
 
 	// Cleanup / idles
 	if (args->command) {
@@ -1674,9 +1660,9 @@ the_end:;
 			free_generic_img_args(args);
 		} else if (args->command_updates_gfit) {
 			// commands do not use custom idles and the generic ones must run synchronously
-			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
+			gui_iface.execute_idle_sync(end_generic_image_update_gfit, args);
 		} else {
-			execute_idle_and_wait_for_it(end_generic_image, args);
+			gui_iface.execute_idle_sync(end_generic_image, args);
 		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);
@@ -1812,7 +1798,7 @@ the_end:
 			free_generic_mask_args(args);
 		} else {
 			// commands do not use custom idles and must run synchronously
-			execute_idle_and_wait_for_it(end_generic_mask, args);
+			gui_iface.execute_idle_sync(end_generic_mask, args);
 		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);

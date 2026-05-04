@@ -22,8 +22,7 @@
 #include "core/command_line_processor.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 /*****************************************************************************
 *    I N T E R N A L   T Y P E S   A N D   S T A T E
@@ -458,7 +457,7 @@ int claim_thread_for_python(void) {
     * internal implementation detail).  We gate purely on job_active_flag and
     * the queue being empty.
     */
-    if (is_an_image_processing_dialog_opened()) {
+    if (gui_iface.is_dialog_open()) {
         siril_log_color_message(
             _("A Siril image processing dialog is open. "
               "It must be closed before Python can claim the processing thread.\n"),

@@ -72,23 +72,30 @@ static gboolean stub_confirm_dialog(const char *title, const char *msg,
 
 static void stub_open_dialog(const char *id)  { (void)id; }
 static void stub_close_dialog(const char *id) { (void)id; }
+static gboolean stub_is_dialog_open(void) { return FALSE; }
 
 static void stub_redraw_image(SirilRedrawType remap)       { (void)remap; }
 static void stub_redraw_image_async(SirilRedrawType remap) { (void)remap; }
 static void stub_redraw_image_sync(SirilRedrawType remap)  { (void)remap; }
 static void stub_delete_selection(void) {}
+static void stub_queue_redraw_mask(void) {}
 
 static void stub_on_sequence_opened(void) {}
 static void stub_on_image_loaded(void) {}
 static void stub_on_image_closed(void) {}
 static void stub_on_stack_complete(void) {}
+static void stub_update_sequences_list(const char *seqname) { (void)seqname; }
 
 static void stub_show_panel(const char *panel_name, gboolean visible) {
 	(void)panel_name; (void)visible;
 }
+static void stub_script_widgets_enable(gboolean enable) { (void)enable; }
+static void stub_set_seq_browser_active(gboolean active) { (void)active; }
 
 static void stub_update_status_bar(void) {}
 static void stub_update_menu_state(void) {}
+static void stub_set_suppress_redraws(gboolean suppress) { (void)suppress; }
+static void stub_populate_roi(void) {}
 static void stub_on_geometry_changed(void) {}
 static void stub_on_mask_state_changed(void) {}
 static void stub_on_crop_complete(void) {}
@@ -102,6 +109,9 @@ static void stub_update_star_list(psf_star **stars, gboolean update_psf_list,
 static void stub_clear_star_list(void) {}
 static int stub_get_reg_layer(void) { return -1; }
 
+static void stub_execute_idle_sync(GSourceFunc func, gpointer data) { func(data); }
+static GPid stub_select_child_process(GSList *children) { (void)children; return (GPid)0; }
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -110,26 +120,35 @@ SirilGuiInterface gui_iface = {
 	.log_message          = stub_log_message,
 	.message_dialog       = stub_message_dialog,
 	.confirm_dialog       = stub_confirm_dialog,
-	.open_dialog          = stub_open_dialog,
-	.close_dialog         = stub_close_dialog,
-	.redraw_image         = stub_redraw_image,
-	.redraw_image_async   = stub_redraw_image_async,
-	.redraw_image_sync    = stub_redraw_image_sync,
-	.delete_selection     = stub_delete_selection,
-	.on_sequence_opened   = stub_on_sequence_opened,
-	.on_image_loaded      = stub_on_image_loaded,
-	.on_image_closed      = stub_on_image_closed,
-	.on_stack_complete    = stub_on_stack_complete,
-	.show_panel           = stub_show_panel,
-	.update_status_bar    = stub_update_status_bar,
-	.update_menu_state    = stub_update_menu_state,
-	.on_geometry_changed  = stub_on_geometry_changed,
-	.on_mask_state_changed= stub_on_mask_state_changed,
-	.on_crop_complete     = stub_on_crop_complete,
-	.on_stats_ready       = stub_on_stats_ready,
-	.on_photometry_changed= stub_on_photometry_changed,
-	.show_siril_plot      = stub_show_siril_plot,
-	.update_star_list     = stub_update_star_list,
-	.clear_star_list      = stub_clear_star_list,
-	.get_reg_layer        = stub_get_reg_layer,
+	.open_dialog            = stub_open_dialog,
+	.close_dialog           = stub_close_dialog,
+	.is_dialog_open         = stub_is_dialog_open,
+	.redraw_image           = stub_redraw_image,
+	.redraw_image_async     = stub_redraw_image_async,
+	.redraw_image_sync      = stub_redraw_image_sync,
+	.delete_selection       = stub_delete_selection,
+	.queue_redraw_mask      = stub_queue_redraw_mask,
+	.on_sequence_opened     = stub_on_sequence_opened,
+	.on_image_loaded        = stub_on_image_loaded,
+	.on_image_closed        = stub_on_image_closed,
+	.on_stack_complete      = stub_on_stack_complete,
+	.update_sequences_list  = stub_update_sequences_list,
+	.show_panel             = stub_show_panel,
+	.script_widgets_enable  = stub_script_widgets_enable,
+	.set_seq_browser_active = stub_set_seq_browser_active,
+	.update_status_bar      = stub_update_status_bar,
+	.update_menu_state      = stub_update_menu_state,
+	.set_suppress_redraws   = stub_set_suppress_redraws,
+	.populate_roi           = stub_populate_roi,
+	.on_geometry_changed    = stub_on_geometry_changed,
+	.on_mask_state_changed  = stub_on_mask_state_changed,
+	.on_crop_complete       = stub_on_crop_complete,
+	.on_stats_ready         = stub_on_stats_ready,
+	.on_photometry_changed  = stub_on_photometry_changed,
+	.show_siril_plot        = stub_show_siril_plot,
+	.update_star_list       = stub_update_star_list,
+	.clear_star_list        = stub_clear_star_list,
+	.get_reg_layer          = stub_get_reg_layer,
+	.execute_idle_sync      = stub_execute_idle_sync,
+	.select_child_process   = stub_select_child_process,
 };

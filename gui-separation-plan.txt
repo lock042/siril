@@ -546,13 +546,21 @@ so they route residual GUI calls through gui_iface.
            3stars.c: all GTK calls are in GTK signal handler callbacks; file is
            effectively a GUI controller — deferred to future phase (gui/ move).
 
-[ ] 5.3  src/core/processing.c and processing_thread.c
+[X] 5.3  src/core/processing.c and processing_thread.c
          - Route execute_idle_and_wait_for_it, populate_roi,
            queue_redraw_mask, script_widgets_enable, set_cursor_waiting,
            set_progress_bar_data, show_child_process_selection_dialog,
            show_or_hide_mask_tab, update_sequences_list through gui_iface.
          - is_an_image_processing_dialog_opened: add a gui_iface.
            is_dialog_open() slot.
+         DONE: Added 10 new gui_iface slots (groups C/D/E/F/G/M). Removed 7
+         gui/ includes from processing.c and 2 from processing_thread.c.
+         set_display_mode_menu_sensitive_idle static moved to gui_iface_impl.c.
+         gui.suppress_drawarea_redraw accesses replaced via set_suppress_redraws.
+         set_seq_browser_active routed via new slot (not in original list but
+         needed to clear gui/callbacks.h). siril_add_idle/siril_add_pythonsafe_idle
+         kept in processing.c; <gtk/gtk.h> added directly for gdk_threads_add_idle
+         and GtkButton* in on_processes_button_cancel_clicked signal handler.
 
 [ ] 5.4  src/core/undo.c (10 GUI calls)
          - copy_*_backup, is_preview_active → gui_iface.IPreview slots.

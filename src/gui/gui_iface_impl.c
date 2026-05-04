@@ -44,6 +44,7 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
 #include "gui/registration.h"
+#include "gui/script_menu.h"
 #include "gui/stacking.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
@@ -94,6 +95,10 @@ static void impl_close_dialog(const char *id) {
 	siril_close_dialog((gchar *)id);
 }
 
+static gboolean impl_is_dialog_open(void) {
+	return is_an_image_processing_dialog_opened();
+}
+
 /* ── Group D: Image display ──────────────────────────────────────────────── */
 
 static void impl_redraw_image(SirilRedrawType remap) {
@@ -110,6 +115,10 @@ static void impl_redraw_image_sync(SirilRedrawType remap) {
 
 static void impl_delete_selection(void) {
 	delete_selected_area();
+}
+
+static void impl_queue_redraw_mask(void) {
+	queue_redraw_mask();
 }
 
 /* ── Groups E, F: no-op placeholders until phases 4–5 wire them up ── */
@@ -144,6 +153,10 @@ static void impl_on_stack_complete(void) {
 	update_stack_interface(TRUE);
 }
 
+static void impl_update_sequences_list(const char *seqname) {
+	update_sequences_list(seqname);
+}
+
 /* ── Group F: Panel / tab switching ─────────────────────────────────────── */
 
 static void impl_show_panel(const char *panel_name, gboolean visible) {
@@ -155,6 +168,14 @@ static void impl_show_panel(const char *panel_name, gboolean visible) {
 	(void)visible;
 }
 
+static void impl_script_widgets_enable(gboolean enable) {
+	script_widgets_enable(enable);
+}
+
+static void impl_set_seq_browser_active(gboolean active) {
+	gui_function(set_seq_browser_active, GINT_TO_POINTER(active));
+}
+
 /* ── Group G: Misc GUI state ─────────────────────────────────────────────── */
 
 static void impl_update_status_bar(void) {
@@ -163,6 +184,26 @@ static void impl_update_status_bar(void) {
 
 static void impl_update_menu_state(void) {
 	gui_function(update_MenuItem, NULL);
+}
+
+static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
+	gtk_widget_set_sensitive(
+		GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")),
+		GPOINTER_TO_INT(p));
+	return FALSE;
+}
+
+static void impl_set_suppress_redraws(gboolean suppress) {
+	if (suppress) {
+		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
+		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
+	} else {
+		g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+	}
+}
+
+static void impl_populate_roi(void) {
+	populate_roi();
 }
 
 /* ── Group H: Geometry / ROI / Mask state ────────────────────────────────── */
@@ -198,6 +239,16 @@ static void impl_show_siril_plot(gpointer spl_data) {
 	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
 }
 
+/* ── Group M: Thread utilities ───────────────────────────────────────────── */
+
+static void impl_execute_idle_sync(GSourceFunc func, gpointer data) {
+	execute_idle_and_wait_for_it(func, data);
+}
+
+static GPid impl_select_child_process(GSList *children) {
+	return show_child_process_selection_dialog(children);
+}
+
 /* ── Groups K, L: Star list / Registration state ─────────────────────────── */
 
 static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
@@ -221,26 +272,35 @@ void siril_register_gui_iface(void) {
 	gui_iface.log_message           = impl_log_message;
 	gui_iface.message_dialog        = impl_message_dialog;
 	gui_iface.confirm_dialog        = impl_confirm_dialog;
-	gui_iface.open_dialog           = impl_open_dialog;
-	gui_iface.close_dialog          = impl_close_dialog;
-	gui_iface.redraw_image          = impl_redraw_image;
-	gui_iface.redraw_image_async    = impl_redraw_image_async;
-	gui_iface.redraw_image_sync     = impl_redraw_image_sync;
-	gui_iface.delete_selection      = impl_delete_selection;
-	gui_iface.on_sequence_opened    = impl_on_sequence_opened;
-	gui_iface.on_image_loaded       = impl_on_image_loaded;
-	gui_iface.on_image_closed       = impl_on_image_closed;
-	gui_iface.on_stack_complete     = impl_on_stack_complete;
-	gui_iface.show_panel            = impl_show_panel;
-	gui_iface.update_status_bar     = impl_update_status_bar;
-	gui_iface.update_menu_state     = impl_update_menu_state;
-	gui_iface.on_geometry_changed   = impl_on_geometry_changed;
-	gui_iface.on_mask_state_changed = impl_on_mask_state_changed;
-	gui_iface.on_crop_complete      = impl_on_crop_complete;
-	gui_iface.on_stats_ready        = impl_on_stats_ready;
-	gui_iface.on_photometry_changed = impl_on_photometry_changed;
-	gui_iface.show_siril_plot       = impl_show_siril_plot;
-	gui_iface.update_star_list      = impl_update_star_list;
-	gui_iface.clear_star_list       = impl_clear_star_list;
-	gui_iface.get_reg_layer         = impl_get_reg_layer;
+	gui_iface.open_dialog            = impl_open_dialog;
+	gui_iface.close_dialog           = impl_close_dialog;
+	gui_iface.is_dialog_open         = impl_is_dialog_open;
+	gui_iface.redraw_image           = impl_redraw_image;
+	gui_iface.redraw_image_async     = impl_redraw_image_async;
+	gui_iface.redraw_image_sync      = impl_redraw_image_sync;
+	gui_iface.delete_selection       = impl_delete_selection;
+	gui_iface.queue_redraw_mask      = impl_queue_redraw_mask;
+	gui_iface.on_sequence_opened     = impl_on_sequence_opened;
+	gui_iface.on_image_loaded        = impl_on_image_loaded;
+	gui_iface.on_image_closed        = impl_on_image_closed;
+	gui_iface.on_stack_complete      = impl_on_stack_complete;
+	gui_iface.update_sequences_list  = impl_update_sequences_list;
+	gui_iface.show_panel             = impl_show_panel;
+	gui_iface.script_widgets_enable  = impl_script_widgets_enable;
+	gui_iface.set_seq_browser_active = impl_set_seq_browser_active;
+	gui_iface.update_status_bar      = impl_update_status_bar;
+	gui_iface.update_menu_state      = impl_update_menu_state;
+	gui_iface.set_suppress_redraws   = impl_set_suppress_redraws;
+	gui_iface.populate_roi           = impl_populate_roi;
+	gui_iface.on_geometry_changed    = impl_on_geometry_changed;
+	gui_iface.on_mask_state_changed  = impl_on_mask_state_changed;
+	gui_iface.on_crop_complete       = impl_on_crop_complete;
+	gui_iface.on_stats_ready         = impl_on_stats_ready;
+	gui_iface.on_photometry_changed  = impl_on_photometry_changed;
+	gui_iface.show_siril_plot        = impl_show_siril_plot;
+	gui_iface.update_star_list       = impl_update_star_list;
+	gui_iface.clear_star_list        = impl_clear_star_list;
+	gui_iface.get_reg_layer          = impl_get_reg_layer;
+	gui_iface.execute_idle_sync      = impl_execute_idle_sync;
+	gui_iface.select_child_process   = impl_select_child_process;
 }

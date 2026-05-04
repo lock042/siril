@@ -111,6 +111,8 @@ typedef struct {
 	/* id is the GtkBuilder identifier of the dialog widget. */
 	void     (*open_dialog)(const char *id);
 	void     (*close_dialog)(const char *id);
+	/* Returns TRUE if an image-processing dialog is currently open. */
+	gboolean (*is_dialog_open)(void);
 
 	/* D – Image display ---------------------------------------------------- */
 	/* Synchronous redraw (call only from the GTK main thread). */
@@ -121,6 +123,8 @@ typedef struct {
 	void     (*redraw_image_sync)(SirilRedrawType remap);
 	/* Clear any active selection rectangle from the image display. */
 	void     (*delete_selection)(void);
+	/* Queue a redraw of the mask overlay only (from any thread). */
+	void     (*queue_redraw_mask)(void);
 
 	/* E – Sequence / image state notifications ----------------------------- */
 	/* Called after a sequence is fully opened and ready for use. */
@@ -131,16 +135,29 @@ typedef struct {
 	void     (*on_image_closed)(void);
 	/* Called after stacking completes successfully; gfit holds the result. */
 	void     (*on_stack_complete)(void);
+	/* Update the sequence list display; seqname is the basename to select,
+	 * or NULL to refresh without changing selection. */
+	void     (*update_sequences_list)(const char *seqname);
 
 	/* F – Panel / tab switching -------------------------------------------- */
 	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */
 	void     (*show_panel)(const char *panel_name, gboolean visible);
+	/* Enable or disable script-related UI widgets (run/stop buttons, etc.). */
+	void     (*script_widgets_enable)(gboolean enable);
+	/* FFMS2/AVI: enable or disable the sequence browser widget. */
+	void     (*set_seq_browser_active)(gboolean active);
 
 	/* G – Misc GUI state --------------------------------------------------- */
 	/* Refresh the main-window status bar (disk space, memory, zoom, …). */
 	void     (*update_status_bar)(void);
 	/* Sync menu/toolbar enable-state to current application state. */
 	void     (*update_menu_state)(void);
+	/* Suppress (TRUE) or restore (FALSE) drawarea redraws during processing.
+	 * When suppressing, also disables the display-mode menu button. */
+	void     (*set_suppress_redraws)(gboolean suppress);
+	/* Repopulate the ROI display from current gfit data (call while holding
+	 * the gfit read lock). */
+	void     (*populate_roi)(void);
 
 	/* H – Geometry / ROI / Mask state ------------------------------------- */
 	/* Called before a geometry-altering operation; clears ROI if active. */
@@ -171,6 +188,15 @@ typedef struct {
 	/* Returns the active registration layer from the GUI combo box, or -1 if
 	 * no GUI is available or the selected layer has no registration data. */
 	int      (*get_reg_layer)(void);
+
+	/* M – Thread utilities ------------------------------------------------- */
+	/* Run func(data) on the GTK main thread and block until it completes.
+	 * The stub calls func(data) directly on the calling thread.
+	 * MUST NOT be called from the GTK main thread (deadlock). */
+	void     (*execute_idle_sync)(GSourceFunc func, gpointer data);
+	/* Open a dialog to select which child process to kill; returns the chosen
+	 * GPid, or 0 if unavailable (single child or headless). */
+	GPid     (*select_child_process)(GSList *children);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */
