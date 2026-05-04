@@ -1101,7 +1101,7 @@ clean_and_exit:
 // Used by both apply_reg and global methods: definition is in registration.h
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
-	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, _("Initializing drizzle data..."));
 	driz->scale = regargs->output_scale;
 	driz_param_dump(driz); // Print some info to the log
 	/* preparing reference data from reference fit and making sanity checks*/

@@ -524,7 +524,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 	int ret = 0;
 
 	msg = g_strdup_printf(_("Pre-processing image %s"), com.uniq->filename);
-	set_progress_bar_data(msg, 0.5);
+	gui_iface.set_progress(0.5, msg);
 	g_free(msg);
 
 	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
@@ -542,7 +542,7 @@ int calibrate_single_image(struct preprocessing_data *args) {
 		g_free(filename);
 		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
 		msg = g_strdup_printf(_("Saving image %s"), filename_noext);
-		set_progress_bar_data(msg, PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, msg);
 		ret = savefits(dest_filename, &fit);
 
 		if (!ret) {
@@ -701,7 +701,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 		} else {
 			const char *error = NULL;
 			if (filename[0] == '=') { // offset is specified as a level not a file
-				set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
+				gui_iface.set_progress(PROGRESS_NONE, _("Checking offset level..."));
 				int offsetlevel = evaluateoffsetlevel(filename + 1, gfit);
 				if (!offsetlevel) {
 					error = _("NOT USING OFFSET: the offset value could not be parsed");
@@ -726,7 +726,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					has_error = TRUE;
 				} else {
 					args->bias = calloc(1, sizeof(fits));
-					set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
+					gui_iface.set_progress(PROGRESS_NONE, _("Opening offset image..."));
 					if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
 						if (args->bias->naxes[2] != gfit->naxes[2]) {
 							error = _("NOT USING OFFSET: number of channels is different");
@@ -747,7 +747,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
+				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->bias)
 					free(args->bias);
 				args->use_bias = FALSE;
@@ -771,7 +771,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				error = _("NOT USING DARK: could not parse the expression");
 				has_error = TRUE;
 			} else {
-				set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+				gui_iface.set_progress(PROGRESS_NONE, _("Opening dark image..."));
 				args->dark = calloc(1, sizeof(fits));
 				if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
 					if (args->dark->naxes[2] != gfit->naxes[2]) {
@@ -791,7 +791,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
+				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->dark)
 					clearfits(args->dark);
 				args->dark = NULL; // in order to be sure it is freed
@@ -813,7 +813,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
+				gui_iface.set_progress(PROGRESS_DONE, error);
 				clearfits(args->dark);
 				gtk_entry_set_text(entry, "");
 				args->use_dark_optim = FALSE;
@@ -881,7 +881,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				error = _("NOT USING FLAT: could not parse the expression");
 				has_error = TRUE;
 			} else {
-				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+				gui_iface.set_progress(PROGRESS_NONE, _("Opening flat image..."));
 				args->flat = calloc(1, sizeof(fits));
 				if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
 					if (args->flat->naxes[2] != gfit->naxes[2]) {
@@ -899,7 +899,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			g_free(expression); // expression not used again after here, free before it falls out of scope
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
-				set_progress_bar_data(error, PROGRESS_DONE);
+				gui_iface.set_progress(PROGRESS_DONE, error);
 				if (args->flat)
 					free(args->flat);
 				args->use_flat = FALSE;
@@ -980,9 +980,9 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		free(args);
 
 		if (retval)
-			set_progress_bar_data(_("Error in preprocessing."), PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, _("Error in preprocessing."));
 		else {
-			set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			invalidate_gfit_histogram();
 			gui_function(open_single_image_from_gfit, NULL);
 		}

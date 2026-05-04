@@ -111,7 +111,7 @@ int rgb_align(int m) {
 	initialize_methods();
 	initialize_internal_rgb_sequence();
 	set_cursor_waiting(TRUE);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
 	method = reg_methods[m];
@@ -145,7 +145,7 @@ int rgb_align(int m) {
 	free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (retval1) {
-		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in channels alignment."));
 		set_cursor_waiting(FALSE);
 		unreserve_thread();
 		return retval1;
@@ -155,9 +155,9 @@ int rgb_align(int m) {
 	unreserve_thread();
 
 	if (retval2) {
-		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in layers alignment."));
 	} else {
-		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Registration complete."));
 		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}

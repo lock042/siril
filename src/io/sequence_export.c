@@ -351,7 +351,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 	long naxes[3];
 	size_t nbpix = 0;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gboolean icc_msg_given = FALSE;
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!processing_should_continue()) {
@@ -374,7 +374,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames));
+		gui_iface.set_progress((double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames), tmpmsg);
 		g_free(tmpmsg);
 
 		/* we read the full frame */
@@ -642,11 +642,11 @@ free_and_reset_progress_bar:
 	}
 
 	if (retval) {
-		set_progress_bar_data(_("Sequence export failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export failed. Check the log."));
 		siril_log_message(_("Sequence export failed\n"));
 	}
 	else {
-		set_progress_bar_data(_("Sequence export succeeded."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence export succeeded."));
 		siril_log_message(_("Sequence export succeeded.\n"));
 	}
 	if (aborted) { //disposing of the file if Stop button was hit

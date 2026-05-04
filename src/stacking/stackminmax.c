@@ -103,7 +103,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double) cur_nb / ((double) nb_frames + 1.));
+		gui_iface.set_progress((double) cur_nb / ((double) nb_frames + 1.), tmpmsg);
 		g_free(tmpmsg);
 
 		cur_nb++;	// only used for progress bar
@@ -241,7 +241,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		retval = ST_GENERIC_ERROR;
 		goto free_and_reset_progress_bar;
 	}
-	set_progress_bar_data(_("Finalizing stacking..."), (double) nb_frames / ((double) nb_frames + 1.));
+	gui_iface.set_progress((double) nb_frames / ((double) nb_frames + 1.), _("Finalizing stacking..."));
 
 	fits *result = &args->result;
 	if (is_float) {
@@ -295,10 +295,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 free_and_reset_progress_bar:
 	if (retval) {
-		set_progress_bar_data(_("Stacking failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Stacking failed. Check the log."));
 		siril_log_message(_("Stacking failed.\n"));
 	} else {
-		set_progress_bar_data(_("Stacking complete."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Stacking complete."));
 	}
 
 	return retval;

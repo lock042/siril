@@ -410,7 +410,7 @@ gpointer execute_script(gpointer p) {
 	} else {
 		char *msg = siril_log_message(_("Script execution failed.\n"));
 		msg[strlen(msg) - 1] = '\0';
-		set_progress_bar_data(msg, PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, msg);
 	}
 	g_free(saved_cwd);
 

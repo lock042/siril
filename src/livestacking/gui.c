@@ -203,7 +203,7 @@ void init_preprocessing_from_GUI() {
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
-			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, _("Opening dark image..."));
 			prepro->dark = calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
 				prepro->use_dark = TRUE;
@@ -274,7 +274,7 @@ void init_preprocessing_from_GUI() {
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
-			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, _("Opening flat image..."));
 			prepro->flat = calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_16bit)) {
 				prepro->use_flat = TRUE;

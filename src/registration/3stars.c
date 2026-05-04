@@ -36,6 +36,7 @@
 #include "gui/image_interactions.h"
 #include "gui/utils.h"
 #include "gui/PSF_list.h"	// clear_stars_list
+#include "core/gui_iface.h"
 
 static int awaiting_star = 0;
 static int selected_stars = 0;
@@ -371,7 +372,7 @@ int register_3stars(struct registration_args *regargs) {
 	char *msg;
 	msg = siril_log_message(_("Saving the transformation matrices\n"));
 	msg[strlen(msg)-1] = '\0';
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, msg);
 	int processed = 0, failed = 0;
 
 	// local flag accounting both for process_all_frames flag and collecting failures along the process
@@ -396,7 +397,7 @@ int register_3stars(struct registration_args *regargs) {
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
 		if (!(i % 32)) {
-			set_progress_bar_data(NULL, (double)i / regargs->seq->number);
+			gui_iface.set_progress((double)i / regargs->seq->number, NULL);
 		}
 
 		/* we choose to initialize all frames

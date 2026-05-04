@@ -3151,7 +3151,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 			// If we had the python thread lock and failed to release it, release it now
 			if (cleanup->python_conn->thread_claimed) {
 				python_releases_thread(); /* also calls set_cursor_waiting(FALSE) */
-				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+				gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			}
 
 			// Clean up shared memory resources

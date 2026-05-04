@@ -562,7 +562,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
@@ -11010,7 +11010,7 @@ int process_register(int nb) {
 	if (regargs->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
 
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, msg);
 
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;
@@ -11426,7 +11426,7 @@ int process_seq_applyreg(int nb) {
 	if (regargs->clamp && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
-	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Registration: Applying existing data"));
 
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;

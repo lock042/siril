@@ -97,7 +97,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	assert(args->seq);
 	assert(args->image_hook);
 	g_rw_lock_reader_lock(&com.pref_rwlock);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 
 	if (args->nb_filtered_images > 0)
@@ -325,7 +325,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			else {
 				g_atomic_int_inc(&excluded_frames);
 				g_atomic_int_inc(&progress);
-				set_progress_bar_data(NULL, (float)progress / nb_framesf);
+				gui_iface.set_progress((float)progress / nb_framesf, NULL);
 			}
 			if (args->seq->type == SEQ_INTERNAL) {
 				fit->data = NULL;
@@ -376,7 +376,7 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		g_atomic_int_inc(&progress);
 		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
-		set_progress_bar_data(msg, (float)progress / nb_framesf);
+		gui_iface.set_progress((float)progress / nb_framesf, msg);
 		g_free(msg);
 	}
 
@@ -387,7 +387,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		abort = 1;
 	}
 	if (abort || excluded_frames == nb_frames) {
-		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing failed. Check the log."));
 		siril_log_color_message(_("Sequence processing failed.\n"), "red");
 		if (!abort)
 			abort = 1;
@@ -395,10 +395,10 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 	else {
 		if (excluded_frames) {
-			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing partially succeeded. Check the log."));
 			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
 		} else {
-			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing succeeded."));
 			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
 		}
 		gettimeofday(&t_end, NULL);
@@ -1109,7 +1109,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!com.headless) {
 		script_widgets_enable(TRUE);
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	}
 }
 
@@ -1127,7 +1127,7 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 gpointer generic_sequence_metadata_worker(gpointer arg) {
 	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
 	struct timeval t_start, t_end;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	int input_idx, frame, retval = 0;
 	int *index_mapping = NULL;
@@ -1571,7 +1571,7 @@ gpointer generic_image_worker(gpointer p) {
 		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
 	}
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
@@ -1616,7 +1616,7 @@ gpointer generic_image_worker(gpointer p) {
 		g_free(desc);
 	}
 
-	set_progress_bar_data(_("Processing image..."), 0.1f);
+	gui_iface.set_progress(0.1f, _("Processing image..."));
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
@@ -1690,9 +1690,9 @@ the_end:;
 	// early redraws
 
 	if (retval) {
-		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Image processing failed. Check the log."));
 	} else {
-		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Image processing succeeded."));
 	}
 
 	if (!argpreview && !retval)
@@ -1740,7 +1740,7 @@ gpointer generic_mask_worker(gpointer p) {
 	gchar *history = NULL;
 	gboolean rwlocked = FALSE;
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 	g_rw_lock_reader_lock(&com.pref_rwlock);
@@ -1764,7 +1764,7 @@ gpointer generic_mask_worker(gpointer p) {
 		g_free(desc);
 	}
 
-	set_progress_bar_data(_("Processing mask..."), 0.1f);
+	gui_iface.set_progress(0.1f, _("Processing mask..."));
 
 	g_rw_lock_writer_lock(&args->fit->rwlock);
 	rwlocked = TRUE;
@@ -1792,9 +1792,9 @@ gpointer generic_mask_worker(gpointer p) {
 
 the_end:
 	if (args->retval) {
-		set_progress_bar_data(_("Mask processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Mask processing failed. Check the log."));
 	} else {
-		set_progress_bar_data(_("Mask processing succeeded."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Mask processing succeeded."));
 	}
 
 	int retval = args->retval;

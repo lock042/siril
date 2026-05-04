@@ -488,7 +488,7 @@ static gboolean end_update_idle(gpointer p) {
 	set_cursor_waiting(FALSE);
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -651,7 +651,7 @@ end_notifier_idle_error:
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -667,7 +667,7 @@ void siril_check_updates(gboolean verbose) {
 	args->verbose = verbose;
 	args->idle_function = end_update_idle;
 
-	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for updates..."));
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
 
@@ -687,7 +687,7 @@ void siril_check_notifications(gboolean verbose) {
 	args->verbose = verbose;
 	args->idle_function = end_notifier_idle;
 	siril_debug_print("Checking notifications...\n");
-	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for notifications..."));
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
 
@@ -797,7 +797,7 @@ end_spcc_mirrors_error:
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }

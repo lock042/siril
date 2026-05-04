@@ -242,7 +242,7 @@ int check_seq() {
 		g_dir_close(dir);
 		return 1;
 	}
-	set_progress_bar_data(NULL, PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, NULL);
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		sequence *new_seq;
@@ -308,7 +308,7 @@ int check_seq() {
 			}
 		}
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	g_dir_close(dir);
 
 	if (nb_seq > 0) {

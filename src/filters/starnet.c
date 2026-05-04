@@ -133,7 +133,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 			arg += 9;
 		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running StarNet"), value / 100.0);
+			gui_iface.set_progress(value / 100.0, _("Running StarNet"));
 		}
 		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
@@ -489,7 +489,7 @@ gpointer do_starnet(gpointer p) {
 
 	// ok, let's start
 	if (verbose)
-		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, _("Starting StarNet"));
 
 	// Store current working directory
 	currentdir = g_get_current_dir();
@@ -843,7 +843,7 @@ gpointer do_starnet(gpointer p) {
 	clearfits(&workingfit);
 	CLEANUP3:
 	if (verbose)
-		set_progress_bar_data("Ready.", PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, "Ready.");
 	g_free(currentdir);
 	g_free(starnetcommand); // command
 	g_free(starlesstif); // filename
@@ -960,7 +960,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
-	set_progress_bar_data(_("StarNet: Processing..."), 0.);
+	gui_iface.set_progress(0., _("StarNet: Processing..."));
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_starnet_args((starnet_data*)multi_args->user_data);
 		free_multi_args(multi_args);

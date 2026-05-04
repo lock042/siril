@@ -79,7 +79,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		g_assert(args->seq->regparam);
 		g_assert(args->seq->regparam[args->reglayer]);
 	}
-	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Opening images for stacking"));
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
 		if (args->weighting_type == NBSTACK_WEIGHT) {
@@ -110,7 +110,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (!processing_should_continue())
 				return ST_GENERIC_ERROR;
 			if (i % 20 == 0)
-				set_progress_bar_data(NULL, PROGRESS_PULSATE);
+				gui_iface.set_progress(PROGRESS_PULSATE, NULL);
 
 			fitsfile *fptr;
 			if (args->seq->type == SEQ_REGULAR) {
@@ -246,7 +246,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			return ST_GENERIC_ERROR;
 		}
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
 	return ST_OK;
 }
@@ -1259,7 +1259,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	else layerparam = args->seq->regparam[args->reglayer];
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* first loop: open all fits files and check they are of same size */
 	GList *list_date = NULL;
@@ -1513,8 +1513,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	siril_log_message(_("Starting stacking...\n"));
 	if (is_mean)
-		set_progress_bar_data(_("Rejection stacking in progress..."), PROGRESS_RESET);
-	else	set_progress_bar_data(_("Median stacking in progress..."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Rejection stacking in progress..."));
+	else	gui_iface.set_progress(PROGRESS_RESET, _("Median stacking in progress..."));
 	double total = (double)(naxes[2] * naxes[1] + 2); // for progress bar
 
 #ifdef _OPENMP
@@ -1576,7 +1576,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				break;
 			}
 			if (!(cur_nb % 16))	// every 16 iterations
-				set_progress_bar_data(NULL, (double)cur_nb/total);
+				gui_iface.set_progress((double)cur_nb/total, NULL);
 
 			for (x = 0; x < naxes[0]; ++x) {
 				/* copy all images pixel values in the same row array `stack'
@@ -1731,7 +1731,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (retval)
 		goto free_and_close;
 
-	set_progress_bar_data(_("Finalizing stacking..."), (double)cur_nb/total);
+	gui_iface.set_progress((double)cur_nb/total, _("Finalizing stacking..."));
 	if (is_mean) {
 		double nb_tot = (double) naxes[0] * (double) naxes[1] * (double) nb_frames;
 		for (long channel = 0; channel < naxes[2]; channel++) {
@@ -1777,17 +1777,17 @@ free_and_close:
 		if (fit.data) free(fit.data);
 		if (fit.fdata) free(fit.fdata);
 		if (is_mean)
-			set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
-		else	set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Rejection stacking failed. Check the log."));
+		else	gui_iface.set_progress(PROGRESS_RESET, _("Median stacking failed. Check the log."));
 		if (retval == ST_CANCEL)
 			siril_log_message(_("Stacking operation was cancelled.\n"));
 		else siril_log_message(_("Stacking failed.\n"));
 	} else {
 		if (is_mean) {
-			set_progress_bar_data(_("Rejection stacking complete."), PROGRESS_DONE);
+			gui_iface.set_progress(PROGRESS_DONE, _("Rejection stacking complete."));
 			siril_log_message(_("Rejection stacking complete. %d images have been stacked.\n"), nb_frames);
 		} else {
-			set_progress_bar_data(_("Median stacking complete."), PROGRESS_DONE);
+			gui_iface.set_progress(PROGRESS_DONE, _("Median stacking complete."));
 			siril_log_message(_("Median stacking complete. %d images have been stacked.\n"), nb_frames);
 		}
 	}

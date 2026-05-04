@@ -1528,7 +1528,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			char* progress_msg = g_strndup(message, message_length);
 
 			// Update the progress
-			set_progress_bar_data(progress_msg, progress);
+			gui_iface.set_progress(progress, progress_msg);
 
 			// Clean up
 			g_free(progress_msg);

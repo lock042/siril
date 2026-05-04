@@ -411,39 +411,6 @@ for the modules that could not be split using Pattern A.
          - NOTE: the remaining files are all in src/gui/ (no cross-boundary
            impact) so this task is low priority and deferred until after the
            more important separation phases are complete.
-         - Files already converted in 4.2:
-           * python_gui.c
-           * annotate.c
-           * registration.c
-           * single_image.c
-           * dialogs.c
-           * linear_match.c
-           * siril-window.c
-           * PSF_list.c
-           * about_dialog.c
-           * conversion.c
-           * fix_xtrans.c
-           * git_gui.c
-           * histo_display.c
-           * image_display.c
-           * image_interactions.c
-           * keywords_tree.c
-           * message_dialog.c
-           * mouse_action_preferences.c
-           * progress_and_log.c
-           * registration_preview.c
-           * script_menu.c
-           * siril_intro.c
-           * split_cfa.c
-           * statistics_list.c
-           * utils.c
-           * colors.c
-           * stacking.c
-           * astrometry_solver.c
-           * masks_gui.c
-           * save_dialog.c
-           * plot.c
-           * starnetgui.c
          - Files remaining to convert (deferred — all are in src/gui/ so
            no cross-boundary urgency):
            * cut.c          (74 lookup_widget calls)
@@ -465,7 +432,7 @@ for the modules that could not be split using Pattern A.
            All remaining calls replaced with gtk_builder_get_object(gui.builder).
            171 call-sites across 18 non-gui files. Zero callers outside src/gui/.
 
-[ ] 4.4  Route set_progress_bar_data through gui_iface
+[X] 4.4  Route set_progress_bar_data through gui_iface
          - Replace all remaining ~152 call-sites in non-GUI code with
            gui_iface.set_progress(fraction, message).
          - Keep set_progress_bar_data() in gui/ as the implementation.
@@ -473,6 +440,12 @@ for the modules that could not be split using Pattern A.
            io/sequence_export.c, and any algos not covered by phase 3.
          - Do as much of this using scripting as possible, to minimize
            token use for exact pattern changes.
+         - DONE: 116 call-sites replaced across 22 files via replace_progress.py.
+           Note: argument order is swapped — old API was (msg, fraction),
+           new gui_iface.set_progress API is (fraction, msg).
+           Two files needed explicit #include "core/gui_iface.h" added
+           (registration/applyreg.c, livestacking/gui.c).
+           Zero set_progress_bar_data callers remain outside src/gui/.
 
 [ ] 4.5  Route set_cursor_waiting through gui_iface
          - ~145 call-sites; fold into set_busy(TRUE/FALSE).

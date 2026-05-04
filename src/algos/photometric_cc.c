@@ -327,7 +327,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		// Update the progress bar
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
 		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
@@ -646,7 +646,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
 		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
@@ -868,7 +868,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_log_message(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
-	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Photometric color calibration in progress..."));
 	int ret;
 	if (args->spcc)
 		ret = get_spcc_white_balance_coeffs(args, kw);
@@ -887,7 +887,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 			invalidate_stats_from_fit(args->fit);
 		}
 	} else {
-		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Photometric Color Calibration failed"));
 	}
 
 	com.pref.phot_set = backup;
@@ -988,7 +988,7 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 	}
 	siril_catalog_free(siril_cat);
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 
 	return retval;
 }
