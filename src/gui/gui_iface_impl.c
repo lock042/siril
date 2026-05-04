@@ -37,10 +37,15 @@
 #include "gui/image_interactions.h"
 #include "gui/callbacks.h"
 #include "gui/geometry.h"
+#include "gui/gui_state.h"
 #include "gui/plot.h"
 #include "gui/PSF_list.h"
+#include "gui/registration_preview.h"
+#include "gui/sequence_list.h"
 #include "gui/siril_plot.h"
+#include "gui/stacking.h"
 #include "gui/utils.h"
+#include "io/single_image.h"
 
 /* ── Group A: Progress ───────────────────────────────────────────────────── */
 
@@ -111,6 +116,32 @@ static void impl_delete_selection(void) {
 static void impl_on_sequence_opened(void) {}
 static void impl_on_image_loaded(void) {}
 static void impl_on_image_closed(void) {}
+
+/* Called after stacking completes successfully on the GTK main thread.
+ * Consolidates all display-state update calls that were previously scattered
+ * through end_stacking() in stacking.c. */
+static void impl_on_stack_complete(void) {
+	clear_stars_list(TRUE);
+	initialize_display_mode();
+	sliders_mode_set_state(gui.sliders);
+	/* Reader lock guards set_cutoff_sliders_max_values() which reads
+	 * gfit->type/orig_bitpix.  The hi/lo assignment writes keyword fields
+	 * that were set on the worker thread by notify_gfit_data_modified(). */
+	g_rw_lock_reader_lock(&gfit->rwlock);
+	display_filename();
+	gui_function(set_precision_switch, NULL);
+	set_cutoff_sliders_max_values();
+	gfit->keywords.hi = gui.hi;
+	gfit->keywords.lo = gui.lo;
+	g_rw_lock_writer_unlock(&gfit->rwlock);
+	gfit_modified_update_gui();
+	set_display_mode();
+	gui_function(update_MenuItem, NULL);
+	redraw(REMAP_ALL);
+	gui_function(redraw_previews, NULL);
+	sequence_list_change_current();
+	update_stack_interface(TRUE);
+}
 
 /* ── Group F: Panel / tab switching ─────────────────────────────────────── */
 
@@ -190,6 +221,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_sequence_opened    = impl_on_sequence_opened;
 	gui_iface.on_image_loaded       = impl_on_image_loaded;
 	gui_iface.on_image_closed       = impl_on_image_closed;
+	gui_iface.on_stack_complete     = impl_on_stack_complete;
 	gui_iface.show_panel            = impl_show_panel;
 	gui_iface.update_status_bar     = impl_update_status_bar;
 	gui_iface.update_menu_state     = impl_update_menu_state;

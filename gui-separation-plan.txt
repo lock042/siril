@@ -504,13 +504,26 @@ PHASE 5 – CLEAN UP REMAINING PROCESSING MODULES  (via gui_iface)
 These modules cannot be split using Pattern A (they are not dialog hosts)
 so they route residual GUI calls through gui_iface.
 
-[ ] 5.1  src/stacking/ (stacking.c, stackminmax.c, normalization.c,
+[X] 5.1  src/stacking/ (stacking.c, stackminmax.c, normalization.c,
           median_and_mean.c, upscaling.c)
          - Most calls are progress (fixed in 4.4/4.5).
          - Remaining display-state notifications (set_cutoff_sliders_*,
            set_display_mode, sliders_mode_set_state, sequence_list_change_current,
            update_stack_interface) → gui_iface.on_stack_complete() /
            gui_iface.on_sequence_changed().
+         - DONE: Added gui_iface.on_stack_complete() slot (gui_iface.h,
+           gui_iface_stubs.c, gui_iface_impl.c). Moved entire post-stack GUI
+           update cluster (clear_stars_list, initialize_display_mode,
+           sliders_mode_set_state, display_filename, set_precision_switch,
+           set_cutoff_sliders_max_values, gui.hi/lo assignment,
+           gfit_modified_update_gui, set_display_mode, update_MenuItem,
+           redraw, redraw_previews, sequence_list_change_current,
+           update_stack_interface) into impl_on_stack_complete().
+           stacking.c: replaced cluster with gui_iface.on_stack_complete();
+           removed 8 gui/ includes (gui_state.h, callbacks.h, image_display.h,
+           progress_and_log.h, PSF_list.h, sequence_list.h,
+           registration_preview.h, stacking.h). Only non-GUI code remains
+           in src/stacking/ files.
 
 [ ] 5.2  src/registration/ (3stars.c, applyreg.c, global.c, registration.c,
           shift_methods.c)

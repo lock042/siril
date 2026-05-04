@@ -129,6 +129,8 @@ typedef struct {
 	void     (*on_image_loaded)(void);
 	/* Called when the current single image is closed/unloaded. */
 	void     (*on_image_closed)(void);
+	/* Called after stacking completes successfully; gfit holds the result. */
+	void     (*on_stack_complete)(void);
 
 	/* F – Panel / tab switching -------------------------------------------- */
 	/* Show or hide a named UI panel (sidebar tab, floating window, etc.). */

@@ -81,6 +81,7 @@ static void stub_delete_selection(void) {}
 static void stub_on_sequence_opened(void) {}
 static void stub_on_image_loaded(void) {}
 static void stub_on_image_closed(void) {}
+static void stub_on_stack_complete(void) {}
 
 static void stub_show_panel(const char *panel_name, gboolean visible) {
 	(void)panel_name; (void)visible;
@@ -116,6 +117,7 @@ SirilGuiInterface gui_iface = {
 	.on_sequence_opened   = stub_on_sequence_opened,
 	.on_image_loaded      = stub_on_image_loaded,
 	.on_image_closed      = stub_on_image_closed,
+	.on_stack_complete    = stub_on_stack_complete,
 	.show_panel           = stub_show_panel,
 	.update_status_bar    = stub_update_status_bar,
 	.update_menu_state    = stub_update_menu_state,

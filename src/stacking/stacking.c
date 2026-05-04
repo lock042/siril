@@ -24,21 +24,14 @@
 #include <sys/stat.h>
 
 #include "core/siril.h"
-#include "gui/gui_state.h" /* TODO phase 5.1: route gui.sliders/lo/hi through gui_iface */
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/arithm.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
-#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
@@ -524,37 +517,7 @@ static gboolean end_stacking(gpointer p) {
 	 * was called in stack_function_handler.  This idle only handles GTK-side
 	 * updates that must run on the main thread. */
 	if (args->retval == ST_OK) {
-		clear_stars_list(TRUE);
-
-		initialize_display_mode();
-
-		sliders_mode_set_state(gui.sliders);
-		/* set_cutoff_sliders_max_values reads gfit->type/orig_bitpix; reader
-		 * lock will be added in Phase 2/3. */
-		g_rw_lock_reader_lock(&gfit->rwlock);
-		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
-			display_filename();
-			gui_function(set_precision_switch, NULL); // set precision on screen
-		}
-		set_cutoff_sliders_max_values();
-		/* Replace set_sliders_value_to_gfit() (which would read stale GTK
-		 * slider values and write them back into gfit) with a direct assignment
-		 * from gui.hi/gui.lo, which were set by notify_gfit_data_modified() in
-		 * the worker via init_layers_hi_and_lo_values(). */
-		gfit->keywords.hi = gui.hi;
-		gfit->keywords.lo = gui.lo;
-		g_rw_lock_writer_unlock(&gfit->rwlock);
-		gfit_modified_update_gui();
-
-		set_display_mode();
-
-		/* update menus */
-		gui_function(update_MenuItem, NULL);
-
-		gui_iface.redraw_image(REMAP_ALL);
-		gui_function(redraw_previews, NULL);
-		sequence_list_change_current();
-		update_stack_interface(TRUE);
+		gui_iface.on_stack_complete();
 		bgnoise_await();
 	} else {
 		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
