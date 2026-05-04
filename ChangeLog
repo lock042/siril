@@ -13,6 +13,7 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Parallelize min/max stacking algorithms (#194)
 
 siril-1.4.3
 --/--/--
