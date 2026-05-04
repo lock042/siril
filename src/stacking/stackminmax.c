@@ -19,7 +19,6 @@
  */
 
 #include <stdlib.h>
-#include <assert.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -238,7 +237,6 @@ static int stack_minmax_generic(struct stacking_args *stackargs, gboolean ismax)
 	struct minmax_stacking_data *mmdata = calloc(1, sizeof(struct minmax_stacking_data));
 	mmdata->reglayer = stackargs->reglayer;
 	mmdata->ref_image = stackargs->ref_image;
-	assert(mmdata->ref_image >= 0 && mmdata->ref_image < args->seq->number);
 	mmdata->input_32bits = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 	mmdata->ismax = ismax;
 	mmdata->upscale_at_stacking = stackargs->upscale_at_stacking;
