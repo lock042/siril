@@ -1164,7 +1164,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	if (!background) {
 		PRINT_ALLOC_ERR;
 		if (!com.script) {
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 		}
 		return GINT_TO_POINTER(1);
 	}

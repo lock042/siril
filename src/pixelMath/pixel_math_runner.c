@@ -328,7 +328,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		gui_function(open_single_image_from_gfit, NULL);
 	}
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	if (args->from_ui)
 		output_status_bar(args->ret);
 

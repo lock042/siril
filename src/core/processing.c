@@ -1401,7 +1401,7 @@ gboolean end_generic_image_reset_cursor(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	return FALSE;
 }
 

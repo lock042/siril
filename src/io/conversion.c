@@ -609,7 +609,7 @@ static gboolean end_convert(gpointer p) {
 	}
 
 	gui_iface.set_progress(PROGRESS_DONE, PROGRESS_TEXT_RESET);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	stop_processing_thread();

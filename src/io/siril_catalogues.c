@@ -1093,7 +1093,7 @@ static gboolean end_conesearch(gpointer p) {
 		}
 	}
 //	return end_generic(NULL); // don't call this as it calls stop_processing_thread which causes a deadlock
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
 	return FALSE;
 }

@@ -110,15 +110,15 @@ void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpoin
 }
 
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	undo_display_data(UNDO);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void redo_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	undo_display_data(REDO);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void quit_action_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
@@ -301,11 +301,11 @@ void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified(); // here the data isn't modified but we need to trigger the remap
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -334,11 +334,11 @@ void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
 	gui_function(redraw_previews, NULL);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -549,10 +549,10 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	computeStat();
 	siril_open_dialog("StatWindow");
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -574,7 +574,7 @@ void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (g_variant_get_boolean(state)) {
 		draw_sensor_tilt(gfit);
 
@@ -583,7 +583,7 @@ void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 		redraw(REDRAW_OVERLAY);
 	}
 	g_simple_action_set_state(action, state);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -599,13 +599,13 @@ void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data
 		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
 		return;
 	}
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	gui.show_wcs_disto = g_variant_get_boolean(state);
 	redraw(REDRAW_OVERLAY);
 	g_simple_action_set_state(action, state);
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

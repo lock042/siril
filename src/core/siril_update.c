@@ -466,7 +466,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	}
 
 	if (args->verbose) {
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		if (msg) {
 			siril_data_dialog(message_type, _("Software Update"), msg, data);
 		}
@@ -485,7 +485,7 @@ static gboolean end_update_idle(gpointer p) {
 		check_update_version(args);
 
 	/* free data */
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	free(args->content);
 	free(args);
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
@@ -647,7 +647,7 @@ static gboolean end_notifier_idle(gpointer p) {
 
 end_notifier_idle_error:
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);
@@ -669,7 +669,7 @@ void siril_check_updates(gboolean verbose) {
 
 	gui_iface.set_progress(PROGRESS_NONE, _("Looking for updates..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-update", fetch_url_async, args);
@@ -689,7 +689,7 @@ void siril_check_notifications(gboolean verbose) {
 	siril_debug_print("Checking notifications...\n");
 	gui_iface.set_progress(PROGRESS_NONE, _("Looking for notifications..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-notifications", fetch_url_async, args);
@@ -793,7 +793,7 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	check_gaia_archive_status();
 
 end_spcc_mirrors_error:
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);

@@ -1319,7 +1319,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 
 	// If the conversion has been triggered automatically or via the dialog, do it.
 	if (proceed) {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		siril_colorspace_transform(fit, (fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		if (fit == gfit && !com.headless) {
@@ -1328,7 +1328,7 @@ void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion) {
 			notify_gfit_data_modified();
 			gfit_modified_update_gui();
 		}
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 }
 
@@ -1345,7 +1345,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 	// Check if the occasion matches the preference
 	if (com.pref.icc.autoassignment & occasion) {
 		siril_debug_print("Auto assigning working profile\n");
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		// siril_colorspace_transform takes care of hitherto non-color managed images, and assigns a profile instead of converting them
 		fit->icc_profile = copyICCProfile((fit->naxes[2] == 1 ? com.icc.mono_standard : com.icc.working_standard));
 		color_manage(fit, TRUE);
@@ -1361,7 +1361,7 @@ void icc_auto_assign(fits *fit, icc_assign_type occasion) {
 		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 }
 
 const char* default_system_icc_path() {

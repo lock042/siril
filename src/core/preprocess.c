@@ -964,7 +964,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		if (args->output_seqtype < 0 || args->output_seqtype > SEQ_FITSEQ)
 			args->output_seqtype = SEQ_REGULAR;
 		args->allow_32bit_output = !com.pref.force_16bit && args->output_seqtype != SEQ_SER;
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		start_sequence_preprocessing(args);
 	} else {
@@ -972,7 +972,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		args->is_sequence = FALSE;
 		args->output_seqtype = SEQ_REGULAR;
 		args->allow_32bit_output = !com.pref.force_16bit;
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
 		retval = calibrate_single_image(args);
@@ -986,7 +986,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 			invalidate_gfit_histogram();
 			gui_function(open_single_image_from_gfit, NULL);
 		}
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 }
 
@@ -1015,7 +1015,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 		reffit = *gfit;
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeCold"))));
 	sig[1] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHot"))));
 	widget[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkLabelColdCC"));
@@ -1030,7 +1030,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		gtk_label_set_markup(label[0], str[0]);
 		gtk_label_set_markup(label[1], str[1]);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		g_free(expression);
 		return;
 	}
@@ -1064,7 +1064,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	gtk_label_set_markup(label[1], str[1]);
 	g_free(str[0]);
 	g_free(str[1]);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	g_free(expression);
 	if (isseq)
 		clearfits(&reffit);

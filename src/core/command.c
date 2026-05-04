@@ -361,7 +361,7 @@ int process_satu(int nb) {
 	args->for_roi = FALSE;
 
 	/* Run synchronously */
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -403,9 +403,9 @@ int process_save(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	if (com.uniq) {
 		if (!g_str_has_suffix(savename, com.pref.ext)) {
@@ -435,9 +435,9 @@ int process_savebmp(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savebmp(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -643,7 +643,7 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
  ****************************************************************************/
 
 int process_denoise(int nb) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	gboolean mask_aware = FALSE;
 
@@ -651,7 +651,7 @@ int process_denoise(int nb) {
 	struct denoise_args *params = new_denoise_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -682,7 +682,7 @@ int process_denoise(int nb) {
 			if (end == arg || mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			}
 			params->modulation = mod;
@@ -693,7 +693,7 @@ int process_denoise(int nb) {
 			if (end == arg || rho <= 0.f || rho >= 1.f) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			}
 			params->rho = rho;
@@ -704,7 +704,7 @@ int process_denoise(int nb) {
 			if (end == arg) {
 				siril_log_message(_("Error parsing SOS iterations.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
 				siril_log_message(_("Note: SOS iterations < 1. Defaulting to 1.\n"));
@@ -717,7 +717,7 @@ int process_denoise(int nb) {
 		else {
 			siril_log_message(_("Unknown argument %s\n"), arg);
 			free_denoise_args(params);
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -729,7 +729,7 @@ int process_denoise(int nb) {
 			"red"
 		);
 		free_denoise_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -751,7 +751,7 @@ int process_denoise(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_denoise_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -771,7 +771,7 @@ int process_denoise(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -873,7 +873,7 @@ int process_starnet(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -977,7 +977,7 @@ int process_seq_starnet(int nb){
 	}
 	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 	sequence_cfa_warning_check(multi_args->seq);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	apply_starnet_to_sequence(multi_args);
 
 #else
@@ -1005,9 +1005,9 @@ int process_savejpg(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savejpg(savename, gfit, quality, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1051,9 +1051,9 @@ int process_savejxl(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savejxl(savename, gfit, effort, quality, force_8bit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1069,10 +1069,10 @@ int process_savepng(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		uint32_t bytes_per_sample = gfit->orig_bitpix != BYTE_IMG ? 2 : 1;
 		retval = savepng(savename, gfit, bytes_per_sample, gfit->naxes[2] == 3) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1112,9 +1112,9 @@ int process_savetif(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savetif(savename, gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	free(astro_tiff);
 	g_free(filename);
@@ -1130,9 +1130,9 @@ int process_savepnm(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = saveNetPBM(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1242,13 +1242,13 @@ int process_rebayer(int nb){
 	args->f_cfa3 = strdup(normalize_rebayerfilename(filename, word[4], maxpath));
 	args->pattern = pattern;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(rebayer_cmd_worker, args)) {
 		free_rebayer_cmd_data(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	return CMD_OK;
 }
 
@@ -3500,7 +3500,7 @@ int process_ght_args(int nb, gboolean ght_seq, gboolean *mask_aware, int stretch
 		}
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	params->B = (float) B;
 	params->D = (float) expm1(D);
 	params->LP = (float) LP;
@@ -4286,7 +4286,7 @@ int process_asinh(int nb) {
 		arg_offset++;
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	image_cfa_warning_check();
 
 	// Allocate parameters
@@ -4559,7 +4559,7 @@ int process_merge(int nb) {
 	int retval = 0, nb_seq = nb-2;
 	if (!com.wd) {
 		siril_log_message(_("Merge: no working directory set.\n"));
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_NO_CWD;
 	}
 	if (file_name_has_invalid_chars(word[nb - 1])) {
@@ -5022,13 +5022,13 @@ int process_resample(int nb) {
 		}
 	}
 	image_cfa_warning_check();
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	// Allocate parameters
 	struct resample_args *params = new_resample_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5042,7 +5042,7 @@ int process_resample(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_resample_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5060,7 +5060,7 @@ int process_resample(int nb) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -5140,7 +5140,7 @@ int process_crop(int nb) {
 
 int process_rotate(int nb) {
 	gchar *end;
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
 	rectangle area = { 0, 0, gfit->rx, gfit->ry };
@@ -5213,7 +5213,7 @@ int process_rotate(int nb) {
 	struct rotation_args *params = new_rotation_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5228,7 +5228,7 @@ int process_rotate(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_rotation_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5246,7 +5246,7 @@ int process_rotate(int nb) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -7092,9 +7092,9 @@ int process_tilt(int nb) {
 		siril_log_message(_("Clearing tilt information\n"));
 		queue_redraw(REDRAW_OVERLAY);
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		draw_sensor_tilt(gfit);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 
 	return CMD_OK;
@@ -10355,7 +10355,7 @@ int process_link(int nb) {
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
 		g_clear_error(&error);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
@@ -10527,7 +10527,7 @@ int process_convert(int nb) {
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
 		g_clear_error(&error);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		free(destroot);
 		return CMD_NO_CWD;
 	}

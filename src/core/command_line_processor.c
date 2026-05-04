@@ -281,7 +281,7 @@ static gboolean end_script(gpointer p) {
 	display_filename();
 	gui_function(new_selection_zone, NULL);
 	update_spinCPU(GINT_TO_POINTER(0));
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	return FALSE;
 }
 

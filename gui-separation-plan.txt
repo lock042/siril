@@ -447,18 +447,25 @@ for the modules that could not be split using Pattern A.
            (registration/applyreg.c, livestacking/gui.c).
            Zero set_progress_bar_data callers remain outside src/gui/.
 
-[ ] 4.5  Route set_cursor_waiting through gui_iface
+[X] 4.5  Route set_cursor_waiting through gui_iface
          - ~145 call-sites; fold into set_busy(TRUE/FALSE).
          - Do as much of this using scripting as possible, to minimize
            token use for exact pattern changes.
+         - DONE: 98 replacements across 18 files via replace_cursor.py.
+           src/livestacking/livestacking.c needed #include "core/gui_iface.h" added.
+           src/io/siril_pythonmodule.c excluded (only had a comment, not a call).
+           Zero set_cursor_waiting callers remain outside src/gui/.
 
-[ ] 4.6  Decouple gui_log_message from siril_log.c
+[X] 4.6  Decouple gui_log_message from siril_log.c
          - siril_log.c currently calls gui_log_message() (in gui/) directly.
          - Replace with a registered callback in gui_iface.
          - CLI stub writes to stderr; removes the last outbound dependency
            from core/siril_log.c.
          - Do as much of this using scripting as possible, to minimize
            token use for exact pattern changes.
+         - DONE: siril_log.c now includes "core/gui_iface.h" instead of
+           "gui/progress_and_log.h" and calls gui_iface.log_message() directly.
+           gui_iface_impl.c already delegated to gui_log_message(); unchanged.
 
 [ ] 4.7  Route queue_*_message_dialog and siril_message_dialog through gui_iface
          - ~26 call-sites in non-GUI code.

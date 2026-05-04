@@ -20,6 +20,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/gui_iface.h"
 #endif
 
 #include <sys/time.h>
@@ -155,7 +156,7 @@ void stop_live_stacking_engine() {
 	if (!com.headless) {
 		GtkWidget *toolbar = GTK_WIDGET(gtk_builder_get_object(gui.builder, "GtkToolMainBar"));
 		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 }
 

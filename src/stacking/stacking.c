@@ -566,7 +566,7 @@ static gboolean end_stacking(gpointer p) {
 	/* remove tmp files if exist (Upscale) */
 	remove_tmp_upscaled_files(args);
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
 	 * displays the time

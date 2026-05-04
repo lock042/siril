@@ -466,7 +466,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 
 	gui_function(redraw_previews, NULL);	// queues redraws of the registration previews if !com.script
 
-	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
+	gui_iface.set_busy(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
 }
 

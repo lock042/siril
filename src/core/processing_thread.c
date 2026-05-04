@@ -488,7 +488,7 @@ int claim_thread_for_python(void) {
 
     python_reserved = TRUE;
     g_mutex_unlock(&queue_mutex);
-    set_cursor_waiting(TRUE);
+    gui_iface.set_busy(TRUE);
     return 0;
 }
 
@@ -498,7 +498,7 @@ void python_releases_thread(void) {
     g_cond_broadcast(&queue_cond);   /* unblock any threads waiting in
                                         processing_submit_job              */
     g_mutex_unlock(&queue_mutex);
-    set_cursor_waiting(FALSE);
+    gui_iface.set_busy(FALSE);
 }
 
 gboolean processing_is_reserved_for_python(void) {
@@ -552,7 +552,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
     }
 
     if (!com.headless)
-        set_cursor_waiting(TRUE);
+        gui_iface.set_busy(TRUE);
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
@@ -573,7 +573,7 @@ gboolean start_in_new_thread(ProcessingFunc func, gpointer data) {
         if (!processing_in_worker_thread())
             g_atomic_int_set(&job_active_flag, 0);
         if (!com.headless)
-            set_cursor_waiting(FALSE);
+            gui_iface.set_busy(FALSE);
         remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
         return FALSE;
     }
@@ -595,7 +595,7 @@ gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
     */
 
     if (!com.headless)
-        set_cursor_waiting(TRUE);
+        gui_iface.set_busy(TRUE);
 
     if (!add_child(PROCESSING_THREAD_PSEUDO_PID, INT_PROC_THREAD,
                    "Siril processing thread"))
@@ -607,7 +607,7 @@ gboolean start_in_reserved_thread(ProcessingFunc func, gpointer data) {
      * again.  The worker sets it once more before executing, which is harmless. */
     if (!processing_submit_job(func, data)) {
         if (!com.headless)
-            set_cursor_waiting(FALSE);
+            gui_iface.set_busy(FALSE);
         remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
         return FALSE;
     }
@@ -705,7 +705,7 @@ void stop_processing_thread(void) {
     processing_request_cancel();
     remove_child_from_children(PROCESSING_THREAD_PSEUDO_PID);
     if (!com.headless)
-        set_cursor_waiting(FALSE);
+        gui_iface.set_busy(FALSE);
 }
 
 gboolean reserve_thread(void) {

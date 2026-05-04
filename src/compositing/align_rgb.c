@@ -110,7 +110,7 @@ int rgb_align(int m) {
 
 	initialize_methods();
 	initialize_internal_rgb_sequence();
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
@@ -136,7 +136,7 @@ int rgb_align(int m) {
 
 	if (!reserve_thread()) {
 		siril_log_message(_("A processing operation is already running.\n"));
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return 1;
 	}
 	retval1 = method->method_ptr(&regargs);
@@ -146,7 +146,7 @@ int rgb_align(int m) {
 	regargs.regparam = NULL;
 	if (retval1) {
 		gui_iface.set_progress(PROGRESS_DONE, _("Error in channels alignment."));
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		unreserve_thread();
 		return retval1;
 	}
@@ -162,7 +162,7 @@ int rgb_align(int m) {
 		gfit_modified_update_gui();
 	}
 	siril_log_message(_("Aligned RGB channels\n"));
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;
 	return retval2;

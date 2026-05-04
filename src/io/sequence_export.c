@@ -753,7 +753,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		args->crop = confirm;
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(export_sequence, args)) {
 		g_free(args->basename);
 		free(args);

@@ -740,10 +740,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	seq->current = index;
 
 	if (load_it && !com.script) {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 			return 1;
 		}
 		g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -769,7 +769,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		adjust_reginfo();		// change registration displayed/editable values
 		update_display_fwhm();
 		update_gfit_histogram_if_needed();
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		reset_3stars();
 	} else {
 		/* clearfits was done above; if we're not loading, release the lock now */
