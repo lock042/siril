@@ -324,6 +324,7 @@ src_files_gui = [
   'gui/compositing.c',
   'gui/unpurple.c',
   'gui/user_polygons.c',
+  'gui/pixelmath.c',
   'gui/sequence_export.c',
   'gui/siril_actions.c',
   'gui/utils.c',
