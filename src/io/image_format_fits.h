@@ -3,7 +3,6 @@
 
 #include <fitsio.h>
 #include "core/siril.h"
-#include "core/gtk_forward_decls.h"
 
 #define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
 
@@ -66,7 +65,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
+// get_thumbnail_from_fits is GUI-only; forward-declared in gui/dialog_preview.c.
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);

@@ -40,12 +40,38 @@
 #include "core/proto.h"
 #include "filters/mtf.h"
 
-/* Helper and function moved here from io/ser.c because it creates a
- * GdkPixbuf for GUI preview purposes only (sole caller: this file). */
+/* get_thumbnail_from_fits lives in io/image_format_fits.c (needs TRYFITS and
+ * other file-local helpers); it is only called from this file so it is not
+ * exposed in image_format_fits.h.  Forward-declare it here instead. */
+GdkPixbuf *get_thumbnail_from_fits(char *filename, gchar **descr);
+
+/* Helpers and functions that belong in GUI code only. */
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	free(pixels);
 	free(data);
 	return FALSE;
+}
+
+/* Moved from core/utils.c — uses gdk_pixbuf_get_file_info, GUI-only. */
+static gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
+	int width, height;
+	int n_channel = 0;
+
+	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
+	if (pixbuf)
+		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
+
+	if (pixbuf_file_info != NULL) {
+		if (n_channel > 0) {
+			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
+					ngettext("pixel", "pixels", height), n_channel,
+					ngettext("channel", "channels", n_channel));
+		} else {
+			return g_strdup_printf("%d x %d %s", width, height,
+					ngettext("pixel", "pixels", height));
+		}
+	}
+	return NULL;
 }
 
 GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {

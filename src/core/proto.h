@@ -120,7 +120,6 @@ void swap_param(double*, double*);
 gchar* str_append(char **data, const char *newdata);
 char *format_basename(char *root, gboolean can_free);
 float compute_slope(WORD *lo, WORD *hi);
-gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
 gchar **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
