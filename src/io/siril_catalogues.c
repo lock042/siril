@@ -1073,21 +1073,12 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	return 0;
 }
 
-// TODO: move to a file for callbacks and remove gtk include
 static gboolean end_conesearch(gpointer p) {
 	siril_catalogue *temp_cat = (siril_catalogue *) p;
 	if (temp_cat) {
 		// purge_user_catalogue(CAT_AN_USER_TEMP); // we don't clear so as to accumulate displays of various conesearches/show commands
 		if (!load_siril_cat_to_temp(temp_cat)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "annotate_button")));
-			// refresh_annotation_to_temp(); // may need to make that an option later on
-			refresh_annotation_visibility();
-			if (!gtk_toggle_tool_button_get_active(button)) {
-				gtk_toggle_tool_button_set_active(button, TRUE);
-			} else {
-				refresh_found_objects();
-				gui_iface.redraw_image(REDRAW_OVERLAY);
-			}
+			gui_iface.activate_annotation_display();
 		}
 	}
 //	return end_generic(NULL); // don't call this as it calls stop_processing_thread which causes a deadlock

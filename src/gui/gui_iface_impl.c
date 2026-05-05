@@ -726,6 +726,91 @@ static int impl_get_reg_layer(void) {
 	return get_registration_layer_from_GUI(&com.seq);
 }
 
+/* ── SC: Annotation display ──────────────────────────────────────────────── */
+
+static void impl_activate_annotation_display(void) {
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(
+		gtk_builder_get_object(gui.builder, "annotate_button"));
+	refresh_annotation_visibility();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		refresh_found_objects();
+		gui_iface.redraw_image(REDRAW_OVERLAY);
+	}
+}
+
+/* ── T: Main window handle ───────────────────────────────────────────────── */
+
+static void *impl_get_main_window(void) {
+	return GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+}
+
+/* ── U: ICC status icon ──────────────────────────────────────────────────── */
+
+/* cm_struct and cm_worker moved here from core/icc_profile.c */
+struct cm_struct {
+	fits *fit;
+	gboolean active;
+};
+
+static gboolean cm_worker(gpointer user_data) {
+	struct cm_struct *data = (struct cm_struct *) user_data;
+	fits *fit = data->fit;
+	gboolean active = data->active;
+	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
+	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps",
+		active ? "color_management.svg" : "color_management_off.svg", NULL);
+	gchar *tooltip = NULL;
+	if (active) {
+		if (fit->icc_profile) {
+			buffer = siril_color_profile_get_description(fit->icc_profile);
+			monitor = siril_color_profile_get_description(com.gui_icc.monitor);
+		}
+		if (com.gui_icc.soft_proof)
+			proof = siril_color_profile_get_description(com.gui_icc.soft_proof);
+		else
+			proof = g_strdup(monitor);
+		tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
+		if (!tooltip)
+			tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	} else {
+		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
+	}
+	GtkWidget *image = GTK_WIDGET(gtk_builder_get_object(gui.builder, "color_managed_icon"));
+	GtkWidget *button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "icc_main_window_button"));
+	gtk_image_set_from_resource((GtkImage *) image, name);
+	gtk_widget_set_tooltip_text(button, tooltip);
+	g_free(name);
+	g_free(buffer);
+	g_free(monitor);
+	g_free(proof);
+	g_free(tooltip);
+	return FALSE;
+}
+
+static void impl_update_icc_status_icon(gpointer p, gboolean active) {
+	fits *fit = (fits *) p;
+	struct cm_struct data = { fit, active };
+	if (g_main_context_is_owner(g_main_context_default())) {
+		cm_worker(&data);
+	} else {
+		execute_idle_and_wait_for_it(cm_worker, &data);
+	}
+}
+
+static gboolean impl_get_gamut_check_active(void) {
+	GtkToggleButton *checkgamut = GTK_TOGGLE_BUTTON(
+		gtk_builder_get_object(gui.builder, "checkgamut"));
+	return gtk_toggle_button_get_active(checkgamut);
+}
+
+/* ── V: Registration panel status ────────────────────────────────────────── */
+
+static void impl_update_registration_status(const gchar *msg) {
+	registration_update_label(msg);
+}
+
 /* ── Group S: Pixel-math status ──────────────────────────────────────────── */
 
 static void impl_update_pixel_math_status(int ret) {
@@ -882,6 +967,11 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_star_follow_state       = impl_get_star_follow_state;
 	gui_iface.show_command_help           = impl_show_command_help;
 	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
+	gui_iface.activate_annotation_display = impl_activate_annotation_display;
+	gui_iface.get_main_window             = impl_get_main_window;
+	gui_iface.update_icc_status_icon      = impl_update_icc_status_icon;
+	gui_iface.get_gamut_check_active      = impl_get_gamut_check_active;
+	gui_iface.update_registration_status  = impl_update_registration_status;
 	gui_iface.update_single_image_display = impl_update_single_image_display;
 	gui_iface.seq_redisplay_frame         = impl_seq_redisplay_frame;
 	gui_iface.set_poly_drawing            = impl_set_poly_drawing;

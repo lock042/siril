@@ -329,6 +329,28 @@ typedef struct {
 	 * ret is the pixel_math_data.ret value (0 = success, non-zero = error). */
 	void (*update_pixel_math_status)(int ret);
 
+	/* SC – Annotation display ----------------------------------------------- */
+	/* Ensure the annotation overlay is visible and up-to-date after a
+	 * catalogue search.  Activates the annotate toggle if needed. */
+	void (*activate_annotation_display)(void);
+
+	/* T – Window handle ----------------------------------------------------- */
+	/* Return the main application window (GtkWindow*) as void* so the header
+	 * stays GTK-free.  Callers in GUI code cast to GtkWindow*. */
+	void *(*get_main_window)(void);
+
+	/* U – ICC status --------------------------------------------------------- */
+	/* Update the ICC color-management status icon and tooltip in the toolbar.
+	 * fit is cast to fits* in the implementation; use gpointer to keep the
+	 * header GTK/siril.h-free. */
+	void     (*update_icc_status_icon)(gpointer fit, gboolean active);
+	/* Return TRUE if the gamut check toggle in the ICC dialog is active. */
+	gboolean (*get_gamut_check_active)(void);
+
+	/* V – Registration panel status ----------------------------------------- */
+	/* Set the info label text in the 3-star registration panel. */
+	void (*update_registration_status)(const gchar *msg);
+
 	/* R – Python bridge UI ------------------------------------------------- */
 	/* Refresh the single-image display (wraps update_single_image_from_gfit).
 	 * Threading-aware: dispatches to main thread if called from worker. */

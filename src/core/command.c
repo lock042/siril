@@ -6302,14 +6302,6 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
-gboolean get_followstar_idle(gpointer user_data) {
-	framing_mode *framing = (framing_mode*) user_data;
-	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "followStarCheckButton")));
-	if (gtk_toggle_button_get_active(follow))
-		*framing = FOLLOW_STAR_FRAME;
-	// no need to have an else as framing is already initiated by the caller
-	return FALSE;
-}
 
 /* seqpsf sequencename [channel] [{ -at=x,y | -wcs=ra,dec }] [-followstar] */
 int process_seq_psf(int nb) {

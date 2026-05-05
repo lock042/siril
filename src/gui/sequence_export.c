@@ -30,6 +30,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/stacking.h"
 #include "gui/gui_state.h"
+#include "gui/save_dialog.h"
 #include "io/sequence.h"
 #include "io/sequence_export.h"
 #include "registration/registration.h"

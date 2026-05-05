@@ -29,13 +29,8 @@
 #include "icc_default_profiles.h"
 #include "core/gui_iface.h"
 #include "gui/image_display.h"
-#include "gui/icc_profile.h"
-#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
 #include "gui/siril_plot.h"
-#include "gui/siril_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/siril_plot.h"
@@ -54,56 +49,11 @@ static GMutex display_transform_mutex;
 static gboolean profile_check_verbose = TRUE;
 
 ////// Functions //////
-struct cm_struct {
-	fits *fit;
-	gboolean active;
-};
-
-static gboolean cm_worker(gpointer user_data) {
-	struct cm_struct *data = (struct cm_struct*) user_data;
-	fits *fit = data->fit;
-	gboolean active = data->active;
-	gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
-	gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
-	gchar *tooltip = NULL;
-	if (active) {
-		if (fit->icc_profile) {
-			buffer = siril_color_profile_get_description(fit->icc_profile);
-			monitor = siril_color_profile_get_description(com.gui_icc.monitor);
-		}
-		if (com.gui_icc.soft_proof)
-			proof = siril_color_profile_get_description(com.gui_icc.soft_proof);
-		else
-			proof = g_strdup(monitor);
-
-		tooltip = g_strdup_printf(_("Image is color managed\nImage profile: %s\nMonitor profile: %s\nSoft proofing profile: %s"), buffer, monitor, proof);
-		if (!tooltip)
-			tooltip = g_strdup(_("Image is color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-	} else {
-		tooltip = g_strdup(_("Image is not color managed\n\nLeft click: Color management dialog\nRight click: toggle ISO12646 color assessment mode"));
-	}
-	GtkWidget *image = GTK_WIDGET(gtk_builder_get_object(gui.builder, "color_managed_icon"));
-	GtkWidget *button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "icc_main_window_button"));
-	gtk_image_set_from_resource((GtkImage*) image, name);
-	gtk_widget_set_tooltip_text(button, tooltip);
-	g_free(name);
-	g_free(buffer);
-	g_free(monitor);
-	g_free(proof);
-	g_free(tooltip);
-	return FALSE;
-}
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	struct cm_struct data = { fit, active };
-	if (fit == gfit && !com.script) {
-		if (g_main_context_is_owner(g_main_context_default())) {
-			cm_worker(&data);
-		} else {
-			gui_iface.execute_idle_sync(cm_worker, &data);
-		}
-	}
+	if (fit == gfit && !com.script)
+		gui_iface.update_icc_status_icon(fit, active);
 }
 
 static gchar *siril_color_profile_get_info (cmsHPROFILE profile, cmsInfoType info) {
@@ -241,6 +191,11 @@ void display_index_transform(BYTE* index, int vport) {
 	memcpy(index, chan, USHRT_MAX + 1);
 }
 
+void icc_lock_monitor_profile(void)   { g_mutex_lock(&monitor_profile_mutex); }
+void icc_unlock_monitor_profile(void) { g_mutex_unlock(&monitor_profile_mutex); }
+void icc_lock_soft_proof_profile(void)   { g_mutex_lock(&soft_proof_profile_mutex); }
+void icc_unlock_soft_proof_profile(void) { g_mutex_unlock(&soft_proof_profile_mutex); }
+
 cmsHTRANSFORM initialize_proofing_transform() {
 	g_assert(com.gui_icc.monitor);
 	if (gfit->icc_profile == NULL || gfit->color_managed == FALSE)
@@ -248,7 +203,7 @@ cmsHTRANSFORM initialize_proofing_transform() {
 	cmsUInt32Number flags = com.gui_icc.proofing_flags;
 	if (fit_icc_is_linear(gfit))
 		flags |= cmsFLAGS_NOOPTIMIZE;
-	gboolean gamutcheck = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkgamut"))));
+	gboolean gamutcheck = gui_iface.get_gamut_check_active();
 	if (gamutcheck) {
 		flags |= cmsFLAGS_GAMUTCHECK;
 	}
@@ -534,147 +489,6 @@ void cleanup_common_profiles() {
 		cmsDeleteContext(com.icc.context_threaded);
 	memset(&com.icc, 0, sizeof(struct common_icc));
 	siril_debug_print("ICC profiles cleaned up\n");
-}
-
-void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
-	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_monitor_profile_active"));
-	gtk_file_chooser_unselect_all(filechooser);
-	cmsHPROFILE old_monitor = copyICCProfile(com.gui_icc.monitor);
-	g_mutex_lock(&monitor_profile_mutex);
-	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
-		g_free(com.pref.icc.icc_path_monitor);
-		com.pref.icc.icc_path_monitor = NULL;
-		cmsCloseProfile(com.gui_icc.monitor);
-		com.gui_icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
-		if (com.gui_icc.monitor) {
-			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
-		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-			exit(1);
-		}
-	}
-	g_mutex_unlock(&monitor_profile_mutex);
-	gtk_toggle_button_set_active(togglebutton, FALSE);
-	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
-	if (!profiles_identical(old_monitor, com.gui_icc.monitor)) {
-		refresh_icc_transforms();
-		notify_gfit_data_modified();
-		gui_iface.redraw_image(REMAP_ALL);
-	}
-	cmsCloseProfile(old_monitor);
-}
-
-void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
-	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_proofing_profile_active"));
-	g_mutex_lock(&soft_proof_profile_mutex);
-
-	gtk_file_chooser_unselect_all(filechooser);
-	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
-		g_free(com.pref.icc.icc_path_soft_proof);
-		com.pref.icc.icc_path_soft_proof = NULL;
-	}
-	if (com.gui_icc.soft_proof)
-		cmsCloseProfile(com.gui_icc.soft_proof);
-	com.gui_icc.soft_proof = NULL;
-
-	g_mutex_unlock(&soft_proof_profile_mutex);
-	gtk_toggle_button_set_active(togglebutton, FALSE);
-	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
-}
-
-void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
-	gboolean no_file = FALSE;
-	gboolean active = gtk_toggle_button_get_active(button);
-	g_mutex_lock(&monitor_profile_mutex);
-	if (com.gui_icc.monitor) {
-		cmsCloseProfile(com.gui_icc.monitor);
-	}
-	if (active) {
-		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			com.pref.icc.icc_path_monitor = g_strdup(gtk_file_chooser_get_filename(filechooser));
-		}
-		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for custom monitor profile.\n"), "red");
-			no_file = TRUE;
-		} else {
-			com.gui_icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
-		}
-		if (com.gui_icc.monitor) {
-			siril_log_message(_("Monitor profile loaded from %s\n"), com.pref.icc.icc_path_monitor, "r");
-			g_mutex_unlock(&monitor_profile_mutex);
-			refresh_icc_transforms();
-			return;
-		} else {
-			if (!no_file) {
-				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_monitor);
-			}
-			com.gui_icc.monitor = srgb_monitor_perceptual();
-			if (com.gui_icc.monitor) {
-				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
-			} else {
-				siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-				exit(1);
-			}
-		}
-	} else {
-		com.gui_icc.monitor = srgb_monitor_perceptual();
-		if (com.gui_icc.monitor) {
-			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
-		} else {
-			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
-			exit(1);
-		}
-	}
-	g_mutex_unlock(&monitor_profile_mutex);
-	refresh_icc_transforms();
-}
-
-void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
-	gboolean no_file = FALSE;
-	gboolean active = gtk_toggle_button_get_active(button);
-	g_mutex_lock(&soft_proof_profile_mutex);
-	if (com.gui_icc.soft_proof) {
-		cmsCloseProfile(com.gui_icc.soft_proof);
-		com.gui_icc.soft_proof = NULL;
-	}
-	if (active) {
-		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			com.pref.icc.icc_path_soft_proof = g_strdup(gtk_file_chooser_get_filename(filechooser));
-		}
-		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
-			siril_log_color_message(_("Error: no filename specified for output device proofing profile.\n"), "red");
-			no_file = TRUE;
-		} else {
-			com.gui_icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
-		}
-		if (com.gui_icc.soft_proof) {
-			siril_log_message(_("Output device proofing profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
-			g_mutex_unlock(&soft_proof_profile_mutex);
-			refresh_icc_transforms();
-			notify_gfit_data_modified();
-			gui_iface.redraw_image(REMAP_ALL);
-			return;
-		} else {
-			if (!no_file) {
-				siril_log_color_message(_("Output device proofing profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_soft_proof);
-			}
-			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
-		}
-	} else {
-		siril_log_message(_("Output device proofing profile deactivated. Soft proofing will proof to the monitor profile.\n"));
-	}
-	g_mutex_unlock(&soft_proof_profile_mutex);
-	refresh_icc_transforms();
-	notify_gfit_data_modified();
-	gui_iface.redraw_image(REMAP_ALL);
 }
 
 cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16) {

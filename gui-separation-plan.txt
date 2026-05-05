@@ -896,32 +896,40 @@ Group D — Repository availability flags (highest-value quick win):
             siril_git.c.  Build clean.
 
 Group A — gtk.builder widget lookups in non-GUI code (move callbacks to gui/):
-[ ] SC.1  core/icc_profile.c — 7 direct gui.builder accesses.
-          Functions on_monitor_profile_clear_clicked,
+[X] SC.1  core/icc_profile.c — 7 direct gui.builder accesses.
+          Done: cm_struct + cm_worker moved to gui_iface_impl.c; two new slots
+          added (update_icc_status_icon, get_gamut_check_active); four GTK
+          signal handlers (on_monitor_profile_clear_clicked,
           on_proofing_profile_clear_clicked,
           on_custom_monitor_profile_active_toggled,
-          on_custom_proofing_profile_active_toggled, and cm_worker (partial)
-          contain GTK signal callbacks and widget lookups.  Move to
-          gui/icc_profile.c; cm_worker's widget update portion should move or
-          route through gui_iface (e.g. a new update_icc_status_icon slot).
-[ ] SC.2  registration/3stars.c — 13 direct gui.builder accesses.
-          Functions set_registration_ready, update_label, update_icons,
-          _3stars_check_selection, on_select_star_button_clicked all do
-          gtk_builder_get_object(gui.builder, ...) for registration panel
-          widgets.  Move to gui/registration.c (or the existing gui/
-          registration file) and use init_statics pattern.
-[ ] SC.3  core/command.c:6307 — get_followstar_idle() reads
-          followStarCheckButton via gui.builder.  Route through a new
-          gui_iface slot (get_follow_star_state → bool) so command.c
-          stays GTK-free.
-[ ] SC.4  io/siril_catalogues.c:1082 — end_conesearch() sets annotate toggle
-          button state via gui.builder.  Route through gui_iface
-          (e.g. set_annotation_button_active).
-[ ] SC.5  io/image_formats_libraries.c — 4 gui.builder accesses.
-          get_tiff_compression(), get_tif_data_from_ui(), and heif_dialog()
-          read/write dialog widgets; these are GTK dialog callbacks that
-          belong in gui/.  Move to gui/save_dialog.c or a new
-          gui/image_format_gui.c.
+          on_custom_proofing_profile_active_toggled) moved to gui/icc_profile.c.
+          color_manage() and initialize_proofing_transform() updated.
+          Unneeded gui/ includes removed from core/icc_profile.c.
+[X] SC.2  registration/3stars.c — 13 direct gui.builder accesses.
+          Done: created registration/3stars.h with shared extern state
+          (awaiting_star, selected_stars, _3boxes); GUI functions
+          (set_registration_ready, update_label, update_icons, reset_icons,
+          reset_3stars, _3stars_check_selection, on_select_star_button_clicked)
+          moved to gui/registration.c using existing init_statics widget
+          pointers; new three_buttons[]/image_3stars[] statics added and
+          initialized; update_registration_status slot added to gui_iface;
+          _3stars_seqpsf uses gui_iface.get_reg_layer() instead of widget read.
+[X] SC.3  core/command.c:6307 — get_followstar_idle() reads
+          followStarCheckButton via gui.builder.
+          Done: removed get_followstar_idle from command.c/h; added
+          registration_get_follow_star() to gui/registration.c+h; updated
+          gui/siril_actions.c to call it directly.
+[X] SC.4  io/siril_catalogues.c:1082 — end_conesearch() sets annotate toggle
+          button state via gui.builder.
+          Done: added activate_annotation_display slot to gui_iface;
+          end_conesearch replaced gui.builder access with
+          gui_iface.activate_annotation_display().
+[X] SC.5  io/image_formats_libraries.c — 4 gui.builder accesses.
+          Done: get_tiff_compression() and get_tif_data_from_ui() moved to
+          gui/save_dialog.c; declared in gui/save_dialog.h; removed from
+          core/proto.h; gui/sequence_export.c updated. heif_dialog() fixed via
+          new gui_iface.get_main_window() slot (returns void* to avoid GTK
+          type in interface).
 
 Group B — Display range state: gui.lo, gui.hi, gui.sliders:
 [ ] SD.1  core/utils.c:895-896 — compute_slope() reads gui.lo/gui.hi to

@@ -389,15 +389,6 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-gboolean get_tiff_compression() {
-	if (!com.headless) {
-		GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "radiobuttonCompDeflate")));
-		if (gtk_toggle_button_get_active(button))
-			return TRUE;
-	}
-	return FALSE;
-}
-
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 #ifdef _WIN32
 	wchar_t *wname;
@@ -652,31 +643,6 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	g_free(basename);
 
 	return retval;
-}
-
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
-	if (!com.script && !com.headless) {
-		/*******************************************************************
-		 * If the user saves a tif from the graphical menu, he can set
-		 * the Description and the Copyright of the Image
-		 ******************************************************************/
-
-		GtkTextIter itDebut;
-		GtkTextIter itFin;
-
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Description_txt")));
-		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-		gtk_text_buffer_get_end_iter(desbuf, &itFin);
-		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Copyright_txt")));
-		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
-		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
-		gtk_text_buffer_get_end_iter(copybuf, &itFin);
-		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-
-	}
 }
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
@@ -2493,7 +2459,7 @@ static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image)
 	}
 
 	GtkWidget *dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
-			GTK_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"))), GTK_DIALOG_MODAL,
+			GTK_WINDOW(gui_iface.get_main_window()), GTK_DIALOG_MODAL,
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
 

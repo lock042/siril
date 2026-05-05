@@ -17,28 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_GUI_REGISTRATION_H_
-#define SRC_GUI_REGISTRATION_H_
+#ifndef REGISTRATION_3STARS_H
+#define REGISTRATION_3STARS_H
 
-typedef enum {
-	REG_PAGE_GLOBAL,
-	REG_PAGE_COMET,
-	REG_PAGE_3_STARS,
-	REG_PAGE_KOMBAT,
-	REG_PAGE_MISC
-} reg_notebook_page;
+#include "core/siril.h"
 
-// 3 stars GUI
-void reset_3stars();
-int _3stars_get_number_selected_stars();
-gboolean _3stars_check_selection();
+/* Shared state between processing and GUI code in the 3-star registration. */
+extern int awaiting_star;
+extern int selected_stars;
+extern rectangle _3boxes[3];
 
-// General GUI
-int get_registration_layer_from_GUI(const sequence *seq);
-gboolean registration_get_follow_star(void);
-void registration_update_label(const gchar *msg);
-void update_reg_interface(gboolean dont_change_reg_radio);
-gboolean end_register_idle(gpointer p);
-void initialize_registration_methods();
+int register_3stars(struct registration_args *regargs);
+int _3stars_get_number_selected_stars(void);
 
-#endif /* SRC_GUI_REGISTRATION_H_ */
+#endif /* REGISTRATION_3STARS_H */

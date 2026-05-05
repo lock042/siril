@@ -187,6 +187,19 @@ static void stub_show_command_help(void) {}
 /* S – Pixel-math status */
 static void stub_update_pixel_math_status(int ret) { (void)ret; }
 
+/* SC – Annotation display */
+static void stub_activate_annotation_display(void) {}
+
+/* T – Window handle */
+static void *stub_get_main_window(void) { return NULL; }
+
+/* U – ICC status */
+static void stub_update_icc_status_icon(gpointer fit, gboolean active) { (void)fit; (void)active; }
+static gboolean stub_get_gamut_check_active(void) { return FALSE; }
+
+/* V – Registration panel status */
+static void stub_update_registration_status(const gchar *msg) { (void)msg; }
+
 /* R – Python bridge UI */
 static void stub_update_single_image_display(void) {}
 static void stub_seq_redisplay_frame(int index) { (void)index; }
@@ -287,6 +300,11 @@ SirilGuiInterface gui_iface = {
 	.get_star_follow_state       = stub_get_star_follow_state,
 	.show_command_help           = stub_show_command_help,
 	.update_pixel_math_status    = stub_update_pixel_math_status,
+	.activate_annotation_display = stub_activate_annotation_display,
+	.get_main_window             = stub_get_main_window,
+	.update_icc_status_icon      = stub_update_icc_status_icon,
+	.get_gamut_check_active      = stub_get_gamut_check_active,
+	.update_registration_status  = stub_update_registration_status,
 	.update_single_image_display = stub_update_single_image_display,
 	.seq_redisplay_frame         = stub_seq_redisplay_frame,
 	.set_poly_drawing            = stub_set_poly_drawing,

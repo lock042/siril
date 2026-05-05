@@ -1035,3 +1035,37 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 void on_combo_type_of_tiff_changed(GtkComboBox* box, gpointer user_data) {
 	set_description_in_TIFF();
 }
+
+gboolean get_tiff_compression(void) {
+	if (!com.headless) {
+		GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "radiobuttonCompDeflate")));
+		if (gtk_toggle_button_get_active(button))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
+	if (!com.script && !com.headless) {
+		/*******************************************************************
+		 * If the user saves a tif from the graphical menu, he can set
+		 * the Description and the Copyright of the Image
+		 ******************************************************************/
+
+		GtkTextIter itDebut;
+		GtkTextIter itFin;
+
+		GtkTextView *description_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Description_txt")));
+		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
+		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
+		gtk_text_buffer_get_end_iter(desbuf, &itFin);
+		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
+
+		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Copyright_txt")));
+		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
+		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
+		gtk_text_buffer_get_end_iter(copybuf, &itFin);
+		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
+
+	}
+}

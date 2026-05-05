@@ -60,6 +60,7 @@
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
 #include "gui/menu_gray_geometry.h"
+#include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/remixer.h"
 #include "gui/user_polygons.h"
@@ -446,8 +447,9 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	if (!seq->regparam[layer])
 		framing = ORIGINAL_FRAME;
 	if (framing == ORIGINAL_FRAME) {
-		// com.headless is FALSE, so we execute the GUI path
-		execute_idle_and_wait_for_it(get_followstar_idle, &framing);
+		// com.headless is FALSE, so we can read the toggle directly
+		if (registration_get_follow_star())
+			framing = FOLLOW_STAR_FRAME;
 	}
 
 	// Run PSF
