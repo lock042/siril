@@ -111,7 +111,7 @@ static int allocate_full_surface(struct image_view *view) {
 				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 
-		guchar *tmp = realloc(view->buf, stride * sh * sizeof(guchar));
+		guchar *tmp = realloc(view->buf, (size_t)stride * sh * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			free(view->buf);
