@@ -12,21 +12,19 @@
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
 #include "core/masks.h"
-#include "core/siril_actions.h"
+#include "gui/siril_actions.h"
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/proto.h"
 #include "core/undo.h"
+#include "core/gui_iface.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
+#include "gui/gui_state.h"
 #include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
 #include "gui/user_polygons.h"
-#include "gui/siril-window.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -791,7 +789,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					}
 					memcpy(&com.selection, &selection, sizeof(rectangle));
 					if (!com.headless)
-						execute_idle_and_wait_for_it(new_selection_zone, NULL);
+						gui_iface.new_selection_zone();
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				}
 			} else {
@@ -1141,59 +1139,46 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_INFO_MESSAGEBOX:
 		case CMD_INFO_MESSAGEBOX_MODAL: {
 			// Set the title and type
-			GtkMessageType type;
+			SirilMessageType type;
 			const gchar *title;
-			gboolean modal = TRUE;
 			switch (header->command) {
 				case CMD_ERROR_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_ERROR_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_ERROR;
+					type = SIRIL_MSG_ERROR;
 					title = _("Error");
 					break;
 				case CMD_WARNING_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_WARNING_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_WARNING;
+					type = SIRIL_MSG_WARNING;
 					title = _("Warning");
 					break;
 				case CMD_INFO_MESSAGEBOX:
-					modal = FALSE;
 				case CMD_INFO_MESSAGEBOX_MODAL:
-					type = GTK_MESSAGE_INFO;
+					type = SIRIL_MSG_INFO;
 					title = _("Information");
 					break;
 				default:
-					type = GTK_MESSAGE_OTHER;
+					type = SIRIL_MSG_INFO;
 					title = _("Unknown dialog type");
 			}
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
 
-			// If we are headess we can't use a siril_message_dialog, so we just print the message to the log
+			// If we are headless we can't use a siril_message_dialog, so we just print the message to the log
 			if (com.headless) {
-				if (type == GTK_MESSAGE_INFO)
+				if (type == SIRIL_MSG_INFO)
 					siril_log_message(log_msg);
-				else if (type == GTK_MESSAGE_WARNING)
+				else if (type == SIRIL_MSG_WARNING)
 					siril_log_color_message(log_msg, "salmon");
-				else if (type == GTK_MESSAGE_ERROR)
+				else if (type == SIRIL_MSG_ERROR)
 					siril_log_color_message(log_msg, "red");
 				g_free(log_msg);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 				break;
 			}
 
-			if (!modal) {
-				queue_message_dialog(type, title, log_msg);
-			} else {
-				struct message_data *data = malloc(sizeof(struct message_data));
-				data->type = type;
-				data->title = strdup(title);
-				data->text = strdup(log_msg);
-				siril_debug_print("Executing modal dialog\n");
-				if (!com.headless)
-					execute_idle_and_wait_for_it(siril_message_dialog_idle, data);
-			}
+			siril_debug_print("Executing message dialog\n");
+			gui_iface.message_dialog(type, title, log_msg);
 			g_free(log_msg);
 
 			// Send success response
@@ -1308,10 +1293,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// would deadlock if we still held the writer lock here.
 				if (success && !com.headless) {
 					siril_debug_print("set_*_pixeldata: updating gfit\n");
-					if (g_main_context_is_owner(g_main_context_default()))
-						update_single_image_from_gfit(NULL);
-					else
-						execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
+					gui_iface.update_single_image_display();
 				}
 			}
 			break;
@@ -1395,7 +1377,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				siril_log_color_message(_("Error writing sequence frame %i from Python\n"), "red", index);
 			}
 			if (!com.headless && com.seq.current == index) {
-				execute_idle_and_wait_for_it(seq_load_image_in_thread, &index);
+				gui_iface.seq_redisplay_frame(index);
 			}
 			break;
 		}
@@ -2754,7 +2736,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			uint8_t retval = siril_confirm_dialog_async((gchar*) title, (gchar*) message, (gchar*) confirm_label) ? 1 : 0;
+			uint8_t retval = gui_iface.confirm_dialog(title, message, confirm_label) ? 1 : 0;
 			success = send_response(conn, STATUS_OK, (const char*)&retval, sizeof(uint8_t));
 			break;
 		}
@@ -2820,9 +2802,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}*/
 			if (payload_length == 5) {
 				uint32_t color = GUINT32_FROM_BE(*(uint32_t*) payload);
-				gui.poly_fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
-				gui.poly_ink = uint32_to_gdk_rgba(color);
-				init_draw_poly();
+				gboolean fill = (gboolean) (*(uint8_t*) (payload + 4) != 0);
+				gui_iface.set_poly_drawing(color, fill);
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
 				const char* error_msg = _("Invalid payload for CMD_DRAW_POLYGON");
@@ -3235,8 +3216,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							siril_debug_print("Error in send_response\n");
 					} else {
 						// Set STF
-						gui.rendering_mode = stf;
-						execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
+						gui_iface.set_rendering_mode((int)stf);
 						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
@@ -3262,10 +3242,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				if (payload_length == 1) {
 					uint8_t statebyte = payload[0];
 					gboolean state = (statebyte);
-					gui.unlink_channels = !state;
-
-					// Schedule the UI update on the GTK thread
-					execute_idle_and_wait_for_it(chain_channels_idle_callback, GINT_TO_POINTER(state));
+					gui_iface.set_channels_linked(state);
 					gui_iface.redraw_image_sync(REMAP_ALL);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
@@ -3287,7 +3264,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			double x_off = gui.display_offset.x;
 			double y_off = gui.display_offset.y;
-			double zoom = get_zoom_val();
+			double zoom = gui_iface.get_zoom_value();
 			TO_BE64_INTO(x_off, x_off, double);
 			TO_BE64_INTO(y_off, y_off, double);
 			TO_BE64_INTO(zoom, zoom, double);
@@ -3321,7 +3298,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							siril_debug_print("Error in send_response\n");
 					} else {
 						// Set slider mode only
-						execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
+						gui_iface.set_sliders_mode((int)sliders);
 						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
@@ -3356,9 +3333,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						if (!success)
 							siril_debug_print("Error in send_response\n");
 					}  else {
-						gui.lo = lo;
-						gui.hi = hi;
-						execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
+						gui_iface.set_cutoff_values(lo, hi);
 						gui_iface.redraw_image_sync(REMAP_ALL);
 						success = send_response(conn, STATUS_OK, NULL, 0);
 					}
@@ -3420,8 +3395,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 						zoom = ZOOM_FIT;
 					gui.zoom_value = zoom;
 					if (zoom == ZOOM_FIT)
-						reset_display_offset();
-					execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
+						gui_iface.reset_display_offset();
+					gui_iface.update_zoom_label();
 					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
@@ -3535,7 +3510,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_rw_lock_writer_unlock(&gfit->rwlock);
 				show_or_hide_mask_tab();
 				if (!com.script) {
-					execute_idle_and_wait_for_it(redraw_mask_idle, NULL);
+					gui_iface.redraw_mask_idle();
 				}
 			}
 			break;
@@ -3784,7 +3759,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 							g_warning("Unhandled DialogID: %d", index);
 							break;
 					}
-					ActionResult result = queue_activate_action_if_enabled(action_name, appmap);
+					ActionResult result = (ActionResult)gui_iface.activate_action(action_name, appmap);
 					const char* error_msg;
 					switch (result) {
 						case ACTION_SUCCESS:

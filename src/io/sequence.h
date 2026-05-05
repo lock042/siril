@@ -87,9 +87,6 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean init_fr
 int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, fits *fit, rectangle *area, int threads);
 void free_reference_image();
 
-/* in export.c now */
-void	update_export_crop_label();
-
 size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry);
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
 

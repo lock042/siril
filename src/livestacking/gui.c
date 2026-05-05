@@ -6,7 +6,7 @@
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
-#include "core/siril_actions.h"
+#include "gui/siril_actions.h"
 #include "core/proto.h"
 #include "core/preprocess.h"
 #include "core/siril_log.h"
@@ -14,7 +14,7 @@
 static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
 
 /* for fullscreen and window management on activation,
- * see livestacking_action_activate() in core/siril_actions.c */
+ * see livestacking_action_activate() in gui/siril_actions.c */
 
 struct _label_struct {
 	GtkLabel *label;

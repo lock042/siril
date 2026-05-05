@@ -65,7 +65,7 @@
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
-#include "core/siril_actions.h"
+#include "gui/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/processing_thread.h"

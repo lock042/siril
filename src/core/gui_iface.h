@@ -73,6 +73,15 @@ typedef enum {
 	REMAP_ALL,      /* image data or display LUT changed; remap then render */
 } SirilRedrawType;
 
+/* ── ActionResult — returned by activate_action() ───────────────────────── */
+typedef enum {
+    ACTION_SUCCESS        = 0,
+    ACTION_NOT_FOUND      = 1,
+    ACTION_DISABLED       = 2,
+    ACTION_WINDOW_MISSING = 3,
+    ACTION_NULL_DATA      = 4,
+} ActionResult;
+
 /* ── Group C: Message type ───────────────────────────────────────────────── */
 /* Toolkit-neutral replacement for GtkMessageType used in the dialog slot. */
 typedef enum {
@@ -310,6 +319,39 @@ typedef struct {
 	                                   int reg_type);
 	/* Called when livestacking stops; restores toolbar visibility. */
 	void     (*livestacking_teardown_gui)(void);
+
+	/* S – Pixel-math status ------------------------------------------------ */
+	/* Called when a pixel-math operation completes; updates the status label.
+	 * ret is the pixel_math_data.ret value (0 = success, non-zero = error). */
+	void (*update_pixel_math_status)(int ret);
+
+	/* R – Python bridge UI ------------------------------------------------- */
+	/* Refresh the single-image display (wraps update_single_image_from_gfit).
+	 * Threading-aware: dispatches to main thread if called from worker. */
+	void     (*update_single_image_display)(void);
+	/* Reload and display sequence frame at index (wraps seq_load_image_in_thread). */
+	void     (*seq_redisplay_frame)(int index);
+	/* Set the polygon drawing ink colour (packed RGBA) and fill flag, then
+	 * initialise the draw-polygon state machine. */
+	void     (*set_poly_drawing)(guint32 color, gboolean fill);
+	/* Set the display rendering mode and refresh the display. */
+	void     (*set_rendering_mode)(int mode);
+	/* Set whether autostretch channels are linked/unlinked and refresh. */
+	void     (*set_channels_linked)(gboolean state);
+	/* Set the slider (display) mode and refresh the display.
+	 * mode is cast to sliders_mode in the implementation. */
+	void     (*set_sliders_mode)(int mode);
+	/* Set the lo/hi cutoff slider values and refresh the display. */
+	void     (*set_cutoff_values)(int lo, int hi);
+	/* Update the zoom label widget (wraps update_zoom_label_idle). */
+	void     (*update_zoom_label)(void);
+	/* Return the current effective zoom value (handles ZOOM_FIT). */
+	double   (*get_zoom_value)(void);
+	/* Activate a named GAction on the application or window map.
+	 * Returns an ActionResult int (ACTION_SUCCESS=0 etc.). */
+	int      (*activate_action)(const char *name, gboolean appmap);
+	/* Reset the image display pan offset to (0, 0). */
+	void     (*reset_display_offset)(void);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

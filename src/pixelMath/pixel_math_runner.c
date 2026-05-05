@@ -25,6 +25,7 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "algos/statistics.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
@@ -270,15 +271,6 @@ static gchar* get_pixel_math_expression3() {
 	return g_strdup(gtk_entry_get_text(pixel_math_entry_b));
 }
 
-static void output_status_bar(int status) {
-	switch (status) {
-	case 0:
-		gtk_label_set_text(pixel_math_status_bar, "");
-		break;
-	default:
-		gtk_label_set_text(pixel_math_status_bar, _("Syntax error"));
-	}
-}
 
 static void output_status_bar2(int width, int height, int channel) {
 	if (width != 0 && height != 0) {
@@ -325,12 +317,12 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		/* gfit was already written by the worker; just do GTK-side work */
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
-		gui_function(open_single_image_from_gfit, NULL);
+		gui_iface.on_image_loaded();
 	}
 
 	gui_iface.set_busy(FALSE);
 	if (args->from_ui)
-		output_status_bar(args->ret);
+		gui_iface.update_pixel_math_status(args->ret);
 
 	free(args->fit);
 	free(args);

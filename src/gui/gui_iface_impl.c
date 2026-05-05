@@ -61,6 +61,8 @@
 #include "livestacking/gui.h"
 #include "gui/registration.h"
 #include "gui/script_menu.h"
+#include "gui/siril_actions.h"
+#include "gui/siril-window.h"
 #include "gui/stacking.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
@@ -726,6 +728,72 @@ static int impl_get_reg_layer(void) {
 	return get_registration_layer_from_GUI(&com.seq);
 }
 
+/* ── Group S: Pixel-math status ──────────────────────────────────────────── */
+
+static void impl_update_pixel_math_status(int ret) {
+	GtkLabel *label = GTK_LABEL(GTK_WIDGET(
+		gtk_builder_get_object(gui.builder, "pixel_math_status")));
+	if (!label) return;
+	gtk_label_set_text(label, ret == 0 ? "" : _("Syntax error"));
+}
+
+/* ── Group R: Python bridge UI ───────────────────────────────────────────── */
+
+static void impl_update_single_image_display(void) {
+	if (g_main_context_is_owner(g_main_context_default()))
+		update_single_image_from_gfit(NULL);
+	else
+		execute_idle_and_wait_for_it(update_single_image_from_gfit, NULL);
+}
+
+static void impl_seq_redisplay_frame(int index) {
+	int idx = index;
+	execute_idle_and_wait_for_it(seq_load_image_in_thread, &idx);
+}
+
+static void impl_set_poly_drawing(guint32 color, gboolean fill) {
+	gui.poly_fill = fill;
+	gui.poly_ink  = uint32_to_gdk_rgba(color);
+	init_draw_poly();
+}
+
+static void impl_set_rendering_mode(int mode) {
+	gui.rendering_mode = (display_mode)mode;
+	execute_idle_and_wait_for_it(set_display_mode_idle, NULL);
+}
+
+static void impl_set_channels_linked(gboolean state) {
+	gui.unlink_channels = !state;
+	execute_idle_and_wait_for_it(chain_channels_idle_callback, GINT_TO_POINTER(state));
+}
+
+static void impl_set_sliders_mode(int mode) {
+	sliders_mode sliders = (sliders_mode)mode;
+	execute_idle_and_wait_for_it(sliders_mode_set_state_idle, &sliders);
+}
+
+static void impl_set_cutoff_values(int lo, int hi) {
+	gui.lo = lo;
+	gui.hi = hi;
+	execute_idle_and_wait_for_it(set_cutoff_sliders_values_idle, NULL);
+}
+
+static void impl_update_zoom_label(void) {
+	execute_idle_and_wait_for_it(update_zoom_label_idle, NULL);
+}
+
+static double impl_get_zoom_value(void) {
+	return get_zoom_val();
+}
+
+static int impl_activate_action(const char *name, gboolean appmap) {
+	return (int)queue_activate_action_if_enabled(name, appmap);
+}
+
+static void impl_reset_display_offset(void) {
+	reset_display_offset();
+}
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 void siril_register_gui_iface(void) {
@@ -812,4 +880,16 @@ void siril_register_gui_iface(void) {
 	gui_iface.livestacking_teardown_gui   = impl_livestacking_teardown_gui;
 	gui_iface.get_star_follow_state       = impl_get_star_follow_state;
 	gui_iface.show_command_help           = impl_show_command_help;
+	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
+	gui_iface.update_single_image_display = impl_update_single_image_display;
+	gui_iface.seq_redisplay_frame         = impl_seq_redisplay_frame;
+	gui_iface.set_poly_drawing            = impl_set_poly_drawing;
+	gui_iface.set_rendering_mode          = impl_set_rendering_mode;
+	gui_iface.set_channels_linked         = impl_set_channels_linked;
+	gui_iface.set_sliders_mode            = impl_set_sliders_mode;
+	gui_iface.set_cutoff_values           = impl_set_cutoff_values;
+	gui_iface.update_zoom_label           = impl_update_zoom_label;
+	gui_iface.get_zoom_value              = impl_get_zoom_value;
+	gui_iface.activate_action             = impl_activate_action;
+	gui_iface.reset_display_offset        = impl_reset_display_offset;
 }

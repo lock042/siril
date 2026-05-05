@@ -90,7 +90,6 @@ src_files = [
   'core/settings.c',
   'core/signals.c',
   'core/siril.c',
-  'core/siril_actions.c',
   'core/siril_alloc.c',
   'core/siril_app_dirs.c',
   'core/siril_cmd_help.c',
@@ -325,6 +324,8 @@ src_files_gui = [
   'gui/compositing.c',
   'gui/unpurple.c',
   'gui/user_polygons.c',
+  'gui/sequence_export.c',
+  'gui/siril_actions.c',
   'gui/utils.c',
   'gui/wavelets.c',
 ]

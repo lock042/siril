@@ -19,7 +19,7 @@
  */
 
 #include <gtk/gtk.h>
-#include "core/siril_actions.h"
+#include "gui/siril_actions.h"
 #include "gui/utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"

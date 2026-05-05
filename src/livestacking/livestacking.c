@@ -233,7 +233,7 @@ void livestacking_queue_file(char *file) {
 	g_async_queue_push(new_files_queue, file);
 }
 
-/* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
+/* for fullscreen, see livestacking_action_activate() in gui/siril_actions.c */
 int start_livestacking(gboolean with_filewatcher) {
 	if (live_stacker_thread)
 		return 1;

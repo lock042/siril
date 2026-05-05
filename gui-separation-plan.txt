@@ -752,7 +752,7 @@ These files are essentially GUI controllers that ended up in core/ or io/.
          get_active_vport (select_vport×5), set_wcs_overlay (×2). clear_log_buffer
          static removed (body moved to gui_iface_impl.c). show_command_help slot added.
 
-[ ] 6.4  src/core/command_line_processor.c  (12 GUI calls + 39 raw GTK)
+[X] 6.4  src/core/command_line_processor.c  (12 GUI calls + 39 raw GTK)
          - The raw GTK calls involve the script console text widget.
            Extract into src/gui/script_console.c and communicate through
            an IConsole slot in gui_iface.
@@ -773,12 +773,7 @@ These files are essentially GUI controllers that ended up in core/ or io/.
            gui_iface notification rather than calling the GUI function
            by name.
 
-[ ] 6.4  src/core/command_line_processor.c  (12 GUI calls + 39 raw GTK)
-         - The raw GTK calls involve the script console text widget.
-           Extract into src/gui/script_console.c and communicate through
-           an IConsole slot in gui_iface.
-
-[ ] 6.5  src/core/siril_actions.c  (53 GUI calls — largest coupling)
+[X] 6.5  src/core/siril_actions.c  (53 GUI calls — largest coupling)
          - siril_actions.c implements GAction callbacks wired to the GTK
            application action map. It is inherently GUI code.
          - Move src/core/siril_actions.c → src/gui/siril_actions.c.
@@ -788,18 +783,18 @@ These files are essentially GUI controllers that ended up in core/ or io/.
            both the GUI and CLI.
          - After the move, siril_actions.c is allowed to call gui/ directly.
 
-[ ] 6.6  src/io/siril_pythoncommands.c and siril_pythonmodule.c
+[X] 6.6  src/io/siril_pythoncommands.c and siril_pythonmodule.c
           (22 + 11 GUI calls)
          - Define a dedicated IPythonUI interface group in gui_iface covering
            these calls; implement in gui/python_gui_iface.c.
          - Ensures the Python bridge works in both GUI and headless mode.
 
-[ ] 6.7  src/io/sequence_export.c  (7 GUI calls + 16 raw GTK)
+[X] 6.7  src/io/sequence_export.c  (7 GUI calls + 16 raw GTK)
          - Contains export logic mixed with file-chooser widget management.
          - Move the file-chooser/filter setup into src/gui/; pass the chosen
            path back to the export logic as a parameter.
 
-[ ] 6.8  src/pixelMath/pixel_math_runner.c  (13 GUI calls + 60 raw GTK)
+[X] 6.8  src/pixelMath/pixel_math_runner.c  (13 GUI calls + 60 raw GTK)
          - Heavy user of lookup_widget and gtk_filter_add; effectively a
            GUI controller.
          - Split: keep the expression-evaluation engine in pixelMath/; move

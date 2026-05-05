@@ -53,7 +53,6 @@
 #include "gui/gui_state.h" /* TODO: remove once CLI build no longer defines guiinfo gui (plan phase 5+) */
 #include "core/icc_profile.h"
 #include "core/proto.h"
-#include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/pipe.h"

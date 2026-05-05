@@ -18,16 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef SRC_GUI_SIRIL_WINDOW_H_
-#include <gtk/gtk.h>
 #define SRC_GUI_SIRIL_WINDOW_H_
 
-typedef enum {
-    ACTION_SUCCESS = 0,
-    ACTION_NOT_FOUND = 1,
-    ACTION_DISABLED = 2,
-    ACTION_WINDOW_MISSING = 3,
-	ACTION_NULL_DATA = 4
-} ActionResult;
+#include <gtk/gtk.h>
+#include "core/gui_iface.h"  /* ActionResult enum */
 
 void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable);

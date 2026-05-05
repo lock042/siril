@@ -42,6 +42,8 @@
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
 #include "gui/python_gui.h"
+/* Forward declaration: defined in gui/sequence_export.c */
+void update_export_crop_label();
 #include "algos/siril_wcs.h"
 #include "io/annotation_catalogues.h"
 #include "io/films.h"

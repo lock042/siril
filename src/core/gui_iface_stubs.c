@@ -183,6 +183,22 @@ static void stub_end_script_gui(void) {}
 static gboolean stub_get_star_follow_state(void) { return FALSE; }
 static void stub_show_command_help(void) {}
 
+/* S – Pixel-math status */
+static void stub_update_pixel_math_status(int ret) { (void)ret; }
+
+/* R – Python bridge UI */
+static void stub_update_single_image_display(void) {}
+static void stub_seq_redisplay_frame(int index) { (void)index; }
+static void stub_set_poly_drawing(guint32 color, gboolean fill) { (void)color; (void)fill; }
+static void stub_set_rendering_mode(int mode) { (void)mode; }
+static void stub_set_channels_linked(gboolean state) { (void)state; }
+static void stub_set_sliders_mode(int mode) { (void)mode; }
+static void stub_set_cutoff_values(int lo, int hi) { (void)lo; (void)hi; }
+static void stub_update_zoom_label(void) {}
+static double stub_get_zoom_value(void) { return 1.0; }
+static int stub_activate_action(const char *name, gboolean appmap) { (void)name; (void)appmap; return ACTION_SUCCESS; }
+static void stub_reset_display_offset(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -268,4 +284,16 @@ SirilGuiInterface gui_iface = {
 	.end_script_gui              = stub_end_script_gui,
 	.get_star_follow_state       = stub_get_star_follow_state,
 	.show_command_help           = stub_show_command_help,
+	.update_pixel_math_status    = stub_update_pixel_math_status,
+	.update_single_image_display = stub_update_single_image_display,
+	.seq_redisplay_frame         = stub_seq_redisplay_frame,
+	.set_poly_drawing            = stub_set_poly_drawing,
+	.set_rendering_mode          = stub_set_rendering_mode,
+	.set_channels_linked         = stub_set_channels_linked,
+	.set_sliders_mode            = stub_set_sliders_mode,
+	.set_cutoff_values           = stub_set_cutoff_values,
+	.update_zoom_label           = stub_update_zoom_label,
+	.get_zoom_value              = stub_get_zoom_value,
+	.activate_action             = stub_activate_action,
+	.reset_display_offset        = stub_reset_display_offset,
 };
