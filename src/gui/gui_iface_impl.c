@@ -880,6 +880,42 @@ static void impl_reset_display_offset(void) {
 	reset_display_offset();
 }
 
+/* ── SF: Python IPC display state ───────────────────────────────────────── */
+
+static int impl_get_channel_for_vport(void) {
+	return match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+}
+
+static int impl_get_rendering_mode(void) {
+	return (int)gui.rendering_mode;
+}
+
+static gboolean impl_get_channels_linked(void) {
+	return !gui.unlink_channels;
+}
+
+static void impl_get_display_offset(double *x, double *y) {
+	if (x) *x = gui.display_offset.x;
+	if (y) *y = gui.display_offset.y;
+}
+
+static void impl_set_display_offset(double x, double y) {
+	gui.display_offset.x = x;
+	gui.display_offset.y = y;
+}
+
+static void impl_set_zoom_value(double zoom) {
+	gui.zoom_value = zoom;
+}
+
+static GSList *impl_get_user_polygons(void) {
+	return gui.user_polygons;
+}
+
+static void impl_add_user_polygon_to_list(gpointer polygon) {
+	gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
+}
+
 /* ── SD: Display range state ─────────────────────────────────────────────── */
 
 static void impl_get_display_lo_hi(int *lo, int *hi) {
@@ -1004,6 +1040,14 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_zoom_value              = impl_get_zoom_value;
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
+	gui_iface.get_channel_for_vport           = impl_get_channel_for_vport;
+	gui_iface.get_rendering_mode              = impl_get_rendering_mode;
+	gui_iface.get_channels_linked             = impl_get_channels_linked;
+	gui_iface.get_display_offset              = impl_get_display_offset;
+	gui_iface.set_display_offset              = impl_set_display_offset;
+	gui_iface.set_zoom_value                  = impl_set_zoom_value;
+	gui_iface.get_user_polygons               = impl_get_user_polygons;
+	gui_iface.add_user_polygon_to_list        = impl_add_user_polygon_to_list;
 	gui_iface.get_display_lo_hi               = impl_get_display_lo_hi;
 	gui_iface.get_sliders_mode                = impl_get_sliders_mode;
 	gui_iface.update_display_range_after_load = impl_update_display_range_after_load;

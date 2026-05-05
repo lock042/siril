@@ -971,23 +971,24 @@ Group C — Region of Interest (gui.roi.*):
           get_roi_fit() (data pointer checks now via the returned fits*).
 
 Group E — Python IPC display-state read/write:
-[ ] SF.1  io/siril_pythoncommands.c — 13 direct gui.* accesses used by the
-          Python IPC bridge to serialise/deserialise display state (lines
-          755, 865, 1006, 3155-3157, 3174, 3189, 3265-3266, 3366-3367,
-          3396): gui.cvport, gui.view[].drawarea, gui.lo, gui.hi,
-          gui.sliders, gui.rendering_mode, gui.unlink_channels,
-          gui.display_offset, gui.zoom_value.
-          - The IPC bridge must expose and mutate display state; the fix
-            is to add gui_iface getters/setters for each field so
-            pythoncommands.c does not need gui/gui_state.h.
-          - Many of these slots already exist (get_active_vport,
-            set_sliders_mode, set_channels_linked, set_rendering_mode,
-            update_zoom_label, get_zoom_value, set_cutoff_values); wire them
-            up and add the missing ones (get_display_offset,
-            set_display_offset).
-[ ] SF.2  io/siril_pythonmodule.c:1511 — handle_add_user_polygon_request()
-          appends directly to gui.user_polygons.  Add
-          gui_iface.add_user_polygon(polygon_data) slot.
+[X] SF.1  io/siril_pythoncommands.c — all 13 gui.* accesses replaced:
+          gui.cvport → get_active_vport();
+          gui.view[select_vport(cvport)].drawarea + match_drawing_area_widget
+            → new get_channel_for_vport() slot (stub returns 0);
+          gui.lo/hi → get_display_lo_hi() (added in SD.1);
+          gui.sliders → get_sliders_mode() (added in SD.3);
+          gui.rendering_mode → new get_rendering_mode() slot;
+          gui.unlink_channels → new get_channels_linked() slot;
+          gui.display_offset.x/y reads → new get_display_offset(x,y) slot;
+          gui.display_offset.x/y writes → new set_display_offset(x,y) slot;
+          gui.zoom_value write → new set_zoom_value(zoom) slot;
+          gui.user_polygons reads → new get_user_polygons() → GSList* slot.
+          gui/gui_state.h include removed from siril_pythoncommands.c.
+[X] SF.2  io/siril_pythonmodule.c:1511 — handle_add_user_polygon_request()
+          g_slist_append(gui.user_polygons, polygon) replaced with
+          gui_iface.add_user_polygon_to_list(polygon).  New slot appends
+          to gui.user_polygons; callers still request REDRAW_OVERLAY
+          separately.
 
 Group F — Miscellaneous single-file accesses:
 [ ] SG.1  io/single_image.c:161 — end_read_single_image() sets

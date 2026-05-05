@@ -22,7 +22,6 @@
 #include "core/gui_iface.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
-#include "gui/gui_state.h"
 #include "gui/progress_and_log.h"
 #include "gui/user_polygons.h"
 #include "gui/utils.h"
@@ -752,7 +751,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				uint8_t response_data[4]; // 4 bytes for int
 
 				// Convert the integers to BE format for consistency across the UNIX socket
-				uint32_t vport_BE = GUINT32_TO_BE(gui.cvport);
+				uint32_t vport_BE = GUINT32_TO_BE(gui_iface.get_active_vport());
 
 				// Copy the packed data into the response buffer
 				memcpy(response_data, &vport_BE, sizeof(uint32_t));
@@ -862,7 +861,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				layer = channel_val;
  			} else {
 				// Default behavior: use current viewport in GUI mode, or channel 0 in headless
- 				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+ 				layer = gui_iface.get_channel_for_vport();
  			}
 			// Check for an invalid selection
 			if (selection.x < 0 || selection.w < 5 || selection.w > 300 ||
@@ -1003,7 +1002,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				layer = GUINT32_FROM_BE(*(int*) payload);
 			} else {
 				// No channel specified, use default
-				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+				layer = gui_iface.get_channel_for_vport();
 			}
 
 			// Check an image is loaded
@@ -2697,12 +2696,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_USER_POLYGON_LIST: {
 			size_t polygon_list_size;
-			if (g_slist_length(gui.user_polygons) == 0) {
+			GSList *polygons = gui_iface.get_user_polygons();
+			if (g_slist_length(polygons) == 0) {
 				siril_debug_print("No user polygons defined\n");
 				const char* error_msg = _("No user polygons to serialize");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			} else {
-				uint8_t *serialized = serialize_polygon_list(gui.user_polygons, &polygon_list_size);
+				uint8_t *serialized = serialize_polygon_list(polygons, &polygon_list_size);
 				if (!serialized) {
 					siril_debug_print("Failed to serialize the user polygon list\n");
 					const char* error_msg = _("Failed to serialize user polygon list");
@@ -3152,9 +3152,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[8]; // 2 x 2 bytes for lo, hi + 4 for sliders_mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint16_t lo_BE = GUINT16_TO_BE(gui.lo);
-			uint16_t hi_BE = GUINT16_TO_BE(gui.hi);
-			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.sliders);
+			int ilo = 0, ihi = 0xFFFF;
+			gui_iface.get_display_lo_hi(&ilo, &ihi);
+			uint16_t lo_BE = GUINT16_TO_BE((guint16)ilo);
+			uint16_t hi_BE = GUINT16_TO_BE((guint16)ihi);
+			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_sliders_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &lo_BE, sizeof(uint16_t));
@@ -3171,7 +3173,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			uint32_t mode_BE = GUINT32_TO_BE((uint32_t) gui.rendering_mode);
+			uint32_t mode_BE = GUINT32_TO_BE((guint32)gui_iface.get_rendering_mode());
 
 			// Copy the packed data into the response buffer
 			memcpy(response_data, &mode_BE, sizeof(uint32_t));
@@ -3186,7 +3188,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint8_t response_data[4]; // 4 for STF mode
 
 			// Convert the integers to BE format for consistency across the UNIX socket
-			gboolean linked = !gui.unlink_channels;
+			gboolean linked = gui_iface.get_channels_linked();
 			uint32_t linked_BE = GUINT32_TO_BE((uint32_t) linked);
 
 			// Copy the packed data into the response buffer
@@ -3262,8 +3264,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Prepare the response data
 			uint8_t response_data[3 * sizeof(double)];
 
-			double x_off = gui.display_offset.x;
-			double y_off = gui.display_offset.y;
+			double x_off = 0.0, y_off = 0.0;
+			gui_iface.get_display_offset(&x_off, &y_off);
 			double zoom = gui_iface.get_zoom_value();
 			TO_BE64_INTO(x_off, x_off, double);
 			TO_BE64_INTO(y_off, y_off, double);
@@ -3363,8 +3365,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					double xoff, yoff;
 					TO_BE64_INTO(xoff, values[0], double);
 					TO_BE64_INTO(yoff, values[1], double);
-					gui.display_offset.x = xoff;
-					gui.display_offset.y = yoff;
+					gui_iface.set_display_offset(xoff, yoff);
 					gui_iface.redraw_image_sync(REDRAW_IMAGE);
 					success = send_response(conn, STATUS_OK, NULL, 0);
 				} else {
@@ -3393,7 +3394,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					TO_BE64_INTO(zoom, values[0], double);
 					if (zoom <= 0.0)
 						zoom = ZOOM_FIT;
-					gui.zoom_value = zoom;
+					gui_iface.set_zoom_value(zoom);
 					if (zoom == ZOOM_FIT)
 						gui_iface.reset_display_offset();
 					gui_iface.update_zoom_label();

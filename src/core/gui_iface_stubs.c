@@ -212,6 +212,19 @@ static double stub_get_zoom_value(void) { return 1.0; }
 static int stub_activate_action(const char *name, gboolean appmap) { (void)name; (void)appmap; return ACTION_SUCCESS; }
 static void stub_reset_display_offset(void) {}
 
+/* SF – Python IPC display state */
+static int stub_get_channel_for_vport(void) { return 0; }
+static int stub_get_rendering_mode(void) { return 0; }  /* LINEAR */
+static gboolean stub_get_channels_linked(void) { return TRUE; }
+static void stub_get_display_offset(double *x, double *y) {
+	if (x) *x = 0.0;
+	if (y) *y = 0.0;
+}
+static void stub_set_display_offset(double x, double y) { (void)x; (void)y; }
+static void stub_set_zoom_value(double zoom) { (void)zoom; }
+static GSList *stub_get_user_polygons(void) { return NULL; }
+static void stub_add_user_polygon_to_list(gpointer polygon) { (void)polygon; }
+
 /* SD – Display range state */
 static void stub_get_display_lo_hi(int *lo, int *hi) {
 	if (lo) *lo = 0;
@@ -326,6 +339,14 @@ SirilGuiInterface gui_iface = {
 	.get_zoom_value              = stub_get_zoom_value,
 	.activate_action             = stub_activate_action,
 	.reset_display_offset        = stub_reset_display_offset,
+	.get_channel_for_vport           = stub_get_channel_for_vport,
+	.get_rendering_mode              = stub_get_rendering_mode,
+	.get_channels_linked             = stub_get_channels_linked,
+	.get_display_offset              = stub_get_display_offset,
+	.set_display_offset              = stub_set_display_offset,
+	.set_zoom_value                  = stub_set_zoom_value,
+	.get_user_polygons               = stub_get_user_polygons,
+	.add_user_polygon_to_list        = stub_add_user_polygon_to_list,
 	.get_display_lo_hi               = stub_get_display_lo_hi,
 	.get_sliders_mode                = stub_get_sliders_mode,
 	.update_display_range_after_load = stub_update_display_range_after_load,

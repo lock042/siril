@@ -380,6 +380,32 @@ typedef struct {
 	/* Reset the image display pan offset to (0, 0). */
 	void     (*reset_display_offset)(void);
 
+	/* SF – Python IPC display state ---------------------------------------- */
+	/* Return the channel index for the current viewport (0=R,1=G,2=B).
+	 * Equivalent to match_drawing_area_widget(current_drawarea, FALSE).
+	 * Returns 0 in headless/CLI mode. */
+	int      (*get_channel_for_vport)(void);
+	/* Return the current STF/rendering mode (cast from display_mode enum).
+	 * Returns 0 (LINEAR) in headless/CLI mode. */
+	int      (*get_rendering_mode)(void);
+	/* Return TRUE if autostretch channels are linked (i.e. !gui.unlink_channels). */
+	gboolean (*get_channels_linked)(void);
+	/* Copy the current image pan offset into *x and *y.
+	 * Sets both to 0.0 in headless/CLI mode. */
+	void     (*get_display_offset)(double *x, double *y);
+	/* Set the image pan offset to (x, y).  No-op in headless/CLI mode. */
+	void     (*set_display_offset)(double x, double y);
+	/* Set the zoom level without triggering a redraw; callers must request
+	 * a redraw separately.  No-op in headless/CLI mode. */
+	void     (*set_zoom_value)(double zoom);
+	/* Return the current user-drawn polygon list (gui.user_polygons).
+	 * Returns NULL in headless/CLI mode. */
+	GSList  *(*get_user_polygons)(void);
+	/* Append a UserPolygon* (cast to gpointer) to gui.user_polygons.
+	 * Callers must still call redraw_image(REDRAW_OVERLAY) afterwards.
+	 * No-op in headless/CLI mode (polygon is leaked; callers should guard). */
+	void     (*add_user_polygon_to_list)(gpointer polygon);
+
 	/* SD – Display range state --------------------------------------------- */
 	/* Get the current display lo/hi cutoff values (0–65535 range).
 	 * In headless/CLI mode the stub returns 0 and 65535 as defaults. */
