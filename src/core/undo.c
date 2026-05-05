@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <wcslib.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -69,8 +70,8 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 
 	size_t size = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
-	errno = 0;
 	// Write some data to the temporary file
+	errno = 0;
 	if (fit->type == DATA_USHORT) {
 		if (-1 == write(fd, fit->data, size * sizeof(WORD))) {
 			siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
@@ -90,7 +91,6 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 	}
 	*filename = nameBuff;
 	g_close(fd, NULL);
-
 	return 0;
 }
 
@@ -136,10 +136,8 @@ static int undo_build_mask_swapfile(fits *fit, char **filename) {
 			return 1;
 	}
 
-	size_t size = n_pixels * elem_size;
-
 	errno = 0;
-	if (-1 == write(fd, fit->mask->data, size)) {
+	if (-1 == write(fd, fit->mask->data, n_pixels * elem_size)) {
 		siril_log_message(_("File I/O Error: Unable to write mask swap file in %s: [%s]\n"),
 				tmpdir, strerror(errno));
 		g_free(nameBuff);
@@ -149,78 +147,66 @@ static int undo_build_mask_swapfile(fits *fit, char **filename) {
 
 	*filename = nameBuff;
 	g_close(fd, NULL);
-
 	return 0;
 }
 
-static int undo_remove_item(historic *histo, int index) {
-	if (histo[index].filename) {
-		if (g_unlink(histo[index].filename))
+static void undo_free_item(historic *h) {
+	if (h->filename) {
+		if (g_unlink(h->filename))
 			siril_debug_print("g_unlink() failed\n");
-		if (histo[index].icc_profile)
-			cmsCloseProfile(histo[index].icc_profile);
-		g_free(histo[index].filename);
-		histo[index].filename = NULL;
-		memset(&histo[index].wcsdata, 0, sizeof(wcs_info));
+		g_free(h->filename);
 	}
-	if (histo[index].mask_filename) {
-		if (g_unlink(histo[index].mask_filename))
+	if (h->mask_filename) {
+		if (g_unlink(h->mask_filename))
 			siril_debug_print("g_unlink() of mask failed\n");
-		g_free(histo[index].mask_filename);
-		histo[index].mask_filename = NULL;
+		g_free(h->mask_filename);
 	}
-	memset(histo[index].history, 0, FLEN_VALUE);
-	histo[index].mask_bitpix = 0;
-	return 0;
+	if (h->wcslib) {
+		wcsfree(h->wcslib);
+		free(h->wcslib);
+	}
+	if (h->icc_profile)
+		cmsCloseProfile(h->icc_profile);
+	g_free(h);
 }
 
-static void undo_add_item(fits *fit, char *filename, char *mask_filename, const char *histo) {
+/* Save current gfit pixels to a new swap file and push the resulting historic
+ * entry to *stack. label is the operation name (may be empty, not NULL). */
+static int undo_push_to(GList **stack, fits *fit, const char *label) {
+	gchar *filename = NULL, *mask_filename = NULL;
 
-	if (!com.history) {
-		com.hist_size = HISTORY_SIZE;
-		com.history = calloc(com.hist_size, sizeof(historic));
-		com.hist_current = 0;
-		com.hist_display = 0;
+	if (undo_build_swapfile(fit, &filename))
+		return 1;
+	if (undo_build_mask_swapfile(fit, &mask_filename)) {
+		g_free(filename);
+		return 1;
 	}
-	/* when undo, we remove all further items being after */
-	while (com.hist_display < com.hist_current) {
-		com.hist_current--;
-		undo_remove_item(com.history, com.hist_current);
-	}
+
+	historic *h = g_new0(historic, 1);
+	h->filename = filename;
+	h->mask_filename = mask_filename;
+	h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
+	h->rx = fit->rx;
+	h->ry = fit->ry;
+	h->nchans = fit->naxes[2];
+	h->type = fit->type;
+	h->wcsdata = fit->keywords.wcsdata;
 	int status = -1;
-	com.history[com.hist_current].filename = filename;
-	com.history[com.hist_current].mask_filename = mask_filename;
-	com.history[com.hist_current].mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
-	com.history[com.hist_current].rx = fit->rx;
-	com.history[com.hist_current].ry = fit->ry;
-	com.history[com.hist_current].nchans = fit->naxes[2];
-	com.history[com.hist_current].type = fit->type;
-	com.history[com.hist_current].wcsdata = fit->keywords.wcsdata;
-	com.history[com.hist_current].wcslib = wcs_deepcopy(fit->keywords.wcslib, &status);
+	h->wcslib = wcs_deepcopy(fit->keywords.wcslib, &status);
 	if (status)
 		siril_debug_print("could not copy wcslib struct\n");
-	com.history[com.hist_current].focal_length = fit->keywords.focal_length;
-	com.history[com.hist_current].icc_profile = copyICCProfile(fit->icc_profile);
-	snprintf(com.history[com.hist_current].history, FLEN_VALUE, "%s", histo);
+	h->focal_length = fit->keywords.focal_length;
+	h->icc_profile = copyICCProfile(fit->icc_profile);
+	snprintf(h->history, FLEN_VALUE, "%s", label ? label : "");
 
-	if (com.hist_current == com.hist_size - 1) {
-		/* we must shift all elements except 0 that must always match with the original file
-		 * 0  1  2  3  4  5  6  7  8  9 10 become
-		 * 0  2  3  4  5  6  7  8  9 10 11 and
-		 * 0  3  4  5  6  7  8  9 10 11 12 and so on
-		 */
-		undo_remove_item(com.history, 1);
-		memmove(&com.history[1], &com.history[2],
-				(com.hist_size - 2) * sizeof(*com.history));
-		com.hist_current = com.hist_size - 2;
-	}
-	com.hist_current++;
-	com.hist_display = com.hist_current;
+	*stack = g_list_prepend(*stack, h);
+	return 0;
 }
 
 static int undo_get_data_ushort(fits *fit, historic *hist) {
 	int fd;
 
+	// read the data from temporary file
 	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
 		printf("Error opening swap file : %s\n", hist->filename);
 		return 1;
@@ -233,7 +219,6 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(WORD);
 	WORD *buf = calloc(1, size);
-	// read the data from temporary file
 	if ((read(fd, buf, size)) < size) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
@@ -244,7 +229,6 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	WORD *newdata = (WORD*) realloc(fit->data, size);
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
-		free(newdata);
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
@@ -279,6 +263,7 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 static int undo_get_data_float(fits *fit, historic *hist) {
 	int fd;
 
+	// read the data from temporary file
 	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
 		printf("Error opening swap file : %s\n", hist->filename);
 		return 1;
@@ -291,7 +276,6 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(float);
 	float *buf = calloc(1, size);
-	// read the data from temporary file
 	if ((read(fd, buf, size) < size)) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
@@ -302,7 +286,6 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	float *newdata = (float*) realloc(fit->fdata, size);
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
-		free(newdata);
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
@@ -418,7 +401,7 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	return 0;
 }
 
-static int undo_get_data(fits *fit, historic *hist) {
+static int undo_restore(fits *fit, historic *hist) {
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
@@ -446,82 +429,78 @@ static int undo_get_data(fits *fit, historic *hist) {
 	}
 
 	/* Restore mask data regardless of image data success/failure */
-	if (retval == 0) {
+	if (retval == 0)
 		retval = undo_get_mask_data(fit, hist);
-	}
 
 	return retval;
 }
 
 gboolean is_undo_available() {
-    return (com.history && com.hist_display > 0);
+	return com.undo_stack != NULL;
 }
 
 gboolean is_redo_available() {
-    return (com.history && (com.hist_display < com.hist_current - 1));
+	return com.redo_stack != NULL;
 }
 
 int undo_save_state(fits *fit, const char *message, ...) {
-	gchar *filename;
-	gchar *mask_filename;
-	va_list args;
-	va_start(args, message);
+	if (!single_image_is_loaded())
+		return 0;
 
-	if (single_image_is_loaded()) {
-		char histo[FLEN_VALUE] = { 0 };
-
-		if (message != NULL) {
-			vsnprintf(histo, FLEN_VALUE, message, args);
-		}
-
-		if (undo_build_swapfile(fit, &filename)) {
-			va_end(args);
-			return 1;
-		}
-
-		if (undo_build_mask_swapfile(fit, &mask_filename)) {
-			g_free(filename);
-			va_end(args);
-			return 1;
-		}
-
-		undo_add_item(fit, filename, mask_filename, histo);
-
-		/* update menus */
-		gui_function(update_MenuItem, NULL);
+	char histo[FLEN_VALUE] = { 0 };
+	if (message != NULL) {
+		va_list args;
+		va_start(args, message);
+		vsnprintf(histo, FLEN_VALUE, message, args);
+		va_end(args);
 	}
-	va_end(args);
+
+	/* discard redo stack: a new operation invalidates the redo branch */
+	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
+	com.redo_stack = NULL;
+
+	if (undo_push_to(&com.undo_stack, fit, histo))
+		return 1;
+
+	gui_function(update_MenuItem, NULL);
 	return 0;
 }
 
 int undo_display_data(int dir) {
-	if (!com.history) {
-		return 1;
-	}
 	switch (dir) {
 	case UNDO:
 		if (is_undo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
 			/* Writer lock: covers the ROI metadata reads (rx/ry/naxes[2]),
-			 * undo_save_state (reads pixels), and undo_get_data (writes pixels).
+			 * undo_push_to (reads pixels), and undo_restore (writes pixels).
 			 * The entire save+restore must be atomic against the Python thread. */
 			g_rw_lock_writer_lock(&gfit->rwlock);
+
+			historic *top = (historic *) com.undo_stack->data;
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display - 1].rx
-					&& gfit->ry == com.history[com.hist_display - 1].ry
-					&& gfit->naxes[2] == com.history[com.hist_display - 1].nchans);
+			gboolean roi_was_active = (gui.roi.active
+					&& gfit->rx == top->rx
+					&& gfit->ry == top->ry
+					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
 			siril_preview_hide();
 			on_clear_roi();
-			if (com.hist_current == com.hist_display) {
-				undo_save_state(gfit, NULL);
-				com.hist_display--;
+
+			/* save current state to redo stack before restoring */
+			if (undo_push_to(&com.redo_stack, gfit, top->history)) {
+				g_rw_lock_writer_unlock(&gfit->rwlock);
+				return 1;
 			}
-			com.hist_display--;
-			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
-			undo_get_data(gfit, &com.history[com.hist_display]);
+
+			siril_log_message(_("Undo: %s\n"), top->history);
+
+			/* pop and restore */
+			com.undo_stack = g_list_remove_link(com.undo_stack, com.undo_stack);
+			undo_restore(gfit, top);
+			undo_free_item(top);
+
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
@@ -529,6 +508,7 @@ int undo_display_data(int dir) {
 			update_gfit_histogram_if_needed();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
 			g_rw_lock_reader_unlock(&gfit->rwlock);
+			/* update menus */
 			gui_function(update_MenuItem, NULL);
 			lock_display_transform();
 			if (gui.icc.proofing_transform)
@@ -538,7 +518,7 @@ int undo_display_data(int dir) {
 			refresh_annotations(TRUE);
 			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
-			if (!com.pref.gui.mask_tints_vports) {// redraw() is called in redraw_mask_idle if this is TRUE
+			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				notify_gfit_data_modified();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
@@ -548,10 +528,10 @@ int undo_display_data(int dir) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
 				copy_gfit_to_backup();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
-				siril_log_message(_("Following undo / redo with a preview active you may need "
-						"to toggle the preview off and on again to reactivate the preview effect\n"));
 				// TODO: To be perfect, we would need a register of preview functions
 				// look up the correct one for the open dialog and re-apply the preview
+				siril_log_message(_("Following undo / redo with a preview active you may need "
+						"to toggle the preview off and on again to reactivate the preview effect\n"));
 			}
 			if (roi_was_active) {
 				memcpy(&com.selection, &roi_rect, sizeof(rectangle));
@@ -562,29 +542,45 @@ int undo_display_data(int dir) {
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 		}
 		break;
+
 	case REDO:
 		if (is_redo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
-			/* Writer lock: covers the ROI metadata reads and undo_get_data (writes pixels). */
+			/* Writer lock: covers the ROI metadata reads and undo_restore (writes pixels). */
 			g_rw_lock_writer_lock(&gfit->rwlock);
+
+			historic *top = (historic *) com.redo_stack->data;
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active && gfit->rx == com.history[com.hist_display + 1].rx
-					&& gfit->ry == com.history[com.hist_display + 1].ry
-					&& gfit->naxes[2] == com.history[com.hist_display + 1].nchans);
+			gboolean roi_was_active = (gui.roi.active
+					&& gfit->rx == top->rx
+					&& gfit->ry == top->ry
+					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
 			on_clear_roi();
 			siril_preview_hide();
-			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
-			com.hist_display++;
-			undo_get_data(gfit, &com.history[com.hist_display]);
+
+			/* save current state to undo stack before restoring */
+			if (undo_push_to(&com.undo_stack, gfit, top->history)) {
+				g_rw_lock_writer_unlock(&gfit->rwlock);
+				return 1;
+			}
+
+			siril_log_message(_("Redo: %s\n"), top->history);
+
+			/* pop and restore */
+			com.redo_stack = g_list_remove_link(com.redo_stack, com.redo_stack);
+			undo_restore(gfit, top);
+			undo_free_item(top);
+
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(gfit);
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
 			update_gfit_histogram_if_needed();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
+			/* update menus */
 			gui_function(update_MenuItem, NULL);
 			refresh_annotations(TRUE);
 			lock_display_transform();
@@ -615,6 +611,7 @@ int undo_display_data(int dir) {
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 		}
 		break;
+
 	default:
 		printf("ERROR\n");
 		return -1;
@@ -633,30 +630,28 @@ gboolean redo_in_thread(gpointer user_data) {
 }
 
 int undo_flush() {
-	if (!com.history) {
-		return 1;
-	}
-	for (int i = 0; i < com.hist_current; i++) {
-		undo_remove_item(com.history, i);
-	}
-	free(com.history);
-	com.history = NULL;
-	com.hist_current = 0;
-	com.hist_display = 0;
+	g_list_free_full(com.undo_stack, (GDestroyNotify) undo_free_item);
+	com.undo_stack = NULL;
+	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
+	com.redo_stack = NULL;
 	return 0;
 }
 
 void set_undo_redo_tooltip() {
 	if (is_undo_available()) {
-		gchar *str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
+		historic *h = (historic *) com.undo_stack->data;
+		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
 		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
-	else gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	if (is_redo_available()) {
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), com.history[com.hist_display].history);
+		historic *h = (historic *) com.redo_stack->data;
+		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
 		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
 	}
-	else gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
 }

@@ -1018,10 +1018,8 @@ struct cominf {
 	double magOffset;		// offset to reduce the real magnitude, single image
 
 	/* history of operations, for the FITS header and the undo feature */
-	historic *history;		// the history of all operations on the current image
-	int hist_size;			// allocated size
-	int hist_current;		// current index
-	int hist_display;		// displayed index
+	GList *undo_stack;		// undo history: head = most recent saved state
+	GList *redo_stack;		// redo history: head = most recent undone state
 
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction

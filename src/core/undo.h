@@ -22,7 +22,6 @@
 
 #define UNDO		-1
 #define REDO		 1
-#define HISTORY_SIZE 30		// size of the operations history
 
 gboolean is_undo_available();
 gboolean is_redo_available();

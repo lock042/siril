@@ -2274,13 +2274,10 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					total_length += strlen(str) + 1;  // +1 to account for the null terminator
 				}
 			}
-			if (com.history) {
-				for (int i = 0; i < com.hist_display; i++) {
-					if (com.history[i].history[0] != '\0') {
-						gchar *str = (gchar *) com.history[i].history;
-						total_length += strlen(str) + 1;
-					}
-				}
+			for (GList *l = com.undo_stack; l; l = l->next) {
+				historic *h = (historic *)l->data;
+				if (h->history[0] != '\0')
+					total_length += strlen(h->history) + 1;
 			}
 			gchar *buffer = malloc(total_length * sizeof(char));
 			gchar *ptr = buffer;
@@ -2292,14 +2289,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 					ptr += len;
 				}
 			}
-			if (com.history) {
-				for (int i = 0; i < com.hist_display; i++) {
-					if (com.history[i].history[0] != '\0') {
-						gchar *str = (gchar *) com.history[i].history;
-						size_t len = strlen(str) + 1;
-						memcpy(ptr, str, len * sizeof(char));
-						ptr += len;
-					}
+			for (GList *l = com.undo_stack; l; l = l->next) {
+				historic *h = (historic *)l->data;
+				if (h->history[0] != '\0') {
+					size_t len = strlen(h->history) + 1;
+					memcpy(ptr, h->history, len * sizeof(char));
+					ptr += len;
 				}
 			}
 			g_rw_lock_reader_unlock(&gfit->rwlock);

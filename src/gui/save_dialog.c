@@ -197,14 +197,13 @@ static void set_description_in_TIFF() {
 			}
 		}
 		/* New history */
-		if (com.history) {
-			for (int i = 0; i < com.hist_display; i++) {
-				if (com.history[i].history[0] != '\0') {
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-				}
+		for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+			historic *h = (historic *)l->data;
+			if (h->history[0] != '\0') {
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, h->history, strlen(h->history));
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
 			}
 		}
 	}
