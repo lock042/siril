@@ -373,6 +373,18 @@ typedef struct {
 	int      (*activate_action)(const char *name, gboolean appmap);
 	/* Reset the image display pan offset to (0, 0). */
 	void     (*reset_display_offset)(void);
+
+	/* SD – Display range state --------------------------------------------- */
+	/* Get the current display lo/hi cutoff values (0–65535 range).
+	 * In headless/CLI mode the stub returns 0 and 65535 as defaults. */
+	void     (*get_display_lo_hi)(int *lo, int *hi);
+	/* Get the current sliders mode (MIPSLOHI=0, MINMAX=1, USER=2).
+	 * Returns int to keep gui_iface.h independent of sliders_mode typedef. */
+	int      (*get_sliders_mode)(void);
+	/* Initialise display lo/hi/sliders state after loading an image.
+	 * sliders is cast to sliders_mode in the implementation.
+	 * Pure state write — no widget update is triggered; callers handle that. */
+	void     (*update_display_range_after_load)(int sliders, int lo, int hi);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

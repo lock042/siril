@@ -932,20 +932,26 @@ Group A — gtk.builder widget lookups in non-GUI code (move callbacks to gui/):
           type in interface).
 
 Group B — Display range state: gui.lo, gui.hi, gui.sliders:
-[ ] SD.1  core/utils.c:895-896 — compute_slope() reads gui.lo/gui.hi to
-          compute display gamma.  Add gui_iface.get_display_lo_hi(WORD *lo,
-          WORD *hi) slot; route the call through it.
-[ ] SD.2  core/command.c:398-399 — process_save() copies gui.lo/gui.hi into
-          FITS keywords when saving (captures what the operator sees).  Use
-          the same gui_iface getter from SD.1.
-[ ] SD.3  io/single_image.c — init_layers_hi_and_lo_values() sets gui.lo,
-          gui.hi, gui.sliders when an image is opened (lines 321-326,
-          339-345, 453).  Also calls sliders_mode_set_state(gui.sliders)
-          at lines 252, 283.  These display initialisations are triggered
-          from I/O code; route through gui_iface
-          (e.g. update_display_range_after_load slot).
-[ ] SD.4  io/sequence.c:666-668 — seq_load_image() calls
-          init_layers_hi_and_lo_values(gui.sliders); same fix as SD.3.
+[X] SD.1  core/utils.c:895-896 — compute_slope() reads gui.lo/gui.hi to
+          compute display gamma.  Added gui_iface.get_display_lo_hi(int *lo,
+          int *hi) slot (uses int to keep gui_iface.h header-neutral);
+          compute_slope() now calls gui_iface.get_display_lo_hi() and casts
+          to WORD.
+[X] SD.2  core/command.c:398-399 — process_save() copies gui.lo/gui.hi into
+          FITS keywords when saving.  Replaced with
+          gui_iface.get_display_lo_hi(&ilo, &ihi) + WORD cast.
+[X] SD.3  io/single_image.c — init_layers_hi_and_lo_values() writes gui.lo,
+          gui.hi, gui.sliders.  Refactored: fit_lohi_to_layers() now returns
+          values via out-params instead of writing gui.*; function ends with
+          gui_iface.update_display_range_after_load(sliders, lo, hi).  The
+          end_gfit_operation() call site (line 453) replaced gui.sliders read
+          with gui_iface.get_sliders_mode().  Added get_sliders_mode() and
+          update_display_range_after_load() slots to vtable.
+[X] SD.4  io/sequence.c:666-668 — seq_load_image() reads gui.sliders before
+          and after init_layers_hi_and_lo_values().  All three gui.sliders
+          reads replaced with gui_iface.get_sliders_mode() (re-read after
+          init so sliders_mode_set_state() gets the value that
+          update_display_range_after_load set).
 
 Group C — Region of Interest (gui.roi.*):
 [ ] SE.1  filters/deconvolution.c:101,732 — reset_conv_args() sets

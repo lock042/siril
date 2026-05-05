@@ -210,6 +210,16 @@ static double stub_get_zoom_value(void) { return 1.0; }
 static int stub_activate_action(const char *name, gboolean appmap) { (void)name; (void)appmap; return ACTION_SUCCESS; }
 static void stub_reset_display_offset(void) {}
 
+/* SD – Display range state */
+static void stub_get_display_lo_hi(int *lo, int *hi) {
+	if (lo) *lo = 0;
+	if (hi) *hi = 0xFFFF;
+}
+static int stub_get_sliders_mode(void) { return 0; } /* MIPSLOHI */
+static void stub_update_display_range_after_load(int sliders, int lo, int hi) {
+	(void)sliders; (void)lo; (void)hi;
+}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -312,4 +322,7 @@ SirilGuiInterface gui_iface = {
 	.get_zoom_value              = stub_get_zoom_value,
 	.activate_action             = stub_activate_action,
 	.reset_display_offset        = stub_reset_display_offset,
+	.get_display_lo_hi               = stub_get_display_lo_hi,
+	.get_sliders_mode                = stub_get_sliders_mode,
+	.update_display_range_after_load = stub_update_display_range_after_load,
 };

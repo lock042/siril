@@ -663,9 +663,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
 
-		if (gui.sliders != USER) {
-			init_layers_hi_and_lo_values(gui.sliders);
-			sliders_mode_set_state(gui.sliders);
+		sliders_mode seq_sliders = (sliders_mode)gui_iface.get_sliders_mode();
+		if (seq_sliders != USER) {
+			init_layers_hi_and_lo_values(seq_sliders);
+			sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
 			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
 			set_cutoff_sliders_values();	// update values for contrast sliders for this image
 			set_display_mode();		// display the display mode in the combo box

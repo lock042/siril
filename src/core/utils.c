@@ -892,8 +892,10 @@ char *format_basename(char *root, gboolean can_free) {
 * @return the computed slope
 */
 float compute_slope(WORD *lo, WORD *hi) {
-	*lo = gui.lo;
-	*hi = gui.hi;
+	int ilo, ihi;
+	gui_iface.get_display_lo_hi(&ilo, &ihi);
+	*lo = (WORD)ilo;
+	*hi = (WORD)ihi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 

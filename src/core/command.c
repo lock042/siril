@@ -395,8 +395,10 @@ int process_save(int nb){
 	}
 
 	if (!com.script) {
-		gfit->keywords.lo = gui.lo;
-		gfit->keywords.hi = gui.hi;
+		int ilo = 0, ihi = 0xFFFF;
+		gui_iface.get_display_lo_hi(&ilo, &ihi);
+		gfit->keywords.lo = (WORD)ilo;
+		gfit->keywords.hi = (WORD)ihi;
 	}
 
 	gchar *savename = update_header_and_parse(gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);

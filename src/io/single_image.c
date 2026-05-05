@@ -316,14 +316,13 @@ int image_find_minmax(fits *fit) {
 	return 0;
 }
 
-static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
+static void fit_lohi_to_layers(fits *fit, double lo_in, double hi_in, WORD *lo_out, WORD *hi_out) {
 	if (fit->type == DATA_USHORT) {
-		gui.lo = (WORD)lo;
-		gui.hi = (WORD)hi;
-	}
-	else if (fit->type == DATA_FLOAT) {
-		gui.lo = float_to_ushort_range((float)lo);
-		gui.hi = float_to_ushort_range((float)hi);
+		*lo_out = (WORD)lo_in;
+		*hi_out = (WORD)hi_in;
+	} else if (fit->type == DATA_FLOAT) {
+		*lo_out = float_to_ushort_range((float)lo_in);
+		*hi_out = float_to_ushort_range((float)hi_in);
 	}
 }
 
@@ -335,15 +334,18 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
+	WORD lo = 0, hi = 0xFFFF;
+	sliders_mode sliders;
 	if (gfit->keywords.hi == 0 || force_minmax == MINMAX) {
-		gui.sliders = MINMAX;
+		sliders = MINMAX;
 		image_find_minmax(gfit);
-		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi);
+		fit_lohi_to_layers(gfit, gfit->mini, gfit->maxi, &lo, &hi);
 	} else {
-		gui.sliders = MIPSLOHI;
-		gui.hi = gfit->keywords.hi;
-		gui.lo = gfit->keywords.lo;
+		sliders = MIPSLOHI;
+		hi = gfit->keywords.hi;
+		lo = gfit->keywords.lo;
 	}
+	gui_iface.update_display_range_after_load((int)sliders, (int)lo, (int)hi);
 }
 
 int single_image_is_loaded() {
@@ -450,7 +452,7 @@ void notify_gfit_data_modified() {
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
 		 * protect the write with com.mutex to prevent a data race. */
 		g_mutex_lock(&com.mutex);
-		init_layers_hi_and_lo_values(gui.sliders);
+		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
 		g_mutex_unlock(&com.mutex);
 	}
 }

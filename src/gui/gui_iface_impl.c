@@ -872,6 +872,23 @@ static void impl_reset_display_offset(void) {
 	reset_display_offset();
 }
 
+/* ── SD: Display range state ─────────────────────────────────────────────── */
+
+static void impl_get_display_lo_hi(int *lo, int *hi) {
+	if (lo) *lo = (int)gui.lo;
+	if (hi) *hi = (int)gui.hi;
+}
+
+static int impl_get_sliders_mode(void) {
+	return (int)gui.sliders;
+}
+
+static void impl_update_display_range_after_load(int sliders, int lo, int hi) {
+	gui.sliders = (sliders_mode)sliders;
+	gui.lo = (WORD)lo;
+	gui.hi = (WORD)hi;
+}
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 static void impl_apply_display_icc_compensation(gpointer p);
@@ -977,6 +994,9 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_zoom_value              = impl_get_zoom_value;
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
+	gui_iface.get_display_lo_hi               = impl_get_display_lo_hi;
+	gui_iface.get_sliders_mode                = impl_get_sliders_mode;
+	gui_iface.update_display_range_after_load = impl_update_display_range_after_load;
 }
 
 static void impl_apply_display_icc_compensation(gpointer p) {
