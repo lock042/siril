@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"

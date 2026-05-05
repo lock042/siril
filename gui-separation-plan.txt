@@ -809,17 +809,40 @@ PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
          - Links gui_iface_stubs.c instead of gui_iface_impl.c.
          - All processing libraries must compile cleanly under this target.
 
-[ ] 7.2  Add CI job for headless build
-         - meson build -Dgui=disabled && ninja in CI to catch regressions.
+[i] 7.2  Add CI job for headless build
+         - siril-headless-build CI job added (extends .siril-debian/testing-base).
+         - Runs -Dgui=disabled build with -Dcriterion=true + meson test.
 
-[ ] 7.3  Enforce GTK-free headers with a lint step
-         - CI check: grep for #include <gtk/gtk.h> in any file outside
-           src/gui/ and src/main.c; fail the build if found.
-         - Also flag direct gtk_* / gdk_* function calls outside src/gui/.
+[i] 7.3  Enforce GTK-free headers with a lint step
+         - scripts/lint-gtk-includes.sh created; checks src/ for #include
+           <gtk/gtk.h> and <gdk/gdk.h> outside allowed GUI compilation units.
+         - siril-lint-gtk-includes CI job added (stage: siril, no build needed).
+         - Cleaned up direct GTK includes in non-GUI files:
+             reconstr.c, processing.c, image_format_fits.c, sequence.c,
+             ser.c, siril_catalogues.c: replaced <gtk/gtk.h> with <glib.h>
+             compositing/filters.h: changed GdkRGBA * -> double * parameters
+             siril_cmd_help.h: forward-declares GtkWindow instead of including gtk
+             siril_cmd_help.c: moved to src_files_gui (pure GTK code)
+             io/siril_plot.c: replaced <gdk/gdk.h> with <gdk-pixbuf/gdk-pixbuf.h>
+             gui/preprocess.c: new GUI file; on_prepro_button_clicked,
+               on_GtkButtonEvaluateCC_clicked, test_for_master_files moved from
+               core/preprocess.c
+             processing.c: replaced gdk_threads_add_idle -> g_idle_add (GLib)
+         - gui/progress_and_log.h: replaced <gtk/gtk.h> with <glib.h> (types
+           in the header are GLib only).
+         - Remaining: gui/utils.h and non-GUI files that include GUI headers
+           still need routing work (phase 5/6 continuation); gui.cvport accesses
+           in command.c etc. require struct guiinf to be available.
 
-[ ] 7.4  Review meson.build dependency declarations
-         - Processing libraries should declare no GTK dependency.
-         - Only the gui/ subdir and main.c should link against GTK.
+[i] 7.4  Review meson.build dependency declarations
+         - gtk_dep: changed to required:enable_gui (optional when -Dgui=disabled).
+         - gtksourceview_dep: changed to conditional (no_dep when gui disabled).
+         - Added explicit cairo_dep, pango_dep, pangocairo_dep, gdk_pixbuf_dep
+           to externals_dep (previously only available transitively via GTK).
+         - HAVE_GTK added to config.h for future conditional compilation.
+         - Headless builds on GTK-equipped systems continue to work (GTK found as
+           optional dep); truly GTK-free headless builds require completing the
+           gui/ header routing from remaining phase 5/6 items.
 
 [ ] 7.5  Update pkg-config / library split (optional, long-term)
          - Consider packaging the processing core as a static library

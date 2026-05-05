@@ -19,7 +19,8 @@
  */
 #ifndef SRC_CORE_SIRIL_CMD_HELP_H_
 #define SRC_CORE_SIRIL_CMD_HELP_H_
-#include <gtk/gtk.h>
+
+typedef struct _GtkWindow GtkWindow;  /* forward declaration, avoids pulling in gtk/gtk.h */
 
 #define SHORTCUTS_UI "siril-shortcuts.ui"
 

@@ -40,7 +40,6 @@
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
-#include <gtk/gtk.h>
 #include "core/gui_iface.h"
 #include "gui/gui_state.h"
 #include "algos/statistics.h"

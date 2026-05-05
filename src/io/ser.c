@@ -35,9 +35,9 @@
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "filters/mtf.h"
-#include <gtk/gtk.h>
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "ser.h"
 
 static gboolean user_warned = FALSE;

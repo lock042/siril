@@ -107,7 +107,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include <gtk/gtk.h>
 
 #include "gui/utils.h"
 #include "core/siril_log.h"

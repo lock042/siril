@@ -22,7 +22,6 @@
 
 #include <cairo.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gdk/gdk.h>
 #ifdef CAIRO_HAS_SVG_SURFACE
 #include <cairo/cairo-svg.h>
 #endif
@@ -37,6 +36,46 @@
 
 #define GUIDE 20 // used to determine number of tics and spacing
 
+
+// Replacement for gdk_cairo_set_source_pixbuf that only needs gdk-pixbuf, not GDK.
+// Converts pixel data from GdkPixbuf format (RGBA, non-premultiplied) to Cairo
+// ARGB32 format (premultiplied), creates a cairo surface, and sets it as source.
+static void siril_cairo_set_source_pixbuf(cairo_t *cr, GdkPixbuf *pixbuf,
+                                          double x, double y) {
+	int width = gdk_pixbuf_get_width(pixbuf);
+	int height = gdk_pixbuf_get_height(pixbuf);
+	int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
+	int gdk_stride = gdk_pixbuf_get_rowstride(pixbuf);
+	guchar *gdk_pixels = gdk_pixbuf_get_pixels(pixbuf);
+
+	cairo_format_t fmt = (n_channels == 4) ? CAIRO_FORMAT_ARGB32 : CAIRO_FORMAT_RGB24;
+	int cairo_stride = cairo_format_stride_for_width(fmt, width);
+	guchar *buf = g_malloc(height * cairo_stride);
+
+	for (int row = 0; row < height; row++) {
+		guchar *src = gdk_pixels + row * gdk_stride;
+		guint32 *dst = (guint32 *)(buf + row * cairo_stride);
+		if (n_channels == 4) {
+			for (int col = 0; col < width; col++, src += 4, dst++) {
+				guchar a = src[3];
+				guchar r = (guchar)((src[0] * a + 127) / 255);
+				guchar g = (guchar)((src[1] * a + 127) / 255);
+				guchar b = (guchar)((src[2] * a + 127) / 255);
+				*dst = ((guint32)a << 24) | ((guint32)r << 16) | ((guint32)g << 8) | b;
+			}
+		} else {
+			for (int col = 0; col < width; col++, src += 3, dst++)
+				*dst = 0xFF000000u | ((guint32)src[0] << 16) | ((guint32)src[1] << 8) | src[2];
+		}
+	}
+
+	cairo_surface_t *surface = cairo_image_surface_create_for_data(
+			buf, fmt, width, height, cairo_stride);
+	cairo_set_source_surface(cr, surface, x, y);
+	cairo_surface_set_user_data(surface, (const cairo_user_data_key_t *)&buf,
+			buf, (cairo_destroy_func_t)g_free);
+	cairo_surface_destroy(surface);
+}
 
 // static functions
 
@@ -626,7 +665,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		// int offsx, offsy;
 		// GdkPixbuf *subbkg = extract_sub_bkg(spl_data, xmin, xmax, ymin, ymax, &offsx, &offsy);
 		GdkPixbuf *bkg = gdk_pixbuf_scale_simple(spl_data->bkg->img, (int)ctx.dims.x, (int)ctx.dims.y, GDK_INTERP_BILINEAR);
-		gdk_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
+		siril_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
 		cairo_paint(cr);
 		cairo_fill(cr);
 		g_object_unref(bkg);

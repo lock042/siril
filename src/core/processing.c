@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <string.h>
 #include <glib.h>
-#include <gtk/gtk.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -814,7 +813,7 @@ int multi_finalize(struct generic_seq_args *args) {
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.python_command && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
 
@@ -822,7 +821,7 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
 

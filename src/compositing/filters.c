@@ -77,7 +77,7 @@ void wavelength_to_XYZ(float wavelength, float *X, float *Y, float *Z) {
                 0.681f * expf(-0.5f*Zt2*Zt2);
 }
 
-void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
+void wavelength_to_display_RGB(double wavelength, double *r, double *g, double *b, double *a) {
 	float XYZ[3] = { 0.f };
 	float RGB[3] = { 0.f };
 	wavelength_to_XYZ((float) wavelength, &XYZ[0], &XYZ[1], &XYZ[2]);
@@ -99,8 +99,8 @@ void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
 	} else {
 		siril_debug_print("Error: no monitor profile exists. This is a bug!\n");
 	}
-	rgb->red = (double) RGB[0];
-	rgb->green = (double) RGB[1];
-	rgb->blue = (double) RGB[2];
-	rgb->alpha = 1.0;
+	*r = (double) RGB[0];
+	*g = (double) RGB[1];
+	*b = (double) RGB[2];
+	*a = 1.0;
 }

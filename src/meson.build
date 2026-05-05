@@ -92,7 +92,6 @@ src_files = [
   'core/siril.c',
   'core/siril_alloc.c',
   'core/siril_app_dirs.c',
-  'core/siril_cmd_help.c',
   'core/siril_date.c',
   'core/siril_language.c',
   'core/gui_iface_stubs.c',
@@ -326,13 +325,15 @@ src_files_gui = [
   'gui/unpurple.c',
   'gui/user_polygons.c',
   'gui/pixelmath.c',
+  'gui/preprocess.c',
   'gui/sequence_export.c',
   'gui/siril_actions.c',
+  'core/siril_cmd_help.c',
   'gui/utils.c',
   'gui/wavelets.c',
 ]
 
-enable_gui = get_option('gui').enabled()
+# enable_gui is defined in the top-level meson.build
 # In headless mode, headless_stubs.c provides no-op implementations for GUI
 # functions that core/processing files still call directly (pending phase 5/6
 # routing completion).

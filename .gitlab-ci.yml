@@ -134,6 +134,18 @@ deps-debian:
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
   needs: ["deps-debian"]
 
+siril-lint-gtk-includes:
+  stage: siril
+  image: debian:testing
+  dependencies: []
+  needs: []
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - scripts/lint-gtk-includes.sh src
+  cache: {}
+  artifacts: {}
+
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:

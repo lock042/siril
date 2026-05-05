@@ -1954,7 +1954,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data) {
 	GdkRGBA color;
 	double wavelength = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	if (wavelength < 380.0 || wavelength > 780.0) return;
-	wavelength_to_display_RGB(wavelength, &color);
+	wavelength_to_display_RGB(wavelength, &color.red, &color.green, &color.blue, &color.alpha);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &color);
 }
 

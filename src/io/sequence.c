@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
