@@ -5436,7 +5436,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(gfit);
-		psf_star *result = psf_get_minimisation(gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+		psf_star *result = psf_get_minimisation(gfit, gui_iface.get_active_vport(), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
 		if (result && result->phot_is_valid && error == PSF_NO_ERR) {
 			found = TRUE;
@@ -6156,7 +6156,7 @@ int process_psf(int nb){
 		return CMD_GENERIC_ERROR;
 	}
 
-	int channel = com.headless ? 0 : select_vport(gui.cvport);
+	int channel = gui_iface.get_active_vport();
 	if (nb == 2) {
 		gchar *next;
 		channel = g_ascii_strtoull(word[1], &next, 10);
@@ -6422,7 +6422,7 @@ int process_seq_psf(int nb) {
 	// Set defaults for missing arguments
 	if (layer == -1) {
 		if (use_current_seq) {
-			layer = select_vport(gui.cvport);
+			layer = gui_iface.get_active_vport();
 		} else {
 			layer = 0; // Default to first layer
 		}
@@ -7751,7 +7751,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 int process_findstar(int nb) {
 	int layer;
 	if (!(com.script || (com.python_script && !com.headless))) {
-		layer = select_vport(gui.cvport);
+		layer = gui_iface.get_active_vport();
 	} else {
 		layer = (gfit->naxes[2] > 1) ? GLAYER : RLAYER;
 	}
@@ -7812,7 +7812,7 @@ int process_seq_findstar(int nb) {
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
 	if (!(com.script || (com.python_script && !com.headless)) && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
-		layer = select_vport(gui.cvport);
+		layer = gui_iface.get_active_vport();
 	} else {
 		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
 	}

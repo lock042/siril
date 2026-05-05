@@ -11,7 +11,6 @@
 #endif
 #include "core/siril.h"
 #include "io/seqwriter.h"
-#include "core/gtk_forward_decls.h"
 
 /* This file is part of Siril, https://free-astro.org/
  *
@@ -150,7 +149,6 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame);
 gint64 ser_compute_file_size(const struct ser_struct *ser_file, int nb_frames);
 int import_metadata_from_serfile(const struct ser_struct *ser_file, fits *to);
-GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr);
 GDateTime *ser_read_frame_date(struct ser_struct *ser_file, int frame_no);
 
 #endif

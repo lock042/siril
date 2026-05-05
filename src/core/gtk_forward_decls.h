@@ -36,8 +36,9 @@
 
 #ifndef __GTK_H__
 
-/* GdkPixbuf — used as return/parameter type in thumbnail helpers.
- * TODO (plan 5.13): move thumbnailing API into gui/ wrappers.       */
+/* GdkPixbuf — used as return/parameter type in several headers.
+ * ser.c thumbnail use moved to gui/dialog_preview.c; others (proto.h,
+ * siril_plot.h, image_format_fits.h) still need this forward declaration. */
 typedef struct _GdkPixbuf GdkPixbuf;
 
 /* GtkEntry — parameter of search_object() in gui/search_objects.h. */
