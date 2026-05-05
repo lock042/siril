@@ -336,14 +336,28 @@ src_files_gui = [
 # enable_gui is defined in the top-level meson.build
 #
 # Build strategy:
-#  siril_lib — core + GUI sources (GUI build) or core + headless stubs (headless
-#              build).  In a GUI build, gui_iface_impl.c is part of siril_lib and
-#              references guiinfo gui, so both siril and siril-cli define that
-#              global.  In a headless build, gui_iface_impl.c is absent, so no
-#              code references gui and main-cli.c can omit the definition
-#              (guarded by #ifndef HAVE_GTK).
-headless_stubs = enable_gui ? [] : ['core/headless_stubs.c']
-src_files_all = enable_gui ? src_files + src_files_gui : src_files + headless_stubs
+#
+#  siril_lib         — core (non-GUI) sources only: src_files.  Contains
+#                      gui_iface_stubs.c which provides no-op vtable entries.
+#                      Never contains gui_iface_impl.c or headless_stubs.c.
+#
+#  siril_headless_lib — headless_stubs.c alone; always built.  Provides no-op
+#                      implementations of GUI functions still called directly
+#                      from core code (pending full gui_iface routing).
+#                      Linked on-demand (link_with, not link_whole) so its
+#                      symbols are only pulled in when unresolved: in siril-cli
+#                      and tests they satisfy the calls from core; in siril the
+#                      same symbols are already defined by src_files_gui so the
+#                      stubs are never included (no duplicate-symbol risk).
+#
+#  siril             — link_whole: siril_lib  +  src_files_gui compiled directly.
+#                      gui_iface_impl.c (in src_files_gui) provides real GTK
+#                      implementations; main.c defines guiinfo gui.
+#
+#  siril-cli         — link_whole: siril_lib  +  siril_headless_lib (on demand).
+#                      gui_iface_impl.c is NEVER linked here; gui_iface_stubs.c
+#                      (in siril_lib) provides headless no-ops for all slots.
+#                      main-cli.c does NOT define guiinfo gui.
 
 # Define the resource file
 gnome = import('gnome')
@@ -353,13 +367,20 @@ siril_resources = gnome.compile_resources(
   c_name : 'siril_resource')
 
 siril_lib = static_library('siril',
-                           siril_resources[0], src_files_all,
+                           siril_resources[0], src_files,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
-siril_dep = declare_dependency(link_with: siril_lib,
+siril_headless_lib = static_library('siril_headless',
+                                    'core/headless_stubs.c',
+                                    dependencies: externals_dep,
+                                    include_directories: siril_inc_dir,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+siril_dep = declare_dependency(link_with: [siril_lib, siril_headless_lib],
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
@@ -369,7 +390,7 @@ siril_dep = declare_dependency(link_with: siril_lib,
 # Build gui executable (only when -Dgui=enabled, the default)
 
 if enable_gui
-siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
+siril_gui = executable('siril', siril_resources[1], 'main.c', src_files_gui, win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
@@ -382,9 +403,9 @@ endif
 
 ################################################################################
 # Build cli executable
-# In a GUI build siril_lib includes gui_iface_impl.c (which references guiinfo
-# gui), so main-cli.c defines gui under #ifdef HAVE_GTK.  In a headless build
-# siril_lib has no GUI code; main-cli.c skips the definition.
+# siril-cli links siril_lib (core + gui_iface_stubs) and siril_headless_lib
+# (on-demand stubs for remaining direct GUI calls from core code).
+# gui_iface_impl.c is never linked here.  main-cli.c does not define guiinfo gui.
 
 siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        dependencies: siril_dep,

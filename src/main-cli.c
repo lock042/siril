@@ -50,9 +50,6 @@
 
 #include "git-version.h"
 #include "core/siril.h"
-#ifdef HAVE_GTK
-#include "gui/gui_state.h"  /* for guiinfo type; needed because siril_lib includes gui_iface_impl.c in GUI builds */
-#endif
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/initfile.h"
@@ -73,12 +70,6 @@
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
-#ifdef HAVE_GTK
-/* In a GUI build siril_lib includes gui_iface_impl.c which references guiinfo
- * gui; define it here so the CLI binary links.  In a headless build (no GTK)
- * gui_iface_impl.c is absent so this definition is not needed. */
-guiinfo gui;
-#endif
 fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;

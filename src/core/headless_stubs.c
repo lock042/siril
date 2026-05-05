@@ -325,3 +325,16 @@ OverrangeResponse apply_limits(fits *fit, double minval, double maxval, Overrang
 gchar *build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp) {
 	(void)prepend; (void)ext; (void)forsequence; (void)add_time_stamp; return NULL;
 }
+
+/* 3-star registration state reset — no-op in headless mode */
+void reset_3stars(void) {}
+
+/* HEIF multi-image selector — only called when interactive is TRUE, which
+ * never happens in headless mode.  Stub returns FALSE (cancel) as a safety
+ * net so the caller falls back to the primary image. */
+#ifdef HAVE_LIBHEIF
+struct heif_context; /* forward declaration */
+gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
+	(void)heif; (void)selected_image; return FALSE;
+}
+#endif
