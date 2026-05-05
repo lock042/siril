@@ -15,6 +15,7 @@ siril-1.5.0
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
+* Separation of GUI and processing code (!1025)
 
 siril-1.4.3
 05/07/26

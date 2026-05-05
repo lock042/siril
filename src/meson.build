@@ -239,12 +239,8 @@ src_files = [
 ]
 
 # GUI-only source files (require GTK; excluded when -Dgui=disabled).
-# These will be progressively cleaned up through plan phases 3–6 so that
-# all remaining GUI calls in the core list above are routed through
-# gui_iface instead.
 src_files_gui = [
   'gui/livestacking_gui.c',
-
   'gui/about_dialog.c',
   'gui/annotate.c',
   'gui/asinh.c',
