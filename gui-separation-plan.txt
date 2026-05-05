@@ -804,16 +804,16 @@ These files are essentially GUI controllers that ended up in core/ or io/.
 PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
 ─────────────────────────────────────────────────────────────────────────────
 
-[i] 7.1  Add a headless (no-GTK) build target to meson.build
+[X] 7.1  Add a headless (no-GTK) build target to meson.build
          - Option: -Dgui=disabled excludes src/gui/ entirely.
          - Links gui_iface_stubs.c instead of gui_iface_impl.c.
          - All processing libraries must compile cleanly under this target.
 
-[i] 7.2  Add CI job for headless build
+[X] 7.2  Add CI job for headless build
          - siril-headless-build CI job added (extends .siril-debian/testing-base).
          - Runs -Dgui=disabled build with -Dcriterion=true + meson test.
 
-[i] 7.3  Enforce GTK-free headers with a lint step
+[X] 7.3  Enforce GTK-free headers with a lint step
          - scripts/lint-gtk-includes.sh created; checks src/ for #include
            <gtk/gtk.h> and <gdk/gdk.h> outside allowed GUI compilation units.
          - siril-lint-gtk-includes CI job added (stage: siril, no build needed).
@@ -834,7 +834,7 @@ PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
            still need routing work (phase 5/6 continuation); gui.cvport accesses
            in command.c etc. require struct guiinf to be available.
 
-[i] 7.4  Review meson.build dependency declarations
+[X] 7.4  Review meson.build dependency declarations
          - gtk_dep: changed to required:enable_gui (optional when -Dgui=disabled).
          - gtksourceview_dep: changed to conditional (no_dep when gui disabled).
          - Added explicit cairo_dep, pango_dep, pangocairo_dep, gdk_pixbuf_dep
@@ -860,39 +860,40 @@ GdkPixbuf usage in non-GUI public headers.  Items already resolved during
 the audit are marked [i].
 
 GdkPixbuf in non-GUI public headers (all resolved):
-[i] SA.1  siril_get_file_info() in core/proto.h / core/utils.c
+[X] SA.1  siril_get_file_info() in core/proto.h / core/utils.c
           - GUI-only (calls gdk_pixbuf_get_file_info; sole callers in
             gui/dialog_preview.c).
           - Done: moved to gui/dialog_preview.c as static; removed from
             proto.h.
-[i] SA.2  get_thumbnail_from_fits() in io/image_format_fits.h
+[X] SA.2  get_thumbnail_from_fits() in io/image_format_fits.h
           - GUI-only (generates GdkPixbuf thumbnail for file-picker preview;
             sole caller gui/dialog_preview.c).
           - Done: removed from image_format_fits.h; forward-declared in
             gui/dialog_preview.c; implementation stays in image_format_fits.c
             (needs file-local TRYFITS macro and inline helpers).
           - gtk_forward_decls.h removed from image_format_fits.h as a result.
-[i] SA.3  get_thumbnail_from_ser() in io/ser.h / io/ser.c
+[X] SA.3  get_thumbnail_from_ser() in io/ser.h / io/ser.c
           - GUI-only (sole caller gui/dialog_preview.c).
           - Done: moved to gui/dialog_preview.c; gdk-pixbuf include removed
             from ser.c; declaration removed from ser.h.
-[ ] SA.4  siril_plot_set_background() / splbkg.img in io/siril_plot.h
+[X] SA.4  siril_plot_set_background() / splbkg.img in io/siril_plot.h
           - Uses gdk-pixbuf to load an SVG background image that appears in
             both screen rendering AND saved PNG/SVG output files.
           - Assessment: legitimately non-GUI (affects file output, not just
             display).  No action required unless the plot engine is ever
             split into a truly GTK-free library (see 7.5).
 
-Group D — Repository availability flags (highest-value quick win: 31
-violations, purely mechanical rename):
-[ ] SB.1  Move gui.script_repo_available, gui.spcc_repo_available and
+Group D — Repository availability flags (highest-value quick win):
+[X] SB.1  Move gui.script_repo_available, gui.spcc_repo_available and
           gui.repo_scripts from guiinfo (gui/gui_state.h) to cominfo
           (core/siril.h).
-          - All 31 accesses are in io/siril_git.c and io/siril_pythonmodule.c.
-          - These track network/git repository state, not display state; they
-            are misplaced in gui.
-          - Fix: add fields to cominfo; rename all accesses com.script_repo_available
-            etc.; remove from struct guiinf.
+          - Done: fields added to struct cominf in core/siril.h; removed from
+            struct guiinf in gui/gui_state.h.  All accesses renamed to
+            com.script_repo_available / com.spcc_repo_available /
+            com.repo_scripts across io/siril_git.c (36 sites),
+            gui/git_gui.c (8 sites), gui/script_menu.c (4 sites),
+            main.c (1 site).  gui/gui_state.h include removed from
+            siril_git.c.  Build clean.
 
 Group A — gtk.builder widget lookups in non-GUI code (move callbacks to gui/):
 [ ] SC.1  core/icc_profile.c — 7 direct gui.builder accesses.

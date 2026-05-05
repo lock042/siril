@@ -893,6 +893,11 @@ struct cominf {
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
 	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
+
+	/* Repository / script state (not display state; lives here, not in guiinfo) */
+	GSList   *repo_scripts;          // list of scripts from the remote repository
+	gboolean  script_repo_available; // remote script repository is reachable
+	gboolean  spcc_repo_available;   // remote SPCC repository is reachable
 };
 
 #ifndef MAIN

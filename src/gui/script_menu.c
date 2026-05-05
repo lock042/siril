@@ -475,10 +475,10 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 				continue;
 			}
 			gboolean exists = g_file_test(path, G_FILE_TEST_EXISTS);
-			gboolean included = !gui.repo_scripts;
+			gboolean included = !com.repo_scripts;
 
-			if (gui.repo_scripts != NULL && exists) {
-				for (GSList *it = gui.repo_scripts; it; it = it->next) {
+			if (com.repo_scripts != NULL && exists) {
+				for (GSList *it = com.repo_scripts; it; it = it->next) {
 					if (g_strrstr(path, it->data)) {
 						included = TRUE;
 						break;
@@ -521,7 +521,7 @@ static int initialize_script_menu(gboolean verbose, gboolean first_run) {
 	}
 
 	// Add core scripts if they're not already in the menu
-	for (GSList *core_iter = gui.repo_scripts; core_iter; core_iter = core_iter->next) {
+	for (GSList *core_iter = com.repo_scripts; core_iter; core_iter = core_iter->next) {
 		const gchar *script_path = (gchar*)core_iter->data;
 		if (test_last_subdir(script_path, "core")) {
 			// Check if this core script is already in selected_scripts

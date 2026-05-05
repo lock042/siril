@@ -289,7 +289,7 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	gui.selected_star = -1;
-	gui.repo_scripts = NULL;
+	com.repo_scripts = NULL;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;

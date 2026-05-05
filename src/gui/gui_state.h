@@ -128,10 +128,6 @@ struct guiinf {
 
 	void            (*draw_extra)(draw_data_t *dd); /* extra overlay painter */
 
-	GSList           *repo_scripts;
-	gboolean          script_repo_available;
-	gboolean          spcc_repo_available;
-
 	/*** colour mapping ***/
 	WORD              lo, hi;           /* cutoff slider values */
 	gboolean          cut_over;         /* show values > hi as inverted */

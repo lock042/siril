@@ -176,11 +176,11 @@ static gboolean fill_script_repo_tree_idle(gpointer p) {
 	}
 
 	gui_repo_scripts_mutex_lock();
-	if (gui.repo_scripts) {
+	if (com.repo_scripts) {
 		int color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 		GSList *iterator;
-		for (iterator = gui.repo_scripts; iterator; iterator = iterator->next) {
-			// here we populate the GtkTreeView from GSList gui.repo_scripts
+		for (iterator = com.repo_scripts; iterator; iterator = iterator->next) {
+			// here we populate the GtkTreeView from GSList com.repo_scripts
 			const gchar *category;
 			gboolean included = FALSE;
 			gboolean startup = FALSE;
@@ -674,9 +674,9 @@ void on_disable_gitscripts() {
 		gtk_list_store_clear(list_store);
 	}
 	gui_repo_scripts_mutex_lock();
-	g_slist_free_full(gui.repo_scripts, g_free);
+	g_slist_free_full(com.repo_scripts, g_free);
 	gui_repo_scripts_mutex_unlock();
-	gui.repo_scripts = NULL;
+	com.repo_scripts = NULL;
 	if (com.pref.selected_scripts)
 		g_slist_free_full(com.pref.selected_scripts, g_free);
 	com.pref.selected_scripts = NULL;
@@ -701,8 +701,8 @@ void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data)
 	}
 	git_gui_init_statics();
 	gtk_widget_set_sensitive(git_pref_auto_updates, com.pref.use_scripts_repository);
-	gtk_widget_set_sensitive(git_manual_sync_btn, (com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(GTK_WIDGET(git_treeview_scripts), (com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(git_manual_sync_btn, (com.pref.use_scripts_repository && com.script_repo_available));
+	gtk_widget_set_sensitive(GTK_WIDGET(git_treeview_scripts), (com.pref.use_scripts_repository && com.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -712,7 +712,7 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 	}
 	git_gui_init_statics();
 	gtk_widget_set_sensitive(git_spcc_sync_startup, com.pref.spcc.use_spcc_repository);
-	gtk_widget_set_sensitive(git_spcc_manual_sync, (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
+	gtk_widget_set_sensitive(git_spcc_manual_sync, (com.pref.spcc.use_spcc_repository && com.spcc_repo_available));
 }
 #else
 
