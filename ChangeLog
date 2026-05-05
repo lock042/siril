@@ -13,9 +13,10 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Parallelize min/max stacking algorithms (#194)
 
 siril-1.4.3
---/--/--
+05/07/26
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
@@ -32,7 +33,6 @@ siril-1.4.3
 * Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
 * Added -async option to pyscript command (!1015)
-
 
 siril-1.4.2-HF1
 04/08/26

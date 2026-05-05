@@ -18,10 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
 #include "core/siril.h"
-#include "core/gui_iface.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
+#include "core/processing.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/ser.h"
@@ -31,257 +31,244 @@
 
 #include "stacking/stacking.h"
 
-static int stack_addminmax(struct stacking_args *args, gboolean ismax);
-
-
 /******************************* ADDMIN AND ADDMAX STACKING ******************************
- * These methods are very close to summing stacking instead that the result
+ * These methods are very close to summing stacking except that the result
  * takes only the pixel if it is brighter (max) or dimmer (min) than the
  * previous one at the same coordinates.
+ *
+ * Images are processed sequentially (max_parallel_images=1) so that the
+ * per-pixel comparison-update needs no locking. Parallelism is achieved by
+ * splitting the pixel loop across threads within each image hook.
  */
-int stack_addmax(struct stacking_args *args) {
-	return stack_addminmax(args, TRUE);
-}
 
-int stack_addmin(struct stacking_args *args) {
-	return stack_addminmax(args, FALSE);
-}
+struct minmax_stacking_data {
+	WORD  *final_pixel[3];		// integer accumulation buffers
+	float *ffinal_pixel[3];		// float accumulation buffers
+	GList *list_date;
+	double livetime;
+	int reglayer;
+	int ref_image;
+	gboolean input_32bits;
+	gboolean ismax;
+	gboolean maximize_framing;
+	gboolean upscale_at_stacking;
+	int output_size[2];
+	int offset[2];
+	fits result;
+};
 
-static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
-	WORD *final_pixel[3];
-	float *ffinal_pixel[3];
-	double livetime = 0.0;
-	GList *list_date = NULL; // list of dates of every FITS file
-	//double exposure = 0.0;
-	gboolean is_float = TRUE; // init only for warning
-	size_t nbdata = 0;
-	char filename[256];
-	int retval = ST_OK, nb_frames, cur_nb = 0;
-	fits fit = { 0 };
+static int minmax_stacking_prepare_hook(struct generic_seq_args *args) {
+	struct minmax_stacking_data *mmdata = args->user;
+	size_t nbdata = (size_t)mmdata->output_size[0] * mmdata->output_size[1];
+	size_t nbpixels = nbdata * args->seq->nb_layers;
 
-	/* should be pre-computed to display it in the stacking tab */
-	nb_frames = args->nb_images_to_stack;
-	int reglayer = get_registration_layer(args->seq);
-
-	if (nb_frames <= 1) {
-		siril_log_message(_("No frame selected for stacking (select at least 2). Aborting.\n"));
-		return ST_GENERIC_ERROR;
-	}
-	int output_size[2], offset[2];
-	gboolean update_wcs = FALSE;
-	if (args->maximize_framing) {
-		compute_max_framing(args, output_size, offset);
-		update_wcs = TRUE;
+	if (mmdata->input_32bits) {
+		mmdata->ffinal_pixel[0] = malloc(nbpixels * sizeof(float));
+		if (!mmdata->ffinal_pixel[0]) {
+			PRINT_ALLOC_ERR;
+			return ST_ALLOC_ERROR;
+		}
+		float init = mmdata->ismax ? 0.0f : 1.0f;
+		for (size_t k = 0; k < nbpixels; k++)
+			mmdata->ffinal_pixel[0][k] = init;
+		if (args->seq->nb_layers == 3) {
+			mmdata->ffinal_pixel[1] = mmdata->ffinal_pixel[0] + nbdata;
+			mmdata->ffinal_pixel[2] = mmdata->ffinal_pixel[0] + nbdata * 2;
+		}
+		mmdata->final_pixel[0] = NULL;
 	} else {
-		output_size[0] = args->seq->rx;
-		output_size[1] = args->seq->ry;
-		double dx = 0., dy = 0.;
-		if (reglayer >= 0) {
-			translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
-			update_wcs = TRUE;
+		mmdata->final_pixel[0] = malloc(nbpixels * sizeof(WORD));
+		if (!mmdata->final_pixel[0]) {
+			PRINT_ALLOC_ERR;
+			return ST_ALLOC_ERROR;
 		}
-		offset[0] = (int)dx;
-		offset[1] = (int)dy;
+		WORD init = mmdata->ismax ? 0 : USHRT_MAX;
+		for (size_t k = 0; k < nbpixels; k++)
+			mmdata->final_pixel[0][k] = init;
+		if (args->seq->nb_layers == 3) {
+			mmdata->final_pixel[1] = mmdata->final_pixel[0] + nbdata;
+			mmdata->final_pixel[2] = mmdata->final_pixel[0] + nbdata * 2;
+		}
+		mmdata->ffinal_pixel[0] = NULL;
 	}
 
-	final_pixel[0] = NULL;
-	ffinal_pixel[0] = NULL;
-	g_assert(args->seq->nb_layers == 1 || args->seq->nb_layers == 3);
-	g_assert(nb_frames <= args->seq->number);
+	mmdata->livetime = 0.0;
+	mmdata->list_date = NULL;
+	return ST_OK;
+}
 
-	for (int j = 0; j < args->seq->number; ++j) {
-		if (!processing_should_continue()) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_reset_progress_bar;
-		}
-		if (!args->filtering_criterion(args->seq, j, args->filtering_parameter)) {
-			fprintf(stdout, "image %d is excluded from stacking\n", j);
-			continue;
-		}
-		if (!seq_get_image_filename(args->seq, j, filename)) {
-			retval = ST_GENERIC_ERROR;
-			goto free_and_reset_progress_bar;
-		}
-		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		gui_iface.set_progress((double) cur_nb / ((double) nb_frames + 1.), tmpmsg);
-		g_free(tmpmsg);
+/* Images are processed one at a time (max_parallel_images=1), so livetime and
+ * list_date updates here are safe without locks. The collapsed y/x pixel loop
+ * is parallelized across threads using the 'threads' subthread count. */
+static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	struct minmax_stacking_data *mmdata = args->user;
+	int shiftx = 0, shifty = 0;
+	gboolean ismax = mmdata->ismax;
 
-		cur_nb++;	// only used for progress bar
+	mmdata->livetime += fit->keywords.exposure;
 
-		if (seq_read_frame(args->seq, j, &fit, FALSE, -1)) {
-			siril_log_message(_("Stacking: could not read frame, aborting\n"));
-			retval = ST_SEQUENCE_ERROR;
-			goto free_and_reset_progress_bar;
-		}
+	if (fit->keywords.date_obs) {
+		GDateTime *date = g_date_time_ref(fit->keywords.date_obs);
+		mmdata->list_date = g_list_prepend(mmdata->list_date, new_date_item(date, fit->keywords.exposure));
+	}
 
-		g_assert(args->seq->nb_layers == 1 || args->seq->nb_layers == 3);
-		g_assert(fit.naxes[2] == args->seq->nb_layers);
+	if (mmdata->reglayer != -1 && args->seq->regparam[mmdata->reglayer]) {
+		double scale = mmdata->upscale_at_stacking ? 2. : 1.;
+		double dx, dy;
+		translation_from_H(args->seq->regparam[mmdata->reglayer][i].H, &dx, &dy);
+		dx *= scale;
+		dy *= scale;
+		dx -= mmdata->offset[0];
+		dy -= mmdata->offset[1];
+		if (mmdata->maximize_framing)
+			dy -= (double)fit->ry;
+		shiftx = round_to_int(dx);
+		shifty = round_to_int(dy);
+		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
+	}
+	if (shiftx == INT_MIN) {
+		siril_debug_print("Error: image #%d has a wrong shiftx value\n", o + 1);
+		shiftx += 1;
+	}
+	if (shifty == INT_MIN) {
+		siril_debug_print("Error: image #%d has a wrong shifty value\n", o + 1);
+		shifty += 1;
+	}
 
-		/* first loaded image: init data structures for stacking */
-		if (!nbdata) {
-			is_float = fit.type == DATA_FLOAT;
-			nbdata = output_size[0] * output_size[1];
-			size_t nbpixels = nbdata * fit.naxes[2];
-			if (is_float) {
-				if (ismax)
-					ffinal_pixel[0] = calloc(nbpixels, sizeof(float));
-				else {
-					ffinal_pixel[0] = malloc(nbpixels * sizeof(float));
-					for (long k = 0; k < nbpixels; k++)
-						ffinal_pixel[0][k] = 1.0;
-				}
-				if (!ffinal_pixel[0]) {
-					PRINT_ALLOC_ERR;
-					retval = ST_ALLOC_ERROR;
-					goto free_and_reset_progress_bar;
-				}
-				if (args->seq->nb_layers == 3) {
-					ffinal_pixel[1] = ffinal_pixel[0] + nbdata;
-					ffinal_pixel[2] = ffinal_pixel[1] + nbdata;
-				}
-			} else {
-				if (ismax)
-					final_pixel[0] = calloc(nbpixels, sizeof(WORD));
-				else {
-					final_pixel[0] = malloc(nbpixels * sizeof(WORD));
-					for (long k = 0; k < nbpixels; k++)
-						final_pixel[0][k] = USHRT_MAX;
-				}
-				if (!final_pixel[0]) {
-					PRINT_ALLOC_ERR;
-					retval = ST_ALLOC_ERROR;
-					goto free_and_reset_progress_bar;
-				}
-				if (args->seq->nb_layers == 3) {
-					final_pixel[1] = final_pixel[0] + nbdata;
-					final_pixel[2] = final_pixel[1] + nbdata;
-				}
-			}
-		} else if (fit.ry * fit.rx != nbdata && !args->maximize_framing) {
-			siril_log_message(_("Stacking: image in sequence doesn't has the same dimensions\n"));
-			retval = ST_SEQUENCE_ERROR;
-			goto free_and_reset_progress_bar;
-		}
-
-		/* load registration data for current image */
-		int shiftx, shifty;
-		if (reglayer != -1 && args->seq->regparam[reglayer]) {
-			double dx, dy;
-			double scale = (args->upscale_at_stacking) ? 2. : 1.;
-			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
-			dx *= scale;
-			dy *= scale;
-			dx -= offset[0];
-			dy -= offset[1];
-			if (args->maximize_framing)
-				dy -= (double)fit.ry;
-			shiftx = round_to_int(dx);
-			shifty = round_to_int(dy);
-			siril_debug_print("img %d dx %d dy %d\n", j, shiftx, shifty);
-		} else {
-			shiftx = 0;
-			shifty = 0;
-		}
-#ifdef STACK_DEBUG
-		printf("stack image %d with shift x=%d y=%d\n", j, shiftx, shifty);
+	/* collapse(2) distributes all output pixels evenly across threads, giving
+	 * better load balance than parallelizing only the outer y loop. Each (y,x)
+	 * pair maps to a unique output pixel, so there are no write conflicts. */
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) collapse(2)
 #endif
-
-		/* Summing the exposure */
-		livetime += fit.keywords.exposure;
-
-		if (fit.keywords.date_obs) {
-			GDateTime *date = g_date_time_ref(fit.keywords.date_obs);
-			list_date = g_list_prepend(list_date, new_date_item(date, fit.keywords.exposure));
-		}
-
-		/* stack current image */
-		if (shiftx == INT_MIN) { // mainly to avoid static checker warning
-			siril_debug_print("Error: image #%d has a wrong shiftx value\n", j + 1);
-			shiftx += 1;
-		}
-		if (shifty == INT_MIN) { // mainly to avoid static checker warning
-			siril_debug_print("Error: image #%d has a wrong shifty value\n", j + 1);
-			shifty += 1;
-		}
-		size_t i = 0;	// index in final_pixel[0]
-		for (int y = 0; y < output_size[1]; ++y) {
+	for (int y = 0; y < mmdata->output_size[1]; ++y) {
+		for (int x = 0; x < mmdata->output_size[0]; ++x) {
 			int ny = y - shifty;
-			for (int x = 0; x < output_size[0]; ++x) {
-				int nx = x - shiftx;
-				//printf("x=%d y=%d sx=%d sy=%d i=%d ii=%d\n",x,y,shiftx,shifty,i,ii);
-				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
-					size_t ii = ny * fit.rx + nx;		// index in final_pixel[0] too
-					//printf("shiftx=%d shifty=%d i=%d ii=%d\n",shiftx,shifty,i,ii);
-					if (ii < nbdata) {
-						for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
-							if (is_float) {
-								float current_pixel = fit.fpdata[layer][ii];
-								// we take the brightest pixel
-								if ((ismax && current_pixel > ffinal_pixel[layer][i]) ||
-										// we take the darkest pixel
-										(!ismax && current_pixel < ffinal_pixel[layer][i]))
-									ffinal_pixel[layer][i] = current_pixel;
-							} else {
-								WORD current_pixel = fit.pdata[layer][ii];
-								// we take the brightest pixel
-								if ((ismax && current_pixel > final_pixel[layer][i]) ||
-										// we take the darkest pixel
-										(!ismax && current_pixel < final_pixel[layer][i]))
-									final_pixel[layer][i] = current_pixel;
-							}
-						}
-					}
+			int nx = x - shiftx;
+			if (ny < 0 || ny >= fit->ry || nx < 0 || nx >= fit->rx)
+				continue;
+			size_t pixel = (size_t)y * mmdata->output_size[0] + x;
+			size_t ii = (size_t)ny * fit->rx + nx;
+			for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
+				if (mmdata->input_32bits) {
+					float cur = fit->fpdata[layer][ii];
+					if ((ismax && cur > mmdata->ffinal_pixel[layer][pixel]) ||
+							(!ismax && cur < mmdata->ffinal_pixel[layer][pixel]))
+						mmdata->ffinal_pixel[layer][pixel] = cur;
+				} else {
+					WORD cur = fit->pdata[layer][ii];
+					if ((ismax && cur > mmdata->final_pixel[layer][pixel]) ||
+							(!ismax && cur < mmdata->final_pixel[layer][pixel]))
+						mmdata->final_pixel[layer][pixel] = cur;
 				}
-				++i;
 			}
 		}
-		clearfits(&fit);
 	}
-	if (!processing_should_continue()) {
-		retval = ST_GENERIC_ERROR;
-		goto free_and_reset_progress_bar;
-	}
-	gui_iface.set_progress((double) nb_frames / ((double) nb_frames + 1.), _("Finalizing stacking..."));
+	return ST_OK;
+}
 
-	fits *result = &args->result;
-	if (is_float) {
-		if (new_fit_image_with_data(&result, output_size[0], output_size[1], args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
+static int minmax_stacking_finalize_hook(struct generic_seq_args *args) {
+	struct minmax_stacking_data *mmdata = args->user;
+
+	if (args->retval) {
+		if (mmdata->final_pixel[0])  free(mmdata->final_pixel[0]);
+		if (mmdata->ffinal_pixel[0]) free(mmdata->ffinal_pixel[0]);
+		args->user = NULL;
+		return args->retval;
+	}
+
+	fits *result = &mmdata->result;
+	if (mmdata->input_32bits) {
+		if (new_fit_image_with_data(&result, mmdata->output_size[0], mmdata->output_size[1],
+				args->seq->nb_layers, DATA_FLOAT, mmdata->ffinal_pixel[0]))
 			return ST_GENERIC_ERROR;
 	} else {
-		if (new_fit_image_with_data(&result, output_size[0], output_size[1], args->seq->nb_layers, DATA_USHORT, final_pixel[0]))
+		if (new_fit_image_with_data(&result, mmdata->output_size[0], mmdata->output_size[1],
+				args->seq->nb_layers, DATA_USHORT, mmdata->final_pixel[0]))
 			return ST_GENERIC_ERROR;
 	}
+	/* buffers are now owned by result, do not free them */
+	mmdata->ffinal_pixel[0] = NULL;
+	mmdata->final_pixel[0] = NULL;
 
-	/* We copy metadata from reference to the final fit */
-	int ref = args->ref_image;
+	int ref = mmdata->ref_image;
 	if (args->seq->type == SEQ_REGULAR) {
 		if (!seq_open_image(args->seq, ref)) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], result);
 			result->orig_bitpix = result->bitpix = args->seq->bitpix;
 			seq_close_image(args->seq, ref);
-		result->keywords.livetime = livetime;
 		}
+		result->keywords.livetime = mmdata->livetime;
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref)) {
 			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, result);
 			result->orig_bitpix = result->bitpix = args->seq->fitseq_file->bitpix;
 		}
-		result->keywords.livetime = livetime;
+		result->keywords.livetime = mmdata->livetime;
 	} else if (args->seq->type == SEQ_SER) {
 		import_metadata_from_serfile(args->seq->ser_file, result);
 		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
-		result->keywords.livetime = result->keywords.exposure * args->nb_images_to_stack; // livetime is null for ser as fit has no exposure data
+		result->keywords.livetime = result->keywords.exposure * args->nb_filtered_images;
 	}
-	result->keywords.stackcnt = args->nb_images_to_stack;
-	if (update_wcs && has_wcs(result)) {
+
+	result->keywords.stackcnt = args->nb_filtered_images;
+	compute_date_time_keywords(mmdata->list_date, result);
+	g_list_free_full(mmdata->list_date, (GDestroyNotify) free_list_date);
+
+	args->user = NULL;
+	return ST_OK;
+}
+
+static int stack_minmax_generic(struct stacking_args *stackargs, gboolean ismax) {
+	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
+	args->filtering_criterion = stackargs->filtering_criterion;
+	args->filtering_parameter = stackargs->filtering_parameter;
+	args->nb_filtered_images = stackargs->nb_images_to_stack;
+	args->prepare_hook = minmax_stacking_prepare_hook;
+	args->image_hook = minmax_stacking_image_hook;
+	args->finalize_hook = minmax_stacking_finalize_hook;
+	args->description = ismax ? _("Max stacking") : _("Min stacking");
+	args->already_in_a_thread = TRUE;
+	args->max_parallel_images = 1; // sequential images; pixel loop is parallelized inside image_hook
+
+	struct minmax_stacking_data *mmdata = calloc(1, sizeof(struct minmax_stacking_data));
+	mmdata->reglayer = stackargs->reglayer;
+	mmdata->ref_image = stackargs->ref_image;
+	mmdata->input_32bits = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+	mmdata->ismax = ismax;
+	mmdata->upscale_at_stacking = stackargs->upscale_at_stacking;
+
+	gboolean update_wcs = FALSE;
+	if (stackargs->maximize_framing) {
+		compute_max_framing(stackargs, mmdata->output_size, mmdata->offset);
+		mmdata->maximize_framing = TRUE;
+		update_wcs = TRUE;
+	} else {
+		mmdata->output_size[0] = args->seq->rx;
+		mmdata->output_size[1] = args->seq->ry;
+		double dx = 0., dy = 0.;
+		if (mmdata->reglayer >= 0) {
+			translation_from_H(args->seq->regparam[mmdata->reglayer][mmdata->ref_image].H, &dx, &dy);
+			update_wcs = TRUE;
+		}
+		mmdata->offset[0] = (int)dx;
+		mmdata->offset[1] = (int)dy;
+	}
+
+	args->user = mmdata;
+	generic_sequence_worker(args);
+	memcpy(&stackargs->result, &mmdata->result, sizeof(fits));
+
+	if (update_wcs && has_wcs(&mmdata->result)) {
+		fits *result = &mmdata->result;
 		Homography Hs = { 0 };
 		cvGetEye(&Hs);
 		double dx, dy;
-		translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+		translation_from_H(args->seq->regparam[stackargs->reglayer][stackargs->ref_image].H, &dx, &dy);
 		siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
 		siril_debug_print("crpix: %.1f %.1f\n", result->keywords.wcslib->crpix[0], result->keywords.wcslib->crpix[1]);
-		Hs.h02  = dx - offset[0];
-		Hs.h12 -= dy - offset[1];
+		Hs.h02  = dx - mmdata->offset[0];
+		Hs.h12 -= dy - mmdata->offset[1];
 		int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
 		int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
 		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
@@ -290,17 +277,14 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		update_wcsdata_from_wcs(result);
 	}
 
-	compute_date_time_keywords(list_date, result);
-	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
-
-free_and_reset_progress_bar:
-	if (retval) {
-		gui_iface.set_progress(PROGRESS_RESET, _("Stacking failed. Check the log."));
-		siril_log_message(_("Stacking failed.\n"));
-	} else {
-		gui_iface.set_progress(PROGRESS_DONE, _("Stacking complete."));
-	}
-
-	return retval;
+	free(mmdata);
+	return args->retval;
 }
 
+int stack_addmax(struct stacking_args *args) {
+	return stack_minmax_generic(args, TRUE);
+}
+
+int stack_addmin(struct stacking_args *args) {
+	return stack_minmax_generic(args, FALSE);
+}
