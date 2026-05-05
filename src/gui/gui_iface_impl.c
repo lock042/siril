@@ -740,11 +740,6 @@ static void impl_activate_annotation_display(void) {
 	}
 }
 
-/* ── T: Main window handle ───────────────────────────────────────────────── */
-
-static void *impl_get_main_window(void) {
-	return GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
-}
 
 /* ── U: ICC status icon ──────────────────────────────────────────────────── */
 
@@ -968,7 +963,6 @@ void siril_register_gui_iface(void) {
 	gui_iface.show_command_help           = impl_show_command_help;
 	gui_iface.update_pixel_math_status    = impl_update_pixel_math_status;
 	gui_iface.activate_annotation_display = impl_activate_annotation_display;
-	gui_iface.get_main_window             = impl_get_main_window;
 	gui_iface.update_icc_status_icon      = impl_update_icc_status_icon;
 	gui_iface.get_gamut_check_active      = impl_get_gamut_check_active;
 	gui_iface.update_registration_status  = impl_update_registration_status;

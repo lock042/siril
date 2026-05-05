@@ -334,11 +334,6 @@ typedef struct {
 	 * catalogue search.  Activates the annotate toggle if needed. */
 	void (*activate_annotation_display)(void);
 
-	/* T – Window handle ----------------------------------------------------- */
-	/* Return the main application window (GtkWindow*) as void* so the header
-	 * stays GTK-free.  Callers in GUI code cast to GtkWindow*. */
-	void *(*get_main_window)(void);
-
 	/* U – ICC status --------------------------------------------------------- */
 	/* Update the ICC color-management status icon and tooltip in the toolbar.
 	 * fit is cast to fits* in the implementation; use gpointer to keep the
