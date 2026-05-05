@@ -34,4 +34,20 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
 void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
 void apply_ght_to_fits_channel(fits *from, fits *to, int channel, ght_params *params, gboolean multithreaded);
+
+/*
+ * Processing data structure for GHT operations.  Defined here (not in
+ * gui/histogram.h) so that non-GTK translation units can allocate and free it
+ * without pulling in GTK headers.
+ */
+struct ght_data {
+	void (*destroy_fn)(void *args); /* destructor — first member */
+	fits *fit;
+	sequence *seq;
+	struct ght_params *params_ght;
+	char *seqEntry;
+	gboolean auto_display_compensation;
+	gboolean is_preview;
+};
+
 #endif

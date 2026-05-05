@@ -26,4 +26,21 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results);
 int find_unlinked_midtones_balance_default(fits *fit, struct mtf_params *results);
 
+/*
+ * Processing data structure for MTF operations.  Defined here (not in
+ * gui/histogram.h) so that non-GTK translation units can allocate and free it
+ * without pulling in GTK headers.
+ */
+struct mtf_data {
+	void (*destroy_fn)(void *args); /* destructor — first member */
+	fits *fit;
+	sequence *seq;
+	gboolean linked;
+	struct mtf_params params;
+	struct mtf_params uparams[3]; /* for unlinked stretch */
+	char *seqEntry;
+	gboolean auto_display_compensation;
+	gboolean is_preview;
+};
+
 #endif

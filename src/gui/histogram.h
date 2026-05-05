@@ -10,27 +10,8 @@
 #define HISTO_STRETCH 1
 #define GHT_STRETCH 2
 
-struct mtf_data {
-	void (*destroy_fn)(void *args);  // First member - destructor
-	fits *fit;
-	sequence *seq;
-	gboolean linked;
-	struct mtf_params params;
-	struct mtf_params uparams[3]; // for unlinked stretch
-	char *seqEntry;
-	gboolean auto_display_compensation;
-	gboolean is_preview;
-};
-
-struct ght_data {
-	void (*destroy_fn)(void *args);  // First member - destructor
-	fits *fit;
-	sequence *seq;
-	struct ght_params *params_ght;
-	char *seqEntry;
-	gboolean auto_display_compensation;
-	gboolean is_preview;
-};
+/* struct mtf_data is defined in filters/mtf.h (included above) */
+/* struct ght_data  is defined in filters/ght.h  (included above) */
 
 typedef enum {
 	SCALE_LOW,
