@@ -870,7 +870,7 @@ gboolean scroll_zooms(scroll_data *data) {
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return FALSE;
 
-	if (gui.icc.iso12646)
+	if (com.gui_icc.iso12646)
 		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 
 	point delta;

@@ -617,7 +617,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
 
-	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
+	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (processing_is_job_active()) {
@@ -2212,9 +2212,9 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	if (gfit->color_managed) {
 		lock_display_transform();
-		if (gui.icc.proofing_transform)
-			cmsDeleteTransform(gui.icc.proofing_transform);
-		gui.icc.proofing_transform = initialize_proofing_transform();
+		if (com.gui_icc.proofing_transform)
+			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}
 	notify_gfit_data_modified();

@@ -393,7 +393,7 @@ static void update_color_management_preferences() {
 	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
 	com.pref.icc.pedantic_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_pedantic_linear")));
 	com.icc.rendering_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
-	gui.icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+	com.gui_icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
 	com.pref.icc.autoassignment = 	((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_load"))) * ICC_ASSIGN_ON_LOAD) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stack"))) * ICC_ASSIGN_ON_STACK) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +

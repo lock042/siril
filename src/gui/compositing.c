@@ -1811,7 +1811,7 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 			// We use the NONEGATIVES flag to bound the transform, otherwise the
 			// negative components play havoc with the compositing.
 			cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
-			                                                gui.icc.monitor,
+			                                                com.gui_icc.monitor,
 			                                                TYPE_RGB_FLT_PLANAR,
 			                                                image_profile,
 			                                                TYPE_RGB_FLT_PLANAR,

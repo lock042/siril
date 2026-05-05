@@ -142,7 +142,6 @@ struct guiinf {
 	BYTE             *hd_remap_index[3];             /* high-precision LUT */
 	guint             hd_remap_max;
 	gboolean          use_hd_remap;
-	struct gui_icc    icc;
 
 	/*** selection / drawing state ***/
 	gboolean          drawing;

@@ -889,6 +889,7 @@ struct cominf {
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
+	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
 	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC

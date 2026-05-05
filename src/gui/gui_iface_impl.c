@@ -676,9 +676,9 @@ static void impl_restore_roi(const rectangle *rect) {
 
 static void impl_reset_display_transform(void) {
 	lock_display_transform();
-	if (gui.icc.proofing_transform) {
-		cmsDeleteTransform(gui.icc.proofing_transform);
-		gui.icc.proofing_transform = NULL;
+	if (com.gui_icc.proofing_transform) {
+		cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = NULL;
 	}
 	unlock_display_transform();
 }
@@ -897,7 +897,7 @@ void siril_register_gui_iface(void) {
 
 static void impl_apply_display_icc_compensation(gpointer p) {
 	fits *fit = (fits *)p;
-	if (!fit || !gui.icc.monitor) return;
+	if (!fit || !com.gui_icc.monitor) return;
 	int depth = fit->naxes[2];
 	if (depth == 1) {
 		fits_change_depth(fit, 3);
@@ -911,7 +911,7 @@ static void impl_apply_display_icc_compensation(gpointer p) {
 	}
 	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
 	cmsCloseProfile(fit->icc_profile);
-	fit->icc_profile = copyICCProfile(gui.icc.monitor);
+	fit->icc_profile = copyICCProfile(com.gui_icc.monitor);
 	siril_colorspace_transform(fit, temp);
 	cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = copyICCProfile(temp);

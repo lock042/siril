@@ -2198,7 +2198,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Prepare data
 			guint32 profile_size;
-			unsigned char* profile_data = get_icc_profile_data(gui.icc.monitor, &profile_size);
+			unsigned char* profile_data = get_icc_profile_data(com.gui_icc.monitor, &profile_size);
 
 			shared_memory_info_t *info = handle_rawdata_request(conn, profile_data, profile_size);
 			success = send_response(conn, STATUS_OK, (const char*)info, sizeof(*info));

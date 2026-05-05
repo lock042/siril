@@ -156,7 +156,7 @@ static int allocate_full_surface(struct image_view *view) {
 
 void check_gfit_profile_identical_to_monitor() {
 	if (!com.headless && gfit->icc_profile && gfit->color_managed)
-		identical = profiles_identical(gfit->icc_profile, gui.icc.monitor);
+		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
 	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }
 
@@ -636,13 +636,13 @@ static void remap_all_vports() {
 	lock_display_transform();
 	if (gfit->color_managed) {
 		// Set the transform in case it is missing
-		if (!gui.icc.proofing_transform) {
-			gui.icc.proofing_transform = initialize_proofing_transform();
-			gui.icc.profile_changed = TRUE;
+		if (!com.gui_icc.proofing_transform) {
+			com.gui_icc.proofing_transform = initialize_proofing_transform();
+			com.gui_icc.profile_changed = TRUE;
 		}
-		if (gui.icc.profile_changed) {
-			gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
-//			gui.icc.same_primaries = FALSE;
+		if (com.gui_icc.profile_changed) {
+			com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+//			com.gui_icc.same_primaries = FALSE;
 			check_gfit_profile_identical_to_monitor();
 			// Calling color_manage() like this updates the color management button tooltip
 			color_manage(gfit, gfit->color_managed);
@@ -661,7 +661,7 @@ static void remap_all_vports() {
 	}
 	unlock_display_transform();
 
-	gui.icc.profile_changed = FALSE;
+	com.gui_icc.profile_changed = FALSE;
 	/* Widget-sensitivity changes must happen on the GTK main thread. */
 	siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(TRUE));
 
@@ -689,8 +689,8 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		const gboolean do_transform = (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed));
+		siril_debug_print((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
 
 		if (do_transform)
 			lock_display_transform();
@@ -796,7 +796,7 @@ static void remap_all_vports() {
 				}
 			}
 			if (do_transform) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
+				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
 			const guint dst_row_start = (height - 1 - y) * width * 4;
@@ -984,10 +984,10 @@ static int make_index_for_current_display(int vport) {
 			return 1;
 	}
 	if(!(slope == last_pente && gui.rendering_mode == last_mode))
-		gui.icc.profile_changed = TRUE;
+		com.gui_icc.profile_changed = TRUE;
 
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
-			slope == last_pente && gui.rendering_mode == last_mode && !gui.icc.profile_changed) {
+			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
 		siril_debug_print("Re-using previous gui.remap_index\n");
 		return 0;
 	}
@@ -1040,7 +1040,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit->color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
+	if (gfit->color_managed && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;

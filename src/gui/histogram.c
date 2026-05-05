@@ -1553,7 +1553,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		update_histo_mtf();
 
 		// Set auto display compensation flag and trigger recompute
-		if (fit->color_managed && !profiles_identical(fit->icc_profile, gui.icc.monitor))
+		if (fit->color_managed && !profiles_identical(fit->icc_profile, com.gui_icc.monitor))
 			auto_display_compensation = TRUE;
 
 		update_image *param = malloc(sizeof(update_image));

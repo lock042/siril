@@ -81,7 +81,7 @@ void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
 	float XYZ[3] = { 0.f };
 	float RGB[3] = { 0.f };
 	wavelength_to_XYZ((float) wavelength, &XYZ[0], &XYZ[1], &XYZ[2]);
-	if (gui.icc.monitor) {
+	if (com.gui_icc.monitor) {
 		cmsHPROFILE profile_xyz = cmsCreateXYZProfile();
 		// This transform is unbounded: Gdk crops the negative values returned
 		// for the displayed colors, but retaining the unbounded values allows
@@ -89,7 +89,7 @@ void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
 		cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
 														profile_xyz,
 														TYPE_XYZ_FLT_PLANAR,
-														gui.icc.monitor,
+														com.gui_icc.monitor,
 														TYPE_RGB_FLT_PLANAR,
 														INTENT_RELATIVE_COLORIMETRIC,
 														0);
