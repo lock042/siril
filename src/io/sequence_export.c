@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"

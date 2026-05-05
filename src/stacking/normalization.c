@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -31,7 +32,6 @@
 #include "stacking.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/progress_and_log.h"
 
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>

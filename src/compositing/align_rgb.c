@@ -26,8 +26,7 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "registration/registration.h"

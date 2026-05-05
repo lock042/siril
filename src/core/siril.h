@@ -307,6 +307,12 @@ typedef enum {
 	USER
 } sliders_mode;
 
+/* Script file extensions — defined here so non-GUI code can check without
+ * pulling in gui/script_menu.h. */
+#define SCRIPT_EXT    "ssf"
+#define PYSCRIPT_EXT  "py"
+#define PYCSCRIPT_EXT "pyc"
+
 typedef enum {
 	OPEN_IMAGE_ERROR = -1,
 	OPEN_IMAGE_OK = 0,

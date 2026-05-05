@@ -23,10 +23,13 @@
 #include "core/proto.h"
 #include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
 #include "algos/siril_wcs.h"
+
+/* end_register_idle: defined in gui/registration.c (GUI) or
+ * core/headless_stubs.c (headless/CLI). */
+gboolean end_register_idle(gpointer p);
 
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {

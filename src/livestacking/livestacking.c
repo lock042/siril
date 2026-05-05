@@ -20,12 +20,12 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include "core/gui_iface.h"
 #endif
 
 #include <sys/time.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/preprocess.h"

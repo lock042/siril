@@ -47,9 +47,6 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
 #include "core/gui_iface.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_plot.h"
-#include "gui/script_menu.h"
 #include "gui/user_polygons.h"
 
 // 65k buffer is enough for any object except pixel data and things
@@ -1184,7 +1181,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	if (plot_data) {
 		// Generate the plot window
 		if (display)
-			siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
+			gui_iface.show_siril_plot(plot_data);
 
 		// Handle save functionality
 		if (save) {
@@ -1202,17 +1199,17 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 				// No timestamps are added: since this is for use with python, if timestamps are
 				// required they must be added programatically in python. We just save what we
 				// are given.
-				filename = build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
 				siril_plot_save_png(plot_data, filename, width, height);
 			} else if (!g_strcmp0(lext, "dat")) {
-				filename = build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
 				siril_plot_save_dat(plot_data, filename, FALSE);
 			} else if (!g_strcmp0(lext, "cb")) {
-				save_siril_plot_to_clipboard(plot_data, width, height);
+				gui_iface.save_siril_plot_to_clipboard(plot_data, width, height);
 			}
 			else if (!g_strcmp0(lext, "svg")) {
 #ifdef CAIRO_HAS_SVG_SURFACE
-				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
 				siril_plot_save_svg(plot_data, filename, width, height);
 #else
 				siril_log_color_message(_("Error: Siril has been compiled with a version of Cairo "
@@ -3169,7 +3166,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		check_python_flag();
 
 		// Re-enable widgets
-		gui_function(script_widgets_idle, NULL);
+		gui_iface.script_widgets_async(TRUE);
 
 		// Free the cleanup structure
 		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
@@ -3438,7 +3435,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		}
 
 		// Re-enable widgets
-		gui_function(script_widgets_idle, NULL);
+		gui_iface.script_widgets_async(TRUE);
 		return;
 	}
 

@@ -388,6 +388,58 @@ typedef struct {
 	 * No-op in headless mode. */
 	void     (*switch_to_tab)(int tab);
 
+	/* ── Display / plot notifications ─────────────────────────────────────── */
+	/* Clear all photometry data and the plot panel. */
+	void     (*clear_all_photometry_and_plot)(void);
+	/* Redraw the plot panel (no-op if not visible). */
+	void     (*draw_plot)(void);
+	/* Refresh the plot panel if it is currently visible. */
+	void     (*notify_new_photometry)(void);
+	/* Initialize plot colour themes from preferences. */
+	void     (*init_plot_colors)(void);
+	/* Save the siril_plot_data pointed to by spl_data as an image to clipboard. */
+	gboolean (*save_siril_plot_to_clipboard)(gpointer spl_data, int width, int height);
+	/* Build a save filename (wraps build_save_filename). Returns newly allocated string. */
+	gchar   *(*build_save_filename)(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp);
+
+	/* ── Cut / spectral profile operations ──────────────────────────────────── */
+	/* Apply cut to all images in the sequence. spl_data is cut_struct*. */
+	void     (*apply_cut_to_sequence)(gpointer cut_args);
+	/* Launch profile / tri-cut / CFA cut thread; returns newly allocated GThread or NULL stub. */
+	gpointer (*run_cut_profile)(gpointer args);
+	gpointer (*run_tri_cut)(gpointer args);
+	gpointer (*run_cfa_cut)(gpointer args);
+	/* Reset per-file cut GUI state (depth/spectro labels). No-op in headless. */
+	void     (*reset_cut_gui_filedependent)(gpointer user_data);
+
+	/* ── Preview backup ────────────────────────────────────────────────────── */
+	/* Copy the preview backup buffer back into gfit (returns 0 on success). */
+	int      (*copy_backup_to_gfit)(void);
+	/* Return the internal preview backup fits buffer cast to gpointer. */
+	gpointer (*get_preview_gfit_backup)(void);
+
+	/* ── Registration / sequence state ─────────────────────────────────────── */
+	/* Update the registration panel's status indicators. */
+	void     (*update_reg_interface)(gboolean dont_change_reg_radio);
+	/* Reset 3-star registration widget state. */
+	void     (*reset_3stars_gui)(void);
+
+	/* ── Stacking interface ─────────────────────────────────────────────────── */
+	/* Update the stacking panel to reflect current sequence state. */
+	void     (*update_stack_interface)(gboolean dont_change_stack_type);
+
+	/* ── Script / automation ────────────────────────────────────────────────── */
+	/* Launch background thread to rescan scripts and rebuild menu. */
+	void     (*refresh_scripts_in_thread)(void);
+	/* Enable or disable script-related widgets asynchronously (idle callback). */
+	void     (*script_widgets_async)(gboolean enable);
+	/* Return the log buffer as a newly-allocated string. NULL in headless. */
+	gchar   *(*get_log_as_string)(void);
+
+	/* ── CCD / optics ───────────────────────────────────────────────────────── */
+	/* Run the aberration inspector computation. */
+	void     (*compute_aberration_inspector)(void);
+
 	/* SG – Miscellaneous single-file accesses -------------------------------- */
 	/* Record which file type was last opened (gui.file_ext_filter).
 	 * Used to pre-select the correct file-type filter in the open dialog. */

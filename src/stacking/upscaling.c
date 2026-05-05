@@ -30,7 +30,6 @@
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "core/gui_iface.h"
-#include "gui/progress_and_log.h"
 #include "opencv/opencv.h"
 
 #include "stacking.h"

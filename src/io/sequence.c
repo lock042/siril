@@ -43,8 +43,6 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "core/gui_iface.h"
-#include "gui/plot.h"
-#include "gui/registration.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -52,16 +50,13 @@
 #endif
 #include "single_image.h"
 #include "image_format_fits.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"	// clear_stars_list
-#include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"	// for update_stack_interface
+#include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 
 #include "sequence.h"
@@ -678,7 +673,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		gui_iface.update_display_fwhm();
 		gui_iface.update_histogram();
 		gui_iface.set_busy(FALSE);
-		reset_3stars();
+		gui_iface.reset_3stars_gui();
 	} else {
 		/* clearfits was done above; if we're not loading, release the lock now */
 		g_rw_lock_writer_unlock(&gfit->rwlock);
@@ -2067,8 +2062,8 @@ gboolean end_seqpsf(gpointer p) {
 			gui_iface.fill_sequence_list(seq, layer, FALSE);
 		}
 		gui_iface.set_layers_for_registration();	// update display of available reg data
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
+		gui_iface.draw_plot();
+		gui_iface.notify_new_photometry();	// switch to and update plot tab
 		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 

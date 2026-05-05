@@ -32,6 +32,7 @@
 #endif
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/arithm.h"
@@ -47,9 +48,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "filters/mtf.h"
-#include "gui/progress_and_log.h"
 /* gui_calls.h removed: toggle_remixer_window_visibility now routes through gui_iface */
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
 #include <unistd.h>
@@ -983,7 +982,7 @@ int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 			params->linear ? _("yes") : _("no"),
 			params->upscale ? _("yes") : _("no"),
 			params->customstride ? params->stride : _("default"));
-		undo_save_state(get_preview_gfit_backup(), undo_msg);
+		undo_save_state((fits*)gui_iface.get_preview_gfit_backup(), undo_msg);
 		gfit->history = g_slist_append(gfit->history, g_strdup(undo_msg));
 		g_free(undo_msg);
 	}

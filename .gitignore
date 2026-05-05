@@ -58,3 +58,16 @@ GPATH
 .idea/
 subprojects/.wraplock
 .cache/
+src/algos/*.kate-swp
+src/algos/octave-workspace
+src/core/*.rej
+src/core/siril_networking_internal.h
+src/gui/temp.c
+src/io/bitpix
+src/io/gitresolve.c
+src/io/m-c-bb.txt
+src/io/*.orig
+src/io/*.rej
+src/siril_python.h
+src/siril_resource.c
+src/spcc-conesearch.cc

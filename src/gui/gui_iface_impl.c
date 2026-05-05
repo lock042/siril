@@ -36,6 +36,7 @@
 #include "gui/dialogs.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "gui/cut.h"
 #include "gui/dialogs.h"
 #include "gui/histogram.h"
@@ -1114,6 +1115,42 @@ static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
 #endif
 }
 
+/* ── Display / plot ─────────────────────────────────────────────── */
+static void impl_clear_all_photometry_and_plot(void) { clear_all_photometry_and_plot(); }
+static void impl_draw_plot(void) { drawPlot(); }
+static void impl_notify_new_photometry(void) { notify_new_photometry(); }
+static void impl_init_plot_colors(void) { init_plot_colors(); }
+static gboolean impl_save_siril_plot_to_clipboard(gpointer s, int w, int h) {
+	return save_siril_plot_to_clipboard((siril_plot_data*)s, w, h);
+}
+static gchar *impl_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) {
+	return build_save_filename(p, e, f, t);
+}
+/* Cut */
+static void impl_apply_cut_to_sequence(gpointer a) { apply_cut_to_sequence((cut_struct*)a); }
+static gpointer impl_run_cut_profile(gpointer a) { return cut_profile(a); }
+static gpointer impl_run_tri_cut(gpointer a) { return tri_cut(a); }
+static gpointer impl_run_cfa_cut(gpointer a) { return cfa_cut(a); }
+static void impl_reset_cut_gui_filedependent(gpointer u) { reset_cut_gui_filedependent(u); }
+/* Preview */
+static int impl_copy_backup_to_gfit(void) { return copy_backup_to_gfit(); }
+static gpointer impl_get_preview_gfit_backup(void) { return (gpointer)get_preview_gfit_backup(); }
+/* Registration */
+static void impl_update_reg_interface(gboolean b) { update_reg_interface(b); }
+static void impl_reset_3stars_gui(void) { reset_3stars(); }
+/* Stacking */
+static void impl_update_stack_interface(gboolean b) { update_stack_interface(b); }
+/* Scripts */
+static void impl_refresh_scripts_in_thread(void) {
+	g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
+}
+static void impl_script_widgets_async(gboolean e) {
+	siril_add_idle(script_widgets_idle, GINT_TO_POINTER(e));
+}
+static gchar *impl_get_log_as_string(void) { return get_log_as_string(); }
+/* CCD */
+static void impl_compute_aberration_inspector(void) { compute_aberration_inspector(); }
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 static void impl_apply_display_icc_compensation(gpointer p);
@@ -1273,6 +1310,34 @@ void siril_register_gui_iface(void) {
 	gui_iface.clear_previews                  = impl_clear_previews;
 	gui_iface.toggle_remixer_window_visibility = impl_toggle_remixer_window_visibility;
 	gui_iface.heif_dialog                     = impl_heif_dialog;
+
+	/* Display / plot notifications */
+	gui_iface.clear_all_photometry_and_plot  = impl_clear_all_photometry_and_plot;
+	gui_iface.draw_plot                      = impl_draw_plot;
+	gui_iface.notify_new_photometry          = impl_notify_new_photometry;
+	gui_iface.init_plot_colors               = impl_init_plot_colors;
+	gui_iface.save_siril_plot_to_clipboard   = impl_save_siril_plot_to_clipboard;
+	gui_iface.build_save_filename            = impl_build_save_filename;
+	/* Cut */
+	gui_iface.apply_cut_to_sequence          = impl_apply_cut_to_sequence;
+	gui_iface.run_cut_profile                = impl_run_cut_profile;
+	gui_iface.run_tri_cut                    = impl_run_tri_cut;
+	gui_iface.run_cfa_cut                    = impl_run_cfa_cut;
+	gui_iface.reset_cut_gui_filedependent    = impl_reset_cut_gui_filedependent;
+	/* Preview */
+	gui_iface.copy_backup_to_gfit            = impl_copy_backup_to_gfit;
+	gui_iface.get_preview_gfit_backup        = impl_get_preview_gfit_backup;
+	/* Registration */
+	gui_iface.update_reg_interface           = impl_update_reg_interface;
+	gui_iface.reset_3stars_gui               = impl_reset_3stars_gui;
+	/* Stacking */
+	gui_iface.update_stack_interface         = impl_update_stack_interface;
+	/* Scripts */
+	gui_iface.refresh_scripts_in_thread      = impl_refresh_scripts_in_thread;
+	gui_iface.script_widgets_async           = impl_script_widgets_async;
+	gui_iface.get_log_as_string              = impl_get_log_as_string;
+	/* CCD */
+	gui_iface.compute_aberration_inspector   = impl_compute_aberration_inspector;
 }
 
 static void impl_apply_display_icc_compensation(gpointer p) {

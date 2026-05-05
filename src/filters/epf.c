@@ -27,7 +27,6 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "gui/siril_preview.h"
 
 #include "filters/epf.h"
 

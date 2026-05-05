@@ -24,6 +24,7 @@
 #include <gsl/gsl_cdf.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -31,7 +32,6 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"

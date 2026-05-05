@@ -20,7 +20,6 @@
 #include "core/undo.h"
 #include "core/gui_iface.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
-#include "gui/progress_and_log.h"
 #include "gui/user_polygons.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -3446,7 +3445,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			// Prepare data
-			gchar *log = get_log_as_string();
+			gchar *log = gui_iface.get_log_as_string();
 			guint32 length = strlen(log) + 1;
 			shared_memory_info_t *info = handle_rawdata_request(conn, log, length);
 			// Send data

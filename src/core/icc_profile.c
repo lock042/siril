@@ -28,8 +28,6 @@
 #include "core/processing.h"
 #include "icc_default_profiles.h"
 #include "core/gui_iface.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_plot.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/siril_plot.h"
@@ -1402,7 +1400,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	free(horseshoe_x);
 	free(horseshoe_y);
 
-	siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+	gui_iface.show_siril_plot(spl_data);
 	siril_add_idle(end_generic, NULL);
 }
 

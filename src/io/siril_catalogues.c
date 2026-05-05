@@ -38,7 +38,6 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "core/gui_iface.h"
-#include "gui/siril_plot.h"
 
 void free_conesearch_params(void *p);
 void free_conesearch_args(void *p);
@@ -1504,7 +1503,7 @@ exit_conesearch:
 
 		if (go_idle) {
 			if (spl_data)
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
+				gui_iface.show_siril_plot(spl_data);
 			gui_iface.execute_idle_sync(end_conesearch, temp_cat);
 			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {

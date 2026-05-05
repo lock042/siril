@@ -287,6 +287,34 @@ static gboolean stub_heif_dialog(gpointer heif, uint32_t *selected_image) {
 	(void)heif; (void)selected_image; return FALSE;
 }
 
+/* Display / plot notifications */
+static void stub_clear_all_photometry_and_plot(void) {}
+static void stub_draw_plot(void) {}
+static void stub_notify_new_photometry(void) {}
+static void stub_init_plot_colors(void) {}
+static gboolean stub_save_siril_plot_to_clipboard(gpointer s, int w, int h) { (void)s;(void)w;(void)h; return FALSE; }
+static gchar *stub_build_save_filename(gchar *p, gchar *e, gboolean f, gboolean t) { (void)p;(void)e;(void)f;(void)t; return NULL; }
+/* Cut */
+static void stub_apply_cut_to_sequence(gpointer a) { (void)a; }
+static gpointer stub_run_cut_profile(gpointer a) { (void)a; return NULL; }
+static gpointer stub_run_tri_cut(gpointer a) { (void)a; return NULL; }
+static gpointer stub_run_cfa_cut(gpointer a) { (void)a; return NULL; }
+static void stub_reset_cut_gui_filedependent(gpointer u) { (void)u; }
+/* Preview */
+static int stub_copy_backup_to_gfit(void) { return 0; }
+static gpointer stub_get_preview_gfit_backup(void) { return NULL; }
+/* Registration */
+static void stub_update_reg_interface(gboolean b) { (void)b; }
+static void stub_reset_3stars_gui(void) {}
+/* Stacking */
+static void stub_update_stack_interface(gboolean b) { (void)b; }
+/* Scripts */
+static void stub_refresh_scripts_in_thread(void) {}
+static void stub_script_widgets_async(gboolean b) { (void)b; }
+static gchar *stub_get_log_as_string(void) { return NULL; }
+/* CCD */
+static void stub_compute_aberration_inspector(void) {}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -393,6 +421,34 @@ SirilGuiInterface gui_iface = {
 	.reset_display_offset        = stub_reset_display_offset,
 	.enable_display_mode_menu        = stub_enable_display_mode_menu,
 	.switch_to_tab                   = stub_switch_to_tab,
+	/* Display / plot notifications */
+	.clear_all_photometry_and_plot   = stub_clear_all_photometry_and_plot,
+	.draw_plot                       = stub_draw_plot,
+	.notify_new_photometry           = stub_notify_new_photometry,
+	.init_plot_colors                = stub_init_plot_colors,
+	.save_siril_plot_to_clipboard    = stub_save_siril_plot_to_clipboard,
+	.build_save_filename             = stub_build_save_filename,
+	/* Cut */
+	.apply_cut_to_sequence           = stub_apply_cut_to_sequence,
+	.run_cut_profile                 = stub_run_cut_profile,
+	.run_tri_cut                     = stub_run_tri_cut,
+	.run_cfa_cut                     = stub_run_cfa_cut,
+	.reset_cut_gui_filedependent     = stub_reset_cut_gui_filedependent,
+	/* Preview */
+	.copy_backup_to_gfit             = stub_copy_backup_to_gfit,
+	.get_preview_gfit_backup         = stub_get_preview_gfit_backup,
+	/* Registration */
+	.update_reg_interface            = stub_update_reg_interface,
+	.reset_3stars_gui                = stub_reset_3stars_gui,
+	/* Stacking */
+	.update_stack_interface          = stub_update_stack_interface,
+	/* Scripts */
+	.refresh_scripts_in_thread       = stub_refresh_scripts_in_thread,
+	.script_widgets_async            = stub_script_widgets_async,
+	.get_log_as_string               = stub_get_log_as_string,
+	/* CCD */
+	.compute_aberration_inspector    = stub_compute_aberration_inspector,
+
 	.set_last_opened_filetype        = stub_set_last_opened_filetype,
 	.free_reference_image_display    = stub_free_reference_image_display,
 	.get_qphot_result                = stub_get_qphot_result,

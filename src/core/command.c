@@ -43,6 +43,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/gui_iface.h"
+#include "core/cut.h"
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
@@ -69,16 +70,6 @@
 #include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
 /* gui_calls.h removed: all former direct calls now route through gui_iface */
-#include "gui/PSF_list.h"
-#include "gui/plot.h"
-#include "gui/cut.h"
-#include "gui/progress_and_log.h"
-#include "gui/keywords_tree.h"
-#include "gui/siril_preview.h"
-#include "gui/stacking.h"
-#include "gui/registration.h"
-#include "gui/script_menu.h"
-#include "gui/unpurple.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/epf.h"
@@ -105,7 +96,6 @@
 #include "algos/Def_Wavelet.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
-#include "gui/ccd-inspector.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/fitting.h"
@@ -260,11 +250,11 @@ int process_seq_clean(int nb) {
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
+		gui_iface.update_stack_interface(TRUE);
+		gui_iface.update_reg_interface(FALSE);
 		gui_iface.adjust_sellabel();
 		gui_iface.set_layers_for_registration();
-		drawPlot();
+		gui_iface.draw_plot();
 	} else {
 		free_sequence(seq, TRUE);
 	}
@@ -509,7 +499,7 @@ gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 
 gpointer run_nlbayes_on_fit(gpointer p) {
 	gui_iface.lock_roi_mutex();
-	copy_backup_to_gfit();
+	gui_iface.copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 
 	if (args->suppress_artefacts)
@@ -845,7 +835,7 @@ int process_starnet(int nb) {
 	image_cfa_warning_check();
 
 	// Save backup for undo before processing
-	copy_gfit_to_backup();
+	gui_iface.copy_gfit_to_backup();
 
 	// Allocate generic_img_args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -5064,7 +5054,7 @@ int process_resample(int nb) {
 }
 
 int process_crop(int nb) {
-	if (is_preview_active()) {
+	if (gui_iface.is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
 						"Please consider to close the filter dialog first.\n"));
 		return CMD_GENERIC_ERROR;
@@ -5631,10 +5621,10 @@ int process_set_ref(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		seq_load_image(&com.seq, n, TRUE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
+		gui_iface.update_stack_interface(TRUE);
+		gui_iface.update_reg_interface(FALSE);
 		gui_iface.adjust_sellabel();
-		drawPlot();
+		gui_iface.draw_plot();
 	} else {
 		free_sequence(seq, FALSE);
 	}
@@ -5664,7 +5654,7 @@ int process_set_mag_seq(int nb) {
 	}
 	com.seq.reference_mag = mag;
 	siril_log_message(_("Reference magnitude has been set for star %d to %f and will be computed for each image\n"), i - 1, mag);
-	drawPlot();
+	gui_iface.draw_plot();
 	return CMD_OK;
 }
 
@@ -5857,7 +5847,7 @@ int process_unset_mag_seq(int nb) {
 	com.seq.reference_star = -1;
 	com.seq.reference_mag = -1001.0;
 	siril_log_message(_("Reference magnitude unset for sequence\n"));
-	drawPlot();
+	gui_iface.draw_plot();
 	return CMD_OK;
 }
 
@@ -6487,8 +6477,8 @@ int process_light_curve(int nb) {
 	if (check_seq_is_comseq(seq)) { // we are in GUI
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
-		init_plot_colors();
+		gui_iface.clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+		gui_iface.init_plot_colors();
 		has_GUI = TRUE;
 		seq_has_wcs = has_wcs(gfit);
 	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
@@ -7095,7 +7085,7 @@ int process_inspector(int nb) {
 		siril_log_color_message(_("Error: cannot run inspector while headless"), "red");
 		return CMD_ARG_ERROR;
 	}
-	compute_aberration_inspector();
+	gui_iface.compute_aberration_inspector();
 	return CMD_OK;
 }
 
@@ -9023,10 +9013,10 @@ int process_findcosme(int nb) {
 }
 
 static gboolean select_update_gui(gpointer user_data) {
-	update_stack_interface(TRUE);
-	update_reg_interface(FALSE);
+	gui_iface.update_stack_interface(TRUE);
+	gui_iface.update_reg_interface(FALSE);
 	gui_iface.adjust_sellabel();
-	drawPlot();
+	gui_iface.draw_plot();
 	return FALSE;
 }
 
@@ -12615,7 +12605,7 @@ int process_reloadscripts(int nb){
 		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
 		return CMD_GENERIC_ERROR;
 	} else {
-		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
+		gui_iface.refresh_scripts_in_thread();
 	}
 	return CMD_OK;
 }
@@ -14210,17 +14200,17 @@ int process_profile(int nb) {
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa) {
-		if (!start_in_new_thread(cfa_cut, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_cfa_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else if (cut_args->tri) {
-		if (!start_in_new_thread(tri_cut, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_tri_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		if (!start_in_new_thread(cut_profile, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_cut_profile, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
@@ -14246,7 +14236,7 @@ int process_seq_profile(int nb) {
 	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = FALSE;
 
-	apply_cut_to_sequence(cut_args);
+	gui_iface.apply_cut_to_sequence(cut_args);
 
 	return CMD_OK;
 }

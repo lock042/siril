@@ -43,9 +43,7 @@
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "gui/siril_plot.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
+#include "core/gui_iface.h"
 #include "photometric_cc.h"
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
@@ -518,7 +516,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_datarg->cfgdata.point.radius = 1;
 				spl_datarg->cfgdata.point.sz = 2;
 				spl_datarg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+				gui_iface.show_siril_plot(spl_datarg);
 			}
 		}
 
@@ -544,7 +542,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_databg->cfgdata.point.radius = 1;
 				spl_databg->cfgdata.point.sz = 2;
 				spl_databg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+				gui_iface.show_siril_plot(spl_databg);
 			}
 		}
 

@@ -23,14 +23,13 @@
 #include <ctype.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "algos/statistics.h"
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 /* gui_calls.h removed: no direct calls remain */
-#include "gui/progress_and_log.h"
-#include "gui/script_menu.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
@@ -350,7 +349,7 @@ gpointer execute_script(gpointer p) {
 		com.script_thread_exited = TRUE;
 	}
 	/* If called from the GUI, re-enable widgets blocked during the script */
-	siril_add_idle(script_widgets_idle, NULL);
+	gui_iface.script_widgets_async(TRUE);
 	return GINT_TO_POINTER(retval);
 }
 

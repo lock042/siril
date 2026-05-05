@@ -33,17 +33,10 @@
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"
-#include "gui/cut.h"
-#include "gui/plot.h"
-#include "gui/registration.h"
-#include "gui/user_polygons.h"
-#include "gui/siril_preview.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
-#include "gui/PSF_list.h"
-#include "gui/progress_and_log.h"
 #include "core/undo.h"
 #include "core/processing.h"
 
@@ -226,7 +219,7 @@ int open_single_image(const char* filename) {
 	} else {
 		free(realname);
 	}
-	gui_function(reset_cut_gui_filedependent, NULL);
+	gui_iface.reset_cut_gui_filedependent(NULL);
 	gui_iface.check_icc_identical_to_monitor();
 	return retval;
 }

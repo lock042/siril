@@ -38,7 +38,6 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
 
 #include "FITS_symlink.h"
 
