@@ -98,12 +98,11 @@ static int minmax_stacking_prepare_hook(struct generic_seq_args *args) {
 }
 
 /* Images are processed one at a time (max_parallel_images=1), so livetime and
- * list_date updates here are safe without locks. The pixel loop is parallelized
- * across threads using the 'threads' subthread count. */
+ * list_date updates here are safe without locks. The collapsed y/x pixel loop
+ * is parallelized across threads using the 'threads' subthread count. */
 static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct minmax_stacking_data *mmdata = args->user;
 	int shiftx = 0, shifty = 0;
-	size_t nbdata = (size_t)mmdata->output_size[0] * mmdata->output_size[1];
 	gboolean ismax = mmdata->ismax;
 
 	mmdata->livetime += fit->keywords.exposure;
@@ -136,35 +135,31 @@ static int minmax_stacking_image_hook(struct generic_seq_args *args, int o, int 
 		shifty += 1;
 	}
 
-	/* Each y row is independent: different y -> different pixel range in output
-	 * buffer -> no write conflicts between threads. */
+	/* collapse(2) distributes all output pixels evenly across threads, giving
+	 * better load balance than parallelizing only the outer y loop. Each (y,x)
+	 * pair maps to a unique output pixel, so there are no write conflicts. */
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) schedule(static)
+#pragma omp parallel for num_threads(threads) schedule(static) collapse(2)
 #endif
 	for (int y = 0; y < mmdata->output_size[1]; ++y) {
-		int ny = y - shifty;
-		if (ny < 0 || ny >= fit->ry)
-			continue;
-		size_t rny = (size_t)ny * fit->rx;
-		size_t pixel = (size_t)y * mmdata->output_size[0];
-		for (int x = 0; x < mmdata->output_size[0]; ++x, ++pixel) {
+		for (int x = 0; x < mmdata->output_size[0]; ++x) {
+			int ny = y - shifty;
 			int nx = x - shiftx;
-			if (nx >= 0 && nx < fit->rx) {
-				size_t ii = rny + nx;
-				if (ii < nbdata) {
-					for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
-						if (mmdata->input_32bits) {
-							float cur = fit->fpdata[layer][ii];
-							if ((ismax && cur > mmdata->ffinal_pixel[layer][pixel]) ||
-									(!ismax && cur < mmdata->ffinal_pixel[layer][pixel]))
-								mmdata->ffinal_pixel[layer][pixel] = cur;
-						} else {
-							WORD cur = fit->pdata[layer][ii];
-							if ((ismax && cur > mmdata->final_pixel[layer][pixel]) ||
-									(!ismax && cur < mmdata->final_pixel[layer][pixel]))
-								mmdata->final_pixel[layer][pixel] = cur;
-						}
-					}
+			if (ny < 0 || ny >= fit->ry || nx < 0 || nx >= fit->rx)
+				continue;
+			size_t pixel = (size_t)y * mmdata->output_size[0] + x;
+			size_t ii = (size_t)ny * fit->rx + nx;
+			for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
+				if (mmdata->input_32bits) {
+					float cur = fit->fpdata[layer][ii];
+					if ((ismax && cur > mmdata->ffinal_pixel[layer][pixel]) ||
+							(!ismax && cur < mmdata->ffinal_pixel[layer][pixel]))
+						mmdata->ffinal_pixel[layer][pixel] = cur;
+				} else {
+					WORD cur = fit->pdata[layer][ii];
+					if ((ismax && cur > mmdata->final_pixel[layer][pixel]) ||
+							(!ismax && cur < mmdata->final_pixel[layer][pixel]))
+						mmdata->final_pixel[layer][pixel] = cur;
 				}
 			}
 		}
@@ -193,6 +188,8 @@ static int minmax_stacking_finalize_hook(struct generic_seq_args *args) {
 			return ST_GENERIC_ERROR;
 	}
 	/* buffers are now owned by result, do not free them */
+	mmdata->ffinal_pixel[0] = NULL;
+	mmdata->final_pixel[0] = NULL;
 
 	int ref = mmdata->ref_image;
 	if (args->seq->type == SEQ_REGULAR) {
