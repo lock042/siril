@@ -997,3 +997,15 @@ gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	return g_strdup(args->spcc ? _("Spectrophotometric Color Calibration") : _("Photometric Color Calibration"));
 }
+
+/* ── SPCC mirror management (moved from gui/photometric_cc.c) ─────────────── */
+
+/* Array of primary + fallback mirrors for the remote SPCC catalogue */
+gchar **spcc_mirrors = NULL;
+
+void initialize_spcc_mirrors(void) {
+	g_strfreev(spcc_mirrors);
+	spcc_mirrors = g_new(gchar *, 2);
+	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
+	spcc_mirrors[1] = NULL;
+}

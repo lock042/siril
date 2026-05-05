@@ -30,8 +30,17 @@
  *      GUI updates.  These stubs perform the non-GUI work and skip the GTK
  *      calls, so headless operation stays correct.
  *
- * When a function is properly routed through gui_iface, its entry here can be
- * removed.  headless_stubs.c acts as the inventory of remaining direct calls.
+ * Functions that have been properly moved to non-GUI source files no longer
+ * appear here:
+ *   - clear_stars_list / clear_stars_list_as_idle  → algos/PSF.c
+ *   - initialize_cut_struct / free_cut_args / cut_struct_is_valid → core/cut.c
+ *   - create/destroy_mtf_data, *_single_image_hook, *_log_hook → filters/mtf.c
+ *   - create/destroy_ght_data, ght_single_image_hook, ght_log_hook → filters/ght.c
+ *   - initialize_spcc_mirrors / spcc_mirrors global  → algos/photometric_cc.c
+ *
+ * When a function here is later properly routed through gui_iface, its entry
+ * can be removed.  headless_stubs.c acts as the inventory of remaining direct
+ * GUI calls.
  */
 
 #include <stdint.h>
@@ -44,6 +53,7 @@
 #include "core/processing.h"
 #include "core/processing_thread.h"
 #include "algos/astrometry_solver.h"
+#include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "registration/registration.h"
 #include "filters/mtf.h"
@@ -53,15 +63,6 @@
 
 /* ── Forward declarations for types not fully defined without GTK ───────── */
 typedef struct _GtkWidget   GtkWidget;
-
-/* ── Forward declarations for functions defined later in this file ──────── */
-void destroy_mtf_data(void *args);
-void destroy_ght_data(void *args);
-
-/* ── Global data variables ──────────────────────────────────────────────── */
-
-/* gui/photometric_cc.c's global — needed by command.c SPCC support */
-gchar **spcc_mirrors = NULL;
 
 /* ── execute_idle_and_wait_for_it ───────────────────────────────────────── */
 /*
@@ -77,46 +78,12 @@ void execute_idle_and_wait_for_it(gboolean (*idle_function)(gpointer), gpointer 
  * Category B — stubs that perform non-GUI cleanup
  * ══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Stars list ─────────────────────────────────────────────────────────── */
-
-/*
- * Real clear_stars_list already guards all GTK calls with
- * "if (refresh_GUI && !com.headless)", so we reproduce only the
- * lock + free + state-reset path here.
- */
-void clear_stars_list(gboolean refresh_GUI) {
-	(void)refresh_GUI;
-	g_rw_lock_writer_lock(&com.stars_lock);
-	psf_star **stars = com.stars;
-	if (stars) {
-		com.stars = NULL;
-		g_rw_lock_writer_unlock(&com.stars_lock);
-		if (stars[0]) {
-			if (stars[1] || !com.star_is_seqdata) {
-				int i = 0;
-				while (i < MAX_STARS && stars[i])
-					free_psf(stars[i++]);
-			}
-			free(stars);
-		}
-	} else {
-		g_rw_lock_writer_unlock(&com.stars_lock);
-	}
-	com.star_is_seqdata = FALSE;
-}
-
-gboolean clear_stars_list_as_idle(gpointer user_data) {
-	(void)user_data;
-	clear_stars_list(FALSE);
-	return FALSE;
-}
-
 /* ── Photometry cleanup ─────────────────────────────────────────────────── */
 
 void clear_all_photometry_and_plot(void) {
 	for (int i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++)
 		free_photometry_set(&com.seq, i);
-	clear_stars_list(FALSE);
+	clear_stars_list(FALSE);  /* defined in algos/PSF.c */
 	/* reset_plot() and drawPlot() are GUI-only — skip */
 }
 
@@ -182,130 +149,6 @@ gboolean denoise_apply_idle(gpointer p) {
 	return FALSE;
 }
 
-/* ── Cut struct lifecycle ───────────────────────────────────────────────── */
-
-void initialize_cut_struct(cut_struct *arg) {
-	if (!arg) return;
-	arg->fit = gfit;
-	arg->seq = NULL;
-	arg->imgnumber = -1;
-	arg->cut_start.x = -1;  arg->cut_start.y = -1;
-	arg->cut_end.x   = -1;  arg->cut_end.y   = -1;
-	arg->cut_wn1.x   = -1;  arg->cut_wn1.y   = -1;
-	arg->cut_wn2.x   = -1;  arg->cut_wn2.y   = -1;
-	arg->cut_measure     = FALSE;
-	arg->plot_as_wavenumber = FALSE;
-	arg->wavenumber1     = -1;
-	arg->wavenumber2     = -1;
-	arg->plot_spectro_bg = FALSE;
-	arg->bg_poly_order   = 3;
-	arg->tri             = FALSE;
-	arg->mode            = CUT_MONO;
-	arg->width           = 1;
-	arg->step            = 1;
-	arg->display_graph   = TRUE;
-	g_free(arg->filename);   arg->filename    = NULL;
-	g_free(arg->title);      arg->title       = NULL;
-	g_free(arg->user_title); arg->user_title  = NULL;
-	arg->title_has_sequence_numbers = FALSE;
-	arg->save_dat        = FALSE;
-	arg->save_png_too    = FALSE;
-	arg->pref_as         = gfit->keywords.wcsdata.pltsolvd;
-	arg->vport           = -1;
-	/* gui_function(reset_cut_gui, NULL) is a no-op in headless (com.headless) */
-}
-
-void free_cut_args(cut_struct *arg) {
-	if (!arg) return;
-	g_free(arg->filename);    arg->filename   = NULL;
-	g_free(arg->title);       arg->title      = NULL;
-	g_free(arg->user_title);  arg->user_title = NULL;
-	/* In headless mode there is no gui.cut, so always free */
-	free(arg);
-}
-
-/* ── MTF / GHT data structures (structs moved to filters/mtf.h, ght.h) ─── */
-
-struct mtf_data *create_mtf_data(void) {
-	struct mtf_data *data = calloc(1, sizeof(struct mtf_data));
-	if (!data) return NULL;
-	data->linked       = TRUE;
-	data->destroy_fn   = destroy_mtf_data;
-	return data;
-}
-
-void destroy_mtf_data(void *args) {
-	if (!args) return;
-	struct mtf_data *data = (struct mtf_data *)args;
-	free(data->seqEntry);
-	free(data);
-}
-
-struct ght_data *create_ght_data(void) {
-	struct ght_data *data = calloc(1, sizeof(struct ght_data));
-	if (!data) return NULL;
-	data->destroy_fn = destroy_ght_data;
-	return data;
-}
-
-void destroy_ght_data(void *args) {
-	if (!args) return;
-	struct ght_data *data = (struct ght_data *)args;
-	free(data->seqEntry);
-	free(data->params_ght);
-	free(data);
-}
-
-/* ── MTF / GHT processing hooks (Category B: do real work, skip GTK) ────── */
-
-int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	(void)threads;
-	struct mtf_data *data = (struct mtf_data *)args->user;
-	if (!data) return 1;
-	if (data->linked)
-		apply_linked_mtf_to_fits(fit, fit, data->params, TRUE);
-	else
-		apply_unlinked_mtf_to_fits(fit, fit, data->uparams);
-	/* auto_display_compensation path accesses gui.icc.monitor — skip headless */
-	return 0;
-}
-
-int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	(void)threads;
-	struct mtf_data *data = (struct mtf_data *)args->user;
-	if (!data) return 1;
-	apply_linked_pseudoinverse_mtf_to_fits(fit, fit, data->params, TRUE);
-	return 0;
-}
-
-int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
-	(void)threads;
-	struct ght_data *data = (struct ght_data *)args->user;
-	if (!data || !data->params_ght) return 1;
-	if (data->params_ght->payne_colourstretchmodel == COL_SAT) {
-		/* SAT path needs prepare-hook buffers — call the dedicated function */
-		apply_sat_ght_to_fits(fit, data->params_ght, TRUE);
-	} else {
-		apply_linked_ght_to_fits(fit, fit, data->params_ght, TRUE);
-	}
-	/* auto_display_compensation accesses gui.icc.monitor — skip headless */
-	return 0;
-}
-
-/* log hooks — return NULL in headless (callers handle NULL gracefully) */
-gchar *mtf_log_hook(gpointer p, log_hook_detail detail) { (void)p; (void)detail; return NULL; }
-gchar *invmtf_log_hook(gpointer p, log_hook_detail detail) { (void)p; (void)detail; return NULL; }
-gchar *ght_log_hook(gpointer p, log_hook_detail detail) { (void)p; (void)detail; return NULL; }
-
-/* ── SPCC mirror initialisation ─────────────────────────────────────────── */
-
-void initialize_spcc_mirrors(void) {
-	g_strfreev(spcc_mirrors);
-	spcc_mirrors = g_new(gchar *, 2);
-	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
-	spcc_mirrors[1] = NULL;
-}
-
 /* ══════════════════════════════════════════════════════════════════════════
  * Category A — pure-GUI no-op stubs
  * ══════════════════════════════════════════════════════════════════════════ */
@@ -353,7 +196,6 @@ void update_seqlist(int layer) { (void)layer; }
 void update_seq_gui_idle_thread_func(gpointer data) { (void)data; }
 int set_layers_for_registration(void) { return 0; }
 void enable_view_reference_checkbox(gboolean status) { (void)status; }
-gboolean end_register_idle_noop(gpointer p) { (void)p; return FALSE; }
 void ensure_seqlist_dialog_closed(void) {}
 gboolean update_MenuItem(gpointer user_data) { (void)user_data; return FALSE; }
 
@@ -426,7 +268,6 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) { (void)mtf_args; }
 void apply_ght_to_sequence(struct ght_data *ght_args) { (void)ght_args; }
 
 /* Cut profile sequence/tri/CFA wrappers */
-gboolean cut_struct_is_valid(cut_struct *arg) { (void)arg; return FALSE; }
 void apply_cut_to_sequence(cut_struct *cut_args) { (void)cut_args; }
 gpointer cut_profile(gpointer p) { (void)p; return NULL; }
 gpointer tri_cut(gpointer p) { (void)p; return NULL; }

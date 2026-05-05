@@ -30,6 +30,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/gui_iface.h"
 #include "core/siril_update.h"
+#include "algos/photometric_cc.h" /* spcc_mirrors, initialize_spcc_mirrors */
 
 #if defined(HAVE_LIBCURL)
 #include "yyjson.h"
@@ -46,7 +47,7 @@
 
 #endif
 
-extern gchar** spcc_mirrors;
+/* spcc_mirrors is declared in algos/photometric_cc.h (included above) */
 
 // ============================================================================
 // UTILITY FUNCTIONS - Independent of libcurl

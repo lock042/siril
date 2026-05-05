@@ -744,45 +744,15 @@ void refresh_star_list(){
 }
 
 /* this can be called from any thread; com.stars_lock (writer) serialises it */
-void clear_stars_list(gboolean refresh_GUI) {
-	g_rw_lock_writer_lock(&com.stars_lock);
-	psf_star **stars = com.stars;
+/* clear_stars_list and clear_stars_list_as_idle moved to algos/PSF.c */
 
-	if (stars) {
-		com.stars = NULL;
-		g_rw_lock_writer_unlock(&com.stars_lock);
-
-		if (refresh_GUI && !com.headless) {
-			get_stars_list_store();
-			gtk_list_store_clear(liststore_stars);
-		}
-
-		if (stars[0]) {
-			/* freeing found stars. It must not be done when the only star in
-			* com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
-			* set_fwhm_star_as_star_list(), because it will be reused */
-			if (stars[1] || !com.star_is_seqdata) {
-				int i = 0;
-				while (i < MAX_STARS && stars[i])
-					free_psf(stars[i++]);
-			}
-			free(stars);
-		}
-	} else {
-		g_rw_lock_writer_unlock(&com.stars_lock);
-	}
-
-	com.star_is_seqdata = FALSE;
+void clear_psf_list_display(void) {
+	psf_list_init_statics();
 	gui.selected_star = -1;
-	if (refresh_GUI && !com.headless)
-		display_status();
+	gtk_list_store_clear(liststore_stars);
+	display_status();
 }
 
-gboolean clear_stars_list_as_idle(gpointer user_data) {
-	gboolean refresh = (gboolean) GPOINTER_TO_INT(user_data);
-	clear_stars_list(refresh);
-	return FALSE;
-}
 
 struct star_update_s {
 	psf_star **stars;

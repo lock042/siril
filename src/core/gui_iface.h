@@ -304,6 +304,10 @@ typedef struct {
 	void     (*check_icc_identical_to_monitor)(void);
 	/* Update the image source/profile information labels in the main window. */
 	void     (*set_source_information)(void);
+	/* Apply the monitor ICC profile to fit so that a stretched preview looks
+	 * correct on the current display.  Callers cast fits* to gpointer.
+	 * No-op in headless mode. */
+	void     (*apply_display_icc_compensation)(gpointer fit);
 
 	/* Q – Script console -------------------------------------------------- */
 	/* Append msg to the script-log status bar; line is the script line number. */

@@ -65,6 +65,7 @@
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
+#include "algos/photometric_cc.h"
 #include "gui/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
@@ -88,8 +89,7 @@
 #include "gui/siril_css.h"
 #include "gui/splashscreen.h"
 
-// Forward decl to avoid including all of photometric_cc.h
-void initialize_spcc_mirrors();
+/* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui/photometric_cc.h) */
 void force_paned_restore();
 
 /* the global variables of the whole project */

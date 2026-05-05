@@ -103,6 +103,7 @@ src_files = [
   'core/siril_world_cs.c',
   'core/undo.c',
   'core/utils.c',
+  'core/cut.c',
 
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',

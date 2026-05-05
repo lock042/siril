@@ -26,6 +26,18 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results);
 int find_unlinked_midtones_balance_default(fits *fit, struct mtf_params *results);
 
+/* MTF data lifecycle */
+struct mtf_data *create_mtf_data(void);
+void destroy_mtf_data(void *args);
+
+/* Processing hooks — called via generic_image_worker */
+struct generic_img_args; /* forward decl to avoid including processing.h here */
+int mtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
+int invmtf_single_image_hook(struct generic_img_args *args, fits *fit, int threads);
+gchar *mtf_log_hook(gpointer p, log_hook_detail detail);
+gchar *invmtf_log_hook(gpointer p, log_hook_detail detail);
+gchar *generate_mtf_log_message(const struct mtf_data *data, log_hook_detail detail);
+
 /*
  * Processing data structure for MTF operations.  Defined here (not in
  * gui/histogram.h) so that non-GTK translation units can allocate and free it

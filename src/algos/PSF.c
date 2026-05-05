@@ -30,6 +30,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/photometry.h"
@@ -1118,4 +1119,38 @@ void free_psf(psf_star *psf) {
 	if (psf->phot) free(psf->phot);
 	if (psf->star_name) g_free(psf->star_name);
 	free(psf);
+}
+
+/* ── Stars list management (moved from gui/PSF_list.c) ──────────────────── */
+
+void clear_stars_list(gboolean refresh_GUI) {
+	g_rw_lock_writer_lock(&com.stars_lock);
+	psf_star **stars = com.stars;
+	if (stars) {
+		com.stars = NULL;
+		g_rw_lock_writer_unlock(&com.stars_lock);
+
+		if (stars[0]) {
+			/* Do not free when the only star is the seq data pointer —
+			 * it will be reused.  Free all other cases. */
+			if (stars[1] || !com.star_is_seqdata) {
+				int i = 0;
+				while (i < MAX_STARS && stars[i])
+					free_psf(stars[i++]);
+			}
+			free(stars);
+		}
+	} else {
+		g_rw_lock_writer_unlock(&com.stars_lock);
+	}
+
+	com.star_is_seqdata = FALSE;
+	if (refresh_GUI && !com.headless)
+		gui_iface.clear_star_list();
+}
+
+gboolean clear_stars_list_as_idle(gpointer user_data) {
+	gboolean refresh = (gboolean)GPOINTER_TO_INT(user_data);
+	clear_stars_list(refresh);
+	return FALSE;
 }

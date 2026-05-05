@@ -137,6 +137,7 @@ static void stub_copy_gfit_icc_to_backup(void) {}
 /* O – ICC info */
 static void stub_check_icc_identical_to_monitor(void) {}
 static void stub_set_source_information(void) {}
+static void stub_apply_display_icc_compensation(gpointer fit) { (void)fit; }
 
 /* Additional slots (5.6–5.10) */
 static void stub_data_dialog(SirilMessageType type, const char *title,
@@ -253,7 +254,8 @@ SirilGuiInterface gui_iface = {
 	.copy_gfit_to_backup         = stub_copy_gfit_to_backup,
 	.copy_gfit_icc_to_backup     = stub_copy_gfit_icc_to_backup,
 	.check_icc_identical_to_monitor = stub_check_icc_identical_to_monitor,
-	.set_source_information      = stub_set_source_information,
+	.set_source_information            = stub_set_source_information,
+	.apply_display_icc_compensation    = stub_apply_display_icc_compensation,
 	.data_dialog                 = stub_data_dialog,
 	.redraw_previews             = stub_redraw_previews,
 	.open_single_image_from_gfit = stub_open_single_image_from_gfit,

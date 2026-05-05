@@ -66,6 +66,7 @@
 #include "gui/stacking.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 
 /* ── Group A: Progress ───────────────────────────────────────────────────── */
 
@@ -341,7 +342,6 @@ static gboolean close_sequence_idle(gpointer data) {
 	update_stack_interface(TRUE);
 	adjust_sellabel();
 	update_seqlist(-1);
-	free_cut_args(&gui.cut);
 	initialize_cut_struct(&gui.cut);
 	if (!data) {
 		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(
@@ -402,8 +402,6 @@ static gboolean free_image_data_gui(gpointer p) {
 	gui_function(update_MenuItem, NULL);
 	reset_3stars();
 	gui_function(close_tab, NULL);
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(GTK_WIDGET(
 		gtk_builder_get_object(gui.builder, "combobinning")));
@@ -721,7 +719,7 @@ static void impl_update_star_list(psf_star **stars, gboolean update_psf_list,
 }
 
 static void impl_clear_star_list(void) {
-	clear_stars_list(FALSE);
+	clear_psf_list_display();
 }
 
 static int impl_get_reg_layer(void) {
@@ -796,6 +794,8 @@ static void impl_reset_display_offset(void) {
 
 /* ── Registration ────────────────────────────────────────────────────────── */
 
+static void impl_apply_display_icc_compensation(gpointer p);
+
 void siril_register_gui_iface(void) {
 	gui_iface.set_progress          = impl_set_progress;
 	gui_iface.set_busy              = impl_set_busy;
@@ -862,7 +862,8 @@ void siril_register_gui_iface(void) {
 	gui_iface.copy_gfit_to_backup         = impl_copy_gfit_to_backup;
 	gui_iface.copy_gfit_icc_to_backup     = impl_copy_gfit_icc_to_backup;
 	gui_iface.check_icc_identical_to_monitor = impl_check_icc_identical_to_monitor;
-	gui_iface.set_source_information      = impl_set_source_information;
+	gui_iface.set_source_information         = impl_set_source_information;
+	gui_iface.apply_display_icc_compensation = impl_apply_display_icc_compensation;
 	gui_iface.data_dialog                 = impl_data_dialog;
 	gui_iface.redraw_previews             = impl_redraw_previews;
 	gui_iface.open_single_image_from_gfit = impl_open_single_image_from_gfit;
@@ -892,4 +893,44 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_zoom_value              = impl_get_zoom_value;
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
+}
+
+static void impl_apply_display_icc_compensation(gpointer p) {
+	fits *fit = (fits *)p;
+	if (!fit || !gui.icc.monitor) return;
+	int depth = fit->naxes[2];
+	if (depth == 1) {
+		fits_change_depth(fit, 3);
+		if (fit->type == DATA_FLOAT) {
+			memcpy(fit->fpdata[1], fit->fdata, fit->rx * fit->ry * sizeof(float));
+			memcpy(fit->fpdata[2], fit->fdata, fit->rx * fit->ry * sizeof(float));
+		} else {
+			memcpy(fit->pdata[1], fit->data, fit->rx * fit->ry * sizeof(WORD));
+			memcpy(fit->pdata[2], fit->data, fit->rx * fit->ry * sizeof(WORD));
+		}
+	}
+	cmsHPROFILE temp = copyICCProfile(fit->icc_profile);
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(gui.icc.monitor);
+	siril_colorspace_transform(fit, temp);
+	cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = copyICCProfile(temp);
+	cmsCloseProfile(temp);
+	if (depth == 1) {
+		size_t npixels = fit->rx * fit->ry;
+		if (fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (size_t i = 0; i < npixels; i++)
+				fit->fdata[i] = (fit->fpdata[0][i] + fit->fpdata[1][i] + fit->fpdata[2][i]) / 3.f;
+		} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+			for (size_t i = 0; i < npixels; i++)
+				fit->data[i] = (fit->pdata[0][i] + fit->pdata[1][i] + fit->pdata[2][i]) / 3;
+		}
+		fits_change_depth(fit, 1);
+	}
 }
