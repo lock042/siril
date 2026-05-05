@@ -53,7 +53,7 @@ gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to a
 	return FALSE;
 }
 
-static gboolean reset_cut_gui(gpointer user_data) {
+gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");

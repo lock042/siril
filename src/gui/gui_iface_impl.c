@@ -346,6 +346,7 @@ static gboolean close_sequence_idle(gpointer data) {
 	adjust_sellabel();
 	update_seqlist(-1);
 	initialize_cut_struct(&gui.cut);
+	reset_cut_gui(NULL);
 	if (!data) {
 		GtkComboBox *seqcombo = GTK_COMBO_BOX(GTK_WIDGET(
 			gtk_builder_get_object(gui.builder, "sequence_list_combobox")));

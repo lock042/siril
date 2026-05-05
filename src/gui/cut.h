@@ -23,6 +23,7 @@
 
 #include "core/cut.h" /* initialize_cut_struct, free_cut_args, cut_struct_is_valid */
 
+gboolean reset_cut_gui(gpointer user_data);
 gboolean reset_cut_gui_filedependent(gpointer user_data);
 double get_conversion_factor(fits *fit);
 void measure_line(fits* fit, point start, point finish, gboolean pref_as);

@@ -213,30 +213,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed, gboole
 	remove_roi_callback(histo_change_between_roi_and_image);
 }
 
-static void hsl_to_fit (void* h, void* s, void* l) {
-	size_t npixels = fit->rx * fit->ry;
-	if (fit->type == DATA_FLOAT) {
-		float *hf = (float*) h;
-		float* sf = (float*) s;
-		float* lf = (float*) l;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			hsl_to_rgbf(hf[i], sf[i], lf[i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
-		}
-	} else {
-		WORD *hw = (WORD*) h;
-		WORD* sw = (WORD*) s;
-		WORD* lw = (WORD*) l;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++) {
-			hslw_to_rgbw(hw[i], sw[i], lw[i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
-		}
-	}
-}
 
 static void fit_to_hsl() {
 	size_t npixels = fit->rx * fit->ry;
