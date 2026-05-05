@@ -380,6 +380,10 @@ typedef struct {
 	/* Reset the image display pan offset to (0, 0). */
 	void     (*reset_display_offset)(void);
 
+	/* end_gfit_operation: re-enable the display-mode menu button that was
+	 * suppressed at the start of the operation.  No-op in headless mode. */
+	void     (*enable_display_mode_menu)(void);
+
 	/* SG – Miscellaneous single-file accesses -------------------------------- */
 	/* Record which file type was last opened (gui.file_ext_filter).
 	 * Used to pre-select the correct file-type filter in the open dialog. */

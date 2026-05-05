@@ -249,7 +249,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
-	sliders_mode_set_state(gui.sliders);
+	sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 
@@ -280,7 +280,7 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
-	sliders_mode_set_state(gui.sliders);
+	sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
 
@@ -378,7 +378,7 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	set_cutoff_sliders_values();
 
 	/* re-enable the display-mode menu disabled at the start of single-image ops */
-	gtk_widget_set_sensitive(GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")), TRUE);
+	gui_iface.enable_display_mode_menu();
 
 	if (com.python_command) // must be synchronous to prevent a crash where this is still running while the next command runs
 		gui_iface.redraw_image(REMAP_ALL);

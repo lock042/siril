@@ -212,6 +212,8 @@ static double stub_get_zoom_value(void) { return 1.0; }
 static int stub_activate_action(const char *name, gboolean appmap) { (void)name; (void)appmap; return ACTION_SUCCESS; }
 static void stub_reset_display_offset(void) {}
 
+static void stub_enable_display_mode_menu(void) {}
+
 /* SG – Miscellaneous single-file accesses */
 static void stub_set_last_opened_filetype(int type) { (void)type; }
 static void stub_free_reference_image_display(void) {}
@@ -344,6 +346,7 @@ SirilGuiInterface gui_iface = {
 	.get_zoom_value              = stub_get_zoom_value,
 	.activate_action             = stub_activate_action,
 	.reset_display_offset        = stub_reset_display_offset,
+	.enable_display_mode_menu        = stub_enable_display_mode_menu,
 	.set_last_opened_filetype        = stub_set_last_opened_filetype,
 	.free_reference_image_display    = stub_free_reference_image_display,
 	.get_qphot_result                = stub_get_qphot_result,

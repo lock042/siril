@@ -880,6 +880,12 @@ static void impl_reset_display_offset(void) {
 	reset_display_offset();
 }
 
+static void impl_enable_display_mode_menu(void) {
+	gtk_widget_set_sensitive(
+		GTK_WIDGET(gtk_builder_get_object(gui.builder, "menu_display_button")),
+		TRUE);
+}
+
 /* ── SG: Miscellaneous single-file accesses ─────────────────────────────── */
 
 static void impl_set_last_opened_filetype(int type) {
@@ -1061,6 +1067,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_zoom_value              = impl_get_zoom_value;
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
+	gui_iface.enable_display_mode_menu        = impl_enable_display_mode_menu;
 	gui_iface.set_last_opened_filetype        = impl_set_last_opened_filetype;
 	gui_iface.free_reference_image_display    = impl_free_reference_image_display;
 	gui_iface.get_qphot_result                = impl_get_qphot_result;

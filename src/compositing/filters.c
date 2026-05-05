@@ -20,7 +20,6 @@
 
 #include "filters.h"
 #include "core/siril.h"
-#include "gui/gui_state.h" /* TODO phase 3.23: compositing moves to gui/ */
 #include "core/icc_profile.h"
 #include <math.h>
 

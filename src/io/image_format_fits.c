@@ -41,7 +41,9 @@
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "core/gui_iface.h"
-#include "gui/gui_state.h"
+/* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
+ * should move to gui/ so that image_format_fits.c is GDK-free. */
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "algos/spcc.h"
