@@ -154,6 +154,18 @@ siril-deb-meson:
         path: ${BUILD_DIR}/coverage.xml
 
 
+siril-headless-build:
+  extends: .siril-debian/testing-base
+  script:
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgui=disabled
+    - ninja -C ${BUILD_DIR}
+  artifacts:
+    expire_in: 1 week
+    when: on_failure
+    name: "headless-build-logs-${CI_COMMIT_REF_NAME}"
+    paths:
+      - ${BUILD_DIR}/meson-logs/
+
 ################################################################################
 # Packaging
 
