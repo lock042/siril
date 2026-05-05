@@ -254,6 +254,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->idle_function = background_idle;
 	args->description = _("Background extraction");
 	args->verbose = TRUE;
+	args->for_preview = TRUE;
 	args->user = bkg_args;
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
