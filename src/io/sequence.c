@@ -44,7 +44,6 @@
 #include "io/conversion.h"
 #include "core/gui_iface.h"
 #include "gui/callbacks.h"
-#include "gui/gui_state.h"
 #include "gui/plot.h"
 #include "gui/registration.h"
 #include "ser.h"
@@ -2186,14 +2185,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 
 void free_reference_image() {
 	fprintf(stdout, "Purging previously saved reference frame data.\n");
-	if (gui.refimage_regbuffer) {
-		free(gui.refimage_regbuffer);
-		gui.refimage_regbuffer = NULL;
-	}
-	if (gui.refimage_surface) {
-		cairo_surface_destroy(gui.refimage_surface);
-		gui.refimage_surface = NULL;
-	}
+	gui_iface.free_reference_image_display();
 	if (com.seq.reference_image == -1)
 		enable_view_reference_checkbox(FALSE);
 }

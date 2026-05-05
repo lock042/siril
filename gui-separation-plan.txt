@@ -991,20 +991,16 @@ Group E — Python IPC display-state read/write:
           separately.
 
 Group F — Miscellaneous single-file accesses:
-[ ] SG.1  io/single_image.c:161 — end_read_single_image() sets
-          gui.file_ext_filter to track which file type was last opened
-          (used to pre-select the file chooser filter).  Route through
-          gui_iface (e.g. set_last_opened_filetype).
-[ ] SG.2  io/sequence.c:2188-2194 — free_reference_image() frees
-          gui.refimage_regbuffer and gui.refimage_surface (the Cairo surface
-          for the registration reference overlay).  Freeing display
-          resources from I/O code is wrong; move to gui/ or add a
-          gui_iface.free_reference_image_display() slot called from here.
-[ ] SG.3  core/command.c:5425-5426 — process_set_mag() reads gui.qphot
-          (the photometry fit result from a GUI measurement) to set the
-          magnitude zero-point.  The qphot result is GUI-initiated state;
-          add a gui_iface.get_qphot_result() → phot_result* slot (stub
-          returns NULL for headless/script mode).
+[X] SG.1  io/single_image.c:161 — end_read_single_image() now calls
+          gui_iface.set_last_opened_filetype((int)imagetype) instead of
+          directly setting gui.file_ext_filter.
+[X] SG.2  io/sequence.c:2188-2194 — free_reference_image() now calls
+          gui_iface.free_reference_image_display() which handles freeing
+          gui.refimage_regbuffer and destroying gui.refimage_surface.
+          gui/gui_state.h include removed from sequence.c.
+[X] SG.3  core/command.c:5425-5426 — process_set_mag() now calls
+          gui_iface.get_qphot_result() to obtain gui.qphot (returns
+          psf_star*; stub returns NULL in headless/script mode).
 
 ─────────────────────────────────────────────────────────────────────────────
 PHASE 8 – TESTING AND VALIDATION  (ongoing throughout)

@@ -380,6 +380,17 @@ typedef struct {
 	/* Reset the image display pan offset to (0, 0). */
 	void     (*reset_display_offset)(void);
 
+	/* SG – Miscellaneous single-file accesses -------------------------------- */
+	/* Record which file type was last opened (gui.file_ext_filter).
+	 * Used to pre-select the correct file-type filter in the open dialog. */
+	void     (*set_last_opened_filetype)(int type);
+	/* Free the Cairo surface and pixel buffer used for the registration
+	 * reference-frame overlay (gui.refimage_surface / refimage_regbuffer). */
+	void     (*free_reference_image_display)(void);
+	/* Return the quick-photometry PSF result set by the GUI (gui.qphot).
+	 * Returns NULL in headless/CLI mode or when no measurement has been made. */
+	psf_star *(*get_qphot_result)(void);
+
 	/* SF – Python IPC display state ---------------------------------------- */
 	/* Return the channel index for the current viewport (0=R,1=G,2=B).
 	 * Equivalent to match_drawing_area_widget(current_drawarea, FALSE).

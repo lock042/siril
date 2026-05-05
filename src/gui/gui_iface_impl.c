@@ -880,6 +880,27 @@ static void impl_reset_display_offset(void) {
 	reset_display_offset();
 }
 
+/* ── SG: Miscellaneous single-file accesses ─────────────────────────────── */
+
+static void impl_set_last_opened_filetype(int type) {
+	gui.file_ext_filter = type;
+}
+
+static void impl_free_reference_image_display(void) {
+	if (gui.refimage_regbuffer) {
+		free(gui.refimage_regbuffer);
+		gui.refimage_regbuffer = NULL;
+	}
+	if (gui.refimage_surface) {
+		cairo_surface_destroy(gui.refimage_surface);
+		gui.refimage_surface = NULL;
+	}
+}
+
+static psf_star *impl_get_qphot_result(void) {
+	return gui.qphot;
+}
+
 /* ── SF: Python IPC display state ───────────────────────────────────────── */
 
 static int impl_get_channel_for_vport(void) {
@@ -1040,6 +1061,9 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_zoom_value              = impl_get_zoom_value;
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
+	gui_iface.set_last_opened_filetype        = impl_set_last_opened_filetype;
+	gui_iface.free_reference_image_display    = impl_free_reference_image_display;
+	gui_iface.get_qphot_result                = impl_get_qphot_result;
 	gui_iface.get_channel_for_vport           = impl_get_channel_for_vport;
 	gui_iface.get_rendering_mode              = impl_get_rendering_mode;
 	gui_iface.get_channels_linked             = impl_get_channels_linked;

@@ -5424,8 +5424,9 @@ int process_set_mag(int nb) {
 
 	gboolean found = FALSE;
 	double mag = 0.0;
-	if (gui.qphot) {
-		mag = gui.qphot->phot->mag;
+	psf_star *qphot = gui_iface.get_qphot_result();
+	if (qphot) {
+		mag = qphot->phot->mag;
 		found = TRUE;
 	} else {
 		if (com.selection.w > 300 || com.selection.h > 300){
