@@ -66,7 +66,7 @@
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: heif_dialog now routes through gui_iface */
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {
@@ -2516,7 +2516,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			siril_log_message(_("This is a sequence of %d images: "
 					"loading the primary one.\n"), num);
 		} else {
-			if (!heif_dialog(ctx, &selected_image)) {
+			if (!gui_iface.heif_dialog(ctx, &selected_image)) {
 				heif_context_free(ctx);
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 				heif_deinit();

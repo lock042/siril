@@ -243,6 +243,50 @@ static void stub_update_display_range_after_load(int sliders, int lo, int hi) {
 	(void)sliders; (void)lo; (void)hi;
 }
 
+/* Phase 3 – Display / slider state */
+static void stub_sliders_mode_set_state(int mode) { (void)mode; }
+static void stub_set_cutoff_sliders_max_values(void) {}
+static void stub_set_cutoff_sliders_values(void) {}
+static void stub_update_display_mode_state(void) {}
+static void stub_compute_histo_for_fit(gpointer fit) { (void)fit; }
+static void stub_refresh_histogram_if_visible(void) {}
+static void stub_fill_sequence_list(gpointer seq, int layer, gboolean as_idle) {
+	(void)seq; (void)layer; (void)as_idle;
+}
+static void stub_sequence_list_change_current(void) {}
+static void stub_enable_view_reference_checkbox(gboolean status) { (void)status; }
+static void stub_close_tab(void) {}
+static void stub_init_right_tab(void) {}
+static void stub_initialize_display_mode(void) {}
+static void stub_display_filename(void) {}
+static void stub_update_display_fwhm(void) {}
+static void stub_update_prepro_interface(gboolean allow_debayer) { (void)allow_debayer; }
+static void stub_adjust_sellabel(void) {}
+static void stub_adjust_reginfo(void) {}
+static void stub_adjust_refimage(int n) { (void)n; }
+static int  stub_set_layers_for_registration(void) { return 0; }
+static void stub_set_precision_switch(void) {}
+static void stub_set_GUI_CAMERA(void) {}
+static void stub_update_menu_item(void) {}
+static void stub_update_seqlist(int layer) { (void)layer; }
+static void stub_update_sequence_overlay_async(void) {}
+static void stub_ensure_seqlist_dialog_closed(void) {}
+static void stub_copy_roi_into_gfit(void) {}
+static void stub_lock_roi_mutex(void) {}
+static void stub_unlock_roi_mutex(void) {}
+static void stub_show_or_hide_mask_tab(void) {}
+static void stub_show_or_hide_mask_tab_async(void) {}
+static int  stub_number_of_dialogs(void) { return 0; }
+static void stub_clear_previews(void) {}
+static int  stub_toggle_remixer_window_visibility(int invocation,
+                                                   gpointer fit_left,
+                                                   gpointer fit_right) {
+	(void)invocation; (void)fit_left; (void)fit_right; return 0;
+}
+static gboolean stub_heif_dialog(gpointer heif, uint32_t *selected_image) {
+	(void)heif; (void)selected_image; return FALSE;
+}
+
 /* ── Global instance ──────────────────────────────────────────────────────── */
 
 SirilGuiInterface gui_iface = {
@@ -363,4 +407,40 @@ SirilGuiInterface gui_iface = {
 	.get_display_lo_hi               = stub_get_display_lo_hi,
 	.get_sliders_mode                = stub_get_sliders_mode,
 	.update_display_range_after_load = stub_update_display_range_after_load,
+
+	/* Phase 3 */
+	.sliders_mode_set_state          = stub_sliders_mode_set_state,
+	.set_cutoff_sliders_max_values   = stub_set_cutoff_sliders_max_values,
+	.set_cutoff_sliders_values       = stub_set_cutoff_sliders_values,
+	.update_display_mode_state       = stub_update_display_mode_state,
+	.compute_histo_for_fit           = stub_compute_histo_for_fit,
+	.refresh_histogram_if_visible    = stub_refresh_histogram_if_visible,
+	.fill_sequence_list              = stub_fill_sequence_list,
+	.sequence_list_change_current    = stub_sequence_list_change_current,
+	.enable_view_reference_checkbox  = stub_enable_view_reference_checkbox,
+	.close_tab                       = stub_close_tab,
+	.init_right_tab                  = stub_init_right_tab,
+	.initialize_display_mode         = stub_initialize_display_mode,
+	.display_filename                = stub_display_filename,
+	.update_display_fwhm             = stub_update_display_fwhm,
+	.update_prepro_interface         = stub_update_prepro_interface,
+	.adjust_sellabel                 = stub_adjust_sellabel,
+	.adjust_reginfo                  = stub_adjust_reginfo,
+	.adjust_refimage                 = stub_adjust_refimage,
+	.set_layers_for_registration     = stub_set_layers_for_registration,
+	.set_precision_switch            = stub_set_precision_switch,
+	.set_GUI_CAMERA                  = stub_set_GUI_CAMERA,
+	.update_menu_item                = stub_update_menu_item,
+	.update_seqlist                  = stub_update_seqlist,
+	.update_sequence_overlay_async   = stub_update_sequence_overlay_async,
+	.ensure_seqlist_dialog_closed    = stub_ensure_seqlist_dialog_closed,
+	.copy_roi_into_gfit              = stub_copy_roi_into_gfit,
+	.lock_roi_mutex                  = stub_lock_roi_mutex,
+	.unlock_roi_mutex                = stub_unlock_roi_mutex,
+	.show_or_hide_mask_tab           = stub_show_or_hide_mask_tab,
+	.show_or_hide_mask_tab_async     = stub_show_or_hide_mask_tab_async,
+	.number_of_dialogs               = stub_number_of_dialogs,
+	.clear_previews                  = stub_clear_previews,
+	.toggle_remixer_window_visibility = stub_toggle_remixer_window_visibility,
+	.heif_dialog                     = stub_heif_dialog,
 };

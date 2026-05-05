@@ -47,7 +47,6 @@
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "gui/script_menu.h"
@@ -1370,7 +1369,7 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	}
 	update_fits_header(gfit);
 
-	gui_function(update_MenuItem, NULL);
+	gui_iface.update_menu_item();
 
 cleanup:
 	// Cleanup shared memory
@@ -1594,7 +1593,7 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		}
 		set_poly_in_mask(polygon, gfit, adding);
 		free_user_polygon(polygon);
-		queue_redraw_mask();
+		gui_iface.queue_redraw_mask();
 		result = send_response(conn, STATUS_OK, NULL, 0);
 	} else {
 		siril_debug_print("Failed to deserialize user polygon\n");

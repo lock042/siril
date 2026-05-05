@@ -19,7 +19,7 @@
 #include "core/proto.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: all former direct calls now route through gui_iface */
 #include "gui/progress_and_log.h"
 #include "gui/user_polygons.h"
 #include "io/single_image.h"
@@ -2519,7 +2519,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
-			ensure_seqlist_dialog_closed();
+			gui_iface.ensure_seqlist_dialog_closed();
 			// Payload format: count (I) + indices (I * count) + incl (I)
 			if (payload_length < 12) {
 				const char* error_msg = _("Incorrect payload length: too small");
@@ -2560,8 +2560,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Update GUI
 			if (!com.headless) {
-				GThread *thread = g_thread_new("update_sequence_overlay", update_seq_gui_idle_thread_func, NULL);
-				g_thread_join(thread);
+				gui_iface.update_sequence_overlay_async();
 				gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 			}
 			success = send_response(conn, STATUS_OK, NULL, 0);
@@ -3506,7 +3505,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				g_rw_lock_writer_lock(&gfit->rwlock);
 				success = handle_set_image_mask_request(conn, gfit, info);
 				g_rw_lock_writer_unlock(&gfit->rwlock);
-				show_or_hide_mask_tab();
+				gui_iface.show_or_hide_mask_tab();
 				if (!com.script) {
 					gui_iface.redraw_mask_idle();
 				}
@@ -3590,7 +3589,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			} else {
 				index = (DialogID) GUINT32_FROM_BE(*(int*) payload);
-				if (index < 0 || index >= number_of_dialogs()) {
+				if (index < 0 || index >= gui_iface.number_of_dialogs()) {
 					const char* error_msg = _("Incorrect command arguments");
 					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;

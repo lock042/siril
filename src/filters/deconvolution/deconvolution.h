@@ -122,6 +122,7 @@ EXTERNC int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int 
 EXTERNC int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 
 /* Processing functions implemented in filters/deconvolution.c */
+EXTERNC void     reset_conv_kernel(void);
 EXTERNC void     reset_conv_args(estk_data *args);
 EXTERNC int      load_kernel(gchar *filename, estk_data *args);
 EXTERNC int      save_kernel(gchar *filename, estk_data *args);

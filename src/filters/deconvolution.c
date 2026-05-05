@@ -26,7 +26,7 @@
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: lock/unlock_roi_mutex now route through gui_iface */
 #include "core/settings.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -516,7 +516,7 @@ gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 gpointer estimate_only(gpointer p) {
-	lock_roi_mutex();
+	gui_iface.lock_roi_mutex();
 	estk_data *args = (estk_data *) p;
 	int retval = 0;
 	if (!args) {
@@ -656,16 +656,16 @@ ENDEST:
 		args->fdata = NULL;
 	}
 
-	unlock_roi_mutex();
+	gui_iface.unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
 gpointer deconvolve(gpointer p) {
-	lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
+	gui_iface.lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
 	// done, in order not to have the_fit changed under us
 	estk_data *args = (estk_data *) p;
 	if (!args) {
-		unlock_roi_mutex();
+		gui_iface.unlock_roi_mutex();
 		return GINT_TO_POINTER(1);
 	}
 
@@ -856,7 +856,7 @@ ENDDECONV:
 		args->fdata = NULL;
 	}
 
-	unlock_roi_mutex();
+	gui_iface.unlock_roi_mutex();
 
 	return GINT_TO_POINTER(retval);
 }

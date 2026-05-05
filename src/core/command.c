@@ -68,7 +68,7 @@
 #include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: all former direct calls now route through gui_iface */
 #include "gui/PSF_list.h"
 #include "gui/plot.h"
 #include "gui/cut.h"
@@ -262,8 +262,8 @@ int process_seq_clean(int nb) {
 		fix_selnum(&com.seq, FALSE);
 		update_stack_interface(TRUE);
 		update_reg_interface(FALSE);
-		adjust_sellabel();
-		set_layers_for_registration();
+		gui_iface.adjust_sellabel();
+		gui_iface.set_layers_for_registration();
 		drawPlot();
 	} else {
 		free_sequence(seq, TRUE);
@@ -414,8 +414,8 @@ int process_save(int nb){
 		}
 		com.uniq->fileexist = TRUE;
 		if (!com.headless) {
-			display_filename();
-			adjust_sellabel();
+			gui_iface.display_filename();
+			gui_iface.adjust_sellabel();
 		}
 	}
 	gui_iface.on_precision_changed();
@@ -508,7 +508,7 @@ gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
-	lock_roi_mutex();
+	gui_iface.lock_roi_mutex();
 	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 
@@ -560,7 +560,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
 	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
-	unlock_roi_mutex();
+	gui_iface.unlock_roi_mutex();
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
@@ -1657,7 +1657,7 @@ static int fmul_image_hook(struct generic_img_args *args, fits *fit, int threads
 		image_find_minmax(fit);
 		fit->keywords.hi = (WORD)(fit->maxi * USHRT_MAX_SINGLE);
 		fit->keywords.lo = (WORD)(fit->mini * USHRT_MAX_SINGLE);
-		set_cutoff_sliders_max_values();
+		gui_iface.set_cutoff_sliders_max_values();
 	}
 
 	return retval;
@@ -5633,7 +5633,7 @@ int process_set_ref(int nb) {
 		seq_load_image(&com.seq, n, TRUE);
 		update_stack_interface(TRUE);
 		update_reg_interface(FALSE);
-		adjust_sellabel();
+		gui_iface.adjust_sellabel();
 		drawPlot();
 	} else {
 		free_sequence(seq, FALSE);
@@ -9025,7 +9025,7 @@ int process_findcosme(int nb) {
 static gboolean select_update_gui(gpointer user_data) {
 	update_stack_interface(TRUE);
 	update_reg_interface(FALSE);
-	adjust_sellabel();
+	gui_iface.adjust_sellabel();
 	drawPlot();
 	return FALSE;
 }

@@ -30,7 +30,6 @@
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *

@@ -40,6 +40,7 @@
 #ifndef SRC_CORE_GUI_IFACE_H_
 #define SRC_CORE_GUI_IFACE_H_
 
+#include <stdint.h>        /* uint32_t — used by heif_dialog slot */
 #include <glib.h>          /* gboolean, gchar — GLib only, no GTK */
 #include "core/settings.h" /* rectangle — used by Group H ROI slots */
 
@@ -435,6 +436,85 @@ typedef struct {
 	 * sliders is cast to sliders_mode in the implementation.
 	 * Pure state write — no widget update is triggered; callers handle that. */
 	void     (*update_display_range_after_load)(int sliders, int lo, int hi);
+
+	/* Phase 3 – Display / slider state (Group B new slots) ---------------- */
+	/* Sync the sliders-mode radio buttons to the given mode (direct/sync). */
+	void     (*sliders_mode_set_state)(int mode);
+	/* Update the slider max values from gfit (called after image load). */
+	void     (*set_cutoff_sliders_max_values)(void);
+	/* Update the slider lo/hi values from gui.lo/gui.hi. */
+	void     (*set_cutoff_sliders_values)(void);
+	/* Update the display-mode combo box to match gui.rendering_mode. */
+	void     (*update_display_mode_state)(void);
+	/* Compute histogram data for the given fits image (cast to gpointer). */
+	void     (*compute_histo_for_fit)(gpointer fit);
+	/* Refresh the histogram panel if it is currently visible. */
+	void     (*refresh_histogram_if_visible)(void);
+	/* Fill the sequence image list for the given layer; as_idle schedules
+	 * the update asynchronously if TRUE. seq is cast from sequence*. */
+	void     (*fill_sequence_list)(gpointer seq, int layer, gboolean as_idle);
+	/* Update the sequence list selection to the current image. */
+	void     (*sequence_list_change_current)(void);
+	/* Enable or disable the "view reference image" checkbox. */
+	void     (*enable_view_reference_checkbox)(gboolean status);
+	/* Close the right-hand image tab (call as idle; arg unused). */
+	void     (*close_tab)(void);
+	/* (Re-)initialise the right-hand image tab (call as idle; arg unused). */
+	void     (*init_right_tab)(void);
+	/* Set the display mode combo to the image's own colour space. */
+	void     (*initialize_display_mode)(void);
+	/* Update the window title / filename label to show the current image. */
+	void     (*display_filename)(void);
+	/* Update the FWHM value displayed in the status bar. */
+	void     (*update_display_fwhm)(void);
+	/* Update the preprocessing interface for the current image type. */
+	void     (*update_prepro_interface)(gboolean allow_debayer);
+	/* Update the selection-info label from com.selection. */
+	void     (*adjust_sellabel)(void);
+	/* Update the registration-info widgets for the current frame. */
+	void     (*adjust_reginfo)(void);
+	/* Update the reference-frame tick for frame n in the sequence list. */
+	void     (*adjust_refimage)(int n);
+	/* Populate the registration-layer combo and return the active layer. */
+	int      (*set_layers_for_registration)(void);
+	/* Toggle the bit-depth (precision) switch widget to match gfit. */
+	void     (*set_precision_switch)(void);
+	/* Update the camera-info labels (read from gfit keywords). */
+	void     (*set_GUI_CAMERA)(void);
+	/* Refresh the main menu item enable/disable state. */
+	void     (*update_menu_item)(void);
+	/* Refresh the sequence list for the given layer. */
+	void     (*update_seqlist)(int layer);
+	/* Run the sequence-overlay update thread synchronously.
+	 * Equivalent to creating and joining the update_seq_gui_idle_thread_func
+	 * GThread.  No-op in headless/CLI mode. */
+	void     (*update_sequence_overlay_async)(void);
+	/* Ensure the sequence-list dialog is closed before modifying seq data. */
+	void     (*ensure_seqlist_dialog_closed)(void);
+	/* Copy the active ROI pixels back into gfit. */
+	void     (*copy_roi_into_gfit)(void);
+	/* Acquire the ROI mutex (prevents ROI callbacks during processing). */
+	void     (*lock_roi_mutex)(void);
+	/* Release the ROI mutex. */
+	void     (*unlock_roi_mutex)(void);
+	/* Show or hide the mask tab depending on whether gfit has a mask. */
+	void     (*show_or_hide_mask_tab)(void);
+	/* Schedule show_or_hide_mask_tab as an idle callback. */
+	void     (*show_or_hide_mask_tab_async)(void);
+	/* Return the number of open dialog windows (used by the Python bridge). */
+	int      (*number_of_dialogs)(void);
+	/* Clear all registration-preview windows. */
+	void     (*clear_previews)(void);
+	/* Toggle the StarNet remixer window visibility.
+	 * invocation: CALL_FROM_STARNET (1) or other; fit_left/fit_right are
+	 * cast from fits*. Returns 0 on success. */
+	int      (*toggle_remixer_window_visibility)(int invocation,
+	                                              gpointer fit_left,
+	                                              gpointer fit_right);
+	/* Show the HEIF multi-image selector dialog.
+	 * heif is cast from struct heif_context*; returns TRUE if user selected
+	 * an image, FALSE if cancelled. Stub returns FALSE. */
+	gboolean (*heif_dialog)(gpointer heif, uint32_t *selected_image);
 } SirilGuiInterface;
 
 /* The single global GUI interface instance.  Defined in gui_iface_stubs.c. */

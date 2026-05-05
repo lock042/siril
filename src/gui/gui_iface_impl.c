@@ -65,6 +65,8 @@
 #include "gui/siril-window.h"
 #include "gui/stacking.h"
 #include "gui/utils.h"
+#include "gui/histogram_utils.h"
+#include "gui/remixer.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
@@ -964,6 +966,154 @@ static void impl_update_display_range_after_load(int sliders, int lo, int hi) {
 	gui.hi = (WORD)hi;
 }
 
+/* ── Phase 3: display / slider / sequence state slots ────────────────────── */
+
+static void impl_sliders_mode_set_state(int mode) {
+	sliders_mode_set_state((sliders_mode)mode);
+}
+
+static void impl_set_cutoff_sliders_max_values(void) {
+	set_cutoff_sliders_max_values();
+}
+
+static void impl_set_cutoff_sliders_values(void) {
+	set_cutoff_sliders_values();
+}
+
+static void impl_update_display_mode_state(void) {
+	set_display_mode();
+}
+
+static void impl_compute_histo_for_fit(gpointer fit) {
+	compute_histo_for_fit((fits *)fit);
+}
+
+static void impl_refresh_histogram_if_visible(void) {
+	refresh_histogram_if_visible();
+}
+
+static void impl_fill_sequence_list(gpointer seq, int layer, gboolean as_idle) {
+	fill_sequence_list((sequence *)seq, layer, as_idle);
+}
+
+static void impl_sequence_list_change_current(void) {
+	sequence_list_change_current();
+}
+
+static void impl_enable_view_reference_checkbox(gboolean status) {
+	enable_view_reference_checkbox(status);
+}
+
+static void impl_close_tab(void) {
+	gui_function(close_tab, NULL);
+}
+
+static void impl_init_right_tab(void) {
+	gui_function(init_right_tab, NULL);
+}
+
+static void impl_initialize_display_mode(void) {
+	initialize_display_mode();
+}
+
+static void impl_display_filename(void) {
+	display_filename();
+}
+
+static void impl_update_display_fwhm(void) {
+	update_display_fwhm();
+}
+
+static void impl_update_prepro_interface(gboolean allow_debayer) {
+	update_prepro_interface(allow_debayer);
+}
+
+static void impl_adjust_sellabel(void) {
+	adjust_sellabel();
+}
+
+static void impl_adjust_reginfo(void) {
+	adjust_reginfo();
+}
+
+static void impl_adjust_refimage(int n) {
+	adjust_refimage(n);
+}
+
+static int impl_set_layers_for_registration(void) {
+	return set_layers_for_registration();
+}
+
+static void impl_set_precision_switch(void) {
+	gui_function(set_precision_switch, NULL);
+}
+
+static void impl_set_GUI_CAMERA(void) {
+	set_GUI_CAMERA();
+}
+
+static void impl_update_menu_item(void) {
+	gui_function(update_MenuItem, NULL);
+}
+
+static void impl_update_seqlist(int layer) {
+	update_seqlist(layer);
+}
+
+static void impl_update_sequence_overlay_async(void) {
+	GThread *t = g_thread_new("update_sequence_overlay",
+	                           update_seq_gui_idle_thread_func, NULL);
+	g_thread_join(t);
+}
+
+static void impl_ensure_seqlist_dialog_closed(void) {
+	ensure_seqlist_dialog_closed();
+}
+
+static void impl_copy_roi_into_gfit(void) {
+	copy_roi_into_gfit();
+}
+
+static void impl_lock_roi_mutex(void) {
+	lock_roi_mutex();
+}
+
+static void impl_unlock_roi_mutex(void) {
+	unlock_roi_mutex();
+}
+
+static void impl_show_or_hide_mask_tab(void) {
+	show_or_hide_mask_tab();
+}
+
+static void impl_show_or_hide_mask_tab_async(void) {
+	siril_add_idle(show_or_hide_mask_tab_idle, NULL);
+}
+
+static int impl_number_of_dialogs(void) {
+	return number_of_dialogs();
+}
+
+static void impl_clear_previews(void) {
+	clear_previews();
+}
+
+static int impl_toggle_remixer_window_visibility(int invocation,
+                                                   gpointer fit_left,
+                                                   gpointer fit_right) {
+	return toggle_remixer_window_visibility(invocation, (fits *)fit_left,
+	                                        (fits *)fit_right);
+}
+
+static gboolean impl_heif_dialog(gpointer heif, uint32_t *selected_image) {
+#ifdef HAVE_LIBHEIF
+	return heif_dialog((struct heif_context *)heif, selected_image);
+#else
+	(void)heif; (void)selected_image;
+	return FALSE;
+#endif
+}
+
 /* ── Registration ────────────────────────────────────────────────────────── */
 
 static void impl_apply_display_icc_compensation(gpointer p);
@@ -1087,6 +1237,42 @@ void siril_register_gui_iface(void) {
 	gui_iface.get_display_lo_hi               = impl_get_display_lo_hi;
 	gui_iface.get_sliders_mode                = impl_get_sliders_mode;
 	gui_iface.update_display_range_after_load = impl_update_display_range_after_load;
+
+	/* Phase 3 */
+	gui_iface.sliders_mode_set_state          = impl_sliders_mode_set_state;
+	gui_iface.set_cutoff_sliders_max_values   = impl_set_cutoff_sliders_max_values;
+	gui_iface.set_cutoff_sliders_values       = impl_set_cutoff_sliders_values;
+	gui_iface.update_display_mode_state       = impl_update_display_mode_state;
+	gui_iface.compute_histo_for_fit           = impl_compute_histo_for_fit;
+	gui_iface.refresh_histogram_if_visible    = impl_refresh_histogram_if_visible;
+	gui_iface.fill_sequence_list              = impl_fill_sequence_list;
+	gui_iface.sequence_list_change_current    = impl_sequence_list_change_current;
+	gui_iface.enable_view_reference_checkbox  = impl_enable_view_reference_checkbox;
+	gui_iface.close_tab                       = impl_close_tab;
+	gui_iface.init_right_tab                  = impl_init_right_tab;
+	gui_iface.initialize_display_mode         = impl_initialize_display_mode;
+	gui_iface.display_filename                = impl_display_filename;
+	gui_iface.update_display_fwhm             = impl_update_display_fwhm;
+	gui_iface.update_prepro_interface         = impl_update_prepro_interface;
+	gui_iface.adjust_sellabel                 = impl_adjust_sellabel;
+	gui_iface.adjust_reginfo                  = impl_adjust_reginfo;
+	gui_iface.adjust_refimage                 = impl_adjust_refimage;
+	gui_iface.set_layers_for_registration     = impl_set_layers_for_registration;
+	gui_iface.set_precision_switch            = impl_set_precision_switch;
+	gui_iface.set_GUI_CAMERA                  = impl_set_GUI_CAMERA;
+	gui_iface.update_menu_item                = impl_update_menu_item;
+	gui_iface.update_seqlist                  = impl_update_seqlist;
+	gui_iface.update_sequence_overlay_async   = impl_update_sequence_overlay_async;
+	gui_iface.ensure_seqlist_dialog_closed    = impl_ensure_seqlist_dialog_closed;
+	gui_iface.copy_roi_into_gfit              = impl_copy_roi_into_gfit;
+	gui_iface.lock_roi_mutex                  = impl_lock_roi_mutex;
+	gui_iface.unlock_roi_mutex                = impl_unlock_roi_mutex;
+	gui_iface.show_or_hide_mask_tab           = impl_show_or_hide_mask_tab;
+	gui_iface.show_or_hide_mask_tab_async     = impl_show_or_hide_mask_tab_async;
+	gui_iface.number_of_dialogs               = impl_number_of_dialogs;
+	gui_iface.clear_previews                  = impl_clear_previews;
+	gui_iface.toggle_remixer_window_visibility = impl_toggle_remixer_window_visibility;
+	gui_iface.heif_dialog                     = impl_heif_dialog;
 }
 
 static void impl_apply_display_icc_compensation(gpointer p) {

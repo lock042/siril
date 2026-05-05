@@ -24,7 +24,6 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"

@@ -48,7 +48,7 @@
 #include "io/sequence.h"
 #include "filters/mtf.h"
 #include "gui/progress_and_log.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: toggle_remixer_window_visibility now routes through gui_iface */
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
@@ -301,7 +301,7 @@ gboolean end_starnet(gpointer p) {
 gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
-	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
+	gui_iface.toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
 	free(blendargs);
 	return end_generic(NULL);
 }

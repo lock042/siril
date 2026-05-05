@@ -43,7 +43,6 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "core/gui_iface.h"
-#include "core/gui_calls.h"
 #include "gui/plot.h"
 #include "gui/registration.h"
 #include "ser.h"
@@ -660,23 +659,23 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		sliders_mode seq_sliders = (sliders_mode)gui_iface.get_sliders_mode();
 		if (seq_sliders != USER) {
 			init_layers_hi_and_lo_values(seq_sliders);
-			sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
-			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-			set_cutoff_sliders_values();	// update values for contrast sliders for this image
-			set_display_mode();		// display the display mode in the combo box
+			gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+			gui_iface.set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+			gui_iface.set_cutoff_sliders_values();	// update values for contrast sliders for this image
+			gui_iface.update_display_mode_state();		// display the display mode in the combo box
 		}
 		if (do_refresh_annotations)
 			refresh_found_objects();
 		gui_iface.remap_all_vports();
 		gui_iface.redraw_image(REMAP_ALL);
 		if (seq->is_variable)
-			clear_previews();
+			gui_iface.clear_previews();
 		else
-			gui_function(redraw_previews, NULL);		// redraw registration preview areas
-		display_filename();		// display filename in gray window
-		gui_function(set_precision_switch, NULL); // set precision on screen
-		adjust_reginfo();		// change registration displayed/editable values
-		update_display_fwhm();
+			gui_iface.redraw_previews();		// redraw registration preview areas
+		gui_iface.display_filename();		// display filename in gray window
+		gui_iface.set_precision_switch(); // set precision on screen
+		gui_iface.adjust_reginfo();		// change registration displayed/editable values
+		gui_iface.update_display_fwhm();
 		gui_iface.update_histogram();
 		gui_iface.set_busy(FALSE);
 		reset_3stars();
@@ -685,10 +684,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 
-	gui_function(update_MenuItem, NULL);		// initialize menu gui
-	set_GUI_CAMERA();		// update image information
-	sequence_list_change_current();
-	adjust_refimage(index);	// check or uncheck reference image checkbox
+	gui_iface.update_menu_item();		// initialize menu gui
+	gui_iface.set_GUI_CAMERA();		// update image information
+	gui_iface.sequence_list_change_current();
+	gui_iface.adjust_refimage(index);	// check or uncheck reference image checkbox
 
 	return 0;
 }
@@ -2064,10 +2063,10 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		if (seq->type != SEQ_INTERNAL) {
 			// update the list in the GUI
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+			gui_iface.update_seqlist(layer);
+			gui_iface.fill_sequence_list(seq, layer, FALSE);
 		}
-		set_layers_for_registration();	// update display of available reg data
+		gui_iface.set_layers_for_registration();	// update display of available reg data
 		drawPlot();
 		notify_new_photometry();	// switch to and update plot tab
 		gui_iface.redraw_image(REDRAW_OVERLAY);
@@ -2078,7 +2077,7 @@ proper_ending:
 		g_slist_free_full(spsfargs->list, free);
 
 	if (seq == &com.seq)
-		adjust_sellabel();
+		gui_iface.adjust_sellabel();
 
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -2182,7 +2181,7 @@ void free_reference_image() {
 	fprintf(stdout, "Purging previously saved reference frame data.\n");
 	gui_iface.free_reference_image_display();
 	if (com.seq.reference_image == -1)
-		enable_view_reference_checkbox(FALSE);
+		gui_iface.enable_view_reference_checkbox(FALSE);
 }
 
 /* returns the number of images of the sequence that can fit into memory based

@@ -37,7 +37,7 @@
 #include "algos/demosaicing.h"
 #include "opencv/opencv.h"
 #include "rt/gauss.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: computeHisto/computeHisto_Selection come from algos/statistics.h */
 
 int threshlo(fits *fit, WORD level) {
 	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];

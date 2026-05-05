@@ -32,7 +32,7 @@
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
-#include "core/gui_calls.h"
+#include "core/gui_iface.h"
 #include "gui/cut.h"
 #include "gui/plot.h"
 #include "gui/registration.h"
@@ -97,7 +97,7 @@ void free_image_data() {
 }
 
 static gboolean end_read_single_image(gpointer p) {
-	set_GUI_CAMERA();
+	gui_iface.set_GUI_CAMERA();
 	return FALSE;
 }
 
@@ -237,28 +237,28 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
-	initialize_display_mode();
+	gui_iface.initialize_display_mode();
 
 	gui_iface.update_zoom_label();
 
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
-	sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
+	gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+	gui_iface.set_cutoff_sliders_max_values();
+	gui_iface.set_cutoff_sliders_values();
 
-	set_display_mode();
-	update_prepro_interface(TRUE);
-	adjust_sellabel();
+	gui_iface.update_display_mode_state();
+	gui_iface.update_prepro_interface(TRUE);
+	gui_iface.adjust_sellabel();
 
-	display_filename();	// display filename in gray window
-	set_precision_switch(NULL); // set precision on screen
+	gui_iface.display_filename();	// display filename in gray window
+	gui_iface.set_precision_switch(); // set precision on screen
 
 	/* update menus */
-	update_MenuItem(NULL);
+	gui_iface.update_menu_item();
 
-	close_tab(NULL);
-	init_right_tab(NULL);
+	gui_iface.close_tab();
+	gui_iface.init_right_tab();
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
@@ -274,14 +274,14 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
-	sliders_mode_set_state((sliders_mode)gui_iface.get_sliders_mode());
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
+	gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+	gui_iface.set_cutoff_sliders_max_values();
+	gui_iface.set_cutoff_sliders_values();
 
-	set_precision_switch(NULL); // set precision on screen
+	gui_iface.set_precision_switch(); // set precision on screen
 
-	close_tab(NULL);
-	init_right_tab(NULL);
+	gui_iface.close_tab();
+	gui_iface.init_right_tab();
 
 	gui_iface.remap_all_vports();
 	gui_iface.update_histogram();
@@ -357,19 +357,19 @@ gboolean end_gfit_operation(gpointer data G_GNUC_UNUSED) {
 	stop_processing_thread();
 
 	// Check the mask tab visibility is correct
-	show_or_hide_mask_tab_idle(NULL);
+	gui_iface.show_or_hide_mask_tab_async();
 
-	refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
+	gui_iface.refresh_histogram_if_visible(); // histogram data already computed in notify_gfit_data_modified()
 
 	/* update bit depth selector */
 	gui_iface.on_precision_changed();
 
 	/* update display of gfit name (useful if it changes) */
-	adjust_sellabel();
-	display_filename();
+	gui_iface.adjust_sellabel();
+	gui_iface.display_filename();
 
 	// compute new min and max if needed for display and update sliders
-	set_cutoff_sliders_values();
+	gui_iface.set_cutoff_sliders_values();
 
 	/* re-enable the display-mode menu disabled at the start of single-image ops */
 	gui_iface.enable_display_mode_menu();
@@ -441,8 +441,8 @@ void notify_gfit_data_modified() {
 				roi_fit &&
 				((gfit->type == DATA_FLOAT && roi_fit->fdata) ||
 				 (gfit->type == DATA_USHORT && roi_fit->data)))
-			copy_roi_into_gfit();
-		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
+			gui_iface.copy_roi_into_gfit();
+		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
 		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);

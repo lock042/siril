@@ -28,7 +28,7 @@
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "core/gui_calls.h"
+/* gui_calls.h removed: no direct calls remain */
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "core/processing.h"
