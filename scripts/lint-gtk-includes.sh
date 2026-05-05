@@ -6,8 +6,6 @@
 # must stay confined to:
 #   src/gui/          — all GUI widget code
 #   src/main.c        — GTK application entry point
-#   src/livestacking/gui.c — livestacking GUI (in src_files_gui)
-#   src/core/siril_cmd_help.c — keyboard shortcuts dialog (in src_files_gui)
 #
 # Files in the allowed list are GUI compilation units despite not living under
 # src/gui/.  The list must be updated whenever a new GUI-only .c file is placed
@@ -22,11 +20,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 SRC_ROOT="${1:-$REPO_ROOT/src}"
 
-# Files outside src/gui/ that are intentionally in src_files_gui (GUI-only).
+# Files outside src/gui/ that are intentionally GUI-only compilation units.
 ALLOWED="
 $SRC_ROOT/main.c
-$SRC_ROOT/livestacking/gui.c
-$SRC_ROOT/core/siril_cmd_help.c
 "
 
 bad=0

@@ -1,5 +1,5 @@
-#include "gui.h"
-#include "livestacking.h"
+#include "livestacking/gui.h"
+#include "livestacking/livestacking.h"
 #include <gtk/gtk.h>
 #include "io/image_format_fits.h"
 #include "gui/utils.h"
@@ -316,4 +316,3 @@ void on_livestacking_start() {
 	if (start_livestacking(TRUE))
 		stop_live_stacking_engine();
 }
-

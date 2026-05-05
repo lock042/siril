@@ -243,7 +243,7 @@ src_files = [
 # all remaining GUI calls in the core list above are routed through
 # gui_iface instead.
 src_files_gui = [
-  'livestacking/gui.c',
+  'gui/livestacking_gui.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',
@@ -328,15 +328,20 @@ src_files_gui = [
   'gui/preprocess.c',
   'gui/sequence_export.c',
   'gui/siril_actions.c',
-  'core/siril_cmd_help.c',
+  'gui/siril_cmd_help.c',
   'gui/utils.c',
   'gui/wavelets.c',
 ]
 
 # enable_gui is defined in the top-level meson.build
-# In headless mode, headless_stubs.c provides no-op implementations for GUI
-# functions that core/processing files still call directly (pending phase 5/6
-# routing completion).
+#
+# Build strategy:
+#  siril_lib — core + GUI sources (GUI build) or core + headless stubs (headless
+#              build).  In a GUI build, gui_iface_impl.c is part of siril_lib and
+#              references guiinfo gui, so both siril and siril-cli define that
+#              global.  In a headless build, gui_iface_impl.c is absent, so no
+#              code references gui and main-cli.c can omit the definition
+#              (guarded by #ifndef HAVE_GTK).
 headless_stubs = enable_gui ? [] : ['core/headless_stubs.c']
 src_files_all = enable_gui ? src_files + src_files_gui : src_files + headless_stubs
 
@@ -377,6 +382,9 @@ endif
 
 ################################################################################
 # Build cli executable
+# In a GUI build siril_lib includes gui_iface_impl.c (which references guiinfo
+# gui), so main-cli.c defines gui under #ifdef HAVE_GTK.  In a headless build
+# siril_lib has no GUI code; main-cli.c skips the definition.
 
 siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        dependencies: siril_dep,

@@ -25,7 +25,7 @@
 #include "core/undo.h"
 #include "core/masks.h"
 #include "core/siril_update.h"
-#include "core/siril_cmd_help.h"
+#include "gui/siril_cmd_help.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"

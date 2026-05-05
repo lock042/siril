@@ -604,3 +604,48 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 	return run;
 }
 #endif /* HAVE_LIBHEIF */
+
+/* ── File-chooser filename helpers ────────────────────────────────────────── */
+
+gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
+	gchar *filename = NULL;
+	gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
+
+	if (uri != NULL) {
+		filename = g_filename_from_uri(uri, NULL, NULL);
+		if (filename != NULL) {
+			char *scheme = g_uri_parse_scheme(uri);
+			if (g_strcmp0(scheme, "file") == 0) {
+				printf("The URI points to a local file.\n");
+			} else {
+				printf("The URI is non-local (scheme: %s).\n", uri);
+			}
+			g_free(scheme);
+		}
+		g_free(uri);
+	}
+	/* Fallback for Save dialogs where the typed name has no URI yet
+	 * (gtk_file_chooser_get_uri returns NULL before the file exists). */
+	if (!filename)
+		filename = gtk_file_chooser_get_current_name(chooser);
+	return filename;
+}
+
+GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
+	GSList *filenames = NULL;
+	GSList *uris = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(chooser));
+
+	for (GSList *iter = uris; iter != NULL; iter = g_slist_next(iter)) {
+		const gchar *uri = (const gchar *)iter->data;
+		gchar *filename = g_filename_from_uri(uri, NULL, NULL);
+
+		if (filename != NULL) {
+			printf("filename=%s\n", filename);
+			filenames = g_slist_append(filenames, filename);
+		}
+	}
+
+	g_slist_free(uris);
+
+	return filenames;
+}

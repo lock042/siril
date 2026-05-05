@@ -48,10 +48,6 @@ typedef struct _GtkEntry GtkEntry;
  * TODO (plan step 3): move callback declaration to gui/astrometry_solver.c. */
 typedef struct _GtkButton GtkButton;
 
-/* GtkFileChooser — wrapper helpers declared in core/proto.h.
- * TODO (plan 4+): move file-chooser helpers into gui/ wrappers.             */
-typedef struct _GtkFileChooser GtkFileChooser;
-
 #endif /* __GTK_H__ */
 
 #endif /* SIRIL_GTK_FORWARD_DECLS_H */

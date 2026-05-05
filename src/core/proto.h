@@ -140,8 +140,6 @@ gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_fo
 int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
 int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
 int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
 int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
 int count_lines_in_textfile(const gchar *filename);
 void copy_filename(const char *filename, char *truncated_filename, size_t max_length);
