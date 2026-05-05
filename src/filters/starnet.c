@@ -48,7 +48,7 @@
 #include "io/sequence.h"
 #include "filters/mtf.h"
 #include "gui/progress_and_log.h"
-#include "gui/remixer.h"
+#include "core/gui_calls.h"
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 

@@ -29,8 +29,8 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "core/gui_calls.h"
 #include "gui/progress_and_log.h"
-#include "gui/image_interactions.h"
 #include "opencv/opencv.h"
 
 #include "stacking.h"

@@ -38,7 +38,6 @@
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
 #include "core/gui_iface.h"
-#include "gui/utils.h"
 #include "gui/siril_plot.h"
 
 void free_conesearch_params(void *p);

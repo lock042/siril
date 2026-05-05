@@ -701,19 +701,27 @@ git_data.set('SIRIL_GIT_LAST_COMMIT_YEAR', git_last_commit_year)
 
 ################################################################################
 # Externals dependencies
+#
+# core_dep — GTK-free subset used to compile siril_lib (the core static library).
+#            Any src_files source that includes <gtk/gtk.h> or <gdk/gdk.h>
+#            (directly or transitively) will fail to compile against core_dep,
+#            making the GUI boundary machine-checkable at build time.
+#
+# externals_dep — full dependency set including GTK.  Used by GUI source files
+#                 (src_files_gui), main.c, tests, and siril-cli (which links
+#                 GTK-free libraries but whose own source files are benign).
 
-externals_dep = declare_dependency(
+core_dep = declare_dependency(
   dependencies: [
     dbghelp,
     m_dep,
     glib_dep,
     gio_dep,
     gio_platform_dep,
-    gtk_dep,           # not found/linked when -Dgui=disabled and GTK absent
     cairo_dep,         # always required (io/siril_plot.c)
     pango_dep,         # always required (io/siril_plot.c)
     pangocairo_dep,    # always required (io/siril_plot.c)
-    gdk_pixbuf_dep,    # always required (io/siril_plot.c, io/ser.c)
+    gdk_pixbuf_dep,    # always required (io/image_format_fits.c thumbnails)
     lcms_dep,
     libcurl_dep,
     sqlite_dep,
@@ -739,8 +747,15 @@ externals_dep = declare_dependency(
     openmp_dep,
     kplot_dep,
     ffmpeg,
-    gtksourceview_dep, # no_dep when -Dgui=disabled
     yyjson_dep
+  ]
+)
+
+externals_dep = declare_dependency(
+  dependencies: [
+    core_dep,
+    gtk_dep,           # not found/linked when -Dgui=disabled and GTK absent
+    gtksourceview_dep, # no_dep when -Dgui=disabled
   ]
 )
 

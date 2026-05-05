@@ -37,7 +37,7 @@
 #include "algos/demosaicing.h"
 #include "opencv/opencv.h"
 #include "rt/gauss.h"
-#include "gui/histogram_utils.h"
+#include "core/gui_calls.h"
 
 int threshlo(fits *fit, WORD level) {
 	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];

@@ -149,6 +149,17 @@ typedef enum {
 	RESPONSE_RESCALE_ALL
 } OverrangeResponse;
 
+/* Main window tab indices — used by gui_iface.switch_to_tab() */
+typedef enum {
+	FILE_CONVERSION,
+	IMAGE_SEQ,
+	PRE_PROC,
+	REGISTRATION,
+	PLOT,
+	STACKING,
+	OUTPUT_LOGS
+} main_tabs;
+
 typedef enum {
 	TYPEUNDEF = (1 << 1),
 	TYPEFITS = (1 << 2),

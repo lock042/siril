@@ -368,14 +368,14 @@ siril_resources = gnome.compile_resources(
 
 siril_lib = static_library('siril',
                            siril_resources[0], src_files,
-                           dependencies: externals_dep,
+                           dependencies: core_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
 siril_headless_lib = static_library('siril_headless',
                                     'core/headless_stubs.c',
-                                    dependencies: externals_dep,
+                                    dependencies: core_dep,
                                     include_directories: siril_inc_dir,
                                     c_args : siril_c_flag,
                                     cpp_args : siril_cpp_flag)

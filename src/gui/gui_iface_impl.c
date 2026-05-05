@@ -886,6 +886,10 @@ static void impl_enable_display_mode_menu(void) {
 		TRUE);
 }
 
+static void impl_switch_to_tab(int tab) {
+	control_window_switch_to_tab((main_tabs)tab);
+}
+
 /* ── SG: Miscellaneous single-file accesses ─────────────────────────────── */
 
 static void impl_set_last_opened_filetype(int type) {
@@ -1068,6 +1072,7 @@ void siril_register_gui_iface(void) {
 	gui_iface.activate_action             = impl_activate_action;
 	gui_iface.reset_display_offset        = impl_reset_display_offset;
 	gui_iface.enable_display_mode_menu        = impl_enable_display_mode_menu;
+	gui_iface.switch_to_tab                   = impl_switch_to_tab;
 	gui_iface.set_last_opened_filetype        = impl_set_last_opened_filetype;
 	gui_iface.free_reference_image_display    = impl_free_reference_image_display;
 	gui_iface.get_qphot_result                = impl_get_qphot_result;

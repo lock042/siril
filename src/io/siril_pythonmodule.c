@@ -46,13 +46,11 @@
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
+#include "core/gui_calls.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "gui/script_menu.h"
 #include "gui/user_polygons.h"
-#include "gui/utils.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -2954,7 +2952,7 @@ static void execute_startup_scripts(void) {
 	if (!com.pref.startup_scripts)
 		return;
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.switch_to_tab(OUTPUT_LOGS);
 
 	for (GSList *iter = com.pref.startup_scripts; iter; iter = iter->next) {
 		const gchar *script_path = (const gchar *)iter->data;
@@ -3060,7 +3058,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	g_free(venv_path);
 	g_free(project_path);
 	if (!com.headless) {
-		gdk_threads_add_idle(python_venv_idle, NULL);
+		g_idle_add(python_venv_idle, NULL);
 		execute_startup_scripts(); // execute any scripts marked as execute-at-startup
 	} else {
 		python_venv_idle(NULL);

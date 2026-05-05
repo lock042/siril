@@ -193,7 +193,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) { (void)dont_change_re
 void update_stack_interface(gboolean dont_change_stack_type) { (void)dont_change_stack_type; }
 void update_prepro_interface(gboolean allow_debayer) { (void)allow_debayer; }
 void update_seqlist(int layer) { (void)layer; }
-void update_seq_gui_idle_thread_func(gpointer data) { (void)data; }
+gpointer update_seq_gui_idle_thread_func(gpointer data) { (void)data; return NULL; }
 int set_layers_for_registration(void) { return 0; }
 void enable_view_reference_checkbox(gboolean status) { (void)status; }
 void ensure_seqlist_dialog_closed(void) {}
@@ -319,9 +319,6 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 	(void)drawing_area; (void)allow_rgb; return 0;
 }
 int select_vport(int vport) { return vport < 3 ? vport : 0; }
-OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
-	(void)fit; (void)minval; (void)maxval; return method;
-}
 gchar *build_save_filename(gchar *prepend, gchar *ext, gboolean forsequence, gboolean add_time_stamp) {
 	(void)prepend; (void)ext; (void)forsequence; (void)add_time_stamp; return NULL;
 }

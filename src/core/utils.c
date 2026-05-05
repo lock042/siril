@@ -43,8 +43,9 @@
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
+#include "core/arithm.h"
+#include "algos/statistics.h"
 #include "io/single_image.h"
 
 #if GLIB_CHECK_VERSION(2,68,0)
@@ -2282,4 +2283,35 @@ ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
 			return result;
 		}
 	}
+}
+
+/* Apply pixel range correction and notify the GUI.
+ * Pixel operations are done in core; gfit_modified_update_gui() dispatches
+ * the display-refresh idle callback through gui_iface. */
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
+	switch (method) {
+		case RESPONSE_CLIP:;
+			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
+			clip(fit);
+			break;
+		case RESPONSE_RESCALE_CLIPNEG:;
+			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
+			clipneg(fit);
+			if (maxval > 1.0)
+				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
+			break;
+		case RESPONSE_RESCALE_ALL:;
+			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
+			double range = maxval - minval;
+			if (minval < 0.0)
+				soper(fit, minval, OPER_SUB, TRUE);
+			if (range > 1.0)
+				soper(fit, (1.0 / range), OPER_MUL, TRUE);
+			break;
+		default:
+			method = RESPONSE_CANCEL;
+	}
+	if (fit == gfit)
+		gfit_modified_update_gui();
+	return method;
 }

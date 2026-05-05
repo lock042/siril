@@ -28,13 +28,8 @@
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
+#include "core/gui_calls.h"
 #include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/image_interactions.h"
-#include "gui/image_display.h"
-#include "gui/callbacks.h"
-#include "gui/histogram.h"
 #include "gui/script_menu.h"
 #include "core/processing.h"
 #include "core/command_list.h"
@@ -211,7 +206,7 @@ int execute_command(int wordnb) {
 		} else {
 			invalidate_stats_from_fit(gfit);
 			invalidate_gfit_histogram();
-			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
+			gui_iface.execute_idle_sync(end_gfit_operation, NULL);
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}

@@ -213,6 +213,7 @@ static int stub_activate_action(const char *name, gboolean appmap) { (void)name;
 static void stub_reset_display_offset(void) {}
 
 static void stub_enable_display_mode_menu(void) {}
+static void stub_switch_to_tab(int tab) { (void)tab; }
 
 /* SG – Miscellaneous single-file accesses */
 static void stub_set_last_opened_filetype(int type) { (void)type; }
@@ -347,6 +348,7 @@ SirilGuiInterface gui_iface = {
 	.activate_action             = stub_activate_action,
 	.reset_display_offset        = stub_reset_display_offset,
 	.enable_display_mode_menu        = stub_enable_display_mode_menu,
+	.switch_to_tab                   = stub_switch_to_tab,
 	.set_last_opened_filetype        = stub_set_last_opened_filetype,
 	.free_reference_image_display    = stub_free_reference_image_display,
 	.get_qphot_result                = stub_get_qphot_result,

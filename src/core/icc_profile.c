@@ -28,7 +28,6 @@
 #include "core/processing.h"
 #include "icc_default_profiles.h"
 #include "core/gui_iface.h"
-#include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
 #include "io/single_image.h"

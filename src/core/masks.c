@@ -27,7 +27,7 @@
 #include "algos/statistics.h"
 #include "core/siril_log.h"
 #include "filters/synthstar.h"
-#include "gui/histogram.h"
+#include "filters/mtf.h"
 #include "io/image_format_fits.h"
 #include "masks.h"
 #include "opencv/opencv.h" // for mask functions that use OpenCV

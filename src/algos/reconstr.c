@@ -108,7 +108,6 @@
 #include <math.h>
 #include <string.h>
 
-#include "gui/utils.h"
 #include "core/siril_log.h"
 #include "core/siril.h"
 #include "core/proto.h"

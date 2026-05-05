@@ -43,7 +43,7 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "core/gui_iface.h"
-#include "gui/callbacks.h"
+#include "core/gui_calls.h"
 #include "gui/plot.h"
 #include "gui/registration.h"
 #include "ser.h"
@@ -53,13 +53,8 @@
 #endif
 #include "single_image.h"
 #include "image_format_fits.h"
-#include "gui/histogram.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"	// clear_stars_list
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
 #include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"

@@ -383,6 +383,9 @@ typedef struct {
 	/* end_gfit_operation: re-enable the display-mode menu button that was
 	 * suppressed at the start of the operation.  No-op in headless mode. */
 	void     (*enable_display_mode_menu)(void);
+	/* Switch the main window to the given tab.  tab is cast from main_tabs.
+	 * No-op in headless mode. */
+	void     (*switch_to_tab)(int tab);
 
 	/* SG – Miscellaneous single-file accesses -------------------------------- */
 	/* Record which file type was last opened (gui.file_ext_filter).

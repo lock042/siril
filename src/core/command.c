@@ -68,21 +68,15 @@
 #include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
+#include "core/gui_calls.h"
 #include "gui/PSF_list.h"
-#include "gui/histogram.h"
 #include "gui/plot.h"
 #include "gui/cut.h"
 #include "gui/progress_and_log.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
 #include "gui/keywords_tree.h"
-#include "gui/newdeconv.h"
 #include "gui/siril_preview.h"
 #include "gui/stacking.h"
 #include "gui/registration.h"
-#include "gui/registration_preview.h"
 #include "gui/script_menu.h"
 #include "gui/unpurple.h"
 #include "filters/asinh.h"
@@ -95,6 +89,7 @@
 #include "filters/linear_match.h"
 #include "filters/median.h"
 #include "filters/mtf.h"
+#include "filters/ght.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
@@ -158,7 +153,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Applying a sequence function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
 		retval = FALSE;
 	} else {
@@ -172,7 +167,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 gboolean image_cfa_warning_check() {
 	gboolean retval;
 	if (gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Applying an image function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
 		retval = FALSE;
 	} else {
@@ -6194,7 +6189,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
-		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		gui_iface.execute_idle_sync(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -6331,7 +6326,7 @@ int process_seq_psf(int nb) {
 	}
 	gboolean use_current_seq = check_seq_is_comseq(seq);
 	if (!com.script && !com.python_script && !use_current_seq) {
-		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		gui_iface.execute_idle_sync(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -7843,7 +7838,7 @@ int process_seq_findstar(int nb) {
 	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Star detection may produce results for this sequence but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
 	}
 
@@ -8243,7 +8238,7 @@ int process_clear(int nb) {
 }
 
 int process_clearstar(int nb){
-	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
+	gui_iface.execute_idle_sync(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	gfit_modified_update_gui();
 	gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	gui_iface.redraw_previews();
@@ -9081,7 +9076,7 @@ int select_unselect(gboolean select) {
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		if (!com.headless)
-			execute_idle_and_wait_for_it(select_update_gui, NULL);
+			gui_iface.execute_idle_sync(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
@@ -11669,7 +11664,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
+		gui_iface.execute_idle_sync(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -12582,7 +12577,7 @@ int process_capabilities(int nb) {
 int process_exit(int nb) {
 	// This GTK function is OK to call regardless of thread, as it will quit the GTK main loop
 	// and hand control back to main.c and the application will terminate.
-	gtk_main_quit();
+	gui_iface.quit_application();
 	return CMD_OK;
 }
 

@@ -21,6 +21,8 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
+#include "core/undo.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
@@ -30,16 +32,9 @@
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
-#include "gui/image_interactions.h"
-#include "gui/image_display.h"
-#include "gui/utils.h"
+#include "core/gui_calls.h"
 #include "gui/cut.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/icc_profile.h"
-#include "gui/message_dialog.h"
 #include "gui/plot.h"
-#include "gui/registration_preview.h"
 #include "gui/registration.h"
 #include "gui/user_polygons.h"
 #include "gui/siril_preview.h"
@@ -48,7 +43,6 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "gui/PSF_list.h"
-#include "gui/histogram.h"
 #include "gui/progress_and_log.h"
 #include "core/undo.h"
 #include "core/processing.h"
@@ -228,7 +222,7 @@ int open_single_image(const char* filename) {
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		if (!com.headless)
-			execute_idle_and_wait_for_it(end_open_single_image, NULL);
+			gui_iface.execute_idle_sync(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}

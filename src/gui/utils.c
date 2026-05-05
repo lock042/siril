@@ -374,40 +374,7 @@ void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gc
 		gtk_file_chooser_add_filter(chooser, filter);
 }
 
-// Function to apply limits based on the chosen method
-OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
-	switch (method) {
-		case RESPONSE_CLIP:;
-			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
-			clip(fit);
-			break;
-		case RESPONSE_RESCALE_CLIPNEG:;
-			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
-			clipneg(fit);
-			if (maxval > 1.0)
-				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
-			break;
-		case RESPONSE_RESCALE_ALL:;
-			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
-			double range = maxval - minval;
-			if (minval < 0.0)
-				soper(fit, minval, OPER_SUB, TRUE);
-			if (range > 1.0)
-				soper(fit, (1.0 / range), OPER_MUL, TRUE);
-			break;
-		default:
-			// Covers RESPONSE_CANCEL. We have removed the Proceed button
-			// Indeed, we should not use algorithm that are not intended to be used with negative pixels
-			// (default is trigged when the dialog is closed with the cross, we need to initialize method to RESPONSE_CANCEL)
-			// Do nothing, no need to notify gfit modified so just return
-			method = RESPONSE_CANCEL;
-	}
-
-	if (fit == gfit)
-		gfit_modified_update_gui();
-
-	return method;
-}
+/* apply_limits moved to core/utils.c */
 
 gboolean value_check(fits *fit) {
 	if (fit->type == DATA_USHORT)

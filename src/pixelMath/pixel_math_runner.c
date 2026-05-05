@@ -34,7 +34,6 @@
 #include "core/siril_log.h"
 #include "core/gui_iface.h"
 #include "algos/statistics.h"
-#include "gui/utils.h"          /* execute_idle_and_wait_for_it */
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -507,7 +506,7 @@ failure:
 		}
 		if (rwlocked)
 			g_rw_lock_writer_unlock(&gfit->rwlock);
-		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
+		gui_iface.execute_idle_sync(end_pixel_math_operation, args);
 	}
 	return GINT_TO_POINTER((gint)failed);
 }
