@@ -173,6 +173,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	args->max_threads = com.max_thread;
 	args->for_preview = for_preview;
 	args->for_roi = gui.roi.active;
+	args->custom_undo = TRUE; // median_filter() calls undo_save_state itself
 	if (!for_preview)
 		args->populate_roi_on_complete = TRUE;
 

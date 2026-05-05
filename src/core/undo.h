@@ -31,5 +31,6 @@ int	undo_flush();
 void set_undo_redo_tooltip();
 gboolean undo_in_thread(gpointer user_data);
 gboolean redo_in_thread(gpointer user_data);
+void setup_undo_redo_long_press(void);
 
 #endif /* UNDO_H_ */

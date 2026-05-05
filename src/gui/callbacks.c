@@ -2017,6 +2017,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
 
+	/* long-press popover for undo/redo history navigation */
+	setup_undo_redo_long_press();
+
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
 
