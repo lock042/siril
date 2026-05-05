@@ -442,9 +442,11 @@ void notify_gfit_data_modified() {
 		 * fully-updated pixel data.  This is the correct point to do this:
 		 * gui_iface.redraw_image() must remain a pure "repaint from Cairo buffers" function
 		 * and must not write gfit. */
-		if (gui.roi.active && gui.roi.operation_supports_roi &&
-				((gfit->type == DATA_FLOAT && gui.roi.fit.fdata) ||
-				 (gfit->type == DATA_USHORT && gui.roi.fit.data)))
+		fits *roi_fit = (fits*)gui_iface.get_roi_fit();
+		if (gui_iface.roi_is_active() && gui_iface.roi_operation_supports() &&
+				roi_fit &&
+				((gfit->type == DATA_FLOAT && roi_fit->fdata) ||
+				 (gfit->type == DATA_USHORT && roi_fit->data)))
 			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);

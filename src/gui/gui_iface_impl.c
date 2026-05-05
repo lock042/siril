@@ -661,6 +661,14 @@ static gboolean impl_roi_is_active(void) {
 	return gui.roi.active;
 }
 
+static gboolean impl_roi_operation_supports(void) {
+	return gui.roi.operation_supports_roi;
+}
+
+static gpointer impl_get_roi_fit(void) {
+	return (gpointer)&gui.roi.fit;
+}
+
 static void impl_get_roi_selection(rectangle *rect) {
 	memcpy(rect, &gui.roi.selection, sizeof(rectangle));
 }
@@ -950,6 +958,8 @@ void siril_register_gui_iface(void) {
 	gui_iface.on_channel_count_changed    = impl_on_channel_count_changed;
 	gui_iface.on_precision_changed        = impl_on_precision_changed;
 	gui_iface.roi_is_active               = impl_roi_is_active;
+	gui_iface.roi_operation_supports      = impl_roi_operation_supports;
+	gui_iface.get_roi_fit                 = impl_get_roi_fit;
 	gui_iface.get_roi_selection           = impl_get_roi_selection;
 	gui_iface.clear_roi                   = impl_clear_roi;
 	gui_iface.restore_roi                 = impl_restore_roi;

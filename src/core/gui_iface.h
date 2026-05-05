@@ -246,6 +246,12 @@ typedef struct {
 	void     (*on_crop_complete)(void);
 	/* Returns TRUE if an ROI selection is currently active. */
 	gboolean (*roi_is_active)(void);
+	/* Returns TRUE if the current operation has set up an ROI preview patch
+	 * (gui.roi.operation_supports_roi).  Always FALSE in headless mode. */
+	gboolean (*roi_operation_supports)(void);
+	/* Return a pointer to the ROI fits buffer (gui.roi.fit) cast to gpointer.
+	 * Returns NULL in headless/CLI mode.  Callers cast back to fits*. */
+	gpointer (*get_roi_fit)(void);
 	/* Copy the current ROI selection rectangle into *rect. */
 	void     (*get_roi_selection)(rectangle *rect);
 	/* Clear any active ROI selection. */

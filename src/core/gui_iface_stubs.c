@@ -123,6 +123,8 @@ static void stub_on_precision_changed(void) {}
 
 /* H additions */
 static gboolean stub_roi_is_active(void) { return FALSE; }
+static gboolean stub_roi_operation_supports(void) { return FALSE; }
+static gpointer stub_get_roi_fit(void) { return NULL; }
 static void stub_get_roi_selection(rectangle *rect) { (void)rect; }
 static void stub_clear_roi(void) {}
 static void stub_restore_roi(const rectangle *rect) { (void)rect; }
@@ -265,6 +267,8 @@ SirilGuiInterface gui_iface = {
 	.on_channel_count_changed    = stub_on_channel_count_changed,
 	.on_precision_changed        = stub_on_precision_changed,
 	.roi_is_active               = stub_roi_is_active,
+	.roi_operation_supports      = stub_roi_operation_supports,
+	.get_roi_fit                 = stub_get_roi_fit,
 	.get_roi_selection           = stub_get_roi_selection,
 	.clear_roi                   = stub_clear_roi,
 	.restore_roi                 = stub_restore_roi,

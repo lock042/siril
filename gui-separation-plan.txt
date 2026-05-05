@@ -954,20 +954,21 @@ Group B — Display range state: gui.lo, gui.hi, gui.sliders:
           update_display_range_after_load set).
 
 Group C — Region of Interest (gui.roi.*):
-[ ] SE.1  filters/deconvolution.c:101,732 — reset_conv_args() sets
-          args->fit = &gui.roi.fit when ROI is active; deconvolve() checks
-          whether the operated-on fit is the ROI fit.  Add
-          gui_iface.get_roi_fit() → fits* and gui_iface.roi_is_active() →
-          bool; route both checks.
-[ ] SE.2  filters/epf.c — 13 direct gui.roi.* accesses in
-          match_guide_to_roi() and edge_preserving_filter() (lines 78,
-          83-86, 93, 97-100, 107, 111-114, 172).  The filter copies pixel
-          data from the ROI preview patch.  Requires the same roi_is_active
-          and get_roi_fit slots from SE.1, plus a get_roi_selection() →
-          rectangle slot for the crop coordinates.
-[ ] SE.3  io/single_image.c:443-445 — end_gfit_operation() checks
-          gui.roi.active before triggering an ROI preview update.  Route
-          through gui_iface.roi_is_active().
+[X] SE.1  filters/deconvolution.c:101,732 — reset_conv_args() and
+          deconvolve() replaced direct gui.roi.active / &gui.roi.fit access.
+          Added gui_iface.get_roi_fit() → gpointer (cast to fits* at call
+          sites) and gui_iface.roi_operation_supports() → gboolean slots.
+          Existing gui_iface.roi_is_active() used for the active check.
+          !com.headless guard dropped (stub returns FALSE in headless).
+          gui/gui_state.h include removed from deconvolution.c.
+[X] SE.2  filters/epf.c — all 13 gui.roi.* accesses replaced: roi_is_active()
+          for the active check; get_roi_fit() for roi_fit pointer (rx, ry,
+          fdata, data, fpdata[0], pdata[0]); get_roi_selection() for the
+          selection rectangle (w, h, x, y).  gui/utils.h include removed.
+          #include "core/gui_iface.h" added.
+[X] SE.3  io/single_image.c:443-445 — end_gfit_operation() condition
+          rewritten using roi_is_active(), roi_operation_supports(), and
+          get_roi_fit() (data pointer checks now via the returned fits*).
 
 Group E — Python IPC display-state read/write:
 [ ] SF.1  io/siril_pythoncommands.c — 13 direct gui.* accesses used by the

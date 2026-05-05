@@ -22,8 +22,8 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/utils.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
@@ -75,43 +75,46 @@ gchar *epf_log_hook(gpointer p, log_hook_detail detail) {
 
 static int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	int retval = 0;
-	if (!gui.roi.active)
+	if (!gui_iface.roi_is_active())
 		return 1;
+	fits *roi_fit = (fits*)gui_iface.get_roi_fit();
+	rectangle sel;
+	gui_iface.get_roi_selection(&sel);
 	uint32_t nchans = guide->naxes[2];
 	size_t npixels = guide->rx * guide->ry;
 	gboolean rgb = (nchans == 3);
-	size_t npixels_roi = gui.roi.fit.rx * gui.roi.fit.ry;
+	size_t npixels_roi = roi_fit->rx * roi_fit->ry;
 	copyfits(guide, guide_roi, CP_FORMAT, -1);
-	guide_roi->rx = guide_roi->naxes[0] = gui.roi.selection.w;
-	guide_roi->ry = guide_roi->naxes[1] = gui.roi.selection.h;
+	guide_roi->rx = guide_roi->naxes[0] = sel.w;
+	guide_roi->ry = guide_roi->naxes[1] = sel.h;
 	guide_roi->naxes[2] = nchans;
 	guide_roi->naxis = nchans == 1 ? 2 : 3;
 	if (guide->type == DATA_FLOAT) {
 		guide_roi->fdata = malloc(npixels_roi * nchans * sizeof(float));
 		if (!guide_roi->fdata)
 			retval = 1;
-		guide_roi->fpdata[0] = gui.roi.fit.fdata;
+		guide_roi->fpdata[0] = roi_fit->fdata;
 		guide_roi->fpdata[1] = rgb? guide_roi->fdata + npixels_roi : guide_roi->fdata;
 		guide_roi->fpdata[2] = rgb? guide_roi->fdata + 2 * npixels_roi : guide_roi->fdata;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *srcindex = guide->fdata + (npixels * c) + ((guide->ry - y - gui.roi.selection.y) * guide->rx) + gui.roi.selection.x;
+			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
+				float *srcindex = guide->fdata + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
 				float *destindex = guide_roi->fdata + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
+				memcpy(destindex, srcindex, sel.w * sizeof(float));
 			}
 		}
 	} else {
 		guide_roi->data = malloc(npixels_roi * nchans * sizeof(WORD));
 		if (!guide_roi->data)
 			retval = 1;
-		guide_roi->pdata[0] = gui.roi.fit.data;
+		guide_roi->pdata[0] = roi_fit->data;
 		guide_roi->pdata[1] = rgb? guide_roi->data + npixels_roi : guide_roi->data;
 		guide_roi->pdata[2] = rgb? guide_roi->data + 2 * npixels_roi : guide_roi->data;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
-			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *srcindex = guide->data + (npixels * c) + ((guide->ry - y - gui.roi.selection.y) * guide->rx) + gui.roi.selection.x;
+			for (uint32_t y = 0; y < (uint32_t)sel.h ; y++) {
+				WORD *srcindex = guide->data + (npixels * c) + ((guide->ry - y - sel.y) * guide->rx) + sel.x;
 				WORD *destindex = guide_roi->data + (npixels_roi * c) + (guide_roi->rx * y);
-				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(WORD));
+				memcpy(destindex, srcindex, sel.w * sizeof(WORD));
 			}
 		}
 	}
@@ -169,7 +172,8 @@ static int edge_preserving_filter(struct epfargs *args) {
 			break;
 		case EP_GUIDED:
 			guide_roi = calloc(1, sizeof(fits));
-			roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
+			fits *roi_fit_ptr = (fits*)gui_iface.get_roi_fit();
+			roi_fitting_needed = (fit == roi_fit_ptr && guide != roi_fit_ptr && gui_iface.roi_is_active());
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
 			guidance = roi_fitting_needed ? guide_roi : guide;

@@ -28,7 +28,6 @@
 #include "core/gui_iface.h"
 #include "core/settings.h"
 #include "gui/callbacks.h"
-#include "gui/gui_state.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
@@ -98,7 +97,7 @@ void reset_conv_args(estk_data* args) {
 	args->stars_need_clearing = FALSE;
 	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
-	args->fit = (!com.headless && gui.roi.active) ? &gui.roi.fit : gfit;
+	args->fit = gui_iface.roi_is_active() ? (fits*)gui_iface.get_roi_fit() : gfit;
 	imageorientation = get_imageorientation(args->fit);
 	args->fdata = NULL;
 	args->rx = 0;
@@ -729,7 +728,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
-	if (args->fit == gfit || args->fit == &gui.roi.fit)
+	if (args->fit == gfit || args->fit == (fits*)gui_iface.get_roi_fit())
 		if (!com.script && !com.headless && !args->previewing)
 			undo_save_state(gfit, _("Deconvolution"));
 	args->ndata = args->fit->rx * args->fit->ry * args->fit->naxes[2];
