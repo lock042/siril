@@ -804,7 +804,7 @@ These files are essentially GUI controllers that ended up in core/ or io/.
 PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
 ─────────────────────────────────────────────────────────────────────────────
 
-[ ] 7.1  Add a headless (no-GTK) build target to meson.build
+[i] 7.1  Add a headless (no-GTK) build target to meson.build
          - Option: -Dgui=disabled excludes src/gui/ entirely.
          - Links gui_iface_stubs.c instead of gui_iface_impl.c.
          - All processing libraries must compile cleanly under this target.
