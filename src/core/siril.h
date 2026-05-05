@@ -4,6 +4,7 @@
 #include <config.h>
 #endif
 
+#include <stdint.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>

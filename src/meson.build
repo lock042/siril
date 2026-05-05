@@ -332,7 +332,11 @@ src_files_gui = [
 ]
 
 enable_gui = get_option('gui').enabled()
-src_files_all = enable_gui ? src_files + src_files_gui : src_files
+# In headless mode, headless_stubs.c provides no-op implementations for GUI
+# functions that core/processing files still call directly (pending phase 5/6
+# routing completion).
+headless_stubs = enable_gui ? [] : ['core/headless_stubs.c']
+src_files_all = enable_gui ? src_files + src_files_gui : src_files + headless_stubs
 
 # Define the resource file
 gnome = import('gnome')
