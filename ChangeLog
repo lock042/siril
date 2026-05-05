@@ -14,6 +14,7 @@ siril-1.5.0
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
 * Parallelize min/max stacking algorithms (#194)
+* Update astrometry solution when resampling or binning instead of deleting it
 
 siril-1.4.3
 05/07/26

@@ -5023,6 +5023,7 @@ int process_resample(int nb) {
 	params->toY = toY;
 	params->interpolation = interpolation;
 	params->clamp = clamp;
+	params->update_wcs = TRUE;
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
