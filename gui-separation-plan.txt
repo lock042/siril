@@ -851,6 +851,145 @@ PHASE 7 – BUILD SYSTEM AND COMPILE-TIME ENFORCEMENT  (infrastructure)
            link time.
 
 ─────────────────────────────────────────────────────────────────────────────
+SUPPLEMENTARY AUDIT ITEMS (identified after 7.4, ordered by impact)
+─────────────────────────────────────────────────────────────────────────────
+
+The following items were uncovered by a full codebase audit of direct
+gui.field accesses outside src/gui/ (127 violations in 14 files) and
+GdkPixbuf usage in non-GUI public headers.  Items already resolved during
+the audit are marked [i].
+
+GdkPixbuf in non-GUI public headers (all resolved):
+[i] SA.1  siril_get_file_info() in core/proto.h / core/utils.c
+          - GUI-only (calls gdk_pixbuf_get_file_info; sole callers in
+            gui/dialog_preview.c).
+          - Done: moved to gui/dialog_preview.c as static; removed from
+            proto.h.
+[i] SA.2  get_thumbnail_from_fits() in io/image_format_fits.h
+          - GUI-only (generates GdkPixbuf thumbnail for file-picker preview;
+            sole caller gui/dialog_preview.c).
+          - Done: removed from image_format_fits.h; forward-declared in
+            gui/dialog_preview.c; implementation stays in image_format_fits.c
+            (needs file-local TRYFITS macro and inline helpers).
+          - gtk_forward_decls.h removed from image_format_fits.h as a result.
+[i] SA.3  get_thumbnail_from_ser() in io/ser.h / io/ser.c
+          - GUI-only (sole caller gui/dialog_preview.c).
+          - Done: moved to gui/dialog_preview.c; gdk-pixbuf include removed
+            from ser.c; declaration removed from ser.h.
+[ ] SA.4  siril_plot_set_background() / splbkg.img in io/siril_plot.h
+          - Uses gdk-pixbuf to load an SVG background image that appears in
+            both screen rendering AND saved PNG/SVG output files.
+          - Assessment: legitimately non-GUI (affects file output, not just
+            display).  No action required unless the plot engine is ever
+            split into a truly GTK-free library (see 7.5).
+
+Group D — Repository availability flags (highest-value quick win: 31
+violations, purely mechanical rename):
+[ ] SB.1  Move gui.script_repo_available, gui.spcc_repo_available and
+          gui.repo_scripts from guiinfo (gui/gui_state.h) to cominfo
+          (core/siril.h).
+          - All 31 accesses are in io/siril_git.c and io/siril_pythonmodule.c.
+          - These track network/git repository state, not display state; they
+            are misplaced in gui.
+          - Fix: add fields to cominfo; rename all accesses com.script_repo_available
+            etc.; remove from struct guiinf.
+
+Group A — gtk.builder widget lookups in non-GUI code (move callbacks to gui/):
+[ ] SC.1  core/icc_profile.c — 7 direct gui.builder accesses.
+          Functions on_monitor_profile_clear_clicked,
+          on_proofing_profile_clear_clicked,
+          on_custom_monitor_profile_active_toggled,
+          on_custom_proofing_profile_active_toggled, and cm_worker (partial)
+          contain GTK signal callbacks and widget lookups.  Move to
+          gui/icc_profile.c; cm_worker's widget update portion should move or
+          route through gui_iface (e.g. a new update_icc_status_icon slot).
+[ ] SC.2  registration/3stars.c — 13 direct gui.builder accesses.
+          Functions set_registration_ready, update_label, update_icons,
+          _3stars_check_selection, on_select_star_button_clicked all do
+          gtk_builder_get_object(gui.builder, ...) for registration panel
+          widgets.  Move to gui/registration.c (or the existing gui/
+          registration file) and use init_statics pattern.
+[ ] SC.3  core/command.c:6307 — get_followstar_idle() reads
+          followStarCheckButton via gui.builder.  Route through a new
+          gui_iface slot (get_follow_star_state → bool) so command.c
+          stays GTK-free.
+[ ] SC.4  io/siril_catalogues.c:1082 — end_conesearch() sets annotate toggle
+          button state via gui.builder.  Route through gui_iface
+          (e.g. set_annotation_button_active).
+[ ] SC.5  io/image_formats_libraries.c — 4 gui.builder accesses.
+          get_tiff_compression(), get_tif_data_from_ui(), and heif_dialog()
+          read/write dialog widgets; these are GTK dialog callbacks that
+          belong in gui/.  Move to gui/save_dialog.c or a new
+          gui/image_format_gui.c.
+
+Group B — Display range state: gui.lo, gui.hi, gui.sliders:
+[ ] SD.1  core/utils.c:895-896 — compute_slope() reads gui.lo/gui.hi to
+          compute display gamma.  Add gui_iface.get_display_lo_hi(WORD *lo,
+          WORD *hi) slot; route the call through it.
+[ ] SD.2  core/command.c:398-399 — process_save() copies gui.lo/gui.hi into
+          FITS keywords when saving (captures what the operator sees).  Use
+          the same gui_iface getter from SD.1.
+[ ] SD.3  io/single_image.c — init_layers_hi_and_lo_values() sets gui.lo,
+          gui.hi, gui.sliders when an image is opened (lines 321-326,
+          339-345, 453).  Also calls sliders_mode_set_state(gui.sliders)
+          at lines 252, 283.  These display initialisations are triggered
+          from I/O code; route through gui_iface
+          (e.g. update_display_range_after_load slot).
+[ ] SD.4  io/sequence.c:666-668 — seq_load_image() calls
+          init_layers_hi_and_lo_values(gui.sliders); same fix as SD.3.
+
+Group C — Region of Interest (gui.roi.*):
+[ ] SE.1  filters/deconvolution.c:101,732 — reset_conv_args() sets
+          args->fit = &gui.roi.fit when ROI is active; deconvolve() checks
+          whether the operated-on fit is the ROI fit.  Add
+          gui_iface.get_roi_fit() → fits* and gui_iface.roi_is_active() →
+          bool; route both checks.
+[ ] SE.2  filters/epf.c — 13 direct gui.roi.* accesses in
+          match_guide_to_roi() and edge_preserving_filter() (lines 78,
+          83-86, 93, 97-100, 107, 111-114, 172).  The filter copies pixel
+          data from the ROI preview patch.  Requires the same roi_is_active
+          and get_roi_fit slots from SE.1, plus a get_roi_selection() →
+          rectangle slot for the crop coordinates.
+[ ] SE.3  io/single_image.c:443-445 — end_gfit_operation() checks
+          gui.roi.active before triggering an ROI preview update.  Route
+          through gui_iface.roi_is_active().
+
+Group E — Python IPC display-state read/write:
+[ ] SF.1  io/siril_pythoncommands.c — 13 direct gui.* accesses used by the
+          Python IPC bridge to serialise/deserialise display state (lines
+          755, 865, 1006, 3155-3157, 3174, 3189, 3265-3266, 3366-3367,
+          3396): gui.cvport, gui.view[].drawarea, gui.lo, gui.hi,
+          gui.sliders, gui.rendering_mode, gui.unlink_channels,
+          gui.display_offset, gui.zoom_value.
+          - The IPC bridge must expose and mutate display state; the fix
+            is to add gui_iface getters/setters for each field so
+            pythoncommands.c does not need gui/gui_state.h.
+          - Many of these slots already exist (get_active_vport,
+            set_sliders_mode, set_channels_linked, set_rendering_mode,
+            update_zoom_label, get_zoom_value, set_cutoff_values); wire them
+            up and add the missing ones (get_display_offset,
+            set_display_offset).
+[ ] SF.2  io/siril_pythonmodule.c:1511 — handle_add_user_polygon_request()
+          appends directly to gui.user_polygons.  Add
+          gui_iface.add_user_polygon(polygon_data) slot.
+
+Group F — Miscellaneous single-file accesses:
+[ ] SG.1  io/single_image.c:161 — end_read_single_image() sets
+          gui.file_ext_filter to track which file type was last opened
+          (used to pre-select the file chooser filter).  Route through
+          gui_iface (e.g. set_last_opened_filetype).
+[ ] SG.2  io/sequence.c:2188-2194 — free_reference_image() frees
+          gui.refimage_regbuffer and gui.refimage_surface (the Cairo surface
+          for the registration reference overlay).  Freeing display
+          resources from I/O code is wrong; move to gui/ or add a
+          gui_iface.free_reference_image_display() slot called from here.
+[ ] SG.3  core/command.c:5425-5426 — process_set_mag() reads gui.qphot
+          (the photometry fit result from a GUI measurement) to set the
+          magnitude zero-point.  The qphot result is GUI-initiated state;
+          add a gui_iface.get_qphot_result() → phot_result* slot (stub
+          returns NULL for headless/script mode).
+
+─────────────────────────────────────────────────────────────────────────────
 PHASE 8 – TESTING AND VALIDATION  (ongoing throughout)
 ─────────────────────────────────────────────────────────────────────────────
 
