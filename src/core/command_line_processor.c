@@ -205,7 +205,7 @@ int execute_command(int wordnb) {
 			gfit_modified_update_gui();
 		} else {
 			invalidate_stats_from_fit(gfit);
-			invalidate_gfit_histogram();
+			gui_iface.invalidate_histogram();
 			gui_iface.execute_idle_sync(end_gfit_operation, NULL);
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;

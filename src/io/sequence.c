@@ -633,10 +633,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())
 		save_stats_from_fit(gfit, seq, seq->current);
-	on_clear_roi(); // Always clear a ROI when changing images
+	gui_iface.clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
-	invalidate_gfit_histogram();
+	gui_iface.invalidate_histogram();
 	undo_flush();
 	close_single_image();
 	g_rw_lock_writer_lock(&gfit->rwlock);
@@ -667,7 +667,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		}
 		if (do_refresh_annotations)
 			refresh_found_objects();
-		remap_all();
+		gui_iface.remap_all_vports();
 		gui_iface.redraw_image(REMAP_ALL);
 		if (seq->is_variable)
 			clear_previews();
@@ -677,7 +677,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		gui_function(set_precision_switch, NULL); // set precision on screen
 		adjust_reginfo();		// change registration displayed/editable values
 		update_display_fwhm();
-		update_gfit_histogram_if_needed();
+		gui_iface.update_histogram();
 		gui_iface.set_busy(FALSE);
 		reset_3stars();
 	} else {

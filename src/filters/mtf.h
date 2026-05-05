@@ -26,6 +26,11 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 int find_unlinked_midtones_balance(fits *fit, float shadows_clipping, float target_bg, struct mtf_params *results);
 int find_unlinked_midtones_balance_default(fits *fit, struct mtf_params *results);
 
+/* Forward declaration so the parameter tag has file scope. */
+struct mtf_data;
+/* Sequence-level application — called from command.c and gui/histogram.c */
+void apply_mtf_to_sequence(struct mtf_data *mtf_args);
+
 /* MTF data lifecycle */
 struct mtf_data *create_mtf_data(void);
 void destroy_mtf_data(void *args);

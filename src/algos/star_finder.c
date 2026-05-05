@@ -1466,7 +1466,7 @@ gpointer findstar_worker(gpointer p) {
 		free_fitted_stars(stars);
 END:
 	if (args->update_GUI)
-		execute_idle_and_wait_for_it(end_findstar, args);
+		gui_iface.execute_idle_sync(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
 	gchar *msg = g_strdup_printf("findstar for image %d", args->im.index_in_seq);
 	show_time_msg(t_start, t_end, msg);

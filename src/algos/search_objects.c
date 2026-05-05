@@ -21,6 +21,7 @@
 #include <math.h>
 #include "algos/search_objects.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
@@ -541,7 +542,7 @@ gpointer catsearch_worker(gpointer p) {
 	gboolean found_it = !cached_object_lookup(args);
 
 	if (!com.script)
-		execute_idle_and_wait_for_it(end_process_catsearch, args);
+		gui_iface.execute_idle_sync(end_process_catsearch, args);
 
 	return GINT_TO_POINTER(!found_it);
 }

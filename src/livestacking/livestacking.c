@@ -591,7 +591,7 @@ static gpointer live_stacker(gpointer arg) {
 			com.script = script_bkp;
 			if (!com.headless) {
 				notify_gfit_data_modified();
-				execute_idle_and_wait_for_it(end_image_loading, NULL);
+				gui_iface.execute_idle_sync(end_image_loading, NULL);
 			}
 		}
 

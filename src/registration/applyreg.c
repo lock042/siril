@@ -1380,7 +1380,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	if (max_dim > 32767) {
 		if (!(com.script || com.python_script)) { // through GUI, we warn with GTK objects
 			if (!com.headless)
-				execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
+				gui_iface.execute_idle_sync(confirm_exceed_cairomaxdim, regargs);
 			if (regargs->retval)
 				return FALSE;
 		} else {

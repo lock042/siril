@@ -29,6 +29,7 @@
 #include "algos/colors.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
+#include "core/gui_iface.h"
 #include "core/gui_calls.h"
 
 /*****************************************************************************
@@ -219,7 +220,7 @@ static int unpurple_filter(struct unpurpleargs *args) {
 	}
 
 	if (fit == gfit && args->applying && !com.script) {
-		populate_roi();
+		gui_iface.populate_roi();
 	}
 
 	if (fit == gfit && args->applying) {

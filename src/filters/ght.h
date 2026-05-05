@@ -35,6 +35,11 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
 void apply_ght_to_fits_channel(fits *from, fits *to, int channel, ght_params *params, gboolean multithreaded);
 
+/* Forward declaration so the parameter tag has file scope. */
+struct ght_data;
+/* Sequence-level application — called from command.c and gui/histogram.c */
+void apply_ght_to_sequence(struct ght_data *ght_args);
+
 /* GHT data lifecycle */
 struct ght_data *create_ght_data(void);
 void destroy_ght_data(void *args);

@@ -213,7 +213,7 @@ static int edge_preserving_filter(struct epfargs *args) {
 	}
 
 	if (fit == gfit && args->applying && !com.script) {
-		populate_roi();
+		gui_iface.populate_roi();
 	}
 	return 0;
 }

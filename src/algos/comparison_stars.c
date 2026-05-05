@@ -19,6 +19,7 @@
  */
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "comparison_stars.h"
@@ -473,7 +474,7 @@ end:
 	if (args->notify_done) {
 		args->has_GUI = TRUE;
 		if (!com.headless && com.python_command) {
-			execute_idle_and_wait_for_it(args->notify_done, args);
+			gui_iface.execute_idle_sync(args->notify_done, args);
 		} else if (!siril_add_idle(args->notify_done, args)) {
 			args->has_GUI = FALSE;
 			args->notify_done(args);

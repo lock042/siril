@@ -3769,7 +3769,7 @@ int process_ghs(int nb, int stretchtype) {
 	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
 	if (gui_iface.roi_is_active())
-		populate_roi();
+		gui_iface.populate_roi();
 
 	return CMD_OK;
 }
@@ -12658,7 +12658,7 @@ int process_boxselect(int nb){
 			siril_log_message(_("Too many arguments to boxselect, use either -clear or the coordinates, not both.\n"));
 			return CMD_ARG_ERROR;
 		}
-		delete_selected_area();
+		gui_iface.delete_selection();
 		siril_log_message(_("Selected area in image was cleared\n"));
 		return CMD_OK;
 	}
@@ -14252,7 +14252,7 @@ int process_seq_profile(int nb) {
 }
 
 int process_icc_assign(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	char *arg = word[1];
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
@@ -14297,7 +14297,7 @@ int process_icc_assign(int nb) {
 }
 
 int process_icc_convert_to(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	char *arg = word[1];
 	if (!gfit->icc_profile) {
 		siril_log_color_message(_("Image has no color profile assigned to convert from. Assign a profile first.\n"), "red");
@@ -14366,7 +14366,7 @@ int process_icc_convert_to(int nb) {
 }
 
 int process_icc_remove(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;

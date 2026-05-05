@@ -110,32 +110,8 @@ void clear_previews(void);
 gboolean redraw_previews(gpointer user_data);
 void check_gfit_profile_identical_to_monitor(void);
 
-/* ── Histogram computation ───────────────────────────────────────────────
- * These live in gui/histogram_utils.c but are called from core/command.c. */
-#include <gsl/gsl_histogram.h>
-gsl_histogram *computeHisto(fits *fit, int layer);
-gsl_histogram *computeHisto_Selection(fits *fit, int layer, rectangle *selection);
-
-/* ── Sequence-level filter application ─────────────────────────────────── */
-/* Declared in gui/histogram.h but called from command.c.
- * Forward declarations — callers that dereference these structs must include
- * the full filter headers directly. */
-struct mtf_data;
-struct ght_data;
-void apply_mtf_to_sequence(struct mtf_data *mtf_args);
-void apply_ght_to_sequence(struct ght_data *ght_args);
-
-/* ── Deconvolution processing functions ─────────────────────────────────── */
-/* Declared in gui/newdeconv.h but implemented in filters/deconvolution.c.
- * Forward-declare estk_data to avoid pulling in the full deconvolution headers
- * (callers that dereference estk_data fields must include the full header). */
-struct estk_data;
-void     reset_conv_args(struct estk_data *args);
-int      load_kernel(gchar *filename, struct estk_data *args);
-int      save_kernel(gchar *filename, struct estk_data *args);
-void     reset_conv_kernel(void);
-gpointer deconvolve_sequence_command(gpointer p, sequence *seqname);
-gpointer estimate_only(gpointer p);
+/* reset_conv_kernel: resets the kernel display widget — GUI only */
+void reset_conv_kernel(void);
 
 /* ── StarNet / Remixer integration ──────────────────────────────────────── */
 #define CALL_FROM_STARNET 1

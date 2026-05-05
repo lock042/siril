@@ -46,6 +46,7 @@
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
+#include "core/gui_iface.h"
 #include "core/gui_calls.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_plot.h"
@@ -3357,7 +3358,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		return;
 	} else {
 		// Clear any ROI that is set
-		on_clear_roi();
+		gui_iface.clear_roi();
 
 		// Basic argv to spawn python to run the script
 		GPtrArray* python_argv = g_ptr_array_new();

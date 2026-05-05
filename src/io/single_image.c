@@ -61,7 +61,7 @@ void close_single_image() {
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
-	on_clear_roi();
+	gui_iface.clear_roi();
 	free_image_data();
 }
 
@@ -77,7 +77,7 @@ void free_image_data() {
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(gfit, &com.seq, com.seq.current);
 
-	invalidate_gfit_histogram();
+	gui_iface.invalidate_histogram();
 
 	if (com.uniq) {
 		free(com.uniq->filename);
@@ -227,7 +227,7 @@ int open_single_image(const char* filename) {
 		free(realname);
 	}
 	gui_function(reset_cut_gui_filedependent, NULL);
-	check_gfit_profile_identical_to_monitor();
+	gui_iface.check_icc_identical_to_monitor();
 	return retval;
 }
 
@@ -239,7 +239,7 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 
 	initialize_display_mode();
 
-	update_zoom_label();
+	gui_iface.update_zoom_label();
 
 	init_layers_hi_and_lo_values(MIPSLOHI); // If MIPS-LO/HI exist we load these values. If not it is min/max
 
@@ -260,8 +260,8 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	close_tab(NULL);
 	init_right_tab(NULL);
 
-	remap_all();
-	update_gfit_histogram_if_needed();
+	gui_iface.remap_all_vports();
+	gui_iface.update_histogram();
 	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
 }
@@ -283,8 +283,8 @@ gboolean update_single_image_from_gfit(gpointer user_data) {
 	close_tab(NULL);
 	init_right_tab(NULL);
 
-	remap_all();
-	update_gfit_histogram_if_needed();
+	gui_iface.remap_all_vports();
+	gui_iface.update_histogram();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
@@ -413,7 +413,7 @@ void notify_gfit_data_modified() {
 		 * main thread never sees a partially-nullified layers_hist[] array.
 		 * update_histo_mtf() on the main thread acquires the same mutex. */
 		g_mutex_lock(&com.histogram_mutex);
-		invalidate_gfit_histogram();
+		gui_iface.invalidate_histogram();
 		// Skip expensive pixel work mid-script; display is flushed at script end.
 		if (com.script && !com.python_script) {
 			g_mutex_unlock(&com.histogram_mutex);
@@ -444,7 +444,7 @@ void notify_gfit_data_modified() {
 			copy_roi_into_gfit();
 		compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
-		remap_all(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
+		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
 		 * protect the write with com.mutex to prevent a data race. */
 		g_mutex_lock(&com.mutex);
