@@ -52,6 +52,7 @@ static void psf_list_init_statics(void) {
 	psf_treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
 	psf_stars_list_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "stars_list_window"));
 	psf_toggle_star_centered = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_star_centered"));
+	liststore_stars = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore_stars"));
 }
 
 enum {

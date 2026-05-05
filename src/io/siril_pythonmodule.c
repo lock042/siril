@@ -704,6 +704,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 	// Update gfit metadata
 	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	if (info->data_type)
+		fit->bitpix = FLOAT_IMG;
 	fit->rx = fit->naxes[0] = info->width;
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
