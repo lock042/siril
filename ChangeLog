@@ -13,12 +13,14 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
+* Parallelize min/max stacking algorithms (#194)
+* Update astrometry solution when resampling or binning instead of deleting it
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
 
 siril-1.4.3
---/--/--
+05/07/26
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
@@ -28,12 +30,13 @@ siril-1.4.3
 * Fixed the 'Keep all samples' in background extraction
 * Added None as a keyword value for BAYERPAT
 * Fixed file extension handling in Save As dialog (#1748)
+* Fixed crash when loading some Hubble images (#1932)
+* Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
 
 **Improvements**
 * Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
 * Added -async option to pyscript command (!1015)
-
 
 siril-1.4.2-HF1
 04/08/26

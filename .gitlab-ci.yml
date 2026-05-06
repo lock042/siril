@@ -277,7 +277,7 @@ win64-native:
 flatpak:
   rules:
     *run_ondemand_schedule_tag
-  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-49'
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-50'
   stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.siril.Siril.json"

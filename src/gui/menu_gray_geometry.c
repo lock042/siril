@@ -398,8 +398,6 @@ static gboolean binning_idle(gpointer p) {
 void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (!confirm_delete_wcs_keywords(gfit))
-		return;
 
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -462,8 +460,6 @@ gboolean binxy_hide_on_delete(GtkWidget *widget) {
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
-	if (!confirm_delete_wcs_keywords(gfit))
-		return;
 
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -474,6 +470,8 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	int interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
 	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_scale_clamp")));
 
+	if (sample[0] != sample[1] && !confirm_delete_wcs_keywords(gfit))
+		return;
 	set_cursor_waiting(TRUE);
 	int toX = round_to_int((sample[0] / 100.0) * gfit->rx);
 	int toY = round_to_int((sample[1] / 100.0) * gfit->ry);
@@ -490,6 +488,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	params->toY = toY;
 	params->interpolation = interpolation;
 	params->clamp = clamp;
+	params->update_wcs = sample[0] == sample[1];
 
 	// Allocate worker args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
