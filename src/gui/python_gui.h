@@ -1,4 +1,5 @@
 #ifndef GUI_PYTHON
+#include <gtk/gtk.h>
 #define GUI_PYTHON
 
 #include <gtksourceview/gtksource.h>

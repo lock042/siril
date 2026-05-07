@@ -25,8 +25,10 @@
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "core/gui_iface.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/registration_preview.h"
 #include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
@@ -213,7 +215,7 @@ void initialize_icc_preferences_widgets() {
 		gtk_widget_set_sensitive((GtkWidget*) monitortogglebutton, TRUE);
 	}
 
-	gtk_toggle_button_set_active(proofingtogglebutton, (gui.icc.soft_proof != NULL));
+	gtk_toggle_button_set_active(proofingtogglebutton, (com.gui_icc.soft_proof != NULL));
 	if (!gtk_file_chooser_get_filename(proofingfilechooser)) {
 		gtk_widget_set_sensitive((GtkWidget*) proofingtogglebutton, FALSE);
 	} else {
@@ -505,7 +507,7 @@ gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event
 		return FALSE;
 	if (event->type == GDK_BUTTON_PRESS  &&  event->button == 3) {
 		// Right mouse button press
-        if (gui.icc.iso12646) {
+        if (com.gui_icc.iso12646) {
 			siril_debug_print("Disabling approximate ISO12646 viewing conditions\n");
 			disable_iso12646_conditions(TRUE, TRUE, TRUE);
 		} else {
@@ -688,16 +690,16 @@ void enable_iso12646_conditions() {
 		mode_changed = TRUE;
 	// Add draw callbacks
 	GtkWidget *parent_widget = lookup_widget("vbox_rgb");
-	gui.icc.sh_rgb = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
+	com.gui_icc.sh_rgb = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_b");
-	gui.icc.sh_b = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
+	com.gui_icc.sh_b = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_g");
-	gui.icc.sh_g = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
+	com.gui_icc.sh_g = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_r");
-	gui.icc.sh_r = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
+	com.gui_icc.sh_r = g_signal_connect(G_OBJECT(parent_widget), "draw", G_CALLBACK(iso_12646_draw_event), parent_widget);
 	gtk_widget_queue_draw(parent_widget);
 	// Set the text color of the labels within the vbox
 	PangoAttrList *attrs = pango_attr_list_new();
@@ -729,30 +731,30 @@ void enable_iso12646_conditions() {
 	set_display_mode();
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user")), TRUE);
 	set_cutoff_sliders_values(); // The redraw will happen in the idle
-	gui.icc.iso12646 = TRUE;
+	com.gui_icc.iso12646 = TRUE;
 	g_idle_add((GSourceFunc)on_iso12646_panel_hide_completed, &remap);
 }
 
 void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode) {
 	GtkWidget *parent_widget = lookup_widget("vbox_rgb");
-	if (gui.icc.sh_rgb)
-		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_rgb);
-	gui.icc.sh_rgb = 0;
+	if (com.gui_icc.sh_rgb)
+		g_signal_handler_disconnect(G_OBJECT(parent_widget), com.gui_icc.sh_rgb);
+	com.gui_icc.sh_rgb = 0;
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_r");
-	if (gui.icc.sh_r)
-		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_r);
-	gui.icc.sh_r = 0;
+	if (com.gui_icc.sh_r)
+		g_signal_handler_disconnect(G_OBJECT(parent_widget), com.gui_icc.sh_r);
+	com.gui_icc.sh_r = 0;
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_g");
-	if (gui.icc.sh_g)
-		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_g);
-	gui.icc.sh_g = 0;
+	if (com.gui_icc.sh_g)
+		g_signal_handler_disconnect(G_OBJECT(parent_widget), com.gui_icc.sh_g);
+	com.gui_icc.sh_g = 0;
 	gtk_widget_queue_draw(parent_widget);
 	parent_widget = lookup_widget("vbox_b");
-	if (gui.icc.sh_b)
-		g_signal_handler_disconnect(G_OBJECT(parent_widget), gui.icc.sh_b);
-	gui.icc.sh_b = 0;
+	if (com.gui_icc.sh_b)
+		g_signal_handler_disconnect(G_OBJECT(parent_widget), com.gui_icc.sh_b);
+	com.gui_icc.sh_b = 0;
 	// Revert the text color of the labels within the vbox
     PangoAttrList *attrs = NULL;
     gtk_label_set_attributes(GTK_LABEL(lookup_widget("labelfilename_red")), attrs);
@@ -763,7 +765,7 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
     gtk_label_set_attributes(GTK_LABEL(lookup_widget("labelwcs_green")), attrs);
     gtk_label_set_attributes(GTK_LABEL(lookup_widget("labelwcs_blue")), attrs);
     gtk_label_set_attributes(GTK_LABEL(lookup_widget("labelwcs_rgb")), attrs);
-	gui.icc.iso12646 = FALSE;
+	com.gui_icc.iso12646 = FALSE;
 	if (revert_panel) {
 		// Return the panel to its previous state
 		GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
@@ -794,4 +796,145 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 		redraw(REMAP_ALL);
 	}
 	gtk_widget_queue_draw(lookup_widget("control_window"));
+}
+
+void on_monitor_profile_clear_clicked(GtkButton* button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
+	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_monitor_profile_active"));
+	gtk_file_chooser_unselect_all(filechooser);
+	cmsHPROFILE old_monitor = copyICCProfile(com.gui_icc.monitor);
+	icc_lock_monitor_profile();
+	if (com.pref.icc.icc_path_monitor && com.pref.icc.icc_path_monitor[0] != '\0') {
+		g_free(com.pref.icc.icc_path_monitor);
+		com.pref.icc.icc_path_monitor = NULL;
+		cmsCloseProfile(com.gui_icc.monitor);
+		com.gui_icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
+		if (com.gui_icc.monitor) {
+			siril_log_message(_("Monitor ICC profile set to sRGB\n"));
+		} else {
+			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			exit(1);
+		}
+	}
+	icc_unlock_monitor_profile();
+	gtk_toggle_button_set_active(togglebutton, FALSE);
+	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+	if (!profiles_identical(old_monitor, com.gui_icc.monitor)) {
+		refresh_icc_transforms();
+		notify_gfit_data_modified();
+		gui_iface.redraw_image(REMAP_ALL);
+	}
+	cmsCloseProfile(old_monitor);
+}
+
+void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
+	GtkToggleButton *togglebutton = (GtkToggleButton*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "custom_proofing_profile_active"));
+	icc_lock_soft_proof_profile();
+
+	gtk_file_chooser_unselect_all(filechooser);
+	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
+		g_free(com.pref.icc.icc_path_soft_proof);
+		com.pref.icc.icc_path_soft_proof = NULL;
+	}
+	if (com.gui_icc.soft_proof)
+		cmsCloseProfile(com.gui_icc.soft_proof);
+	com.gui_icc.soft_proof = NULL;
+
+	icc_unlock_soft_proof_profile();
+	gtk_toggle_button_set_active(togglebutton, FALSE);
+	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
+	refresh_icc_transforms();
+	notify_gfit_data_modified();
+	gui_iface.redraw_image(REMAP_ALL);
+	gui_function(redraw_previews, NULL);
+}
+
+void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
+	gboolean no_file = FALSE;
+	gboolean active = gtk_toggle_button_get_active(button);
+	icc_lock_monitor_profile();
+	if (com.gui_icc.monitor) {
+		cmsCloseProfile(com.gui_icc.monitor);
+	}
+	if (active) {
+		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
+			com.pref.icc.icc_path_monitor = g_strdup(gtk_file_chooser_get_filename(filechooser));
+		}
+		if (!com.pref.icc.icc_path_monitor || com.pref.icc.icc_path_monitor[0] == '\0') {
+			siril_log_color_message(_("Error: no filename specified for custom monitor profile.\n"), "red");
+			no_file = TRUE;
+		} else {
+			com.gui_icc.monitor = cmsOpenProfileFromFile(com.pref.icc.icc_path_monitor, "r");
+		}
+		if (com.gui_icc.monitor) {
+			siril_log_message(_("Monitor profile loaded from %s\n"), com.pref.icc.icc_path_monitor, "r");
+			icc_unlock_monitor_profile();
+			refresh_icc_transforms();
+			return;
+		} else {
+			if (!no_file) {
+				siril_log_color_message(_("Monitor profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_monitor);
+			}
+			com.gui_icc.monitor = srgb_monitor_perceptual();
+			if (com.gui_icc.monitor) {
+				siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+			} else {
+				siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+				exit(1);
+			}
+		}
+	} else {
+		com.gui_icc.monitor = srgb_monitor_perceptual();
+		if (com.gui_icc.monitor) {
+			siril_log_message(_("Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"));
+		} else {
+			siril_log_color_message(_("Fatal error: standard sRGB ICC profile could not be loaded.\n"), "red");
+			exit(1);
+		}
+	}
+	icc_unlock_monitor_profile();
+	refresh_icc_transforms();
+}
+
+void on_custom_proofing_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
+	gboolean no_file = FALSE;
+	gboolean active = gtk_toggle_button_get_active(button);
+	icc_lock_soft_proof_profile();
+	if (com.gui_icc.soft_proof) {
+		cmsCloseProfile(com.gui_icc.soft_proof);
+		com.gui_icc.soft_proof = NULL;
+	}
+	if (active) {
+		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
+			com.pref.icc.icc_path_soft_proof = g_strdup(gtk_file_chooser_get_filename(filechooser));
+		}
+		if (!com.pref.icc.icc_path_soft_proof || com.pref.icc.icc_path_soft_proof[0] == '\0') {
+			siril_log_color_message(_("Error: no filename specified for output device proofing profile.\n"), "red");
+			no_file = TRUE;
+		} else {
+			com.gui_icc.soft_proof = cmsOpenProfileFromFile(com.pref.icc.icc_path_soft_proof, "r");
+		}
+		if (com.gui_icc.soft_proof) {
+			siril_log_message(_("Output device proofing profile loaded from %s\n"), com.pref.icc.icc_path_soft_proof);
+			icc_unlock_soft_proof_profile();
+			refresh_icc_transforms();
+			notify_gfit_data_modified();
+			gui_iface.redraw_image(REMAP_ALL);
+			return;
+		} else {
+			if (!no_file) {
+				siril_log_color_message(_("Output device proofing profile could not be loaded from %s\n"), "red", com.pref.icc.icc_path_soft_proof);
+			}
+			siril_log_color_message(_("Soft proofing is not available while no soft proofing ICC profile is loaded.\n"), "salmon");
+		}
+	} else {
+		siril_log_message(_("Output device proofing profile deactivated. Soft proofing will proof to the monitor profile.\n"));
+	}
+	icc_unlock_soft_proof_profile();
+	refresh_icc_transforms();
+	notify_gfit_data_modified();
+	gui_iface.redraw_image(REMAP_ALL);
 }

@@ -17,4 +17,7 @@ void on_combo_mask_luminance_type_changed(GtkComboBox *combo, gpointer user_data
 /* Color picker */
 void mask_color_handle_image_click(int x, int y);
 
+/* Idle function: sync the mask-enable toggle to state (for gui_iface impl). */
+gboolean set_mask_active_idle(gpointer p);
+
 #endif /* _MASK_FROM_IMAGE_CALLBACKS_H_ */

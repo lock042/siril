@@ -37,12 +37,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/icc_profile.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/histogram.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_preview.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/annotation_catalogues.h"
@@ -381,14 +376,14 @@ static int undo_restore(fits *fit, historic *hist) {
 		if (gfit->type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-			gui_function(set_precision_switch, NULL);
+			gui_iface.on_precision_changed();
 		}
 		retval = undo_get_data_ushort(fit, hist);
 	} else if (hist->type == DATA_FLOAT) {
 		if (gfit->type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
-			gui_function(set_precision_switch, NULL);
+			gui_iface.on_precision_changed();
 		}
 		retval = undo_get_data_float(fit, hist);
 	} else {
@@ -429,7 +424,7 @@ int undo_save_state(fits *fit, const char *message, ...) {
 	if (undo_push_to(&com.undo_stack, fit, histo))
 		return 1;
 
-	gui_function(update_MenuItem, NULL);
+	gui_iface.update_menu_state();
 	return 0;
 }
 
@@ -438,7 +433,7 @@ int undo_display_data(int dir) {
 	case UNDO:
 		if (is_undo_available()) {
 			// Avoid any issues with ROI or preview
-			gboolean preview_was_active = is_preview_active();
+			gboolean preview_was_active = gui_iface.is_preview_active();
 			/* Writer lock: covers the ROI metadata reads (rx/ry/naxes[2]),
 			 * undo_push_to (reads pixels), and undo_restore (writes pixels).
 			 * The entire save+restore must be atomic against the Python thread. */
@@ -446,14 +441,14 @@ int undo_display_data(int dir) {
 
 			historic *top = (historic *) com.undo_stack->data;
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active
+			gboolean roi_was_active = (gui_iface.roi_is_active()
 					&& gfit->rx == top->rx
 					&& gfit->ry == top->ry
 					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
-			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
-			siril_preview_hide();
-			on_clear_roi();
+			gui_iface.get_roi_selection(&roi_rect);
+			gui_iface.hide_preview();
+			gui_iface.clear_roi();
 
 			/* save current state to redo stack before restoring */
 			if (undo_push_to(&com.redo_stack, gfit, top->history)) {
@@ -468,32 +463,26 @@ int undo_display_data(int dir) {
 			undo_restore(gfit, top);
 			undo_free_item(top);
 
-			invalidate_gfit_histogram();
+			gui_iface.invalidate_histogram();
 			invalidate_stats_from_fit(gfit);
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
-			update_gfit_histogram_if_needed();
-			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_iface.update_histogram();
+			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
 			g_rw_lock_reader_unlock(&gfit->rwlock);
-			/* update menus */
-			gui_function(update_MenuItem, NULL);
-			lock_display_transform();
-			if (gui.icc.proofing_transform)
-				cmsDeleteTransform(gui.icc.proofing_transform);
-			gui.icc.proofing_transform = NULL;
-			unlock_display_transform();
+			gui_iface.update_menu_state();
+			gui_iface.reset_display_transform();
 			refresh_annotations(TRUE);
 			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			redraw_mask_idle(NULL);
+			gui_iface.redraw_mask_idle();
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				g_rw_lock_reader_lock(&gfit->rwlock);
 				notify_gfit_data_modified();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
-				redraw(REMAP_ALL);
+				gui_iface.redraw_image(REMAP_ALL);
 			}
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
-				copy_gfit_to_backup();
+				gui_iface.copy_gfit_to_backup();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 				// TODO: To be perfect, we would need a register of preview functions
 				// look up the correct one for the open dialog and re-apply the preview
@@ -501,8 +490,7 @@ int undo_display_data(int dir) {
 						"to toggle the preview off and on again to reactivate the preview effect\n"));
 			}
 			if (roi_was_active) {
-				memcpy(&com.selection, &roi_rect, sizeof(rectangle));
-				on_set_roi();
+				gui_iface.restore_roi(&roi_rect);
 			}
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
@@ -513,20 +501,19 @@ int undo_display_data(int dir) {
 	case REDO:
 		if (is_redo_available()) {
 			// Avoid any issues with ROI or preview
-			gboolean preview_was_active = is_preview_active();
+			gboolean preview_was_active = gui_iface.is_preview_active();
 			/* Writer lock: covers the ROI metadata reads and undo_restore (writes pixels). */
-			g_rw_lock_writer_lock(&gfit->rwlock);
 
 			historic *top = (historic *) com.redo_stack->data;
 			// Can't reactivate the ROI if the size has changed
-			gboolean roi_was_active = (gui.roi.active
+			gboolean roi_was_active = (gui_iface.roi_is_active()
 					&& gfit->rx == top->rx
 					&& gfit->ry == top->ry
 					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
-			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
-			on_clear_roi();
-			siril_preview_hide();
+			gui_iface.get_roi_selection(&roi_rect);
+			gui_iface.clear_roi();
+			gui_iface.hide_preview();
 
 			/* save current state to undo stack before restoring */
 			if (undo_push_to(&com.undo_stack, gfit, top->history)) {
@@ -541,37 +528,29 @@ int undo_display_data(int dir) {
 			undo_restore(gfit, top);
 			undo_free_item(top);
 
-			invalidate_gfit_histogram();
-			invalidate_stats_from_fit(gfit);
+			gui_iface.invalidate_histogram();
 			g_rw_lock_writer_unlock(&gfit->rwlock); // Finished with writer lock
 			g_rw_lock_reader_lock(&gfit->rwlock);   // But still need reader lock
-			update_gfit_histogram_if_needed();
+			gui_iface.update_histogram();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
-			/* update menus */
-			gui_function(update_MenuItem, NULL);
+			gui_iface.update_menu_state();
 			refresh_annotations(TRUE);
-			lock_display_transform();
-			if (gui.icc.proofing_transform)
-				cmsDeleteTransform(gui.icc.proofing_transform);
-			gui.icc.proofing_transform = NULL;
-			unlock_display_transform();
-			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
+			gui_iface.reset_display_transform();
+			gui_iface.on_channel_count_changed(); // These 2 lines account for possible change from mono to RGB
 			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
-			redraw_mask_idle(NULL);
+			gui_iface.redraw_mask_idle();
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				g_rw_lock_reader_lock(&gfit->rwlock);
 				notify_gfit_data_modified();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
-				redraw(REMAP_ALL);
+				gui_iface.redraw_image(REMAP_ALL);
 			}
 			if (preview_was_active) {
 				g_rw_lock_reader_lock(&gfit->rwlock);
-				copy_gfit_to_backup();
+				gui_iface.copy_gfit_to_backup();
 				g_rw_lock_reader_unlock(&gfit->rwlock);
 			}
 			if (roi_was_active) {
-				memcpy(&gui.roi.selection, &roi_rect, sizeof(rectangle));
-				on_set_roi();
+				gui_iface.restore_roi(&roi_rect);
 			}
 			g_rw_lock_reader_lock(&gfit->rwlock);
 			update_fits_header(gfit);
@@ -602,157 +581,5 @@ int undo_flush() {
 	g_list_free_full(com.redo_stack, (GDestroyNotify) undo_free_item);
 	com.redo_stack = NULL;
 	return 0;
-}
-
-void set_undo_redo_tooltip() {
-	if (is_undo_available()) {
-		historic *h = (historic *) com.undo_stack->data;
-		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
-		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
-		g_free(str);
-	} else {
-		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
-	}
-	if (is_redo_available()) {
-		historic *h = (historic *) com.redo_stack->data;
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
-		g_free(str);
-	} else {
-		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
-	}
-}
-
-/* ---- Long-press popover for undo/redo history navigation ---- */
-
-static gboolean destroy_widget_idle(gpointer data) {
-	gtk_widget_destroy(GTK_WIDGET(data));
-	g_object_unref(G_OBJECT(data));
-	return G_SOURCE_REMOVE;
-}
-
-static void on_undo_popover_closed(GtkPopover *popover, gpointer user_data) {
-	/* Schedule destruction via idle to avoid re-entrancy: gtk_popover_popdown
-	 * emits "closed" while still holding internal GTK state on the widget. Calling
-	 * gtk_widget_destroy synchronously from here crashes in g_type_check_instance
-	 * because popdown continues to access the widget after the signal returns. */
-	g_object_ref(popover);  /* keep alive until the idle fires */
-	g_idle_add(destroy_widget_idle, popover);
-}
-
-static void on_undo_popover_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer user_data) {
-	GtkWidget *popover = GTK_WIDGET(g_object_get_data(G_OBJECT(box), "popover"));
-	int dir   = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "dir"));
-	int level = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "level"));
-
-	/* Hide the popover (fires "closed" → on_undo_popover_closed → idle destroy).
-	 * We use gtk_widget_hide rather than gtk_popover_popdown because popdown
-	 * keeps internal GTK references alive across the "closed" emission, making
-	 * synchronous destruction unsafe. dir/level are already local copies. */
-	gtk_widget_hide(GTK_WIDGET(popover));
-
-	set_cursor_waiting(TRUE);
-	for (int i = 0; i < level; i++) {
-		if (dir == UNDO && !is_undo_available()) break;
-		if (dir == REDO && !is_redo_available()) break;
-		undo_display_data(dir);
-	}
-	set_cursor_waiting(FALSE);
-}
-
-static void show_undo_history_popover(GtkWidget *button, int dir) {
-	GList *stack = (dir == UNDO) ? com.undo_stack : com.redo_stack;
-	if (!stack) return;
-
-	GtkWidget *popover = gtk_popover_new(button);
-	g_signal_connect(popover, "closed", G_CALLBACK(on_undo_popover_closed), NULL);
-
-	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	gtk_widget_set_margin_start(vbox, 4);
-	gtk_widget_set_margin_end(vbox, 4);
-	gtk_widget_set_margin_top(vbox, 6);
-	gtk_widget_set_margin_bottom(vbox, 4);
-
-	/* heading */
-	const gchar *title = (dir == UNDO) ? _("Undo history") : _("Redo history");
-	GtkWidget *heading = gtk_label_new(title);
-	PangoAttrList *attrs = pango_attr_list_new();
-	pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
-	gtk_label_set_attributes(GTK_LABEL(heading), attrs);
-	pango_attr_list_unref(attrs);
-	gtk_widget_set_margin_bottom(heading, 4);
-	gtk_box_pack_start(GTK_BOX(vbox), heading, FALSE, FALSE, 0);
-
-	GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-	gtk_widget_set_margin_bottom(sep, 2);
-	gtk_box_pack_start(GTK_BOX(vbox), sep, FALSE, FALSE, 0);
-
-	GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
-	                               GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scroll), 300);
-	gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroll), TRUE);
-
-	GtkWidget *listbox = gtk_list_box_new();
-	gtk_list_box_set_selection_mode(GTK_LIST_BOX(listbox), GTK_SELECTION_NONE);
-	g_object_set_data(G_OBJECT(listbox), "dir",     GINT_TO_POINTER(dir));
-	g_object_set_data(G_OBJECT(listbox), "popover", popover);
-	g_signal_connect(listbox, "row-activated", G_CALLBACK(on_undo_popover_row_activated), NULL);
-
-	int n = 0;
-	for (GList *l = stack; l; l = l->next, n++) {
-		historic *h = (historic *)l->data;
-		const gchar *label = (h->history[0] != '\0') ? h->history : _("(unnamed)");
-
-		GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-		gtk_widget_set_margin_start(row_box, 6);
-		gtk_widget_set_margin_end(row_box, 6);
-		gtk_widget_set_margin_top(row_box, 3);
-		gtk_widget_set_margin_bottom(row_box, 3);
-
-		GtkWidget *lbl = gtk_label_new(label);
-		gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-		gtk_box_pack_start(GTK_BOX(row_box), lbl, TRUE, TRUE, 0);
-
-		GtkWidget *list_row = gtk_list_box_row_new();
-		gtk_container_add(GTK_CONTAINER(list_row), row_box);
-		g_object_set_data(G_OBJECT(list_row), "dir",   GINT_TO_POINTER(dir));
-		g_object_set_data(G_OBJECT(list_row), "level", GINT_TO_POINTER(n + 1));
-		gtk_list_box_insert(GTK_LIST_BOX(listbox), list_row, -1);
-	}
-
-	gtk_container_add(GTK_CONTAINER(scroll), listbox);
-	gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 0);
-	gtk_container_add(GTK_CONTAINER(popover), vbox);
-
-	gtk_widget_show_all(popover);
-	gtk_popover_popup(GTK_POPOVER(popover));
-}
-
-static void on_long_press_undo(GtkGestureLongPress *gesture, gdouble x, gdouble y, gpointer user_data) {
-	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-	show_undo_history_popover(GTK_WIDGET(user_data), UNDO);
-}
-
-static void on_long_press_redo(GtkGestureLongPress *gesture, gdouble x, gdouble y, gpointer user_data) {
-	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-	show_undo_history_popover(GTK_WIDGET(user_data), REDO);
-}
-
-void setup_undo_redo_long_press(void) {
-	GtkWidget *undo_btn = lookup_widget("header_undo_button");
-	GtkWidget *redo_btn = lookup_widget("header_redo_button");
-
-	/* Intentionally not unreffed: the widget holds no strong ref in GTK 3.24,
-	 * so we keep the reference alive for the lifetime of the application. */
-	GtkGesture *undo_gesture = gtk_gesture_long_press_new(undo_btn);
-	gtk_gesture_single_set_touch_only(GTK_GESTURE_SINGLE(undo_gesture), FALSE);
-	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(undo_gesture), GTK_PHASE_CAPTURE);
-	g_signal_connect(undo_gesture, "pressed", G_CALLBACK(on_long_press_undo), undo_btn);
-
-	GtkGesture *redo_gesture = gtk_gesture_long_press_new(redo_btn);
-	gtk_gesture_single_set_touch_only(GTK_GESTURE_SINGLE(redo_gesture), FALSE);
-	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(redo_gesture), GTK_PHASE_CAPTURE);
-	g_signal_connect(redo_gesture, "pressed", G_CALLBACK(on_long_press_redo), redo_btn);
 }
 

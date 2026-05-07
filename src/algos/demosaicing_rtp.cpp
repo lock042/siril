@@ -11,7 +11,6 @@
 extern "C" {
 #endif
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #ifdef __cplusplus
 }
 #endif

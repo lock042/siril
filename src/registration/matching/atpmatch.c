@@ -145,7 +145,6 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv/opencv.h"
-#include "gui/photometric_cc.h"
 
 #undef DEBUG           /* get some of diagnostic output */
 #undef DEBUG2          /* get LOTS more diagnostic output */

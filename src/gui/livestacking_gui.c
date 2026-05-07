@@ -1,12 +1,12 @@
-#include "gui.h"
-#include "livestacking.h"
+#include "livestacking/gui.h"
+#include "livestacking/livestacking.h"
 #include <gtk/gtk.h>
 #include "io/image_format_fits.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
-#include "core/siril_actions.h"
+#include "gui/siril_actions.h"
 #include "core/proto.h"
 #include "core/preprocess.h"
 #include "core/siril_log.h"
@@ -14,7 +14,7 @@
 static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
 
 /* for fullscreen and window management on activation,
- * see livestacking_action_activate() in core/siril_actions.c */
+ * see livestacking_action_activate() in gui/siril_actions.c */
 
 struct _label_struct {
 	GtkLabel *label;
@@ -32,13 +32,13 @@ static gboolean label_update_idle(gpointer ptr) {
 }
 
 void show_hide_toolbox() {
-	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window")));
 	GAction *action_toolbar = g_action_map_lookup_action(G_ACTION_MAP(app_win), "hide-show-toolbar");
 	g_action_activate(action_toolbar, NULL);
 }
 
 void force_unlinked_channels() {
-	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window")));
 	GAction *action_chain = g_action_map_lookup_action(G_ACTION_MAP(app_win), "chain-chan");
 
 	GVariant *state = g_action_get_state(G_ACTION(action_chain));
@@ -65,13 +65,13 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	}
 	static GtkLabel *label = NULL;
 	if (!label)
-		label = GTK_LABEL(lookup_widget("livest_label1"));
+		label = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "livest_label1")));
 	set_label(label, str, free_after_display);
 	livestacking_update_number_of_images(0, 0.0, -1.0, NULL);
 }
 
 static void update_icon(const gchar *name, gboolean is_loaded) {
-	GtkImage *image = GTK_IMAGE(lookup_widget(name));
+	GtkImage *image = GTK_IMAGE(gtk_builder_get_object(gui.builder, name));
 	if (is_loaded)
 		gtk_image_set_from_icon_name(image, "gtk-yes", GTK_ICON_SIZE_LARGE_TOOLBAR);
 	else
@@ -81,7 +81,7 @@ static void update_icon(const gchar *name, gboolean is_loaded) {
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
 	static GtkLabel *reg_conf_label = NULL;
 	if (!reg_conf_label)
-		reg_conf_label = GTK_LABEL(lookup_widget("ls_reg_config_label"));
+		reg_conf_label = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_reg_config_label")));
 	const char *desc = describe_transformation_type(regtype);
 	update_icon("ls_reg_config", g_strcmp0(desc, "INVALID"));
 
@@ -98,8 +98,8 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 		return;
 	static GtkLabel *label_cumul = NULL, *label_stats = NULL;
 	if (!label_cumul) {
-		label_cumul = GTK_LABEL(lookup_widget("ls_cumul_label"));
-		label_stats = GTK_LABEL(lookup_widget("ls_stats_label"));
+		label_cumul = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_cumul_label")));
+		label_stats = GTK_LABEL(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_stats_label")));
 	}
 	int secs = round_to_int(total_exposure);
 	int time;
@@ -127,7 +127,7 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 }
 
 void on_livestacking_playpause_clicked(GtkToolButton *button, gpointer user_data) {
-	GtkWidget *label = lookup_widget("livest_label1");
+	GtkWidget *label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "livest_label1"));
 	widget_set_class(label, "record", "");
 	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
 	if (!livestacking_is_started()) {
@@ -140,10 +140,10 @@ void on_livestacking_playpause_clicked(GtkToolButton *button, gpointer user_data
 }
 
 void on_livestacking_stop_clicked(GtkToolButton *button, gpointer user_data) {
-	GtkWidget *label = lookup_widget("livest_label1");
+	GtkWidget *label = GTK_WIDGET(gtk_builder_get_object(gui.builder, "livest_label1"));
 	gtk_label_set_text(GTK_LABEL(label), _("Idle"));
 	widget_set_class(label, "", "record");
-	gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(lookup_widget("livestacking_playpause")),
+	gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "livestacking_playpause"))),
 			pause_play_button[1]);
 	stop_live_stacking_engine();
 }
@@ -153,7 +153,7 @@ void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
 }
 
 gboolean update_debayer_button_status_idle(gpointer new_state) {
-	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("ls_debayer"));
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_debayer")));
 	gtk_toggle_button_set_active(button, GPOINTER_TO_INT(new_state));
 	return FALSE;
 }
@@ -165,12 +165,12 @@ void update_debayer_button_status(gboolean new_state) {
 gboolean livestacking_first_result_idle(gpointer p) {
 	gui_function(set_precision_switch, NULL); // set precision on screen
 	remap_all();
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
 }
 
 static gboolean enable_debayer_idle(gpointer arg) {
-	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "demosaicingButton")));
 	gtk_toggle_button_set_active(button, GPOINTER_TO_INT(arg));
 	return FALSE;
 }
@@ -182,7 +182,7 @@ void enable_debayer(gboolean arg) {
 }
 
 gboolean end_image_loading(gpointer arg) {
-	redraw(REMAP_ALL);
+	gui_iface.redraw_image(REMAP_ALL);
 	return FALSE;
 }
 
@@ -195,15 +195,15 @@ void init_preprocessing_from_GUI() {
 	struct preprocessing_data *prepro = calloc(1, sizeof(struct preprocessing_data));
 
 	/* checking for dark master and associated options */
-	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
+	GtkToggleButton *tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "usedark_button")));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
-		GtkEntry *entry = GTK_ENTRY(lookup_widget("darkname_entry"));
+		GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "darkname_entry")));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
-			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, _("Opening dark image..."));
 			prepro->dark = calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->dark, NULL, FALSE)) {
 				prepro->use_dark = TRUE;
@@ -217,15 +217,15 @@ void init_preprocessing_from_GUI() {
 
 		if (prepro->use_dark) {
 			// cosmetic correction
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("cosmEnabledCheck"));
+			tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cosmEnabledCheck")));
 			prepro->use_cosmetic_correction = gtk_toggle_button_get_active(tbutton);
 
 			if (prepro->use_cosmetic_correction) {
-				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cosmCFACheck")));
 				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
 
 				/* now we want to know which cosmetic correction was chosen */
-				GtkStack *stack = GTK_STACK(lookup_widget("stack_cc"));
+				GtkStack *stack = GTK_STACK(GTK_WIDGET(gtk_builder_get_object(gui.builder, "stack_cc")));
 				GtkWidget *w = gtk_stack_get_visible_child(stack);
 				if (w) {
 					GValue value = G_VALUE_INIT;
@@ -235,14 +235,14 @@ void init_preprocessing_from_GUI() {
 					prepro->cc_from_dark = position == 0 ? TRUE : FALSE;
 					g_value_unset(&value);
 					if (prepro->cc_from_dark) { // cosmetic correction from masterdark
-						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigCold"));
+						tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigCold")));
 						if (gtk_toggle_button_get_active(tbutton)) {
-							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox"));
+							GtkSpinButton *sigCold = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeColdBox")));
 							prepro->sigma[0] = gtk_spin_button_get_value(sigCold);
 						} else prepro->sigma[0] = -1.0;
-						tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkSigHot"));
+						tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkSigHot")));
 						if (gtk_toggle_button_get_active(tbutton)) {
-							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
+							GtkSpinButton *sigHot = GTK_SPIN_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "spinSigCosmeHotBox")));
 							prepro->sigma[1] = gtk_spin_button_get_value(sigHot);
 						} else prepro->sigma[1] = -1.0;
 					} else {
@@ -260,21 +260,21 @@ void init_preprocessing_from_GUI() {
 				}
 			}
 
-			GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(lookup_widget("fix_xtrans_af"));
+			GtkToggleButton *fix_xtrans = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "fix_xtrans_af")));
 			prepro->fix_xtrans = gtk_toggle_button_get_active(fix_xtrans);
 		}
 	}
 
 	/* checking for flat master and associated options */
-	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
+	tbutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "useflat_button")));
 	if (gtk_toggle_button_get_active(tbutton)) {
 		const char *filename;
-		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		GtkEntry *entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "flatname_entry")));
 		filename = gtk_entry_get_text(entry);
 		if (filename[0] == '\0') {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
-			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+			gui_iface.set_progress(PROGRESS_NONE, _("Opening flat image..."));
 			prepro->flat = calloc(1, sizeof(fits));
 			if (!readfits(filename, prepro->flat, NULL, !com.pref.force_16bit)) {
 				prepro->use_flat = TRUE;
@@ -286,28 +286,28 @@ void init_preprocessing_from_GUI() {
 			}
 
 			if (prepro->use_flat) {
-				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_auto_evaluate"));
+				GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkbutton_auto_evaluate")));
 				prepro->autolevel = gtk_toggle_button_get_active(autobutton);
 				if (!prepro->autolevel) {
-					GtkEntry *norm_entry = GTK_ENTRY(lookup_widget("entry_flat_norm"));
+					GtkEntry *norm_entry = GTK_ENTRY(GTK_WIDGET(gtk_builder_get_object(gui.builder, "entry_flat_norm")));
 					prepro->normalisation = g_ascii_strtod(gtk_entry_get_text(norm_entry), NULL);
 				}
 
-				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
+				GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "cosmCFACheck")));
 				prepro->is_cfa = gtk_toggle_button_get_active(CFA);
 
-				GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+				GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "checkbutton_equalize_cfa")));
 				prepro->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
 			}
 		}
 	}
 
-	GtkToggleButton *use_32b_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_32bits"));
+	GtkToggleButton *use_32b_button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_32bits")));
 	gboolean use_32_bits = gtk_toggle_button_get_active(use_32b_button);
 
 	init_preprocessing_finalize(prepro, use_32_bits);
 
-	GtkToggleButton *shift_reg_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_shiftonly"));
+	GtkToggleButton *shift_reg_button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "ls_shiftonly")));
 	init_registration_finalize(gtk_toggle_button_get_active(shift_reg_button));
 }
 
@@ -316,4 +316,3 @@ void on_livestacking_start() {
 	if (start_livestacking(TRUE))
 		stop_live_stacking_engine();
 }
-

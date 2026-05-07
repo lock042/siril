@@ -29,6 +29,7 @@
 #include <gsl/gsl_cdf.h>
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "stacking/rejection_float.c"
 
 cominfo com;	// the core data struct

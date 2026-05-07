@@ -104,6 +104,12 @@ void update_profiles_after_gamut_change();
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb);
 void cleanup_common_profiles();
 
+/* Mutex accessors (for signal handlers in gui/icc_profile.c) */
+void icc_lock_monitor_profile(void);
+void icc_unlock_monitor_profile(void);
+void icc_lock_soft_proof_profile(void);
+void icc_unlock_soft_proof_profile(void);
+
 /* Image processing hooks for generic_image_worker */
 #include "core/processing.h"
 

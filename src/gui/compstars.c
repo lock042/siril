@@ -23,10 +23,13 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "algos/comparison_stars.h"
+#include "gui/image_display.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
+#include "io/annotation_catalogues.h"
+#include "io/siril_catalogues.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *delta_vmag_entry = NULL;
@@ -38,8 +41,37 @@ static GtkWidget *apass_radio = NULL;
 static GtkWidget *check_narrow = NULL;
 static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
 static GtkWidget *auto_data_grp;
+static GtkToggleToolButton *annotate_button = NULL;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
+
+/* Idle callback invoked on the GUI thread when compstars_worker finishes. */
+static gboolean end_compstars(gpointer p) {
+	siril_debug_print("end_compstars\n");
+	struct compstars_arg *args = (struct compstars_arg *) p;
+
+	clear_stars_list(args->has_GUI);
+	if (args->has_GUI && !args->retval) {
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		if (!load_siril_cat_to_temp(args->comp_stars)) {
+			if (!annotate_button)
+			annotate_button = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
+		GtkToggleToolButton *button = annotate_button;
+			refresh_found_objects();
+			if (!gtk_toggle_tool_button_get_active(button)) {
+				gtk_toggle_tool_button_set_active(button, TRUE);
+			} else {
+				refresh_found_objects();
+				redraw(REDRAW_OVERLAY);
+			}
+		}
+	} else {
+		siril_catalog_free(args->comp_stars);
+	}
+	redraw(REDRAW_OVERLAY);
+	free_compstars_arg(args);
+	return end_generic(NULL);
+}
 
 static void output_state(GtkToggleButton *source, gpointer user_data) {
     gtk_widget_set_sensitive(auto_data_grp, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode)));
@@ -331,6 +363,7 @@ static void auto_photometry_data () {
 	args->delta_BV = delta_BV;
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
+	args->notify_done = end_compstars;
 
 	if(!start_in_new_thread(compstars_worker, args)) {
 		g_free(args->target_name);

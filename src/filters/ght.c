@@ -21,6 +21,9 @@
 #include <glib.h>
 #include "ght.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/processing.h"
+void destroy_ght_data(void *args); /* forward decl */
 #include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
@@ -980,3 +983,81 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 	invalidate_stats_from_fit(fit);
 	return;
 }
+
+/* ── GHT data lifecycle (moved from gui/histogram.c) ───────────────────── */
+
+struct ght_data *create_ght_data(void) {
+	struct ght_data *data = calloc(1, sizeof(struct ght_data));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	data->destroy_fn = destroy_ght_data;
+	return data;
+}
+
+void destroy_ght_data(void *args) {
+	if (!args) return;
+	struct ght_data *data = (struct ght_data *)args;
+	free(data->seqEntry);
+	free(data->params_ght);
+	free(data);
+}
+
+/* ── GHT processing hooks (moved from gui/histogram.c) ─────────────────── */
+
+gchar *generate_ght_log_message(const ght_params *params) {
+	gchar *log_string = NULL;
+	gboolean sat = (params->payne_colourstretchmodel == COL_SAT);
+
+	switch (params->stretchtype) {
+	case STRETCH_PAYNE_NORMAL:
+		log_string = g_strdup_printf(
+			sat ? _("GHS SAT pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]")
+			    : _("GHS pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
+			params->SP, params->D, params->B, params->LP, params->HP);
+		break;
+	case STRETCH_PAYNE_INVERSE:
+		log_string = g_strdup_printf(
+			sat ? _("GHS INV SAT pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]")
+			    : _("GHS INV pivot: %.6f, amount: %.6f, local: %.6f [%.6f %.6f]"),
+			params->SP, params->D, params->B, params->LP, params->HP);
+		break;
+	case STRETCH_ASINH:
+		log_string = g_strdup_printf(
+			sat ? _("GHS ASINH SAT pivot: %.6f, amount: %.6f [%.6f %.6f]")
+			    : _("GHS ASINH pivot: %.6f, amount: %.6f [%.6f %.6f]"),
+			params->SP, params->D, params->LP, params->HP);
+		break;
+	case STRETCH_INVASINH:
+		log_string = g_strdup_printf(
+			sat ? _("GHS ASINH INV SAT pivot: %.6f, amount: %.6f [%.6f %.6f]")
+			    : _("GHS ASINH INV pivot: %.6f, amount: %.6f [%.6f %.6f]"),
+			params->SP, params->D, params->LP, params->HP);
+		break;
+	default:
+		log_string = g_strdup_printf(_("GHS LINEAR: %.6f, %.6f"), params->LP, params->HP);
+		break;
+	}
+	return log_string;
+}
+
+gchar *ght_log_hook(gpointer p, log_hook_detail detail) {
+	(void)detail;
+	struct ght_data *args = (struct ght_data *)p;
+	return generate_ght_log_message(args->params_ght);
+}
+
+int ght_single_image_hook(struct generic_img_args *args, fits *fit, int threads) {
+	(void)threads;
+	struct ght_data *data = (struct ght_data *)args->user;
+	if (!data || !data->params_ght) return 1;
+	if (data->params_ght->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(fit, data->params_ght, TRUE);
+	else
+		apply_linked_ght_to_fits(fit, fit, data->params_ght, TRUE);
+	if (data->auto_display_compensation)
+		gui_iface.apply_display_icc_compensation((gpointer)fit);
+	return 0;
+}
+

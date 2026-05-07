@@ -20,19 +20,10 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/undo.h"
-#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "core/OS_utils.h"
+#include "core/gui_iface.h"
 #include "algos/colors.h"
-#include "io/single_image.h"
-#include "gui/callbacks.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_preview.h"
-#include "gui/utils.h"
-#include "gui/histogram.h"
-#include "gui/dialogs.h"
 
 #include "scnr.h"
 
@@ -54,8 +45,7 @@ const char *scnr_type_to_string(scnr_type t) {
  *      S C N R      A L L O C A T O R   A N D   D E S T R U C T O R        *
  ****************************************************************************/
 
-/* Allocator for scnr_data */
-struct scnr_data *new_scnr_data() {
+struct scnr_data *new_scnr_data(void) {
 	struct scnr_data *args = calloc(1, sizeof(struct scnr_data));
 	if (args) {
 		args->destroy_fn = free_scnr_data;
@@ -63,7 +53,6 @@ struct scnr_data *new_scnr_data() {
 	return args;
 }
 
-/* Destructor for scnr_data */
 void free_scnr_data(void *ptr) {
 	struct scnr_data *args = (struct scnr_data *)ptr;
 	if (!args)
@@ -85,7 +74,7 @@ static int scnr_process(struct scnr_data *args, fits *fit) {
 	gint nb_above_1 = 0;
 
 	gchar *msg = scnr_log_hook(args, SUMMARY);
-	set_progress_bar_data(msg, PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, msg);
 	g_free(msg);
 
 	double norm = get_normalized_value(fit);
@@ -163,13 +152,8 @@ static int scnr_process(struct scnr_data *args, fits *fit) {
 		}
 	}
 
-	/* normalize in case of preserve, it can under/overshoot */
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
-
-	if (fit == gfit && args->applying) {
-		populate_roi();
-	}
 
 	return 0;
 }
@@ -182,193 +166,4 @@ int scnr_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
 	return scnr_process(params, fit);
 }
 
-
-/* Create and launch SCNR processing */
-static int scnr_process_with_worker(scnr_type type, double amount, gboolean preserve,
-                                     gboolean for_preview, gboolean for_roi) {
-	// Allocate parameters
-	struct scnr_data *params = new_scnr_data();
-	if (!params) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	params->type = type;
-	params->amount = amount;
-	params->preserve = preserve;
-	params->verbose = !for_preview;
-	params->applying = !for_preview;
-
-	// Allocate worker args
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		free_scnr_data(params);
-		return 1;
-	}
-
-	// Set the fit based on whether ROI is active
-	args->fit = for_roi ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.5f; // SCNR needs minimal extra memory
-	args->image_hook = scnr_image_hook;
-	args->idle_function = NULL;
-	args->description = _("Subtractive Chromatic Noise Reduction");
-	args->verbose = !for_preview;
-	args->user = params;
-	args->log_hook = scnr_log_hook;
-	args->max_threads = com.max_thread;
-	args->for_preview = for_preview;
-	args->for_roi = for_roi;
-
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
-		return 1;
-	}
-	return 0;
-}
-
-/* Update preview */
-static int scnr_update_preview() {
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	if (gtk_toggle_button_get_active(preview_button)) {
-		int type = gtk_combo_box_get_active(
-				GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
-		GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "preserve_light"));
-		gboolean preserve = gtk_toggle_button_get_active(light_button);
-		double amount = gtk_range_get_value(
-				GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
-
-		copy_backup_to_gfit();
-		return scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
-	}
-	return 0;
-}
-
-void scnr_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
-	// If we are showing the preview, update it after the ROI change
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
-	notify_update((gpointer) param);
-}
-
-void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
-	// Notify the overlay that this dialog supports ROI processing
-	roi_supported(TRUE);
-	gtk_widget_set_visible(lookup_widget("SCNR_roi_preview"), gui.roi.active);
-
-	copy_gfit_to_backup();
-	add_roi_callback(scnr_change_between_roi_and_image);
-
-	if (gui.roi.active) {
-		// Call this directly on startup to set the ROI preview
-		scnr_change_between_roi_and_image();
-	}
-
-	GtkComboBox *comboscnr = GTK_COMBO_BOX(
-			gtk_builder_get_object(gui.builder, "combo_scnr"));
-	int type = gtk_combo_box_get_active(comboscnr);
-
-	if (type == -1)
-		gtk_combo_box_set_active(comboscnr, 0);
-}
-
-void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
-	// Notify the overlay that we are leaving a dialog that supports ROI
-	roi_supported(FALSE);
-
-	// Revert to backup if preview was active
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	if (gtk_toggle_button_get_active(preview_button)) {
-		copy_backup_to_gfit();
-		gfit_modified_update_gui();
-	}
-
-	clear_backup();
-	remove_roi_callback(scnr_change_between_roi_and_image);
-	siril_close_dialog("SCNR_dialog");
-}
-
-void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
-	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
-	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(gui.builder, "preserve_light"));
-	gboolean preserve = gtk_toggle_button_get_active(light_button);
-	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
-
-	if (processing_is_job_active()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	// Check if this is a preview click or apply click
-	gboolean is_preview = ((GtkWidget*) button == lookup_widget("SCNR_roi_preview"));
-
-	if (is_preview) {
-		// For preview with ROI
-		scnr_process_with_worker(type, amount, preserve, TRUE, gui.roi.active);
-	} else {
-		// For final apply - always process full image
-		// If preview was on, restore backup first
-		GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-		if (gtk_toggle_button_get_active(preview_button)) {
-			copy_backup_to_gfit();
-		}
-
-		set_cursor_waiting(TRUE);
-		scnr_process_with_worker(type, amount, preserve, FALSE, FALSE);
-
-		clear_backup();
-		remove_roi_callback(scnr_change_between_roi_and_image);
-		roi_supported(FALSE);
-		siril_close_dialog("SCNR_dialog");
-	}
-}
-
-void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
-	int type = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_scnr")));
-	GtkScale *scale = GTK_SCALE(lookup_widget("scale_scnr"));
-	GtkLabel *label = GTK_LABEL(lookup_widget("label56"));
-	GtkSpinButton *spinButton = GTK_SPIN_BUTTON(lookup_widget("spin_scnr"));
-
-	gtk_widget_set_sensitive(GTK_WIDGET(scale), type > 1);
-	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
-	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
-
-	// Update preview if active
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
-	notify_update((gpointer) param);
-}
-
-void on_SCNR_parameter_changed(GtkWidget *widget, gpointer user_data) {
-	// Update preview if active
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = scnr_update_preview;
-	GtkToggleButton *preview_button = GTK_TOGGLE_BUTTON(lookup_widget("SCNR_roi_preview"));
-	param->show_preview = gtk_toggle_button_get_active(preview_button);
-	notify_update((gpointer) param);
-}
-
-void on_SCNR_roi_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	cancel_pending_update();
-	if (!gtk_toggle_button_get_active(button)) {
-		cancel_and_wait_for_preview();
-		siril_preview_hide();
-		copy_backup_to_gfit();
-		gfit_modified_update_gui();
-	} else {
-		copy_gfit_to_backup();
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = scnr_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
-	}
-}
+/* GUI callbacks moved to src/gui/scnr.c */

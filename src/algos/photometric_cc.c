@@ -43,9 +43,7 @@
 #include "io/image_format_fits.h" // For the datalink FITS functions
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
-#include "gui/siril_plot.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
+#include "core/gui_iface.h"
 #include "photometric_cc.h"
 
 static const cmsCIEXYZ D65 = {0.95045471, 1.0, 1.08905029};
@@ -327,7 +325,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 
 		// Update the progress bar
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
 		// Make a selection 'area' around the ith star in the list of cat_items passed to the function
@@ -518,7 +516,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_datarg->cfgdata.point.radius = 1;
 				spl_datarg->cfgdata.point.sz = 2;
 				spl_datarg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_datarg);
+				gui_iface.show_siril_plot(spl_datarg);
 			}
 		}
 
@@ -544,7 +542,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 				spl_databg->cfgdata.point.radius = 1;
 				spl_databg->cfgdata.point.sz = 2;
 				spl_databg->cfgdata.line.sz = 2;
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_databg);
+				gui_iface.show_siril_plot(spl_databg);
 			}
 		}
 
@@ -646,7 +644,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
 		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
+			gui_iface.set_progress((double) progress / (double) nb_stars, NULL);
 		g_atomic_int_inc(&progress);
 
 		if (make_selection_around_a_star(&stars[i], &area, fit, NULL)) {
@@ -868,7 +866,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_log_message(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
-	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Photometric color calibration in progress..."));
 	int ret;
 	if (args->spcc)
 		ret = get_spcc_white_balance_coeffs(args, kw);
@@ -887,7 +885,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 			invalidate_stats_from_fit(args->fit);
 		}
 	} else {
-		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Photometric Color Calibration failed"));
 	}
 
 	com.pref.phot_set = backup;
@@ -988,7 +986,7 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 	}
 	siril_catalog_free(siril_cat);
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 
 	return retval;
 }
@@ -996,4 +994,16 @@ int photometric_cc_image_hook(struct generic_img_args *img_args, fits *fit, int 
 gchar *photometric_cc_log_hook(gpointer p, log_hook_detail detail) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	return g_strdup(args->spcc ? _("Spectrophotometric Color Calibration") : _("Photometric Color Calibration"));
+}
+
+/* ── SPCC mirror management (moved from gui/photometric_cc.c) ─────────────── */
+
+/* Array of primary + fallback mirrors for the remote SPCC catalogue */
+gchar **spcc_mirrors = NULL;
+
+void initialize_spcc_mirrors(void) {
+	g_strfreev(spcc_mirrors);
+	spcc_mirrors = g_new(gchar *, 2);
+	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
+	spcc_mirrors[1] = NULL;
 }
