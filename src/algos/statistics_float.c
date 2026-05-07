@@ -48,7 +48,6 @@
 #include "sorting.h"
 #include "statistics.h"
 #include "demosaicing.h"
-#include "gui/progress_and_log.h"
 
 // uncomment to debug statistics
 #undef siril_debug_print

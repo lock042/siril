@@ -1,4 +1,5 @@
 #ifndef CALLBACKS_H
+#include <gtk/gtk.h>
 #define CALLBACKS_H
 
 #include <sys/time.h>

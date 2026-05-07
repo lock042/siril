@@ -699,7 +699,7 @@ void setup_curve_dialog() {
 }
 
 void toggle_curves_window_visibility() {
-	if (gtk_widget_get_visible(lookup_widget("histogram_dialog")))
+	if (gtk_widget_get_visible(GTK_WIDGET(gtk_builder_get_object(gui.builder, "histogram_dialog"))))
 	siril_close_dialog("histogram_dialog");
 
 	// Initialize UI elements

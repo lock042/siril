@@ -21,6 +21,7 @@
 #include "siril_preview.h"
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/OS_utils.h"

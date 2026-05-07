@@ -22,7 +22,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/pipe.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 /* This function writes a message on Siril's console/log. It is not thread safe.
  * There is a limit in number of characters that it is able to write in one call: 1023.
@@ -45,13 +45,13 @@ static char* siril_log_internal(const char* format, const char* color, va_list a
 
 	if (msg[0] == '\n' && msg[1] == '\0') {
 		fputc('\n', stdout);
-		gui_log_message("\n", NULL);
+		gui_iface.log_message("\n", NULL);
 		return NULL;
 	}
 
 	g_print("log: %s", msg);
 	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
-	gui_log_message(msg, color);
+	gui_iface.log_message(msg, color);
 
 	return msg;
 }

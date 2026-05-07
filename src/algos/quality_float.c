@@ -28,7 +28,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "algos/quality.h"
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);

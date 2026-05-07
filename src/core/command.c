@@ -42,6 +42,8 @@
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
+#include "core/cut.h"
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
@@ -67,23 +69,7 @@
 #include "io/fits_keywords.h"
 #include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
-#include "gui/PSF_list.h"
-#include "gui/histogram.h"
-#include "gui/plot.h"
-#include "gui/cut.h"
-#include "gui/progress_and_log.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/keywords_tree.h"
-#include "gui/newdeconv.h"
-#include "gui/siril_preview.h"
-#include "gui/stacking.h"
-#include "gui/registration.h"
-#include "gui/registration_preview.h"
-#include "gui/script_menu.h"
-#include "gui/unpurple.h"
+/* gui_calls.h removed: all former direct calls now route through gui_iface */
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/epf.h"
@@ -94,6 +80,7 @@
 #include "filters/linear_match.h"
 #include "filters/median.h"
 #include "filters/mtf.h"
+#include "filters/ght.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
 #include "filters/saturation.h"
@@ -156,7 +143,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Applying a sequence function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
 		retval = FALSE;
 	} else {
@@ -170,7 +157,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 gboolean image_cfa_warning_check() {
 	gboolean retval;
 	if (gfit->naxes[2] == 1 && gfit->keywords.bayer_pattern[0] != '\0') {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Applying an image function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
 		retval = FALSE;
 	} else {
@@ -193,7 +180,7 @@ int process_load(int nb){
 	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
-	gui_function(launch_clipboard_survey, NULL);
+	gui_iface.launch_clipboard_survey();
 	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
 }
 
@@ -263,11 +250,11 @@ int process_seq_clean(int nb) {
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		set_layers_for_registration();
-		drawPlot();
+		gui_iface.update_stack_interface(TRUE);
+		gui_iface.update_reg_interface(FALSE);
+		gui_iface.adjust_sellabel();
+		gui_iface.set_layers_for_registration();
+		gui_iface.draw_plot();
 	} else {
 		free_sequence(seq, TRUE);
 	}
@@ -359,7 +346,7 @@ int process_satu(int nb) {
 	args->for_roi = FALSE;
 
 	/* Run synchronously */
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -393,17 +380,19 @@ int process_save(int nb){
 	}
 
 	if (!com.script) {
-		gfit->keywords.lo = gui.lo;
-		gfit->keywords.hi = gui.hi;
+		int ilo = 0, ihi = 0xFFFF;
+		gui_iface.get_display_lo_hi(&ilo, &ihi);
+		gfit->keywords.lo = (WORD)ilo;
+		gfit->keywords.hi = (WORD)ihi;
 	}
 
 	gchar *savename = update_header_and_parse(gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savefits(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	if (com.uniq) {
 		if (!g_str_has_suffix(savename, com.pref.ext)) {
@@ -415,11 +404,11 @@ int process_save(int nb){
 		}
 		com.uniq->fileexist = TRUE;
 		if (!com.headless) {
-			display_filename();
-			adjust_sellabel();
+			gui_iface.display_filename();
+			gui_iface.adjust_sellabel();
 		}
 	}
-	gui_function(set_precision_switch, NULL);
+	gui_iface.on_precision_changed();
 
 	g_free(filename);
 	g_free(savename);
@@ -433,9 +422,9 @@ int process_savebmp(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savebmp(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -509,8 +498,8 @@ gchar *denoise_log_hook(gpointer p, log_hook_detail detail) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
-	lock_roi_mutex();
-	copy_backup_to_gfit();
+	gui_iface.lock_roi_mutex();
+	gui_iface.copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 
 	if (args->suppress_artefacts)
@@ -560,8 +549,8 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	unlock_roi_mutex();
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
+	gui_iface.unlock_roi_mutex();
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
@@ -641,7 +630,7 @@ int denoise_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
  ****************************************************************************/
 
 int process_denoise(int nb) {
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	gboolean mask_aware = FALSE;
 
@@ -649,7 +638,7 @@ int process_denoise(int nb) {
 	struct denoise_args *params = new_denoise_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -680,7 +669,7 @@ int process_denoise(int nb) {
 			if (end == arg || mod <= 0.f || mod > 1.f) {
 				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			}
 			params->modulation = mod;
@@ -691,7 +680,7 @@ int process_denoise(int nb) {
 			if (end == arg || rho <= 0.f || rho >= 1.f) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			}
 			params->rho = rho;
@@ -702,7 +691,7 @@ int process_denoise(int nb) {
 			if (end == arg) {
 				siril_log_message(_("Error parsing SOS iterations.\n"));
 				free_denoise_args(params);
-				set_cursor_waiting(FALSE);
+				gui_iface.set_busy(FALSE);
 				return CMD_ARG_ERROR;
 			} else if (sos < 1) {
 				siril_log_message(_("Note: SOS iterations < 1. Defaulting to 1.\n"));
@@ -715,7 +704,7 @@ int process_denoise(int nb) {
 		else {
 			siril_log_message(_("Unknown argument %s\n"), arg);
 			free_denoise_args(params);
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -727,7 +716,7 @@ int process_denoise(int nb) {
 			"red"
 		);
 		free_denoise_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -749,7 +738,7 @@ int process_denoise(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_denoise_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -769,7 +758,7 @@ int process_denoise(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
@@ -846,7 +835,7 @@ int process_starnet(int nb) {
 	image_cfa_warning_check();
 
 	// Save backup for undo before processing
-	copy_gfit_to_backup();
+	gui_iface.copy_gfit_to_backup();
 
 	// Allocate generic_img_args
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
@@ -871,7 +860,7 @@ int process_starnet(int nb) {
 	args->command_updates_gfit = TRUE;
 	args->command = TRUE;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
 		return CMD_GENERIC_ERROR;
@@ -975,7 +964,7 @@ int process_seq_starnet(int nb){
 	}
 	multi_args->seqEntry = strdup(multi_args->prefixes[0]);
 	sequence_cfa_warning_check(multi_args->seq);
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	apply_starnet_to_sequence(multi_args);
 
 #else
@@ -1003,9 +992,9 @@ int process_savejpg(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savejpg(savename, gfit, quality, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1049,9 +1038,9 @@ int process_savejxl(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savejxl(savename, gfit, effort, quality, force_8bit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1067,10 +1056,10 @@ int process_savepng(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		uint32_t bytes_per_sample = gfit->orig_bitpix != BYTE_IMG ? 2 : 1;
 		retval = savepng(savename, gfit, bytes_per_sample, gfit->naxes[2] == 3) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1110,9 +1099,9 @@ int process_savetif(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = savetif(savename, gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	free(astro_tiff);
 	g_free(filename);
@@ -1128,9 +1117,9 @@ int process_savepnm(int nb){
 	if (status > 0) {
 		retval = CMD_GENERIC_ERROR;
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		retval = saveNetPBM(savename, gfit) ? CMD_GENERIC_ERROR : CMD_OK;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 	g_free(filename);
 	g_free(savename);
@@ -1196,7 +1185,7 @@ static gpointer rebayer_cmd_worker(gpointer p) {
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	if (!com.script) {
-		gui_function(open_single_image_from_gfit, NULL);
+		gui_iface.on_image_loaded();
 	}
 	free_rebayer_cmd_data(data);
 	siril_add_idle(end_generic, NULL);
@@ -1240,13 +1229,13 @@ int process_rebayer(int nb){
 	args->f_cfa3 = strdup(normalize_rebayerfilename(filename, word[4], maxpath));
 	args->pattern = pattern;
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	if (!start_in_new_thread(rebayer_cmd_worker, args)) {
 		free_rebayer_cmd_data(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	return CMD_OK;
 }
 
@@ -1658,7 +1647,7 @@ static int fmul_image_hook(struct generic_img_args *args, fits *fit, int threads
 		image_find_minmax(fit);
 		fit->keywords.hi = (WORD)(fit->maxi * USHRT_MAX_SINGLE);
 		fit->keywords.lo = (WORD)(fit->mini * USHRT_MAX_SINGLE);
-		set_cutoff_sliders_max_values();
+		gui_iface.set_cutoff_sliders_max_values();
 	}
 
 	return retval;
@@ -3049,7 +3038,7 @@ int process_update_key(int nb) {
 
 		updateFITSKeyword(gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
-	gui_function(refresh_keywords_dialog, NULL);
+	gui_iface.refresh_keywords_dialog();
 
 	g_free(key);
 	g_free(value);
@@ -3277,7 +3266,7 @@ int process_cd(int nb) {
 			com.pref.wd = g_strdup(com.wd);
 			writeinitfile();
 		}
-		gui_function(set_GUI_CWD, NULL);
+		gui_iface.set_gui_cwd();
 	}
 	else {   /* chdir failed */
 	/*
@@ -3498,7 +3487,7 @@ int process_ght_args(int nb, gboolean ght_seq, gboolean *mask_aware, int stretch
 		}
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	params->B = (float) B;
 	params->D = (float) expm1(D);
 	params->LP = (float) LP;
@@ -3769,8 +3758,8 @@ int process_ghs(int nb, int stretchtype) {
 	}
 	gfit->history = g_slist_append(gfit->history, g_strdup(log));
 
-	if (gui.roi.active)
-		populate_roi();
+	if (gui_iface.roi_is_active())
+		gui_iface.populate_roi();
 
 	return CMD_OK;
 }
@@ -4284,7 +4273,7 @@ int process_asinh(int nb) {
 		arg_offset++;
 	}
 
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	image_cfa_warning_check();
 
 	// Allocate parameters
@@ -4557,7 +4546,7 @@ int process_merge(int nb) {
 	int retval = 0, nb_seq = nb-2;
 	if (!com.wd) {
 		siril_log_message(_("Merge: no working directory set.\n"));
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_NO_CWD;
 	}
 	if (file_name_has_invalid_chars(word[nb - 1])) {
@@ -5020,13 +5009,13 @@ int process_resample(int nb) {
 		}
 	}
 	image_cfa_warning_check();
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 
 	// Allocate parameters
 	struct resample_args *params = new_resample_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5041,7 +5030,7 @@ int process_resample(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_resample_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5059,14 +5048,14 @@ int process_resample(int nb) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
 }
 
 int process_crop(int nb) {
-	if (is_preview_active()) {
+	if (gui_iface.is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
 						"Please consider to close the filter dialog first.\n"));
 		return CMD_GENERIC_ERROR;
@@ -5139,7 +5128,7 @@ int process_crop(int nb) {
 
 int process_rotate(int nb) {
 	gchar *end;
-	set_cursor_waiting(TRUE);
+	gui_iface.set_busy(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
 	rectangle area = { 0, 0, gfit->rx, gfit->ry };
@@ -5212,7 +5201,7 @@ int process_rotate(int nb) {
 	struct rotation_args *params = new_rotation_args();
 	if (!params) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5227,7 +5216,7 @@ int process_rotate(int nb) {
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		free_rotation_args(params);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_ALLOC_ERROR;
 	}
 
@@ -5245,7 +5234,7 @@ int process_rotate(int nb) {
 
 	if (!start_in_new_thread(generic_image_worker, args)) {
 		free_generic_img_args(args);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return CMD_GENERIC_ERROR;
 	}
 	return CMD_OK;
@@ -5421,8 +5410,9 @@ int process_set_mag(int nb) {
 
 	gboolean found = FALSE;
 	double mag = 0.0;
-	if (gui.qphot) {
-		mag = gui.qphot->phot->mag;
+	psf_star *qphot = gui_iface.get_qphot_result();
+	if (qphot) {
+		mag = qphot->phot->mag;
 		found = TRUE;
 	} else {
 		if (com.selection.w > 300 || com.selection.h > 300){
@@ -5435,7 +5425,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(gfit);
-		psf_star *result = psf_get_minimisation(gfit, select_vport(gui.cvport), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
+		psf_star *result = psf_get_minimisation(gfit, gui_iface.get_active_vport(), &com.selection, TRUE, FALSE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
 		if (result && result->phot_is_valid && error == PSF_NO_ERR) {
 			found = TRUE;
@@ -5632,10 +5622,10 @@ int process_set_ref(int nb) {
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		seq_load_image(&com.seq, n, TRUE);
-		update_stack_interface(TRUE);
-		update_reg_interface(FALSE);
-		adjust_sellabel();
-		drawPlot();
+		gui_iface.update_stack_interface(TRUE);
+		gui_iface.update_reg_interface(FALSE);
+		gui_iface.adjust_sellabel();
+		gui_iface.draw_plot();
 	} else {
 		free_sequence(seq, FALSE);
 	}
@@ -5665,7 +5655,7 @@ int process_set_mag_seq(int nb) {
 	}
 	com.seq.reference_mag = mag;
 	siril_log_message(_("Reference magnitude has been set for star %d to %f and will be computed for each image\n"), i - 1, mag);
-	drawPlot();
+	gui_iface.draw_plot();
 	return CMD_OK;
 }
 
@@ -5858,7 +5848,7 @@ int process_unset_mag_seq(int nb) {
 	com.seq.reference_star = -1;
 	com.seq.reference_mag = -1001.0;
 	siril_log_message(_("Reference magnitude unset for sequence\n"));
-	drawPlot();
+	gui_iface.draw_plot();
 	return CMD_OK;
 }
 
@@ -6155,7 +6145,7 @@ int process_psf(int nb){
 		return CMD_GENERIC_ERROR;
 	}
 
-	int channel = com.headless ? 0 : select_vport(gui.cvport);
+	int channel = gui_iface.get_active_vport();
 	if (nb == 2) {
 		gchar *next;
 		channel = g_ascii_strtoull(word[1], &next, 10);
@@ -6190,7 +6180,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && !com.python_script && !check_seq_is_comseq(seq)) {
-		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		gui_iface.execute_idle_sync(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -6301,14 +6291,6 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 	return CMD_OK;
 }
 
-gboolean get_followstar_idle(gpointer user_data) {
-	framing_mode *framing = (framing_mode*) user_data;
-	GtkToggleButton *follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-	if (gtk_toggle_button_get_active(follow))
-		*framing = FOLLOW_STAR_FRAME;
-	// no need to have an else as framing is already initiated by the caller
-	return FALSE;
-}
 
 /* seqpsf sequencename [channel] [{ -at=x,y | -wcs=ra,dec }] [-followstar] */
 int process_seq_psf(int nb) {
@@ -6335,7 +6317,7 @@ int process_seq_psf(int nb) {
 	}
 	gboolean use_current_seq = check_seq_is_comseq(seq);
 	if (!com.script && !com.python_script && !use_current_seq) {
-		execute_idle_and_wait_for_it(set_seq, seq->seqname);
+		gui_iface.execute_idle_sync(set_seq, seq->seqname);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -6421,7 +6403,7 @@ int process_seq_psf(int nb) {
 	// Set defaults for missing arguments
 	if (layer == -1) {
 		if (use_current_seq) {
-			layer = select_vport(gui.cvport);
+			layer = gui_iface.get_active_vport();
 		} else {
 			layer = 0; // Default to first layer
 		}
@@ -6496,8 +6478,8 @@ int process_light_curve(int nb) {
 	if (check_seq_is_comseq(seq)) { // we are in GUI
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
-		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
-		init_plot_colors();
+		gui_iface.clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+		gui_iface.init_plot_colors();
 		has_GUI = TRUE;
 		seq_has_wcs = has_wcs(gfit);
 	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
@@ -7089,11 +7071,11 @@ int process_tilt(int nb) {
 	if (word[1] && !g_ascii_strcasecmp(word[1], "clear")) {
 		clear_sensor_tilt();
 		siril_log_message(_("Clearing tilt information\n"));
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	} else {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		draw_sensor_tilt(gfit);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 	}
 
 	return CMD_OK;
@@ -7104,7 +7086,7 @@ int process_inspector(int nb) {
 		siril_log_color_message(_("Error: cannot run inspector while headless"), "red");
 		return CMD_ARG_ERROR;
 	}
-	compute_aberration_inspector();
+	gui_iface.compute_aberration_inspector();
 	return CMD_OK;
 }
 
@@ -7548,16 +7530,8 @@ int process_new(int nb){
 
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(filename, FALSE);
-	gui_function(open_single_image_from_gfit, NULL);
-	if (!com.headless) {
-		if (g_main_context_is_owner(g_main_context_default())) {
-			// it is safe to call the function directly
-			open_single_image_from_gfit(NULL);
-		} else {
-			// we aren't in the GTK main thread or a script, so we run the idle and wait for it
-			execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
-		}
-	}
+	if (!com.headless)
+		gui_iface.on_image_loaded();
 	return CMD_OK;
 }
 
@@ -7758,7 +7732,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 int process_findstar(int nb) {
 	int layer;
 	if (!(com.script || (com.python_script && !com.headless))) {
-		layer = select_vport(gui.cvport);
+		layer = gui_iface.get_active_vport();
 	} else {
 		layer = (gfit->naxes[2] > 1) ? GLAYER : RLAYER;
 	}
@@ -7819,7 +7793,7 @@ int process_seq_findstar(int nb) {
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
 	if (!(com.script || (com.python_script && !com.headless)) && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
-		layer = select_vport(gui.cvport);
+		layer = gui_iface.get_active_vport();
 	} else {
 		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
 	}
@@ -7855,7 +7829,7 @@ int process_seq_findstar(int nb) {
 	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Star detection may produce results for this sequence but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
 	}
 
@@ -8247,26 +8221,18 @@ int process_cdg(int nb) {
 	return CMD_OK;
 }
 
-static gboolean clear_log_buffer(gpointer user_data) {
-	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("output"));
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
-	GtkTextIter start_iter, end_iter;
-	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
-	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
-	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
-	return FALSE;
-}
+/* clear_log_buffer moved to gui/gui_iface_impl.c (clear_log_buffer_idle) */
 
 int process_clear(int nb) {
-	gui_function(clear_log_buffer, NULL);
+	gui_iface.clear_log_buffer();
 	return CMD_OK;
 }
 
 int process_clearstar(int nb){
-	execute_idle_and_wait_for_it(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
+	gui_iface.execute_idle_sync(clear_stars_list_as_idle, GINT_TO_POINTER(TRUE));
 	gfit_modified_update_gui();
-	queue_redraw(REDRAW_OVERLAY);
-	gui_function(redraw_previews, NULL);
+	gui_iface.redraw_image_async(REDRAW_OVERLAY);
+	gui_iface.redraw_previews();
 	return CMD_OK;
 }
 
@@ -9048,10 +9014,10 @@ int process_findcosme(int nb) {
 }
 
 static gboolean select_update_gui(gpointer user_data) {
-	update_stack_interface(TRUE);
-	update_reg_interface(FALSE);
-	adjust_sellabel();
-	drawPlot();
+	gui_iface.update_stack_interface(TRUE);
+	gui_iface.update_reg_interface(FALSE);
+	gui_iface.adjust_sellabel();
+	gui_iface.draw_plot();
 	return FALSE;
 }
 
@@ -9101,7 +9067,7 @@ int select_unselect(gboolean select) {
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		if (!com.headless)
-			execute_idle_and_wait_for_it(select_update_gui, NULL);
+			gui_iface.execute_idle_sync(select_update_gui, NULL);
 	}
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
@@ -10354,7 +10320,7 @@ int process_link(int nb) {
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
 		g_clear_error(&error);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		free(destroot);
 		return CMD_GENERIC_ERROR;
 	}
@@ -10526,7 +10492,7 @@ int process_convert(int nb) {
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
 		g_clear_error(&error);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		free(destroot);
 		return CMD_NO_CWD;
 	}
@@ -11009,7 +10975,7 @@ int process_register(int nb) {
 	if (regargs->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
 
-	set_progress_bar_data(msg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, msg);
 
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;
@@ -11425,7 +11391,7 @@ int process_seq_applyreg(int nb) {
 	if (regargs->clamp && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
-	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Registration: Applying existing data"));
 
 	if (!start_in_new_thread(register_thread_func, regargs)) {
 		errval = CMD_GENERIC_ERROR;
@@ -11689,7 +11655,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	free(args.critical_value);
 
 	if (retval == CMD_OK) {
-		execute_idle_and_wait_for_it(stack_stop_thread, NULL);
+		gui_iface.execute_idle_sync(stack_stop_thread, NULL);
 		bgnoise_async(&args.result, TRUE);
 		// preparing the output filename
 		// needs to be done after stack is completed to have
@@ -12476,7 +12442,7 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	gui_function(update_spinCPU, GINT_TO_POINTER(0));
+	gui_iface.update_spin_cpu();
 
 	return CMD_OK;
 }
@@ -12602,7 +12568,7 @@ int process_capabilities(int nb) {
 int process_exit(int nb) {
 	// This GTK function is OK to call regardless of thread, as it will quit the GTK main loop
 	// and hand control back to main.c and the application will terminate.
-	gtk_main_quit();
+	gui_iface.quit_application();
 	return CMD_OK;
 }
 
@@ -12640,7 +12606,7 @@ int process_reloadscripts(int nb){
 		siril_log_color_message(_("Error: cannot reload script menu when running headless\n"), "red");
 		return CMD_GENERIC_ERROR;
 	} else {
-		g_thread_unref(g_thread_new("refresh_scripts", refresh_scripts_in_thread, NULL));
+		gui_iface.refresh_scripts_in_thread();
 	}
 	return CMD_OK;
 }
@@ -12683,7 +12649,7 @@ int process_boxselect(int nb){
 			siril_log_message(_("Too many arguments to boxselect, use either -clear or the coordinates, not both.\n"));
 			return CMD_ARG_ERROR;
 		}
-		delete_selected_area();
+		gui_iface.delete_selection();
 		siril_log_message(_("Selected area in image was cleared\n"));
 		return CMD_OK;
 	}
@@ -12725,7 +12691,7 @@ int process_boxselect(int nb){
 	g_mutex_unlock(&com.mutex);
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
-		gui_function(new_selection_zone, NULL);
+		gui_iface.new_selection_zone();
 	return CMD_OK;
 }
 
@@ -14235,17 +14201,17 @@ int process_profile(int nb) {
 	cut_args->save_png_too = TRUE;
 
 	if (cut_args->cfa) {
-		if (!start_in_new_thread(cfa_cut, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_cfa_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else if (cut_args->tri) {
-		if (!start_in_new_thread(tri_cut, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_tri_cut, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
 	} else {
-		if (!start_in_new_thread(cut_profile, cut_args)) {
+		if (!start_in_new_thread(gui_iface.run_cut_profile, cut_args)) {
 			free_cut_args(cut_args);
 			return CMD_ARG_ERROR;
 		}
@@ -14271,13 +14237,13 @@ int process_seq_profile(int nb) {
 	cut_args->display_graph = FALSE;
 	cut_args->save_png_too = FALSE;
 
-	apply_cut_to_sequence(cut_args);
+	gui_iface.apply_cut_to_sequence(cut_args);
 
 	return CMD_OK;
 }
 
 int process_icc_assign(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	char *arg = word[1];
 	cmsHPROFILE profile = NULL;
 	if (!g_ascii_strncasecmp(arg, "srgblinear", 10)) {
@@ -14322,7 +14288,7 @@ int process_icc_assign(int nb) {
 }
 
 int process_icc_convert_to(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	char *arg = word[1];
 	if (!gfit->icc_profile) {
 		siril_log_color_message(_("Image has no color profile assigned to convert from. Assign a profile first.\n"), "red");
@@ -14391,7 +14357,7 @@ int process_icc_convert_to(int nb) {
 }
 
 int process_icc_remove(int nb) {
-	if (!com.headless) on_clear_roi();
+	gui_iface.clear_roi();
 	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -14463,13 +14429,13 @@ int process_disto(int nb) {
 	if (nb > 2)
 		return CMD_WRONG_N_ARG;
 	if (nb == 1) {
-		gui.show_wcs_disto	= TRUE;
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.set_wcs_overlay(TRUE);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	}
 	if (!strcmp(word[1], "clear")) {
-		gui.show_wcs_disto	= FALSE;
-		queue_redraw(REDRAW_OVERLAY);
+		gui_iface.set_wcs_overlay(FALSE);
+		gui_iface.redraw_image_async(REDRAW_OVERLAY);
 		return CMD_OK;
 	} else {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
@@ -14765,7 +14731,7 @@ int process_eqcrop(int nb) {
 		return retval;
 
 	gfit_modified_update_gui();
-	gui_function(crop_gui_updates, NULL);
+	gui_iface.on_crop_complete();
 
 	return CMD_OK;
 }

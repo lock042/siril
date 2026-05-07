@@ -26,6 +26,10 @@ typedef struct remixargs {
 	fits *fit2;
 } remixargs;
 
+/* Invocation constant passed to toggle_remixer_window_visibility() when the
+ * call originates from the StarNet star-removal completion callback. */
+#define CALL_FROM_STARNET 1
+
 /* Allocator and destructor */
 starnet_data *new_starnet_args();
 void free_starnet_args(void *ptr);

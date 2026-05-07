@@ -46,13 +46,8 @@
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "io/siril_plot.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_plot.h"
-#include "gui/script_menu.h"
+#include "core/gui_iface.h"
 #include "gui/user_polygons.h"
-#include "gui/utils.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -709,6 +704,8 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 	// Update gfit metadata
 	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	if (info->data_type)
+		fit->bitpix = FLOAT_IMG;
 	fit->rx = fit->naxes[0] = info->width;
 	fit->ry = fit->naxes[1] = info->height;
 	fit->naxis = (info->channels == 3) ? 3 : 2;
@@ -1186,7 +1183,7 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 	if (plot_data) {
 		// Generate the plot window
 		if (display)
-			siril_add_pythonsafe_idle(create_new_siril_plot_window, plot_data);
+			gui_iface.show_siril_plot(plot_data);
 
 		// Handle save functionality
 		if (save) {
@@ -1204,17 +1201,17 @@ gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info
 				// No timestamps are added: since this is for use with python, if timestamps are
 				// required they must be added programatically in python. We just save what we
 				// are given.
-				filename = build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".png", plot_data->forsequence, FALSE);
 				siril_plot_save_png(plot_data, filename, width, height);
 			} else if (!g_strcmp0(lext, "dat")) {
-				filename = build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".dat", plot_data->forsequence, FALSE);
 				siril_plot_save_dat(plot_data, filename, FALSE);
 			} else if (!g_strcmp0(lext, "cb")) {
-				save_siril_plot_to_clipboard(plot_data, width, height);
+				gui_iface.save_siril_plot_to_clipboard(plot_data, width, height);
 			}
 			else if (!g_strcmp0(lext, "svg")) {
 #ifdef CAIRO_HAS_SVG_SURFACE
-				filename = build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
+				filename = gui_iface.build_save_filename(basepath, ".svg", plot_data->forsequence, FALSE);
 				siril_plot_save_svg(plot_data, filename, width, height);
 #else
 				siril_log_color_message(_("Error: Siril has been compiled with a version of Cairo "
@@ -1307,7 +1304,7 @@ gboolean handle_set_bgsamples_request(Connection* conn, const incoming_image_inf
 
 	// Redraw if necessary
 	if (show_samples && !com.headless) {
-		queue_redraw_and_wait_for_it(REDRAW_OVERLAY);
+		gui_iface.redraw_image_sync(REDRAW_OVERLAY);
 	}
 
 	// Free the positions list
@@ -1371,7 +1368,7 @@ gboolean handle_set_image_header_request(Connection* conn, const incoming_image_
 	}
 	update_fits_header(gfit);
 
-	gui_function(update_MenuItem, NULL);
+	gui_iface.update_menu_item();
 
 cleanup:
 	// Cleanup shared memory
@@ -1508,8 +1505,8 @@ gboolean handle_add_user_polygon_request(Connection* conn, const incoming_image_
 	if (polygon) {
 		int id = get_unused_polygon_id();
 		polygon->id = id;
-		gui.user_polygons = g_slist_append(gui.user_polygons, polygon);
-		redraw(REDRAW_OVERLAY);
+		gui_iface.add_user_polygon_to_list(polygon);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 		int id_be = GINT32_TO_BE(id);
 		result = send_response(conn, STATUS_OK, &id_be, 4);
 	} else {
@@ -1595,7 +1592,7 @@ gboolean handle_mask_update_polygon_request(Connection* conn, const incoming_ima
 		}
 		set_poly_in_mask(polygon, gfit, adding);
 		free_user_polygon(polygon);
-		queue_redraw_mask();
+		gui_iface.queue_redraw_mask();
 		result = send_response(conn, STATUS_OK, NULL, 0);
 	} else {
 		siril_debug_print("Failed to deserialize user polygon\n");
@@ -2954,7 +2951,7 @@ static void execute_startup_scripts(void) {
 	if (!com.pref.startup_scripts)
 		return;
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.switch_to_tab(OUTPUT_LOGS);
 
 	for (GSList *iter = com.pref.startup_scripts; iter; iter = iter->next) {
 		const gchar *script_path = (const gchar *)iter->data;
@@ -3060,7 +3057,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	g_free(venv_path);
 	g_free(project_path);
 	if (!com.headless) {
-		gdk_threads_add_idle(python_venv_idle, NULL);
+		g_idle_add(python_venv_idle, NULL);
 		execute_startup_scripts(); // execute any scripts marked as execute-at-startup
 	} else {
 		python_venv_idle(NULL);
@@ -3151,7 +3148,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 			// If we had the python thread lock and failed to release it, release it now
 			if (cleanup->python_conn->thread_claimed) {
 				python_releases_thread(); /* also calls set_cursor_waiting(FALSE) */
-				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+				gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 			}
 
 			// Clean up shared memory resources
@@ -3171,7 +3168,7 @@ static void python_process_cleanup(GPid pid, gint status, gpointer user_data) {
 		check_python_flag();
 
 		// Re-enable widgets
-		gui_function(script_widgets_idle, NULL);
+		gui_iface.script_widgets_async(TRUE);
 
 		// Free the cleanup structure
 		if (cleanup->temp_filename && g_unlink(cleanup->temp_filename)) {
@@ -3359,7 +3356,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		return;
 	} else {
 		// Clear any ROI that is set
-		on_clear_roi();
+		gui_iface.clear_roi();
 
 		// Basic argv to spawn python to run the script
 		GPtrArray* python_argv = g_ptr_array_new();
@@ -3440,7 +3437,7 @@ void execute_python_script(gchar* script_name, gboolean from_file, gboolean sync
 		}
 
 		// Re-enable widgets
-		gui_function(script_widgets_idle, NULL);
+		gui_iface.script_widgets_async(TRUE);
 		return;
 	}
 

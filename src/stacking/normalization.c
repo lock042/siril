@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -31,7 +32,6 @@
 #include "stacking.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/progress_and_log.h"
 
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
@@ -231,7 +231,7 @@ static int compute_normalization(struct stacking_args *args) {
 
 	char *tmpmsg = siril_log_message(_("Computing normalization...\n"));
 	tmpmsg[strlen(tmpmsg) - 1] = '\0';
-	set_progress_bar_data(tmpmsg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, tmpmsg);
 
 	// first, find the index of the ref image in the filtered image list
 	ref_image_filtred_idx = find_refimage_in_indices(args->image_indices,
@@ -247,14 +247,14 @@ static int compute_normalization(struct stacking_args *args) {
 	// check memory first
 	int nb_threads = normalization_get_max_number_of_threads(args->seq);
 	if (nb_threads <= 0) {
-		set_progress_bar_data(error_msg, PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, error_msg);
 		return ST_GENERIC_ERROR;
 	}
 	if (nb_threads > args->nb_images_to_stack)
 		nb_threads = args->nb_images_to_stack;
 	int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
 
-	set_progress_bar_data(NULL, 1.0 / (double)args->nb_images_to_stack);
+	gui_iface.set_progress(1.0 / (double)args->nb_images_to_stack, NULL);
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(nb_threads) schedule(guided) \
@@ -276,12 +276,12 @@ static int compute_normalization(struct stacking_args *args) {
 			if (_compute_estimators_for_image(args, i, threads, thread_id)) {
 				siril_log_color_message(_("%s Check image %d first.\n"), "red",
 						error_msg, args->image_indices[i] + 1);
-				set_progress_bar_data(error_msg, PROGRESS_NONE);
+				gui_iface.set_progress(PROGRESS_NONE, error_msg);
 				retval = 1;
 				continue;
 			}
 			g_atomic_int_inc(&cur_nb);	// only used for progress bar
-			set_progress_bar_data(NULL, cur_nb / (double)args->nb_images_to_stack);
+			gui_iface.set_progress(cur_nb / (double)args->nb_images_to_stack, NULL);
 		}
 	}
 
@@ -289,7 +289,7 @@ static int compute_normalization(struct stacking_args *args) {
 	if (!retval)
 		compute_factors_from_estimators(args, ref_image_filtred_idx);
 
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	return retval;
 }
 
@@ -756,20 +756,20 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	char *tmpmsg = siril_log_message(_("Computing normalization on overlaps...\n"));
 	tmpmsg[strlen(tmpmsg) - 1] = '\0';
-	set_progress_bar_data(tmpmsg, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, tmpmsg);
 
 	const char *error_msg = (_("Normalization failed."));
 	// check memory first
 	int nb_threads = normalization_overlap_get_max_number_of_threads(args);
 	if (nb_threads <= 0) {
-		set_progress_bar_data(error_msg, PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, error_msg);
 		retval = ST_GENERIC_ERROR;
 		goto cleanup;
 	}
 	if (nb_threads > args->nb_images_to_stack)
 		nb_threads = args->nb_images_to_stack;
 
-	set_progress_bar_data(NULL, 0.);
+	gui_iface.set_progress(0., NULL);
 
 	for (int i = 0; i < nb_frames; ++i) {
 		if (i != index_ref)
@@ -792,7 +792,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 				if (_compute_estimators_for_images(args, ii, ij)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
 											error_msg, args->image_indices[i] + 1);
-					set_progress_bar_data(error_msg, PROGRESS_NONE);
+					gui_iface.set_progress(PROGRESS_NONE, error_msg);
 					#ifdef _OPENMP
 					#pragma omp critical
 					#endif
@@ -823,7 +823,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 				#pragma omp atomic
 				#endif
 				cur_nb++;  // only used for progress bar
-				set_progress_bar_data(NULL, cur_nb / (double)Npairs);
+				gui_iface.set_progress(cur_nb / (double)Npairs, NULL);
 			}
 		}
 	}
@@ -933,6 +933,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	free(index);
 	free(coeffs);
 
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	return retval;
 }

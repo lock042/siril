@@ -17,7 +17,7 @@
 #include "DftPatch.hpp"
 
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 
 #ifdef _OPENMP
@@ -288,9 +288,9 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
       if (loop - lastupdate > (predicted_loops >> 3)) {
         lastupdate = loop;
         if ((double) loop / (nThreads * predicted_loops) < 1.0)
-          set_progress_bar_data("DA3D denoising...", (double) loop / (nThreads * predicted_loops));
+          gui_iface.set_progress((double) loop / (nThreads * predicted_loops), _("DA3D denoising..."));
         else
-          set_progress_bar_data("DA3D denoising...", PROGRESS_PULSATE);
+          gui_iface.set_progress(PROGRESS_PULSATE, "DA3D denoising...");
       }
 
     }

@@ -23,6 +23,7 @@
 #endif
 
 #include "../core/siril.h"
+#include "gui/gui_state.h"
 #include "stacking/stacking.h"
 #include <stdio.h>
 

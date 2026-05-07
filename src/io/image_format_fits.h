@@ -65,7 +65,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
+// get_thumbnail_from_fits is GUI-only; forward-declared in gui/dialog_preview.c.
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);

@@ -29,8 +29,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
-#include "gui/image_interactions.h"
+#include "core/gui_iface.h"
 #include "opencv/opencv.h"
 
 #include "stacking.h"
@@ -219,7 +218,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 
 		// don't free oldseq, it's either still com.seq with GUI or freed in
 		// stack_one_seq in scripts
-		delete_selected_area();
+		gui_iface.delete_selection();
 	}
 	return stackargs->retval;
 }

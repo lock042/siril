@@ -29,7 +29,7 @@
 #include "Utilities.h"
 #include "algos/anscombe.h"
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -474,7 +474,7 @@ int processNlBayes(
 				float second;
 				second = (p_params.isFirstStep ? 0.f : 2.f);
 				offset = (pass + second) / 4.f;
-				set_progress_bar_data("NL-Bayes denoising...", offset + ((double)ij / (4.f * p_imSize.wh)));
+				gui_iface.set_progress(offset + ((double)ij / (4.f * p_imSize.wh)), _("NL-Bayes denoising..."));
 			}
 		}
 	}

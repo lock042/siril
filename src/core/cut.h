@@ -17,11 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_SIRIL_CMD_HELP_H_
-#define SRC_CORE_SIRIL_CMD_HELP_H_
 
-#define SHORTCUTS_UI "siril-shortcuts.ui"
+/*
+ * Non-GUI lifecycle helpers for cut_struct (intensity profile / spectrogram).
+ * The GTK dialog callbacks remain in gui/cut.c.
+ */
 
-void siril_cmd_help_keyboard_shortcuts(GtkWindow *window);
+#ifndef SRC_CORE_CUT_H_
+#define SRC_CORE_CUT_H_
 
-#endif /* SRC_CORE_SIRIL_CMD_HELP_H_ */
+#include "core/siril.h"
+
+/* Initialise all fields of a cut_struct to safe defaults.
+ * Frees any existing heap strings inside *arg before zeroing them. */
+void initialize_cut_struct(cut_struct *arg);
+
+/* Free all heap-allocated strings inside *arg, then free the struct itself.
+ * Do NOT call with &gui.cut; use initialize_cut_struct for that instead. */
+void free_cut_args(cut_struct *arg);
+
+/* Validate the configuration in *arg; returns FALSE and logs a message on
+ * the first constraint violation, TRUE if everything is in order. */
+gboolean cut_struct_is_valid(cut_struct *arg);
+
+#endif /* SRC_CORE_CUT_H_ */
