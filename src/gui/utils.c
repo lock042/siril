@@ -302,9 +302,29 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	gdk_threads_add_idle(wrapping_idle, data);
 	siril_debug_print("waiting for idle %p\n", idle);
 
+	/* Wait for the idle to run.  Simple g_cond_wait() deadlocks when the
+	 * calling thread is the main thread but is not currently inside a main
+	 * loop dispatch (e.g. during shutdown cleanup): nobody pumps the main
+	 * context so wrapping_idle never executes.
+	 *
+	 * Solution: poll with a short timeout.  On each timeout, try to acquire
+	 * the main context ourselves.  If we succeed (nobody else is iterating),
+	 * pump it once so the pending idle dispatches, then release.  We must
+	 * drop our own mutex before pumping, because wrapping_idle will try to
+	 * lock it to signal completion. */
 	g_mutex_lock(&data->mutex);
-	while (!data->idle_finished)
-		g_cond_wait(&data->cond, &data->mutex);
+	while (!data->idle_finished) {
+		gint64 deadline = g_get_monotonic_time() + G_TIME_SPAN_MILLISECOND;
+		if (!g_cond_wait_until(&data->cond, &data->mutex, deadline)) {
+			/* Timed out — nobody delivered the idle yet.  Try to pump. */
+			if (g_main_context_acquire(g_main_context_default())) {
+				g_mutex_unlock(&data->mutex);
+				g_main_context_iteration(g_main_context_default(), FALSE);
+				g_main_context_release(g_main_context_default());
+				g_mutex_lock(&data->mutex);
+			}
+		}
+	}
 	g_mutex_unlock(&data->mutex);
 
 	g_mutex_clear(&data->mutex);

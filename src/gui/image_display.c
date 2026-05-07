@@ -107,15 +107,33 @@ static void invalidate_image_render_cache(int vport);
 
 static int allocate_full_surface(struct image_view *view) {
 	g_mutex_lock(&gui.cairo_mutex);
-	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, gfit->rx);
+
+	/* Cairo surfaces are limited to 32767 px per side (int16_t internally).
+	 * For images that exceed this limit, scale down to at most 4096 px per
+	 * side so the display buffer stays within reasonable memory bounds.
+	 * (Step 2 - GtkGLArea - will provide full-resolution tile rendering.) */
+#define SIRIL_MAX_SURFACE_DIM 4096
+	double scale = 1.0;
+	if (gfit->rx > 32767 || gfit->ry > 32767)
+		scale = MIN((double)SIRIL_MAX_SURFACE_DIM / gfit->rx,
+		            (double)SIRIL_MAX_SURFACE_DIM / gfit->ry);
+#undef SIRIL_MAX_SURFACE_DIM
+	gui.surface_scale = scale;
+
+	int sw = (int)(gfit->rx * scale);
+	int sh = (int)(gfit->ry * scale);
+	if (sw < 1) sw = 1;
+	if (sh < 1) sh = 1;
+
+	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, sw);
 
 	// allocate the image surface if not already done or the same size
 	if (stride != view->full_surface_stride
-				|| gfit->ry != view->full_surface_height
+				|| sh != view->full_surface_height
 				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
 
-		guchar *tmp = realloc(view->buf, stride * gfit->ry * sizeof(guchar));
+		guchar *tmp = realloc(view->buf, (size_t)stride * sh * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			free(view->buf);
@@ -132,12 +150,12 @@ static int allocate_full_surface(struct image_view *view) {
 		view->buf = tmp;
 		// Only update dimension fields once the allocation succeeded
 		view->full_surface_stride = stride;
-		view->full_surface_height = gfit->ry;
+		view->full_surface_height = sh;
 
 		if (view->full_surface)
 			cairo_surface_destroy(view->full_surface);
 		view->full_surface = cairo_image_surface_create_for_data(view->buf,
-					CAIRO_FORMAT_RGB24, gfit->rx, gfit->ry, stride);
+					CAIRO_FORMAT_RGB24, sw, sh, stride);
 		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
 			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
 			cairo_surface_destroy(view->full_surface);
@@ -187,7 +205,9 @@ static void remaprgb(void) {
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
-	nbdata = gfit->rx * gfit->ry;	// source images are 32-bit RGBA
+	/* Channel bufs are at surface dimensions (may be smaller than gfit when image
+	 * exceeds Cairo's 32767-px limit); use the actual surface size here. */
+	nbdata = (rgbview->full_surface_stride / 4) * rgbview->full_surface_height;
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -256,6 +276,71 @@ static void remap_mask(mask_t *mask) {
 	guint ry = gfit->ry;
 	int bitpix = mask->bitpix;
 
+	/* When the image exceeds Cairo's 32767-px limit, the surface is smaller than
+	 * gfit; nearest-neighbour downsample into the surface dimensions. */
+	const gboolean downscaled = (gui.surface_scale < 1.0);
+	const int sh = view->full_surface_height;
+	const int sw = (int)(rx * gui.surface_scale);
+	const double inv_scale = downscaled ? 1.0 / gui.surface_scale : 1.0;
+
+	if (downscaled) {
+		switch (bitpix) {
+			case 8: {
+				uint8_t *s8 = (uint8_t *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (int dy = 0; dy < sh; dy++) {
+					int sy = (int)(dy * inv_scale);
+					uint8_t *src_row = s8 + (guint)sy * rx;
+					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
+					for (int dx = 0; dx < sw; dx++) {
+						int sx = (int)(dx * inv_scale);
+						uint8_t val = src_row[sx];
+						dst_row[dx] = (val << 16) | (val << 8) | val;
+					}
+				}
+				break;
+			}
+			case 16: {
+				uint16_t *s16 = (uint16_t *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (int dy = 0; dy < sh; dy++) {
+					int sy = (int)(dy * inv_scale);
+					uint16_t *src_row = s16 + (guint)sy * rx;
+					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
+					for (int dx = 0; dx < sw; dx++) {
+						int sx = (int)(dx * inv_scale);
+						uint32_t val = ((uint32_t)src_row[sx] * 255 + 32895) >> 16;
+						dst_row[dx] = (val << 16) | (val << 8) | val;
+					}
+				}
+				break;
+			}
+			case 32: {
+				float *sf = (float *)src_data;
+				#ifdef _OPENMP
+				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+				#endif
+				for (int dy = 0; dy < sh; dy++) {
+					int sy = (int)(dy * inv_scale);
+					float *src_row = sf + (guint)sy * rx;
+					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
+					for (int dx = 0; dx < sw; dx++) {
+						int sx = (int)(dx * inv_scale);
+						uint8_t val = roundf_to_BYTE(src_row[sx] * UCHAR_MAX_SINGLE);
+						dst_row[dx] = (val << 16) | (val << 8) | val;
+					}
+				}
+				break;
+			}
+			default:
+				siril_debug_print("Error: invalid mask bitpix\n");
+				break;
+		}
+	} else {
 	// We switch ONCE. This requires duplicating the loop code,
 	// but ensures the tightest possible inner loops for the compiler to vectorize.
 	switch (bitpix) {
@@ -327,6 +412,7 @@ static void remap_mask(mask_t *mask) {
 			break;
 		}
 	}
+	} // end !downscaled
 
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
@@ -476,81 +562,77 @@ static void remap(int vport) {
 	const guint width = gfit->rx;
 	const guint height = gfit->ry;
 
+/* Macro to compute a pixel from source index src_i and write it to dst+dst_i */
+#define REMAP_WRITE_PIXEL(src_i, dst_i) \
+	do { \
+		BYTE dpv; \
+		if (gfit->type == DATA_USHORT) { \
+			const WORD sv = src[(src_i)]; \
+			dpv = hd_mode ? index[sv * gui.hd_remap_max / USHRT_MAX] : index[sv]; \
+		} else { \
+			dpv = hd_mode ? index[float_to_max_range(fsrc[(src_i)], gui.hd_remap_max)] \
+			              : index[roundf_to_WORD(fsrc[(src_i)] * USHRT_MAX_SINGLE)]; \
+		} \
+		if (inverted) dpv = UCHAR_MAX - dpv; \
+		if (apply_mask) { \
+			BYTE mv; \
+			if (mask_bitpix == 8) mv = mask_u8[(src_i)]; \
+			else if (mask_bitpix == 16) mv = mask_u16[(src_i)] >> 8; \
+			else mv = (BYTE)(mask_f32[(src_i)] * UCHAR_MAX); \
+			const uint16_t imv = UCHAR_MAX - mv; \
+			if (color == RAINBOW_COLOR) { \
+				const uint16_t rs = imv + rainbow_index[dpv][0]; \
+				*(guint32*)(dst + (dst_i)) = \
+					((rs > UCHAR_MAX ? UCHAR_MAX : (BYTE)rs) << 16) | \
+					((rainbow_index[dpv][1] * mv) >> 8) << 8 | \
+					((rainbow_index[dpv][2] * mv) >> 8); \
+			} else { \
+				const uint16_t rs = imv + dpv; \
+				*(guint32*)(dst + (dst_i)) = \
+					((rs > UCHAR_MAX ? UCHAR_MAX : (BYTE)rs) << 16) | \
+					((dpv * mv) >> 8) << 8 | ((dpv * mv) >> 8); \
+			} \
+		} else { \
+			if (color == RAINBOW_COLOR) \
+				*(guint32*)(dst + (dst_i)) = rainbow_index[dpv][0] << 16 | \
+				                             rainbow_index[dpv][1] << 8 | \
+				                             rainbow_index[dpv][2]; \
+			else \
+				*(guint32*)(dst + (dst_i)) = dpv << 16 | dpv << 8 | dpv; \
+		} \
+	} while (0)
+
+	if (gui.surface_scale < 1.0) {
+		/* Downscaled path: buf/full_surface smaller than gfit; nearest-neighbour. */
+		const int sw = (int)(width * gui.surface_scale);
+		const int sh = view->full_surface_height;
+		const int dstride = view->full_surface_stride;
+		const double inv_scale = 1.0 / gui.surface_scale;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (guint y = 0; y < height; y++) {
-		const guint src_row_start = y * width;
-		const guint dst_row_start = (height - 1 - y) * width * 4;
-
-		for (guint x = 0; x < width; ++x) {
-			const guint src_i = src_row_start + x;
-			const guint dst_i = dst_row_start + x * 4;
-
-			BYTE dst_pixel_value;
-			if (gfit->type == DATA_USHORT) {
-				const WORD src_val = src[src_i];
-				if (hd_mode) {
-					dst_pixel_value = index[src_val * gui.hd_remap_max / USHRT_MAX];
-				} else {
-					dst_pixel_value = index[src_val];
-				}
-			} else { // DATA_FLOAT
-				if (hd_mode)
-					dst_pixel_value = index[float_to_max_range(fsrc[src_i], gui.hd_remap_max)];
-				else
-					dst_pixel_value = index[roundf_to_WORD(fsrc[src_i] * USHRT_MAX_SINGLE)];
+		for (int dy = 0; dy < sh; dy++) {
+			const int sy = (int)(dy * inv_scale);
+			const guint src_row_start = (guint)sy * width;
+			const guint dst_row_start = (guint)(sh - 1 - dy) * (guint)dstride;
+			for (int dx = 0; dx < sw; dx++) {
+				const int sx = (int)(dx * inv_scale);
+				REMAP_WRITE_PIXEL(src_row_start + (guint)sx, dst_row_start + (guint)dx * 4);
 			}
-
-			if (inverted)
-				dst_pixel_value = UCHAR_MAX - dst_pixel_value;
-
-			if (apply_mask) {
-				// Get mask value based on bitpix
-				BYTE mask_val;
-				if (mask_bitpix == 8) {
-					mask_val = mask_u8[src_i];
-				} else if (mask_bitpix == 16) {
-					mask_val = mask_u16[src_i] >> 8;
-				} else { // 32
-					mask_val = (BYTE)(mask_f32[src_i] * UCHAR_MAX);
-				}
-
-				const uint16_t inv_mask = UCHAR_MAX - mask_val;
-
-				if (color == RAINBOW_COLOR) {
-					// Rainbow with mask
-					const BYTE rainbow_r = rainbow_index[dst_pixel_value][0];
-					const BYTE rainbow_g = rainbow_index[dst_pixel_value][1];
-					const BYTE rainbow_b = rainbow_index[dst_pixel_value][2];
-
-					const uint16_t r_sum = inv_mask + rainbow_r;
-					const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
-					const BYTE g_val = (rainbow_g * mask_val) >> 8;
-					const BYTE b_val = (rainbow_b * mask_val) >> 8;
-
-					*(guint32*)(dst + dst_i) = r_val << 16 | g_val << 8 | b_val;
-				} else {
-					// Normal color with mask
-					const uint16_t r_sum = inv_mask + dst_pixel_value;
-					const BYTE r_val = (r_sum > UCHAR_MAX) ? UCHAR_MAX : (BYTE)r_sum;
-					const BYTE g_val = (dst_pixel_value * mask_val) >> 8;
-					const BYTE b_val = (dst_pixel_value * mask_val) >> 8;
-
-					*(guint32*)(dst + dst_i) = r_val << 16 | g_val << 8 | b_val;
-				}
-			} else {
-				// No mask
-				if (color == RAINBOW_COLOR) {
-					*(guint32*)(dst + dst_i) = rainbow_index[dst_pixel_value][0] << 16 |
-					                            rainbow_index[dst_pixel_value][1] << 8 |
-					                            rainbow_index[dst_pixel_value][2];
-				} else {
-					*(guint32*)(dst + dst_i) = dst_pixel_value << 16 | dst_pixel_value << 8 | dst_pixel_value;
-				}
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (guint y = 0; y < height; y++) {
+			const guint src_row_start = y * width;
+			const guint dst_row_start = (height - 1 - y) * width * 4;
+			for (guint x = 0; x < width; ++x) {
+				REMAP_WRITE_PIXEL(src_row_start + x, dst_row_start + x * 4);
 			}
 		}
 	}
+#undef REMAP_WRITE_PIXEL
 
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
@@ -623,7 +705,6 @@ static void remap_all_vports() {
 
 	// This function maps fit data with a linear LUT between lo and hi levels
 	// to the buffer to be displayed; display only is modified
-	guint y;
 	BYTE *dst[3], *index[3];
 	WORD *src[3];
 	float *fsrc[3];
@@ -685,6 +766,13 @@ static void remap_all_vports() {
 	const guint width = gfit->rx;
 	const guint height = gfit->ry;
 
+	/* When image exceeds Cairo's 32767-px limit, the surface is downscaled. */
+	const gboolean downscaled = (gui.surface_scale < 1.0);
+	const int loop_max = downscaled ? view[0]->full_surface_height : (int)height;
+	const int sw = downscaled ? (int)(width * gui.surface_scale) : (int)width;
+	const int dstride = downscaled ? view[0]->full_surface_stride : (int)(width * 4);
+	const double inv_scale = downscaled ? 1.0 / gui.surface_scale : 1.0;
+
 	// Shared flag for per-thread allocation failures; checked after the parallel block.
 	gboolean alloc_error = FALSE;
 
@@ -727,14 +815,14 @@ static void remap_all_vports() {
 			alloc_error = TRUE;
 		} else {
 #endif
-		for (y = 0; y < height; y++) {
+		for (int row = 0; row < loop_max; row++) {
 			guint x;
-			const guint src_i = y * width;
+			/* row == destination row; sy == source row */
+			const guint sy = downscaled ? (guint)(row * inv_scale) : (guint)row;
+			const guint src_i = sy * width;
 
-			// Precompute mask values for entire row if mask is active
+			// Precompute mask values for entire source row if mask is active
 			if (apply_mask) {
-
-				// Precompute mask values for entire row
 				if (mask_bitpix == 8) {
 #pragma omp simd
 					for (x = 0; x < width; ++x) {
@@ -799,18 +887,21 @@ static void remap_all_vports() {
 				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
-			const guint dst_row_start = (height - 1 - y) * width * 4;
+			const guint dst_row_start = downscaled
+				? (guint)(loop_max - 1 - row) * (guint)dstride
+				: (height - 1 - sy) * (guint)width * 4;
+			const int out_w = sw;  /* number of destination pixels to write */
 
 			if (color == RAINBOW_COLOR) {
 				if (apply_mask) {
 					// Rainbow with mask
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
-#pragma omp simd
-						for (x = 0 ; x < width ; x++) {
-							const guint dst_index = dst_row_start + x * 4;
-							const BYTE pixel_val = line_byte[x];
-							const BYTE mask_val = mask_row[x];
+						for (int dx = 0 ; dx < out_w ; dx++) {
+							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
+							const guint dst_index = dst_row_start + (guint)dx * 4;
+							const BYTE pixel_val = line_byte[sx];
+							const BYTE mask_val = mask_row[sx];
 
 							const BYTE rainbow_r = rainbow_index[pixel_val][0];
 							const BYTE rainbow_g = rainbow_index[pixel_val][1];
@@ -829,10 +920,10 @@ static void remap_all_vports() {
 					// Rainbow without mask
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
-#pragma omp simd
-						for (x = 0 ; x < width ; x++) {
-							const guint dst_index = dst_row_start + x * 4;
-							const BYTE pixel_val = line_byte[x];
+						for (int dx = 0 ; dx < out_w ; dx++) {
+							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
+							const guint dst_index = dst_row_start + (guint)dx * 4;
+							const BYTE pixel_val = line_byte[sx];
 							*(guint32*)(dst[c] + dst_index) = rainbow_index[pixel_val][0] << 16 |
 							                                   rainbow_index[pixel_val][1] << 8 |
 							                                   rainbow_index[pixel_val][2];
@@ -845,11 +936,11 @@ static void remap_all_vports() {
 					// Normal with mask
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
-#pragma omp simd
-						for (x = 0 ; x < width ; x++) {
-							const guint dst_index = dst_row_start + x * 4;
-							const BYTE pixel_val = line_byte[x];
-							const BYTE mask_val = mask_row[x];
+						for (int dx = 0 ; dx < out_w ; dx++) {
+							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
+							const guint dst_index = dst_row_start + (guint)dx * 4;
+							const BYTE pixel_val = line_byte[sx];
+							const BYTE mask_val = mask_row[sx];
 
 							const uint16_t inv_mask = UCHAR_MAX - mask_val;
 							const uint16_t r_sum = inv_mask + pixel_val;
@@ -865,9 +956,10 @@ static void remap_all_vports() {
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
 #pragma omp simd
-						for (x = 0 ; x < width ; x++) {
+						for (x = 0 ; x < (guint)out_w ; x++) {
+							const int sx = downscaled ? (int)(x * inv_scale) : (int)x;
 							const guint dst_index = dst_row_start + x * 4;
-							const BYTE pixel_val = line_byte[x];
+							const BYTE pixel_val = line_byte[sx];
 							*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
 						}
 					}
@@ -1085,7 +1177,7 @@ static void request_gtk_redraw_of_cvport() {
 	gtk_widget_queue_draw(widget);
 }
 
-/* forward declaration — redraw_drawingarea is defined later in this file */
+/* forward declaration - redraw_drawingarea is defined later in this file */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data);
 
 /* Block / unblock the draw signal handler on all viewports.  Must be called
@@ -1203,7 +1295,146 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(layout);
 }
 
+/* Fill disp_surface at full image resolution when zoom >= 1.0 on images that
+ * exceed Cairo's 32767-pixel limit (gui.surface_scale < 1.0).  Reads directly
+ * from gfit pixel data and applies the same LUT as the regular remap path,
+ * avoiding the blurry upscale of the downsampled full_surface.
+ * Must be called with gui.cairo_mutex held.
+ * Returns TRUE on success, FALSE on allocation failure. */
+static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
+                                 WORD remap_hi, WORD remap_lo) {
+	unsigned char *disp_data = cairo_image_surface_get_data(view->disp_surface);
+	const int disp_stride = cairo_image_surface_get_stride(view->disp_surface);
+	if (!disp_data) return FALSE;
+
+	const int win_w = dd->window_width;
+	const int win_h = dd->window_height;
+	const int img_w = (int)gfit->rx;
+	const int img_h = (int)gfit->ry;
+	const double zoom  = dd->zoom;
+	const double off_x = gui.display_offset.x;
+	const double off_y = gui.display_offset.y;
+
+	const gboolean inverted = dd->neg_view;
+	const gboolean cut_over = gui.cut_over;
+	const gboolean hd_mode  = (gui.rendering_mode == STF_DISPLAY &&
+	                            gui.use_hd_remap && gfit->type == DATA_FLOAT);
+	const gboolean is_rgb   = (dd->vport == RGB_VPORT);
+
+	/* x range of screen columns that overlap the image */
+	const int dx_first = MAX(0, (int)floor(off_x));
+	const int dx_last  = MIN(win_w - 1, (int)ceil(off_x + (double)img_w * zoom) - 1);
+	const int visible_w = (dx_last >= dx_first) ? (dx_last - dx_first + 1) : 0;
+
+	/* Clear entire surface to opaque black */
+	memset(disp_data, 0, (size_t)win_h * disp_stride);
+	if (visible_w <= 0) return TRUE;
+
+	/* RGB path: per-row channel buffers + optional ICC transform */
+	BYTE *lb_rgb = NULL;
+	gboolean do_transform = FALSE;
+	cmsHTRANSFORM transform = NULL;
+	if (is_rgb) {
+		lb_rgb = malloc((size_t)visible_w * 3);
+		if (!lb_rgb) return FALSE;
+		lock_display_transform();
+		if (gfit->color_managed && com.gui_icc.proofing_transform && !identical &&
+				!com.gui_icc.same_primaries) {
+			do_transform = TRUE;
+			transform = com.gui_icc.proofing_transform;
+		}
+		unlock_display_transform();
+	}
+
+	for (int dy = 0; dy < win_h; dy++) {
+		/* Screen row → image buf row → gfit row.
+		 * buf stores rows bottom-up (gfit row 0 = buf last row), so we flip. */
+		const double fy  = (dy - off_y) / zoom;
+		const int buf_row = (int)fy;
+		if (buf_row < 0 || buf_row >= img_h) continue;
+		const int iy = img_h - 1 - buf_row;
+
+		uint32_t *row_out = (uint32_t *)(disp_data + dy * disp_stride);
+
+		if (!is_rgb) {
+			/* Single-channel vport: mirrors REMAP_WRITE_PIXEL logic */
+			const int vp = (dd->vport < 3) ? dd->vport : 0;
+			const int ti = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels) ? vp : 0;
+			const BYTE *lut = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int ix = (int)((dx - off_x) / zoom);
+				if ((unsigned)ix >= (unsigned)img_w) continue;
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE val;
+				if (gfit->type == DATA_FLOAT) {
+					val = hd_mode
+						? lut[float_to_max_range(gfit->fpdata[vp][si], gui.hd_remap_max)]
+						: lut[roundf_to_WORD(gfit->fpdata[vp][si] * USHRT_MAX_SINGLE)];
+				} else {
+					const WORD sv = gfit->pdata[vp][si];
+					val = hd_mode ? lut[(guint)sv * gui.hd_remap_max / USHRT_MAX] : lut[sv];
+				}
+				if (inverted) val = UCHAR_MAX - val;
+				row_out[dx] = 0xFF000000u | ((uint32_t)val << 16) | ((uint32_t)val << 8) | val;
+			}
+		} else {
+			/* RGB composite vport: mirrors remap_all_vports logic */
+			BYTE *lb_r = lb_rgb;
+			BYTE *lb_g = lb_rgb + visible_w;
+			BYTE *lb_b = lb_rgb + 2 * visible_w;
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int ix = (int)((dx - off_x) / zoom);
+				const int li = dx - dx_first;
+				if ((unsigned)ix >= (unsigned)img_w) {
+					lb_r[li] = lb_g[li] = lb_b[li] = 0;
+					continue;
+				}
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE *channels[3] = { lb_r, lb_g, lb_b };
+				for (int c = 0; c < 3; c++) {
+					const int cc = gfit->color_managed ? c : 0;
+					WORD w;
+					if (gfit->type == DATA_FLOAT)
+						w = roundf_to_WORD(gfit->fpdata[c][si] * USHRT_MAX_SINGLE);
+					else
+						w = gfit->pdata[c][si];
+					const int sh = (int)w - remap_lo;
+					BYTE val = (cut_over && w > remap_hi) ? 0 : gui.remap_index[cc][sh < 0 ? 0 : sh];
+					if (inverted) val = UCHAR_MAX - val;
+					channels[c][li] = val;
+				}
+			}
+
+			if (do_transform && transform)
+				cmsDoTransformLineStride(transform, lb_rgb, lb_rgb, visible_w, 1,
+					visible_w * 3, visible_w * 3, visible_w, visible_w);
+
+			for (int dx = dx_first; dx <= dx_last; dx++) {
+				const int li = dx - dx_first;
+				row_out[dx] = 0xFF000000u
+					| ((uint32_t)lb_r[li] << 16)
+					| ((uint32_t)lb_g[li] <<  8)
+					|  (uint32_t)lb_b[li];
+			}
+		}
+	}
+
+	free(lb_rgb);
+	cairo_surface_flush(view->disp_surface);
+	cairo_surface_mark_dirty(view->disp_surface);
+	return TRUE;
+}
+
 static void draw_vport(const draw_data_t* dd) {
+	/* Snapshot lo/hi before cairo_mutex to preserve lock ordering
+	 * (remap takes com.mutex then cairo_mutex; never the reverse). */
+	g_mutex_lock(&com.mutex);
+	WORD remap_hi = gui.hi;
+	WORD remap_lo = gui.lo;
+	g_mutex_unlock(&com.mutex);
+
 	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[dd->vport];
 	if (!view->disp_surface) {
@@ -1219,19 +1450,43 @@ static void draw_vport(const draw_data_t* dd) {
 		}
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
+
+		/* For large images at zoom >= 1.0 (surface_scale < 1.0), paint at full
+		 * resolution directly from gfit data rather than upscaling the small
+		 * surface.
+		 * Skip when generic_image_worker is running: gfit->pdata may be
+		 * mid-modification; fall back to view->buf via full_surface instead. */
+		const gboolean do_hires = (gui.surface_scale < 1.0 && dd->zoom >= 1.0
+		                           && !g_atomic_int_get(&gui.suppress_drawarea_redraw));
+		if (do_hires && fill_hires_disp(dd, view, remap_hi, remap_lo)) {
+			/* hires surface filled - skip standard surface paint */
+		} else {
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
 		cairo_matrix_t y_reflection_matrix, flipped_matrix;
 		cairo_matrix_init_identity(&y_reflection_matrix);
 		if (livestacking_is_started() && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
 			y_reflection_matrix.yy = -1.0;
-			y_reflection_matrix.y0 = gfit->ry;
+			/* y0 must be the surface height, not the image height, so the
+			 * flip stays in surface coordinate space. */
+			y_reflection_matrix.y0 = (double)view->full_surface_height;
 		}
-		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &gui.display_matrix);
+		/* When gui.surface_scale < 1, full_surface is smaller than gfit.
+		 * Compensate in the matrix so the surface renders at the correct
+		 * zoom level (image-space coordinates remain unchanged for overlays). */
+		cairo_matrix_t surf_disp_matrix;
+		double ss = (view->full_surface_height > 0 && gfit->ry > 0)
+			? (double)view->full_surface_height / (double)gfit->ry : 1.0;
+		double surf_zoom = gui.display_matrix.xx / ss;
+		cairo_matrix_init(&surf_disp_matrix,
+				surf_zoom, 0, 0, surf_zoom,
+				gui.display_matrix.x0, gui.display_matrix.y0);
+		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &surf_disp_matrix);
 		cairo_transform(cached_cr, &flipped_matrix);
 		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
 		cairo_paint(cached_cr);
 		cairo_destroy(cached_cr);
+		}
 
 //		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
 //				view->view_width, view->view_height);
@@ -1630,7 +1885,7 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 		cairo_set_font_size(cr, 40.0 / dd->zoom);
 		cairo_move_to(cr, gui.qphot->xpos + com.pref.phot_set.outer + 5, gui.qphot->ypos);
-		cairo_show_text(cr, "V");  // was missing — stroke on empty path was a no-op
+		cairo_show_text(cr, "V");  // was missing - stroke on empty path was a no-op
 		cairo_stroke(cr);
 	}
 
@@ -2406,6 +2661,7 @@ void initialize_image_display() {
 		// only HISTEQ mode always computes the index, it's a good initializer here
 	}
 	cairo_matrix_init_identity(&gui.display_matrix);
+	gui.surface_scale = 1.0;
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
@@ -2602,6 +2858,7 @@ void queue_redraw(remap_type doremap) {
 	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
 }
 
+
 /* callback for GtkDrawingArea, draw event */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_data_t dd;
@@ -2621,8 +2878,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	 * data) are stale.  Repaint from the cached display surface so the
 	 * previous correct frame stays visible, avoiding a grey flash.
 	 *
-	 * If disp_surface was invalidated — e.g. the user changed zoom level or
-	 * resized the window during a long operation — fall through to a normal
+	 * If disp_surface was invalidated - e.g. the user changed zoom level or
+	 * resized the window during a long operation - fall through to a normal
 	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
 	 * holds the full-resolution remapped image and is safe to read from the
 	 * GTK thread.  draw_main_image() will re-render buf into a fresh
@@ -2637,7 +2894,7 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			return FALSE;
 		}
 		g_mutex_unlock(&gui.cairo_mutex);
-		/* disp_surface invalidated by viewport change; buf is still valid —
+		/* disp_surface invalidated by viewport change; buf is still valid -
 		 * fall through to rebuild disp_surface from buf */
 	}
 

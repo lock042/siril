@@ -18,6 +18,20 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* config.h must come first so HAVE_LIBJPEG is defined before we test it.
+ * On Windows, jpeglib headers pull in <windows.h> which defines TBYTE as a
+ * typedef.  Include them before siril.h so that winnt.h runs before fitsio.h
+ * (which redefines TBYTE as a numeric constant), avoiding a redefinition error.
+ * jpeglib.h also requires <stdio.h> for FILE and size_t. */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_LIBJPEG
+#include <stdio.h>
+#include <setjmp.h>
+#include <jpeglib.h>
+#endif
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -36,6 +50,7 @@
 #ifdef HAVE_LIBJXL
 #include "io/SirilJpegXLWrapper.h"
 #endif
+
 #include "dialog_preview.h"
 #include "core/proto.h"
 #include "filters/mtf.h"
@@ -347,6 +362,42 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	return pixbuf;
 }
 
+#ifdef HAVE_LIBJPEG
+/* Error handler that longjmps instead of calling exit() */
+struct siril_jpeg_error_mgr {
+	struct jpeg_error_mgr pub;
+	jmp_buf setjmp_buffer;
+};
+static void siril_jpeg_error_exit(j_common_ptr cinfo) {
+	struct siril_jpeg_error_mgr *err = (struct siril_jpeg_error_mgr *)cinfo->err;
+	longjmp(err->setjmp_buffer, 1);
+}
+
+/* Read JPEG dimensions from the file header only (no pixel decoding). */
+static gboolean jpeg_get_dimensions(const gchar *filename, gint *width, gint *height) {
+	struct jpeg_decompress_struct cinfo;
+	struct siril_jpeg_error_mgr jerr;
+	FILE *f = g_fopen(filename, "rb");
+	if (!f) return FALSE;
+
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = siril_jpeg_error_exit;
+	if (setjmp(jerr.setjmp_buffer)) {
+		jpeg_destroy_decompress(&cinfo);
+		fclose(f);
+		return FALSE;
+	}
+	jpeg_create_decompress(&cinfo);
+	jpeg_stdio_src(&cinfo, f);
+	jpeg_read_header(&cinfo, TRUE);
+	*width  = (gint)cinfo.image_width;
+	*height = (gint)cinfo.image_height;
+	jpeg_destroy_decompress(&cinfo);
+	fclose(f);
+	return (*width > 0 && *height > 0);
+}
+#endif /* HAVE_LIBJPEG */
+
 static gboolean preview_allocated = FALSE; // flag needed when user load image before preview was displayed.
 static gboolean callback_is_called = TRUE;
 
@@ -570,8 +621,27 @@ static gpointer update_preview(gpointer p) {
 #endif
 
 		if (!pixbuf && (im_type != TYPEHEIF || libheif_is_ok)) {
-			pixbuf = gdk_pixbuf_new_from_file_at_size(args->filename,
-					com.pref.gui.thumbnail_size, com.pref.gui.thumbnail_size, NULL);
+			/* gdk_pixbuf_get_file_info() is itself broken for very large JPEG
+			 * images — it internally allocates a full pixbuf during header
+			 * parsing, which triggers a GdkPixbuf assertion when rowstride *
+			 * height overflows a signed int (limit ≈ G_MAXINT/3 ≈ 715 Mpix).
+			 * For JPEG, use libjpeg to read just the SOF header.  For other
+			 * formats, gdk_pixbuf_get_file_info() reads only the format header
+			 * and is safe. */
+			gint pw = 0, ph = 0;
+			gboolean dims_ok = FALSE;
+#ifdef HAVE_LIBJPEG
+			if (im_type == TYPEJPG)
+				dims_ok = jpeg_get_dimensions(args->filename, &pw, &ph);
+#endif
+			if (!dims_ok && im_type != TYPEJPG) {
+				gdk_pixbuf_get_file_info(args->filename, &pw, &ph);
+				dims_ok = (pw > 0 && ph > 0);
+			}
+			if (dims_ok && (gint64)pw * ph <= (gint64)G_MAXINT / 3) {
+				pixbuf = gdk_pixbuf_new_from_file_at_size(args->filename,
+						com.pref.gui.thumbnail_size, com.pref.gui.thumbnail_size, NULL);
+			}
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}

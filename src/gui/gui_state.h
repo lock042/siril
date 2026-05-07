@@ -109,6 +109,7 @@ struct guiinf {
 	cairo_matrix_t    image_matrix;     /* display → image coordinate transform */
 	double            zoom_value;       /* 1.0 = 100 %; use get_zoom_val() */
 	point             display_offset;   /* image pan offset */
+	double            surface_scale;    /* <1.0 when image exceeds Cairo's 32767-px limit; 1.0 normally */
 
 	gboolean          translating;      /* panning in progress */
 
