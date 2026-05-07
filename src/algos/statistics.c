@@ -43,8 +43,6 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "statistics.h"
@@ -979,15 +977,6 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 		free (stat_args);
 		free_generic_seq_args(args, TRUE);
 	}
-}
-
-/**** callbacks ****/
-
-void on_menu_gray_stat_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	computeStat();
-	siril_open_dialog("StatWindow");
-	set_cursor_waiting(FALSE);
 }
 
 /**** threading helpers ****/

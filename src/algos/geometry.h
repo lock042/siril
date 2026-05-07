@@ -87,8 +87,6 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 int verbose_rotate_fast(fits *image, int angle);
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation, int cropped, gboolean clamp);
 
-gboolean crop_gui_updates(gpointer user); // used by the command
-
 /* crop sequence data from GUI */
 struct crop_sequence_data {
 	sequence *seq;

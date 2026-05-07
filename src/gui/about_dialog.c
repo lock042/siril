@@ -61,7 +61,7 @@ void siril_show_about_dialog() {
 	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
 			"Copyright © 2012-%s Team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
 
-	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 	/* Create pixbuf from siril.svg file */
 	icon = gdk_pixbuf_new_from_resource_at_scale("/org/siril/ui/pixmaps/siril.svg", 256, 256, FALSE, NULL);
 

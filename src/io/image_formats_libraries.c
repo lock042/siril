@@ -65,8 +65,8 @@
 #include "io/fits_keywords.h"
 #include "algos/geometry.h"
 #include "algos/demosaicing.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
+/* gui_calls.h removed: heif_dialog now routes through gui_iface */
 #include "image_format_fits.h"
 
 static void fill_date_obs_if_any(fits *fit, const char *file) {
@@ -389,15 +389,6 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-gboolean get_tiff_compression() {
-	if (!com.headless) {
-		GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
-		if (gtk_toggle_button_get_active(button))
-			return TRUE;
-	}
-	return FALSE;
-}
-
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 #ifdef _WIN32
 	wchar_t *wname;
@@ -652,31 +643,6 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	g_free(basename);
 
 	return retval;
-}
-
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
-	if (!com.script && !com.headless) {
-		/*******************************************************************
-		 * If the user saves a tif from the graphical menu, he can set
-		 * the Description and the Copyright of the Image
-		 ******************************************************************/
-
-		GtkTextIter itDebut;
-		GtkTextIter itFin;
-
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
-		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-		gtk_text_buffer_get_end_iter(desbuf, &itFin);
-		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
-		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
-		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
-		gtk_text_buffer_get_end_iter(copybuf, &itFin);
-		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-
-	}
 }
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
@@ -2341,255 +2307,6 @@ int open_raw_files(const char *name, fits *fit) {
 #endif
 
 #ifdef HAVE_LIBHEIF
-#define MAX_THUMBNAIL_SIZE com.pref.gui.thumbnail_size
-
-struct HeifImage {
-	uint32_t ID;
-	char caption[100]; // image text (filled with resolution description)
-	struct heif_image *thumbnail;
-	int width, height;
-};
-
-static gboolean load_thumbnails(struct heif_context *heif, struct HeifImage *images) {
-	int numImages = heif_context_get_number_of_top_level_images(heif);
-
-	// get list of all (top level) image IDs
-
-	uint32_t *IDs = malloc(numImages * sizeof(uint32_t));
-	heif_context_get_list_of_top_level_image_IDs(heif, IDs, numImages);
-
-	// --- Load a thumbnail for each image.
-
-	for (int i = 0; i < numImages; i++) {
-
-		images[i].ID = IDs[i];
-		images[i].caption[0] = 0;
-		images[i].thumbnail = NULL;
-
-		// get image handle
-
-		struct heif_image_handle *handle;
-		struct heif_error err = heif_context_get_image_handle(heif, IDs[i],
-				&handle);
-		if (err.code) {
-			g_printf("%s\n", err.message);
-			continue;
-		}
-
-		// generate image caption
-
-		int width = heif_image_handle_get_width(handle);
-		int height = heif_image_handle_get_height(handle);
-
-		if (heif_image_handle_is_primary_image(handle)) {
-			sprintf(images[i].caption, "%dx%d (%s)", width, height,
-					_("primary"));
-		} else {
-			sprintf(images[i].caption, "%dx%d", width, height);
-		}
-
-		// get handle to thumbnail image
-		// if there is no thumbnail image, just the the image itself (will be scaled down later)
-
-		struct heif_image_handle *thumbnail_handle;
-		heif_item_id thumbnail_ID;
-
-		int nThumbnails = heif_image_handle_get_list_of_thumbnail_IDs(handle,
-				&thumbnail_ID, 1);
-
-		if (nThumbnails > 0) {
-			err = heif_image_handle_get_thumbnail(handle, thumbnail_ID,
-					&thumbnail_handle);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-		} else {
-			err = heif_context_get_image_handle(heif, IDs[i],
-					&thumbnail_handle);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-		}
-
-		// decode the thumbnail image
-
-		struct heif_image *thumbnail_img;
-		err = heif_decode_image(thumbnail_handle, &thumbnail_img,
-				heif_colorspace_RGB, heif_chroma_interleaved_RGB,
-				NULL);
-		if (err.code) {
-			g_printf("%s\n", err.message);
-			continue;
-		}
-
-		// if thumbnail image size exceeds the maximum, scale it down
-
-		int thumbnail_width = heif_image_handle_get_width(thumbnail_handle);
-		int thumbnail_height = heif_image_handle_get_height(thumbnail_handle);
-
-		if (thumbnail_width > MAX_THUMBNAIL_SIZE
-				|| thumbnail_height > MAX_THUMBNAIL_SIZE) {
-
-			// compute scaling factor to fit into a max sized box
-
-			float factor_h = thumbnail_width / (float) MAX_THUMBNAIL_SIZE;
-			float factor_v = thumbnail_height / (float) MAX_THUMBNAIL_SIZE;
-
-			int new_width, new_height;
-
-			if (factor_v > factor_h) {
-				new_height = MAX_THUMBNAIL_SIZE;
-				new_width = thumbnail_width / factor_v;
-			} else {
-				new_height = thumbnail_height / factor_h;
-				new_width = MAX_THUMBNAIL_SIZE;
-			}
-
-			// scale the image
-
-			struct heif_image *scaled_img = NULL;
-
-			err = heif_image_scale_image(thumbnail_img,
-					&scaled_img, new_width, new_height,
-					NULL);
-			if (err.code) {
-				g_printf("%s\n", err.message);
-				continue;
-			}
-
-			// release the old image and only keep the scaled down version
-
-			heif_image_release(thumbnail_img);
-			thumbnail_img = scaled_img;
-
-			thumbnail_width = new_width;
-			thumbnail_height = new_height;
-		}
-
-		heif_image_handle_release(thumbnail_handle);
-		heif_image_handle_release(handle);
-
-		// remember the HEIF thumbnail image (we need it for the GdkPixbuf)
-
-		images[i].thumbnail = thumbnail_img;
-
-		images[i].width = thumbnail_width;
-		images[i].height = thumbnail_height;
-	}
-
-	return TRUE;
-}
-
-static gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
-	int numImages = heif_context_get_number_of_top_level_images(heif);
-
-	struct HeifImage *heif_images = malloc(numImages * sizeof(struct HeifImage));
-	gboolean success = load_thumbnails(heif, heif_images);
-	if (!success) {
-		free(heif_images);
-		return FALSE;
-	}
-
-	GtkWidget *dlg = gtk_dialog_new_with_buttons(_("Load HEIF image content"),
-			GTK_WINDOW(lookup_widget("control_window")), GTK_DIALOG_MODAL,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_OK"), GTK_RESPONSE_OK, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
-
-	GtkContainer *content_area = GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dlg)));
-	gtk_container_set_border_width(GTK_CONTAINER(content_area), 12);
-
-	GtkWidget *frame = gtk_frame_new(_("Select image"));
-	gtk_container_add(content_area, GTK_WIDGET(frame));
-	gtk_widget_show(frame);
-
-// prepare list store with all thumbnails and caption
-
-	GtkListStore *liststore;
-	GtkTreeIter iter;
-
-	liststore = gtk_list_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
-
-	for (int i = 0; i < numImages; i++) {
-		gtk_list_store_append(liststore, &iter);
-		gtk_list_store_set(liststore, &iter, 0, heif_images[i].caption, -1);
-
-		int stride;
-		const uint8_t *data = heif_image_get_plane_readonly(
-				heif_images[i].thumbnail, heif_channel_interleaved, &stride);
-
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB,
-				FALSE, 8, heif_images[i].width, heif_images[i].height, stride,
-				NULL, NULL);
-		gtk_list_store_set(liststore, &iter, 1, pixbuf, -1);
-	}
-
-	GtkWidget *iconview = gtk_icon_view_new();
-	gtk_icon_view_set_model((GtkIconView*) iconview, (GtkTreeModel*) liststore);
-	gtk_icon_view_set_text_column((GtkIconView*) iconview, 0);
-	gtk_icon_view_set_pixbuf_column((GtkIconView*) iconview, 1);
-	gtk_icon_view_set_item_width((GtkIconView*) iconview, MAX_THUMBNAIL_SIZE);
-
-	GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-	gtk_widget_set_size_request(scroll, -1, 400);
-	g_object_set(scroll, "expand", TRUE, NULL);
-
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),	GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-
-	gtk_container_add(GTK_CONTAINER(frame), scroll);
-	gtk_container_add(GTK_CONTAINER(scroll), iconview);
-
-	gtk_widget_show(scroll);
-	gtk_widget_show(iconview);
-
-// pre-select the primary image
-
-	int selected_idx = -1;
-	for (int i = 0; i < numImages; i++) {
-		if (heif_images[i].ID == *selected_image) {
-			selected_idx = i;
-			break;
-		}
-	}
-
-	if (selected_idx != -1) {
-		GtkTreePath *path = gtk_tree_path_new_from_indices(selected_idx, -1);
-		gtk_icon_view_select_path((GtkIconView*) iconview, path);
-		gtk_tree_path_free(path);
-	}
-
-	gtk_widget_show(dlg);
-
-	gboolean run = (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_OK);
-
-	if (run) {
-		GList *selected_items = gtk_icon_view_get_selected_items(
-				(GtkIconView*) iconview);
-
-		if (selected_items) {
-			GtkTreePath *path = (GtkTreePath*) (selected_items->data);
-			const gint *indices = gtk_tree_path_get_indices(path);
-
-			*selected_image = heif_images[indices[0]].ID;
-
-			g_list_free_full(selected_items,
-					(GDestroyNotify) gtk_tree_path_free);
-		}
-	}
-
-	gtk_widget_destroy(dlg);
-
-// release thumbnail images
-
-	for (int i = 0; i < numImages; i++) {
-		heif_image_release(heif_images[i].thumbnail);
-	}
-
-	free(heif_images);
-
-	return run;
-}
 
 static cmsHPROFILE nclx_to_icc_profile (const struct heif_color_profile_nclx *nclx) {
 	const gchar *primaries_name = "";
@@ -2799,7 +2516,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 			siril_log_message(_("This is a sequence of %d images: "
 					"loading the primary one.\n"), num);
 		} else {
-			if (!heif_dialog(ctx, &selected_image)) {
+			if (!gui_iface.heif_dialog(ctx, &selected_image)) {
 				heif_context_free(ctx);
 #if LIBHEIF_HAVE_VERSION(1,13,0)
 				heif_deinit();

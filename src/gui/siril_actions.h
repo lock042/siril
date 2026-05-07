@@ -17,13 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_CORE_SIRIL_ACTIONS_H_
-#define SRC_CORE_SIRIL_ACTIONS_H_
+#ifndef SRC_GUI_SIRIL_ACTIONS_H_
+#define SRC_GUI_SIRIL_ACTIONS_H_
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <glib.h>
+#include <gtk/gtk.h>
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -161,4 +161,4 @@ void threshold_mask_activate(GSimpleAction *action, GVariant *parameter, gpointe
 
 gboolean chain_channels_idle_callback(gpointer user_data);
 
-#endif /* SRC_CORE_SIRIL_ACTIONS_H_ */
+#endif /* SRC_GUI_SIRIL_ACTIONS_H_ */

@@ -39,7 +39,7 @@
 #include "core/masks.h"
 #include "core/siril_log.h"
 #include "core/settings.h"
-#include "gui/callbacks.h"
+#include "core/gui_iface.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
@@ -1720,7 +1720,7 @@ int mask_update_with_gradient(fits *fit) {
     }
 
     set_mask_active(fit, TRUE);
-    show_or_hide_mask_tab();
+    gui_iface.on_mask_state_changed();
     siril_log_message(_("Mask updated with its gradient (max gradient: %.3f)\n"), max_mag);
 
     return 0;

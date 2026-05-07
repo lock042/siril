@@ -72,7 +72,6 @@ src_files = [
   'algos/lcms_acceleration/threaded_split.c',
 
   'compositing/align_rgb.c',
-  'compositing/compositing.c',
   'compositing/filters.c',
 
   'core/arithm.c',
@@ -91,12 +90,11 @@ src_files = [
   'core/settings.c',
   'core/signals.c',
   'core/siril.c',
-  'core/siril_actions.c',
   'core/siril_alloc.c',
   'core/siril_app_dirs.c',
-  'core/siril_cmd_help.c',
   'core/siril_date.c',
   'core/siril_language.c',
+  'core/gui_iface_stubs.c',
   'core/siril_log.c',
   'core/siril_networking.c',
   'core/siril_spawn.c',
@@ -104,6 +102,7 @@ src_files = [
   'core/siril_world_cs.c',
   'core/undo.c',
   'core/utils.c',
+  'core/cut.c',
 
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',
@@ -199,7 +198,6 @@ src_files = [
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',
 
-  'livestacking/gui.c',
   'livestacking/livestacking.c',
 
   'opencv/opencv.cpp',
@@ -208,71 +206,6 @@ src_files = [
   'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
-
-  'gui/about_dialog.c',
-  'gui/annotate.c',
-  'gui/annotations_pref.c',
-  'gui/astrometry_solver.c',
-  'gui/denoisegui.c',
-  'gui/background_extraction.c',
-  'gui/callbacks.c',
-  'gui/colors.c',
-  'gui/catmag.c',
-  'gui/compstars.c',
-  'gui/conversion.c',
-  'gui/curves.c',
-  'gui/cut.c',
-  'gui/dialog_preview.c',
-  'gui/dialogs.c',
-  'gui/documentation.c',
-  'gui/epf.c',
-  'gui/fix_xtrans_af.c',
-  'gui/git_gui.c',
-  'gui/histo_display.c',
-  'gui/histogram.c',
-  'gui/histogram_utils.c',
-  'gui/keywords_tree.c',
-  'gui/icc_profile.c',
-  'gui/image_display.c',
-  'gui/image_interactions.c',
-  'gui/linear_match.c',
-  'gui/masks_gui.c',
-  'gui/menu_gray_geometry.c',
-  'gui/menu_gray_selection.c',
-  'gui/merge_cfa.c',
-  'gui/message_dialog.c',
-  'gui/mouse_action_functions.c',
-  'gui/mouse_action_preferences.c',
-  'gui/newdeconv.c',
-  'gui/nina_light_curve.c',
-  'gui/open_dialog.c',
-  'gui/photometric_cc.c',
-  'gui/plot.c',
-  'gui/preferences.c',
-  'gui/progress_and_log.c',
-  'gui/PSF_list.c',
-  'gui/python_gui.c',
-  'gui/registration.c',
-  'gui/registration_preview.c',
-  'gui/remixer.c',
-  'gui/save_dialog.c',
-  'gui/script_menu.c',
-  'gui/sequence_list.c',
-  'gui/single_image.c',
-  'gui/siril_css.c',
-  'gui/siril_intro.c',
-  'gui/siril_preview.c',
-  'gui/siril_plot.c',
-  'gui/siril-window.c',
-  'gui/splashscreen.c',
-  'gui/split_cfa.c',
-  'gui/stacking.c',
-  'gui/star_finder.c',
-  'gui/starnetgui.c',
-  'gui/statistics_list.c',
-  'gui/unpurple.c',
-  'gui/user_polygons.c',
-  'gui/utils.c',
 
   'pixelMath/pixel_math_runner.c',
   'pixelMath/tinyexpr.c',
@@ -305,6 +238,123 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
+# GUI-only source files (require GTK; excluded when -Dgui=disabled).
+src_files_gui = [
+  'gui/livestacking_gui.c',
+  'gui/about_dialog.c',
+  'gui/annotate.c',
+  'gui/asinh.c',
+  'gui/banding.c',
+  'gui/clahe.c',
+  'gui/cosmetic_correction.c',
+  'gui/fft.c',
+  'gui/rgradient.c',
+  'gui/saturation.c',
+  'gui/scnr.c',
+  'gui/annotations_pref.c',
+  'gui/astrometry_solver.c',
+  'gui/denoisegui.c',
+  'gui/background_extraction.c',
+  'gui/callbacks.c',
+  'gui/ccd-inspector.c',
+  'gui/colors.c',
+  'gui/catmag.c',
+  'gui/compstars.c',
+  'gui/conversion.c',
+  'gui/curves.c',
+  'gui/cut.c',
+  'gui/dialog_preview.c',
+  'gui/dialogs.c',
+  'gui/documentation.c',
+  'gui/epf.c',
+  'gui/gui_iface_impl.c',
+  'gui/fix_xtrans_af.c',
+  'gui/geometry.c',
+  'gui/git_gui.c',
+  'gui/histo_display.c',
+  'gui/histogram.c',
+  'gui/histogram_utils.c',
+  'gui/keywords_tree.c',
+  'gui/icc_profile.c',
+  'gui/image_display.c',
+  'gui/image_interactions.c',
+  'gui/linear_match.c',
+  'gui/masks_gui.c',
+  'gui/median.c',
+  'gui/menu_gray_geometry.c',
+  'gui/menu_gray_selection.c',
+  'gui/merge_cfa.c',
+  'gui/message_dialog.c',
+  'gui/mouse_action_functions.c',
+  'gui/mouse_action_preferences.c',
+  'gui/newdeconv.c',
+  'gui/nina_light_curve.c',
+  'gui/open_dialog.c',
+  'gui/photometric_cc.c',
+  'gui/plot.c',
+  'gui/preferences.c',
+  'gui/progress_and_log.c',
+  'gui/PSF_list.c',
+  'gui/python_gui.c',
+  'gui/registration.c',
+  'gui/registration_preview.c',
+  'gui/remixer.c',
+  'gui/save_dialog.c',
+  'gui/script_console.c',
+  'gui/script_menu.c',
+  'gui/search_objects.c',
+  'gui/sequence_list.c',
+  'gui/single_image.c',
+  'gui/statistics.c',
+  'gui/siril_css.c',
+  'gui/siril_intro.c',
+  'gui/siril_preview.c',
+  'gui/siril_plot.c',
+  'gui/siril-window.c',
+  'gui/splashscreen.c',
+  'gui/split_cfa.c',
+  'gui/stacking.c',
+  'gui/star_finder.c',
+  'gui/starnetgui.c',
+  'gui/statistics_list.c',
+  'gui/compositing.c',
+  'gui/unpurple.c',
+  'gui/user_polygons.c',
+  'gui/pixelmath.c',
+  'gui/preprocess.c',
+  'gui/sequence_export.c',
+  'gui/siril_actions.c',
+  'gui/siril_cmd_help.c',
+  'gui/utils.c',
+  'gui/wavelets.c',
+]
+
+# enable_gui is defined in the top-level meson.build
+#
+# Build strategy:
+#
+#  siril_lib         — core (non-GUI) sources only: src_files.  Contains
+#                      gui_iface_stubs.c which provides no-op vtable entries.
+#                      Never contains gui_iface_impl.c or headless_stubs.c.
+#
+#  siril_headless_lib — headless_stubs.c alone; always built.  Provides no-op
+#                      implementations of GUI functions still called directly
+#                      from core code (pending full gui_iface routing).
+#                      Linked on-demand (link_with, not link_whole) so its
+#                      symbols are only pulled in when unresolved: in siril-cli
+#                      and tests they satisfy the calls from core; in siril the
+#                      same symbols are already defined by src_files_gui so the
+#                      stubs are never included (no duplicate-symbol risk).
+#
+#  siril             — link_whole: siril_lib  +  src_files_gui compiled directly.
+#                      gui_iface_impl.c (in src_files_gui) provides real GTK
+#                      implementations; main.c defines guiinfo gui.
+#
+#  siril-cli         — link_whole: siril_lib  +  siril_headless_lib (on demand).
+#                      gui_iface_impl.c is NEVER linked here; gui_iface_stubs.c
+#                      (in siril_lib) provides headless no-ops for all slots.
+#                      main-cli.c does NOT define guiinfo gui.
+
 # Define the resource file
 gnome = import('gnome')
 siril_resources = gnome.compile_resources(
@@ -314,21 +364,29 @@ siril_resources = gnome.compile_resources(
 
 siril_lib = static_library('siril',
                            siril_resources[0], src_files,
-                           dependencies: externals_dep,
+                           dependencies: core_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
                            cpp_args : siril_cpp_flag)
 
-siril_dep = declare_dependency(link_with: siril_lib,
+siril_headless_lib = static_library('siril_headless',
+                                    'core/headless_stubs.c',
+                                    dependencies: core_dep,
+                                    include_directories: siril_inc_dir,
+                                    c_args : siril_c_flag,
+                                    cpp_args : siril_cpp_flag)
+
+siril_dep = declare_dependency(link_with: [siril_lib, siril_headless_lib],
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
 # Custom target for glib-compile-resources
 
 ################################################################################
-# Build gui executable
+# Build gui executable (only when -Dgui=enabled, the default)
 
-siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
+if enable_gui
+siril_gui = executable('siril', siril_resources[1], 'main.c', src_files_gui, win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
@@ -337,9 +395,13 @@ siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        install : true,
                        win_subsystem : 'console',
                       )
+endif
 
 ################################################################################
 # Build cli executable
+# siril-cli links siril_lib (core + gui_iface_stubs) and siril_headless_lib
+# (on-demand stubs for remaining direct GUI calls from core code).
+# gui_iface_impl.c is never linked here.  main-cli.c does not define guiinfo gui.
 
 siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        dependencies: siril_dep,

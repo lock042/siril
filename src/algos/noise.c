@@ -27,8 +27,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #include "noise.h"
 
@@ -37,7 +36,7 @@ static GThread *thread;
 static gboolean end_noise(gpointer p) {
 	struct noise_data *args = (struct noise_data *) p;
 	stop_processing_thread();
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 
 	if (args->display_start_end) {
 		struct timeval t_end;
@@ -119,8 +118,8 @@ void evaluate_noise_in_image() {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
-	set_cursor_waiting(TRUE);
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.set_busy(TRUE);
+	gui_iface.show_panel("output_logs", TRUE);
 	// Use the command processor
 	process_bgnoise(0);
 }

@@ -48,7 +48,7 @@
 #include "io/seqwriter.h"
 #include "io/sequence.h"
 #include "io/FITS_symlink.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "conversion.h"
 
 #ifdef HAVE_LIBRAW
@@ -608,8 +608,8 @@ static gboolean end_convert(gpointer p) {
 		free(converted_seqname);
 	}
 
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_progress(PROGRESS_DONE, PROGRESS_TEXT_RESET);
+	gui_iface.set_busy(FALSE);
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	stop_processing_thread();
@@ -640,7 +640,7 @@ gpointer convert_thread_worker(gpointer p) {
 	if (args->output_type == SEQ_SER || args->output_type == SEQ_FITSEQ) {
 		seqwriter_set_max_active_blocks(1);
 	}
-	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, _("Converting files"));
 	init_report(args);
 
 	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
@@ -1136,7 +1136,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 
 	double percent = (double)g_atomic_int_get(&conv->converted_images) /
 		(double)g_atomic_int_get(&conv->nb_input_images);
-	set_progress_bar_data(NULL, percent);
+	gui_iface.set_progress(percent, NULL);
 	return;
 }
 

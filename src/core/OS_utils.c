@@ -73,9 +73,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
+#include "core/gui_iface.h"
 #include "git-version.h"
 
 #include "OS_utils.h"
@@ -339,9 +337,9 @@ gboolean is_space_disk_available(const gchar *disk) {
 gboolean update_displayed_memory(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
-	set_GUI_MEM(get_used_RAM_memory(), "labelmem");
-	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
-	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
+	gui_iface.update_mem_usage(get_used_RAM_memory());
+	gui_iface.update_disk_space(find_space(com.wd), "labelFreeSpace");
+	gui_iface.update_disk_space(find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
 }
 
@@ -375,19 +373,19 @@ int test_available_space(gint64 req_size) {
 				msg = siril_log_message(_("Compression enabled: There may no be enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
+				gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
 			} else {
 				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
+				gui_iface.message_dialog(SIRIL_MSG_WARNING, _("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
 			}
 			res = 0;
 		} else {
 			msg = siril_log_message(_("Not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-			queue_error_message_dialog(_("Not enough disk space"), msg);
+			gui_iface.message_dialog(SIRIL_MSG_ERROR, _("Not enough disk space"), msg);
 			res = 1;
 		}
 		g_free(avail);

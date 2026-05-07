@@ -25,7 +25,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
-#include "gui/keywords_tree.h"
+#include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/path_parse.h"
@@ -1285,7 +1285,7 @@ gboolean end_keywords_sequence(gpointer p) {
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		gui_function(refresh_keywords_dialog, NULL);
+		gui_iface.refresh_keywords_dialog();
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);

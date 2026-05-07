@@ -40,8 +40,10 @@
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_preview.h"
+#include "core/gui_iface.h"
+/* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
+ * should move to gui/ so that image_format_fits.c is GDK-free. */
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "algos/spcc.h"
@@ -1326,8 +1328,8 @@ void clearfits_header(fits *fit) {
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
-	if (fit == gfit && is_preview_active())
-		clear_backup();
+	if (fit == gfit && gui_iface.is_preview_active())
+		gui_iface.clear_backup();
 	memset(fit, 0, offsetof(struct ffit, rwlock));
 	// Do not mess with the rwlock, this must only be engaged with using g_rwlock_* functions
 	// and preserving the lock in a fits struct being copied into relies on it not being cleared here

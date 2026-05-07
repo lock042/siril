@@ -48,6 +48,42 @@
 #include "io/siril_git.h"
 
 #include "preferences.h"
+
+/* ── Language combo (moved from core/siril_language.c) ────────────────────── */
+
+void siril_language_fill_combo(const gchar *language) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	GList *list = g_hash_table_get_keys(siril_language_get_full_list());
+	gboolean lang_changed = FALSE;
+	int i = 1;
+
+	gtk_combo_box_text_remove_all(lang_combo);
+	gtk_combo_box_text_append(lang_combo, 0, _("System Language"));
+
+	list = g_list_sort(list, (GCompareFunc) locale_compare);
+
+	for (GList *l = list; l; l = l->next) {
+		gtk_combo_box_text_append_text(lang_combo, l->data);
+		gchar *locale = extract_locale_from_string(l->data);
+		if (!g_strcmp0(language, locale)) {
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), i);
+			lang_changed = TRUE;
+		}
+		g_free(locale);
+		i++;
+	}
+	if (!lang_changed)
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lang_combo), 0);
+	g_list_free(list);
+}
+
+gchar *get_interface_language(void) {
+	GtkComboBoxText *lang_combo = GTK_COMBO_BOX_TEXT(GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_language")));
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lang_combo)) == 0)
+		return g_strdup("");
+	gchar *str = gtk_combo_box_text_get_active_text(lang_combo);
+	return extract_locale_from_string(str);
+}
 #include "filters/starnet.h"
 
 #ifndef W_OK
@@ -357,7 +393,7 @@ static void update_color_management_preferences() {
 	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
 	com.pref.icc.pedantic_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_pedantic_linear")));
 	com.icc.rendering_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC));
-	gui.icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
+	com.gui_icc.proofing_flags = ((com.pref.icc.rendering_bpc * cmsFLAGS_BLACKPOINTCOMPENSATION) & !(com.pref.icc.rendering_intent == INTENT_ABSOLUTE_COLORIMETRIC)) | cmsFLAGS_SOFTPROOFING;
 	com.pref.icc.autoassignment = 	((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_load"))) * ICC_ASSIGN_ON_LOAD) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stack"))) * ICC_ASSIGN_ON_STACK) +
 									(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_icc_assign_on_stretch"))) * ICC_ASSIGN_ON_STRETCH) +

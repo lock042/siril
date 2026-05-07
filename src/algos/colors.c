@@ -32,10 +32,7 @@
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
 #include "io/single_image.h"
-#include "gui/progress_and_log.h"
-#include "gui/histogram.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -1142,8 +1139,8 @@ void background_neutralize(fits* fit, rectangle black_selection) {
 	}
 
 	invalidate_stats_from_fit(fit);
-	invalidate_gfit_histogram();
 }
+
 
 void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 		double kw[], double bg[], double norm, double low, double high) {
@@ -1366,14 +1363,7 @@ gchar *ccm_log_hook(gpointer p, log_hook_detail detail) {
 
 /* CCM processing function with logging */
 static int ccm_process(struct ccm_data *args, fits *fit) {
-
-	int retval = ccm_calc(fit, args->matrix, args->power);
-
-	if (retval == 0) {
-		populate_roi();
-	}
-
-	return retval;
+	return ccm_calc(fit, args->matrix, args->power);
 }
 
 /* The actual CCM processing hook for generic_image_worker */
@@ -1426,6 +1416,7 @@ int ccm_process_with_worker(ccm matrix, float power) {
 	args->user = params;
 	args->log_hook = ccm_log_hook;
 	args->max_threads = com.max_thread;
+	args->populate_roi_on_complete = TRUE;
 	// We don't need to do these two because of calloc, but they are shown as a
 	// reminder of intent
 	// args->for_preview = FALSE;

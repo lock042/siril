@@ -35,46 +35,77 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 
+static GtkComboBox *bkg_poly_order_combo = NULL;
+static GtkComboBox *bkg_correction_combo = NULL;
+static GtkSpinButton *bkg_nb_samples_spin = NULL;
+static GtkRange *bkg_tolerance_scale = NULL;
+static GtkComboBox *bkg_interp_combo = NULL;
+static GtkSpinButton *bkg_smoothing_spin = NULL;
+static GtkToggleButton *bkg_dither_btn = NULL;
+static GtkToggleButton *bkg_randomize_btn = NULL;
+static GtkToggleButton *bkg_grad_descent_btn = NULL;
+static GtkWidget *bkg_ok_button = NULL;
+static GtkWidget *bkg_show_original = NULL;
+static GtkLabel *bkg_label_samples = NULL;
+static GtkToggleButton *bkg_keep_samples_btn = NULL;
+static GtkToggleButton *bkg_seq_btn = NULL;
+static GtkEntry *bkg_seq_entry = NULL;
+static GtkNotebook *bkg_notebook = NULL;
+
+static void background_extraction_init_statics(void) {
+	if (bkg_poly_order_combo) return;
+	bkg_poly_order_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "box_background_order"));
+	bkg_correction_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "box_background_correction"));
+	bkg_nb_samples_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_background_nb_samples"));
+	bkg_tolerance_scale = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_background_tolerance"));
+	bkg_interp_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "background_extraction_combo"));
+	bkg_smoothing_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_background_smoothing"));
+	bkg_dither_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bkg_dither_button"));
+	bkg_randomize_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bkg_randomize_button"));
+	bkg_grad_descent_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bkg_grad_descent_button"));
+	bkg_ok_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "background_ok_button"));
+	bkg_show_original = GTK_WIDGET(gtk_builder_get_object(gui.builder, "bkg_show_original"));
+	bkg_label_samples = GTK_LABEL(gtk_builder_get_object(gui.builder, "background_label_samples"));
+	bkg_keep_samples_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "subsky_keep_samples"));
+	bkg_seq_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkBkgSeq"));
+	bkg_seq_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryBkgSeq"));
+	bkg_notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "bkg_notebook_inter"));
+}
+
 static poly_order get_poly_order() {
-	GtkComboBox *combo_box_poly_order = GTK_COMBO_BOX(lookup_widget("box_background_order"));
-	return gtk_combo_box_get_active(combo_box_poly_order);
+	return gtk_combo_box_get_active(bkg_poly_order_combo);
 }
 
 static background_correction get_correction_type() {
-	GtkComboBox *combo_box_correction = GTK_COMBO_BOX(lookup_widget("box_background_correction"));
-	return gtk_combo_box_get_active(combo_box_correction);
+	return gtk_combo_box_get_active(bkg_correction_combo);
 }
 
 static int get_nb_samples_per_line() {
-	GtkSpinButton *nb_samples = GTK_SPIN_BUTTON(lookup_widget("spin_background_nb_samples"));
-	return gtk_spin_button_get_value_as_int(nb_samples);
+	return gtk_spin_button_get_value_as_int(bkg_nb_samples_spin);
 }
 
 static double get_tolerance_value() {
-	GtkRange *tol = GTK_RANGE(lookup_widget("scale_background_tolerance"));
-	return gtk_range_get_value(tol);
+	return gtk_range_get_value(bkg_tolerance_scale);
 }
 
 static background_interpolation get_interpolation_method() {
-	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("background_extraction_combo"));
-	return gtk_combo_box_get_active(combo);
+	return gtk_combo_box_get_active(bkg_interp_combo);
 }
 
 static double get_smoothing_parameter() {
-	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_background_smoothing"));
-	return gtk_spin_button_get_value(spin);
+	return gtk_spin_button_get_value(bkg_smoothing_spin);
 }
 
 static gboolean is_dither_checked() {
-	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_dither_button"))));
+	return gtk_toggle_button_get_active(bkg_dither_btn);
 }
 
 static gboolean is_randomize_checked() {
-	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_randomize_button"))));
+	return gtk_toggle_button_get_active(bkg_randomize_btn);
 }
 
 static gboolean is_grad_descent_checked() {
-	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_grad_descent_button"))));
+	return gtk_toggle_button_get_active(bkg_grad_descent_btn);
 }
 
 /* management of the graphical state and backup image */
@@ -113,8 +144,8 @@ gboolean end_background(gpointer p) {
 		g_rw_lock_reader_lock(&gfit->rwlock);
 		gfit_modified_update_gui();
 		g_rw_lock_reader_unlock(&gfit->rwlock);
-		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
-		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
+		gtk_widget_set_sensitive(bkg_ok_button, TRUE);
+		gtk_widget_set_sensitive(bkg_show_original, TRUE);
 		free(args);
 	}
 	set_cursor_waiting(FALSE);
@@ -128,8 +159,8 @@ static gboolean background_idle(gpointer p) {
 	g_rw_lock_reader_lock(&gfit->rwlock);
 	gfit_modified_update_gui();
 	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
-	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
+	gtk_widget_set_sensitive(bkg_ok_button, TRUE);
+	gtk_widget_set_sensitive(bkg_show_original, TRUE);
 	free_generic_img_args((struct generic_img_args *)p);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -178,7 +209,8 @@ static gpointer bkg_generate_worker(gpointer p) {
 }
 
 void on_bkg_randomize_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkLabel *label = GTK_LABEL(lookup_widget("background_label_samples"));
+	background_extraction_init_statics();
+	GtkLabel *label = bkg_label_samples;
 	if (gtk_toggle_button_get_active(button))
 		gtk_label_set_text(label, _("Number of samples"));
 	else
@@ -186,7 +218,8 @@ void on_bkg_randomize_button_toggled(GtkToggleButton *button, gpointer user_data
 }
 
 void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *keep_all_button = (GtkToggleButton *) lookup_widget("subsky_keep_samples");
+	background_extraction_init_statics();
+	GtkToggleButton *keep_all_button = bkg_keep_samples_btn;
 	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
 
 	struct bkg_generate_args *args = calloc(1, sizeof(struct bkg_generate_args));
@@ -261,8 +294,8 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
-			lookup_widget("checkBkgSeq"));
+	background_extraction_init_statics();
+	GtkToggleButton *seq_button = bkg_seq_btn;
 	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
 		struct background_data *args = calloc(1, sizeof(struct background_data));
 		args->nb_of_samples = get_nb_samples_per_line();
@@ -299,7 +332,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		set_cursor_waiting(TRUE);
 
-		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
+		args->seqEntry = strdup(gtk_entry_get_text(bkg_seq_entry));
 		if (args->seqEntry && args->seqEntry[0] == '\0') {
 			free(args->seqEntry);
 			args->seqEntry = strdup("bkg_");
@@ -350,18 +383,19 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 	} else {
 		clear_backup();
 	}
-	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), FALSE);
-	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), FALSE);
+	gtk_widget_set_sensitive(bkg_ok_button, FALSE);
+	gtk_widget_set_sensitive(bkg_show_original, FALSE);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
+	background_extraction_init_statics();
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	background_startup();
 }
 
 void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_data) {
-	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("bkg_notebook_inter"));
-	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
+	background_extraction_init_statics();
+	gtk_notebook_set_current_page(bkg_notebook, gtk_combo_box_get_active(combo));
 }
 
 static gboolean pressed = FALSE;
@@ -414,7 +448,8 @@ gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *ev
 }
 
 void on_checkBkgSeq_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *ok = lookup_widget("background_ok_button");
+	background_extraction_init_statics();
+	GtkWidget *ok = bkg_ok_button;
 	if (gtk_toggle_button_get_active(button)) {
 		gtk_widget_set_sensitive(ok, TRUE);
 	} else {

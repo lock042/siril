@@ -29,7 +29,6 @@
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "stacking.h"
-#include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "algos/siril_wcs.h"
 #include "opencv/opencv.h"

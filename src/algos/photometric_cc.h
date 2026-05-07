@@ -65,5 +65,9 @@ int get_favourite_spccobject(GList *list, const gchar *favourite);
 int get_favourite_oscsensor(GList *list, const gchar *favourite);
 int make_selection_around_a_star(cat_item *star, rectangle *area, fits *fit, struct phot_config *pset);
 
+/* SPCC mirror management (defined in algos/photometric_cc.c) */
+extern gchar **spcc_mirrors;
+void initialize_spcc_mirrors(void);
+
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
 

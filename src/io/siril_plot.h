@@ -22,6 +22,7 @@
 #define SRC_IO_SIRIL_PLOT_H_
 
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #include "gui/plot.h"
 #include "kplot.h"
 #include "extern.h"

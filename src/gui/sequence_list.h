@@ -20,6 +20,7 @@
 #include "core/siril.h"
 
 #ifndef SRC_GUI_SEQUENCE_LIST_H_
+#include <gtk/gtk.h>
 #define SRC_GUI_SEQUENCE_LIST_H_
 
 void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data);
