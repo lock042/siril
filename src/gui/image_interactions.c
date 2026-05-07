@@ -824,7 +824,23 @@ gboolean update_zoom(gdouble x, gdouble y, double scale) {
 
 	factor = gui.zoom_value * scale;
 
-	if (factor >= ZOOM_MIN && factor <= ZOOM_MAX) {
+	/* For very large images the fit-to-window zoom can fall below ZOOM_MIN.
+	 * When zooming out, lower the floor to the actual fit zoom so the full
+	 * image always remains reachable via the scroll wheel.
+	 * Also clamp factor to min_zoom instead of rejecting: smooth-scroll steps
+	 * are variable-sized, so the user can end up between two discrete levels
+	 * with no way to land exactly on min_zoom via multiplication alone. */
+	double min_zoom = ZOOM_MIN;
+	if (scale < 1.0 && gfit->rx > 0 && gfit->ry > 0) {
+		int ww = gtk_widget_get_allocated_width(gui.view[RED_VPORT].drawarea);
+		int wh = gtk_widget_get_allocated_height(gui.view[RED_VPORT].drawarea);
+		if (ww > 1 && wh > 1)
+			min_zoom = min(ZOOM_MIN, min((double)ww / gfit->rx, (double)wh / gfit->ry));
+		if (factor < min_zoom)
+			factor = min_zoom;
+	}
+
+	if (factor >= min_zoom && factor <= ZOOM_MAX) {
 		zoomed = TRUE;
 		gui.zoom_value = factor;
 		update_zoom_label();

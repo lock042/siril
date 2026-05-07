@@ -16,6 +16,9 @@ siril-1.5.0
 * Parallelize min/max stacking algorithms (#194)
 * Update astrometry solution when resampling or binning instead of deleting it
 
+**Fixes**
+* Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
+
 siril-1.4.3
 05/07/26
 
