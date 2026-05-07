@@ -13,8 +13,9 @@ siril-1.5.0
 * Improved management of the processing thread and separation of image data processing and GUI update code (!998)
 * Improved locking of data structs that may be accessed by multiple threads (!1014)
 * Added background sample optimization, random sample placement and sample constraint by area (!1017)
-* Parallelize min/max stacking algorithms (#194)
-* Update astrometry solution when resampling or binning instead of deleting it
+* Parallelized min/max stacking algorithms (#194)
+* Updated astrometry solution when resampling or binning instead of deleting it
+* Refactored the undo/redo mechanism. A long press displays the history list. The command line now supports undo and redo functions.
 
 **Fixes**
 * Fixed full-resolution rendering at zoom ≥ 100% for images exceeding Cairo's 32767-pixel limit
