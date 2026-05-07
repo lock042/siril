@@ -29,6 +29,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <wcslib.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>  /* _get_osfhandle */
+#endif
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -51,116 +55,104 @@
 #define O_BINARY 0
 #endif
 
-/* *filename must be freed */
-static int undo_build_swapfile(fits *fit, char **filename) {
-	gchar *nameBuff;
-	char name[] = "siril_swp-XXXXXX";
-	gchar *tmpdir;
-	int fd;
-
-	tmpdir = com.pref.swap_dir;
-	nameBuff = g_build_filename(tmpdir, name, NULL);
-	fd = g_mkstemp(nameBuff);
-	if (fd < 1) {
-		siril_log_message(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
-				tmpdir, strerror(errno));
-		g_free(nameBuff);
-		return 1;
+/* Mark fd so the file is deleted automatically when the last handle closes.
+ * On POSIX: unlink removes the directory entry immediately; the data lives
+ * until the fd is closed (even on SIGKILL).
+ * On Windows: SetFileInformationByHandle with FileDispositionInfo achieves the
+ * same effect - the OS deletes the file when the process exits or the fd is
+ * closed, including on abnormal termination. */
+static void swap_mark_delete_on_close(int fd, const gchar *path) {
+#ifndef _WIN32
+	(void)fd;
+	g_unlink(path);
+#else
+	(void)path;
+	HANDLE h = (HANDLE)_get_osfhandle(fd);
+	if (h != INVALID_HANDLE_VALUE) {
+		FILE_DISPOSITION_INFO fdi = { .DeleteFile = TRUE };
+		SetFileInformationByHandle(h, FileDispositionInfo, &fdi, sizeof(fdi));
 	}
-
-	size_t size = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-
-	// Write some data to the temporary file
-	errno = 0;
-	if (fit->type == DATA_USHORT) {
-		if (-1 == write(fd, fit->data, size * sizeof(WORD))) {
-			siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
-					tmpdir, strerror(errno));
-			g_free(nameBuff);
-			g_close(fd, NULL);
-			return 1;
-		}
-	} else if (fit->type == DATA_FLOAT) {
-		if (-1 == write(fd, fit->fdata, size * sizeof(float))) {
-			siril_log_message(_("File I/O Error: Unable to write swap file in %s: [%s]\n"),
-					tmpdir, strerror(errno));
-			g_free(nameBuff);
-			g_close(fd, NULL);
-			return 1;
-		}
-	}
-	*filename = nameBuff;
-	g_close(fd, NULL);
-	return 0;
+#endif
 }
 
-/* *filename must be freed */
-static int undo_build_mask_swapfile(fits *fit, char **filename) {
-	gchar *nameBuff;
-	char name[] = "siril_msk-XXXXXX";
-	gchar *tmpdir;
-	int fd;
-
-	if (!fit->mask || !fit->mask->data) {
-		*filename = NULL;
-		return 0;
-	}
-
-	tmpdir = com.pref.swap_dir;
-	nameBuff = g_build_filename(tmpdir, name, NULL);
-	fd = g_mkstemp(nameBuff);
-	if (fd < 1) {
-		siril_log_message(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
-				tmpdir, strerror(errno));
+/* Returns an open fd on success, -1 on error.
+ * The file is marked delete-on-close on both POSIX and Windows: it vanishes
+ * automatically when the fd is closed, even if Siril is killed. */
+static int undo_build_swapfile(fits *fit) {
+	char name[] = "siril_swp-XXXXXX";
+	gchar *nameBuff = g_build_filename(com.pref.swap_dir, name, NULL);
+	int fd = g_mkstemp(nameBuff);
+	if (fd < 0) {
+		siril_log_message(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
+				com.pref.swap_dir, strerror(errno));
 		g_free(nameBuff);
-		return 1;
+		return -1;
 	}
+	swap_mark_delete_on_close(fd, nameBuff);
+	g_free(nameBuff);
+
+	size_t size = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	errno = 0;
+	ssize_t written = -1;
+	if (fit->type == DATA_USHORT)
+		written = write(fd, fit->data, size * sizeof(WORD));
+	else if (fit->type == DATA_FLOAT)
+		written = write(fd, fit->fdata, size * sizeof(float));
+
+	if (written == -1) {
+		siril_log_message(_("File I/O Error: Unable to write swap file: [%s]\n"), strerror(errno));
+		g_close(fd, NULL);
+		return -1;
+	}
+	return fd;
+}
+
+/* Returns an open fd on success, -1 if there is no mask (not an error), -2 on error. */
+static int undo_build_mask_swapfile(fits *fit) {
+	if (!fit->mask || !fit->mask->data)
+		return -1;  /* no mask - not an error */
+
+	char name[] = "siril_msk-XXXXXX";
+	gchar *nameBuff = g_build_filename(com.pref.swap_dir, name, NULL);
+	int fd = g_mkstemp(nameBuff);
+	if (fd < 0) {
+		siril_log_message(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
+				com.pref.swap_dir, strerror(errno));
+		g_free(nameBuff);
+		return -2;
+	}
+	swap_mark_delete_on_close(fd, nameBuff);
+	g_free(nameBuff);
 
 	size_t n_pixels = fit->naxes[0] * fit->naxes[1];
 	size_t elem_size;
-
 	switch (fit->mask->bitpix) {
-		case 8:
-			elem_size = sizeof(uint8_t);
-			break;
-		case 16:
-			elem_size = sizeof(uint16_t);
-			break;
-		case 32:
-			elem_size = sizeof(float);
-			break;
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
 		default:
 			siril_log_message(_("Error: Invalid mask bitpix value: %d\n"), fit->mask->bitpix);
-			g_free(nameBuff);
 			g_close(fd, NULL);
-			return 1;
+			return -2;
 	}
 
 	errno = 0;
 	if (-1 == write(fd, fit->mask->data, n_pixels * elem_size)) {
-		siril_log_message(_("File I/O Error: Unable to write mask swap file in %s: [%s]\n"),
-				tmpdir, strerror(errno));
-		g_free(nameBuff);
+		siril_log_message(_("File I/O Error: Unable to write mask swap file: [%s]\n"), strerror(errno));
 		g_close(fd, NULL);
-		return 1;
+		return -2;
 	}
-
-	*filename = nameBuff;
-	g_close(fd, NULL);
-	return 0;
+	return fd;
 }
 
 static void undo_free_item(historic *h) {
-	if (h->filename) {
-		if (g_unlink(h->filename))
-			siril_debug_print("g_unlink() failed\n");
-		g_free(h->filename);
-	}
-	if (h->mask_filename) {
-		if (g_unlink(h->mask_filename))
-			siril_debug_print("g_unlink() of mask failed\n");
-		g_free(h->mask_filename);
-	}
+	/* Closing the fd is all that is needed on both platforms: the file was
+	 * marked delete-on-close at creation (POSIX unlink / Windows
+	 * FileDispositionInfo) so the OS reclaims it here automatically. */
+	if (h->fd >= 0)
+		g_close(h->fd, NULL);
+	if (h->mask_fd >= 0)
+		g_close(h->mask_fd, NULL);
 	if (h->wcslib) {
 		wcsfree(h->wcslib);
 		free(h->wcslib);
@@ -173,18 +165,19 @@ static void undo_free_item(historic *h) {
 /* Save current gfit pixels to a new swap file and push the resulting historic
  * entry to *stack. label is the operation name (may be empty, not NULL). */
 static int undo_push_to(GList **stack, fits *fit, const char *label) {
-	gchar *filename = NULL, *mask_filename = NULL;
-
-	if (undo_build_swapfile(fit, &filename))
+	int fd = undo_build_swapfile(fit);
+	if (fd < 0)
 		return 1;
-	if (undo_build_mask_swapfile(fit, &mask_filename)) {
-		g_free(filename);
+
+	int mask_fd = undo_build_mask_swapfile(fit);
+	if (mask_fd == -2) {  /* -1 means "no mask", -2 means error */
+		g_close(fd, NULL);  /* delete-on-close cleans up the swap file */
 		return 1;
 	}
 
 	historic *h = g_new0(historic, 1);
-	h->filename = filename;
-	h->mask_filename = mask_filename;
+	h->fd = fd;
+	h->mask_fd = mask_fd;  /* -1 if no mask, >= 0 if mask exists */
 	h->mask_bitpix = (fit->mask && fit->mask->data) ? fit->mask->bitpix : 0;
 	h->rx = fit->rx;
 	h->ry = fit->ry;
@@ -204,11 +197,8 @@ static int undo_push_to(GList **stack, fits *fit, const char *label) {
 }
 
 static int undo_get_data_ushort(fits *fit, historic *hist) {
-	int fd;
-
-	// read the data from temporary file
-	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
-		printf("Error opening swap file : %s\n", hist->filename);
+	if (lseek(hist->fd, 0, SEEK_SET) == (off_t)-1) {
+		printf("Error seeking swap file: [%s]\n", strerror(errno));
 		return 1;
 	}
 
@@ -219,10 +209,9 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(WORD);
 	WORD *buf = calloc(1, size);
-	if ((read(fd, buf, size)) < size) {
-		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
+	if ((read(hist->fd, buf, size)) < (ssize_t)size) {
+		printf("Undo Read failed with error [%s]\n", strerror(errno));
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 	/* need to reallocate data as size may have changed */
@@ -230,7 +219,6 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 	fit->data = newdata;
@@ -256,16 +244,12 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 
 	full_stats_invalidation_from_fit(fit);
 	free(buf);
-	g_close(fd, NULL);
 	return 0;
 }
 
 static int undo_get_data_float(fits *fit, historic *hist) {
-	int fd;
-
-	// read the data from temporary file
-	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
-		printf("Error opening swap file : %s\n", hist->filename);
+	if (lseek(hist->fd, 0, SEEK_SET) == (off_t)-1) {
+		printf("Error seeking swap file: [%s]\n", strerror(errno));
 		return 1;
 	}
 
@@ -276,10 +260,9 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(float);
 	float *buf = calloc(1, size);
-	if ((read(fd, buf, size) < size)) {
-		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
+	if (read(hist->fd, buf, size) < (ssize_t)size) {
+		printf("Undo Read failed with error [%s]\n", strerror(errno));
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 	/* need to reallocate data as size may have changed */
@@ -287,7 +270,6 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 	fit->fdata = newdata;
@@ -313,15 +295,12 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 
 	full_stats_invalidation_from_fit(fit);
 	free(buf);
-	g_close(fd, NULL);
 	return 0;
 }
 
 static int undo_get_mask_data(fits *fit, historic *hist) {
-	int fd;
-
-	/* If there's no mask file saved, free any existing mask */
-	if (!hist->mask_filename) {
+	/* mask_fd == -1 means no mask was saved */
+	if (hist->mask_fd < 0) {
 		if (fit->mask) {
 			if (fit->mask->data) {
 				free(fit->mask->data);
@@ -331,6 +310,11 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 			fit->mask = NULL;
 		}
 		return 0;
+	}
+
+	if (lseek(hist->mask_fd, 0, SEEK_SET) == (off_t)-1) {
+		printf("Error seeking mask swap file: [%s]\n", strerror(errno));
+		return 1;
 	}
 
 	/* Allocate or reallocate mask structure */
@@ -344,27 +328,14 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 
 	fit->mask->bitpix = hist->mask_bitpix;
 
-	if ((fd = g_open(hist->mask_filename, O_RDONLY | O_BINARY, 0)) == -1) {
-		printf("Error opening mask swap file : %s\n", hist->mask_filename);
-		return 1;
-	}
-
 	size_t n_pixels = hist->rx * hist->ry;
 	size_t elem_size;
-
 	switch (hist->mask_bitpix) {
-		case 8:
-			elem_size = sizeof(uint8_t);
-			break;
-		case 16:
-			elem_size = sizeof(uint16_t);
-			break;
-		case 32:
-			elem_size = sizeof(float);
-			break;
+		case 8:  elem_size = sizeof(uint8_t);  break;
+		case 16: elem_size = sizeof(uint16_t); break;
+		case 32: elem_size = sizeof(float);    break;
 		default:
 			siril_log_message(_("Error: Invalid mask bitpix value in history: %d\n"), hist->mask_bitpix);
-			g_close(fd, NULL);
 			return 1;
 	}
 
@@ -372,15 +343,13 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	void *buf = calloc(1, size);
 	if (!buf) {
 		PRINT_ALLOC_ERR;
-		g_close(fd, NULL);
 		return 1;
 	}
 
 	errno = 0;
-	if ((read(fd, buf, size)) < size) {
-		printf("Undo Read of mask [%s], failed with error [%s]\n", hist->mask_filename, strerror(errno));
+	if (read(hist->mask_fd, buf, size) < (ssize_t)size) {
+		printf("Undo Read of mask failed with error [%s]\n", strerror(errno));
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 
@@ -389,7 +358,6 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	if (!newdata) {
 		PRINT_ALLOC_ERR;
 		free(buf);
-		g_close(fd, NULL);
 		return 1;
 	}
 
@@ -397,7 +365,6 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	memcpy(fit->mask->data, buf, size);
 
 	free(buf);
-	g_close(fd, NULL);
 	return 0;
 }
 
@@ -516,7 +483,7 @@ int undo_display_data(int dir) {
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			refresh_annotations(TRUE);
-			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
+			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
 				g_rw_lock_reader_lock(&gfit->rwlock);
@@ -589,7 +556,7 @@ int undo_display_data(int dir) {
 			gui.icc.proofing_transform = NULL;
 			unlock_display_transform();
 			gui_function(close_tab, NULL); // These 2 lines account for possible change from mono to RGB
-			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
+			/* redraw_mask_idle posts an idle - must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
 				g_rw_lock_reader_lock(&gfit->rwlock);
@@ -788,3 +755,4 @@ void setup_undo_redo_long_press(void) {
 	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(redo_gesture), GTK_PHASE_CAPTURE);
 	g_signal_connect(redo_gesture, "pressed", G_CALLBACK(on_long_press_redo), redo_btn);
 }
+

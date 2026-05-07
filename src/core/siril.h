@@ -751,8 +751,8 @@ typedef struct _child_info {
 } child_info;
 
 struct historic_struct {
-	char *filename;
-	char *mask_filename;
+	int fd;             /* open fd for the swap file; -1 if none */
+	int mask_fd;        /* open fd for the mask swap file; -1 if none */
 	char history[FLEN_VALUE];
 	int rx, ry, nchans;
 	data_type type;
