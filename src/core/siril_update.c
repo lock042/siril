@@ -151,6 +151,7 @@ int compare_version(version_number v1, version_number v2) {
 				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
 				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
 				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
+				if (v2.beta_version && !v1.rc_version && !v1.beta_version) return 1;
 
 				/* check for patched version */
 				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
@@ -172,25 +173,8 @@ int compare_version(version_number v1, version_number v2) {
 
 #if defined(HAVE_LIBCURL)
 
-static version_number get_last_version_number(gchar *version_str) {
-	gchar **v;
-	version_number version = { 0 };
-
-	v = g_strsplit_set(version_str, ".-", -1);
-
-	if (v[0])
-		version.major_version = g_ascii_strtoull(v[0], NULL, 10);
-	if (v[0] && v[1])
-		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
-	if (v[0] && v[1] && v[2])
-		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3]) {
-		remove_alpha(v[3], &version.rc_version, &version.beta_version);
-		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
-	}
-
-	g_strfreev(v);
-	return version;
+static version_number get_last_version_number(const gchar *version_str) {
+	return get_version_number_from_string(version_str);
 }
 
 static gboolean siril_update_get_highest(yyjson_doc *doc,
@@ -322,10 +306,14 @@ static gboolean siril_update_get_highest(yyjson_doc *doc,
 				*build_comment = g_strdup(yyjson_get_str(comment));
 			}
 
-			// Parse release date
-			gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
-			GDateTime *datetime = g_date_time_new_from_iso8601(str, NULL);
-			g_free(str);
+			// Parse release date: try full ISO8601 first (e.g. "2024-01-15T00:00:00Z"),
+			// then fall back to appending midnight UTC for bare date strings ("2024-01-15").
+			GDateTime *datetime = g_date_time_new_from_iso8601(release_date, NULL);
+			if (!datetime) {
+				gchar *str = g_strdup_printf("%s 00:00:00Z", release_date);
+				datetime = g_date_time_new_from_iso8601(str, NULL);
+				g_free(str);
+			}
 
 			if (datetime) {
 				*release_timestamp = g_date_time_to_unix(datetime);
@@ -449,10 +437,10 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 
 	// Parse JSON
 	yyjson_read_err err = { 0 };
-	yyjson_doc *doc = yyjson_read(args->content, strlen(args->content), 0);
+	yyjson_doc *doc = yyjson_read_opts(args->content, strlen(args->content), 0, NULL, &err);
 	if (!doc) {
-		g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC,
-				   args->url, err.msg);
+		g_printerr("%s: parsing of %s failed: %s at position %zu\n", G_STRFUNC,
+				   args->url, err.msg, err.pos);
 		return NULL;
 	}
 
