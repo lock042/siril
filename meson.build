@@ -47,6 +47,14 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_gui       = get_option('gui').enabled()
+gtk_version      = get_option('gtk_version')
+use_gtk4         = (gtk_version == 'gtk4')
+gui_subdir       = use_gtk4 ? 'gui-gtk4' : 'gui'
+if use_gtk4
+  add_project_arguments('-DUSE_GTK4=1', language: ['c', 'cpp'])
+else
+  add_project_arguments('-DUSE_GTK3=1', language: ['c', 'cpp'])
+endif
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
 enable_sqlite    = get_option('sqlite')
@@ -252,7 +260,14 @@ endif
 # gui/ headers compile correctly on GTK-equipped systems.  Once all remaining
 # gui/ header contamination is removed from core files these can be removed from
 # the non-GUI dep list and truly omitted in headless builds.
-gtk_dep = dependency('gtk+-3.0', required : enable_gui, version: '>= 3.22.0')
+if use_gtk4
+  # 4.10 required for GtkAlertDialog, GtkFileDialog, GtkColorDialog,
+  # gtk_widget_add_css_class — these replaced the deprecated dialog and
+  # style-context APIs.
+  gtk_dep = dependency('gtk4',     required : enable_gui, version: '>= 4.10.0')
+else
+  gtk_dep = dependency('gtk+-3.0', required : enable_gui, version: '>= 3.22.0')
+endif
 # Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
 # are in the core library, so they are always required.
 cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
@@ -337,7 +352,11 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = enable_gui ? dependency('gtksourceview-4') : no_dep
+if use_gtk4
+  gtksourceview_dep = enable_gui ? dependency('gtksourceview-5') : no_dep
+else
+  gtksourceview_dep = enable_gui ? dependency('gtksourceview-4') : no_dep
+endif
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')

@@ -34,7 +34,11 @@
 #include <unistd.h>
 #include <fftw3.h>
 
+#ifdef USE_GTK4
+#include "gui-gtk4/histo_display.h"
+#else
 #include "gui/histo_display.h"
+#endif
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -61,12 +65,20 @@
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/gui_state.h"
+#else
 #include "gui/gui_state.h"
+#endif
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
 #include "algos/photometric_cc.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/siril_actions.h"
+#else
 #include "gui/siril_actions.h"
+#endif
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/processing_thread.h"
@@ -83,11 +95,19 @@
 #include "io/sequence.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#ifdef USE_GTK4
+#include "gui-gtk4/ui_files.h"
+#include "gui-gtk4/utils.h"
+#include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/siril_css.h"
+#include "gui-gtk4/splashscreen.h"
+#else
 #include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/siril_css.h"
 #include "gui/splashscreen.h"
+#endif
 
 /* initialize_spcc_mirrors() declared in algos/photometric_cc.h (via gui/photometric_cc.h) */
 void force_paned_restore();
