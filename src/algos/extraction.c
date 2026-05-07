@@ -253,7 +253,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scal
 		}
 	}
 	if (scaling == SCALING_HA_UP) {
-		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE, TRUE);
 	}
 
 	/* We update FITS keywords */
@@ -309,7 +309,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scali
 	}
 
 	if (scaling == SCALING_HA_UP) {
-		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE, TRUE);
 	}
 
 	/* We update FITS keywords */
@@ -556,11 +556,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case 1: // Upsample Ha to OIII size
-			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE, TRUE);
 			factorHa = 1.f;
 			break;
 		case 2: // Downsample OIII to Ha size
-			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE, TRUE);
 			factorOIII = 2.f;
 			break;
 		default:
@@ -775,11 +775,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case SCALING_HA_UP: // Upsample Ha to OIII size
-			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE, TRUE);
 			factorHa = 1.f;
 			break;
 		case SCALING_OIII_DOWN: // Downsample OIII to Ha size
-			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE, TRUE);
 			factorOIII = 2.f;
 			break;
 		default:

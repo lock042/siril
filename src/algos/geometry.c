@@ -707,9 +707,16 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		}
 	}
 
-	free_wcs(fit);
-	reset_wcsdata(fit);
-	refresh_annotations(TRUE);
+	if (has_wcs(fit)) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = 1. / factor;
+		H.h11 = 1. / factor;
+		cvApplyFlips(&H, old_ry, fit->ry);
+		reframe_astrometry_data(fit, &H);
+		update_fits_header(fit);
+		refresh_annotations(FALSE);
+	}
 
 	return 0;
 }
@@ -744,7 +751,7 @@ const char* interp_to_str(int interpolation) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp, gboolean update_wcs) {
 	int retvalue;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
@@ -773,9 +780,23 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
-	free_wcs(image);
-	reset_wcsdata(image);
-	refresh_annotations(TRUE);
+
+	if (has_wcs(image)) {
+		if (update_wcs) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h00 = 1. / factor_X;
+			H.h11 = 1. / factor_Y;
+			cvApplyFlips(&H, old_ry, toY);
+			reframe_astrometry_data(image, &H);
+			update_fits_header(image);
+			refresh_annotations(FALSE);
+		} else {
+			free_wcs(image);
+			reset_wcsdata(image);
+			refresh_annotations(TRUE);
+		}
+	}
 
 	return retvalue;
 }
@@ -1431,7 +1452,7 @@ int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
 	int toX = fit->rx * s_args->scale;
 	int toY = fit->ry * s_args->scale;
-	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp);
+	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp, TRUE);
 	return s_args->retvalue;
 }
 
@@ -1650,7 +1671,7 @@ int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		return 1;
 
 	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
-	                                params->interpolation, params->clamp);
+	                                params->interpolation, params->clamp, params->update_wcs);
 	gui_function(update_MenuItem, NULL);
 	return retval;
 }

@@ -2904,7 +2904,26 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	if (w <= 0 || h <= 0)
 		return NULL;
 
+	/* Build description from header data — always available regardless of image size */
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype), frames,
+				ngettext("frame", "frames", frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype));
+	}
+	*descr = description;
+
 	size_t sz = (size_t)w * h * n_channels;
+	/* Skip pixel loading for images too large to thumbnail (>256 M floats ≈ 1 GB) */
+	if (sz > 256UL * 1024 * 1024) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
+
 	ima_data = malloc(sz * sizeof(float));
 	if (!ima_data) {
 		fits_close_file(fp, &status);
@@ -2919,25 +2938,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	const int Ws = w / pixScale;            // preview width
 	const int Hs = h / pixScale;            // preview height
 
-	if (fitseq_is_fitseq(filename, &frames)) {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype), frames,
-				ngettext("frame", "frames", frames));
-	} else {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype));
-	}
-
 	/* Allocate preview_data */
 	size_t prev_size = (size_t)Ws * Hs;
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
 		free(ima_data);
 		fits_close_file(fp, &status);
-		g_free(description);
-		return NULL;
+		return NULL;  /* description already in *descr; caller owns it */
 	}
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2958,11 +2965,11 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 					for (int l = 0; l < pixScale && (M + l) < h; l++) {
 						for (int k = 0; k < pixScale && (N + k) < w; k++) {
-							int idx;
+							size_t idx;
 							if (is_color) {
-								idx = ch * w * h + (M + l) * w + (N + k);
+								idx = (size_t)ch * (size_t)w * h + (size_t)(M + l) * w + (N + k);
 							} else {
-								idx = (M + l) * w + (N + k);
+								idx = (size_t)(M + l) * w + (N + k);
 							}
 							sum += ima_data[idx];
 							count++;

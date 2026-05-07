@@ -853,6 +853,7 @@ struct guiinf {
 	cairo_matrix_t image_matrix;	// inverse of display_matrix (convert display to image coordinates)
 	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
 	point display_offset;		// image display offset
+	double surface_scale;		// <1.0 when image exceeds Cairo's 32767-px limit; 1.0 normally
 
 	gboolean translating;		// the image is being translated
 
