@@ -121,9 +121,14 @@ fits *gfit = NULL;	// currently loaded image
 static gboolean close_splash_and_show_window_cb(gpointer user_data) {
 	close_splash_screen();
 
-	/* Make window visible */
+	/* Make window visible.  GTK4: the .ui no longer carries visible=1 on
+	 * GtkApplicationWindow (that triggered realisation before the
+	 * <child type="titlebar"> was attached, producing the
+	 * "gtk_window_set_titlebar() called on a realized window" warning).
+	 * Show the window explicitly here. */
 	GtkWidget *control_window = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
 	gtk_widget_set_opacity(control_window, 1.0);
+	gtk_widget_set_visible(control_window, TRUE);
 
 	force_paned_restore();
 
@@ -367,8 +372,10 @@ static void siril_app_startup(GApplication *application) {
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
-	// Initialize GtkSource
+	// Initialize GtkSource (only needed for gtksourceview-4; v5 auto-initialises).
+#ifndef USE_GTK4
 	gtk_source_init();
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
@@ -532,7 +539,9 @@ static void siril_app_activate(GApplication *application) {
 
 	if (!com.headless) {
 		update_splash_progress(_("Initializing interface components..."), 0.90);
-		gtk_builder_connect_signals(gui.builder, NULL);
+		/* GTK4: gtk_builder_connect_signals removed; the default GtkBuilderCScope
+		 * auto-resolves <signal handler="..."> entries via GModule when widgets
+		 * are constructed. */
 
 		gchar *version_string = get_siril_version_string();
 		siril_log_message(_("Welcome to %s - GUI\n"), version_string);
@@ -752,16 +761,25 @@ int main(int argc, char *argv[]) {
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
 
+#ifdef __APPLE__
 	{	/* Setting the 'register-session' property is for macOS
 		 * - to enable DnD via dock icon
 		 * - to enable system menu "Quit"
-		 */
+		 *
+		 * On Linux this property hooks GApplication into the
+		 * systemd-logind session manager for sleep / resume / inhibit
+		 * signals.  Those fire on a GIO worker thread, dispatching
+		 * into GTK across the suspend boundary, and have been observed
+		 * to crash the GTK4 build (SIGSEGV inside libgtk-4 on a
+		 * GtkApplication action lookup) when closing/reopening the
+		 * laptop lid.  The macOS workaround is not needed on Linux. */
 		GValue value = G_VALUE_INIT;
 		g_value_init(&value, G_TYPE_BOOLEAN);
 		g_value_set_boolean(&value, TRUE);
 		g_object_set_property(G_OBJECT(app), "register-session", &value);
 		g_value_unset(&value);
 	}
+#endif
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {
