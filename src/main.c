@@ -76,6 +76,7 @@
 #include "algos/photometric_cc.h"
 #ifdef USE_GTK4
 #include "gui-gtk4/siril_actions.h"
+#include "gui-gtk4/open_dialog.h"
 #else
 #include "gui/siril_actions.h"
 #endif
@@ -195,6 +196,7 @@ static GActionEntry app_entries[] = {
 	{ "quit", quit_action_activate },
 	{ "preferences", preferences_action_activate },
 	{ "open",  open_action_activate },
+	{ "open-recent", open_recent_action_activate, "s", NULL, NULL },
 	{ "save", save_action_activate },
 	{ "save-as", save_as_action_activate },
 	{ "about", about_action_activate }
@@ -367,6 +369,14 @@ static void siril_app_startup(GApplication *application) {
 #endif
 
 	g_set_application_name(PACKAGE_NAME);
+	/* Register our pixmaps resource directory with the icon theme so
+	 * that named-icon lookups (e.g. "siril" for the window's titlebar
+	 * icon) find /org/siril/ui/pixmaps/siril.svg.  Without this, a
+	 * stock-iconless dev build falls back to the broken-image / no-entry
+	 * placeholder. */
+	gtk_icon_theme_add_resource_path(
+		gtk_icon_theme_get_for_display(gdk_display_get_default()),
+		"/org/siril/ui/pixmaps");
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
