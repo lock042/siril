@@ -2676,8 +2676,9 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path, GError *
 					"Siril python module.\n"), "salmon");
 		g_warning("Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
-		g_error_free(install_error);
-		// This is a critical failure - propagate it
+		// Propagate as a critical failure.  Read the message before
+		// freeing install_error to avoid a use-after-free in the %s
+		// argument below.
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Failed to install Python module: %s",
 				install_error ? install_error->message : "Unknown error");
