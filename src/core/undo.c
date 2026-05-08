@@ -219,7 +219,10 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(WORD);
 	WORD *buf = calloc(1, size);
-	if ((read(fd, buf, size)) < size) {
+	/* read() returns ssize_t; comparing it directly against size_t silently
+	 * promotes -1 to SIZE_MAX and hides errors. Capture the signed return. */
+	ssize_t bytes_read = read(fd, buf, size);
+	if (bytes_read < 0 || (size_t)bytes_read < size) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
@@ -243,13 +246,15 @@ static int undo_get_data_ushort(fits *fit, historic *hist) {
 		fit->pdata[GLAYER] = fit->pdata[BLAYER] = fit->pdata[RLAYER];
 	}
 	memcpy(&fit->keywords.wcsdata, &hist->wcsdata, sizeof(wcs_info));
+	/* Always free the existing wcslib first: assigning the deepcopy result
+	 * directly to fit->keywords.wcslib would leak a previously-set struct. */
+	free_wcs(fit);
 	if (hist->wcslib) {
 		int status = -1;
 		fit->keywords.wcslib = wcs_deepcopy(hist->wcslib, &status);
 		if (status)
 			siril_debug_print("could not copy wcslib struct\n");
 	} else {
-		free_wcs(fit);
 		reset_wcsdata(fit);
 	}
 	fit->keywords.focal_length = hist->focal_length;
@@ -276,7 +281,8 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(float);
 	float *buf = calloc(1, size);
-	if ((read(fd, buf, size) < size)) {
+	ssize_t bytes_read = read(fd, buf, size);
+	if (bytes_read < 0 || (size_t)bytes_read < size) {
 		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
@@ -300,13 +306,13 @@ static int undo_get_data_float(fits *fit, historic *hist) {
 		fit->fpdata[GLAYER] = fit->fpdata[BLAYER] = fit->fpdata[RLAYER];
 	}
 	memcpy(&fit->keywords.wcsdata, &hist->wcsdata, sizeof(wcs_info));
+	free_wcs(fit);
 	if (hist->wcslib) {
 		int status = -1;
 		fit->keywords.wcslib = wcs_deepcopy(hist->wcslib, &status);
 		if (status)
 			siril_debug_print("could not copy wcslib struct\n");
 	} else {
-		free_wcs(fit);
 		reset_wcsdata(fit);
 	}
 	fit->keywords.focal_length = hist->focal_length;
@@ -377,7 +383,8 @@ static int undo_get_mask_data(fits *fit, historic *hist) {
 	}
 
 	errno = 0;
-	if ((read(fd, buf, size)) < size) {
+	ssize_t bytes_read = read(fd, buf, size);
+	if (bytes_read < 0 || (size_t)bytes_read < size) {
 		printf("Undo Read of mask [%s], failed with error [%s]\n", hist->mask_filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
@@ -472,11 +479,6 @@ int undo_display_data(int dir) {
 		if (is_undo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
-			/* Writer lock: covers the ROI metadata reads (rx/ry/naxes[2]),
-			 * undo_push_to (reads pixels), and undo_restore (writes pixels).
-			 * The entire save+restore must be atomic against the Python thread. */
-			g_rw_lock_writer_lock(&gfit->rwlock);
-
 			historic *top = (historic *) com.undo_stack->data;
 			// Can't reactivate the ROI if the size has changed
 			gboolean roi_was_active = (gui.roi.active
@@ -485,8 +487,19 @@ int undo_display_data(int dir) {
 					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
+
+			/* siril_preview_hide() and on_clear_roi() can transitively reach
+			 * notify_gfit_data_modified() → copy_roi_into_gfit(), which acquires
+			 * gfit->rwlock as a writer. They MUST run with no gfit lock held —
+			 * otherwise the same thread re-entering the writer lock self-deadlocks
+			 * (silently, since GLib's GRWLock makes recursive lock UB and Linux
+			 * pthread_rwlock blocks indefinitely). */
 			siril_preview_hide();
 			on_clear_roi();
+
+			/* Writer lock: undo_push_to (reads pixels) and undo_restore
+			 * (writes pixels) must be atomic against the Python thread. */
+			g_rw_lock_writer_lock(&gfit->rwlock);
 
 			/* save current state to redo stack before restoring */
 			if (undo_push_to(&com.redo_stack, gfit, top->history)) {
@@ -519,9 +532,10 @@ int undo_display_data(int dir) {
 			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				g_rw_lock_reader_lock(&gfit->rwlock);
+				/* No reader lock here: notify_gfit_data_modified() may call
+				 * copy_roi_into_gfit() which acquires the writer lock —
+				 * mirrors the contract redraw_mask_idle relies on. */
 				notify_gfit_data_modified();
-				g_rw_lock_reader_unlock(&gfit->rwlock);
 				redraw(REMAP_ALL);
 			}
 			if (preview_was_active) {
@@ -547,9 +561,6 @@ int undo_display_data(int dir) {
 		if (is_redo_available()) {
 			// Avoid any issues with ROI or preview
 			gboolean preview_was_active = is_preview_active();
-			/* Writer lock: covers the ROI metadata reads and undo_restore (writes pixels). */
-			g_rw_lock_writer_lock(&gfit->rwlock);
-
 			historic *top = (historic *) com.redo_stack->data;
 			// Can't reactivate the ROI if the size has changed
 			gboolean roi_was_active = (gui.roi.active
@@ -558,8 +569,15 @@ int undo_display_data(int dir) {
 					&& gfit->naxes[2] == top->nchans);
 			rectangle roi_rect;
 			memcpy(&roi_rect, &gui.roi.selection, sizeof(rectangle));
+
+			/* See UNDO case: these can transitively try to take the writer
+			 * lock and must run with no gfit lock held. */
 			on_clear_roi();
 			siril_preview_hide();
+
+			/* Writer lock: undo_push_to (reads pixels) and undo_restore
+			 * (writes pixels) must be atomic against the Python thread. */
+			g_rw_lock_writer_lock(&gfit->rwlock);
 
 			/* save current state to undo stack before restoring */
 			if (undo_push_to(&com.undo_stack, gfit, top->history)) {
@@ -592,9 +610,9 @@ int undo_display_data(int dir) {
 			/* redraw_mask_idle posts an idle — must be called outside any gfit lock */
 			redraw_mask_idle(NULL);
 			if (!com.pref.gui.mask_tints_vports) { // redraw() is called in redraw_mask_idle if this is TRUE
-				g_rw_lock_reader_lock(&gfit->rwlock);
+				/* No reader lock: notify_gfit_data_modified() may call
+				 * copy_roi_into_gfit() which acquires the writer lock. */
 				notify_gfit_data_modified();
-				g_rw_lock_reader_unlock(&gfit->rwlock);
 				redraw(REMAP_ALL);
 			}
 			if (preview_was_active) {
