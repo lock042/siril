@@ -21,16 +21,19 @@
 
 
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
-#include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
 #include "algos/siril_wcs.h"
 
+/* end_register_idle: defined in gui/registration.c (GUI) or
+ * core/headless_stubs.c (headless/CLI). */
+gboolean end_register_idle(gpointer p);
+
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
-		return get_registration_layer_from_GUI(seq);
+		return gui_iface.get_reg_layer();
 	} else {
 		// find first available regdata
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
@@ -235,7 +238,7 @@ void get_the_registration_area(struct registration_args *regargs, const struct r
 			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", regargs->selection.x,
 					regargs->selection.y, regargs->selection.w,
 					regargs->selection.h);
-			redraw(REDRAW_OVERLAY);
+			gui_iface.redraw_image(REDRAW_OVERLAY);
 			break;
 	}
 }

@@ -43,20 +43,46 @@ static gchar *f_cfa0 = NULL, *f_cfa1 = NULL, *f_cfa2 = NULL, *f_cfa3 = NULL;
 fits cfa0 = { 0 }, cfa1 = { 0 }, cfa2 = { 0 }, cfa3 = { 0 };
 static gboolean cfa0_loaded = FALSE, cfa1_loaded = FALSE, cfa2_loaded = FALSE, cfa3_loaded = FALSE;
 
+static GtkFileChooser *mcfa_chooser0 = NULL;
+static GtkFileChooser *mcfa_chooser1 = NULL;
+static GtkFileChooser *mcfa_chooser2 = NULL;
+static GtkFileChooser *mcfa_chooser3 = NULL;
+static GtkComboBox *mcfa_pattern_combo = NULL;
+static GtkToggleButton *mcfa_seqapply_btn = NULL;
+static GtkWidget *mcfa_seq_controls = NULL;
+static GtkEntry *mcfa_entry_in = NULL;
+static GtkEntry *mcfa_entry_out = NULL;
+static GtkWindow *mcfa_dialog_window = NULL;
+
+static void merge_cfa_init_statics(void) {
+	if (mcfa_chooser0) return;
+	mcfa_chooser0 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa0"));
+	mcfa_chooser1 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa1"));
+	mcfa_chooser2 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa2"));
+	mcfa_chooser3 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa3"));
+	mcfa_pattern_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "merge_cfa_pattern"));
+	mcfa_seqapply_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "merge_cfa_seqapply"));
+	mcfa_seq_controls = GTK_WIDGET(gtk_builder_get_object(gui.builder, "merge_cfa_seq_controls"));
+	mcfa_entry_in = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryMergeCFAin"));
+	mcfa_entry_out = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryMergeCFAout"));
+	mcfa_dialog_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "merge_cfa_dialog"));
+}
+
 void reset_controls() {
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")), com.wd);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")), com.wd);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")), com.wd);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")), com.wd);
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")));
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply")), FALSE);
-	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAin")), "CFA");
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAout")), "mCFA_");
+	merge_cfa_init_statics();
+	gtk_file_chooser_set_current_folder(mcfa_chooser0, com.wd);
+	gtk_file_chooser_set_current_folder(mcfa_chooser1, com.wd);
+	gtk_file_chooser_set_current_folder(mcfa_chooser2, com.wd);
+	gtk_file_chooser_set_current_folder(mcfa_chooser3, com.wd);
+	gtk_file_chooser_unselect_all(mcfa_chooser0);
+	gtk_file_chooser_unselect_all(mcfa_chooser1);
+	gtk_file_chooser_unselect_all(mcfa_chooser2);
+	gtk_file_chooser_unselect_all(mcfa_chooser3);
+	gtk_combo_box_set_active(mcfa_pattern_combo, 0);
+	gtk_toggle_button_set_active(mcfa_seqapply_btn, FALSE);
+	gtk_widget_set_visible(mcfa_seq_controls, FALSE);
+	gtk_entry_set_text(mcfa_entry_in, "CFA");
+	gtk_entry_set_text(mcfa_entry_out, "mCFA_");
 }
 
 static void close_everything() {
@@ -85,11 +111,9 @@ void on_merge_cfa_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button))
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), TRUE);
-	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
-	gtk_window_resize(GTK_WINDOW(lookup_widget("merge_cfa_dialog")), 1, 1);
+	merge_cfa_init_statics();
+	gtk_widget_set_visible(mcfa_seq_controls, gtk_toggle_button_get_active(button));
+	gtk_window_resize(mcfa_dialog_window, 1, 1);
 }
 
 void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
@@ -209,8 +233,9 @@ void apply_to_seq() {
 	gchar *seqname0 = NULL, *seqname1 = NULL, *seqname2 = NULL, *seqname3 = NULL;
 
 	// Get input sequence marker
-	GtkEntry *entryMergeCFAin = GTK_ENTRY(lookup_widget("entryMergeCFAin"));
-	GtkEntry *entryMergeCFAout = GTK_ENTRY(lookup_widget("entryMergeCFAout"));
+	merge_cfa_init_statics();
+	GtkEntry *entryMergeCFAin = mcfa_entry_in;
+	GtkEntry *entryMergeCFAout = mcfa_entry_out;
 	const gchar *seqmarker = gtk_entry_get_text(entryMergeCFAin);
 
 	int comseqnumber = find_substring_number(com.seq.seqname, seqmarker);
@@ -240,7 +265,7 @@ void apply_to_seq() {
 		goto cleanup;
 	}
 
-	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
+	GtkComboBox *combo_pattern = mcfa_pattern_combo;
 	args->pattern = (sensor_pattern)gtk_combo_box_get_active(combo_pattern);
 
 	// Load sequences
@@ -431,7 +456,7 @@ static gpointer merge_cfa_img_worker(gpointer p) {
 }
 
 void apply_to_img() {
-	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
+	GtkComboBox *combo_pattern = mcfa_pattern_combo;
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	sensor_pattern pattern = (sensor_pattern) p;
 
@@ -476,7 +501,8 @@ void apply_to_img() {
 }
 
 void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *to_seq = GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply"));
+	merge_cfa_init_statics();
+	GtkToggleButton *to_seq = mcfa_seqapply_btn;
 	if (gtk_toggle_button_get_active(to_seq) && sequence_is_loaded())
 		apply_to_seq();
 	else

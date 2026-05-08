@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include "core/siril.h"
+#include "core/gtk_forward_decls.h"
 #include "core/siril_world_cs.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
@@ -64,7 +65,6 @@ struct sky_object {
 int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args);
 int cached_object_lookup(sky_object_query_args *args);
 char *search_in_online_catalogs(sky_object_query_args *args);
-void search_object(GtkEntry *entry);
 
 void add_plated_from_annotations(const cat_item *obj);
 void free_Platedobject();

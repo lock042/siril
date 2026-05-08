@@ -55,9 +55,6 @@
 #define spcc_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST && DEBUG_SPCC) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
-// Array of primary + mirrors for the remote catalogue
-gchar **spcc_mirrors = NULL;
-
 static gboolean spcc_filters_initialized = FALSE;
 static int get_spcc_catalog_from_GUI();
 static rectangle get_bkg_selection();
@@ -69,14 +66,6 @@ gboolean populate_spcc_combos(gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
 
-void initialize_spcc_mirrors() {
-	if (spcc_mirrors)
-		g_strfreev(spcc_mirrors);
-
-	spcc_mirrors = g_new(gchar*, 2);
-	spcc_mirrors[0] = g_strdup("https://zenodo.org/records/17988559/files");
-	spcc_mirrors[1] = NULL;
-}
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;

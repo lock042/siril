@@ -31,7 +31,6 @@
 #include "core/siril.h"
 #include "algos/siril_random.h"
 #include "core/siril_log.h"
-#include "gui/progress_and_log.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
 #include "core/icc_profile.h"

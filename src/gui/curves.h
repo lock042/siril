@@ -19,6 +19,7 @@
  */
 
 #ifndef SIRIL_CURVES_H
+#include <gtk/gtk.h>
 #define SIRIL_CURVES_H
 
 #include "filters/curve_transform.h"

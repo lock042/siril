@@ -19,10 +19,13 @@
  */
 
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
+#include "algos/PSF.h"
 #include "algos/siril_wcs.h"
+#include "algos/star_finder.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
@@ -39,6 +42,8 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "registration/registration.h"
+#include "registration/3stars.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
@@ -134,6 +139,38 @@ static GtkLabel *filter_label[3] = { NULL };
 
 static GList *switcher_buttons = NULL;
 
+// 3-star specific statics
+static GtkWidget *three_buttons[3] = { 0 };
+static GtkImage *image_3stars[3] = { NULL };
+
+/* Forward declaration of static initializer used by 3-star helpers */
+static void registration_init_statics(void);
+
+/****************************************************************/
+/* 3-star GUI helpers                                           */
+/****************************************************************/
+
+static void reg_set_registration_ready(gboolean ready) {
+	registration_init_statics();
+	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
+}
+
+static void reg_update_label(const gchar *str) {
+	registration_init_statics();
+	gtk_label_set_text(labelregisterinfo, str);
+}
+
+static void reg_update_icons(int idx, gboolean OK) {
+	registration_init_statics();
+	gtk_image_set_from_icon_name(image_3stars[idx],
+			OK ? "gtk-yes" : "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
+}
+
+static void reg_reset_icons(void) {
+	for (int i = 0; i < 3; i++)
+		reg_update_icons(i, FALSE);
+}
+
 /****************************************************************/
 /* Initialization                                               */
 /****************************************************************/
@@ -225,7 +262,7 @@ static void registration_init_statics() {
 		checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
 		toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
 		toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
-		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 
 		// additional statics
 		spin[0] = GTK_WIDGET(stackspin4);
@@ -246,6 +283,14 @@ static void registration_init_statics() {
 
 		// switcher buttons list
 		switcher_buttons = gtk_container_get_children(GTK_CONTAINER(interp_drizzle_stack_switcher));
+
+		// 3-star widgets
+		three_buttons[0] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar1"));
+		three_buttons[1] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar2"));
+		three_buttons[2] = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pickstar3"));
+		image_3stars[0] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image1"));
+		image_3stars[1] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image2"));
+		image_3stars[2] = GTK_IMAGE(gtk_builder_get_object(gui.builder, "3stars-image3"));
 	}
 }
 
@@ -391,7 +436,7 @@ void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		SirilWidget *widgetdialog;
 		GtkFileChooser *dialog = NULL;
-		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
@@ -1161,6 +1206,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	return 0;
 }
 
+gboolean registration_get_follow_star(void) {
+	registration_init_statics();
+	return followStarCheckButton ? gtk_toggle_button_get_active(followStarCheckButton) : FALSE;
+}
+
 int get_registration_layer_from_GUI(const sequence *seq) {
 	int reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
 	if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
@@ -1253,4 +1303,110 @@ gboolean end_register_idle(gpointer p) {
 	free(args->new_seq_name);
 	free(args);
 	return FALSE;
+}
+
+/****************************************************************/
+/* 3-star registration GUI functions (moved from 3stars.c)      */
+/****************************************************************/
+
+void registration_update_label(const gchar *msg) {
+	reg_update_label(msg);
+}
+
+void reset_3stars(void) {
+	registration_init_statics();
+	if (!GTK_IS_WIDGET(three_buttons[0])) return;
+	reg_reset_icons();
+	for (int i = 1; i < 3; i++) {
+		unset_suggested(three_buttons[i]);
+		gtk_widget_set_sensitive(three_buttons[i], FALSE);
+	}
+	set_suggested(three_buttons[0]);
+	gtk_widget_set_sensitive(three_buttons[0], TRUE);
+	reg_set_registration_ready(FALSE);
+	clear_stars_list(TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), FALSE);
+	awaiting_star = 0;
+	selected_stars = 0;
+}
+
+gboolean _3stars_check_selection(void) {
+	if (com.seq.current < 0)
+		return FALSE;
+	registration_init_statics();
+	gboolean dofollow = gtk_toggle_button_get_active(followStarCheckButton);
+	gboolean doall = !gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
+	if (dofollow) {
+		if (doall && com.seq.current != 0) {
+			gtk_label_set_text(labelregisterinfo, _("Make sure you load the first image"));
+			return FALSE;
+		} else if (!doall && com.seq.current != get_first_selected(&com.seq)) {
+			gtk_label_set_text(labelregisterinfo, _("Make sure you load the first selected image"));
+			return FALSE;
+		}
+	}
+	if (!doall && !com.seq.imgparam[com.seq.current].incl) {
+		reg_update_label(_("Make sure you load an image which is included"));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+int _3stars_get_number_selected_stars(void) {
+	return selected_stars;
+}
+
+void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
+	registration_init_statics();
+	if (!com.selection.w || !com.selection.h) {
+		reg_update_label(_("Draw a selection around the star"));
+		return;
+	}
+	if (!_3stars_check_selection()) return;
+	GtkWidget *widget = GTK_WIDGET(button);
+	if (three_buttons[0] == widget) {
+		reg_reset_icons();
+		clear_stars_list(TRUE);
+		selected_stars = 0;
+		awaiting_star = 1;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), FALSE);
+	} else if (three_buttons[1] == widget) {
+		awaiting_star = 2;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), TRUE);
+	} else if (three_buttons[2] == widget) {
+		awaiting_star = 3;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift_checkbutton), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(onlyshift_checkbutton), TRUE);
+	} else {
+		fprintf(stderr, "unknown button clicked\n");
+		return;
+	}
+	g_rw_lock_writer_lock(&com.stars_lock);
+	if (!com.stars)
+		com.stars = calloc(4, sizeof(psf_star *));
+	g_rw_lock_writer_unlock(&com.stars_lock);
+	int layer = gui_iface.get_reg_layer();
+	if (layer < 0) {
+		fprintf(stderr, "invalid registration layer\n");
+		return;
+	}
+	int index;
+	add_star(gfit, layer, &index);
+	if (index == -1) {
+		reg_update_label(_("No star found, make another selection"));
+	} else {
+		memcpy(&_3boxes[selected_stars], &com.selection, sizeof(rectangle));
+		selected_stars++;
+		unset_suggested(three_buttons[awaiting_star - 1]);
+		gtk_widget_set_sensitive(three_buttons[awaiting_star - 1], FALSE);
+		if (awaiting_star < 3) {
+			set_suggested(three_buttons[awaiting_star]);
+			gtk_widget_set_sensitive(three_buttons[awaiting_star], TRUE);
+		}
+		reg_update_icons(awaiting_star - 1, TRUE);
+		delete_selected_area();
+	}
 }

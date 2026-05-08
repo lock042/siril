@@ -26,10 +26,10 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-#include "gui/callbacks.h"
 #include "algos/colors.h"
 #include "filters/synthstar.h"
 #include "filters/unpurple.h"
+#include "core/gui_iface.h"
 
 /*****************************************************************************
  *      U N P U R P L E   A L L O C A T O R   A N D   D E S T R U C T O R    *
@@ -219,7 +219,7 @@ static int unpurple_filter(struct unpurpleargs *args) {
 	}
 
 	if (fit == gfit && args->applying && !com.script) {
-		populate_roi();
+		gui_iface.populate_roi();
 	}
 
 	if (fit == gfit && args->applying) {

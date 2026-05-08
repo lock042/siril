@@ -42,6 +42,7 @@
 extern "C" {
 #include "core/proto.h"
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "io/image_format_fits.h"
@@ -116,7 +117,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     imSize.wh = width * height;
     imSize.whc = width * height * nchans;
 
-    set_progress_bar_data(_("NL-Bayes denoising..."), 0.0);
+    gui_iface.set_progress(0.0, _("NL-Bayes denoising..."));
 
     if(!processing_should_continue()) {
         siril_debug_print("do_nlbayes: processing_should_continue() returned FALSE\n");

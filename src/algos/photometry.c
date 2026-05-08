@@ -35,9 +35,7 @@
 #include "algos/star_finder.h"
 #include "algos/comparison_stars.h"
 #include "algos/photometric_cc.h"
-#include "gui/plot.h"
-#include "gui/image_display.h"
-#include "gui/siril_plot.h"
+#include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "io/local_catalogues.h"
@@ -576,11 +574,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 }
 
 static gboolean end_light_curve_worker(gpointer p) {
-	if (sequence_is_loaded()) {
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
-	}
+	if (sequence_is_loaded())
+		gui_iface.on_photometry_changed();
 	return end_generic(NULL);
 }
 
@@ -618,16 +613,15 @@ gpointer light_curve_worker(gpointer arg) {
 		}
 
 		if (args->seq == &com.seq)
-			queue_redraw(REDRAW_OVERLAY);
+			gui_iface.redraw_image_async(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
 	args->force_rad = com.pref.phot_set.force_radius;	// Retrieve the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
-	if (!retval && args->display_graph && args->spl_data) {
-		siril_add_pythonsafe_idle(create_new_siril_plot_window, args->spl_data);
-	}
+	if (!retval && args->display_graph && args->spl_data)
+		gui_iface.show_siril_plot(args->spl_data);
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);

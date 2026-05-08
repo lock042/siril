@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -43,12 +42,7 @@
 #include "core/undo.h"
 #include "core/siril_log.h"
 #include "io/conversion.h"
-#include "gui/utils.h"
-#include "gui/cut.h"
-#include "gui/callbacks.h"
-#include "gui/message_dialog.h"
-#include "gui/plot.h"
-#include "gui/registration.h"
+#include "core/gui_iface.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -56,21 +50,13 @@
 #endif
 #include "single_image.h"
 #include "image_format_fits.h"
-#include "gui/histogram.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"	// clear_stars_list
-#include "gui/sequence_list.h"
-#include "gui/registration_preview.h"
-#include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
-#include "stacking/stacking.h"	// for update_stack_interface
+#include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 
 #include "sequence.h"
@@ -92,46 +78,8 @@
  * single images when a sequence is loaded or not.
  */
 
-static void fillSeqAviExport() {
-	char width[6], height[6];
-	GtkEntry *heightEntry = GTK_ENTRY(lookup_widget("entryAviHeight"));
-	GtkEntry *widthEntry = GTK_ENTRY(lookup_widget("entryAviWidth"));
-
-	g_snprintf(width, sizeof(width), "%d", com.seq.rx);
-	g_snprintf(height, sizeof(width), "%d", com.seq.ry);
-	gtk_entry_set_text(widthEntry, width);
-	gtk_entry_set_text(heightEntry, height);
-	if (com.seq.type == SEQ_SER) {
-		GtkEntry *entryAviFps = GTK_ENTRY(lookup_widget("entryAviFps"));
-
-		if (com.seq.ser_file != NULL) {
-			char fps[7];
-
-			if (com.seq.ser_file->fps <= 0.0) {
-				g_snprintf(fps, sizeof(fps), "25.000");
-			} else {
-				g_snprintf(fps, sizeof(fps), "%2.3lf", com.seq.ser_file->fps);
-			}
-			gtk_entry_set_text(entryAviFps, fps);
-		}
-	}
-}
-
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq);
-
-gboolean populate_seqcombo(gpointer user_data) {
-	const gchar *realname = (const gchar*) user_data;
-	control_window_switch_to_tab(IMAGE_SEQ);
-	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
-	gtk_combo_box_text_remove_all(combo_box_text);
-	gchar *rname = g_path_get_basename(realname);
-	gtk_combo_box_text_append(combo_box_text, 0, rname);
-	g_signal_handlers_block_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_text), 0);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
-	g_free(rname);
-	return FALSE;
-}
+/* fillSeqAviExport and populate_seqcombo moved to gui/gui_iface_impl.c */
 
 /* normalizes sequence name
  * takes a string and
@@ -160,7 +108,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *dirname = g_path_get_dirname(realname);
 	if (!siril_change_dir(dirname, NULL)) {
 		writeinitfile();
-		gui_function(set_GUI_CWD, NULL);
+		gui_iface.set_gui_cwd();
 	}
 	g_free(dirname);
 
@@ -198,7 +146,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *fname = g_path_get_basename(name);
 	if (!set_seq(fname) && !com.script) {
 		/* if it loads, make it selected and only element in the list of sequences */
-		gui_function(populate_seqcombo, realname);
+		gui_iface.populate_seq_combo(realname);
 	}
 	else retval = 1;
 	g_free(fname);
@@ -242,7 +190,7 @@ int check_seq() {
 		g_dir_close(dir);
 		return 1;
 	}
-	set_progress_bar_data(NULL, PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, NULL);
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		sequence *new_seq;
@@ -308,7 +256,7 @@ int check_seq() {
 			}
 		}
 	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	g_dir_close(dir);
 
 	if (nb_seq > 0) {
@@ -595,53 +543,7 @@ gboolean create_one_seq(const char *seqname, sequence_type seqtype) {
 	return TRUE;
 }
 
-static gboolean set_seq_gui(gpointer user_data) {
-	sequence *seq = (sequence *) user_data;
-	init_layers_hi_and_lo_values(MIPSLOHI); // set some hi and lo values in seq->layers,
-	set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-	set_cutoff_sliders_values();	// update values for contrast sliders for this image
-	int layer = set_layers_for_registration();	// set layers in the combo box for registration
-	update_seqlist(layer);
-	fill_sequence_list(seq, max(layer, 0), FALSE);// display list of files in the sequence on active layer if regdata exists
-	set_output_filename_to_sequence_name();
-	sliders_mode_set_state(gui.sliders);
-	initialize_display_mode();
-	update_zoom_label();
-	reset_plot(); // reset all plots
-	reset_3stars();
-
-	/* initialize image-related runtime data */
-	set_display_mode();		// display the display mode in the combo box
-	display_filename();		// display filename in gray window
-	gui_function(set_precision_switch, NULL); // set precision on screen
-	adjust_refimage(seq->current);	// check or uncheck reference image checkbox
-	update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ || seq->type == SEQ_SER); // enable or not the preprobutton
-	update_reg_interface(FALSE);	// change the registration prereq message
-	update_stack_interface(FALSE);	// get stacking info and enable the Go button, already done in set_layers_for_registration
-	adjust_reginfo();		// change registration displayed/editable values
-	update_gfit_histogram_if_needed();
-	adjust_sellabel();
-	fillSeqAviExport();	// fill GtkEntry of export box
-
-	/* update menus */
-	update_MenuItem(NULL);
-	/* update parameters in GUI */
-	set_GUI_CAMERA();
-
-	/* redraw and display image */
-	gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
-	gui_function(init_right_tab, NULL);
-
-	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
-	drawPlot();
-	return FALSE;
-}
-
-static void free_cbbt_layers() {
-	GtkComboBoxText *cbbt_layers = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxreglayer"));
-	gtk_combo_box_text_remove_all(cbbt_layers);
-}
+/* set_seq_gui and free_cbbt_layers moved to gui/gui_iface_impl.c */
 
 /* load a sequence and initializes everything that relates */
 gboolean set_seq(gpointer user_data){
@@ -660,7 +562,7 @@ gboolean set_seq(gpointer user_data){
 	int convert = (int)((com.headless));
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
-			convert = siril_confirm_dialog(_("Deprecated sequence"),
+			convert = gui_iface.confirm_dialog(_("Deprecated sequence"),
 					_("Film sequences are now deprecated in Siril: some features are disabled and others may crash."
 							" We strongly encourage you to convert this sequence into a SER file."
 							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
@@ -709,7 +611,7 @@ gboolean set_seq(gpointer user_data){
 	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	if (!com.script && !com.headless) {
-		execute_idle_and_wait_for_it(set_seq_gui, seq);
+		gui_iface.on_sequence_opened();
 	}
 
 	free(seq);
@@ -725,10 +627,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())
 		save_stats_from_fit(gfit, seq, seq->current);
-	on_clear_roi(); // Always clear a ROI when changing images
+	gui_iface.clear_roi(); // Always clear a ROI when changing images
 	cleanup_annotation_catalogues(FALSE);
 	clear_stars_list(TRUE);
-	invalidate_gfit_histogram();
+	gui_iface.invalidate_histogram();
 	undo_flush();
 	close_single_image();
 	g_rw_lock_writer_lock(&gfit->rwlock);
@@ -740,46 +642,47 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	seq->current = index;
 
 	if (load_it && !com.script) {
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 		if (seq_read_frame(seq, index, gfit, FALSE, -1)) {
 			g_rw_lock_writer_unlock(&gfit->rwlock);
-			set_cursor_waiting(FALSE);
+			gui_iface.set_busy(FALSE);
 			return 1;
 		}
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 		set_fwhm_star_as_star_list(seq);// display the fwhm star if possible
 
-		if (gui.sliders != USER) {
-			init_layers_hi_and_lo_values(gui.sliders);
-			sliders_mode_set_state(gui.sliders);
-			set_cutoff_sliders_max_values();// update min and max values for contrast sliders
-			set_cutoff_sliders_values();	// update values for contrast sliders for this image
-			set_display_mode();		// display the display mode in the combo box
+		sliders_mode seq_sliders = (sliders_mode)gui_iface.get_sliders_mode();
+		if (seq_sliders != USER) {
+			init_layers_hi_and_lo_values(seq_sliders);
+			gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
+			gui_iface.set_cutoff_sliders_max_values();// update min and max values for contrast sliders
+			gui_iface.set_cutoff_sliders_values();	// update values for contrast sliders for this image
+			gui_iface.update_display_mode_state();		// display the display mode in the combo box
 		}
 		if (do_refresh_annotations)
 			refresh_found_objects();
-		remap_all();
-		redraw(REMAP_ALL);
+		gui_iface.remap_all_vports();
+		gui_iface.redraw_image(REMAP_ALL);
 		if (seq->is_variable)
-			clear_previews();
+			gui_iface.clear_previews();
 		else
-			gui_function(redraw_previews, NULL);		// redraw registration preview areas
-		display_filename();		// display filename in gray window
-		gui_function(set_precision_switch, NULL); // set precision on screen
-		adjust_reginfo();		// change registration displayed/editable values
-		update_display_fwhm();
-		update_gfit_histogram_if_needed();
-		set_cursor_waiting(FALSE);
-		reset_3stars();
+			gui_iface.redraw_previews();		// redraw registration preview areas
+		gui_iface.display_filename();		// display filename in gray window
+		gui_iface.set_precision_switch(); // set precision on screen
+		gui_iface.adjust_reginfo();		// change registration displayed/editable values
+		gui_iface.update_display_fwhm();
+		gui_iface.update_histogram();
+		gui_iface.set_busy(FALSE);
+		gui_iface.reset_3stars_gui();
 	} else {
 		/* clearfits was done above; if we're not loading, release the lock now */
 		g_rw_lock_writer_unlock(&gfit->rwlock);
 	}
 
-	gui_function(update_MenuItem, NULL);		// initialize menu gui
-	set_GUI_CAMERA();		// update image information
-	sequence_list_change_current();
-	adjust_refimage(index);	// check or uncheck reference image checkbox
+	gui_iface.update_menu_item();		// initialize menu gui
+	gui_iface.set_GUI_CAMERA();		// update image information
+	gui_iface.sequence_list_change_current();
+	gui_iface.adjust_refimage(index);	// check or uncheck reference image checkbox
 
 	return 0;
 }
@@ -1692,34 +1595,7 @@ gboolean check_seq_is_variable(const sequence *seq) {
 }
 
 
-gboolean close_sequence_idle(gpointer data) {
-	fprintf(stdout, "closing sequence idle\n");
-	free_cbbt_layers();
-	clear_sequence_list();
-	clear_stars_list(TRUE);
-	reset_3stars();
-	clear_previews();
-	free_reference_image();
-	update_stack_interface(TRUE);
-	adjust_sellabel();
-	update_seqlist(-1);
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
-	/* unselect the sequence in the sequence list if it's not the one
-	 * being loaded */
-	if (!data) { // loading_sequence_from_combo
-		GtkComboBox *seqcombo = GTK_COMBO_BOX(lookup_widget("sequence_list_combobox"));
-		gtk_combo_box_set_active(seqcombo, -1);
-	}
-	return FALSE;
-}
-
-static void close_sequence_gui(gboolean loading_sequence_from_combo) {
-	if (com.script || com.python_command)
-		execute_idle_and_wait_for_it(close_sequence_idle,
-				GINT_TO_POINTER(loading_sequence_from_combo));
-	else close_sequence_idle(GINT_TO_POINTER(loading_sequence_from_combo));
-}
+/* close_sequence_idle and close_sequence_gui moved to gui/gui_iface_impl.c */
 
 /* Close the com.seq sequence */
 void close_sequence(int loading_sequence_from_combo) {
@@ -1735,7 +1611,7 @@ void close_sequence(int loading_sequence_from_combo) {
 		initialize_sequence(&com.seq, FALSE);
 
 		if (!com.headless)
-			close_sequence_gui(loading_sequence_from_combo);
+			gui_iface.on_sequence_closed(loading_sequence_from_combo);
 	}
 }
 
@@ -2158,7 +2034,7 @@ gboolean end_seqpsf(gpointer p) {
 			for (int i = 0; i < seq->nb_layers; i++)
 				has_any_regdata = has_any_regdata || seq->regparam[i];
 			if (!seq->regparam[layer] && has_any_regdata) {
-				write_to_regdata = siril_confirm_dialog(_("No registration data stored for this layer"),
+				write_to_regdata = gui_iface.confirm_dialog(_("No registration data stored for this layer"),
 						_("Some registration data was found for another layer.\n"
 							"Do you want to save the psf data as registration data for this layer?"), _("Save"));
 			}
@@ -2182,13 +2058,13 @@ gboolean end_seqpsf(gpointer p) {
 		 * in case seqpsf is called for registration. */
 		if (seq->type != SEQ_INTERNAL) {
 			// update the list in the GUI
-			update_seqlist(layer);
-			fill_sequence_list(seq, layer, FALSE);
+			gui_iface.update_seqlist(layer);
+			gui_iface.fill_sequence_list(seq, layer, FALSE);
 		}
-		set_layers_for_registration();	// update display of available reg data
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
+		gui_iface.set_layers_for_registration();	// update display of available reg data
+		gui_iface.draw_plot();
+		gui_iface.notify_new_photometry();	// switch to and update plot tab
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 proper_ending:
@@ -2196,7 +2072,7 @@ proper_ending:
 		g_slist_free_full(spsfargs->list, free);
 
 	if (seq == &com.seq)
-		adjust_sellabel();
+		gui_iface.adjust_sellabel();
 
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
@@ -2298,16 +2174,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration,
 
 void free_reference_image() {
 	fprintf(stdout, "Purging previously saved reference frame data.\n");
-	if (gui.refimage_regbuffer) {
-		free(gui.refimage_regbuffer);
-		gui.refimage_regbuffer = NULL;
-	}
-	if (gui.refimage_surface) {
-		cairo_surface_destroy(gui.refimage_surface);
-		gui.refimage_surface = NULL;
-	}
+	gui_iface.free_reference_image_display();
 	if (com.seq.reference_image == -1)
-		enable_view_reference_checkbox(FALSE);
+		gui_iface.enable_view_reference_checkbox(FALSE);
 }
 
 /* returns the number of images of the sequence that can fit into memory based

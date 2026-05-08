@@ -37,7 +37,6 @@
 #include "io/ser.h"
 #include "io/sequence.h"
 #include "core/proto.h"
-#include "gui/progress_and_log.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #ifdef HAVE_FFMS2

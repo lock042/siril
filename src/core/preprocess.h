@@ -41,6 +41,7 @@ struct preprocessing_data {
 
 int preprocess_single_image(struct preprocessing_data *args);
 int preprocess_given_image(char *file, struct preprocessing_data *args);
+int calibrate_single_image(struct preprocessing_data *args);
 int evaluateoffsetlevel(const char* expression, fits *fit);
 void start_sequence_preprocessing(struct preprocessing_data *prepro);
 gboolean check_for_cosme_file_sanity(GFile *file);

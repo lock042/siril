@@ -26,9 +26,7 @@
 #include <string.h>
 
 #include "core/siril.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "registration/registration.h"
@@ -110,8 +108,8 @@ int rgb_align(int m) {
 
 	initialize_methods();
 	initialize_internal_rgb_sequence();
-	set_cursor_waiting(TRUE);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_busy(TRUE);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 
 	/* align it */
 	method = reg_methods[m];
@@ -136,7 +134,7 @@ int rgb_align(int m) {
 
 	if (!reserve_thread()) {
 		siril_log_message(_("A processing operation is already running.\n"));
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		return 1;
 	}
 	retval1 = method->method_ptr(&regargs);
@@ -145,8 +143,8 @@ int rgb_align(int m) {
 	free(regargs.regparam);
 	regargs.regparam = NULL;
 	if (retval1) {
-		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);
-		set_cursor_waiting(FALSE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in channels alignment."));
+		gui_iface.set_busy(FALSE);
 		unreserve_thread();
 		return retval1;
 	}
@@ -155,14 +153,14 @@ int rgb_align(int m) {
 	unreserve_thread();
 
 	if (retval2) {
-		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Error in layers alignment."));
 	} else {
-		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Registration complete."));
 		notify_gfit_data_modified();
 		gfit_modified_update_gui();
 	}
 	siril_log_message(_("Aligned RGB channels\n"));
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;
 	return retval2;

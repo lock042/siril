@@ -102,7 +102,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "gui/utils.h"
 #include "algos/PSF.h"
 #include "opencv/opencv.h"
 #include "registration/matching/misc.h"

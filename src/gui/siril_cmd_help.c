@@ -18,10 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 
-#include "core/siril_cmd_help.h"
+#include "gui/siril_cmd_help.h"
 
 static GtkWidget *shortcuts_window = NULL;
 
@@ -51,4 +52,3 @@ void siril_cmd_help_keyboard_shortcuts(GtkWindow *window) {
     gtk_widget_show_all(shortcuts_window);
     gtk_window_present(GTK_WINDOW(shortcuts_window));
 }
-

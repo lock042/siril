@@ -2,13 +2,10 @@
 #define _PROGRESSLOG_H
 
 #include <sys/time.h>
-#include <gtk/gtk.h>
-
-#define PROGRESS_NONE -2.0		// don't update the progress bar value
-#define PROGRESS_PULSATE -1.0		// pulsate the progress bar
-#define PROGRESS_RESET 0.0		// reset the progress bar
-#define PROGRESS_DONE 1.0		// fill the progress bar
-#define PROGRESS_TEXT_RESET ""		// reset the progress bar's text
+#include <glib.h>
+/* PROGRESS_* constants are defined in core/gui_iface.h and re-exported here
+ * so existing callers of this header continue to compile unchanged. */
+#include "core/gui_iface.h"
 
 #ifdef __cplusplus
 extern "C" {

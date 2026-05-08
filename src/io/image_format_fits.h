@@ -24,6 +24,7 @@ void fit_get_photometry_data(fits *fit);
 int fit_stats(fitsfile *fptr, float *mini, float *maxi);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
+gchar *get_original_filename_from_fits(const gchar *filename);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
 void clearfits_header(fits*);
@@ -64,7 +65,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
+// get_thumbnail_from_fits is GUI-only; forward-declared in gui/dialog_preview.c.
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);

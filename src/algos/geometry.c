@@ -36,10 +36,7 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
-#include "gui/callbacks.h"
-#include "gui/PSF_list.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
+#include "core/gui_iface.h"
 
 #include "geometry.h"
 
@@ -555,7 +552,7 @@ static void fits_rotate_pi_float(fits *fit) {
 }
 
 static void fits_rotate_pi(fits *fit) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_rotate_pi_ushort(fit);
 	} else if (fit->type == DATA_FLOAT) {
@@ -682,7 +679,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
@@ -700,16 +697,23 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 			siril_log_color_message(_("Error binning mask\n"), "red");
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			return -1;
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
 	}
 
-	free_wcs(fit);
-	reset_wcsdata(fit);
-	refresh_annotations(TRUE);
+	if (has_wcs(fit)) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = 1. / factor;
+		H.h11 = 1. / factor;
+		cvApplyFlips(&H, old_ry, fit->ry);
+		reframe_astrometry_data(fit, &H);
+		update_fits_header(fit);
+		refresh_annotations(FALSE);
+	}
 
 	return 0;
 }
@@ -744,7 +748,7 @@ const char* interp_to_str(int interpolation) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp, gboolean update_wcs) {
 	int retvalue;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
@@ -757,7 +761,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	int old_rx = image->rx;
 	int old_ry = image->ry;
 
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 
 	if (retvalue == 0 && image->mask) {
@@ -765,7 +769,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 			siril_log_color_message(_("Error resizing mask\n"), "red");
 			free_mask(image->mask);
 			image->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(image, tmp_mask_active);
 		}
@@ -773,9 +777,23 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 
 	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
 	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
-	free_wcs(image);
-	reset_wcsdata(image);
-	refresh_annotations(TRUE);
+
+	if (has_wcs(image)) {
+		if (update_wcs) {
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h00 = 1. / factor_X;
+			H.h11 = 1. / factor_Y;
+			cvApplyFlips(&H, old_ry, toY);
+			reframe_astrometry_data(image, &H);
+			update_fits_header(image);
+			refresh_annotations(FALSE);
+		} else {
+			free_wcs(image);
+			reset_wcsdata(image);
+			refresh_annotations(TRUE);
+		}
+	}
 
 	return retvalue;
 }
@@ -798,7 +816,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 // wraps cvRotateImage to update WCS data as well
 int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1; // only for multiples of 90 \deg
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
 		tmp_mask_active = image->mask_active;
@@ -821,7 +839,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 			free_mask(image->mask);
 			image->mask = NULL;
 			set_mask_active(image, FALSE);
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(image, tmp_mask_active);
 		}
@@ -839,7 +857,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped, gboolean clamp) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = FALSE;
 	if (image->mask) {
 		tmp_mask_active = image->mask_active;
@@ -861,7 +879,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			siril_log_color_message(_("Error rotating mask\n"), "red");
 			free_mask(image->mask);
 			image->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			set_mask_active(image, FALSE);
 		} else {
 			set_mask_active(image, tmp_mask_active);
@@ -947,7 +965,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 }
 
 void mirrorx(fits *fit, gboolean verbose) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
@@ -962,7 +980,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 			siril_log_color_message(_("Error mirroring mask\n"), "red");
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
@@ -987,7 +1005,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 }
 
 void mirrory(fits *fit, gboolean verbose) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 
@@ -1008,7 +1026,7 @@ void mirrory(fits *fit, gboolean verbose) {
 			siril_log_color_message(_("Error mirroring mask\n"), "red");
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 		} else {
 			set_mask_active(fit, tmp_mask_active);
 		}
@@ -1167,7 +1185,7 @@ static int crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
-	on_clear_roi(); // ROI is cleared on geometry-altering operations
+	gui_iface.on_geometry_changed(); // ROI is cleared on geometry-altering operations
 	gboolean tmp_mask_active = fit->mask_active;
 	set_mask_active(fit, FALSE);
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
@@ -1223,7 +1241,7 @@ int crop(fits *fit, rectangle *bounds) {
 			siril_log_color_message(_("Error cropping mask\n"), "red");
 			free_mask(fit->mask);
 			fit->mask = NULL;
-			show_or_hide_mask_tab();
+			gui_iface.on_mask_state_changed();
 			return -1;
 		} else {
 			set_mask_active(fit, tmp_mask_active);
@@ -1431,7 +1449,7 @@ int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
 	int toX = fit->rx * s_args->scale;
 	int toY = fit->ry * s_args->scale;
-	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp);
+	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp, TRUE);
 	return s_args->retvalue;
 }
 
@@ -1617,20 +1635,12 @@ int binning_image_hook(struct generic_img_args *args, fits *fit, int nb_threads)
 	return fits_binning(fit, params->factor, params->mean);
 }
 
-gboolean crop_gui_updates(gpointer user) {
-	clear_stars_list(TRUE);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	return FALSE;
-}
-
 int crop_image_hook_single(struct generic_img_args *args, fits *fit, int nb_threads) {
 	struct crop_args *params = (struct crop_args *)args->user;
 	if (!params)
 		return 1;
 	int retval = crop(fit, &params->area);
-	gui_function(crop_gui_updates, NULL);
+	gui_iface.on_crop_complete();
 	return retval;
 }
 
@@ -1650,8 +1660,8 @@ int resample_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		return 1;
 
 	int retval = verbose_resize_gaussian(fit, params->toX, params->toY,
-	                                params->interpolation, params->clamp);
-	gui_function(update_MenuItem, NULL);
+	                                params->interpolation, params->clamp, params->update_wcs);
+	gui_iface.update_menu_state();
 	return retval;
 }
 
@@ -1681,6 +1691,6 @@ int rotation_image_hook(struct generic_img_args *args, fits *fit, int nb_threads
 		com.selection = (rectangle){ 0, 0, gfit->rx, gfit->ry };
 		g_mutex_unlock(&com.mutex);
 	}
-	update_zoom_label();
+	gui_iface.update_status_bar();
 	return retval;
 }

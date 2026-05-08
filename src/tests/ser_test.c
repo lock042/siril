@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "core/siril_date.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"

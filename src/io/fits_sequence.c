@@ -28,7 +28,6 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "io/image_format_fits.h"
-#include "gui/progress_and_log.h"
 #include "core/siril_log.h"
 
 #include "fits_sequence.h"
@@ -66,12 +65,19 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		if (type != IMAGE_HDU) continue;
 
 		// Skip image HDUs named as ICC profiles or thumbnails
+		// Skip image HDUs with HDRLET, WCS and D2IM, see table 2-5 in 
+		// https://hst-docs.stsci.edu/wfc3dhb/files/148330471/148330472/1/1724772756109/wfc3dhb2024_final.pdf
 		char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 		int status2 = 0;
 		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status2);
+		printf("HDU %d: type=%d, EXTNAME=%s\n", i + 1, type, extname);
 		if (g_str_has_prefix(extname, "ICCProfile")
-			|| g_str_has_prefix(extname, "Thumbnail")) {
-			continue; /* next HDU */
+			|| g_str_has_prefix(extname, "Thumbnail")
+			|| g_str_has_prefix(extname, "HDRLET")
+			|| g_str_has_prefix(extname, "WCS")
+			|| g_str_has_prefix(extname, "D2IM")) {
+			printf("Skipping HDU %d with EXTNAME=%s\n", i + 1, extname);
+			continue;
 		}
 
 		long naxes[3] = { 0L };
@@ -83,7 +89,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 			break;
 		}
 
-		if (naxis > 0) {
+		if (naxis > 1) {
 			if (ref_naxis == -1) {
 				ref_naxis = naxis;
 				ref_bitpix = bitpix;
@@ -116,7 +122,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		}
 	}
 
-	if (status) {
+	if (status || nb_images == 1) {
 		if (hdus) {
 			free(*hdus);
 			*hdus = NULL;
@@ -126,10 +132,10 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		if (!homogeneous)
 			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
 		// this is printed too often, maybe we can add a verbose flag?
-		*nb_im = nb_images;
 		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
 	}
+	*nb_im = nb_images;
 	return status;
 }
 
@@ -266,19 +272,30 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (!fptr)
 		return -1;
 
-	memcpy(dest->naxes, fitseq->naxes, sizeof fitseq->naxes);
-	dest->naxis = fitseq->naxes[2] == 3 ? 3 : 2;
-	dest->bitpix = fitseq->bitpix;
-	dest->orig_bitpix = fitseq->orig_bitpix;
-	dest->rx = dest->naxes[0];
-	dest->ry = dest->naxes[1];
-	dest->fptr = fptr;
-
 	siril_debug_print("reading HDU %d (of %s)\n", fitseq->hdu_index[index], fitseq->filename);
 	int status = 0;
 	if (fits_movabs_hdu(fptr, fitseq->hdu_index[index], NULL, &status)) {
 		report_fits_error(status);
 		return -1;
+	}
+
+	int bitpix, naxis;
+	long naxes[3];
+	if (fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status)) {
+		report_fits_error(status);
+		return -1;
+	}
+	dest->naxis = naxis;
+	if (naxis == 2)
+		naxes[2] = 1;
+	memcpy(dest->naxes, naxes, sizeof naxes);
+	dest->bitpix = bitpix;
+	dest->orig_bitpix = bitpix;
+	dest->rx = dest->naxes[0];
+	dest->ry = dest->naxes[1];
+	dest->fptr = fptr;
+	if (bitpix != fitseq->bitpix) {
+		siril_log_message(_("Warning: bitpix of image %d in FITS sequence is different from the first image, trying to read it anyway\n"), index + 1);
 	}
 
 	read_fits_header(dest);	// stores useful header data in fit
