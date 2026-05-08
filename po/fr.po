@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-03-10 06:59+0000\n"
-"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
+"PO-Revision-Date: 2026-03-17 00:47+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/fr/>\n"
 "Language: fr\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -2802,9 +2802,8 @@ msgstr "Définir le centre de rotation pour ce canal"
 #. Replace GtkFileChooserButton with GtkButton
 #: src/gui/uifiles/composition_dialog.ui:294 src/compositing/compositing.c:253
 #: src/compositing/compositing.c:1677
-#, fuzzy
 msgid "(None)"
-msgstr "Aucun"
+msgstr "(Aucun)"
 
 #: src/gui/uifiles/composition_dialog.ui:330 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
@@ -6240,9 +6239,8 @@ msgstr ""
 "d'étoiles jusqu'à la magnitude 17,6."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1060
-#, fuzzy
 msgid "Gaia DR3 (local catalogue)"
-msgstr "(catalogue local)"
+msgstr "Gaia DR3 (catalogue local)"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:1090
 msgid ""
@@ -14308,11 +14306,11 @@ msgstr "Rotation (%.1lfdeg, recadrage=%s, clampé=%s)"
 
 #: src/algos/geometry.c:949
 msgid "TRUE"
-msgstr ""
+msgstr "VRAIE"
 
 #: src/algos/geometry.c:949
 msgid "FALSE"
-msgstr ""
+msgstr "FAUX"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -15692,7 +15690,7 @@ msgstr "Suppression des artefacts active.\n"
 
 #: src/core/command.c:585
 msgid "Denoising failed: invalid parameters\n"
-msgstr ""
+msgstr "Échec du débruitage : paramètres non valides\n"
 
 #: src/core/command.c:595
 #, fuzzy
@@ -15708,7 +15706,7 @@ msgstr "Effectue l'étape finale du débruitage DA3D.\n"
 #: src/core/command.c:599
 #, c-format
 msgid "Performing %d SOS iterations with rho=%.2f.\n"
-msgstr ""
+msgstr "Exécution de %d itérations SOS avec rho = %.2f.\n"
 
 #: src/core/command.c:600
 #, fuzzy, c-format

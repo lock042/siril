@@ -54,12 +54,30 @@
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
-#include "compositing.h"
-#include "filters.h"
+#include "compositing/filters.h"
 
 #undef DEBUG
 
 static int compositing_loaded = 0;
+
+static GtkWidget *comp_demosaicing_btn = NULL;
+static GtkNotebook *comp_notebook1 = NULL;
+static GtkWindow *comp_dialog_window = NULL;
+static GtkWindow *comp_control_window = NULL;
+static GtkToggleButton *comp_cumulate_rgb = NULL;
+static GtkWidget *comp_button_align = NULL;
+static GtkComboBox *comp_align_method_combo = NULL;
+
+static void compositing_dialog_init_statics(void) {
+	if (comp_demosaicing_btn) return;
+	comp_demosaicing_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "demosaicingButton"));
+	comp_notebook1 = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook1"));
+	comp_dialog_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "composition_dialog"));
+	comp_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+	comp_cumulate_rgb = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "cumulate_rgb_button"));
+	comp_button_align = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_align"));
+	comp_align_method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
+}
 
 typedef enum {
 	HSL,
@@ -628,13 +646,13 @@ static void grid_add_row(int layer, int index, int first_time) {
  * composition window and make it visible */
 void open_compositing_window() {
 	int i;
-	GtkWidget *button = lookup_widget("demosaicingButton");
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
+	compositing_dialog_init_statics();
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(comp_demosaicing_btn))) {
 		siril_log_color_message(
 			_(
 				"Disabling debayer-on-open setting: this must be unset in order to open monochrome images in the compositing tool.\n"),
 			"salmon");
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(comp_demosaicing_btn), FALSE);
 	}
 
 	if (!compositing_loaded) {
@@ -1066,8 +1084,7 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 	}
 
 	if (number_of_images_loaded() > 1) {
-		GtkNotebook *notebook = (GtkNotebook *) lookup_widget("notebook1");
-		gtk_notebook_set_current_page(notebook, 3);
+		gtk_notebook_set_current_page(comp_notebook1, 3);
 		gui.cvport = 3;
 		notify_gfit_data_modified();
 		redraw(REMAP_ALL);
@@ -1103,11 +1120,9 @@ static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *tar
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 	layer *l = (layer *) user_data;
 
-	// Get the parent window
-	GtkWindow *parent = GTK_WINDOW(lookup_widget("composition_dialog"));
-	if (!parent) {
-		parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-	}
+	GtkWindow *parent = comp_dialog_window;
+	if (!parent)
+		parent = comp_control_window;
 
 	// Use siril_file_chooser_open like in open_dialog.c
 	SirilWidget *widgetdialog = siril_file_chooser_open(parent, GTK_FILE_CHOOSER_ACTION_OPEN);
@@ -1250,7 +1265,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *framingcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_framing_combo"));
 	int ft = gtk_combo_box_get_active(framingcombo);
 	framing = ft == 0 ? FRAMING_CURRENT : ft == 1 ? FRAMING_MIN : FRAMING_COG;
-	gboolean do_sum = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_rgb_button")));
+	gboolean do_sum = gtk_toggle_button_get_active(comp_cumulate_rgb);
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit->data && !gfit->fdata) {
@@ -1480,18 +1495,18 @@ static void update_compositing_registration_interface() {
 	int sel_method = gtk_combo_box_get_active(combo);
 
 	if (com.selection.w <= 0 && com.selection.h <= 0 && (sel_method == 1 || sel_method == 2)) {
-		// DFT shift ad KOMBAT require a selection to be made
+		// DFT shift and KOMBAT require a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
-		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
+		gtk_widget_set_sensitive(comp_button_align, FALSE);
 		/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
 			gtk_label_set_text(label, "A reference layer must be selected for align");
-			gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);*/
+			gtk_widget_set_sensitive(comp_button_align, FALSE);*/
 	} else if (number_of_images_loaded() < 2) {
 		gtk_label_set_text(label, _("At least 2 channels must be loaded for align"));
-		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
+		gtk_widget_set_sensitive(comp_button_align, FALSE);
 	} else {
 		gtk_label_set_text(label, "");
-		gtk_widget_set_sensitive(lookup_widget("button_align"), TRUE);
+		gtk_widget_set_sensitive(comp_button_align, TRUE);
 	}
 	gui_function(update_MenuItem, NULL);
 }
@@ -1796,7 +1811,7 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 			// We use the NONEGATIVES flag to bound the transform, otherwise the
 			// negative components play havoc with the compositing.
 			cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
-			                                                gui.icc.monitor,
+			                                                com.gui_icc.monitor,
 			                                                TYPE_RGB_FLT_PLANAR,
 			                                                image_profile,
 			                                                TYPE_RGB_FLT_PLANAR,
@@ -1939,7 +1954,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data) {
 	GdkRGBA color;
 	double wavelength = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	if (wavelength < 380.0 || wavelength > 780.0) return;
-	wavelength_to_display_RGB(wavelength, &color);
+	wavelength_to_display_RGB(wavelength, &color.red, &color.green, &color.blue, &color.alpha);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &color);
 }
 
@@ -1998,8 +2013,7 @@ void reset_compositing_module() {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(layers[0]->label), _("not loaded"));
 
 	update_compositing_registration_interface();
-	on_compositing_align_method_combo_changed(
-		(GtkComboBox *) lookup_widget("compositing_align_method_combo"), NULL);
+	on_compositing_align_method_combo_changed(comp_align_method_combo, NULL);
 }
 
 void on_compositing_reset_clicked(GtkButton *button, gpointer user_data) {

@@ -33,7 +33,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 
 #define STR_INDIR(x) #x 
 #define STR(x) STR_INDIR(x)
@@ -126,7 +126,7 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 						}
 						g_strfreev(lines);
 					}
-					set_progress_bar_data(_("Server unreachable or unresponsive"), 1.0);
+					gui_iface.set_progress(1.0, _("Server unreachable or unresponsive"));
 				}
 		}
 	} else {
@@ -139,7 +139,7 @@ gpointer fetch_url_async(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	g_assert(args->idle_function != NULL);
 	struct ucontent content = {NULL, 0};
-	set_progress_bar_data(NULL, 0.1);
+	gui_iface.set_progress(0.1, NULL);
 	CURL *curl = initialize_curl(args->url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		g_free(args->url);
@@ -152,7 +152,7 @@ gpointer fetch_url_async(gpointer p) {
 	args->url = NULL;
 	args->length = content.len;
 	args->content = result;
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	siril_add_idle(args->idle_function, args);
 	return NULL;
 }
@@ -160,17 +160,17 @@ gpointer fetch_url_async(gpointer p) {
 char* fetch_url(const gchar *url, gsize *length, int *error, gboolean quiet) {
 	*error = 0;
 	struct ucontent content = {NULL, 0};
-	set_progress_bar_data(NULL, 0.1);
+	gui_iface.set_progress(0.1, NULL);
 	CURL *curl = initialize_curl(url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		*error = 1;
-		set_progress_bar_data(NULL, PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, NULL);
 		return NULL;
 	}
 	long code;
 	char *result = handle_curl_response(curl, &content, url, &code, (!quiet));
 	curl_easy_cleanup(curl);
-	set_progress_bar_data(NULL, PROGRESS_DONE);
+	gui_iface.set_progress(PROGRESS_DONE, NULL);
 	*length = content.len;
 	if (!result || content.len == 0 || code != 200) {
 		free(content.data);

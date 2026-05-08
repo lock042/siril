@@ -20,6 +20,7 @@
 
 #include <criterion/criterion.h>
 #include "../core/siril.h"
+#include "gui/gui_state.h"
 #include "../algos/sorting.h"
 
 #include <stdlib.h>

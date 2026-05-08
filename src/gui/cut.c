@@ -23,6 +23,7 @@
 #include "algos/fitting.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/cut.h"
 #include "core/siril_date.h"
 #include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
@@ -52,7 +53,7 @@ gboolean reset_cut_gui_filedependent(gpointer user_data) { // Separated out to a
 	return FALSE;
 }
 
-static gboolean reset_cut_gui(gpointer user_data) {
+gboolean reset_cut_gui(gpointer user_data) {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
@@ -91,54 +92,7 @@ static gboolean reset_cut_gui(gpointer user_data) {
 	return FALSE;
 }
 
-void initialize_cut_struct(cut_struct *arg) {
-	arg->fit = gfit;
-	arg->seq = NULL;
-	arg->imgnumber = -1;
-	arg->cut_start.x = -1;
-	arg->cut_start.y = -1;
-	arg->cut_end.x = -1;
-	arg->cut_end.y = -1;
-	arg->cut_wn1.x = -1;
-	arg->cut_wn1.y = -1;
-	arg->cut_wn2.x = -1;
-	arg->cut_wn2.y = -1;
-	arg->cut_measure = FALSE;
-	arg->plot_as_wavenumber = FALSE;
-	arg->wavenumber1 = -1;
-	arg->wavenumber2 = -1;
-	arg->plot_spectro_bg = FALSE;
-	arg->bg_poly_order = 3;
-	arg->tri = FALSE;
-	arg->mode = CUT_MONO;
-	arg->width = 1;
-	arg->step = 1;
-	arg->display_graph = TRUE;
-	g_free(arg->filename);
-	arg->filename = NULL;
-	g_free(arg->title);
-	arg->title = NULL;
-	g_free(arg->user_title);
-	arg->user_title = NULL;
-	arg->title_has_sequence_numbers = FALSE;
-	arg->save_dat = FALSE;
-	arg->save_png_too = FALSE;
-	arg->pref_as = gfit->keywords.wcsdata.pltsolvd;
-	arg->vport = -1;
-	gui_function(reset_cut_gui, NULL);
-}
 
-void free_cut_args(cut_struct *arg) {
-	g_free(arg->filename);
-	arg->filename = NULL;
-	g_free(arg->title);
-	arg->title = NULL;
-	g_free(arg->user_title);
-	arg->user_title = NULL;
-	if (arg != &gui.cut)
-		free(arg);
-	return;
-}
 
 gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 	gchar* str = NULL;
@@ -177,92 +131,6 @@ gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 	return str;
 }
 
-gboolean cut_struct_is_valid(cut_struct *arg) {
-	// define # layers
-	int nb_layers = (arg->seq) ? arg->seq->nb_layers : arg->fit->naxes[2];
-	// checking mutually exclusive choices
-	if (arg->tri && arg->cfa) {
-		siril_log_color_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-	if (arg->tri && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: color plot and tri-profile are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-	if (nb_layers == 1 && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: mono image is loaded: color mode is unavailable.\n"), "red");
-		return FALSE;
-	}
-	if (nb_layers == 1 && arg->vport > 0) {
-		siril_log_color_message(_("Error: mono image is loaded: colored layers cannot be specified.\n"), "red");
-		return FALSE;
-	}
-	if (arg->cfa && arg->mode == CUT_COLOR) {
-		siril_log_color_message(_("Error: color plot and CFA mode are mutually exclusive.\n"), "red");
-		return FALSE;
-	}
-		if (arg->cut_start.x == arg->cut_end.x && arg->cut_start.y == arg->cut_end.y) {
-		siril_log_message(_("Error: start and finish points are the same.\n"));
-		return FALSE;
-	}
-	if (arg->seq && arg->seq->is_variable) {
-		siril_log_message(_("Error: variable image size in sequence.\n"));
-		return FALSE;
-	}
-
-	// Check args are cromulent
-	int rx = (arg->seq) ? arg->seq->rx : gfit->rx;
-	int ry = (arg->seq) ? arg->seq->ry : gfit->ry;
-
-	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
-		siril_log_message(_("Error: wavenumber points are the same.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber / wavelength for point 1 is not set.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber / wavelength for point 2 is not set.\n"));
-		return FALSE;
-	}
-	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber / wavelength set for point 1 but corresponding location is not set.\n"));
-		return FALSE;
-	}
-	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber / wavelength set for point 2 but corresponding location is not set.\n"));
-		return FALSE;
-	}
-	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) &&
-		(!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
-		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->cut_wn1.x > rx - 1 || arg->cut_wn2.x > rx - 1 || arg->cut_wn1.y > ry - 1 || arg->cut_wn2.y > ry - 1) {
-		siril_log_message(_("Error: wavenumber / wavelength point outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->cut_start.x > rx - 1 || arg->cut_start.y > ry - 1 || arg->cut_end.x > rx - 1 || arg->cut_end.y > ry - 1) {
-		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
-		return FALSE;
-	}
-	if (arg->step != 1 && !arg->tri) {
-		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
-		return FALSE;
-	}
-	if (arg->vport < 0 || arg->vport > nb_layers) {
-		siril_log_message(_("Error: layer out of range.\n"));
-		return FALSE;
-	}
-
-	if (arg->bg_poly_order < 1 || arg->bg_poly_order > 6) {
-		siril_log_message(_("Error: background removal polynomial degree should be >= 1 and <= 6.\n"));
-		return FALSE;
-	}
-	return TRUE;
-
-}
 
 double get_conversion_factor(fits *fit) {
 	gboolean unit_is_as = (fit->keywords.focal_length > 0.0) && (fit->keywords.pixel_size_x > 0.0) && (fit->keywords.pixel_size_y == fit->keywords.pixel_size_x);

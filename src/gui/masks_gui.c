@@ -88,6 +88,72 @@ static GtkAdjustment *adj_mask_thresh_max_16bit = NULL;
 static GtkAdjustment *adj_thresh_feather_float = NULL;
 static GtkAdjustment *adj_thresh_feather_8bit = NULL;
 static GtkAdjustment *adj_thresh_feather_16bit = NULL;
+static GtkWindow *masks_dialog_window = NULL;
+static GtkSpinButton *spin_blur_radius = NULL;
+static GtkSpinButton *spin_feather_distance = NULL;
+static GtkComboBox *combo_feather_type = NULL;
+static GtkSpinButton *spin_multiply_factor = NULL;
+
+/* Sync the mask-enable toggle button without triggering its signal handler. */
+gboolean set_mask_active_idle(gpointer p) {
+	gboolean state = GPOINTER_TO_INT(p);
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_enable_check")));
+	g_signal_handlers_block_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
+	gtk_toggle_button_set_active(button, state);
+	g_signal_handlers_unblock_by_func(GTK_TOGGLE_BUTTON(button), on_mask_enable_toggled, NULL);
+	return FALSE;
+}
+
+
+static void masks_gui_init_statics(void) {
+	if (combo_mask_from_image_type) return;
+	combo_mask_from_image_type = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mask_from_image_type"));
+	combo_mask_luminance_type = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mask_luminance_type"));
+	combo_mask_from_image_bitdepth = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mask_from_image_bitdepth"));
+	mask_luminance_grid = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_luminance_grid"));
+	mask_channel_grid = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_channel_grid"));
+	mask_file_chooser_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_file_chooser_box"));
+	mask_method_box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mask_method_box"));
+	entry_mask_filename = GTK_WIDGET(gtk_builder_get_object(gui.builder, "entry_mask_filename"));
+	spin_mask_lr = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_lr"));
+	spin_mask_lg = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_lg"));
+	spin_mask_lb = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_lb"));
+	spin_mask_channel = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_channel"));
+	toggle_mask_autostretch = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_mask_autostretch"));
+	toggle_mask_invert = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_mask_invert"));
+	combo_mask_from_stars_bitdepth = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_mask_from_stars_bitdepth"));
+	spin_mask_star_radius = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_star_radius"));
+	spin_mask_feather = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_feather"));
+	toggle_mask_stars_invert = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_mask_stars_invert"));
+	combo_color_mask_bitdepth = GTK_WIDGET(gtk_builder_get_object(gui.builder, "combo_color_mask_bitdepth"));
+	drawing_area_color_display = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawing_area_color_display"));
+	scale_color_tolerance = GTK_SCALE(gtk_builder_get_object(gui.builder, "scale_color_tolerance"));
+	scale_lum_min = GTK_SCALE(gtk_builder_get_object(gui.builder, "scale_lum_min"));
+	scale_lum_max = GTK_SCALE(gtk_builder_get_object(gui.builder, "scale_lum_max"));
+	spin_color_feather = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_color_feather"));
+	toggle_color_mask_invert = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_color_mask_invert"));
+	toggle_color_mask_cleanup = GTK_WIDGET(gtk_builder_get_object(gui.builder, "toggle_color_mask_cleanup"));
+	threshold_mask_close = GTK_WIDGET(gtk_builder_get_object(gui.builder, "threshold_mask_close"));
+	threshold_mask_apply = GTK_WIDGET(gtk_builder_get_object(gui.builder, "threshold_mask_apply"));
+	spin_mask_threshold_range = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_threshold_range"));
+	spin_mask_threshold_min = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_threshold_min"));
+	spin_mask_threshold_max = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_threshold_max"));
+	masks_dialog_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "mask_from_image_dialog"));
+	spin_blur_radius = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_blur_radius"));
+	spin_feather_distance = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_feather_distance"));
+	combo_feather_type = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_mask_feather_type"));
+	spin_multiply_factor = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mask_multiply_factor"));
+	adj_mask_thresh_min_float = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_min_float"));
+	adj_mask_thresh_max_float = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_max_float"));
+	adj_mask_thresh_min_8bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_min_8bit"));
+	adj_mask_thresh_max_8bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_max_8bit"));
+	adj_mask_thresh_min_16bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_min_16bit"));
+	adj_mask_thresh_max_16bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_mask_thresh_max_16bit"));
+	adj_thresh_feather_float = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_thresh_feather_float"));
+	adj_thresh_feather_8bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_thresh_feather_8bit"));
+	adj_thresh_feather_16bit = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adj_thresh_feather_16bit"));
+}
+
 
 /**
 * on_mask_from_image_dialog_show:
@@ -98,26 +164,7 @@ static GtkAdjustment *adj_thresh_feather_16bit = NULL;
 * Initializes static widget pointers on first show.
 */
 void on_mask_from_image_dialog_show(GtkWidget *widget, gpointer user_data) {
-	static gboolean widgets_initialized = FALSE;
-
-	if (!widgets_initialized) {
-		combo_mask_from_image_type = lookup_widget("combo_mask_from_image_type");
-		combo_mask_luminance_type = lookup_widget("combo_mask_luminance_type");
-		combo_mask_from_image_bitdepth = lookup_widget("combo_mask_from_image_bitdepth");
-		mask_luminance_grid = lookup_widget("mask_luminance_grid");
-		mask_channel_grid = lookup_widget("mask_channel_grid");
-		mask_file_chooser_box = lookup_widget("mask_file_chooser_box");
-		mask_method_box = lookup_widget("mask_method_box");
-		entry_mask_filename = lookup_widget("entry_mask_filename");
-		spin_mask_lr = GTK_SPIN_BUTTON(lookup_widget("spin_mask_lr"));
-		spin_mask_lg = GTK_SPIN_BUTTON(lookup_widget("spin_mask_lg"));
-		spin_mask_lb = GTK_SPIN_BUTTON(lookup_widget("spin_mask_lb"));
-		spin_mask_channel = GTK_SPIN_BUTTON(lookup_widget("spin_mask_channel"));
-		toggle_mask_autostretch = lookup_widget("toggle_mask_autostretch");
-		toggle_mask_invert = lookup_widget("toggle_mask_invert");
-
-		widgets_initialized = TRUE;
-	}
+	masks_gui_init_statics();
 
 	/* Configure dialog based on mode */
 	if (mask_from_file_mode) {
@@ -203,8 +250,9 @@ void on_mask_file_chooser_clicked(GtkButton *button, gpointer user_data) {
 	GtkFileFilter *filter;
 	gint response;
 
+	masks_gui_init_statics();
 	dialog = gtk_file_chooser_dialog_new("Select Mask Image File",
-	                                      GTK_WINDOW(lookup_widget("mask_from_image_dialog")),
+	                                      masks_dialog_window,
 	                                      GTK_FILE_CHOOSER_ACTION_OPEN,
 	                                      "_Cancel", GTK_RESPONSE_CANCEL,
 	                                      "_Open", GTK_RESPONSE_ACCEPT,
@@ -469,16 +517,7 @@ void on_combo_mask_luminance_type_changed(GtkComboBox *combo, gpointer user_data
 * Initializes static widget pointers on first show.
 */
 void on_mask_from_stars_dialog_show(GtkWidget *widget, gpointer user_data) {
-	static gboolean widgets_initialized = FALSE;
-
-	if (!widgets_initialized) {
-		combo_mask_from_stars_bitdepth = lookup_widget("combo_mask_from_stars_bitdepth");
-		spin_mask_star_radius = GTK_SPIN_BUTTON(lookup_widget("spin_mask_star_radius"));
-		spin_mask_feather = GTK_SPIN_BUTTON(lookup_widget("spin_mask_feather"));
-		toggle_mask_stars_invert = lookup_widget("toggle_mask_stars_invert");
-
-		widgets_initialized = TRUE;
-	}
+	masks_gui_init_statics();
 	// TODO: initialize the bitdepth combo box based on the preference, when added
 }
 
@@ -546,7 +585,8 @@ void on_mask_from_stars_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_blur_radius"));
+	masks_gui_init_statics();
+	GtkSpinButton *spin = spin_blur_radius;
 	float radius = gtk_spin_button_get_value(spin);
 
 	mask_blur_data *data = calloc(1, sizeof(mask_blur_data));
@@ -566,8 +606,9 @@ void on_blur_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_feather_distance"));
-	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("combo_mask_feather_type"));
+	masks_gui_init_statics();
+	GtkSpinButton *spin = spin_feather_distance;
+	GtkComboBox *combo = combo_feather_type;
 	float distance = gtk_spin_button_get_value(spin);
 	feather_mode mode = (feather_mode) gtk_combo_box_get_active(combo);
 
@@ -589,7 +630,8 @@ void on_feather_mask_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_multiply_mask_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_mask_multiply_factor"));
+	masks_gui_init_statics();
+	GtkSpinButton *spin = spin_multiply_factor;
 	float factor = gtk_spin_button_get_value(spin);
 
 	mask_fmul_data *data = calloc(1, sizeof(mask_fmul_data));
@@ -655,20 +697,7 @@ gboolean on_color_display_draw(GtkWidget *widget, cairo_t *cr, gpointer user_dat
 }
 
 void on_mask_from_color_dialog_show(GtkWidget *widget, gpointer user_data) {
-	static gboolean widgets_initialized = FALSE;
-
-	if (!widgets_initialized) {
-		combo_color_mask_bitdepth = lookup_widget("combo_color_mask_bitdepth");
-		drawing_area_color_display = lookup_widget("drawing_area_color_display");
-		scale_color_tolerance = GTK_SCALE(lookup_widget("scale_color_tolerance"));
-		scale_lum_min = GTK_SCALE(lookup_widget("scale_lum_min"));
-		scale_lum_max = GTK_SCALE(lookup_widget("scale_lum_max"));
-		spin_color_feather = GTK_SPIN_BUTTON(lookup_widget("spin_color_feather"));
-		toggle_color_mask_invert = lookup_widget("toggle_color_mask_invert");
-		toggle_color_mask_cleanup = lookup_widget("toggle_color_mask_cleanup");
-
-		widgets_initialized = TRUE;
-	}
+	masks_gui_init_statics();
 
 	/* Trigger initial draw */
 	if (drawing_area_color_display) {
@@ -783,25 +812,7 @@ void on_mask_color_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_threshold_mask_show(GtkWidget *widget, gpointer user_data) {
-	static gboolean widgets_initialized = FALSE;
-
-	if (!widgets_initialized) {
-		threshold_mask_close = lookup_widget("threshold_mask_close");
-		threshold_mask_apply = lookup_widget("threshold_mask_apply");
-		spin_mask_threshold_range = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_range"));
-		spin_mask_threshold_min = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_min"));
-		spin_mask_threshold_max = GTK_SPIN_BUTTON(lookup_widget("spin_mask_threshold_max"));
-		adj_mask_thresh_min_float = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_float"));
-		adj_mask_thresh_max_float = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_float"));
-		adj_mask_thresh_min_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_8bit"));
-		adj_mask_thresh_max_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_8bit"));
-		adj_mask_thresh_min_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_min_16bit"));
-		adj_mask_thresh_max_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_mask_thresh_max_16bit"));
-		adj_thresh_feather_float = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_float"));;
-		adj_thresh_feather_8bit = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_8bit"));;
-		adj_thresh_feather_16bit = GTK_ADJUSTMENT(lookup_gobject("adj_thresh_feather_16bit"));;
-		widgets_initialized = TRUE;
-	}
+	masks_gui_init_statics();
 	if (gfit->mask) {
 		switch(gfit->mask->bitpix) {
 			case 8: {

@@ -19,6 +19,7 @@
  */
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "gui/user_polygons.h"
 #include "gui/image_display.h"
 
@@ -97,11 +98,11 @@ UserPolygon* create_user_polygon_from_points(GSList *point_list) {
 	polygon->id = -1;
 	polygon->n_points = n_points;
 
-	// Set color to 0xFFFFFF40 (green with alpha)
-	polygon->color.red = 0.0;
-	polygon->color.green = 1.0;
-	polygon->color.blue = 0.0;
-	polygon->color.alpha = 0.25;
+	/* green with low alpha */
+	polygon->color[0] = 0.0;
+	polygon->color[1] = 1.0;
+	polygon->color[2] = 0.0;
+	polygon->color[3] = 0.25;
 
 	polygon->fill = TRUE;
 	polygon->legend = NULL;
@@ -109,7 +110,7 @@ UserPolygon* create_user_polygon_from_points(GSList *point_list) {
 	return polygon;
 }
 
-int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean fill) {
+int add_user_polygon(point *points, int n_points, const double *color, gboolean fill) {
 	int id = get_unused_polygon_id();
 
 	UserPolygon *polygon = g_new(UserPolygon, 1);
@@ -117,7 +118,7 @@ int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean
 	polygon->n_points = n_points;
 	polygon->points = g_new(point, n_points);
 	polygon->fill = fill;
-	polygon->color = *color;
+	memcpy(polygon->color, color, sizeof(polygon->color));
 
 	for (int i = 0; i < n_points; i++) {
 		polygon->points[i] = points[i];
@@ -128,12 +129,12 @@ int add_user_polygon(point *points, int n_points, const GdkRGBA *color, gboolean
 	return id; // Return the generated ID to the caller
 }
 
-int add_existing_polygon(UserPolygon* polygon, const GdkRGBA *color, gboolean fill) {
+int add_existing_polygon(UserPolygon* polygon, const double *color, gboolean fill) {
 	int id = get_unused_polygon_id();
 	polygon->id = id;
 	polygon->fill = fill;
 	if (color) {
-		polygon->color = *color;
+		memcpy(polygon->color, color, sizeof(polygon->color));
 	}
 	gui.user_polygons = g_slist_prepend(gui.user_polygons, polygon);
 	return id; // Return the generated ID to the caller
@@ -192,10 +193,10 @@ UserPolygon* deserialize_polygon(const uint8_t *data, size_t size) {
 	// Read RGBA (packed into uint32_t)
 	uint32_t packed_color = g_ntohl(*(uint32_t *)ptr);
 	ptr += sizeof(uint32_t);
-	polygon->color.red   = ((packed_color >> 24) & 0xFF) / 255.0;
-	polygon->color.green = ((packed_color >> 16) & 0xFF) / 255.0;
-	polygon->color.blue  = ((packed_color >> 8)  & 0xFF) / 255.0;
-	polygon->color.alpha = (packed_color & 0xFF) / 255.0;
+	polygon->color[0] = ((packed_color >> 24) & 0xFF) / 255.0;
+	polygon->color[1] = ((packed_color >> 16) & 0xFF) / 255.0;
+	polygon->color[2] = ((packed_color >> 8)  & 0xFF) / 255.0;
+	polygon->color[3] = (packed_color & 0xFF) / 255.0;
 
 	// Read fill flag (1 byte boolean)
 	polygon->fill = (gboolean)(*ptr);
@@ -299,12 +300,12 @@ uint8_t* serialize_polygon(UserPolygon *polygon, size_t *size) {
 	*(uint32_t *)ptr = g_htonl((uint32_t)polygon->n_points);
 	ptr += sizeof(uint32_t);
 
-	// Write color as packed RGBA
+	/* Pack RGBA into a network-byte-order uint32 */
 	uint32_t packed_color =
-	((uint32_t)(polygon->color.red * 255) << 24) |
-	((uint32_t)(polygon->color.green * 255) << 16) |
-	((uint32_t)(polygon->color.blue * 255) << 8) |
-	((uint32_t)(polygon->color.alpha * 255));
+	((uint32_t)(polygon->color[0] * 255) << 24) |
+	((uint32_t)(polygon->color[1] * 255) << 16) |
+	((uint32_t)(polygon->color[2] * 255) << 8) |
+	((uint32_t)(polygon->color[3] * 255));
 	*(uint32_t *)ptr = g_htonl(packed_color);
 	ptr += sizeof(uint32_t);
 

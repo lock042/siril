@@ -2,30 +2,14 @@
  * Refactored saturation using generic_image_worker
  */
 
-#include <stdlib.h>
-#include <math.h>
-
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
-#include "io/single_image.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/utils.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
 
 #include "saturation.h"
-
-static double satu_amount, background_factor;
-static int satu_hue_type;
-static gboolean satu_show_preview;
-static int satu_update_preview();
 
 /* Helper to map hue types to degree ranges */
 void satu_set_hues_from_types(saturation_params *args, int type) {
@@ -65,7 +49,6 @@ void satu_set_hues_from_types(saturation_params *args, int type) {
 static int enhance_saturation_ushort(fits *fit, saturation_params *params) {
 	double bg = 0.0;
 	WORD *in[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	// Operate in-place
 	WORD *out[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
 	double h_min = params->h_min / 360.0;
@@ -120,7 +103,6 @@ static int enhance_saturation_ushort(fits *fit, saturation_params *params) {
 static int enhance_saturation_float(fits *fit, saturation_params *params) {
 	float bg = 0.0f;
 	float *in[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-	// Operate in-place
 	float *out[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
 	float h_min = (float)params->h_min / 60.0f;
@@ -184,210 +166,10 @@ int saturation_image_hook(struct generic_img_args *args, fits *fit, int nb_threa
 	return 1;
 }
 
-static gboolean satu_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	clear_backup();
-	return FALSE;
-}
-
 gchar* satu_log_hook(gpointer p, log_hook_detail detail) {
 	saturation_params *params = (saturation_params *) p;
 	return g_strdup_printf(_("Color saturation %d%%, threshold %.2f"),
 		round_to_int(params->coeff * 100.0), params->background_factor);
 }
 
-/* Helper to launch the worker */
-static int satu_process_with_worker(gboolean for_preview) {
-	saturation_params *params = calloc(1, sizeof(saturation_params));
-	if (!params) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	// Destructor required by generic_img_args
-	params->coeff = satu_amount;
-	params->background_factor = background_factor;
-	satu_set_hues_from_types(params, satu_hue_type);
-
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		free(params);
-		return 1;
-	}
-
-	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = saturation_image_hook;
-	args->idle_function = for_preview ? NULL : satu_apply_idle;
-	args->description = _("Saturation");
-	args->verbose = !for_preview;
-	args->user = params;
-	args->max_threads = com.max_thread;
-	args->for_preview = for_preview;
-	args->for_roi = gui.roi.active;
-	args->mask_aware = TRUE;
-	if (!for_preview) {
-		args->log_hook = satu_log_hook;
-		args->populate_roi_on_complete = TRUE;
-	}
-
-	if (for_preview)
-		generic_image_worker(args);
-	else
-		start_in_new_thread(generic_image_worker, args);
-	return 0;
-}
-
-static int satu_update_preview() {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")))) {
-		copy_backup_to_gfit();
-		return satu_process_with_worker(TRUE);
-	}
-	return 0;
-}
-
-void satu_change_between_roi_and_image() {
-	gui.roi.operation_supports_roi = TRUE;
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = satu_update_preview;
-	param->show_preview = satu_show_preview;
-	notify_update((gpointer) param);
-}
-
-static void satu_startup() {
-	roi_supported(TRUE);
-	add_roi_callback(satu_change_between_roi_and_image);
-	copy_gfit_to_backup();
-	satu_amount = 0.0;
-	satu_hue_type = 6;
-}
-
-static void satu_close(gboolean revert) {
-	set_cursor_waiting(TRUE);
-	if (revert) {
-		if (satu_amount != 0.0) {
-			copy_backup_to_gfit();
-			notify_gfit_data_modified();
-			gfit_modified_update_gui();
-		}
-	}
-	roi_supported(FALSE);
-	remove_roi_callback(satu_change_between_roi_and_image);
-	clear_backup();
-	set_cursor_waiting(FALSE);
-}
-
-static void apply_satu_changes() {
-	gboolean status = satu_amount != 0.0;
-	satu_close(!status);
-}
-
-gboolean on_satu_cancel_clicked(GtkButton *button, gpointer user_data) {
-	satu_close(TRUE);
-	siril_close_dialog("satu_dialog");
-	return FALSE;
-}
-
-void on_satu_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview"))))
-		copy_backup_to_gfit();
-
-	satu_process_with_worker(FALSE);
-	// Cleanup happens in idle function, close dialog now
-	siril_close_dialog("satu_dialog");
-}
-
-void on_satu_dialog_close(GtkDialog *dialog, gpointer user_data) {
-	apply_satu_changes();
-}
-
-/** callbacks - kept mostly the same, just update preview logic **/
-
-void on_satu_dialog_show(GtkWidget *widget, gpointer user_data) {
-	satu_startup();
-	satu_amount = 0.0;
-	satu_hue_type = 6;
-	background_factor = 1.0;
-
-	set_notify_block(TRUE);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), satu_hue_type);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
-	set_notify_block(FALSE);
-
-	satu_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")));
-}
-
-void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
-	satu_hue_type = gtk_combo_box_get_active(box);
-
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = satu_update_preview;
-	param->show_preview = satu_show_preview;
-	notify_update((gpointer) param);
-}
-
-void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	double prev_satu = satu_amount;
-
-	set_notify_block(TRUE);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), 0);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), 1);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")), TRUE);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), 6);
-	set_notify_block(FALSE);
-
-	// Update preview only if required
-	if (prev_satu != 0.0) {
-		copy_backup_to_gfit();
-		gfit_modified_update_gui();
-		set_cursor_waiting(FALSE);
-	}
-}
-
-void apply_satu_cancel() {
-	satu_close(TRUE);
-	siril_close_dialog("satu_dialog");
-}
-
-void on_spin_satu_value_changed(GtkSpinButton *button, gpointer user_data) {
-	satu_amount = gtk_spin_button_get_value(button);
-
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = 	satu_update_preview;
-	param->show_preview = satu_show_preview;
-	notify_update((gpointer) param);
-}
-
-void on_spin_satu_bkg_value_changed(GtkSpinButton *button, gpointer user_data) {
-	background_factor = gtk_spin_button_get_value(button);
-
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = 	satu_update_preview;
-	param->show_preview = satu_show_preview;
-	notify_update((gpointer) param);
-}
-
-void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	cancel_pending_update();
-	satu_show_preview = gtk_toggle_button_get_active(button);
-	if (!satu_show_preview) {
-		cancel_and_wait_for_preview();
-		copy_backup_to_gfit();
-		notify_gfit_data_modified();
-		redraw(REMAP_ALL);
-	} else {
-		copy_gfit_to_backup();
-		update_image *param = malloc(sizeof(update_image));
-		param->update_preview_fn = satu_update_preview;
-		param->show_preview = TRUE;
-		notify_update((gpointer) param);
-	}
-}
+/* GUI callbacks moved to src/gui/saturation.c */

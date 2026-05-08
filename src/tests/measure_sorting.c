@@ -19,6 +19,7 @@
  */
 
 #include "../core/siril.h"
+#include "gui/gui_state.h"
 #include "../algos/sorting.h"
 
 #include <stdio.h>

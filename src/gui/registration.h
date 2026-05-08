@@ -35,6 +35,8 @@ gboolean _3stars_check_selection();
 
 // General GUI
 int get_registration_layer_from_GUI(const sequence *seq);
+gboolean registration_get_follow_star(void);
+void registration_update_label(const gchar *msg);
 void update_reg_interface(gboolean dont_change_reg_radio);
 gboolean end_register_idle(gpointer p);
 void initialize_registration_methods();

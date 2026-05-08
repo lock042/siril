@@ -30,7 +30,6 @@
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
 #include "io/sequence.h"
-#include "gui/progress_and_log.h"
 #include "stacking/stacking.h"
 
 #include "initfile.h"

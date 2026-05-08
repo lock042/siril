@@ -99,6 +99,22 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.4.3" type="stable" date="2026-05-07">
+      <url type="details">https://siril.org/download/1.4.3</url>
+      <description>
+        <p>
+          Maintenance release for the 1.4.x series. This version focuses on bug fixes,
+          stability improvements, and enhancements to the Python scripting interface.
+        </p>
+        <ul>
+          <li>Fixed several crashes and critical issues (headless undo state, Python module installation failure, loading some Hubble images)</li>
+          <li>Fixed FITSEQ handling issues, including browsing sequences with varying image sizes and individual frame reading</li>
+          <li>Fixed multiple functional bugs (incorrect dimension constraints in sirilpy, Windows pipes naming, file extension handling in Save As dialog)</li>
+          <li>Improved background extraction behavior and added support for None as a value for BAYERPAT</li>
+          <li>Enhanced Python interface with new features (SirilInterface.open_dialog(), automatic script execution at startup, -async option for pyscript)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.2" type="stable" date="2026-02-18">
       <url type="details">https://siril.org/download/1.4.2</url>
       <description>

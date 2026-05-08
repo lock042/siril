@@ -1,4 +1,10 @@
 # Build properties
+option('gui',
+ type : 'feature',
+ value : 'enabled',
+ description: 'build the GTK GUI (disable for a headless CLI-only build)'
+)
+
 option('relocatable-bundle',
  type: 'combo',
  value: 'platform-default',

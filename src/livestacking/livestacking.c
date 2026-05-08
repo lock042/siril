@@ -25,12 +25,11 @@
 #include <sys/time.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/preprocess.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/PSF_list.h"	// clear_stars_list
 #include "io/conversion.h"
 #include "io/FITS_symlink.h"
 #include "io/image_format_fits.h"
@@ -46,8 +45,6 @@
 #include "algos/noise.h"
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
-#include "gui/image_display.h"
-#include "gui/callbacks.h"
 #include "livestacking.h"
 #include "gui.h"
 
@@ -152,11 +149,8 @@ void stop_live_stacking_engine() {
 	first_stacking_result = TRUE;
 	unreserve_thread();
 
-	if (!com.headless) {
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
-		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
-		set_cursor_waiting(FALSE);
-	}
+	gui_iface.livestacking_teardown_gui();
+	gui_iface.set_busy(FALSE);
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
@@ -239,19 +233,13 @@ void livestacking_queue_file(char *file) {
 	g_async_queue_push(new_files_queue, file);
 }
 
-/* for fullscreen, see livestacking_action_activate() in core/siril_actions.c */
+/* for fullscreen, see livestacking_action_activate() in gui/siril_actions.c */
 int start_livestacking(gboolean with_filewatcher) {
 	if (live_stacker_thread)
 		return 1;
 	livestacking_display(_("Starting live stacking"), FALSE);
-	if (!com.headless) {
-		gui.rendering_mode = STF_DISPLAY;
-		set_display_mode();
-		force_unlinked_channels();
-		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
-		if (gtk_widget_is_visible(toolbar)) show_hide_toolbox();
-		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
-	}
+	if (!com.headless)
+		gui_iface.livestacking_setup_gui(prepro && prepro->use_dark, prepro && prepro->use_flat, (int)reg_type);
 
 	do_links = test_if_symlink_is_ok(TRUE);
 
@@ -603,7 +591,7 @@ static gpointer live_stacker(gpointer arg) {
 			com.script = script_bkp;
 			if (!com.headless) {
 				notify_gfit_data_modified();
-				execute_idle_and_wait_for_it(end_image_loading, NULL);
+				gui_iface.execute_idle_sync(end_image_loading, NULL);
 			}
 		}
 
@@ -786,7 +774,7 @@ static gpointer live_stacker(gpointer arg) {
 			livestacking_display(str, TRUE);
 			break;
 		}
-		clear_stars_list(FALSE);
+		gui_iface.clear_star_list();
 		bgnoise_async(&stackparam.result, TRUE);
 
 		if (savefits(result_filename, &stackparam.result)) {
@@ -807,11 +795,11 @@ static gpointer live_stacker(gpointer arg) {
 				com.seq.current = RESULT_IMAGE;
 				com.uniq->nb_layers = gfit->naxes[2];
 				com.uniq->fit = gfit;
-				gdk_threads_add_idle(livestacking_first_result_idle, NULL);
+				siril_add_idle(livestacking_first_result_idle, NULL);
 				first_stacking_result = FALSE;
 			} else {
-				remap_all();
-				queue_redraw(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
+				gui_iface.remap_all_vports();
+				gui_iface.redraw_image_async(REMAP_ALL); // TODO: is this safe enough if the livestacking is running from a python command?
 			}
 		}
 		g_free(result_filename);

@@ -4,10 +4,11 @@
 #include <config.h>
 #endif
 
+#include <stdint.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
-#include <gtk/gtk.h>
+#include <gio/gio.h>
 #include <gsl/gsl_histogram.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -130,9 +131,6 @@ typedef struct _SirilDialogEntry SirilDialogEntry;
 // free_generic_img_args
 typedef void (*destructor)(void *);
 
-/* used for open and savedialog */
-typedef GtkWidget SirilWidget;
-
 #if (defined _WIN32) || (defined(OS_OSX))
 #define SIRIL_EOL "\r\n"
 #else
@@ -150,6 +148,17 @@ typedef enum {
 	RESPONSE_RESCALE_CLIPNEG,
 	RESPONSE_RESCALE_ALL
 } OverrangeResponse;
+
+/* Main window tab indices — used by gui_iface.switch_to_tab() */
+typedef enum {
+	FILE_CONVERSION,
+	IMAGE_SEQ,
+	PRE_PROC,
+	REGISTRATION,
+	PLOT,
+	STACKING,
+	OUTPUT_LOGS
+} main_tabs;
 
 typedef enum {
 	TYPEUNDEF = (1 << 1),
@@ -244,7 +253,7 @@ typedef struct _UserPolygon {
 	int id;
 	int n_points;
 	point *points;
-	GdkRGBA color;
+	double color[4]; /* RGBA components in [0, 1], indexed [R, G, B, A] */
 	gboolean fill;
 	gchar *legend;
 } __attribute__((packed)) UserPolygon;
@@ -297,6 +306,12 @@ typedef enum {
 	MINMAX,
 	USER
 } sliders_mode;
+
+/* Script file extensions — defined here so non-GUI code can check without
+ * pulling in gui/script_menu.h. */
+#define SCRIPT_EXT    "ssf"
+#define PYSCRIPT_EXT  "py"
+#define PYCSCRIPT_EXT "pyc"
 
 typedef enum {
 	OPEN_IMAGE_ERROR = -1,
@@ -764,51 +779,10 @@ struct historic_struct {
 	gboolean spcc_applied;
 };
 
-/* the structure storing information for each layer to be composed
- * (one layer = one source image) and one associated colour */
-typedef struct {
-	/* widgets data */
-	GtkButton *remove_button;
-	GtkDrawingArea *color_w;		// the simulated color chooser
-	GtkButton *chooser_button;		// the file choosers
-	gchar *selected_filename;		// selected filename
-	GtkLabel *chooser_button_label;
-	GtkLabel *label;				// the labels
-	GtkSpinButton *spinbutton_x;	// the X spin button
-	GtkSpinButton *spinbutton_y;	// the Y spin button
-	GtkSpinButton *spinbutton_r;	// the rotation spin button
-	GtkToggleButton *centerbutton;	// the button to set the center
-	double spinbutton_x_value;
-	double spinbutton_y_value;
-	double spinbutton_r_value;
-	/* useful data */
-	GdkRGBA color;					// real color of the layer in the image colorspace
-	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
-	GdkRGBA display_color;			// color of the layer in the display colorspace
-	fits the_fit;					// the fits for layers
-	point center;
-} layer;
-
-/* The rendering of the main image is cached. As it can be much larger than the
- * widget in which it's displayed, it can take a lot of time to transform it
- * for rendering. Unfortunately, rendering is requested on each update of a
- * label, so every time the pointer moves above the image.
- * With the caching, the rendering is done once in a cache surface
- * (disp_surface) and this surface is just displayed on subsequent calls if the
- * image, the transform or the widget size has not changed.
- */
-struct image_view {
-	GtkWidget *drawarea;
-
-	guchar *buf;	// display buffer (image mapped to 3 times 8-bit)
-	int full_surface_stride;
-	int full_surface_height;
-	int view_width;	// drawing area size
-	int view_height;
-
-	cairo_surface_t *full_surface;
-	cairo_surface_t *disp_surface;	// the cache
-};
+/* struct layer, struct image_view, draw_data_t, and struct guiinf have been
+ * moved to src/gui/gui_state.h (plan step 1.2).  Only GUI translation units
+ * should include that header.  The forward typedef below lets non-GUI code
+ * name the type without accessing its fields. */
 
 typedef struct roi {
 	fits fit;
@@ -816,16 +790,6 @@ typedef struct roi {
 	gboolean active;
 	gboolean operation_supports_roi;
 } roi_t;
-
-typedef struct draw_data {
-	cairo_t *cr;	// the context to draw to
-	int vport;	// the viewport index to draw
-	double zoom;	// the current zoom value
-	gboolean neg_view;	// negative view
-	cairo_filter_t filter;	// the type of image filtering to use
-	guint image_width, image_height;	// image size
-	guint window_width, window_height;	// drawing area size
-} draw_data_t;
 
 struct gui_icc {
 	cmsHPROFILE monitor;
@@ -839,100 +803,6 @@ struct gui_icc {
 	guint sh_b;
 	guint sh_rgb;
 	gboolean iso12646;
-};
-
-/* The global data structure of siril gui */
-struct guiinf {
-	GtkBuilder *builder;		// the builder of the glade interface
-
-	/*********** rendering of gfit, the currently loaded image ***********/
-	struct image_view view[MAXVPORT];
-	int cvport;			// current viewport, index in the list vport above
-
-	cairo_matrix_t display_matrix;	// matrix used for image rendering (convert image to display coordinates)
-	cairo_matrix_t image_matrix;	// inverse of display_matrix (convert display to image coordinates)
-	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
-	point display_offset;		// image display offset
-
-	gboolean translating;		// the image is being translated
-
-	gboolean show_excluded;		// show excluded images in sequences
-
-	int selected_star;		// current selected star in the GtkListStore
-
-	gboolean show_wcs_grid;		// show the equatorial grid over the image
-	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
-
-	psf_star *qphot;		// quick photometry result, highlight a star
-
-	point measure_start;	// quick alt-drag measurement
-	point measure_end;
-
-	GSList *user_polygons;	// user defined polygons for the overlay
-
-	void (*draw_extra)(draw_data_t *dd);
-
-	/* List of all scripts from the repository */
-	GSList* repo_scripts; // the list of selected scripts is in com.pref
-	/* gboolean to confirm the script repository has been opened without error */
-	gboolean script_repo_available;
-	gboolean spcc_repo_available;
-
-	/*********** Color mapping **********/
-	WORD lo, hi;			// the values of the cutoff sliders
-	gboolean cut_over;		// display values over hi as negative
-	sliders_mode sliders;		// lo/hi, minmax, user
-	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
-	gboolean unlink_channels;	// only for autostretch
-	BYTE remap_index[3][USHRT_MAX + 1];	// abstracted here so it can be used for previews and is easier to change the bit depth
-	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
-	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
-	struct gui_icc icc;
-
-	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
-	gboolean drawing;		// true if the rectangle is being set (clicked motion)
-	cut_struct cut;				// Struct to hold data relating to intensity
-								// profile cuts
-	pointi start;			// where the mouse was originally clicked to
-	pointi origin;			// where the selection was originally located
-	gboolean freezeX, freezeY;	// locked axis during modification of a selection
-	double ratio;			// enforced ratio of the selection (default is 0: none)
-	double rotation;		// selection rotation for dynamic crop
-
-	/* alignment preview data */
-	cairo_surface_t *preview_surface[PREVIEW_NB];
-	GtkWidget *preview_area[PREVIEW_NB];
-	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
-	cairo_surface_t *refimage_surface;
-
-	int file_ext_filter;		// file extension filter for open/save dialogs
-
-	/* history of the command line. This is a circular buffer (cmd_history)
-	 * of size cmd_hist_size, position to be written is cmd_hist_current and
-	 * position being browser for display of the history is cmd_hist_display.
-	 */
-	char **cmd_history;		// the history of the command line
-	int cmd_hist_size;		// allocated size
-	int cmd_hist_current;		// current command index
-	int cmd_hist_display;		// displayed command index
-	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
-
-	roi_t roi; // Region of interest struct
-	GSList *mouse_actions;
-	GSList *scroll_actions;
-	gboolean drawing_polygon; // whether drawing a polygon or not
-	GSList *drawing_polypoints; // list of points drawn in MOUSE_ACTION_DRAW_POLY mode
-	GdkRGBA poly_ink; // Color and alpha for drawing polygons
-	gboolean poly_fill; // Whether to fill drawn polygons
-	// cairo_mutex guards gui.view[].buf and Cairo display surfaces;
-	// held by display-update code on main thread and any worker that composites into the buffers
-	GMutex cairo_mutex;
-	/* Set atomically by generic_image_worker before any UI updates; cleared
-	 * just before the completion idle is posted.  When set, redraw_drawingarea
-	 * repaints from the cached display surface instead of recalculating, so
-	 * the previous correct frame stays visible with no grey flash. */
-	gint suppress_drawarea_redraw;
 };
 
 struct common_icc {
@@ -1036,13 +906,18 @@ struct cominf {
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
+	struct gui_icc gui_icc;		/* Display ICC profiles (monitor, soft proof); initialized even headlessly */
 	version_number python_version; // Holds the python version number
 	GSList *children;		// List of children; children->data is of type child_info
 	gchar *spcc_remote_catalogue;	// Which catalogue to use for SPCC
+
+	/* Repository / script state (not display state; lives here, not in guiinfo) */
+	GSList   *repo_scripts;          // list of scripts from the remote repository
+	gboolean  script_repo_available; // remote script repository is reachable
+	gboolean  spcc_repo_available;   // remote SPCC repository is reachable
 };
 
 #ifndef MAIN
-extern guiinfo gui;
 extern cominfo com;		// the main data struct
 extern fits *gfit;		// currently loaded image
 #endif

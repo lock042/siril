@@ -52,7 +52,6 @@
 #include "core/siril.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
-#include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
 #include "core/pipe.h"
@@ -60,6 +59,7 @@
 #include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
+#include "core/siril_update.h"
 #include "core/OS_utils.h"
 #include "algos/siril_random.h"
 #include "io/sequence.h"
@@ -70,7 +70,6 @@
 
 /* the global variables of the whole project */
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit = NULL;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
@@ -79,6 +78,7 @@ static gchar *main_option_initfile = NULL;
 static gchar *main_option_rpipe_path = NULL;
 static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
+static gboolean main_option_sync_spcc = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
@@ -118,6 +118,7 @@ static GOptionEntry main_option[] = {
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputting messages"), NULL },
+	{ "sync_spcc", 0, 0, G_OPTION_ARG_NONE, &main_option_sync_spcc, N_("fetch the current SPCC mirror list from the internet and cache it locally, then exit"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
@@ -250,6 +251,11 @@ static void siril_app_activate(GApplication *application) {
 	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
+	if (main_option_sync_spcc) {
+		siril_check_spcc_mirrors(TRUE, TRUE);
+		g_free(supported_files);
+		exit(EXIT_SUCCESS);
+	}
 
 	g_free(supported_files);
 }

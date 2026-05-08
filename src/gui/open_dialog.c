@@ -46,6 +46,39 @@
 
 #include "open_dialog.h"
 
+static GtkToggleButton *od_demosaicing_btn = NULL;
+static GtkWindow *od_control_window = NULL;
+static GtkEntry *od_flatname_entry = NULL;
+static GtkEntry *od_darkname_entry = NULL;
+static GtkEntry *od_offsetname_entry = NULL;
+static GtkEntry *od_flatlib_entry = NULL;
+static GtkEntry *od_darklib_entry = NULL;
+static GtkEntry *od_biaslib_entry = NULL;
+static GtkEntry *od_distolib_entry = NULL;
+static GtkWidget *od_prepro_button = NULL;
+static GtkEntry *od_pixelmap_entry = NULL;
+static GtkToggleButton *od_useflat_btn = NULL;
+static GtkToggleButton *od_usedark_btn = NULL;
+static GtkToggleButton *od_useoffset_btn = NULL;
+
+static void open_dialog_init_statics(void) {
+	if (od_control_window) return;
+	od_demosaicing_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "demosaicingButton"));
+	od_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+	od_flatname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatname_entry"));
+	od_darkname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "darkname_entry"));
+	od_offsetname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "offsetname_entry"));
+	od_flatlib_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatlib_entry"));
+	od_darklib_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "darklib_entry"));
+	od_biaslib_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "biaslib_entry"));
+	od_distolib_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "distolib_entry"));
+	od_prepro_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "prepro_button"));
+	od_pixelmap_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "pixelmap_entry"));
+	od_useflat_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "useflat_button"));
+	od_usedark_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "usedark_button"));
+	od_useoffset_btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "useoffset_button"));
+}
+
 static void set_single_filter_dialog(GtkFileChooser *chooser, const gchar *name, const gchar *filter) {
 	gtk_filter_add(chooser, name, filter, TRUE);
 }
@@ -187,7 +220,8 @@ static void on_debayer_toggled(GtkToggleButton *togglebutton, gpointer user_data
 }
 
 static void siril_add_debayer_toggle_button(GtkFileChooser *dialog) {
-	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
+	open_dialog_init_statics();
+	GtkToggleButton *main_debayer_button = od_demosaicing_btn;
 	GtkWidget *toggle_debayer = gtk_check_button_new_with_label(_("Debayer"));
 
 	gtk_widget_show(toggle_debayer);
@@ -216,10 +250,11 @@ static gchar* get_calibration_file_directory(GtkWidget *entry) {
 }
 
 static void opendial(int whichdial) {
+	open_dialog_init_statics();
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
 	fileChooserPreview *preview = NULL;
-	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	GtkWindow *control_window = od_control_window;
 	gint res;
 	int retval;
 
@@ -233,25 +268,25 @@ static void opendial(int whichdial) {
 		return;
 	case OD_FLAT:
 		if (whichdial == OD_FLAT)
-			entry = lookup_widget("flatname_entry");
+			entry = GTK_WIDGET(od_flatname_entry);
 	case OD_DARK:
 		if (whichdial == OD_DARK)
-			entry = lookup_widget("darkname_entry");
+			entry = GTK_WIDGET(od_darkname_entry);
 	case OD_OFFSET:
 		if (whichdial == OD_OFFSET)
-			entry = lookup_widget("offsetname_entry");
+			entry = GTK_WIDGET(od_offsetname_entry);
 	case OD_FLATLIB:
 		if (whichdial == OD_FLATLIB)
-			entry = lookup_widget("flatlib_entry");
+			entry = GTK_WIDGET(od_flatlib_entry);
 	case OD_DARKLIB:
 		if (whichdial == OD_DARKLIB)
-			entry = lookup_widget("darklib_entry");
+			entry = GTK_WIDGET(od_darklib_entry);
 	case OD_OFFSETLIB:
 		if (whichdial == OD_OFFSETLIB)
-			entry = lookup_widget("biaslib_entry");
+			entry = GTK_WIDGET(od_biaslib_entry);
 	case OD_DISTOLIB:
 		if (whichdial == OD_DISTOLIB)
-			entry = lookup_widget("distolib_entry");
+			entry = GTK_WIDGET(od_distolib_entry);
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gchar *lastdir = get_calibration_file_directory(entry);
@@ -336,10 +371,6 @@ static void opendial(int whichdial) {
 		gchar *filename, *err;
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
-		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry, *distolib_entry;
-		GtkToggleButton *flat_button, *dark_button, *bias_button;
-		GtkWidget *pbutton;
 
 		filename = siril_file_chooser_get_filename(chooser);
 		if (!filename)
@@ -352,19 +383,18 @@ static void opendial(int whichdial) {
 			goto wait;
 		}
 
-		pbutton  = lookup_widget("prepro_button");
-		flat_entry = GTK_ENTRY(lookup_widget("flatname_entry"));
-		dark_entry = GTK_ENTRY(lookup_widget("darkname_entry"));
-		bias_entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
-		flatlib_entry = GTK_ENTRY(lookup_widget("flatlib_entry"));
-		darklib_entry = GTK_ENTRY(lookup_widget("darklib_entry"));
-		biaslib_entry = GTK_ENTRY(lookup_widget("biaslib_entry"));
-		distolib_entry = GTK_ENTRY(lookup_widget("distolib_entry"));
-		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
-
-		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
-		dark_button = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
-		bias_button = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
+		GtkEntry *flat_entry = od_flatname_entry;
+		GtkEntry *dark_entry = od_darkname_entry;
+		GtkEntry *bias_entry = od_offsetname_entry;
+		GtkEntry *flatlib_entry = od_flatlib_entry;
+		GtkEntry *darklib_entry = od_darklib_entry;
+		GtkEntry *biaslib_entry = od_biaslib_entry;
+		GtkEntry *distolib_entry = od_distolib_entry;
+		GtkEntry *bad_pixel_entry = od_pixelmap_entry;
+		GtkToggleButton *flat_button = od_useflat_btn;
+		GtkToggleButton *dark_button = od_usedark_btn;
+		GtkToggleButton *bias_button = od_useoffset_btn;
+		GtkWidget *pbutton = od_prepro_button;
 
 		anything_loaded = sequence_is_loaded() || single_image_is_loaded();
 

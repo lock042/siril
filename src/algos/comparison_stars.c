@@ -17,19 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <gtk/gtk.h>
-#include "gui/utils.h"
-
-#include "comparison_stars.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "comparison_stars.h"
 #include "algos/siril_wcs.h"
 #include "algos/search_objects.h"
 #include "io/siril_catalogues.h"
-#include "gui/image_display.h"
-#include "gui/PSF_list.h"
 
 
 #define BORDER_RATIO 0.10 // the amount of image that is considered at border
@@ -172,32 +168,6 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 	return !target_acquired;
 }
 
-// may not be called as an idle, do not call GTK code if !has_GUI
-static gboolean end_compstars(gpointer p) {
-	siril_debug_print("end_compstars\n");
-	struct compstars_arg *args = (struct compstars_arg *) p;
-
-	// display the comp star list
-	clear_stars_list(args->has_GUI);
-	if (args->has_GUI && !args->retval) {
-		purge_user_catalogue(CAT_AN_USER_TEMP); // we always clear user_temp in case there are two successive calls to findcompstars
-		if (!load_siril_cat_to_temp(args->comp_stars)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			refresh_found_objects();
-			if (!gtk_toggle_tool_button_get_active(button)) {
-				gtk_toggle_tool_button_set_active(button, TRUE);
-			} else {
-				refresh_found_objects();
-				redraw(REDRAW_OVERLAY); // TODO: think we can remove this, it appears to be duplicated below
-			}
-		}
-	} else {
-		siril_catalog_free(args->comp_stars); // we don't free args->compstars if it's being used for the annotations
-	}
-	redraw(REDRAW_OVERLAY);
-	free_compstars_arg(args);
-	return end_generic(NULL);
-}
 
 void write_nina_file(struct compstars_arg *args) {
 	if (!args->nina_file)
@@ -501,13 +471,16 @@ gpointer compstars_worker(gpointer p) {
 end:
 	g_rw_lock_reader_unlock(&args->fit->rwlock);
 	args->retval = retval;
-	args->has_GUI = TRUE;
-	if (!com.headless && com.python_command) {
-		execute_idle_and_wait_for_it(end_compstars, args);
-	}
-	else if (!siril_add_idle(end_compstars, args)) {
-		args->has_GUI = FALSE;
-		end_compstars(args);	// we still need to free all
+	if (args->notify_done) {
+		args->has_GUI = TRUE;
+		if (!com.headless && com.python_command) {
+			gui_iface.execute_idle_sync(args->notify_done, args);
+		} else if (!siril_add_idle(args->notify_done, args)) {
+			args->has_GUI = FALSE;
+			args->notify_done(args);
+		}
+	} else {
+		free_compstars_arg(args);
 	}
 	free_sky_object_query(query_args);
 	return GINT_TO_POINTER(retval);
