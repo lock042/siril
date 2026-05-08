@@ -32,6 +32,7 @@
 #endif
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/arithm.h"
@@ -47,9 +48,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "filters/mtf.h"
-#include "gui/progress_and_log.h"
-#include "gui/remixer.h"
-#include "gui/siril_preview.h"
+/* gui_calls.h removed: toggle_remixer_window_visibility now routes through gui_iface */
 #include "opencv/opencv.h"
 
 #include <unistd.h>
@@ -133,7 +132,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 			arg += 9;
 		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running StarNet"), value / 100.0);
+			gui_iface.set_progress(value / 100.0, _("Running StarNet"));
 		}
 		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
@@ -301,7 +300,7 @@ gboolean end_starnet(gpointer p) {
 gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
-	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
+	gui_iface.toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
 	free(blendargs);
 	return end_generic(NULL);
 }
@@ -489,7 +488,7 @@ gpointer do_starnet(gpointer p) {
 
 	// ok, let's start
 	if (verbose)
-		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
+		gui_iface.set_progress(PROGRESS_NONE, _("Starting StarNet"));
 
 	// Store current working directory
 	currentdir = g_get_current_dir();
@@ -843,7 +842,7 @@ gpointer do_starnet(gpointer p) {
 	clearfits(&workingfit);
 	CLEANUP3:
 	if (verbose)
-		set_progress_bar_data("Ready.", PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, "Ready.");
 	g_free(currentdir);
 	g_free(starnetcommand); // command
 	g_free(starlesstif); // filename
@@ -960,7 +959,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
-	set_progress_bar_data(_("StarNet: Processing..."), 0.);
+	gui_iface.set_progress(0., _("StarNet: Processing..."));
 	if (!start_in_new_thread(generic_sequence_worker, seqargs)) {
 		free_starnet_args((starnet_data*)multi_args->user_data);
 		free_multi_args(multi_args);
@@ -983,7 +982,7 @@ int starnet_single_image_hook(struct generic_img_args *args, fits *fit, int nb_t
 			params->linear ? _("yes") : _("no"),
 			params->upscale ? _("yes") : _("no"),
 			params->customstride ? params->stride : _("default"));
-		undo_save_state(get_preview_gfit_backup(), undo_msg);
+		undo_save_state((fits*)gui_iface.get_preview_gfit_backup(), undo_msg);
 		gfit->history = g_slist_append(gfit->history, g_strdup(undo_msg));
 		g_free(undo_msg);
 	}

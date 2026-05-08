@@ -54,6 +54,10 @@ Provides an alternative path for the input pipe that receives the commands if \f
 Provides an alternative path for the output pipe that prints logs and status updates if \fB-p\fR is passed. The pipe can be created by an external program with the mkfifo(1) command.
 
 .TP
+.B --sync_spcc
+Fetches the current list of SPCC (Spectrophotometric Color Calibration) mirror servers from the internet and caches it locally, then exits. This is useful when running \fBsiril-cli\fP in environments where the mirror list has not been previously populated. Without this option, \fBsiril-cli\fP uses a hardcoded default mirror URL.
+
+.TP
 .B -d \fIworking_directory\fR, --directory=\fIworking_directory\fR
 Sets the specified path as the current working directory.
 

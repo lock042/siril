@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include "algos/search_objects.h"
+#include "core/proto.h"
+#include "core/gui_iface.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
@@ -28,8 +30,6 @@
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "io/remote_catalogues.h"
-#include "gui/dialogs.h"
-#include "gui/utils.h"
 
 
 /* parse response from online catalogue lookups (search_in_online_catalogs()
@@ -299,42 +299,6 @@ int cached_object_lookup(sky_object_query_args *args) {
 	return args->retval;
 }
 
-void search_object(GtkEntry *entry) {
-	if (!has_wcs(gfit))
-		return;
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	sky_object_query_args *query_args = init_sky_object_query();
-	query_args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
-	query_args->fit = gfit;
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		free_sky_object_query(query_args);
-		PRINT_ALLOC_ERR;
-		return;
-	}
-	args->fit = gfit;
-	args->mem_ratio = 1.0f;
-	args->image_hook = catsearch_image_hook;
-	args->description = _("Catalog search");
-	args->verbose = TRUE;
-	args->command_updates_gfit = FALSE;
-	args->command = FALSE;
-	args->idle_function = end_process_catsearch;
-	args->user = query_args;
-	args->log_hook = catsearch_log_hook;
-
-	if (!start_in_new_thread(generic_image_worker, args)) {
-		free_generic_img_args(args);
-		siril_log_color_message(_("Error running image worker for catsearch\n"), "red");
-		return;
-	}
-}
-
-void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
-	search_object(entry);
-}
-
-
 /********** object lookup for astrometry, can we merge both? ************/
 
 struct sky_object platedObject[RESOLVER_NUMBER];
@@ -578,7 +542,7 @@ gpointer catsearch_worker(gpointer p) {
 	gboolean found_it = !cached_object_lookup(args);
 
 	if (!com.script)
-		execute_idle_and_wait_for_it(end_process_catsearch, args);
+		gui_iface.execute_idle_sync(end_process_catsearch, args);
 
 	return GINT_TO_POINTER(!found_it);
 }

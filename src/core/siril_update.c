@@ -28,16 +28,14 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
-#include "gui/utils.h"
+#include "core/gui_iface.h"
 #include "core/siril_update.h"
+#include "algos/photometric_cc.h" /* spcc_mirrors, initialize_spcc_mirrors */
 
 #if defined(HAVE_LIBCURL)
 #include "yyjson.h"
 #include "core/siril_networking.h"
 #include "core/processing.h"
-#include "gui/message_dialog.h"
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
 
 #define SIRIL_DOMAIN "https://siril.org/"
 #define SIRIL_VERSIONS SIRIL_DOMAIN"siril_versions.json"
@@ -49,7 +47,7 @@
 
 #endif
 
-extern gchar** spcc_mirrors;
+/* spcc_mirrors is declared in algos/photometric_cc.h (included above) */
 
 // ============================================================================
 // UTILITY FUNCTIONS - Independent of libcurl
@@ -433,7 +431,7 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 	gint build_revision = 0;
 	gchar *msg = NULL;
 	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
+	SirilMessageType message_type = SIRIL_MSG_ERROR;
 
 	// Parse JSON
 	yyjson_read_err err = { 0 };
@@ -448,15 +446,15 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
 		msg = check_version(last_version, &(args->verbose), &data);
-		message_type = GTK_MESSAGE_INFO;
+		message_type = SIRIL_MSG_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
 	}
 
 	if (args->verbose) {
-		set_cursor_waiting(FALSE);
+		gui_iface.set_busy(FALSE);
 		if (msg) {
-			siril_data_dialog(message_type, _("Software Update"), msg, data);
+			gui_iface.data_dialog(message_type, _("Software Update"), msg, data);
 		}
 	}
 
@@ -473,10 +471,10 @@ static gboolean end_update_idle(gpointer p) {
 		check_update_version(args);
 
 	/* free data */
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -613,7 +611,7 @@ static gboolean end_notifier_idle(gpointer p) {
 		goto end_notifier_idle_error;
 	GSList *validNotifications = NULL;
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.show_panel("output_logs", TRUE);
 
 	// Fetch and parse JSON file from URL and populate validNotifications list
 	if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
@@ -635,11 +633,11 @@ static gboolean end_notifier_idle(gpointer p) {
 
 end_notifier_idle_error:
 
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -655,9 +653,9 @@ void siril_check_updates(gboolean verbose) {
 	args->verbose = verbose;
 	args->idle_function = end_update_idle;
 
-	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for updates..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-update", fetch_url_async, args);
@@ -675,9 +673,9 @@ void siril_check_notifications(gboolean verbose) {
 	args->verbose = verbose;
 	args->idle_function = end_notifier_idle;
 	siril_debug_print("Checking notifications...\n");
-	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
+	gui_iface.set_progress(PROGRESS_NONE, _("Looking for notifications..."));
 	if (args->verbose)
-		set_cursor_waiting(TRUE);
+		gui_iface.set_busy(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-notifications", fetch_url_async, args);
@@ -778,14 +776,14 @@ static gboolean end_spcc_mirrors_idle(gpointer p) {
 	}
 	spcc_mirrors_checked = TRUE;
 	/* pre-check the Gaia archive status */
-	check_gaia_archive_status();
+	gui_iface.check_gaia_status();
 
 end_spcc_mirrors_error:
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	/* free data */
 	free(args->content);
 	free(args);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
@@ -870,7 +868,7 @@ void siril_check_spcc_mirrors(gboolean verbose, gboolean sync) {
 		free(content);
 		spcc_mirrors_checked = TRUE;
 		/* pre-check the Gaia archive status */
-		gaia_check(NULL);
+		gui_iface.trigger_gaia_check();
 	}
 }
 

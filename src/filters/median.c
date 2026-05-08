@@ -22,46 +22,15 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/undo.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/optimize_utils.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
-#include "gui/callbacks.h"
-#include "gui/siril_preview.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/utils.h"
-#include "gui/dialogs.h"
-#include "io/single_image.h"
 
 #include "median.h"
 #include "algos/median_fast.h"
-
-void fill_median_params_from_gui(struct median_filter_data *params, gboolean for_preview);
-
-void median_roi_callback() {
-	gui.roi.operation_supports_roi = TRUE;
-	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
-	copy_backup_to_gfit();
-	gfit_modified_update_gui();
-}
-
-/* Idle function for final application */
-static gboolean median_apply_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0) {
-		copy_gfit_to_backup();
-		gfit_modified_update_gui();
-	}
-	free_generic_img_args(args);
-	median_close();
-	return FALSE;
-}
 
 gchar* median_log_hook(gpointer p, log_hook_detail detail) {
 	struct median_filter_data *params = (struct median_filter_data *) p;
@@ -72,122 +41,10 @@ gchar* median_log_hook(gpointer p, log_hook_detail detail) {
 			params->ksize, params->iterations, params->amount);
 }
 
-int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
-	struct median_filter_data *params = (struct median_filter_data*) args->user;
-	if (!params)
-		return 1;
-	return GPOINTER_TO_INT(median_filter(params));
-}
-
-void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
-	roi_supported(TRUE);
-	gtk_widget_set_visible(lookup_widget("Median_roi_preview"), gui.roi.active);
-	copy_gfit_to_backup();
-	add_roi_callback(median_roi_callback);
-}
-
-void median_close() {
-	siril_preview_hide();
-	roi_supported(FALSE);
-	remove_roi_callback(median_roi_callback);
-	siril_close_dialog("Median_dialog");
-}
-
-void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
-	median_close();
-}
-
-void fill_median_params_from_gui(struct median_filter_data *params, gboolean for_preview) {
-	if (!params)
-		return;
-
-	int combo_size = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(
-				gtk_builder_get_object(gui.builder, "combo_ksize_median")));
-	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_median")));
-	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "median_button_iterations"))));
-
-	switch (combo_size) {
-		default:
-		case 0:
-			params->ksize = 3;
-			break;
-		case 1:
-			params->ksize = 5;
-			break;
-		case 2:
-			params->ksize = 7;
-			break;
-		case 3:
-			params->ksize = 9;
-			break;
-		case 4:
-			params->ksize = 11;
-			break;
-		case 5:
-			params->ksize = 13;
-			break;
-		case 6:
-			params->ksize = 15;
-			break;
-	}
-	params->fit = for_preview && gui.roi.active && !com.headless ? &gui.roi.fit : gfit;
-	params->amount = amount;
-	params->iterations = iterations;
-}
-
-void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	if (!check_ok_if_cfa())
-		return;
-	set_cursor_waiting(TRUE);
-
-	if (processing_is_job_active()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	copy_backup_to_gfit();
-
-	struct median_filter_data *params = calloc(1, sizeof(struct median_filter_data));
-	gboolean for_preview = ((GtkWidget*) button == lookup_widget("Median_roi_preview"));
-	fill_median_params_from_gui(params, for_preview);
-
-	// Allocate worker args
-	struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-	if (!args) {
-		PRINT_ALLOC_ERR;
-		free(params);
-		return;
-	}
-
-	args->fit = gui.roi.active ? &gui.roi.fit : gfit;
-	args->mem_ratio = 2.0f;
-	args->image_hook = median_image_hook;
-	args->idle_function = for_preview ? NULL : median_apply_idle; // No idle function for command execution
-	args->description = _("Median filter");
-	args->command_updates_gfit = TRUE;
-	args->verbose = !for_preview; // Only verbose for final application
-	args->user = params;
-	args->max_threads = com.max_thread;
-	args->for_preview = for_preview;
-	args->for_roi = gui.roi.active;
-	args->custom_undo = TRUE; // median_filter() calls undo_save_state itself
-	if (!for_preview)
-		args->populate_roi_on_complete = TRUE;
-
-	generic_image_worker(args);
-}
-
 /*****************************************************************************
- *                M E D I A N     I M A G E     F I L T E R S                *
+ *                      M E D I A N     I M A G E     F I L T E R S          *
  ****************************************************************************/
 
-/* get the median of the neighbors of pixel (xx, yy), including itself if
- * include_self is TRUE. radius is 1 for a 3x3, 2 for a 5x5 and so on.
- * w and h are the size of the image passed in buf.
- */
 double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self) {
 	int n = 0, step = 1, x, y, ksize;
@@ -204,8 +61,6 @@ double get_median_ushort(const WORD *buf, const int xx, const int yy, const int 
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
 			if (y >= 0 && y < h && x >= 0 && x < w) {
-				// ^ limit to image bounds ^
-				// v exclude centre pixel v
 				if (include_self || x != xx || y != yy) {
 					values[n++] = buf[x + y * w];
 				}
@@ -233,8 +88,6 @@ double get_median_float(const float *buf, const int xx, const int yy, const int 
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
 			if (y >= 0 && y < h && x >= 0 && x < w) {
-				// ^ limit to image bounds ^
-				// v exclude centre pixel v
 				if (include_self || x != xx || y != yy) {
 					values[n++] = buf[x + y * w];
 				}
@@ -259,7 +112,6 @@ static float get_median_float_fast(const float *buf, const int xx, const int yy,
 	int n = 0;
 	for (int y = ystart; y <= yend; ++y) {
 		for (int x = xstart; x <= xend; ++x) {
-			// ^ limit to image bounds ^
 			values[n++] = buf[x + y * w];
 		}
 	}
@@ -279,7 +131,6 @@ static float get_median_ushort_fast(const WORD *buf, const int xx, const int yy,
 	int n = 0;
 	for (int y = ystart; y <= yend; ++y) {
 		for (int x = xstart; x <= xend; ++x) {
-			// ^ limit to image bounds ^
 			values[n++] = buf[x + y * w];
 		}
 	}
@@ -301,8 +152,6 @@ double get_median_gsl(gsl_matrix *mat, const int xx, const int yy, const int w,
 	for (y = yy - radius; y <= yy + radius; y += step) {
 		for (x = xx - radius; x <= xx + radius; x += step) {
 			if (y >= 0 && y < h && x >= 0 && x < w) {
-				// ^ limit to image bounds ^
-				// v exclude centre pixel v
 				if (include_self || x != xx || y != yy) {
 					values[n++] = gsl_matrix_get(mat, y, x);
 				}
@@ -332,7 +181,7 @@ static gpointer median_filter_ushort(gpointer p) {
 	total = ny * args->fit->naxes[2] * args->iterations;
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(WORD);
-	WORD *temp = calloc(1, alloc_size); // we need a temporary buffer
+	WORD *temp = calloc(1, alloc_size);
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return GINT_TO_POINTER(-1);
@@ -342,7 +191,6 @@ static gpointer median_filter_ushort(gpointer p) {
 		for (int iter = 0; iter < args->iterations; ++iter) {
 			WORD *dst = (iter % 2) ? args->fit->pdata[layer] : temp;
 			WORD *src = (iter % 2) ? temp : args->fit->pdata[layer];
-			// borders
 			for (int y = 0; y < ny; y++) {
 				if (y < radius || y >= ny - radius) {
 					for (int x = 0; x < nx; x++) {
@@ -379,7 +227,7 @@ static gpointer median_filter_ushort(gpointer p) {
 #endif
 					++progress;
 					if (!(progress % 32))
-						set_progress_bar_data(NULL, (double)progress / total);
+						gui_iface.set_progress((double)progress / total, NULL);
 				}
 			} else if (args->ksize == 5) {
 #ifdef _OPENMP
@@ -403,7 +251,7 @@ static gpointer median_filter_ushort(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else if (args->ksize == 7) {
@@ -428,7 +276,7 @@ static gpointer median_filter_ushort(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else if (args->ksize == 9) {
@@ -453,7 +301,7 @@ static gpointer median_filter_ushort(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else {
@@ -470,12 +318,11 @@ static gpointer median_filter_ushort(gpointer p) {
 #endif
 					++progress;
 					if (!(progress % 32))
-						set_progress_bar_data(NULL, (double)progress / total);
+						gui_iface.set_progress((double)progress / total, NULL);
 				}
 			}
 		}
 		if (args->iterations % 2) {
-			// for odd number of iterations (1, 3, 5, ...) we have to copy the data back at the end
 			WORD *dst = args->fit->pdata[layer];
 			WORD *src = temp;
 #ifdef _OPENMP
@@ -507,7 +354,7 @@ static gpointer median_filter_float(gpointer p) {
 	total = ny * args->fit->naxes[2] * args->iterations;
 
 	size_t alloc_size = args->fit->naxes[0] * args->fit->naxes[1] * sizeof(float);
-	float *temp = calloc(1, alloc_size); // we need a temporary buffer
+	float *temp = calloc(1, alloc_size);
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return GINT_TO_POINTER(-1);
@@ -517,7 +364,6 @@ static gpointer median_filter_float(gpointer p) {
 		for (int iter = 0; iter < args->iterations; ++iter) {
 			float *dst = (iter % 2) ? args->fit->fpdata[layer] : temp;
 			float *src = (iter % 2) ? temp : args->fit->fpdata[layer];
-			// borders
 			for (int y = 0; y < ny; y++) {
 				if (y < radius || y >= ny - radius) {
 					for (int x = 0; x < nx; x++) {
@@ -530,8 +376,6 @@ static gpointer median_filter_float(gpointer p) {
 				}
 			}
 			if (args->ksize == 3) {
-				// median9f is always_inline with scalar args — #pragma omp simd vectorizes
-				// the x loop to AVX2/NEON/etc. width, replacing the old hand-written SSE2 path.
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) num_threads(com.max_thread)
 #endif
@@ -556,7 +400,7 @@ static gpointer median_filter_float(gpointer p) {
 #endif
 					++progress;
 					if (!(progress % 32))
-						set_progress_bar_data(NULL, (double)progress / total);
+						gui_iface.set_progress((double)progress / total, NULL);
 				}
 			} else if (args->ksize == 5) {
 #ifdef _OPENMP
@@ -580,7 +424,7 @@ static gpointer median_filter_float(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else if (args->ksize == 7) {
@@ -605,7 +449,7 @@ static gpointer median_filter_float(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else if (args->ksize == 9) {
@@ -630,7 +474,7 @@ static gpointer median_filter_float(gpointer p) {
 #endif
 						++progress;
 						if (!(progress % 32))
-							set_progress_bar_data(NULL, (double)progress / total);
+							gui_iface.set_progress((double)progress / total, NULL);
 					}
 				}
 			} else {
@@ -647,12 +491,11 @@ static gpointer median_filter_float(gpointer p) {
 #endif
 					++progress;
 					if (!(progress % 32))
-						set_progress_bar_data(NULL, (double)progress / total);
+						gui_iface.set_progress((double)progress / total, NULL);
 				}
 			}
 		}
 		if (args->iterations % 2) {
-			// for odd number of iterations (1, 3, 5, ...) we have to copy the data back at the end
 			float *dst = args->fit->fpdata[layer];
 			float *src = temp;
 #ifdef _OPENMP
@@ -671,24 +514,19 @@ static gpointer median_filter_float(gpointer p) {
 	return GINT_TO_POINTER(0);
 }
 
-/* The function smoothes an image using the median filter with the
- * ksize x ksize aperture. Each channel of a multi-channel image is
- * processed independently. In-place operation is supported. */
-gpointer median_filter(gpointer p) {
-	lock_roi_mutex();
-	struct median_filter_data *args = (struct median_filter_data *)p;
-	copy_backup_to_gfit();
-	if (!com.script && !args->previewing) {
-		undo_save_state(gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
-			args->ksize, args->ksize, args->iterations, args->amount);
-		siril_log_color_message(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"), "green",
-			args->ksize, args->ksize, args->iterations, args->amount);
-	}
-	gpointer retval = GINT_TO_POINTER(1);
-	if (args->fit->type == DATA_USHORT)
-		retval = median_filter_ushort(p);
-	if (args->fit->type == DATA_FLOAT)
-		retval = median_filter_float(p);
-	unlock_roi_mutex();
-	return GINT_TO_POINTER(retval);
+int median_image_hook(struct generic_img_args *args, fits *fit, int nb_threads) {
+	struct median_filter_data *params = (struct median_filter_data*) args->user;
+	if (!params)
+		return 1;
+	params->fit = fit;
+	gpointer result;
+	if (fit->type == DATA_USHORT)
+		result = median_filter_ushort(params);
+	else if (fit->type == DATA_FLOAT)
+		result = median_filter_float(params);
+	else
+		return 1;
+	return GPOINTER_TO_INT(result);
 }
+
+/* GUI callbacks moved to src/gui/median.c */

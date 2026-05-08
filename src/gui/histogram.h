@@ -1,4 +1,5 @@
 #ifndef _HIST_H_
+#include <gtk/gtk.h>
 #define _HIST_H_
 
 #include "filters/mtf.h"
@@ -9,27 +10,8 @@
 #define HISTO_STRETCH 1
 #define GHT_STRETCH 2
 
-struct mtf_data {
-	void (*destroy_fn)(void *args);  // First member - destructor
-	fits *fit;
-	sequence *seq;
-	gboolean linked;
-	struct mtf_params params;
-	struct mtf_params uparams[3]; // for unlinked stretch
-	char *seqEntry;
-	gboolean auto_display_compensation;
-	gboolean is_preview;
-};
-
-struct ght_data {
-	void (*destroy_fn)(void *args);  // First member - destructor
-	fits *fit;
-	sequence *seq;
-	struct ght_params *params_ght;
-	char *seqEntry;
-	gboolean auto_display_compensation;
-	gboolean is_preview;
-};
+/* struct mtf_data is defined in filters/mtf.h (included above) */
+/* struct ght_data  is defined in filters/ght.h  (included above) */
 
 typedef enum {
 	SCALE_LOW,
@@ -64,8 +46,5 @@ void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoHighEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-
-void apply_mtf_to_sequence(struct mtf_data *mtf_args);
-void apply_ght_to_sequence(struct ght_data *ght_args);
 
 #endif

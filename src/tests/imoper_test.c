@@ -21,6 +21,7 @@
 #include <criterion/criterion.h>
 #include <math.h>
 #include "core/siril.h"
+#include "gui/gui_state.h"
 /** I include c file to test static function!! */
 #include "core/arithm.c"
 /**********************************************/

@@ -19,6 +19,7 @@
  */
 
 #ifndef _HISTOGRAM_UTILS_H_
+#include <gtk/gtk.h>
 #define _HISTOGRAM_UTILS_H_
 
 #include <gsl/gsl_histogram.h>

@@ -162,10 +162,10 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
 
 	if (!selection_white_value[0]) {
-		selection_white_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_white_x"));
-		selection_white_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_white_y"));
-		selection_white_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_white_w"));
-		selection_white_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_white_h"));
+		selection_white_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_h"));
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
@@ -190,12 +190,12 @@ static void white_balance(fits *fit, gboolean is_manual, rectangle white_selecti
 	static GtkRange *scaleLimit[2] = { NULL, NULL };
 
 	if (scale_white_balance[RLAYER] == NULL) {
-		scale_white_balance[RLAYER] = GTK_RANGE(lookup_widget("scale_r"));
-		scale_white_balance[GLAYER] = GTK_RANGE(lookup_widget("scale_g"));
-		scale_white_balance[BLAYER] = GTK_RANGE(lookup_widget("scale_b"));
+		scale_white_balance[RLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_r"));
+		scale_white_balance[GLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_g"));
+		scale_white_balance[BLAYER] = GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_b"));
 
-		scaleLimit[0] = GTK_RANGE(lookup_widget("lowWhiteColorCalibScale"));
-		scaleLimit[1] = GTK_RANGE(lookup_widget("upWhiteColorCalibScale"));
+		scaleLimit[0] = GTK_RANGE(gtk_builder_get_object(gui.builder, "lowWhiteColorCalibScale"));
+		scaleLimit[1] = GTK_RANGE(gtk_builder_get_object(gui.builder, "upWhiteColorCalibScale"));
 	}
 
 	assert(fit->naxes[2] == 3);
@@ -232,21 +232,22 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	siril_log_color_message(_("Color Calibration: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
-	GtkToggleButton *manual = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_manual_calibration"));
+	static GtkToggleButton *manual = NULL;
+	if (!manual) manual = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_manual_calibration"));
 	gboolean is_manual = gtk_toggle_button_get_active(manual);
 
 	if (!selection_black_value[0]) {
-		selection_black_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_x"));
-		selection_black_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_y"));
-		selection_black_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_w"));
-		selection_black_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_bkg_h"));
+		selection_black_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_x"));
+		selection_black_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_y"));
+		selection_black_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_w"));
+		selection_black_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_bkg_h"));
 	}
 
 	if (!selection_white_value[0]) {
-		selection_white_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_white_x"));
-		selection_white_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_white_y"));
-		selection_white_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_white_w"));
-		selection_white_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_white_h"));
+		selection_white_value[0] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_white_h"));
 	}
 
 	black_selection.x = gtk_spin_button_get_value(selection_black_value[0]);
@@ -300,12 +301,16 @@ gboolean calibration_hide_on_delete(GtkWidget *widget) {
 
 void on_checkbutton_manual_calibration_toggled(GtkToggleButton *togglebutton,
 		gpointer user_data) {
-	GtkWidget *cc_box_red = lookup_widget("cc_box_red");
-	GtkWidget *scale_r = lookup_widget("scale_r");
-	GtkWidget *cc_box_green = lookup_widget("cc_box_green");
-	GtkWidget *scale_g = lookup_widget("scale_g");
-	GtkWidget *cc_box_blue = lookup_widget("cc_box_blue");
-	GtkWidget *scale_b = lookup_widget("scale_b");
+	static GtkWidget *cc_box_red = NULL, *scale_r = NULL, *cc_box_green = NULL;
+	static GtkWidget *scale_g = NULL, *cc_box_blue = NULL, *scale_b = NULL;
+	if (!cc_box_red) {
+		cc_box_red = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_red"));
+		scale_r = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_r"));
+		cc_box_green = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_green"));
+		scale_g = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_g"));
+		cc_box_blue = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cc_box_blue"));
+		scale_b = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scale_b"));
+	}
 	gtk_widget_set_sensitive(cc_box_red, gtk_toggle_button_get_active(togglebutton));
 	gtk_widget_set_sensitive(scale_r, gtk_toggle_button_get_active(togglebutton));
 	gtk_widget_set_sensitive(cc_box_green, gtk_toggle_button_get_active(togglebutton));
@@ -335,27 +340,33 @@ void on_extract_channel_button_close_clicked(GtkButton *button,
 }
 
 void on_combo_extract_colors_changed(GtkComboBox *box, gpointer user_data) {
+	static GtkLabel *label_c1 = NULL, *label_c2 = NULL, *label_c3 = NULL;
+	if (!label_c1) {
+		label_c1 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c1"));
+		label_c2 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c2"));
+		label_c3 = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_extract_c3"));
+	}
 	switch(gtk_combo_box_get_active(box)) {
 		default:
 		case 0: // RGB
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Red: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Green: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Blue: "));
+			gtk_label_set_text(label_c1, _("Red: "));
+			gtk_label_set_text(label_c2, _("Green: "));
+			gtk_label_set_text(label_c3, _("Blue: "));
 			break;
 		case 1: // HSL
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Hue: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Saturation: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Lightness: "));
+			gtk_label_set_text(label_c1, _("Hue: "));
+			gtk_label_set_text(label_c2, _("Saturation: "));
+			gtk_label_set_text(label_c3, _("Lightness: "));
 			break;
 		case 2: // HSV
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), _("Hue: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), _("Saturation: "));
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), _("Value: "));
+			gtk_label_set_text(label_c1, _("Hue: "));
+			gtk_label_set_text(label_c2, _("Saturation: "));
+			gtk_label_set_text(label_c3, _("Value: "));
 			break;
 		case 3: // CIE L*a*b*
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c1")), "L*: ");
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c2")), "a*: ");
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label_extract_c3")), "b*: ");
+			gtk_label_set_text(label_c1, "L*: ");
+			gtk_label_set_text(label_c2, "a*: ");
+			gtk_label_set_text(label_c3, "b*: ");
 	}
 }
 
@@ -375,10 +386,10 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	}
 
 	if (combo_extract_channel == NULL) {
-		combo_extract_channel = GTK_COMBO_BOX(lookup_widget("combo_extract_colors"));
-		channel_extract_entry[0] = GTK_ENTRY(lookup_widget("Ch1_extract_channel_entry"));
-		channel_extract_entry[1] = GTK_ENTRY(lookup_widget("Ch2_extract_channel_entry"));
-		channel_extract_entry[2] = GTK_ENTRY(lookup_widget("Ch3_extract_channel_entry"));
+		combo_extract_channel = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_extract_colors"));
+		channel_extract_entry[0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch1_extract_channel_entry"));
+		channel_extract_entry[1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch2_extract_channel_entry"));
+		channel_extract_entry[2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch3_extract_channel_entry"));
 	}
 
 	args->type = gtk_combo_box_get_active(combo_extract_channel);
@@ -426,11 +437,12 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 
 void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
     GtkWidget *button = GTK_WIDGET(user_data);
-    GtkEntry *channel_extract_entry[3] = {
-        GTK_ENTRY(lookup_widget("Ch1_extract_channel_entry")),
-        GTK_ENTRY(lookup_widget("Ch2_extract_channel_entry")),
-        GTK_ENTRY(lookup_widget("Ch3_extract_channel_entry"))
-    };
+    static GtkEntry *channel_extract_entry[3] = { NULL };
+    if (!channel_extract_entry[0]) {
+        channel_extract_entry[0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch1_extract_channel_entry"));
+        channel_extract_entry[1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch2_extract_channel_entry"));
+        channel_extract_entry[2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "Ch3_extract_channel_entry"));
+    }
 
     gboolean has_text = FALSE;
 
@@ -448,22 +460,44 @@ void update_button_sensitivity(GtkWidget *entry, gpointer user_data) {
 
 /* Helper function to read matrix from GUI */
 static void get_ccm_values(ccm matrix, float *power) {
-	matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
-	matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
-	matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m02"))), NULL);
-	matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m10"))), NULL);
-	matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m11"))), NULL);
-	matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m12"))), NULL);
-	matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m20"))), NULL);
-	matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m21"))), NULL);
-	matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m22"))), NULL);
+	static GtkEntry *entry_m[3][3] = { { NULL } };
+	static GtkSpinButton *spin_power = NULL;
+	if (!entry_m[0][0]) {
+		entry_m[0][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m00"));
+		entry_m[0][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m01"));
+		entry_m[0][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m02"));
+		entry_m[1][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m10"));
+		entry_m[1][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m11"));
+		entry_m[1][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m12"));
+		entry_m[2][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m20"));
+		entry_m[2][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m21"));
+		entry_m[2][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m22"));
+		spin_power = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ccm_power"));
+	}
+	matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(entry_m[0][0]), NULL);
+	matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(entry_m[0][1]), NULL);
+	matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(entry_m[0][2]), NULL);
+	matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(entry_m[1][0]), NULL);
+	matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(entry_m[1][1]), NULL);
+	matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(entry_m[1][2]), NULL);
+	matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(entry_m[2][0]), NULL);
+	matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(entry_m[2][1]), NULL);
+	matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(entry_m[2][2]), NULL);
 
 	if (power) {
-		*power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+		*power = gtk_spin_button_get_value(spin_power);
 	}
 }
 
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
+	static GtkToggleButton *btn = NULL;
+	static GtkEntry *ccmSeqEntry = NULL;
+	static GtkWidget *ccm_restore_icc = NULL;
+	if (!btn) {
+		btn = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "check_apply_seq_ccm"));
+		ccmSeqEntry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryCCMSeq"));
+		ccm_restore_icc = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ccm_restore_icc"));
+	}
 	struct ccm_data *args = new_ccm_data();
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -472,11 +506,9 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 
 	get_ccm_values(args->matrix, &args->power);
 
-	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
 	gboolean seq_toggle = gtk_toggle_button_get_active(btn);
 
 	if (seq_toggle && sequence_is_loaded()) {
-		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
 		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
 		args->seq = &com.seq;
 		apply_ccm_to_sequence(args);
@@ -494,7 +526,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 				"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
 				"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
 			color_manage(gfit, FALSE);
-			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
+			gtk_widget_set_sensitive(ccm_restore_icc, TRUE);
 		}
 
 		// Free the args structure as we're using the worker
@@ -524,16 +556,28 @@ void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void update_ccm_matrix(ccm matrix) {
+	static GtkEntry *entry_m[3][3] = { { NULL } };
+	if (!entry_m[0][0]) {
+		entry_m[0][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m00"));
+		entry_m[0][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m01"));
+		entry_m[0][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m02"));
+		entry_m[1][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m10"));
+		entry_m[1][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m11"));
+		entry_m[1][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m12"));
+		entry_m[2][0] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m20"));
+		entry_m[2][1] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m21"));
+		entry_m[2][2] = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_m22"));
+	}
 	gchar buf[G_ASCII_DTOSTR_BUF_SIZE+1];
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m00")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m01")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m02")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m10")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m11")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m12")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m20")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m21")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]));
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m22")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]));
+	gtk_entry_set_text(entry_m[0][0], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]));
+	gtk_entry_set_text(entry_m[0][1], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]));
+	gtk_entry_set_text(entry_m[0][2], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]));
+	gtk_entry_set_text(entry_m[1][0], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]));
+	gtk_entry_set_text(entry_m[1][1], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]));
+	gtk_entry_set_text(entry_m[1][2], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]));
+	gtk_entry_set_text(entry_m[2][0], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]));
+	gtk_entry_set_text(entry_m[2][1], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]));
+	gtk_entry_set_text(entry_m[2][2], g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]));
 }
 
 void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
@@ -543,6 +587,8 @@ void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
+	static GtkSpinButton *spin_ccm_power = NULL;
+	if (!spin_ccm_power) spin_ccm_power = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_ccm_power"));
 	ccm matrix;
 	float power;
 	int index = gtk_combo_box_get_active(combo);
@@ -603,7 +649,7 @@ void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
 			return;
 	}
 	update_ccm_matrix(matrix);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")), power);
+	gtk_spin_button_set_value(spin_ccm_power, power);
 }
 
 void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {

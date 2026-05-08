@@ -1,5 +1,5 @@
-#ifndef SRC_GUI_WAVELETS_H_
-#define SRC_GUI_WAVELETS_H_
+#ifndef SRC_FILTERS_WAVELETS_H_
+#define SRC_FILTERS_WAVELETS_H_
 
 #include "core/siril.h"
 #include "core/processing.h"
@@ -24,12 +24,12 @@ struct wavelet_transform_data {
 	int Type_Transform;
 };
 
-void apply_wavelets_cancel();
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer);
 gpointer extract_plans(gpointer p);
 void free_wrecons_data(void *p);
 int wrecons_image_hook(struct generic_img_args *args, fits *fit, int threads);
 gchar *wrecons_log_hook(gpointer p, log_hook_detail detail);
 gpointer wavelet_transform_worker(gpointer p);
+/* apply_wavelets_cancel declared in gui/wavelets.h */
 
-#endif /* SRC_GUI_WAVELETS_H_ */
+#endif /* SRC_FILTERS_WAVELETS_H_ */

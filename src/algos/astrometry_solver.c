@@ -35,6 +35,7 @@
 #endif
 
 #include "astrometry_solver.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
@@ -1142,7 +1143,7 @@ clearup:
 		args = NULL;
 	}
 	if (is_verbose)
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	return GINT_TO_POINTER(ret > 0);
 }
 
@@ -1175,7 +1176,7 @@ static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	siril_catalog_free(siril_cat);
 	if (nswdata->verbose) {
 		double percent = (double)n / (double)nswdata->N;
-		set_progress_bar_data(NULL, percent);
+		gui_iface.set_progress(percent, NULL);
 	}
 }
 
@@ -1234,7 +1235,7 @@ static point *get_centers(double fov_deg, double search_radius_deg, double ra0, 
 
 static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	if (args->verbose) {
-		set_progress_bar_data(_("Near solver started"), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Near solver started"));
 	}
 	point *centers;
 	int N, n = 0;
@@ -1314,7 +1315,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 		dec = nsdata.center->y;
 	}
 	if (args->verbose) {
-		set_progress_bar_data(_("Near solver done"), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Near solver done"));
 	}
 	free(centers);
 	free(nsdata.center);

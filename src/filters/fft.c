@@ -26,19 +26,11 @@
 #include <fftw3.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/utils.h"
-#include "gui/dialogs.h"
-#include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
-#include "gui/registration_preview.h"
+#include "core/gui_iface.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
-#include "io/single_image.h"
 #include "io/image_format_fits.h"
-#include "io/sequence.h"
 #include "algos/statistics.h"
 
 #include "fft.h"
@@ -341,7 +333,7 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 		float pxl = crealf(spatial_repr[i]) / nbdata;
 		gbuf[i] = roundf_to_WORD(pxl);
 	}
-	delete_selected_area();
+	gui_iface.delete_selection();
 	invalidate_stats_from_fit(fit);
 
 	free(modul);
@@ -400,7 +392,7 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 		float pxl = crealf(spatial_repr[i]) / nbdata;
 		gbuf[i] = pxl;
 	}
-	delete_selected_area();
+	gui_iface.delete_selection();
 	invalidate_stats_from_fit(fit);
 
 	free(modul);
@@ -418,22 +410,7 @@ static void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 	}
 }
 
-// idle function executed at the end of the fourier_transform processing
-static gboolean end_fourier_transform(gpointer p) {
-	struct fft_data *args = (struct fft_data *)p;
-	stop_processing_thread();
-	g_rw_lock_reader_lock(&gfit->rwlock);
-	gfit_modified_update_gui();
-	g_rw_lock_reader_unlock(&gfit->rwlock);
-	gui_function(redraw_previews, NULL);
-	g_free(args->type);
-	g_free(args->modulus);
-	g_free(args->phase);
-	free(args);
-	set_cursor_waiting(FALSE);
-
-	return FALSE;
-}
+/* end_fourier_transform and fft_idle moved to src/gui/fft.c */
 
 /* Destructor for fft_data - used by free_generic_img_args */
 void free_fft_data(void *p) {
@@ -448,7 +425,7 @@ void free_fft_data(void *p) {
 
 /* Core FFT computation: reads from fit, writes result back into fit.
  * Returns 0 on success, non-zero on failure. */
-static int fft_compute_core(struct fft_data *args, fits *fit) {
+int fft_compute_core(struct fft_data *args, fits *fit) {
 	unsigned int width = fit->rx;
 	unsigned int height = fit->ry;
 	int chan;
@@ -579,134 +556,4 @@ gchar *fft_log_hook(gpointer p, log_hook_detail detail) {
 	return g_strdup(_("Fourier Transform (direct)"));
 }
 
-/* Idle function for generic_image_worker GUI path - redraws previews */
-gboolean fft_idle(gpointer p) {
-	struct generic_img_args *args = (struct generic_img_args *)p;
-	stop_processing_thread();
-	if (args->retval == 0)
-		gfit_modified_update_gui();
-	gui_function(redraw_previews, NULL);
-	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
-
-gpointer fourier_transform(gpointer p) {
-	struct fft_data *args = (struct fft_data *) p;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-	args->retval = fft_compute_core(args, args->fit);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	if (!args->retval)
-		notify_gfit_data_modified();
-	siril_add_idle(end_fourier_transform, args);
-	return GINT_TO_POINTER(args->retval);
-}
-
-/************************* GUI for FFT ********************************/
-
-void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (!check_ok_if_cfa())
-		return;
-	gchar *mag, *phase;
-	char *type = NULL, page;
-	int type_order = -1;
-	static GtkToggleButton *order = NULL;
-	static GtkNotebook* notebookFFT = NULL;
-
-	if (processing_is_job_active()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	if (notebookFFT == NULL) {
-		notebookFFT = GTK_NOTEBOOK(
-				gtk_builder_get_object(gui.builder, "notebook_fft"));
-		order = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(gui.builder, "fft_centered"));
-	}
-
-	page = gtk_notebook_get_current_page(notebookFFT);
-
-	if (page == 0) {
-		if (sequence_is_loaded()) {
-			char *msg = siril_log_message(_("FFT does not work with sequences !\n"));
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			set_cursor_waiting(FALSE);
-			return;
-		}
-		if (!single_image_is_loaded()) {
-			char *msg = siril_log_message(_("Open an image first !\n"));
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			set_cursor_waiting(FALSE);
-			return;
-		}
-
-		GtkEntry *entry_mag = GTK_ENTRY(lookup_widget("fftd_mag_entry"));
-		GtkEntry *entry_phase = GTK_ENTRY(lookup_widget("fftd_phase_entry"));
-
-		type_order = !gtk_toggle_button_get_active(order);
-		type = strdup("fftd");
-		mag = g_strdup(gtk_entry_get_text(entry_mag));
-		phase = g_strdup(gtk_entry_get_text(entry_phase));
-	} else {
-		type = strdup("ffti");
-		mag = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_mag")));
-		phase = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_phase")));
-
-		if (mag == NULL || phase == NULL) {
-			char *msg = siril_log_message(_("Select magnitude and phase before !\n"));
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
-			set_cursor_waiting(FALSE);
-			free(type);
-			g_free(mag);
-			g_free(phase);
-			return;
-		}
-		open_single_image(mag);
-	}
-
-	if ((mag != NULL) && (phase != NULL)) {
-		set_cursor_waiting(TRUE);
-		struct fft_data *fft_args = calloc(1, sizeof(struct fft_data));
-		fft_args->destroy_fn = free_fft_data;
-		fft_args->fit = gfit;
-		fft_args->type = type;
-		fft_args->modulus = mag;
-		fft_args->phase = phase;
-		fft_args->type_order = type_order;
-
-		struct generic_img_args *args = calloc(1, sizeof(struct generic_img_args));
-		if (!args) {
-			PRINT_ALLOC_ERR;
-			free_fft_data(fft_args);
-			return;
-		}
-		args->fit = gfit;
-		args->mem_ratio = 2.0f;
-		args->image_hook = fft_image_hook;
-		args->log_hook = fft_log_hook;
-		args->idle_function = fft_idle;
-		args->description = _("Fourier Transform");
-		args->verbose = TRUE;
-		args->user = fft_args;
-
-		if (!start_in_new_thread(generic_image_worker, args)) {
-			free_generic_img_args(args);
-		}
-	} else {
-		free(type);
-		g_free(mag);
-		g_free(phase);
-	}
-}
-
-void on_button_fft_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("dialog_FFT");
-}
-
-gboolean fft_hide_on_delete(GtkWidget *widget) {
-	siril_close_dialog("dialog_FFT");
-	return TRUE;
-}
+/* GUI idle functions and callbacks moved to src/gui/fft.c */

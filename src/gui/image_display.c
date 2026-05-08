@@ -30,6 +30,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/ccd-inspector.h"
+#include "gui/ccd-inspector.h"
 #include "algos/background_extraction.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
@@ -80,6 +81,27 @@ static GtkWidget *rotation_dlg = NULL;
 static GtkWidget *cut_dialog = NULL, *cut_cdialog = NULL, *cut_sdialog = NULL;
 static GtkToggleButton *tri_cut_toggle = NULL;
 static GtkSpinButton *tri_cut_spin_step = NULL;
+
+static GtkApplicationWindow *imgdisp_app_win = NULL;
+static GtkCheckMenuItem *imgdisp_autohd_item = NULL;
+static GtkWidget *imgdisp_drawing_rgb = NULL;
+static GtkWidget *imgdisp_drawing_r = NULL;
+
+static void image_display_init_statics(void) {
+	if (imgdisp_app_win) return;
+	imgdisp_app_win = GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window"));
+	imgdisp_autohd_item = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "autohd_item"));
+	imgdisp_drawing_rgb = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingareargb"));
+	imgdisp_drawing_r = GTK_WIDGET(gtk_builder_get_object(gui.builder, "drawingarear"));
+	seqcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "seqlist_dialog_combo"));
+	drawframe = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "drawframe_check"));
+	rotation_dlg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "rotation_dialog"));
+	cut_dialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_dialog"));
+	cut_cdialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_coords_dialog"));
+	cut_sdialog = GTK_WIDGET(gtk_builder_get_object(gui.builder, "cut_spectroscopy_dialog"));
+	tri_cut_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "cut_tri_cut"));
+	tri_cut_spin_step = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "cut_tricut_step"));
+}
 
 static void invalidate_image_render_cache(int vport);
 
@@ -152,7 +174,7 @@ static int allocate_full_surface(struct image_view *view) {
 
 void check_gfit_profile_identical_to_monitor() {
 	if (!com.headless && gfit->icc_profile && gfit->color_managed)
-		identical = profiles_identical(gfit->icc_profile, gui.icc.monitor);
+		identical = profiles_identical(gfit->icc_profile, com.gui_icc.monitor);
 	siril_debug_print("gfit profile identical to monitor profile: %d\n", identical);
 }
 
@@ -212,7 +234,8 @@ void allocate_hd_remap_indices() {
 		if (gui.hd_remap_index[i] == NULL) {
 			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
 			gui.use_hd_remap = FALSE;
-			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("autohd_item")), FALSE);
+			image_display_init_statics();
+			gtk_check_menu_item_set_active(imgdisp_autohd_item, FALSE);
 			hd_remap_indices_cleanup();
 			return;
 		}
@@ -435,18 +458,17 @@ static void remap(int vport) {
 	if (allocate_full_surface(view))
 		return;
 
-	/* Cache the GtkApplicationWindow and the two GAction pointers on first call.
+	/* Cache the two GAction pointers on first call.
 	 * g_action_map_lookup_action() is not thread-safe; caching here (initialised
 	 * from the GTK main thread on first image display) avoids calling it from
 	 * worker threads.  g_action_get_state() on a GSimpleAction is thread-safe
 	 * (atomic pointer read) and is therefore safe to call from any thread. */
-	static GtkApplicationWindow *app_win = NULL;
 	static GAction *action_neg_cached = NULL;
 	static GAction *action_color_cached = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
+	if (action_neg_cached == NULL) {
+		image_display_init_statics();
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "color-map");
 	}
 	GVariant *neg_state = g_action_get_state(action_neg_cached);
 	inverted = g_variant_get_boolean(neg_state);
@@ -632,15 +654,13 @@ static void remap_all_vports() {
 	WORD remap_lo = gui.lo;
 	g_mutex_unlock(&com.mutex);
 
-	/* Cache the GtkApplicationWindow and GAction pointers on first call -
-	 * same reasoning as in remap() above. */
-	static GtkApplicationWindow *app_win = NULL;
+	/* Cache GAction pointers on first call — same reasoning as in remap() above. */
 	static GAction *action_neg_cached = NULL;
 	static GAction *action_color_cached = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
-		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(app_win), "color-map");
+	if (action_neg_cached == NULL) {
+		image_display_init_statics();
+		action_neg_cached   = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
+		action_color_cached = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "color-map");
 	}
 	struct image_view *view[3] = { &gui.view[0], &gui.view[1], &gui.view[2] };
 	GVariant *state_neg = g_action_get_state(action_neg_cached);
@@ -697,13 +717,13 @@ static void remap_all_vports() {
 	lock_display_transform();
 	if (gfit->color_managed) {
 		// Set the transform in case it is missing
-		if (!gui.icc.proofing_transform) {
-			gui.icc.proofing_transform = initialize_proofing_transform();
-			gui.icc.profile_changed = TRUE;
+		if (!com.gui_icc.proofing_transform) {
+			com.gui_icc.proofing_transform = initialize_proofing_transform();
+			com.gui_icc.profile_changed = TRUE;
 		}
-		if (gui.icc.profile_changed) {
-			gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, (gui.icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? gui.icc.soft_proof : NULL);
-//			gui.icc.same_primaries = FALSE;
+		if (com.gui_icc.profile_changed) {
+			com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, (com.gui_icc.soft_proof && com.pref.icc.soft_proofing_profile_active) ? com.gui_icc.soft_proof : NULL);
+//			com.gui_icc.same_primaries = FALSE;
 			check_gfit_profile_identical_to_monitor();
 			// Calling color_manage() like this updates the color management button tooltip
 			color_manage(gfit, gfit->color_managed);
@@ -722,7 +742,7 @@ static void remap_all_vports() {
 	}
 	unlock_display_transform();
 
-	gui.icc.profile_changed = FALSE;
+	com.gui_icc.profile_changed = FALSE;
 	/* Widget-sensitivity changes must happen on the GTK main thread. */
 	siril_add_idle(viewer_mode_sensitive_idle, GINT_TO_POINTER(TRUE));
 
@@ -757,8 +777,8 @@ static void remap_all_vports() {
 	gboolean alloc_error = FALSE;
 
 	{
-		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
-		const gboolean do_transform = (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed));
+		siril_debug_print((com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		const gboolean do_transform = (com.gui_icc.proofing_transform && !identical && (!com.gui_icc.same_primaries || com.gui_icc.profile_changed));
 
 		if (do_transform)
 			lock_display_transform();
@@ -864,7 +884,7 @@ static void remap_all_vports() {
 				}
 			}
 			if (do_transform) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
+				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
 			const guint dst_row_start = downscaled
@@ -1056,10 +1076,10 @@ static int make_index_for_current_display(int vport) {
 			return 1;
 	}
 	if(!(slope == last_pente && gui.rendering_mode == last_mode))
-		gui.icc.profile_changed = TRUE;
+		com.gui_icc.profile_changed = TRUE;
 
 	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
-			slope == last_pente && gui.rendering_mode == last_mode && !gui.icc.profile_changed) {
+			slope == last_pente && gui.rendering_mode == last_mode && !com.gui_icc.profile_changed) {
 		siril_debug_print("Re-using previous gui.remap_index\n");
 		return 0;
 	}
@@ -1112,7 +1132,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit->color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
+	if (gfit->color_managed && com.gui_icc.same_primaries && com.gui_icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;
@@ -1208,7 +1228,8 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(pixbuf);
 
 
-	GtkWidget *widget = lookup_widget("drawingareargb");
+	image_display_init_statics();
+	GtkWidget *widget = imgdisp_drawing_rgb;
 	GtkStyleContext *context = gtk_widget_get_style_context(widget);
 	GtkStateFlags state = gtk_widget_get_state_flags(widget);
 	PangoLayout *layout;
@@ -1317,10 +1338,10 @@ static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
 		lb_rgb = malloc((size_t)visible_w * 3);
 		if (!lb_rgb) return FALSE;
 		lock_display_transform();
-		if (gfit->color_managed && gui.icc.proofing_transform && !identical &&
-				!gui.icc.same_primaries) {
+		if (gfit->color_managed && com.gui_icc.proofing_transform && !identical &&
+				!com.gui_icc.same_primaries) {
 			do_transform = TRUE;
-			transform = gui.icc.proofing_transform;
+			transform = com.gui_icc.proofing_transform;
 		}
 		unlock_display_transform();
 	}
@@ -1536,7 +1557,7 @@ static void draw_selection(const draw_data_t* dd) {
 			rectangle area = {0, 0, gfit->rx, gfit->ry};
 			memcpy(&com.selection, &area, sizeof(rectangle));
 		}
-		if (!rotation_dlg) rotation_dlg = lookup_widget("rotation_dialog");
+		if (!rotation_dlg) image_display_init_statics();
 		cairo_t *cr = dd->cr;
 		static double dash_format[] = { 4.0, 2.0 };
 		cairo_set_line_width(cr, 1.5 / dd->zoom);
@@ -1597,13 +1618,8 @@ static void draw_selection(const draw_data_t* dd) {
 }
 
 static void draw_cut_line(const draw_data_t* dd) {
-	if (!cut_dialog) {
-		cut_dialog = lookup_widget("cut_dialog");
-		cut_cdialog = lookup_widget("cut_coords_dialog");
-		cut_sdialog = lookup_widget("cut_spectroscopy_dialog");
-		tri_cut_toggle = GTK_TOGGLE_BUTTON(lookup_widget("cut_tri_cut"));
-		tri_cut_spin_step = GTK_SPIN_BUTTON(lookup_widget("cut_tricut_step"));
-	}
+	if (!cut_dialog)
+		image_display_init_statics();
 	if (!(gtk_widget_get_visible(cut_dialog) || gtk_widget_get_visible(cut_cdialog) || gtk_widget_get_visible(cut_sdialog)))
 		return;
 	if (gui.cut.cut_end.x == -1 || gui.cut.cut_end.y == -1 || gui.cut.seq)
@@ -1718,33 +1734,31 @@ static void draw_user_polygons(const draw_data_t *dd) {
 			cairo_save(cr);
 			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								  polygon->color[0],
+						 polygon->color[1],
+						 polygon->color[2],
+						 polygon->color[3]);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
 			}
 			cairo_close_path(cr);
-			// Fill the polygon
 			cairo_fill_preserve(cr);
-			// Draw the outline
+			/* slightly darker outline when filled */
 			cairo_set_source_rgba(cr,
-								  polygon->color.red * 0.8, // Slightly darker outline if filled
-						 polygon->color.green * 0.8,
-						 polygon->color.blue * 0.8,
-						 polygon->color.alpha);
+								  polygon->color[0] * 0.8,
+						 polygon->color[1] * 0.8,
+						 polygon->color[2] * 0.8,
+						 polygon->color[3]);
 			cairo_stroke(cr);
 			cairo_restore(cr);
 		} else {
 			cairo_save(cr);
-			// Set color for filling
 			cairo_set_source_rgba(cr,
-								  polygon->color.red,
-						 polygon->color.green,
-						 polygon->color.blue,
-						 polygon->color.alpha);
+								  polygon->color[0],
+						 polygon->color[1],
+						 polygon->color[2],
+						 polygon->color[3]);
 			cairo_move_to(cr, polygon->points[0].x + 0.5, polygon->points[0].y + 0.5);
 			for (int i = 1; i < polygon->n_points; i++) {
 				cairo_line_to(cr, polygon->points[i].x + 0.5, polygon->points[i].y + 0.5);
@@ -2563,10 +2577,8 @@ static void draw_regframe(const draw_data_t* dd) {
 	if (com.script || com.headless) return;
 	if (!sequence_is_loaded()) return;
 	if (com.seq.current == RESULT_IMAGE) return;
-	if (!drawframe) {
-		drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
-		seqcombo = GTK_COMBO_BOX(lookup_widget("seqlist_dialog_combo"));
-	}
+	if (!drawframe)
+		image_display_init_statics();
 	if (!gtk_toggle_button_get_active(drawframe)) return;
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
@@ -2850,11 +2862,10 @@ void queue_redraw(remap_type doremap) {
 /* callback for GtkDrawingArea, draw event */
 gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_data_t dd;
-	static GtkApplicationWindow *app_win = NULL;
 	static GAction *action_neg = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-		action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+	if (action_neg == NULL) {
+		image_display_init_statics();
+		action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
 	}
 	// we need to identify which vport is being redrawn
 	dd.vport = match_drawing_area_widget(widget, TRUE);
@@ -2982,7 +2993,8 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 point get_center_of_vport() {
-	GtkWidget *widget = lookup_widget("drawingarear");
+	image_display_init_statics();
+	GtkWidget *widget = imgdisp_drawing_r;
 
 	guint window_width = gtk_widget_get_allocated_width(widget);
 	guint window_height = gtk_widget_get_allocated_height(widget);
@@ -2994,12 +3006,9 @@ point get_center_of_vport() {
 
 void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	draw_data_t dd;
-	GtkWidget *widget = lookup_widget("drawingarear");
-	static GtkApplicationWindow *app_win = NULL;
-	if (app_win == NULL) {
-		app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	}
-	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(app_win), "negative-view");
+	image_display_init_statics();
+	GtkWidget *widget = imgdisp_drawing_r;
+	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
 	GVariant *state = g_action_get_state(action_neg);
 
 	dd.vport = vport;
