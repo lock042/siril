@@ -1,0 +1,419 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2026 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <gtk/gtk.h>
+#include "core/siril.h"
+#include "core/siril_log.h"
+#include "core/processing.h"
+#include "algos/comparison_stars.h"
+#include "gui-gtk4/image_display.h"
+#include "gui-gtk4/message_dialog.h"
+#include "gui-gtk4/utils.h"
+#include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/PSF_list.h"
+#include "io/annotation_catalogues.h"
+#include "io/siril_catalogues.h"
+
+static GtkWidget *dialog = NULL;	// the window, a GtkDialog
+static GtkWidget *delta_vmag_entry = NULL;
+static GtkWidget *delta_bv_entry = NULL;
+static GtkWidget *emag_entry = NULL;
+static GtkWidget *target_entry = NULL;
+static GtkWidget *manu_target_entry = NULL;
+static GtkWidget *apass_radio = NULL;
+static GtkWidget *check_narrow = NULL;
+static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
+static GtkWidget *auto_data_grp;
+static GtkToggleButton *annotate_button = NULL;
+
+static void on_compstars_response(GtkWindow *self, gint response_id, gpointer user_data);
+
+static GtkWidget *compstars_ok_button = NULL;
+
+/* Phase 14G.4: GtkDialog → GtkWindow.  Bridge per-button "clicked" signals
+ * back to the legacy on_compstars_response shape. */
+static void compstars_btn_ok_clicked(GtkButton *btn, gpointer ud)    { (void)btn; on_compstars_response(GTK_WINDOW(dialog), GTK_RESPONSE_ACCEPT, ud); }
+static void compstars_btn_close_clicked(GtkButton *btn, gpointer ud) { (void)btn; on_compstars_response(GTK_WINDOW(dialog), GTK_RESPONSE_REJECT, ud); }
+
+/* Idle callback invoked on the GUI thread when compstars_worker finishes. */
+static gboolean end_compstars(gpointer p) {
+	siril_debug_print("end_compstars\n");
+	struct compstars_arg *args = (struct compstars_arg *) p;
+
+	clear_stars_list(args->has_GUI);
+	if (args->has_GUI && !args->retval) {
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		if (!load_siril_cat_to_temp(args->comp_stars)) {
+			if (!annotate_button)
+			annotate_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "annotate_button"));
+		GtkToggleButton *button = annotate_button;
+			refresh_found_objects();
+			if (!siril_toggle_get_active(GTK_WIDGET(button))) {
+				siril_toggle_set_active(GTK_WIDGET(button), TRUE);
+			} else {
+				refresh_found_objects();
+				redraw(REDRAW_OVERLAY);
+			}
+		}
+	} else {
+		siril_catalog_free(args->comp_stars);
+	}
+	redraw(REDRAW_OVERLAY);
+	free_compstars_arg(args);
+	return end_generic(NULL);
+}
+
+static void output_state(GtkToggleButton *source, gpointer user_data) {
+    gtk_widget_set_sensitive(auto_data_grp, siril_toggle_get_active(GTK_WIDGET(auto_mode)));
+	gtk_widget_set_sensitive(sub_manu_box, siril_toggle_get_active(GTK_WIDGET(manual_mode)));
+}
+
+static void build_the_dialog() {
+	/* Phase 14G.4: GtkDialog → GtkWindow. */
+	dialog = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Create a comparison stars list"));
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_hide_on_close(GTK_WINDOW(dialog), TRUE);
+	g_signal_connect(G_OBJECT(dialog), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
+
+
+	/* Mode (Auto/Manu) choice */
+	mode_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(mode_grp), TRUE);
+	gtk_widget_set_tooltip_text(mode_grp, _("Toggle Manual mode or Automatic mode for Comparison stars list"));
+
+	/* Phase 17.6: GtkRadioButton removed in GTK4; use GtkCheckButton + group. */
+	manual_mode = gtk_check_button_new_with_label(_("Use the stars selected in the currently loaded image"));
+	g_signal_connect (manual_mode, "toggled",G_CALLBACK (output_state), NULL);
+	gtk_box_append(GTK_BOX(mode_grp), manual_mode);
+
+	// Name of the output file in manu mode
+	// Definition of the 3 elements horizontal sub-box
+	sub_manu_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(sub_manu_box), TRUE);
+	gtk_widget_set_tooltip_text(sub_manu_box, _("Enter your own target name"));
+	// 1st element, a label
+	GtkWidget *label1_user_name = gtk_label_new(_("Output file name: "));
+	gtk_widget_set_halign(label1_user_name, GTK_ALIGN_END);
+	gtk_box_append(GTK_BOX(sub_manu_box), label1_user_name);
+	// 2nd element, the target user name
+	manu_target_entry = gtk_entry_new();
+	gtk_editable_set_text(GTK_EDITABLE(manu_target_entry), "V_SirilstarList_user");
+	gtk_widget_set_tooltip_text(manu_target_entry, _("Change the default file name if needed"));
+	gtk_widget_set_halign(manu_target_entry, GTK_ALIGN_CENTER);
+	gtk_entry_set_alignment(GTK_ENTRY (manu_target_entry), 0.5);
+	gtk_widget_set_margin_top(GTK_WIDGET(manu_target_entry), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(manu_target_entry), 0);
+	gtk_box_append(GTK_BOX(sub_manu_box), manu_target_entry);
+	// 3rd element, another label
+	GtkWidget *label2_user_name = gtk_label_new(_(".csv"));
+	gtk_widget_set_halign(label2_user_name, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(sub_manu_box), label2_user_name);
+	// and finally include that box to the upper level box
+	gtk_box_append(GTK_BOX(mode_grp), sub_manu_box);
+
+	auto_mode = gtk_check_button_new_with_label(_("Find comparison stars from catalogue requests"));
+	gtk_check_button_set_group(GTK_CHECK_BUTTON(auto_mode), GTK_CHECK_BUTTON(manual_mode));
+	g_signal_connect (auto_mode, "toggled",G_CALLBACK (output_state), NULL);
+	gtk_box_append(GTK_BOX(mode_grp), auto_mode);
+
+	gtk_widget_set_halign(mode_grp, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(mode_grp), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(mode_grp), 20);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(mode_grp), 20);
+	// Defines the group for the auto mode parameters
+	auto_data_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 9);
+	gtk_box_set_homogeneous(GTK_BOX(auto_data_grp), TRUE);
+	gtk_widget_set_tooltip_text(auto_data_grp, _("Variable star data and sorting parameters for catalogue request"));
+
+	// Defines the parameters of the automatic mode
+	target_entry = gtk_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(target_entry), "Target star name");
+	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in catalogues"));
+	gtk_widget_set_margin_start(GTK_WIDGET(target_entry), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(target_entry), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(target_entry), 15);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(target_entry), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(target_entry), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(target_entry), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), target_entry);
+
+	check_narrow = gtk_check_button_new_with_label(_("Narrow field of view"));
+	gtk_widget_set_tooltip_text(check_narrow, _("Tick this box to use a narrow field of view centered about the target star"));
+	gtk_widget_set_halign(check_narrow, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(check_narrow), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(check_narrow), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(check_narrow), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), check_narrow);
+
+	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
+	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(labelvmag), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(labelvmag), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(labelvmag), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), labelvmag);
+
+	delta_vmag_entry = gtk_entry_new();
+	gtk_editable_set_text(GTK_EDITABLE(delta_vmag_entry), "3.0");
+	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of visual magnitude between the target star and the comparison stars"));
+	gtk_widget_set_margin_start(GTK_WIDGET(delta_vmag_entry), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(delta_vmag_entry), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(delta_vmag_entry), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(delta_vmag_entry), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), delta_vmag_entry);
+
+	GtkWidget *labelbv = gtk_label_new(_("Allowed B-V index range:"));
+	gtk_widget_set_halign(labelbv, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(labelbv), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(labelbv), 10);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(labelbv), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), labelbv);
+
+	delta_bv_entry = gtk_entry_new();
+	gtk_editable_set_text(GTK_EDITABLE(delta_bv_entry), "0.5");
+	gtk_widget_set_tooltip_text(delta_bv_entry, _("Allowed range of B-V index (color) between the target star and the comparison stars"));
+	gtk_widget_set_margin_start(GTK_WIDGET(delta_bv_entry), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(delta_bv_entry), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(delta_bv_entry), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(delta_bv_entry), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), delta_bv_entry);
+
+	GtkWidget *labelemag = gtk_label_new(_("Allowed magnitude error:"));
+	gtk_widget_set_halign(labelemag, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(GTK_WIDGET(labelemag), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(labelemag), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(labelemag), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), labelemag);
+
+	emag_entry = gtk_entry_new();
+	gtk_editable_set_text(GTK_EDITABLE(emag_entry), "0.03");
+	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars"));
+	gtk_widget_set_margin_start(GTK_WIDGET(emag_entry), 15);
+	gtk_widget_set_margin_end(GTK_WIDGET(emag_entry), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(emag_entry), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(emag_entry), 0);
+	gtk_box_append(GTK_BOX(auto_data_grp), emag_entry);
+
+	/* catalogue choice */
+	GtkWidget *nomad_radio, *cat_choice_box;
+	cat_choice_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(cat_choice_box), TRUE);
+	gtk_widget_set_tooltip_text(cat_choice_box, _("Recommended catalogue for this feature is APASS"));
+
+	apass_radio = gtk_check_button_new_with_label(_("APASS catalogue"));
+	nomad_radio = gtk_check_button_new_with_label(_("NOMAD catalogue"));
+	gtk_check_button_set_group(GTK_CHECK_BUTTON(nomad_radio), GTK_CHECK_BUTTON(apass_radio));
+	gtk_box_append(GTK_BOX(cat_choice_box), apass_radio);
+	gtk_box_append(GTK_BOX(cat_choice_box), nomad_radio);
+	gtk_box_append(GTK_BOX(auto_data_grp), cat_choice_box);
+	gtk_widget_set_margin_start(GTK_WIDGET(cat_choice_box), 15);
+	gtk_widget_set_margin_top(GTK_WIDGET(cat_choice_box), 0);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(cat_choice_box), 0);
+	// Gather the graphic items
+	GtkWidget *content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
+	gtk_widget_set_margin_start(content_area, 12);
+	gtk_widget_set_margin_end(content_area, 12);
+	gtk_widget_set_margin_top(content_area, 12);
+	gtk_widget_set_margin_bottom(content_area, 12);
+	gtk_box_append(GTK_BOX(content_area), mode_grp);
+	gtk_box_append(GTK_BOX(content_area), auto_data_grp);
+	gtk_widget_set_sensitive (auto_data_grp, FALSE);
+
+	/* Action area */
+	GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_halign(bbox, GTK_ALIGN_END);
+	GtkWidget *btn_close = gtk_button_new_with_mnemonic(_("_Close"));
+	g_signal_connect(btn_close, "clicked", G_CALLBACK(compstars_btn_close_clicked), NULL);
+	gtk_box_append(GTK_BOX(bbox), btn_close);
+	compstars_ok_button = gtk_button_new_with_mnemonic(_("_OK"));
+	gtk_widget_add_css_class(compstars_ok_button, "suggested-action");
+	g_signal_connect(compstars_ok_button, "clicked", G_CALLBACK(compstars_btn_ok_clicked), NULL);
+	gtk_box_append(GTK_BOX(bbox), compstars_ok_button);
+	gtk_box_append(GTK_BOX(content_area), bbox);
+	gtk_window_set_default_widget(GTK_WINDOW(dialog), compstars_ok_button);
+
+	gtk_window_set_child(GTK_WINDOW(dialog), content_area);
+}
+
+// The process to perform a **Manual** Compstar List
+static void manual_photometry_data (sequence *seq) {
+	gchar *entered_target_name = g_strdup(gtk_editable_get_text(GTK_EDITABLE(manu_target_entry)));
+	if (entered_target_name [0] == '\0') {
+		g_free(entered_target_name);
+		entered_target_name = g_strdup("V_SirilstarList_user");
+		gtk_editable_set_text(GTK_EDITABLE(manu_target_entry), "V_SirilstarList_user");
+	}
+
+	gchar *temp_name = g_strdup(entered_target_name);
+	g_strstrip(temp_name);
+	gchar *target_name = g_strdup_printf("%s.csv", temp_name);
+	g_free(temp_name);
+
+	double ra, dec;
+	// Gather the selected stars by hand
+	int nb_ref_stars = 0;
+	if (!seq->photometry[0] || !seq->photometry[1]) {
+		g_free(target_name);
+		siril_log_color_message(_("One Variable star and one comparison star at least are required. Cannot create any file\n"), "salmon");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
+		g_free(entered_target_name);
+		return;
+	}
+	point sel_item[MAX_SEQPSF];
+
+	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
+			siril_log_color_message(_("Problem with conversion\n"), "red"); // PB in the conversion pix->wcs
+			g_free(entered_target_name);
+			g_free(target_name);
+			return;
+		}
+		sel_item[r].x = ra;
+		sel_item[r].y = dec;
+		nb_ref_stars++;
+	}
+
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	siril_catalogue *comp_sta = siril_catalog_new(CAT_COMPSTARS);
+
+	// Header for the console display
+	siril_log_message(_("-> %i comparison stars selected\n"), nb_ref_stars - 1);
+	siril_log_message("Star type        RA      DEC\n");
+	// Allocating final sorted list to the required size
+	cat_item *result = calloc(nb_ref_stars, sizeof(cat_item));
+	// Write the target star
+	fill_compstar_item(&result[0], sel_item[0].x, sel_item[0].y, 0.0, "V", "Target");
+	siril_log_message(_("Target star  : %4.3lf, %+4.3lf\n"), sel_item[0].x, sel_item[0].y);
+	// And write the selected comparison stars
+	for (int i = 1; i < nb_ref_stars; i++) {
+		gchar *name = g_strdup_printf("%d", i);
+		fill_compstar_item(&result[i], sel_item[i].x, sel_item[i].y, 0.0, name, "Comp1");
+		g_free(name);
+		siril_log_message(_("Comp star %3d: %4.3lf, %+4.3lf\n"), i, sel_item[i].x, sel_item[i].y);
+	}
+
+	// Fill the catalogue structure
+	comp_sta->cat_items = result;
+	comp_sta->nbitems = nb_ref_stars;
+	comp_sta->nbincluded = nb_ref_stars;
+	// Fill the other catalogue  structure
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+
+	args->comp_stars = comp_sta;
+	args->nina_file = g_strdup(target_name);
+	args->target_star = &result[0];
+	args->delta_Vmag = 0.0;		// Explicitely set these three variables
+	args->delta_BV = 0.0;
+	args->max_emag = 0.0;
+	args->cat = CAT_COMPSTARS;
+	// Finally create the csv file
+	write_nina_file(args);
+	// and free the stuff
+	siril_catalog_free(comp_sta);
+	g_free(args->nina_file);
+	g_free(target_name);
+	g_free(entered_target_name);
+	free(args);
+}
+
+// The process to perform an **Automatic** Compstar List
+static void auto_photometry_data () {
+	const gchar *entered_target_name = gtk_editable_get_text(GTK_EDITABLE(target_entry));
+	gchar *target_name = g_strdup(entered_target_name);
+	g_strstrip(target_name);
+	if (target_name[0] == '\0') {
+		g_free(target_name);
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
+		return;
+	}
+
+	gchar *end;
+	const gchar *text = gtk_editable_get_text(GTK_EDITABLE(delta_vmag_entry));
+	double delta_Vmag = g_ascii_strtod(text, &end);
+	if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Vmag range not accepted (should be ]0, 6])"));
+		g_free(target_name);
+		return;
+	}
+	text = gtk_editable_get_text(GTK_EDITABLE(delta_bv_entry));
+	double delta_BV = g_ascii_strtod(text, &end);
+	if (text == end || delta_BV <= 0.0 || delta_BV > 0.7) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
+		g_free(target_name);
+		return;
+	}
+	text = gtk_editable_get_text(GTK_EDITABLE(emag_entry));
+	double emag = g_ascii_strtod(text, &end);
+	if (text == end || emag <= 0.0 || emag > 0.1) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
+		g_free(target_name);
+		return;
+	}
+
+	gboolean use_apass = siril_toggle_get_active(GTK_WIDGET(apass_radio));
+	gboolean narrow = siril_toggle_get_active(GTK_WIDGET(check_narrow));
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
+	args->fit = gfit;
+	args->target_name = g_strdup(target_name);
+	g_free(target_name);
+	args->narrow_fov = narrow;
+	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
+	args->delta_Vmag = delta_Vmag;
+	args->delta_BV = delta_BV;
+	args->max_emag = emag;
+	args->nina_file = g_strdup("auto");
+	args->notify_done = end_compstars;
+
+	if(!start_in_new_thread(compstars_worker, args)) {
+		g_free(args->target_name);
+		g_free(args->nina_file);
+		free(args);
+	}
+}
+
+// the public getter
+GtkWidget *get_compstars_dialog() {
+	if (!dialog)
+		build_the_dialog();
+	return dialog;
+}
+
+static void on_compstars_response(GtkWindow *self, gint response_id, gpointer user_data) {
+	(void)self; (void)user_data;
+	siril_debug_print("got response event\n");
+	if (response_id != GTK_RESPONSE_ACCEPT) {
+		if (compstars_ok_button)
+			gtk_widget_grab_focus(compstars_ok_button);
+		gtk_widget_set_visible(dialog, FALSE);
+		return;
+	}
+
+	if (siril_toggle_get_active(GTK_WIDGET(manual_mode)))
+		manual_photometry_data(&com.seq);
+
+	if (siril_toggle_get_active(GTK_WIDGET(auto_mode)))
+		auto_photometry_data();
+
+}
