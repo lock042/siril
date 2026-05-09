@@ -40,6 +40,7 @@
 #include "image_interactions.h"
 #include "gui/mouse_action_functions.h"
 #include "gui/masks_gui.h"
+#include "gui/curves.h"
 #include "image_display.h"
 #include "gui/callbacks.h"
 #include "gui/save_dialog.h"
@@ -403,6 +404,11 @@ static gboolean sample_mask_color_release(mouse_data *data) {
 	return TRUE;
 }
 
+static gboolean curves_pipette_release(mouse_data *data) {
+	curves_handle_pipette_click(data->zoomed.x, data->zoomed.y);
+	return TRUE;
+}
+
 static gboolean show_popup_menu(mouse_data *data) {
 	if (gui.cvport == MASK_VPORT) {
 		do_popup_maskmenu(data->widget, NULL);
@@ -687,6 +693,10 @@ gboolean main_action_click(mouse_data *data) {
 			}
 			case MOUSE_ACTION_SAMPLE_MASK_COLOR: {
 				register_release_callback(sample_mask_color_release, data->event->button);
+				break;
+			}
+			case MOUSE_ACTION_CURVES_PIPETTE: {
+				register_release_callback(curves_pipette_release, data->event->button);
 				break;
 			}
 			default: {

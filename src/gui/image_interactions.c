@@ -722,6 +722,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 			set_cursor("cell");
+		} else if (mouse_status == MOUSE_ACTION_CURVES_PIPETTE) {
+			set_cursor("crosshair");
 		} else {
 			// The order matters if the selection is so small that edge detection overlaps
 			// and need to be the same as in the on_drawingarea_button_press_event()

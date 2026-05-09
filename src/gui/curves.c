@@ -35,6 +35,8 @@
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
+#include "gui/image_interactions.h"
+#include "io/image_format_fits.h"
 #include "curves.h"
 #include "histogram.h"
 #include "histogram_utils.h"
@@ -54,6 +56,9 @@ static void curves_setup_hsl();
 static void curves_clear_hsl();
 static void curves_compute_special_histograms();
 static gsl_histogram* curves_compute_histo_from_buffer(void* buf, fits* f);
+static void init_all_curves();
+static void init_all_curves_and_reset_channel();
+static void clear_display_histogram();
 
 // Forward declaration of Idle functions defined in this file
 gboolean curve_preview_idle(gpointer p);
@@ -70,7 +75,13 @@ static GtkGrid *curves_point_grid = NULL;
 static GtkToggleButton *curves_sequence_check = NULL, *curves_preview_check = NULL, *curves_log_check = NULL;
 static GtkToggleToolButton *curves_grid_toggle = NULL;
 static GtkWidget *curves_drawingarea = NULL, *curves_viewport = NULL, *curves_dialog = NULL;
-static GtkComboBoxText *curves_channel_combo = NULL;
+static GtkRadioButton *curves_chan_rgb_radio = NULL;
+static GtkRadioButton *curves_chan_r_radio = NULL;
+static GtkRadioButton *curves_chan_g_radio = NULL;
+static GtkRadioButton *curves_chan_b_radio = NULL;
+static GtkRadioButton *curves_chan_l_radio = NULL;
+static GtkRadioButton *curves_chan_c_radio = NULL;
+static GtkRadioButton *curves_chan_s_radio = NULL;
 static GtkCheckButton *curves_range_check = NULL;
 static GtkScale *curves_range_min_scale = NULL;
 static GtkScale *curves_range_max_scale = NULL;
@@ -93,12 +104,27 @@ static gsl_histogram *display_histogram[MAXVPORT] = {NULL, NULL, NULL, NULL};
 static gsl_histogram *display_histogram_lum = NULL;
 static gsl_histogram *display_histogram_sat = NULL;
 static gsl_histogram *display_histogram_chroma = NULL;
+// Input (pre-curve) histogram backups for mathematical live update during drag
+static gsl_histogram *hist_input[MAXVPORT] = {NULL, NULL, NULL, NULL};
+static gsl_histogram *hist_input_lum = NULL;
+static gsl_histogram *hist_input_sat = NULL;
+static gsl_histogram *hist_input_chroma = NULL;
 static gboolean is_drawingarea_pressed = FALSE;
 static void *curves_huebuf = NULL, *curves_satbuf = NULL, *curves_lumbuf = NULL;
 static cmsHPROFILE original_icc = NULL;
 static gboolean single_image_stretch_applied = FALSE;
 static point *selected_point = NULL;
 static double point_size = 5.0;
+
+// Stage stack (non-destructive iterative workflow)
+static GList *stage_stack = NULL;
+static fits *original_fit_copy = NULL;
+
+// Pipette
+static float pipette_value = -1.0f;
+static GtkToggleButton *curves_pipette_button = NULL;
+static GtkButton *curves_undo_stage_button = NULL;
+static GtkButton *curves_apply_stage_button = NULL;
 
 int compare_points(const void *a, const void *b) {
 	point *point_a = (point *) a;
@@ -113,6 +139,195 @@ static point* copy_point(const point *src, gpointer user_data) {
 	new_p->x = src->x;
 	new_p->y = src->y;
 	return new_p;
+}
+
+// ---------------------------------------------------------------------------
+// MATHEMATICAL HISTOGRAM UPDATE (like apply_mtf_to_histo in histogram.c)
+// ---------------------------------------------------------------------------
+
+static void apply_curve_to_histo(gsl_histogram *src, gsl_histogram *dst, enum curve_channel chan) {
+	if (!src || !dst) return;
+	size_t n = gsl_histogram_bins(src);
+	gsl_histogram *result = gsl_histogram_alloc(n);
+	gsl_histogram_set_ranges_uniform(result, 0.0, (double)(n - 1));
+
+	GList *points = gui_channels[chan].points;
+	int np = points ? (int)g_list_length(points) : 0;
+
+	if (np < 2) {
+		gsl_histogram_memcpy(dst, src);
+		gsl_histogram_free(result);
+		return;
+	}
+
+	akima_spline_data akima;
+	cubic_spline_data cspline;
+	double linear_slopes[MAX_POINTS];
+
+	gboolean use_akima = (algorithm == AKIMA_SPLINE && np >= 5);
+	if (algorithm == LINEAR) {
+		linear_fit(points, linear_slopes);
+	} else if (use_akima) {
+		akima_spline_fit(points, &akima);
+	} else {
+		cubic_spline_fit(points, &cspline);
+	}
+
+	float inv_n = 1.0f / (float)(n - 1);
+	for (size_t i = 0; i < n; i++) {
+		double count = gsl_histogram_get(src, i);
+		if (count == 0.0) continue;
+		float x = (float)i * inv_n;
+		float y;
+		if (algorithm == LINEAR)
+			y = linear_interpolate(x, points, linear_slopes);
+		else if (use_akima)
+			y = akima_spline_interpolate(x, &akima);
+		else
+			y = cubic_spline_interpolate(x, &cspline);
+		y = fmaxf(0.0f, fminf(1.0f, y));
+		size_t dest = (size_t)(y * (float)(n - 1) + 0.5f);
+		if (dest >= n) dest = n - 1;
+		gsl_histogram_accumulate(result, (double)dest, count);
+	}
+	gsl_histogram_memcpy(dst, result);
+	gsl_histogram_free(result);
+}
+
+// Apply RGB/K then a per-channel curve to one histogram slot (accounts for
+// any RGB/K edit made before the user switched to an individual channel).
+static void apply_rgb_channel_pipeline(int c, enum curve_channel per_chan) {
+	if (c >= (int)fit->naxes[2] || !hist_input[c] || !display_histogram[c]) return;
+	apply_curve_to_histo(hist_input[c], display_histogram[c], CHAN_RGB_K);
+	gsl_histogram *tmp = gsl_histogram_clone(display_histogram[c]);
+	apply_curve_to_histo(tmp, display_histogram[c], per_chan);
+	gsl_histogram_free(tmp);
+}
+
+static void update_display_histogram_from_curve() {
+	if (!fit) return;
+	int nc = (int)fit->naxes[2];
+	switch (current_channel) {
+	case CHAN_RGB_K:
+		for (int c = 0; c < nc; c++)
+			apply_curve_to_histo(hist_input[c], display_histogram[c], CHAN_RGB_K);
+		break;
+	case CHAN_R: apply_rgb_channel_pipeline(0, CHAN_R); break;
+	case CHAN_G: apply_rgb_channel_pipeline(1, CHAN_G); break;
+	case CHAN_B: apply_rgb_channel_pipeline(2, CHAN_B); break;
+	case CHAN_L:
+		apply_curve_to_histo(hist_input_lum, display_histogram_lum, CHAN_L);
+		break;
+	case CHAN_C:
+		apply_curve_to_histo(hist_input_chroma, display_histogram_chroma, CHAN_C);
+		break;
+	case CHAN_S:
+		apply_curve_to_histo(hist_input_sat, display_histogram_sat, CHAN_S);
+		break;
+	default:
+		break;
+	}
+}
+
+static void refresh_hist_input_from_fit() {
+	if (!fit) return;
+	for (int i = 0; i < (int)fit->naxes[2]; i++) {
+		if (hist_input[i]) { gsl_histogram_free(hist_input[i]); hist_input[i] = NULL; }
+		if (com.layers_hist[i]) hist_input[i] = gsl_histogram_clone(com.layers_hist[i]);
+	}
+	if (hist_input_lum) { gsl_histogram_free(hist_input_lum); hist_input_lum = NULL; }
+	if (display_histogram_lum) hist_input_lum = gsl_histogram_clone(display_histogram_lum);
+	if (hist_input_sat) { gsl_histogram_free(hist_input_sat); hist_input_sat = NULL; }
+	if (display_histogram_sat) hist_input_sat = gsl_histogram_clone(display_histogram_sat);
+	if (hist_input_chroma) { gsl_histogram_free(hist_input_chroma); hist_input_chroma = NULL; }
+	if (display_histogram_chroma) hist_input_chroma = gsl_histogram_clone(display_histogram_chroma);
+}
+
+// ---------------------------------------------------------------------------
+// STAGE STACK HELPERS
+// ---------------------------------------------------------------------------
+
+static void free_snapshot(gpointer data) {
+	curve_state_snapshot *snap = (curve_state_snapshot *) data;
+	for (int i = 0; i < CHAN_COUNT; i++) {
+		if (snap->channels[i].points)
+			g_list_free_full(snap->channels[i].points, g_free);
+	}
+	g_free(snap);
+}
+
+static void free_stage_stack() {
+	if (stage_stack) {
+		g_list_free_full(stage_stack, free_snapshot);
+		stage_stack = NULL;
+	}
+}
+
+static curve_state_snapshot *snapshot_current_state() {
+	curve_state_snapshot *snap = g_new(curve_state_snapshot, 1);
+	for (int i = 0; i < CHAN_COUNT; i++) {
+		snap->channels[i] = gui_channels[i];
+		snap->channels[i].points = gui_channels[i].points
+			? g_list_copy_deep(gui_channels[i].points, (GCopyFunc) copy_point, NULL)
+			: NULL;
+	}
+	snap->algorithm = algorithm;
+	return snap;
+}
+
+static void apply_snapshot_to_fit(fits *f, curve_state_snapshot *snap) {
+	struct curve_params *p = new_curve_params();
+	for (int i = 0; i < CHAN_COUNT; i++) {
+		p->channels[i].active       = snap->channels[i].active;
+		p->channels[i].range_enabled= snap->channels[i].range_enabled;
+		p->channels[i].lum_min      = snap->channels[i].lum_min;
+		p->channels[i].lum_max      = snap->channels[i].lum_max;
+		p->channels[i].feather      = snap->channels[i].feather;
+		p->channels[i].points       = snap->channels[i].points
+			? g_list_copy_deep(snap->channels[i].points, (GCopyFunc) copy_point, NULL)
+			: NULL;
+	}
+	p->algorithm = snap->algorithm;
+	p->fit = f;
+	p->verbose = FALSE;
+	apply_curve(f, f, p, TRUE);
+	free_curve_params(p);
+}
+
+static void update_stage_buttons() {
+	if (curves_undo_stage_button)
+		gtk_widget_set_sensitive(GTK_WIDGET(curves_undo_stage_button), stage_stack != NULL);
+}
+
+static void curves_rebuild_from_stages() {
+	if (!original_fit_copy) return;
+
+	set_cursor_waiting(TRUE);
+	copyfits(original_fit_copy, gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
+	for (GList *l = stage_stack; l; l = l->next)
+		apply_snapshot_to_fit(gfit, (curve_state_snapshot *) l->data);
+
+	copy_gfit_to_backup();
+	compute_histo_for_fit(fit);
+	clear_display_histogram();
+	for (int i = 0; i < (int)fit->naxes[2]; i++)
+		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	if (fit->naxes[2] == 3) {
+		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
+		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
+		curves_compute_special_histograms();
+	}
+	refresh_hist_input_from_fit();
+	init_all_curves();
+	selected_point = (point *) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_update_entry_text();
+	update_stage_buttons();
+	gtk_widget_queue_draw(curves_drawingarea);
+	notify_gfit_data_modified();
+	gfit_modified_update_gui();
+	set_cursor_waiting(FALSE);
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +354,12 @@ static void init_single_channel_config(int ch) {
 }
 
 static void init_all_curves() {
+	for (int i = 0; i < CHAN_COUNT; i++)
+		init_single_channel_config(i);
+	selected_point = (point *) gui_channels[current_channel].points->data;
+}
+
+static void init_all_curves_and_reset_channel() {
 	for (int i = 0; i < CHAN_COUNT; i++)
 		init_single_channel_config(i);
 	current_channel = CHAN_RGB_K;
@@ -173,6 +394,22 @@ static void switch_channel_view(enum curve_channel new_chan) {
 		selected_point = (point *) gui_channels[new_chan].points->data;
 	}
 	update_range_ui_from_state();
+
+	GtkRadioButton *chan_radios[CHAN_COUNT] = {
+		curves_chan_rgb_radio,
+		curves_chan_r_radio,
+		curves_chan_g_radio,
+		curves_chan_b_radio,
+		curves_chan_l_radio,
+		curves_chan_c_radio,
+		curves_chan_s_radio,
+	};
+	if (new_chan >= 0 && new_chan < CHAN_COUNT && chan_radios[new_chan]) {
+		GtkRadioButton *btn = chan_radios[new_chan];
+		g_signal_handlers_block_matched(btn, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(btn), TRUE);
+		g_signal_handlers_unblock_matched(btn, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +439,16 @@ void curves_dialog_init_statics() {
 		curves_range_min_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_min"));
 		curves_range_max_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_max"));
 		curves_range_feather_scale = GTK_SCALE(gtk_builder_get_object(gui.builder, "curve_slider_feather"));
-		curves_channel_combo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "curves_channel_combo"));
+		curves_chan_rgb_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_rgb"));
+		curves_chan_r_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_r"));
+		curves_chan_g_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_g"));
+		curves_chan_b_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_b"));
+		curves_chan_l_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_l"));
+		curves_chan_c_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_c"));
+		curves_chan_s_radio = GTK_RADIO_BUTTON(gtk_builder_get_object(gui.builder, "curves_chan_s"));
+		curves_pipette_button = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_pipette_button"));
+		curves_undo_stage_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "curves_undo_stage_button"));
+		curves_apply_stage_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "curves_apply_stage_button"));
 	}
 }
 
@@ -731,6 +977,21 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	draw_active_curve(cr, width, height);
 	draw_curve_points(cr, width, height);
 
+	// Pipette marker: vertical dashed line at sampled channel value
+	if (pipette_value >= 0.0f && pipette_value <= 1.0f) {
+		double px = pipette_value * width;
+		double dashes[] = {4.0, 3.0};
+		cairo_set_dash(cr, dashes, 2, 0);
+		cairo_set_source_rgba(cr, 1.0, 0.9, 0.1, 0.85);
+		cairo_set_line_width(cr, 1.5);
+		cairo_move_to(cr, px, 0);
+		cairo_line_to(cr, px, height);
+		cairo_stroke(cr);
+		cairo_set_dash(cr, NULL, 0, 0);
+		cairo_arc(cr, px, height * 0.5, 4.5, 0, 2 * G_PI);
+		cairo_fill(cr);
+	}
+
 	return FALSE;
 }
 
@@ -791,7 +1052,12 @@ static void reset_cursors_and_values(gboolean full_reset) {
 	if (full_reset) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), AKIMA_SPLINE);
 		algorithm = AKIMA_SPLINE;
-		if (curves_channel_combo) gtk_combo_box_set_active(GTK_COMBO_BOX(curves_channel_combo), 0);
+		if (curves_chan_rgb_radio) {
+			g_signal_handlers_block_matched(curves_chan_rgb_radio, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(curves_chan_rgb_radio), TRUE);
+			g_signal_handlers_unblock_matched(curves_chan_rgb_radio, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, NULL);
+			current_channel = CHAN_RGB_K;
+		}
 		init_all_curves();
 	} else {
 		init_single_channel_config(current_channel);
@@ -829,21 +1095,53 @@ static void curves_startup() {
 	add_roi_callback(curves_histogram_change_between_roi_and_image);
 	roi_supported(TRUE);
 	copy_gfit_to_backup();
+
+	// Save a copy of the original image for stage-stack undo (only at first open)
+	if (!original_fit_copy) {
+		original_fit_copy = calloc(1, sizeof(fits));
+		copyfits(gfit, original_fit_copy, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
+		free_stage_stack();
+	}
+
 	compute_histo_for_fit(fit);
-	for (int i = 0; i < fit->naxes[2]; i++)
+	for (int i = 0; i < (int)fit->naxes[2]; i++) {
+		if (display_histogram[i]) { gsl_histogram_free(display_histogram[i]); display_histogram[i] = NULL; }
 		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	}
 
 	// Compute special histograms for L, C, S channels
 	if (fit->naxes[2] == 3) {
 		curves_compute_special_histograms();
 	}
+
+	// Snapshot histograms as "input" reference for mathematical live-drag update
+	refresh_hist_input_from_fit();
 }
 
 static void curves_close(gboolean update_image_if_needed, gboolean revert_icc_profile) {
-	for (int i = 0; i < fit->naxes[2]; i++) {
+	// Disable pipette mode if active
+	if (curves_pipette_button && gtk_toggle_button_get_active(curves_pipette_button)) {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		gtk_toggle_button_set_active(curves_pipette_button, FALSE);
+	}
+	pipette_value = -1.0f;
+
+	// Clean up stage stack
+	if (original_fit_copy) {
+		clearfits(original_fit_copy);
+		free(original_fit_copy);
+		original_fit_copy = NULL;
+	}
+	free_stage_stack();
+
+	for (int i = 0; i < (int)fit->naxes[2]; i++) {
 		set_histogram(display_histogram[i], i);
 		display_histogram[i] = NULL;
+		if (hist_input[i]) { gsl_histogram_free(hist_input[i]); hist_input[i] = NULL; }
 	}
+	if (hist_input_lum) { gsl_histogram_free(hist_input_lum); hist_input_lum = NULL; }
+	if (hist_input_sat) { gsl_histogram_free(hist_input_sat); hist_input_sat = NULL; }
+	if (hist_input_chroma) { gsl_histogram_free(hist_input_chroma); hist_input_chroma = NULL; }
 	if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 		set_cursor_waiting(TRUE);
 		notify_gfit_data_modified();
@@ -942,9 +1240,18 @@ gboolean curve_apply_idle(gpointer p) {
 		gfit_modified_update_gui();
 
 		copy_gfit_to_backup();
+
+		// Full commit: reset stage stack and update the original reference
+		free_stage_stack();
+		if (original_fit_copy) { clearfits(original_fit_copy); free(original_fit_copy); original_fit_copy = NULL; }
+		original_fit_copy = calloc(1, sizeof(fits));
+		copyfits(gfit, original_fit_copy, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
+
 		compute_histo_for_fit(fit);
-		for (int i = 0; i < fit->naxes[2]; i++)
+		for (int i = 0; i < (int)fit->naxes[2]; i++) {
+			if (display_histogram[i]) { gsl_histogram_free(display_histogram[i]); display_histogram[i] = NULL; }
 			display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+		}
 
 		// Clear HSL buffers to force recomputation from the new transformed image
 		if (fit->naxes[2] == 3) {
@@ -954,11 +1261,15 @@ gboolean curve_apply_idle(gpointer p) {
 			curves_compute_special_histograms();
 		}
 
+		// Refresh input histogram backup for live drag updates
+		refresh_hist_input_from_fit();
+
 		// Reset all curves to identity - transformation is now baked into the image
 		init_all_curves();
 		selected_point = (point*) gui_channels[current_channel].points->data;
 		update_range_ui_from_state();
 		_update_entry_text();
+		update_stage_buttons();
 
 		gtk_widget_queue_draw(curves_drawingarea);
 	}
@@ -1014,8 +1325,9 @@ void curves_reset_after_undo() {
 		curves_compute_special_histograms();
 	}
 
-	init_all_curves();
-	selected_point = (point*) gui_channels[current_channel].points->data;
+	init_all_curves_and_reset_channel();
+	switch_channel_view(CHAN_RGB_K);
+	selected_point = (point*) gui_channels[CHAN_RGB_K].points->data;
 	update_range_ui_from_state();
 	_update_entry_text();
 
@@ -1035,14 +1347,40 @@ void curves_histogram_change_between_roi_and_image() {
 // EVENTS
 // ---------------------------------------------------------------------------
 
-void on_curves_channel_combo_changed(GtkComboBox *widget, gpointer user_data) {
-	enum curve_channel new_chan = gtk_combo_box_get_active(widget);
+static void on_curves_channel_radio_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (!gtk_toggle_button_get_active(button))
+		return;
+	enum curve_channel new_chan = GPOINTER_TO_INT(user_data);
 	if (new_chan != current_channel) {
 		switch_channel_view(new_chan);
+		pipette_value = -1.0f;
+		update_display_histogram_from_curve();
 		gtk_widget_queue_draw(curves_drawingarea);
 		curves_update_image();
 		_update_entry_text();
 	}
+}
+
+void on_curves_chan_rgb_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_RGB_K));
+}
+void on_curves_chan_r_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_R));
+}
+void on_curves_chan_g_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_G));
+}
+void on_curves_chan_b_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_B));
+}
+void on_curves_chan_l_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_L));
+}
+void on_curves_chan_c_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_C));
+}
+void on_curves_chan_s_toggled(GtkToggleButton *button, gpointer user_data) {
+	on_curves_channel_radio_toggled(button, GINT_TO_POINTER(CHAN_S));
 }
 
 void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1093,10 +1431,12 @@ void on_curves_display_toggle(GtkToggleButton *togglebutton, gpointer user_data)
 void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	fit = gfit;
 	closing = FALSE;
+	pipette_value = -1.0f;
 	curves_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values(TRUE);
 	compute_histo_for_fit(fit);
+	update_stage_buttons();
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1158,8 +1498,12 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			clear_backup();
 			clear_display_histogram();
 			single_image_stretch_applied = TRUE;
+			// Full commit: reset stage stack and let curves_startup() save the new original
+			free_stage_stack();
+			if (original_fit_copy) { clearfits(original_fit_copy); free(original_fit_copy); original_fit_copy = NULL; }
 			curves_startup();
 			reset_cursors_and_values(FALSE);
+			update_stage_buttons();
 			set_cursor("default");
 			return;
 		}
@@ -1297,6 +1641,7 @@ gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMo
 	else selected_point->x = xpos;
 
 	_update_entry_text();
+	update_display_histogram_from_curve();
 	gtk_widget_queue_draw(widget);
 	return FALSE;
 }
@@ -1446,4 +1791,140 @@ void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_curves_log_check_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_widget_queue_draw(curves_drawingarea);
+}
+
+void on_curves_apply_stage_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa()) return;
+
+	set_cursor_waiting(TRUE);
+
+	gboolean preview_active = gtk_toggle_button_get_active(curves_preview_check);
+
+	if (preview_active && !gui.roi.active) {
+		// gfit already has backup + current curves; just freeze it
+		stage_stack = g_list_append(stage_stack, snapshot_current_state());
+		copy_gfit_to_backup();
+	} else {
+		// No live preview: apply synchronously to build the new backup
+		curve_state_snapshot *snap = snapshot_current_state();
+		stage_stack = g_list_append(stage_stack, snap);
+		copy_backup_to_gfit();
+		apply_snapshot_to_fit(gfit, snap);
+		copy_gfit_to_backup();
+		notify_gfit_data_modified();
+		gfit_modified_update_gui();
+	}
+
+	// Refresh histograms from the new backup
+	compute_histo_for_fit(fit);
+	clear_display_histogram();
+	for (int i = 0; i < (int)fit->naxes[2]; i++)
+		display_histogram[i] = gsl_histogram_clone(com.layers_hist[i]);
+	if (fit->naxes[2] == 3) {
+		if (curves_huebuf) { free(curves_huebuf); curves_huebuf = NULL; }
+		if (curves_satbuf) { free(curves_satbuf); curves_satbuf = NULL; }
+		if (curves_lumbuf) { free(curves_lumbuf); curves_lumbuf = NULL; }
+		curves_compute_special_histograms();
+	}
+	refresh_hist_input_from_fit();
+
+	// Reset curves to identity for the next stage
+	init_all_curves();
+	selected_point = (point *) gui_channels[current_channel].points->data;
+	update_range_ui_from_state();
+	_update_entry_text();
+	update_stage_buttons();
+	gtk_widget_queue_draw(curves_drawingarea);
+
+	// Trigger preview redraw (backup + identity = backup = accumulated stages)
+	curves_update_image();
+	set_cursor_waiting(FALSE);
+}
+
+void on_curves_undo_stage_clicked(GtkButton *button, gpointer user_data) {
+	if (!stage_stack) return;
+
+	GList *last = g_list_last(stage_stack);
+	free_snapshot((curve_state_snapshot *) last->data);
+	stage_stack = g_list_delete_link(stage_stack, last);
+
+	curves_rebuild_from_stages();
+}
+
+void on_curves_pipette_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(button)) {
+		mouse_status = MOUSE_ACTION_CURVES_PIPETTE;
+	} else {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		pipette_value = -1.0f;
+		gtk_widget_queue_draw(curves_drawingarea);
+	}
+}
+
+void curves_handle_pipette_click(int x, int y) {
+	if (!gfit || x < 0 || y < 0 || x >= (int)gfit->rx || y >= (int)gfit->ry)
+		return;
+
+	float r, g, b;
+	size_t idx = (size_t) y * gfit->rx + x;
+
+	if (gfit->type == DATA_FLOAT) {
+		if (gfit->naxes[2] == 3) {
+			r = gfit->fpdata[0][idx];
+			g = gfit->fpdata[1][idx];
+			b = gfit->fpdata[2][idx];
+		} else {
+			r = g = b = gfit->fdata[idx];
+		}
+	} else {
+		double inv = 1.0 / USHRT_MAX_DOUBLE;
+		if (gfit->naxes[2] == 3) {
+			r = (float)(gfit->pdata[0][idx] * inv);
+			g = (float)(gfit->pdata[1][idx] * inv);
+			b = (float)(gfit->pdata[2][idx] * inv);
+		} else {
+			r = g = b = (float)(gfit->data[idx] * inv);
+		}
+	}
+
+	switch (current_channel) {
+		case CHAN_RGB_K:
+			pipette_value = (r + g + b) / 3.0f;
+			break;
+		case CHAN_R:
+			pipette_value = r;
+			break;
+		case CHAN_G:
+			pipette_value = g;
+			break;
+		case CHAN_B:
+			pipette_value = b;
+			break;
+		case CHAN_L: {
+			// Linear luminance approximation (close to CIE L*)
+			float lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+			pipette_value = CLAMP(lum, 0.0f, 1.0f);
+			break;
+		}
+		case CHAN_S: {
+			float h, s, l;
+			rgb_to_hslf(r, g, b, &h, &s, &l);
+			pipette_value = s;
+			break;
+		}
+		case CHAN_C: {
+			// Chroma approximation: same as the histogram computation
+			float h, s, l;
+			rgb_to_hslf(r, g, b, &h, &s, &l);
+			float l_factor = 1.0f - fabsf(2.0f * l - 1.0f);
+			pipette_value = CLAMP(s * l_factor, 0.0f, 1.0f);
+			break;
+		}
+		default:
+			pipette_value = -1.0f;
+			break;
+	}
+
+	if (curves_drawingarea)
+		gtk_widget_queue_draw(curves_drawingarea);
 }

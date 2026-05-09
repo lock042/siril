@@ -51,11 +51,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkImage" id="grid">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="resource">/org/siril/ui/pixmaps/grid.svg</property>
-  </object>
   <object class="GtkDialog" id="curves_dialog">
     <property name="width-request">420</property>
     <property name="height-request">715</property>
@@ -115,7 +110,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Apply curves transformation</property>
+                <property name="tooltip-text" translatable="yes">Apply all stages and generate a single undo entry</property>
                 <property name="valign">start</property>
                 <signal name="clicked" handler="on_curves_apply_button_clicked" swapped="no"/>
                 <style>
@@ -141,87 +136,313 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="can-focus">False</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
+            <property name="orientation">vertical</property>
             <property name="spacing">5</property>
             <property name="baseline-position">top</property>
+            <child>
+              <object class="GtkToolbar" id="curves_toolbar1">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="valign">end</property>
+                <property name="toolbar-style">icons</property>
+                <property name="icon_size">2</property>
+                <child>
+                  <object class="GtkToolItem" id="toolbutton1">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkSpinButton" id="curves_spin_zoom">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Curves histogram display zoom</property>
+                        <property name="text">1</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">curves_adj_zoom</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_curves_spin_zoom_value_changed" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="curves_reset_zoom">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Reset zoom to 1</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">zoom-original-symbolic</property>
+                    <signal name="clicked" handler="on_curves_reset_zoom_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolItem" id="curves_tool_log">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <child>
+                      <object class="GtkCheckButton" id="curves_log_check">
+                        <property name="label" translatable="yes">Logarithmic scale</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
+                            </property>
+                        <property name="halign">end</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_curves_log_check_toggled" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="curves_grid_toggle">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Toggles whether the grid is shown on the histogram display</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">grid</property>
+                    <property name="active">True</property>
+                    <signal name="toggled" handler="on_curves_display_toggle" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkToggleButton" id="curves_pipette_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Pipette: click on the image to mark the corresponding value on the curve</property>
+                        <property name="relief">none</property>
+                        <signal name="toggled" handler="on_curves_pipette_button_toggled" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">color-select-symbolic</property>
+                            <property name="icon_size">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="curves_scroll">
+                <property name="height-request">300</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="hscrollbar-policy">always</property>
+                <property name="vscrollbar-policy">always</property>
+                <property name="overlay-scrolling">False</property>
+                <child>
+                  <object class="GtkViewport" id="curves_viewport">
+                    <property name="width-request">-1</property>
+                    <property name="height-request">-1</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <child>
+                      <object class="GtkDrawingArea" id="curves_drawingarea">
+                        <property name="width-request">-1</property>
+                        <property name="height-request">-1</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <signal name="button-press-event" handler="on_curves_drawingarea_button_press_event" swapped="no"/>
+                        <signal name="button-release-event" handler="on_curves_drawingarea_button_release_event" swapped="no"/>
+                        <signal name="draw" handler="redraw_curves" swapped="no"/>
+                        <signal name="leave-notify-event" handler="on_curves_drawingarea_leave_notify_event" swapped="no"/>
+                        <signal name="motion-notify-event" handler="on_curves_drawingarea_motion_notify_event" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">5</property>
-                <property name="baseline-position">top</property>
+                <property name="spacing">6</property>
                 <child>
-                  <object class="GtkToolbar" id="curves_toolbar1">
+                  <!-- n-columns=4 n-rows=2 -->
+                  <object class="GtkGrid" id="curves_channel_box">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="valign">end</property>
-                    <property name="toolbar-style">icons</property>
-                    <property name="icon_size">2</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
+                    <property name="column-homogeneous">True</property>
                     <child>
-                      <object class="GtkToolItem" id="toolbutton1">
+                      <object class="GtkRadioButton" id="curves_chan_rgb">
+                        <property name="label" translatable="yes">RGB/K</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkSpinButton" id="curves_spin_zoom">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Curves histogram display zoom</property>
-                            <property name="text">1</property>
-                            <property name="input-purpose">number</property>
-                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                            <property name="adjustment">curves_adj_zoom</property>
-                            <property name="numeric">True</property>
-                            <property name="value">1</property>
-                            <signal name="value-changed" handler="on_curves_spin_zoom_value_changed" swapped="no"/>
-                          </object>
-                        </child>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Master channel (RGB or greyscale)</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">False</property>
+                        <signal name="toggled" handler="on_curves_chan_rgb_toggled" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="homogeneous">True</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToolButton" id="curves_reset_zoom">
+                      <object class="GtkRadioButton" id="curves_chan_r">
+                        <property name="label" translatable="yes">R</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Reset zoom to 1</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="use-underline">True</property>
-                        <property name="icon-name">zoom-original-symbolic</property>
-                        <signal name="clicked" handler="on_curves_reset_zoom_clicked" swapped="no"/>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Red channel</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_r_toggled" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="homogeneous">False</property>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToolItem" id="curves_tool_log">
+                      <object class="GtkRadioButton" id="curves_chan_g">
+                        <property name="label" translatable="yes">G</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">end</property>
-                        <child>
-                          <object class="GtkCheckButton" id="curves_log_check">
-                            <property name="label" translatable="yes">Logarithmic scale</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">False</property>
-                            <property name="tooltip-text" translatable="yes">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
-                            </property>
-                            <property name="halign">end</property>
-                            <property name="draw-indicator">True</property>
-                            <signal name="toggled" handler="on_curves_log_check_toggled" swapped="no"/>
-                          </object>
-                        </child>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Green channel</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_g_toggled" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="expand">True</property>
-                        <property name="homogeneous">True</property>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="curves_chan_b">
+                        <property name="label" translatable="yes">B</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Blue channel</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_b_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="curves_chan_l">
+                        <property name="label" translatable="yes">L</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Luminance (CIE L*)</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_l_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="curves_chan_c">
+                        <property name="label" translatable="yes">C</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Chrominance (LCH chroma)</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_c_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkRadioButton" id="curves_chan_s">
+                        <property name="label" translatable="yes">S</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Saturation (HSV)</property>
+                        <property name="draw-indicator">False</property>
+                        <property name="group">curves_chan_rgb</property>
+                        <signal name="toggled" handler="on_curves_chan_s_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>
@@ -231,79 +452,108 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow" id="curves_scroll">
-                    <property name="height-request">300</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="vexpand">True</property>
-                    <property name="hscrollbar-policy">always</property>
-                    <property name="vscrollbar-policy">always</property>
-                    <property name="overlay-scrolling">False</property>
-                    <child>
-                      <object class="GtkViewport" id="curves_viewport">
-                        <property name="width-request">-1</property>
-                        <property name="height-request">-1</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <child>
-                          <object class="GtkDrawingArea" id="curves_drawingarea">
-                            <property name="width-request">-1</property>
-                            <property name="height-request">-1</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</property>
-                            <property name="hexpand">True</property>
-                            <property name="vexpand">True</property>
-                            <signal name="button-press-event" handler="on_curves_drawingarea_button_press_event" swapped="no"/>
-                            <signal name="button-release-event" handler="on_curves_drawingarea_button_release_event" swapped="no"/>
-                            <signal name="draw" handler="redraw_curves" swapped="no"/>
-                            <signal name="leave-notify-event" handler="on_curves_drawingarea_leave_notify_event" swapped="no"/>
-                            <signal name="motion-notify-event" handler="on_curves_drawingarea_motion_notify_event" swapped="no"/>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkToolbar" id="curves_toolbar2">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="valign">start</property>
-                    <property name="show-arrow">False</property>
-                    <property name="icon_size">5</property>
+                    <property name="spacing">6</property>
                     <child>
-                      <object class="GtkToggleToolButton" id="curves_grid_toggle">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Toggles whether the grid is shown on the histogram display</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="use-underline">True</property>
-                        <property name="icon-widget">grid</property>
-                        <property name="active">True</property>
-                        <signal name="toggled" handler="on_curves_display_toggle" swapped="no"/>
+                        <property name="label" translatable="yes">Algorithm:</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
-                        <property name="homogeneous">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="curves_interpolation_combo">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Interpolation algorithm used to compute a curve from the placed points</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item>Cubic Spline</item>
+                          <item>Linear</item>
+                          <item translatable="yes">Akima Spline</item>
+                        </items>
+                        <signal name="changed" handler="on_curves_interpolation_combo_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="curves_stage_box">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkButton" id="curves_undo_stage_button">
+                    <property name="label" translatable="yes">↩ Stage</property>
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Undo the last applied stage</property>
+                    <signal name="clicked" handler="on_curves_undo_stage_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="curves_apply_stage_button">
+                    <property name="label" translatable="yes">Apply Stage</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Commit current curves as a non-destructive stage. Use Apply to validate all stages as one undo entry.</property>
+                    <signal name="clicked" handler="on_curves_apply_stage_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="width-request">220</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="valign">start</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
@@ -541,87 +791,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="spacing">5</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Channel:</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="curves_channel_combo">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item translatable="yes">RGB/K (Master)</item>
-                          <item translatable="yes">Red</item>
-                          <item translatable="yes">Green</item>
-                          <item translatable="yes">Blue</item>
-                          <item translatable="yes">Luminance (CIE L*)</item>
-                          <item translatable="yes">Chrominance (LCH)</item>
-                          <item translatable="yes">Saturation (HSV)</item>
-                        </items>
-                        <signal name="changed" handler="on_curves_channel_combo_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Algorithm:</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="curves_interpolation_combo">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Interpolation algorithm used to compute a curve from the placed points</property>
-                        <property name="halign">end</property>
-                        <property name="valign">center</property>
-                        <property name="hexpand">True</property>
-                        <property name="active">2</property>
-                        <items>
-                          <item>Cubic Spline</item>
-                          <item>Linear</item>
-                          <item translatable="yes">Akima Spline</item>
-                        </items>
-                        <signal name="changed" handler="on_curves_interpolation_combo_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">5</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
@@ -636,7 +806,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">6</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -859,7 +1029,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">7</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -917,7 +1087,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">8</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
                 <child>
@@ -935,14 +1105,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">9</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -954,5 +1124,10 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkImage" id="grid">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="resource">/org/siril/ui/pixmaps/grid.svg</property>
   </object>
 </interface>

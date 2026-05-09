@@ -51,4 +51,6 @@ void on_curve_check_range_button_toggled(GtkToggleButton *button, gpointer user_
 void on_curves_range_value_changed(GtkRange *range, gpointer user_data);
 void on_curves_feather_value_changed(GtkRange *range, gpointer user_data);
 
+void curves_handle_pipette_click(int x, int y);
+
 #endif
