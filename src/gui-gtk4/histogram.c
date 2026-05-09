@@ -476,6 +476,27 @@ static void set_histo_toggles_names() {
 		gtk_widget_set_visible(GTK_WIDGET(toggles[1]), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(toggles[2]), TRUE);
 	}
+	/* GTK4: GtkToolButton's `icon-widget` property is gone and the
+	 * .ui's `<child>` slot of the green/blue/grid/curve/orig/autostretch
+	 * buttons is empty.  Wire the SVG resources programmatically as the
+	 * button children.  toggles[0] is set above; the rest go here. */
+	gtk_button_set_child(GTK_BUTTON(toggles[1]),
+	    gtk_image_new_from_resource("/org/siril/ui/pixmaps/g.svg"));
+	gtk_button_set_child(GTK_BUTTON(toggles[2]),
+	    gtk_image_new_from_resource("/org/siril/ui/pixmaps/b.svg"));
+	if (toggleGrid)
+		gtk_button_set_child(GTK_BUTTON(toggleGrid),
+		    gtk_image_new_from_resource("/org/siril/ui/pixmaps/grid.svg"));
+	if (toggleCurve)
+		gtk_button_set_child(GTK_BUTTON(toggleCurve),
+		    gtk_image_new_from_resource("/org/siril/ui/pixmaps/curve.svg"));
+	if (toggleOrig)
+		gtk_button_set_child(GTK_BUTTON(toggleOrig),
+		    gtk_image_new_from_resource("/org/siril/ui/pixmaps/histo-orig.svg"));
+	GtkWidget *as_btn = lookup_widget("histoToolAutoStretch");
+	if (as_btn)
+		gtk_button_set_child(GTK_BUTTON(as_btn),
+		    gtk_image_new_from_resource("/org/siril/ui/pixmaps/mtf.svg"));
 }
 
 static double get_histoZoomValueH() {

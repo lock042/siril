@@ -882,6 +882,17 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	sensor_pattern pattern = BAYER_FILTER_NONE;
 	disto_source disto_source_index = DISTO_UNDEF;
 
+	/* Make sure the registration tab's static widget pointers are
+	 * populated before we touch them.  Most code paths into this file
+	 * call registration_init_statics() first, but update_reg_interface
+	 * is also reachable from set_seq_gui (sequence load) where it's
+	 * the first thing in registration.c that runs — without this call
+	 * the static pointers are NULL, the gtk_widget_set_sensitive calls
+	 * below silently no-op, and the registration tab stays in its
+	 * .ui-defined state instead of reflecting whether a sequence is
+	 * loaded. */
+	registration_init_statics();
+
 	seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
 	if (!seqloaded)

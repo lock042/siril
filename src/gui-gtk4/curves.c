@@ -240,6 +240,15 @@ void set_curves_toggles_names() {
 		gtk_widget_set_visible(GTK_WIDGET(curves_green_toggle), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(curves_blue_toggle), TRUE);
 	}
+	/* GTK4: GtkToolButton's `icon-widget` is gone; the .ui's `<child>`
+	 * slot of green / blue / grid is empty.  Wire the SVG resources
+	 * programmatically as the button children. */
+	gtk_button_set_child(GTK_BUTTON(curves_green_toggle),
+	    gtk_image_new_from_resource("/org/siril/ui/pixmaps/g.svg"));
+	gtk_button_set_child(GTK_BUTTON(curves_blue_toggle),
+	    gtk_image_new_from_resource("/org/siril/ui/pixmaps/b.svg"));
+	gtk_button_set_child(GTK_BUTTON(curves_grid_toggle),
+	    gtk_image_new_from_resource("/org/siril/ui/pixmaps/grid.svg"));
 }
 
 static void init_curve_points() {

@@ -78,6 +78,11 @@ static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
 static gboolean in_plotCombo_changed = FALSE;
 static gboolean in_plotComboX_changed = FALSE;
 static gboolean in_plotSourceCombo_changed = FALSE;
+
+/* Tracks the last mode (0 = registration, 1 = photometry) the combo's
+ * item list was built for; -1 means "not yet built".  See
+ * validate_combos for why we track this. */
+static int last_combo_mode = -1;
 static char *ylabel = NULL;
 static gchar *xlabel = NULL;
 static enum photometry_source photometry_selected_source = FWHM;
@@ -1124,24 +1129,42 @@ static void validate_combos() {
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(label_display_plot, !use_photometry && !gtk_widget_get_visible(arcsec));
 
-	g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
-	g_signal_handlers_block_by_func(comboX, on_plotComboX_changed, NULL);
-	siril_drop_down_clear_strings(GTK_DROP_DOWN(combo));
-	int i = 0;
-	if (use_photometry) {
-		while (i < (G_N_ELEMENTS(photometry_labels))) {
-			siril_drop_down_append_text(GTK_DROP_DOWN(combo), _(photometry_labels[i]));
-			i++;
+	/* Only rebuild combo's items list when the mode (photometry vs
+	 * registration) has actually changed.  Each gtk_string_list_append
+	 * fires a deep cascade of items-changed → notify::selected →
+	 * notify::selected-on-dropdown signals through the GtkDropDown's
+	 * GtkSingleSelection — repeating that work on every dropdown change
+	 * stalls the UI on slower machines (and re-entrancy through the
+	 * cascade is what previously hung the plot tab).  When the mode
+	 * hasn't changed, the items already in the model are correct, so
+	 * skip the clear+append entirely. */
+	int desired_mode = use_photometry ? 1 : 0;
+	if (last_combo_mode != desired_mode) {
+		g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
+		g_signal_handlers_block_by_func(comboX, on_plotComboX_changed, NULL);
+		siril_drop_down_clear_strings(GTK_DROP_DOWN(combo));
+		int i = 0;
+		if (use_photometry) {
+			while (i < (G_N_ELEMENTS(photometry_labels))) {
+				siril_drop_down_append_text(GTK_DROP_DOWN(combo), _(photometry_labels[i]));
+				i++;
+			}
+		} else {
+			while (i < (G_N_ELEMENTS(registration_labels)) - 1) { // do not write 'Frame' as possible Y value
+				siril_drop_down_append_text(GTK_DROP_DOWN(combo), _(registration_labels[i]));
+				i++;
+			}
 		}
+		g_signal_handlers_unblock_by_func(combo, on_plotCombo_changed, NULL);
+		g_signal_handlers_unblock_by_func(comboX, on_plotComboX_changed, NULL);
+		last_combo_mode = desired_mode;
+	}
+	if (use_photometry) {
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(comboX), r_FRAME);
 		X_selected_source = r_FRAME;
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(combo, TRUE);
 	} else {
-		while (i < (G_N_ELEMENTS(registration_labels)) - 1) { // do not write 'Frame' as possible Y value
-			siril_drop_down_append_text(GTK_DROP_DOWN(combo), _(registration_labels[i]));
-			i++;
-		}
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(sourceCombo), 0);
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(comboX), X_selected_source);
 		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
@@ -1155,9 +1178,6 @@ static void validate_combos() {
 		}
 	}
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(combo), (use_photometry) ? photometry_selected_source : registration_selected_source);
-
-	g_signal_handlers_unblock_by_func(combo, on_plotCombo_changed, NULL);
-	g_signal_handlers_unblock_by_func(comboX, on_plotComboX_changed, NULL);
 }
 
 void on_plotSourceCombo_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {

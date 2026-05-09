@@ -161,6 +161,11 @@ static void script_string_bind_cb(GtkSignalListItemFactory *f, GtkListItem *li, 
 		case SCRIPT_COL_TYPE:       s = row->type       ? row->type       : ""; break;
 	}
 	gtk_label_set_text(lbl, s);
+	/* Attach the row to the cell widget so the secondary-click handler
+	 * on the column view can recover the SirilScriptRow from a
+	 * gtk_widget_pick walk — the GtkColumnView's selection is unreliable
+	 * for right-click (the user may right-click an unselected row). */
+	g_object_set_data(G_OBJECT(lbl), "siril-script-row", row);
 }
 static GtkListItemFactory *make_string_factory(ScriptStringCol c) {
 	GtkListItemFactory *f = gtk_signal_list_item_factory_new();
@@ -211,6 +216,7 @@ static void selected_bind_cb(GtkSignalListItemFactory *f, GtkListItem *li, gpoin
 	GtkCheckButton *btn = GTK_CHECK_BUTTON(gtk_list_item_get_child(li));
 	SirilScriptRow *row = SIRIL_SCRIPT_ROW(gtk_list_item_get_item(li));
 	g_object_set_data(G_OBJECT(btn), "siril-listitem", li);
+	g_object_set_data(G_OBJECT(btn), "siril-script-row", row);
 	g_signal_handlers_block_by_func(btn, on_selected_toggled, NULL);
 	siril_toggle_set_active(GTK_WIDGET(btn), row->selected);
 	g_signal_handlers_unblock_by_func(btn, on_selected_toggled, NULL);
@@ -269,6 +275,7 @@ static void startup_bind_cb(GtkSignalListItemFactory *f, GtkListItem *li, gpoint
 	GtkCheckButton *btn = GTK_CHECK_BUTTON(gtk_list_item_get_child(li));
 	SirilScriptRow *row = SIRIL_SCRIPT_ROW(gtk_list_item_get_item(li));
 	g_object_set_data(G_OBJECT(btn), "siril-listitem", li);
+	g_object_set_data(G_OBJECT(btn), "siril-script-row", row);
 	gtk_widget_set_visible(GTK_WIDGET(btn), row->is_python);
 	gtk_widget_set_sensitive(GTK_WIDGET(btn), row->is_python);
 	g_signal_handlers_block_by_func(btn, on_startup_toggled, NULL);
@@ -390,9 +397,13 @@ static void ensure_git_view(void) {
 	gtk_scrolled_window_set_child(git_scrolled, GTK_WIDGET(git_columnview));
 
 	/* GTK4: secondary-click on a script row opens the revision dialog.
-	 * Replaces the GTK3 "button-press-event" on the legacy GtkTreeView. */
+	 * Replaces the GTK3 "button-press-event" on the legacy GtkTreeView.
+	 * CAPTURE phase ensures we run before the GtkColumnView row's own
+	 * gestures consume the secondary click. */
 	GtkGesture *click = gtk_gesture_click_new();
 	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_SECONDARY);
+	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click),
+	                                           GTK_PHASE_CAPTURE);
 	g_signal_connect(click, "pressed", G_CALLBACK(on_git_columnview_pressed), NULL);
 	gtk_widget_add_controller(GTK_WIDGET(git_columnview), GTK_EVENT_CONTROLLER(click));
 }
@@ -662,19 +673,23 @@ static void show_script_revision_dialog(const gchar *scriptpath) {
 }
 
 /* Secondary-click handler on the script GtkColumnView: pulls the
- * scriptpath of the selected row and opens the revision dialog. */
+ * scriptpath of the *clicked* row (not the selected one — they aren't
+ * the same on right-click) and opens the revision dialog.  The cell
+ * factories' bind callbacks attach the SirilScriptRow as
+ * "siril-script-row" data on every cell widget; we walk up from the
+ * picked widget until we find one. */
 static void on_git_columnview_pressed(GtkGestureClick *gesture, int n_press,
 		double x, double y, gpointer user_data) {
-	(void)n_press; (void)x; (void)y; (void)user_data;
-	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
-	if (button != GDK_BUTTON_SECONDARY) return;
+	(void)n_press; (void)user_data;
 	if (!git_columnview) return;
-	GtkSelectionModel *sel = gtk_column_view_get_model(git_columnview);
-	if (!GTK_IS_SINGLE_SELECTION(sel)) return;
-	gpointer item = gtk_single_selection_get_selected_item(GTK_SINGLE_SELECTION(sel));
-	if (!item) return;
-	SirilScriptRow *row = SIRIL_SCRIPT_ROW(item);
-	if (!row->scriptpath) return;
+	GtkWidget *picked = gtk_widget_pick(GTK_WIDGET(git_columnview), x, y, GTK_PICK_DEFAULT);
+	SirilScriptRow *row = NULL;
+	for (GtkWidget *w = picked; w; w = gtk_widget_get_parent(w)) {
+		gpointer d = g_object_get_data(G_OBJECT(w), "siril-script-row");
+		if (d) { row = SIRIL_SCRIPT_ROW(d); break; }
+		if (w == GTK_WIDGET(git_columnview)) break;
+	}
+	if (!row || !row->scriptpath) return;
 	show_script_revision_dialog(row->scriptpath);
 	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
 }
