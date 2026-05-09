@@ -76,7 +76,12 @@ static void swap_mark_delete_on_close(int fd, const gchar *path) {
 static int undo_build_swapfile(fits *fit) {
 	char name[] = "siril_swp-XXXXXX";
 	gchar *nameBuff = g_build_filename(com.pref.swap_dir, name, NULL);
+#ifndef _WIN32
 	int fd = g_mkstemp(nameBuff);
+#else
+	int fd = g_mkstemp_full(nameBuff, _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY | _O_TEMPORARY, 
+    _S_IREAD | _S_IWRITE);
+#endif
 	if (fd < 0) {
 		siril_log_message(_("File I/O Error: Unable to create swap file in %s: [%s]\n"),
 				com.pref.swap_dir, strerror(errno));
@@ -109,7 +114,12 @@ static int undo_build_mask_swapfile(fits *fit) {
 
 	char name[] = "siril_msk-XXXXXX";
 	gchar *nameBuff = g_build_filename(com.pref.swap_dir, name, NULL);
+#ifndef _WIN32
 	int fd = g_mkstemp(nameBuff);
+#else
+	int fd = g_mkstemp_full(nameBuff, _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY | _O_TEMPORARY, 
+    _S_IREAD | _S_IWRITE);
+#endif
 	if (fd < 0) {
 		siril_log_message(_("File I/O Error: Unable to create mask swap file in %s: [%s]\n"),
 				com.pref.swap_dir, strerror(errno));
