@@ -45,6 +45,7 @@
 #include "gui-gtk4/PSF_list.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
 #include "gui-gtk4/photometric_cc.h"
@@ -145,19 +146,6 @@ static cmsHPROFILE reference = NULL;
  * does case-insensitive matching, so the manual ASCII-strdown logic is
  * gone.  Note add_suffix matches the trailing component without the dot
  * — e.g. "fit.fz" matches "*.fit.fz" without needing a glob. */
-static GtkFileFilter *create_compositing_file_filter(void) {
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, _("FITS and TIFF files"));
-	gtk_file_filter_add_suffix(filter, "fit");
-	gtk_file_filter_add_suffix(filter, "fits");
-	gtk_file_filter_add_suffix(filter, "fts");
-	gtk_file_filter_add_suffix(filter, "fit.fz");
-	gtk_file_filter_add_suffix(filter, "fits.fz");
-	gtk_file_filter_add_suffix(filter, "tif");
-	gtk_file_filter_add_suffix(filter, "tiff");
-	return filter;
-}
-
 /******* internal functions *******/
 static void remove_layer(int layer);
 
@@ -220,7 +208,7 @@ void draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, int w, int h, gpointe
 void on_filechooser_file_set(GtkWidget *widget, gpointer user_data); // Keep for glade compatibility
 static void load_layer_image(layer *target_layer, const char *filename);
 
-static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer);
+static void on_filechooser_file_set_internal(const gchar *filename, layer *target_layer);
 
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data);
 
@@ -1024,25 +1012,18 @@ static void load_layer_image(layer *target_layer, const char *filename) {
 	gui_function(update_MenuItem, NULL);
 }
 
-/* Internal version that works with GtkFileChooser (GtkFileChooserNative) */
-static void on_filechooser_file_set_internal(GtkFileChooser *chooser, layer *target_layer) {
-	char *filename;
-
+/* Common loading helper invoked after a file is selected. */
+static void on_filechooser_file_set_internal(const gchar *filename, layer *target_layer) {
 	if (!target_layer) {
 		siril_log_message(_("Error: target_layer not specified\n"));
 		return;
 	}
-
-	filename = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
 	if (!filename) return;
-
-	/* Call the common loading function */
 	load_layer_image(target_layer, filename);
-
-	g_free(filename);
 }
 
-/* Handler for the file chooser button click - using siril_file_chooser_open() */
+/* Handler for the file chooser button click — uses SirilFileBrowser so
+ * the user gets a thumbnail preview of the layer they are about to pick. */
 void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 	layer *l = (layer *) user_data;
 
@@ -1050,48 +1031,22 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!parent)
 		parent = comp_control_window;
 
-	// Use siril_file_chooser_open like in open_dialog.c
-	SirilWidget *widgetdialog = siril_file_chooser_open(parent, GTK_FILE_CHOOSER_ACTION_OPEN);
-	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
+	SirilFileBrowser *fb = siril_file_browser_new(parent, _("Select Layer Image"));
+	siril_file_browser_add_filter_pattern(fb, _("FITS and TIFF files"),
+		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.tif;*.TIF;*.tiff;*.TIFF",
+		TRUE);
 
-	if (!dialog) {
-		siril_log_color_message(_("Error: Could not create file chooser dialog\n"), "red");
-		return;
-	}
+	if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS))
+		siril_file_browser_set_initial_file(fb, l->selected_filename);
+	else if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR))
+		siril_file_browser_set_initial_folder(fb, com.wd);
 
-	// Set up filters using the custom filter function
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	GtkFileFilter *filter = create_compositing_file_filter();
-	gtk_file_chooser_add_filter(dialog, filter);
-	gtk_file_chooser_set_filter(dialog, filter);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	// Set current folder
-	if (com.wd && g_file_test(com.wd, G_FILE_TEST_IS_DIR)) {
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	}
-
-	// Set to not allow multiple selection
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-
-	// If we already have a file selected, show it
-	if (l->selected_filename && g_file_test(l->selected_filename, G_FILE_TEST_EXISTS)) {
-		siril_file_chooser_set_filename(dialog, l->selected_filename);
-	}
-
-	// Show the dialog and wait for response - use siril_dialog_run
-	gint response = siril_dialog_run(widgetdialog);
-
-	if (response == GTK_RESPONSE_ACCEPT) {
-		gchar *filename = siril_file_chooser_get_filename(dialog);
-
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT) {
+		gchar *filename = siril_file_browser_get_path(fb);
 		if (filename) {
 			g_free(l->selected_filename);
-			l->selected_filename = filename; // Don't free this, we're storing it
+			l->selected_filename = filename;  /* takes ownership */
 
-			// Update button tooltip to show filename
 			gchar *basename = g_path_get_basename(l->selected_filename);
 			gtk_widget_set_tooltip_text(GTK_WIDGET(l->chooser_button), basename);
 			gchar *ellipsized_basename = ellipsize(basename, 16, ELLIPSIZE_MIDDLE);
@@ -1099,17 +1054,10 @@ void on_chooser_button_clicked(GtkButton *button, gpointer user_data) {
 			g_free(basename);
 			g_free(ellipsized_basename);
 
-			// Call the existing file-set handler
-			on_filechooser_file_set_internal(dialog, l);
-		} else {
-			siril_log_message("Warning: File selected but filename is NULL\n");
+			on_filechooser_file_set_internal(l->selected_filename, l);
 		}
-	} else if (response == GTK_RESPONSE_CANCEL) {
-		siril_debug_print("User cancelled file selection\n");
-	} else {
-		siril_debug_print("Dialog closed with response: %d\n", response);
 	}
-	siril_widget_destroy(widgetdialog);
+	siril_file_browser_destroy(fb);
 }
 
 gboolean valid_rgbcomp_seq() {

@@ -270,6 +270,7 @@ gui_filenames = [
   'dialogs.c',
   'documentation.c',
   'epf.c',
+  'file_browser.c',
   'gui_iface_impl.c',
   'fix_xtrans_af.c',
   'geometry.c',

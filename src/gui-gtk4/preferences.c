@@ -103,7 +103,7 @@ void notify_script_update() {
 }
 
 static void reset_swapdir() {
-	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *swap_dir = (GtkFileChooser *)(lookup_widget("filechooser_swap"));
 	const gchar *dir;
 
 	dir = g_get_tmp_dir();
@@ -132,32 +132,32 @@ static void update_astrometry_preferences() {
 
 	com.pref.gui.position_compass = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("compass_combobox")));
 	com.pref.wcs_formalism = gtk_drop_down_get_selected(GTK_DROP_DOWN(lookup_widget("wcs_formalism_combobox")));
-	gchar *newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")));
+	gchar *newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path1")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[0]);
 		com.pref.catalogue_paths[0] = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path2")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[1]);
 		com.pref.catalogue_paths[1] = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path3")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[2]);
 		com.pref.catalogue_paths[2] = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path4")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[3]);
 		com.pref.catalogue_paths[3] = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path5")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[4]);
 		com.pref.catalogue_paths[4] = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("localcatalogue_path6")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.catalogue_paths[5]);
 		com.pref.catalogue_paths[5] = newpath;
@@ -187,7 +187,7 @@ static void update_astrometry_preferences() {
 		com.pref.astrometry.default_obscode = NULL;
 	}
 	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
-	com.pref.asnet_dir = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
+	com.pref.asnet_dir = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("filechooser_asnet")));
 	reset_astrometry_checks();
 }
 
@@ -371,22 +371,22 @@ static void update_user_interface_preferences() {
 }
 
 static void update_color_management_preferences() {
-	gchar *newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")));
+	gchar *newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("pref_custom_monitor_profile")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.icc_path_monitor);
 		com.pref.icc.icc_path_monitor = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("pref_soft_proofing_profile")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.icc_path_soft_proof);
 		com.pref.icc.icc_path_soft_proof = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("custom_gray_icc_matching_trc")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.custom_icc_gray);
 		com.pref.icc.custom_icc_gray = newpath;
 	}
-	newpath = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc")));
+	newpath = siril_file_chooser_get_filename((GtkFileChooser *)(lookup_widget("custom_icc_standard_trc")));
 	if (newpath && newpath[0] != '\0') {
 		g_free(com.pref.icc.custom_icc_trc);
 		com.pref.icc.custom_icc_trc = newpath;
@@ -458,10 +458,10 @@ static void update_performances_preferences() {
 }
 
 static void update_misc_preferences() {
-	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
-	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
-	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
-	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
+	GtkFileChooser *swap_dir = (GtkFileChooser *)(lookup_widget("filechooser_swap"));
+	GtkFileChooser *starnet_exe = (GtkFileChooser *)(lookup_widget("filechooser_starnet"));
+	GtkFileChooser *starnet_weights = (GtkFileChooser *)(lookup_widget("filechooser_starnet_weights"));
+	GtkFileChooser *graxpert_exe = (GtkFileChooser *)(lookup_widget("filechooser_graxpert"));
 
 	com.pref.swap_dir = siril_file_chooser_get_filename(swap_dir);
 
@@ -492,7 +492,7 @@ void on_photometry_force_radius_button_toggled(GtkCheckButton *button, gpointer 
 }
 
 void initialize_path_directory(const gchar *path) {
-	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *swap_dir = (GtkFileChooser *)(lookup_widget("filechooser_swap"));
 	if (path && path[0] != '\0') {
 		siril_file_chooser_set_filename (swap_dir, path);
 	} else {
@@ -501,7 +501,7 @@ void initialize_path_directory(const gchar *path) {
 }
 
 void initialize_graxpert_executable(gchar *path) {
-	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
+	GtkFileChooser *graxpert_exe = (GtkFileChooser *)(lookup_widget("filechooser_graxpert"));
 #ifdef OS_OSX
 	const gchar *suffix = "/Contents/MacOS/GraXpert";
 	if (path && g_str_has_suffix(path, suffix)) {
@@ -520,7 +520,7 @@ void initialize_graxpert_executable(gchar *path) {
 
 void initialize_starnet_executable(gchar *path) {
 #ifdef HAVE_LIBTIFF
-	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkFileChooser *starnet_exe = (GtkFileChooser *)(lookup_widget("filechooser_starnet"));
 	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
 	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
@@ -540,14 +540,14 @@ void initialize_starnet_executable(gchar *path) {
 }
 
 void initialize_starnet_weights(gchar *path) {
-	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	GtkFileChooser *starnet_weights = (GtkFileChooser *)(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
 		siril_file_chooser_set_filename (starnet_weights, path);
 	}
 }
 
 void initialize_asnet_directory(const gchar *path) {
-	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	GtkFileChooser *asnet_dir = (GtkFileChooser *)(lookup_widget("filechooser_asnet"));
 	reset_asnet_version();
 	if (path && path[0] != '\0') {
 		siril_file_chooser_set_filename (asnet_dir, path);
@@ -555,7 +555,7 @@ void initialize_asnet_directory(const gchar *path) {
 }
 
 void on_asnet_clear_clicked(GtkButton *button, gpointer user_data) {
-	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	GtkFileChooser *asnet_dir = (GtkFileChooser *)(lookup_widget("filechooser_asnet"));
 	siril_file_chooser_set_filename(asnet_dir, "\0");
 	reset_asnet_version();
 }
@@ -605,7 +605,7 @@ void on_comp_fits_radio_toggled(GtkCheckButton *togglebutton, gpointer user_data
 }
 
 void on_filechooser_swap_file_set(GtkWidget *fileChooser, gpointer user_data) {
-	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(fileChooser);
+	GtkFileChooser *swap_dir = (GtkFileChooser *)(fileChooser);
 	gchar *dir;
 
 	dir = siril_file_chooser_get_filename (swap_dir);
@@ -626,7 +626,7 @@ void on_filechooser_swap_file_set(GtkWidget *fileChooser, gpointer user_data) {
 
 void on_filechooser_starnet_file_set(GtkWidget *fileChooser, gpointer user_data) {
 #ifdef HAVE_LIBTIFF
-	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(fileChooser);
+	GtkFileChooser *starnet_exe = (GtkFileChooser *)(fileChooser);
 	gchar *path;
 
 	path = siril_file_chooser_get_filename (starnet_exe);
@@ -653,7 +653,7 @@ void on_filechooser_starnet_file_set(GtkWidget *fileChooser, gpointer user_data)
 }
 
 void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {
-	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	GtkFileChooser *starnet_weights = (GtkFileChooser *)(lookup_widget("filechooser_starnet_weights"));
 	if (st_weights) {
 		g_free(st_weights);
 	}
@@ -662,7 +662,7 @@ void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_filechooser_starnet_weights_file_set(GtkWidget *fileChooser, gpointer user_data) {
-	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(fileChooser);
+	GtkFileChooser *starnet_weights = (GtkFileChooser *)(fileChooser);
 	gchar *path;
 
 	path = siril_file_chooser_get_filename (starnet_weights);
@@ -764,27 +764,27 @@ void update_preferences_from_model() {
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("compass_combobox")), pref->gui.position_compass);
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("wcs_formalism_combobox")), pref->wcs_formalism);
 	if (pref->catalogue_paths[0] && (g_file_test(pref->catalogue_paths[0], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path1"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[0]);
 	}
 	if (pref->catalogue_paths[1] && (g_file_test(pref->catalogue_paths[1], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path2"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[1]);
 	}
 	if (pref->catalogue_paths[2] && (g_file_test(pref->catalogue_paths[2], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path3"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[2]);
 	}
 	if (pref->catalogue_paths[3] && (g_file_test(pref->catalogue_paths[3], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path4"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[3]);
 	}
 	if (pref->catalogue_paths[4] && (g_file_test(pref->catalogue_paths[4], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path5"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path5"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[4]);
 	}
 	if (pref->catalogue_paths[5] && (g_file_test(pref->catalogue_paths[5], G_FILE_TEST_EXISTS))) {
-		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path6"));
+		GtkFileChooser *button = (GtkFileChooser *)(lookup_widget("localcatalogue_path6"));
 		siril_file_chooser_set_filename(button, pref->catalogue_paths[5]);
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("gaia_cache_duration")), pref->astrometry.gaia_cache_duration);
@@ -891,30 +891,26 @@ void update_preferences_from_model() {
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_tmp_annotations);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
 	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* tab Color Management */
-	GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile"));
+	/* tab Color Management.  The .ui widgets here are now plain GtkButtons
+	 * (path-picker replacements for GTK3's GtkFileChooserButton); pass
+	 * them through the polymorphic siril_file_chooser_set_filename shim
+	 * via a C-style cast to avoid the GTK_FILE_CHOOSER runtime type
+	 * check (which would fire a critical for every cast). */
+	GtkFileChooser *button = (GtkFileChooser *) lookup_widget("pref_custom_monitor_profile");
 	if (pref->icc.icc_path_monitor && (g_file_test(pref->icc.icc_path_monitor, G_FILE_TEST_EXISTS))) {
 		siril_file_chooser_set_filename(button, pref->icc.icc_path_monitor);
-	} else {
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 	}
-	button = GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile"));
+	button = (GtkFileChooser *) lookup_widget("pref_soft_proofing_profile");
 	if (pref->icc.icc_path_soft_proof && (g_file_test(pref->icc.icc_path_soft_proof, G_FILE_TEST_EXISTS))) {
 		siril_file_chooser_set_filename(button, pref->icc.icc_path_soft_proof);
-	} else {
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 	}
-	button = GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc"));
+	button = (GtkFileChooser *) lookup_widget("custom_icc_standard_trc");
 	if (pref->icc.custom_icc_trc && (g_file_test(pref->icc.custom_icc_trc, G_FILE_TEST_EXISTS))) {
 		siril_file_chooser_set_filename(button, pref->icc.custom_icc_trc);
-	} else {
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 	}
-	button = GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc"));
+	button = (GtkFileChooser *) lookup_widget("custom_gray_icc_matching_trc");
 	if (pref->icc.custom_icc_gray && (g_file_test(pref->icc.custom_icc_gray, G_FILE_TEST_EXISTS))) {
 		siril_file_chooser_set_filename(button, pref->icc.custom_icc_gray);
-	} else {
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 	}
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("combo_rendering_intent")), pref->icc.rendering_intent);
 	gtk_drop_down_set_selected(GTK_DROP_DOWN(lookup_widget("combo_export_intent")), pref->icc.export_intent);
@@ -1196,7 +1192,7 @@ void on_combo_rendering_intent_changed(GObject *obj, GParamSpec *pspec, gpointer
 }
 
 gchar *get_swap_dir() {
-	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
+	GtkFileChooser *swap_dir = (GtkFileChooser *)(lookup_widget("filechooser_swap"));
 
 	if (sw_dir == NULL) {
 		sw_dir = siril_file_chooser_get_filename(swap_dir);

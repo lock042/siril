@@ -913,6 +913,14 @@ gboolean siril_file_chooser_set_filename(GtkFileChooser *chooser, const char *pa
 
 gboolean siril_file_chooser_set_current_folder_path(GtkFileChooser *chooser, const char *path) {
 	if (!chooser || !path) return FALSE;
+	/* GtkButton path-picker replacement: stash the folder as an initial
+	 * hint the click handler will use when no previous file is recorded. */
+	if (GTK_IS_BUTTON(chooser)) {
+		g_object_set_data_full(G_OBJECT(chooser), "siril-initial-folder",
+		                       g_strdup(path), g_free);
+		return TRUE;
+	}
+	if (!GTK_IS_FILE_CHOOSER(chooser)) return FALSE;
 	GFile *gf = g_file_new_for_path(path);
 	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
 	gboolean ok = gtk_file_chooser_set_current_folder(chooser, gf, NULL);
@@ -980,12 +988,19 @@ static void on_siril_path_button_clicked(GtkButton *btn, gpointer user_data) {
 			g_object_unref(filters);
 		}
 	}
-	/* Pre-populate from any previously selected path. */
+	/* Pre-populate from any previously selected path or initial-folder hint. */
 	const gchar *prev = g_object_get_data(G_OBJECT(btn), "siril-path");
 	if (prev && *prev) {
 		GFile *gf = g_file_new_for_path(prev);
 		gtk_file_dialog_set_initial_file(fd, gf);
 		g_object_unref(gf);
+	} else {
+		const gchar *folder = g_object_get_data(G_OBJECT(btn), "siril-initial-folder");
+		if (folder && *folder) {
+			GFile *gf = g_file_new_for_path(folder);
+			gtk_file_dialog_set_initial_folder(fd, gf);
+			g_object_unref(gf);
+		}
 	}
 	GtkRoot *root = gtk_widget_get_root(GTK_WIDGET(btn));
 	GtkWindow *parent = GTK_IS_WINDOW(root) ? GTK_WINDOW(root) : NULL;

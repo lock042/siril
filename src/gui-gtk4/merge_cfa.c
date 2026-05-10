@@ -30,6 +30,7 @@
 #include "io/image_format_fits.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/image_interactions.h"
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/sequence_list.h"
@@ -54,6 +55,8 @@ static GtkEntry *mcfa_entry_in = NULL;
 static GtkEntry *mcfa_entry_out = NULL;
 static GtkWindow *mcfa_dialog_window = NULL;
 
+static void on_cfa_picked(GtkWidget *btn, const gchar *path, gpointer user_data);
+
 static void merge_cfa_init_statics(void) {
 	if (mcfa_chooser0) return;
 	mcfa_chooser0 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa0"));
@@ -66,6 +69,17 @@ static void merge_cfa_init_statics(void) {
 	mcfa_entry_in = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryMergeCFAin"));
 	mcfa_entry_out = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryMergeCFAout"));
 	mcfa_dialog_window = GTK_WINDOW(gtk_builder_get_object(gui.builder, "merge_cfa_dialog"));
+
+	const gchar *fits_pattern =
+		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
+	siril_image_button_init(GTK_WIDGET(mcfa_chooser0), _("Select CFA 0"),
+		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(0));
+	siril_image_button_init(GTK_WIDGET(mcfa_chooser1), _("Select CFA 1"),
+		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(1));
+	siril_image_button_init(GTK_WIDGET(mcfa_chooser2), _("Select CFA 2"),
+		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(2));
+	siril_image_button_init(GTK_WIDGET(mcfa_chooser3), _("Select CFA 3"),
+		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(3));
 }
 
 void reset_controls() {
@@ -116,57 +130,21 @@ void on_merge_cfa_seqapply_toggled(GtkCheckButton *button, gpointer user_data) {
 	/* GTK4: gtk_window_resize removed */;
 }
 
-void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	clearfits(&cfa0);
-	f_cfa0 = siril_file_chooser_get_filename(filechooser);
-	if (readfits(f_cfa0, &cfa0, NULL, FALSE)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
+static void on_cfa_picked(GtkWidget *btn, const gchar *path, gpointer user_data) {
+	int idx = GPOINTER_TO_INT(user_data);
+	fits *targets[4]   = { &cfa0, &cfa1, &cfa2, &cfa3 };
+	gchar **stash[4]   = { &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3 };
+	gboolean *flags[4] = { &cfa0_loaded, &cfa1_loaded, &cfa2_loaded, &cfa3_loaded };
+	(void)btn;
+	clearfits(targets[idx]);
+	g_free(*stash[idx]);
+	*stash[idx] = g_strdup(path);
+	if (readfits(path, targets[idx], NULL, FALSE)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
-		cfa0_loaded = FALSE;
-		return;
+		*flags[idx] = FALSE;
 	} else {
-		cfa0_loaded = TRUE;
-	}
-}
-
-void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	clearfits(&cfa1);
-	f_cfa1 = siril_file_chooser_get_filename(filechooser);
-	if (readfits(f_cfa1, &cfa1, NULL, FALSE)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
-				_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
-		cfa1_loaded = FALSE;
-		return;
-	} else {
-		cfa1_loaded = TRUE;
-	}
-}
-void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	clearfits(&cfa2);
-	f_cfa2 = siril_file_chooser_get_filename(filechooser);
-	if (readfits(f_cfa2, &cfa2, NULL, FALSE)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
-				_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
-		cfa2_loaded = FALSE;
-		return;
-	} else {
-		cfa2_loaded = TRUE;
-	}
-}
-void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	clearfits(&cfa3);
-	f_cfa3 = siril_file_chooser_get_filename(filechooser);
-	if (readfits(f_cfa3, &cfa3, NULL, FALSE)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
-				_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
-		cfa3_loaded = FALSE;
-		return;
-	} else {
-		cfa3_loaded = TRUE;
+		*flags[idx] = TRUE;
 	}
 }
 

@@ -819,20 +819,15 @@ void on_GtkCheckButton_blindpos_toggled(GtkCheckButton *button, gpointer user) {
 	gtk_widget_set_sensitive(GTK_WIDGET(radiusspin), !siril_toggle_get_active(GTK_WIDGET(blindposbutton)));
 }
 
-static void set_filter(GtkFileChooser *dialog) {
+static void set_filter(SirilFileChooser *fc) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("wcs files (*.wcs)"));
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	gtk_file_filter_add_pattern(f, "*.wcs");
-	gtk_file_chooser_add_filter(dialog, f);
-	gtk_file_chooser_set_filter(dialog, f);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	siril_fc_add_filter(fc, f, TRUE);
+	g_object_unref(f);
 }
 
 void on_distomaster_save_button_clicked(GtkButton *button, gpointer user_data) {
-	SirilWidget *widgetdialog = NULL;
-	GtkFileChooser *dialog = NULL;
-	gint res = 0;
 	gchar *filename = NULL;
 
 	if (sequence_is_loaded()) {
@@ -845,26 +840,22 @@ void on_distomaster_save_button_clicked(GtkButton *button, gpointer user_data) {
 		free(root);
 	}
 
-	widgetdialog = siril_file_chooser_save(astrometry_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	/* GTK4: gtk_file_chooser_set_do_overwrite_confirmation removed */;
-	gtk_file_chooser_set_current_name(dialog, filename);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-	set_filter(dialog);
+	SirilFileChooser *fc = siril_fc_save(astrometry_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_set_current_name(fc, filename);
+	set_filter(fc);
 
-	res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		gtk_editable_set_text(GTK_EDITABLE(distomaster_entry), file);
-		gtk_editable_set_position(GTK_EDITABLE(distomaster_entry), -1);
-		g_free(file);
-		siril_toggle_set_active(GTK_WIDGET(masterbutton), TRUE);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
+			gtk_editable_set_text(GTK_EDITABLE(distomaster_entry), file);
+			gtk_editable_set_position(GTK_EDITABLE(distomaster_entry), -1);
+			g_free(file);
+			siril_toggle_set_active(GTK_WIDGET(masterbutton), TRUE);
+		}
 	}
-	siril_widget_destroy(widgetdialog);
+	siril_fc_destroy(fc);
 	g_free(filename);
 }
 

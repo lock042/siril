@@ -1335,43 +1335,34 @@ void drawPlot() {
 	gtk_widget_queue_draw(drawingPlot);
 }
 
-static void set_filter(GtkFileChooser *dialog, const gchar *format) {
+static void set_filter(SirilFileChooser *fc, const gchar *format) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gchar *name = g_strdup_printf(_("Output files (*%s)"), format);
 	gchar *pattern = g_strdup_printf("*%s", format);
 	gtk_file_filter_set_name(f, name);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	gtk_file_filter_add_pattern(f, pattern);
-	gtk_file_chooser_add_filter(dialog, f);
-	gtk_file_chooser_set_filter(dialog, f);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	siril_fc_add_filter(fc, f, TRUE);
+	g_object_unref(f);
 	g_free(name);
 	g_free(pattern);
 }
 
 static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, gchar **, void *), gchar **error, void *ptr) {
 	fill_plot_statics();
-	GtkWindow *control_window = plot_control_window;
-	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
-	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
+	SirilFileChooser *fc = siril_fc_save(plot_control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_set_current_name(fc, format);
+	set_filter(fc, format);
 
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	/* GTK4: gtk_file_chooser_set_do_overwrite_confirmation removed */;
-	gtk_file_chooser_set_current_name(dialog, format);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-	set_filter(dialog, format);
-
-	gint res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		export_function(plot_data, &com.seq, file, error, ptr);
-
-		g_free(file);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
+			export_function(plot_data, &com.seq, file, error, ptr);
+			g_free(file);
+		}
 	}
-	siril_widget_destroy(widgetdialog);
+	siril_fc_destroy(fc);
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {

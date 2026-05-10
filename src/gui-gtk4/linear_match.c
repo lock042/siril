@@ -29,6 +29,7 @@
 #include "gui-gtk4/image_display.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/progress_and_log.h"
 
 #include "filters/linear_match.h"
@@ -42,6 +43,10 @@ static void linear_match_init_statics(void) {
 	lm_ref_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
 	lm_high_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_high"));
 	lm_low_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_low"));
+	siril_image_button_init(GTK_WIDGET(lm_ref_chooser),
+		_("Select reference image"), _("FITS files"),
+		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz",
+		NULL, NULL);
 }
 
 static gchar *get_reference_filename() {

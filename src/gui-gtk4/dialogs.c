@@ -267,77 +267,259 @@ void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 	G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
-/* Phase 14G.2: dialogs.c hub — full GtkFileDialog migration is a 13-file
- * refactor (every caller does GTK_FILE_CHOOSER(widgetdialog) and calls
- * methods on it after construction).  For now we keep the public API
- * shape (SirilWidget* + sync siril_dialog_run + siril_widget_destroy)
- * by continuing to use GtkFileChooserDialog + gtk_dialog_run, both of
- * which are deprecated-but-functional in GTK 4.10.  The deprecation
- * warnings are silenced here instead of leaking through ~13 callers.
+/* ─── SirilFileChooser: GtkFileDialog wrapper ───────────────────────────
  *
- * The standalone file-chooser dialogs in masks_gui.c, python_gui.c and
- * pixelmath.c have already been migrated to GtkFileDialog in this same
- * Phase 14G.2 effort. */
-SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
-	gchar *title;
-	SirilWidget *w;
-	if (action == GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER) {
-		title = g_strdup(_("Select Folder"));
-	} else {
-		title = g_strdup(_("Open File"));
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
+ * GTK 4.10 deprecated GtkFileChooserDialog in favour of GtkFileDialog,
+ * which is async-only.  SirilFileChooser preserves the synchronous
+ * create → configure → run → read → destroy shape that all callers
+ * use, by spinning a local GMainLoop in siril_fc_run() until the
+ * underlying _open/_save/_select_folder/_open_multiple finish
+ * callback fires.
+ *
+ * open_dialog.c stays on GtkFileChooserDialog (legacy path is local to
+ * that file) because GtkFileDialog has no slot for a custom preview
+ * widget.
+ */
+
+typedef enum {
+	SFC_OPEN,            /* gtk_file_dialog_open */
+	SFC_OPEN_MULTIPLE,   /* gtk_file_dialog_open_multiple */
+	SFC_SAVE,            /* gtk_file_dialog_save */
+	SFC_SELECT_FOLDER    /* gtk_file_dialog_select_folder */
+} SirilFCMode;
+
+struct _SirilFileChooser {
+	SirilFCMode      mode;
+	GtkFileDialog   *dialog;          /* owned */
+	GtkWindow       *parent;          /* not owned */
+	GListStore      *filters;         /* of GTK_TYPE_FILE_FILTER, lazy */
+	GtkFileFilter   *default_filter;  /* in `filters`, not extra-ref'd */
+	gchar           *current_name;
+	gchar           *initial_folder;
+	gchar           *initial_file;
+	gboolean         select_multiple;
+	/* result populated by finish() */
+	GFile           *result_file;
+	GListModel      *result_files;
+	gint             response;
+	GMainLoop       *loop;
+};
+
+static SirilFileChooser *siril_fc_new(GtkWindow *parent,
+                                      SirilFCMode mode,
+                                      const gchar *title) {
+	SirilFileChooser *fc = g_new0(SirilFileChooser, 1);
+	fc->mode    = mode;
+	fc->parent  = parent;
+	fc->dialog  = gtk_file_dialog_new();
+	fc->response = GTK_RESPONSE_NONE;
+	if (title)
+		gtk_file_dialog_set_title(fc->dialog, title);
+	return fc;
+}
+
+static SirilFCMode mode_from_action(GtkFileChooserAction action,
+                                    gboolean prefer_multi) {
+	switch (action) {
+	case GTK_FILE_CHOOSER_ACTION_SAVE:
+		return SFC_SAVE;
+	case GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:
+		return SFC_SELECT_FOLDER;
+	case GTK_FILE_CHOOSER_ACTION_OPEN:
+	default:
+		return prefer_multi ? SFC_OPEN_MULTIPLE : SFC_OPEN;
 	}
-	w = gtk_file_chooser_dialog_new(title, parent, action, _("_Cancel"),
-			GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	g_free(title);
-	return w;
 }
 
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-SirilWidget *siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Add Files"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Add"), GTK_RESPONSE_ACCEPT,
-			NULL);
-G_GNUC_END_IGNORE_DEPRECATIONS
+SirilFileChooser *siril_fc_open(GtkWindow *parent, GtkFileChooserAction action) {
+	const gchar *title = (action == GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER)
+	                     ? _("Select Folder") : _("Open File");
+	return siril_fc_new(parent, mode_from_action(action, FALSE), title);
 }
 
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-SirilWidget *siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Save File"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT,
-			NULL);
-G_GNUC_END_IGNORE_DEPRECATIONS
+SirilFileChooser *siril_fc_add(GtkWindow *parent, GtkFileChooserAction action) {
+	return siril_fc_new(parent, mode_from_action(action, TRUE), _("Add Files"));
 }
 
-struct siril_dialog_ctx { gint response; GMainLoop *loop; };
-
-static void siril_dialog_response_cb(GtkDialog *d, gint r, gpointer p) {
-	(void) d;
-	struct siril_dialog_ctx *c = p;
-	c->response = r;
-	g_main_loop_quit(c->loop);
+SirilFileChooser *siril_fc_save(GtkWindow *parent, GtkFileChooserAction action) {
+	return siril_fc_new(parent, mode_from_action(action, FALSE), _("Save File"));
 }
 
-gint siril_dialog_run(SirilWidget *widgetdialog) {
-	/* GTK4 removed gtk_dialog_run.  Spin a local GMainLoop until the dialog
-	 * emits "response", then return the response code.  Callers continue to
-	 * use this synchronous shape; per-call-site async migration is tracked
-	 * elsewhere in the plan. */
-	struct siril_dialog_ctx ctx = { GTK_RESPONSE_NONE, g_main_loop_new(NULL, FALSE) };
-	gulong id = g_signal_connect(widgetdialog, "response",
-		G_CALLBACK(siril_dialog_response_cb), &ctx);
-	gtk_window_present(GTK_WINDOW(widgetdialog));
-	g_main_loop_run(ctx.loop);
-	g_signal_handler_disconnect(widgetdialog, id);
-	g_main_loop_unref(ctx.loop);
-	return ctx.response;
+void siril_fc_set_current_name(SirilFileChooser *fc, const gchar *name) {
+	if (!fc) return;
+	g_free(fc->current_name);
+	fc->current_name = name ? g_strdup(name) : NULL;
 }
 
-void siril_widget_destroy(SirilWidget *widgetdialog) {
-    while (!is_callback_called()) {
-        g_main_context_iteration(NULL, FALSE);
-    }
-	gtk_window_destroy(GTK_WINDOW(widgetdialog));
+void siril_fc_set_current_folder_path(SirilFileChooser *fc, const gchar *path) {
+	if (!fc) return;
+	g_free(fc->initial_folder);
+	fc->initial_folder = path ? g_strdup(path) : NULL;
+}
+
+void siril_fc_set_filename(SirilFileChooser *fc, const gchar *path) {
+	if (!fc) return;
+	g_free(fc->initial_file);
+	fc->initial_file = path ? g_strdup(path) : NULL;
+}
+
+void siril_fc_set_select_multiple(SirilFileChooser *fc, gboolean multi) {
+	if (!fc) return;
+	fc->select_multiple = multi;
+	if (multi && fc->mode == SFC_OPEN)
+		fc->mode = SFC_OPEN_MULTIPLE;
+	else if (!multi && fc->mode == SFC_OPEN_MULTIPLE)
+		fc->mode = SFC_OPEN;
+}
+
+void siril_fc_add_filter(SirilFileChooser *fc, GtkFileFilter *filter,
+                         gboolean set_default) {
+	if (!fc || !filter) return;
+	if (!fc->filters)
+		fc->filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+	g_list_store_append(fc->filters, filter);
+	if (set_default || !fc->default_filter)
+		fc->default_filter = filter;
+}
+
+void siril_fc_add_filter_pattern(SirilFileChooser *fc, const gchar *title,
+                                 const gchar *pattern, gboolean set_default) {
+	if (!fc || !title || !pattern) return;
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, title);
+	gchar **patterns = g_strsplit(pattern, ";", -1);
+	for (gint i = 0; patterns[i] != NULL; i++)
+		gtk_file_filter_add_pattern(f, patterns[i]);
+	g_strfreev(patterns);
+	siril_fc_add_filter(fc, f, set_default);
+	g_object_unref(f);
+}
+
+GtkFileFilter *siril_fc_get_filter(SirilFileChooser *fc) {
+	return fc ? fc->default_filter : NULL;
+}
+
+static void siril_fc_apply_pending(SirilFileChooser *fc) {
+	if (fc->filters) {
+		gtk_file_dialog_set_filters(fc->dialog, G_LIST_MODEL(fc->filters));
+		if (fc->default_filter)
+			gtk_file_dialog_set_default_filter(fc->dialog, fc->default_filter);
+	}
+	if (fc->initial_folder) {
+		GFile *gf = g_file_new_for_path(fc->initial_folder);
+		gtk_file_dialog_set_initial_folder(fc->dialog, gf);
+		g_object_unref(gf);
+	}
+	if (fc->initial_file) {
+		GFile *gf = g_file_new_for_path(fc->initial_file);
+		gtk_file_dialog_set_initial_file(fc->dialog, gf);
+		g_object_unref(gf);
+	}
+	if (fc->current_name && fc->mode == SFC_SAVE)
+		gtk_file_dialog_set_initial_name(fc->dialog, fc->current_name);
+}
+
+static void siril_fc_finish_cb(GObject *src, GAsyncResult *res, gpointer user_data) {
+	SirilFileChooser *fc = user_data;
+	GtkFileDialog *fd = GTK_FILE_DIALOG(src);
+	GError *err = NULL;
+
+	switch (fc->mode) {
+	case SFC_OPEN:
+		fc->result_file = gtk_file_dialog_open_finish(fd, res, &err);
+		break;
+	case SFC_OPEN_MULTIPLE:
+		fc->result_files = gtk_file_dialog_open_multiple_finish(fd, res, &err);
+		break;
+	case SFC_SAVE:
+		fc->result_file = gtk_file_dialog_save_finish(fd, res, &err);
+		break;
+	case SFC_SELECT_FOLDER:
+		fc->result_file = gtk_file_dialog_select_folder_finish(fd, res, &err);
+		break;
+	}
+
+	if (fc->result_file || fc->result_files)
+		fc->response = GTK_RESPONSE_ACCEPT;
+	else if (err && g_error_matches(err, GTK_DIALOG_ERROR, GTK_DIALOG_ERROR_DISMISSED))
+		fc->response = GTK_RESPONSE_CANCEL;
+	else
+		fc->response = GTK_RESPONSE_NONE;
+	g_clear_error(&err);
+
+	if (fc->loop)
+		g_main_loop_quit(fc->loop);
+}
+
+gint siril_fc_run(SirilFileChooser *fc) {
+	if (!fc) return GTK_RESPONSE_NONE;
+	/* Reset any leftover state from a previous run on this chooser. */
+	g_clear_object(&fc->result_file);
+	g_clear_object(&fc->result_files);
+	fc->response = GTK_RESPONSE_NONE;
+	siril_fc_apply_pending(fc);
+	fc->loop = g_main_loop_new(NULL, FALSE);
+	switch (fc->mode) {
+	case SFC_OPEN:
+		gtk_file_dialog_open(fc->dialog, fc->parent, NULL,
+		                     siril_fc_finish_cb, fc);
+		break;
+	case SFC_OPEN_MULTIPLE:
+		gtk_file_dialog_open_multiple(fc->dialog, fc->parent, NULL,
+		                              siril_fc_finish_cb, fc);
+		break;
+	case SFC_SAVE:
+		gtk_file_dialog_save(fc->dialog, fc->parent, NULL,
+		                     siril_fc_finish_cb, fc);
+		break;
+	case SFC_SELECT_FOLDER:
+		gtk_file_dialog_select_folder(fc->dialog, fc->parent, NULL,
+		                              siril_fc_finish_cb, fc);
+		break;
+	}
+	g_main_loop_run(fc->loop);
+	g_main_loop_unref(fc->loop);
+	fc->loop = NULL;
+	return fc->response;
+}
+
+gchar *siril_fc_get_filename(SirilFileChooser *fc) {
+	if (!fc) return NULL;
+	if (fc->result_file)
+		return g_file_get_path(fc->result_file);
+	if (fc->mode == SFC_SAVE && fc->current_name)
+		return g_strdup(fc->current_name);
+	return NULL;
+}
+
+GSList *siril_fc_get_filenames(SirilFileChooser *fc) {
+	GSList *out = NULL;
+	if (!fc) return NULL;
+	if (fc->result_files) {
+		guint n = g_list_model_get_n_items(fc->result_files);
+		for (guint i = 0; i < n; ++i) {
+			GFile *gf = G_FILE(g_list_model_get_item(fc->result_files, i));
+			if (gf) {
+				gchar *p = g_file_get_path(gf);
+				if (p) out = g_slist_append(out, p);
+				g_object_unref(gf);
+			}
+		}
+	} else if (fc->result_file) {
+		gchar *p = g_file_get_path(fc->result_file);
+		if (p) out = g_slist_append(out, p);
+	}
+	return out;
+}
+
+void siril_fc_destroy(SirilFileChooser *fc) {
+	if (!fc) return;
+	g_clear_object(&fc->result_file);
+	g_clear_object(&fc->result_files);
+	g_clear_object(&fc->filters);
+	g_clear_object(&fc->dialog);
+	g_free(fc->current_name);
+	g_free(fc->initial_folder);
+	g_free(fc->initial_file);
+	g_free(fc);
 }

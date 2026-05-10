@@ -31,6 +31,7 @@
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/remixer.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/PSF_list.h"
@@ -655,9 +656,69 @@ void apply_remix_cancel() {
 
 /*** callbacks **/
 
+/* Forward decls for the click handlers below. */
+static void remix_apply_left_file(const gchar *filename);
+static void remix_apply_right_file(const gchar *filename);
+
+static gchar *remix_run_browser(GtkButton *button, const gchar *title,
+                                const gchar *previous_path) {
+	GtkRoot *root = gtk_widget_get_root(GTK_WIDGET(button));
+	GtkWindow *parent = GTK_IS_WINDOW(root) ? GTK_WINDOW(root) : NULL;
+	SirilFileBrowser *fb = siril_file_browser_new(parent, title);
+	siril_file_browser_add_filter_pattern(fb,
+		_("FITS files (*.fit, *.fits, *.fts)"),
+		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz",
+		TRUE);
+	if (previous_path && *previous_path)
+		siril_file_browser_set_initial_file(fb, previous_path);
+	else if (com.wd)
+		siril_file_browser_set_initial_folder(fb, com.wd);
+	gchar *picked = NULL;
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT)
+		picked = siril_file_browser_get_path(fb);
+	siril_file_browser_destroy(fb);
+	return picked;
+}
+
+static void on_remix_filechooser_left_clicked(GtkButton *button, gpointer user_data) {
+	(void)user_data;
+	gchar *picked = remix_run_browser(button, _("Select left image"), filename_left);
+	if (!picked) return;
+	gchar *base = g_path_get_basename(picked);
+	gtk_button_set_label(button, base && *base ? base : "(None)");
+	g_free(base);
+	remix_apply_left_file(picked);
+	g_free(picked);
+}
+
+static void on_remix_filechooser_right_clicked(GtkButton *button, gpointer user_data) {
+	(void)user_data;
+	gchar *picked = remix_run_browser(button, _("Select right image"), filename_right);
+	if (!picked) return;
+	gchar *base = g_path_get_basename(picked);
+	gtk_button_set_label(button, base && *base ? base : "(None)");
+	g_free(base);
+	remix_apply_right_file(picked);
+	g_free(picked);
+}
+
+static void wire_remix_filechooser_buttons(void) {
+	GtkWidget *left  = lookup_widget("remix_filechooser_left");
+	GtkWidget *right = lookup_widget("remix_filechooser_right");
+	if (left && !g_object_get_data(G_OBJECT(left), "siril-remix-wired")) {
+		g_signal_connect(left, "clicked",
+		                 G_CALLBACK(on_remix_filechooser_left_clicked), NULL);
+		g_object_set_data(G_OBJECT(left), "siril-remix-wired", GINT_TO_POINTER(1));
+	}
+	if (right && !g_object_get_data(G_OBJECT(right), "siril-remix-wired")) {
+		g_signal_connect(right, "clicked",
+		                 G_CALLBACK(on_remix_filechooser_right_clicked), NULL);
+		g_object_set_data(G_OBJECT(right), "siril-remix-wired", GINT_TO_POINTER(1));
+	}
+}
+
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
-	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_left")), "filefilter_fits", "FITS files");
-	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")), "filefilter_fits", "FITS files");
+	wire_remix_filechooser_buttons();
 	remixer_startup();
 	reset_controls_and_values();
 	remixer_show_preview = TRUE;
@@ -671,6 +732,10 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 
 int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fit_right) {
 	invocation = _invocation;
+	/* The .ui doesn't wire a "show" signal on the dialog, so make sure the
+	 * remix_filechooser_{left,right} buttons get their click handlers
+	 * connected on first use. */
+	wire_remix_filechooser_buttons();
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
@@ -726,8 +791,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		} else {
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), TRUE);
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), TRUE);
-			siril_file_chooser_set_current_folder_path(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_left")), com.wd);
-			siril_file_chooser_set_current_folder_path(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")), com.wd);
+			/* Initial folder for the browser is com.wd at click time. */
 		}
 		// Set eyedropper icons to light or dark according to theme
 		GtkWidget *v = NULL, *w = NULL;
@@ -1050,14 +1114,15 @@ void on_remix_type_right_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 	notify_update((gpointer) param);
 }
 
-void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer user_data) {
+static void remix_apply_left_file(const gchar *filename) {
 	close_histograms(TRUE, FALSE);
 	if (left_loaded) {
 		clearfits(&fit_left);
 		clearfits(&fit_left_calc);
 		left_loaded = FALSE;
 	}
-	filename_left = siril_file_chooser_get_filename(filechooser);
+	g_free(filename_left);
+	filename_left = g_strdup(filename);
 	if (readfits(filename_left, &fit_left, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
@@ -1139,14 +1204,15 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 	notify_update((gpointer) param);
 }
 
-void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer user_data) {
+static void remix_apply_right_file(const gchar *filename) {
 	close_histograms(FALSE, TRUE);
 	if (right_loaded) {
 		clearfits(&fit_right);
 		clearfits(&fit_right_calc);
 		right_loaded = FALSE;
 	}
-	filename_right = siril_file_chooser_get_filename(filechooser);
+	g_free(filename_right);
+	filename_right = g_strdup(filename);
 	if (readfits(filename_right, &fit_right, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));

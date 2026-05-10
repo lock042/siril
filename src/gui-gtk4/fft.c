@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "filters/fft.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/registration_preview.h"
@@ -48,6 +49,12 @@ static void fft_dialog_init_statics(void) {
 	fft_phase_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "fftd_phase_entry"));
 	fft_filechooser_mag = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_mag"));
 	fft_filechooser_phase = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_phase"));
+	const gchar *fits_pattern =
+		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz";
+	siril_image_button_init(GTK_WIDGET(fft_filechooser_mag),
+		_("Select magnitude image"), _("FITS files"), fits_pattern, NULL, NULL);
+	siril_image_button_init(GTK_WIDGET(fft_filechooser_phase),
+		_("Select phase image"), _("FITS files"), fits_pattern, NULL, NULL);
 }
 
 /* Idle function for the generic_image_worker path */

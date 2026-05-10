@@ -30,6 +30,7 @@
 #include "filters/epf.h"
 #include "gui-gtk4/epf.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/progress_and_log.h"
@@ -52,6 +53,8 @@ GtkCheckButton *guided_filter_selfguide = NULL, *epf_preview = NULL;
 // Static for loaded guide image
 static fits loaded_fit = { 0 };
 
+static void on_guided_filter_guideimage_picked(GtkWidget *button, const gchar *path, gpointer user_data);
+
 // Statics init
 void epf_dialog_init_statics() {
 	if (epf_undo == NULL) {
@@ -63,8 +66,12 @@ void epf_dialog_init_statics() {
 		ep_filter_type = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "ep_filter_type"));
 		// GtkDialog
 		epf_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "epf_dialog"));
-		// GtkFileChooserButton
+		// Picker button for the guide image.
 		guided_filter_guideimage = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "guided_filter_guideimage"));
+		siril_image_button_init(GTK_WIDGET(guided_filter_guideimage),
+			_("Select guide image"), _("FITS files"),
+			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz",
+			on_guided_filter_guideimage_picked, NULL);
 		// GtkGrid
 		guide_image_widgets = GTK_GRID(gtk_builder_get_object(gui.builder, "guide_image_widgets"));
 		epf_sigma_spatial_settings = GTK_GRID(gtk_builder_get_object(gui.builder, "epf_sigma_spatial_settings"));
@@ -306,20 +313,19 @@ void on_guided_filter_selfguide_toggled(GtkCheckButton *button, gpointer user_da
 	notify_update((gpointer) param);
 }
 
-void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	gchar *filename = siril_file_chooser_get_filename(filechooser);
+static void on_guided_filter_guideimage_picked(GtkWidget *button, const gchar *path, gpointer user_data) {
+	(void)button; (void)user_data;
 	clearfits(&loaded_fit);
-	if (readfits(filename, &loaded_fit, NULL, FALSE)) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
+	if (!path) return;
+	if (readfits(path, &loaded_fit, NULL, FALSE)) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		clearfits(&loaded_fit);
 		return;
 	}
 	if (loaded_fit.rx != gfit->rx || loaded_fit.ry != gfit->ry) {
-		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image dimensions do not match"),
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error: image dimensions do not match"),
 			_("Image loading failed"));
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		clearfits(&loaded_fit);
 		return;
 	}

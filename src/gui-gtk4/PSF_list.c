@@ -489,14 +489,12 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-static void set_filter(GtkFileChooser *dialog) {
+static void set_filter(SirilFileChooser *fc) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("Star list file (*.lst)"));
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	gtk_file_filter_add_pattern(f, "*.lst");
-	gtk_file_chooser_add_filter(dialog, f);
-	gtk_file_chooser_set_filter(dialog, f);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	siril_fc_add_filter(fc, f, TRUE);
+	g_object_unref(f);
 }
 
 /* Phase 11: walk the GListStore and write a fixed-format CSV with the 14
@@ -547,31 +545,21 @@ static void psf_export_csv(const char *filename) {
 
 
 static void save_stars_dialog() {
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
 	psf_list_init_statics();
-	GtkWindow *parent = psf_stars_list_window;
-	gint res;
+	SirilFileChooser *fc = siril_fc_save(psf_stars_list_window, GTK_FILE_CHOOSER_ACTION_SAVE);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_set_current_name(fc, "stars.lst");
+	set_filter(fc);
 
-	widgetdialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	/* GTK4: gtk_file_chooser_set_do_overwrite_confirmation removed */;
-	gtk_file_chooser_set_current_name(dialog, "stars.lst");
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-	set_filter(dialog);
-
-	res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		psf_export_csv(file);
-
-		g_free(file);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
+			psf_export_csv(file);
+			g_free(file);
+		}
 	}
-	siril_widget_destroy(widgetdialog);
+	siril_fc_destroy(fc);
 }
 
 int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {

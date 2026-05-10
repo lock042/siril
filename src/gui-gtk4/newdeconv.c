@@ -30,6 +30,7 @@
 #include "io/image_format_fits.h"
 #include "gui-gtk4/callbacks.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/registration_preview.h"
 #include "core/processing.h"
@@ -58,6 +59,7 @@ static GtkDialog *bdeconv_dialog = NULL;
 static GtkDrawingArea *bdeconv_drawingarea = NULL;
 static void on_PSFkernel_draw_cb(GtkDrawingArea *area, cairo_t *cr,
                                  int width, int height, gpointer data);
+static void on_bdeconv_kernel_picked(GtkWidget *button, const gchar *path, gpointer user_data);
 static GtkEntry *bdeconv_seq_prefix = NULL;
 static GtkExpander *bdeconv_expander = NULL;
 static GtkFileChooser *bdeconv_filechooser = NULL;
@@ -98,8 +100,12 @@ void bdeconv_dialog_init_statics() {
 		bdeconv_seq_prefix = GTK_ENTRY(gtk_builder_get_object(gui.builder, "bdeconv_seq_prefix"));
 		// GtkExpander
 		bdeconv_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "bdeconv_expander"));
-		// GtkFileChooserButton (cast as a GtkFileChooser*)
+		// Picker button for an external PSF/kernel image.
 		bdeconv_filechooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "bdeconv_filechooser"));
+		siril_image_button_init(GTK_WIDGET(bdeconv_filechooser),
+			_("Select PSF kernel image"), _("FITS files"),
+			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz",
+			on_bdeconv_kernel_picked, NULL);
 		// GtkFrame
 		bdeconv_psfcontrols = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_psfcontrols"));
 		bdeconv_blindcontrols = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_blindcontrols"));
@@ -729,27 +735,21 @@ gboolean set_kernel_size_in_gui(gpointer user_data) {
 	return FALSE;
 }
 
-void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	gchar* filename = siril_file_chooser_get_filename(filechooser);
-	if (filename == NULL) {
+static void on_bdeconv_kernel_picked(GtkWidget *button, const gchar *path, gpointer user_data) {
+	(void)button; (void)user_data;
+	if (!path) {
 		siril_log_color_message(_("No PSF file selected.\n"), "red");
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
-	} else {
-		reset_conv_kernel();
-		// Create a temporary args struct to help load logic if needed
-		estk_data *tmp_args = bdeconv_fill_estk_from_gui();
-		load_kernel(filename, tmp_args);
-		if (tmp_args) tmp_args->destroy_fn(tmp_args);
+		return;
 	}
-	if (filename)
-		g_free(filename);
+	reset_conv_kernel();
+	estk_data *tmp_args = bdeconv_fill_estk_from_gui();
+	load_kernel((gchar *)path, tmp_args);
+	if (tmp_args) tmp_args->destroy_fn(tmp_args);
 	if (bad_load) {
-		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		bad_load = FALSE;
 	} else {
 		siril_toggle_set_active(GTK_WIDGET(bdeconv_psfprevious), TRUE);
 	}
-	return;
 }
 
 /* Idle function for deconvolution */

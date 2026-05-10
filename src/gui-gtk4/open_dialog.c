@@ -44,6 +44,7 @@
 #include "gui-gtk4/dialog_preview.h"
 #include "gui-gtk4/conversion.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/file_browser.h"
 
 #include "open_dialog.h"
 
@@ -80,18 +81,15 @@ static void open_dialog_init_statics(void) {
 	od_useoffset_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "useoffset_button"));
 }
 
-static void set_single_filter_dialog(GtkFileChooser *chooser, const gchar *name, const gchar *filter) {
-	gtk_filter_add(chooser, name, filter, TRUE);
-}
-
-static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
+static void set_filters_browser(SirilFileBrowser *fb, int whichdial) {
 	GString *all_filter = NULL;
 	gchar *fits_filter = FITS_EXTENSIONS;
 	gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+		siril_file_browser_add_filter_pattern(fb,
+				_("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
 				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
@@ -209,27 +207,16 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 		if (whichdial == OD_CONVERT || whichdial == OD_OPEN) {
 			gchar *filter = g_string_free(all_filter, FALSE);
-
-			gtk_filter_add(chooser, _("All supported files"), filter, TRUE);
+			siril_file_browser_add_filter_pattern(fb, _("All supported files"), filter, TRUE);
 			g_free(filter);
 		}
 	}
 }
 
-static void on_debayer_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	siril_toggle_set_active(GTK_WIDGET((GtkToggleButton *)user_data), siril_toggle_get_active(GTK_WIDGET(togglebutton)));
-}
-
-static void siril_add_debayer_toggle_button(GtkFileChooser *dialog) {
-	open_dialog_init_statics();
-	GtkCheckButton *main_debayer_button = od_demosaicing_btn;
-	GtkWidget *toggle_debayer = gtk_check_button_new_with_label(_("Debayer"));
-
-	gtk_widget_set_visible(toggle_debayer, TRUE);
-	/* GTK4: gtk_file_chooser_set_extra_widget removed */;
-	siril_toggle_set_active(GTK_WIDGET(toggle_debayer), siril_toggle_get_active(GTK_WIDGET(main_debayer_button)));
-	g_signal_connect(GTK_TOGGLE_BUTTON(toggle_debayer), "toggled", G_CALLBACK(on_debayer_toggled), (gpointer) main_debayer_button);
-}
+/* GTK4: gtk_file_chooser_set_extra_widget is gone, and SirilFileBrowser
+ * has no built-in extra-widget slot — the debayer toggle that used to
+ * sit alongside the Open dialog has been dropped here.  Toggling debayer
+ * on a per-open basis can still be done from the main demosaic control. */
 
 static gchar* get_calibration_file_directory(GtkWidget *entry) {
     if (!GTK_IS_ENTRY(GTK_ENTRY(entry))) {
@@ -250,204 +237,196 @@ static gchar* get_calibration_file_directory(GtkWidget *entry) {
     return dirname;
 }
 
+/* Resolve the initial folder for a given calibration master case.  Falls
+ * back to com.wd if no specific prior path is recorded. */
+static gchar *initial_folder_for(int whichdial, GtkWidget *entry) {
+	switch (whichdial) {
+	case OD_FLATLIB:
+		if (com.pref.prepro.flat_lib && *com.pref.prepro.flat_lib)
+			return g_path_get_dirname(com.pref.prepro.flat_lib);
+		break;
+	case OD_DARKLIB:
+		if (com.pref.prepro.dark_lib && *com.pref.prepro.dark_lib)
+			return g_path_get_dirname(com.pref.prepro.dark_lib);
+		break;
+	case OD_OFFSETLIB:
+		if (com.pref.prepro.bias_lib && *com.pref.prepro.bias_lib)
+			return g_path_get_dirname(com.pref.prepro.bias_lib);
+		break;
+	case OD_DISTOLIB:
+		if (com.pref.prepro.disto_lib && *com.pref.prepro.disto_lib)
+			return g_path_get_dirname(com.pref.prepro.disto_lib);
+		break;
+	}
+	return get_calibration_file_directory(entry);
+}
+
+/* Image cases — use SirilFileBrowser so the user gets a thumbnail
+ * preview of the selected frame.  Returns the picked path (single) or
+ * NULL on cancel; populates `out_paths` when whichdial == OD_CONVERT. */
+static gchar *pick_image(int whichdial, GtkWindow *parent,
+                         GtkWidget *entry, GSList **out_paths) {
+	const gchar *title;
+	switch (whichdial) {
+	case OD_OPEN:      title = _("Open Image"); break;
+	case OD_CONVERT:   title = _("Add Files");  break;
+	case OD_FLAT:      title = _("Select Flat Frame");      break;
+	case OD_DARK:      title = _("Select Dark Frame");      break;
+	case OD_OFFSET:    title = _("Select Bias / Offset Frame"); break;
+	case OD_FLATLIB:   title = _("Select Master Flat from Library");   break;
+	case OD_DARKLIB:   title = _("Select Master Dark from Library");   break;
+	case OD_OFFSETLIB: title = _("Select Master Bias from Library");   break;
+	default:           title = _("Open Image"); break;
+	}
+
+	SirilFileBrowser *fb = siril_file_browser_new(parent, title);
+	if (whichdial == OD_CONVERT)
+		siril_file_browser_set_select_multiple(fb, TRUE);
+	gchar *initial = initial_folder_for(whichdial, entry);
+	if (initial && *initial)
+		siril_file_browser_set_initial_folder(fb, initial);
+	g_free(initial);
+	set_filters_browser(fb, whichdial);
+
+	gchar *picked = NULL;
+	if (siril_file_browser_run(fb) == GTK_RESPONSE_ACCEPT) {
+		if (whichdial == OD_CONVERT && out_paths)
+			*out_paths = siril_file_browser_get_paths(fb);
+		picked = siril_file_browser_get_path(fb);
+	}
+	siril_file_browser_destroy(fb);
+	return picked;
+}
+
+/* Non-image cases — use GtkFileDialog via the SirilFileChooser wrapper. */
+static gchar *pick_non_image(int whichdial, GtkWindow *parent) {
+	GtkFileChooserAction action =
+		(whichdial == OD_CWD) ? GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
+		                      : GTK_FILE_CHOOSER_ACTION_OPEN;
+	SirilFileChooser *fc = siril_fc_open(parent, action);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	if (whichdial == OD_DISTOLIB) {
+		gchar *initial = initial_folder_for(OD_DISTOLIB, NULL);
+		if (initial) {
+			siril_fc_set_current_folder_path(fc, initial);
+			g_free(initial);
+		}
+		siril_fc_add_filter_pattern(fc,
+			_("Master-distortion: file (*.wcs)"),
+			"*.wcs;*.WCS", TRUE);
+	} else if (whichdial == OD_BADPIXEL) {
+		siril_fc_add_filter_pattern(fc,
+			_("Cosmetic correction file (*.lst)"),
+			"*.lst;*.LST", TRUE);
+	}
+	gchar *picked = NULL;
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT)
+		picked = siril_fc_get_filename(fc);
+	siril_fc_destroy(fc);
+	return picked;
+}
+
 static void opendial(int whichdial) {
 	open_dialog_init_statics();
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
-	fileChooserPreview *preview = NULL;
 	GtkWindow *control_window = od_control_window;
-	gint res;
-	int retval;
 
 	if (!com.wd)
 		return;
 
-	GtkWidget *entry = NULL;
-	switch (whichdial) {
-	case OD_NULL:
+	if (whichdial == OD_NULL) {
 		fprintf(stderr, "whichdial undefined, should not happen\n");
 		return;
-	case OD_FLAT:
-		if (whichdial == OD_FLAT)
-			entry = GTK_WIDGET(od_flatname_entry);
-	case OD_DARK:
-		if (whichdial == OD_DARK)
-			entry = GTK_WIDGET(od_darkname_entry);
-	case OD_OFFSET:
-		if (whichdial == OD_OFFSET)
-			entry = GTK_WIDGET(od_offsetname_entry);
-	case OD_FLATLIB:
-		if (whichdial == OD_FLATLIB)
-			entry = GTK_WIDGET(od_flatlib_entry);
-	case OD_DARKLIB:
-		if (whichdial == OD_DARKLIB)
-			entry = GTK_WIDGET(od_darklib_entry);
-	case OD_OFFSETLIB:
-		if (whichdial == OD_OFFSETLIB)
-			entry = GTK_WIDGET(od_biaslib_entry);
-	case OD_DISTOLIB:
-		if (whichdial == OD_DISTOLIB)
-			entry = GTK_WIDGET(od_distolib_entry);
-		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gchar *lastdir = get_calibration_file_directory(entry);
-		siril_file_chooser_set_current_folder_path(dialog, lastdir);
-		g_free(lastdir);
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		if (whichdial == OD_FLATLIB) {
-			if (com.pref.prepro.flat_lib != NULL) {
-				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
-				siril_file_chooser_set_current_folder_path(dialog, path);
-				g_free(path);
-			}
-		} else if (whichdial == OD_DARKLIB) {
-			if (com.pref.prepro.dark_lib != NULL) {
-				gchar *path = g_path_get_dirname(com.pref.prepro.dark_lib);
-				siril_file_chooser_set_current_folder_path(dialog, path);
-				g_free(path);
-			}
-		} else if (whichdial == OD_OFFSETLIB) {
-			if (com.pref.prepro.bias_lib != NULL) {
-				gchar *path = g_path_get_dirname(com.pref.prepro.bias_lib);
-				siril_file_chooser_set_current_folder_path(dialog, path);
-				g_free(path);
-			}
-		} else if (whichdial == OD_DISTOLIB) {
-			if (com.pref.prepro.disto_lib != NULL) {
-				gchar *path = g_path_get_dirname(com.pref.prepro.disto_lib);
-				siril_file_chooser_set_current_folder_path(dialog, path);
-				g_free(path);
-			}
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		}
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		if (whichdial == OD_DISTOLIB) {
-			set_single_filter_dialog(dialog, _("Master-distortion: file (*.wcs)"), "*.wcs;*.WCS");
-		} else {
-			set_filters_dialog(dialog, whichdial);
-		}
-		siril_file_chooser_add_preview(dialog, preview);
-		break;
-	case OD_CWD:
-		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		break;
-	case OD_OPEN:
-		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		set_filters_dialog(dialog, whichdial);
-		siril_file_chooser_add_preview(dialog, preview);
-		siril_add_debayer_toggle_button(dialog);
-		break;
-	case OD_CONVERT:
-		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		gtk_file_chooser_set_select_multiple(dialog, TRUE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		set_filters_dialog(dialog, whichdial);
-		break;
-	case OD_BADPIXEL:
-		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
 	}
 
-	if (!dialog)
-		return;
+	/* Map each calibration case to the entry widget that holds the
+	 * "previous selection" path (used to compute the initial folder). */
+	GtkWidget *entry = NULL;
+	switch (whichdial) {
+	case OD_FLAT:      entry = GTK_WIDGET(od_flatname_entry);   break;
+	case OD_DARK:      entry = GTK_WIDGET(od_darkname_entry);   break;
+	case OD_OFFSET:    entry = GTK_WIDGET(od_offsetname_entry); break;
+	case OD_FLATLIB:   entry = GTK_WIDGET(od_flatlib_entry);    break;
+	case OD_DARKLIB:   entry = GTK_WIDGET(od_darklib_entry);    break;
+	case OD_OFFSETLIB: entry = GTK_WIDGET(od_biaslib_entry);    break;
+	case OD_DISTOLIB:  entry = GTK_WIDGET(od_distolib_entry);   break;
+	}
 
-	wait:
-	res = siril_dialog_run(widgetdialog);
+	gchar *filename = NULL;
+	GSList *multi = NULL;
 
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GSList *list = NULL;
-		gchar *filename, *err;
-		gboolean anything_loaded;
-		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-
-		filename = siril_file_chooser_get_filename(chooser);
-		if (!filename)
-			goto wait;
-
-		if (fitseq_is_fitseq(filename, NULL)
-				&& ((whichdial == OD_FLAT) || (whichdial == OD_DARK) || (whichdial == OD_OFFSET))) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Format not supported."),
-					_("FITS sequences are not supported for master files. Please select a single FITS file."));
-			goto wait;
-		}
-
-		GtkEntry *flat_entry = od_flatname_entry;
-		GtkEntry *dark_entry = od_darkname_entry;
-		GtkEntry *bias_entry = od_offsetname_entry;
-		GtkEntry *flatlib_entry = od_flatlib_entry;
-		GtkEntry *darklib_entry = od_darklib_entry;
-		GtkEntry *biaslib_entry = od_biaslib_entry;
-		GtkEntry *distolib_entry = od_distolib_entry;
-		GtkEntry *bad_pixel_entry = od_pixelmap_entry;
-		GtkCheckButton *flat_button = od_useflat_btn;
-		GtkCheckButton *dark_button = od_usedark_btn;
-		GtkCheckButton *bias_button = od_useoffset_btn;
-		GtkWidget *pbutton = od_prepro_button;
-
-		anything_loaded = sequence_is_loaded() || single_image_is_loaded();
+	for (;;) {
+		g_free(filename);
+		filename = NULL;
+		g_slist_free_full(multi, g_free);
+		multi = NULL;
 
 		switch (whichdial) {
 		case OD_FLAT:
-			gtk_editable_set_text(GTK_EDITABLE(flat_entry), filename);
-			siril_toggle_set_active(GTK_WIDGET(flat_button), TRUE);
-			gtk_widget_set_sensitive(pbutton, anything_loaded);
-			break;
-
 		case OD_DARK:
-			gtk_editable_set_text(GTK_EDITABLE(dark_entry), filename);
-			siril_toggle_set_active(GTK_WIDGET(dark_button), TRUE);
-			gtk_widget_set_sensitive(pbutton, anything_loaded);
-			break;
-
 		case OD_OFFSET:
-			gtk_editable_set_text(GTK_EDITABLE(bias_entry), filename);
-			siril_toggle_set_active(GTK_WIDGET(bias_button), TRUE);
-			gtk_widget_set_sensitive(pbutton, anything_loaded);
-			break;
-
 		case OD_FLATLIB:
-			gtk_editable_set_text(GTK_EDITABLE(flatlib_entry), filename);
-			break;
-
 		case OD_DARKLIB:
-			gtk_editable_set_text(GTK_EDITABLE(darklib_entry), filename);
-			break;
-
 		case OD_OFFSETLIB:
-			gtk_editable_set_text(GTK_EDITABLE(biaslib_entry), filename);
+		case OD_OPEN:
+		case OD_CONVERT:
+			filename = pick_image(whichdial, control_window, entry,
+			                      whichdial == OD_CONVERT ? &multi : NULL);
 			break;
-
+		case OD_CWD:
 		case OD_DISTOLIB:
-			gtk_editable_set_text(GTK_EDITABLE(distolib_entry), filename);
+		case OD_BADPIXEL:
+			filename = pick_non_image(whichdial, control_window);
 			break;
+		}
 
+		if (!filename) {
+			g_slist_free_full(multi, g_free);
+			return;  /* user cancelled */
+		}
+
+		/* Master-frame validation: reject FITS sequences. */
+		if (fitseq_is_fitseq(filename, NULL)
+		    && (whichdial == OD_FLAT || whichdial == OD_DARK || whichdial == OD_OFFSET)) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Format not supported."),
+				_("FITS sequences are not supported for master files. Please select a single FITS file."));
+			continue;
+		}
+
+		gchar *err = NULL;
+		gboolean anything_loaded = sequence_is_loaded() || single_image_is_loaded();
+		int retval;
+
+		switch (whichdial) {
+		case OD_FLAT:
+			gtk_editable_set_text(GTK_EDITABLE(od_flatname_entry), filename);
+			siril_toggle_set_active(GTK_WIDGET(od_useflat_btn), TRUE);
+			gtk_widget_set_sensitive(od_prepro_button, anything_loaded);
+			break;
+		case OD_DARK:
+			gtk_editable_set_text(GTK_EDITABLE(od_darkname_entry), filename);
+			siril_toggle_set_active(GTK_WIDGET(od_usedark_btn), TRUE);
+			gtk_widget_set_sensitive(od_prepro_button, anything_loaded);
+			break;
+		case OD_OFFSET:
+			gtk_editable_set_text(GTK_EDITABLE(od_offsetname_entry), filename);
+			siril_toggle_set_active(GTK_WIDGET(od_useoffset_btn), TRUE);
+			gtk_widget_set_sensitive(od_prepro_button, anything_loaded);
+			break;
+		case OD_FLATLIB:
+			gtk_editable_set_text(GTK_EDITABLE(od_flatlib_entry), filename);
+			break;
+		case OD_DARKLIB:
+			gtk_editable_set_text(GTK_EDITABLE(od_darklib_entry), filename);
+			break;
+		case OD_OFFSETLIB:
+			gtk_editable_set_text(GTK_EDITABLE(od_biaslib_entry), filename);
+			break;
+		case OD_DISTOLIB:
+			gtk_editable_set_text(GTK_EDITABLE(od_distolib_entry), filename);
+			break;
 		case OD_CWD:
 			if (!siril_change_dir(filename, &err)) {
-				if (com.pref.wd)
-					g_free(com.pref.wd);
+				if (com.pref.wd) g_free(com.pref.wd);
 				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
 				gui_function(set_GUI_CWD, NULL);
@@ -455,31 +434,28 @@ static void opendial(int whichdial) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}
 			break;
-
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
 			retval = open_single_image(filename);
 			icc_auto_assign_or_convert(gfit, ICC_ASSIGN_ON_LOAD);
 			set_cursor_waiting(FALSE);
-			if (retval == OPEN_IMAGE_CANCEL) goto wait;
+			if (retval == OPEN_IMAGE_CANCEL) continue;  /* re-prompt */
 			break;
-
 		case OD_CONVERT:
-			list = siril_file_chooser_get_filenames(chooser);
-			list = g_slist_sort(list, (GCompareFunc) strcompare);
-			fill_convert_list(list);
-			g_slist_free(list);
+			multi = g_slist_sort(multi, (GCompareFunc) strcompare);
+			fill_convert_list(multi);
+			g_slist_free_full(multi, g_free);
+			multi = NULL;
 			break;
-
 		case OD_BADPIXEL:
-			gtk_editable_set_text(GTK_EDITABLE(bad_pixel_entry), filename);
+			gtk_editable_set_text(GTK_EDITABLE(od_pixelmap_entry), filename);
 			break;
-
 		}
+
 		g_free(filename);
+		g_slist_free_full(multi, g_free);
+		return;
 	}
-	siril_preview_free(preview);
-	siril_widget_destroy(widgetdialog);
 }
 
 void cwd_btton_clicked() {

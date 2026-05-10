@@ -118,42 +118,25 @@ static gboolean update_zoom(siril_plot_data *spl_data, double x, double y, doubl
 	return TRUE;
 }
 
-static void set_filter(GtkFileChooser *dialog, const gchar *name, const gchar *pattern) {
+static void set_filter(SirilFileChooser *fc, const gchar *name, const gchar *pattern) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, name);
 	gtk_file_filter_add_pattern(f, pattern);
-	/* Batch D pending: this set_filter helper still uses the deprecated
-	 * GtkFileChooser interface because the surrounding save_siril_plot_dialog
-	 * is built on GtkFileChooserNative.  Migrating to GtkFileDialog here
-	 * means turning every caller into an async _finish callback, which
-	 * is queued for a dedicated round.  See deprecation plan. */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	gtk_file_chooser_add_filter(dialog, f);
-	gtk_file_chooser_set_filter(dialog, f);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	siril_fc_add_filter(fc, f, TRUE);
+	g_object_unref(f);
 }
 
 static gchar* save_siril_plot_dialog(GtkWindow *parent, const gchar *defaultfilename, const gchar *filter_name, const gchar *filter_pattern) {
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
-	gint res;
+	SirilFileChooser *fc = siril_fc_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_set_current_name(fc, defaultfilename);
+	set_filter(fc, filter_name, filter_pattern);
+
 	gchar *savefilename = NULL;
-
-	widgetdialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	gtk_file_chooser_set_current_name(dialog, defaultfilename);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-	set_filter(dialog, filter_name, filter_pattern);
-
-	res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		savefilename = siril_file_chooser_get_filename(dialog);
-	}
-	siril_widget_destroy(widgetdialog);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT)
+		savefilename = siril_fc_get_filename(fc);
+	siril_fc_destroy(fc);
 	return savefilename;
 }
 

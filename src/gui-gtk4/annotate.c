@@ -170,14 +170,12 @@ void on_conesearch_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 	}
 }
 
-static void set_filter(GtkFileChooser *dialog) {
+static void set_filter(SirilFileChooser *fc) {
 	GtkFileFilter *f = gtk_file_filter_new();
 	gtk_file_filter_set_name(f, _("csv files (*.csv)"));
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	gtk_file_filter_add_pattern(f, "*.csv");
-	gtk_file_chooser_add_filter(dialog, f);
-	gtk_file_chooser_set_filter(dialog, f);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	siril_fc_add_filter(fc, f, TRUE);
+	g_object_unref(f);
 }
 
 void on_annotate_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -189,57 +187,37 @@ void on_annotate_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_annotate_save_as_button_clicked(GtkButton *button, gpointer user_data) {
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
-	gint res;
-	gchar *filename;
+	SirilFileChooser *fc = siril_fc_save(annotate_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_set_current_name(fc, ".csv");
+	set_filter(fc);
 
-	filename = g_strdup(".csv");
-
-	widgetdialog = siril_file_chooser_save(annotate_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	/* GTK4: gtk_file_chooser_set_do_overwrite_confirmation removed */; // the overwrite is checked when applied!
-	gtk_file_chooser_set_current_name(dialog, filename);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-	set_filter(dialog);
-
-	res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		gtk_editable_set_text(GTK_EDITABLE(conesearch_save_entry), file);
-		gtk_editable_set_position(GTK_EDITABLE(conesearch_save_entry), -1);
-		g_free(file);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
+			gtk_editable_set_text(GTK_EDITABLE(conesearch_save_entry), file);
+			gtk_editable_set_position(GTK_EDITABLE(conesearch_save_entry), -1);
+			g_free(file);
+		}
 	}
-	siril_widget_destroy(widgetdialog);
-	g_free(filename);
+	siril_fc_destroy(fc);
 }
 
 void on_show_button_clicked(GtkButton *button, gpointer user_data) {
-	SirilWidget *widgetdialog;
-	GtkFileChooser *dialog = NULL;
-	gint res;
+	SirilFileChooser *fc = siril_fc_open(annotate_dialog, GTK_FILE_CHOOSER_ACTION_OPEN);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
 
-	widgetdialog = siril_file_chooser_open(annotate_dialog, GTK_FILE_CHOOSER_ACTION_OPEN);
-	dialog = GTK_FILE_CHOOSER(widgetdialog);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	siril_file_chooser_set_current_folder_path(dialog, com.wd);
-	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	/* GTK4: gtk_file_chooser_set_do_overwrite_confirmation removed */;
-	/* GTK4: gtk_file_chooser_set_local_only removed */;
-
-	res = siril_dialog_run(widgetdialog);
-	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = siril_file_chooser_get_filename(dialog);
-		gtk_editable_set_text(GTK_EDITABLE(show_file_entry), file);
-		gtk_editable_set_position(GTK_EDITABLE(show_file_entry), -1);
-		g_free(file);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
+			gtk_editable_set_text(GTK_EDITABLE(show_file_entry), file);
+			gtk_editable_set_position(GTK_EDITABLE(show_file_entry), -1);
+			g_free(file);
+		}
 	}
-	siril_widget_destroy(widgetdialog);
+	siril_fc_destroy(fc);
 }
 
 void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {

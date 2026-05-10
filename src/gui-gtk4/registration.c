@@ -458,29 +458,25 @@ void on_comboreg_undistort_changed(GObject *obj, GParamSpec *pspec, gpointer use
 }
 
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
-		SirilWidget *widgetdialog;
-		GtkFileChooser *dialog = NULL;
-		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
-		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
-		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		siril_file_chooser_set_current_folder_path(dialog, com.wd);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-		/* GTK4: gtk_file_chooser_set_local_only removed */;
-		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		gtk_filter_add(dialog, _("WCS Files (*.wcs)"),
-				"*.wcs", FALSE);
-		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
-				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
-		gint res = siril_dialog_run(widgetdialog);
-		if (res == GTK_RESPONSE_ACCEPT) {
-			gchar *file = siril_file_chooser_get_filename(dialog);
+	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+	SirilFileChooser *fc = siril_fc_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
+	siril_fc_set_current_folder_path(fc, com.wd);
+	siril_fc_set_select_multiple(fc, FALSE);
+	siril_fc_add_filter_pattern(fc, _("WCS Files (*.wcs)"),
+			"*.wcs", FALSE);
+	siril_fc_add_filter_pattern(fc, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+			"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz",
+			gui.file_ext_filter == TYPEFITS);
+	if (siril_fc_run(fc) == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_fc_get_filename(fc);
+		if (file) {
 			gtk_editable_set_text(GTK_EDITABLE(reg_wcsfile_entry), file);
 			gtk_editable_set_position(GTK_EDITABLE(reg_wcsfile_entry), -1);
 			g_free(file);
 		}
-		siril_widget_destroy(widgetdialog);
-		update_reg_interface(TRUE);
+	}
+	siril_fc_destroy(fc);
+	update_reg_interface(TRUE);
 }
 
 /* GTK4 stack-switcher refresh: instead of intercepting clicks on the

@@ -45,7 +45,7 @@
 #include "save_dialog.h"
 
 static image_type type_of_image = TYPEUNDEF;
-static SirilWidget *saveDialog = NULL;
+static SirilFileChooser *saveDialog = NULL;
 
 static GtkNotebook *sd_notebook_format = NULL;
 static GtkWidget *sd_savepopup = NULL;
@@ -79,7 +79,7 @@ static void save_dialog_init_statics(void) {
 	sd_scrolledwindow3 = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow3"));
 }
 
-static void set_filters_save_dialog(GtkFileChooser *chooser) {
+static void set_filters_save_dialog(SirilFileChooser *fc) {
 	GString *all_filter = NULL;
 	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
 	const gchar *bmp_filter = "*.bmp;*.BMP";
@@ -91,48 +91,41 @@ static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, bmp_filter);
 
-	gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
-
-	/* GRAPHICS FILES */
-	/* BMP FILES */
-	gtk_filter_add(chooser, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("FITS Files (*.fit, *.fits, *.fts)"), fits_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("BMP Files (*.bmp)"), bmp_filter, FALSE);
 #ifdef HAVE_LIBJPEG
 	const gchar *jpg_filter = "*.jpg;*.JPG;*.jpeg;*.JPEG";
-
-	gtk_filter_add(chooser, _("JPEG Files (*.jpg, *.jpeg)"), jpg_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("JPEG Files (*.jpg, *.jpeg)"), jpg_filter, FALSE);
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, jpg_filter);
 #endif
 
 #ifdef HAVE_LIBJXL
 	const gchar *jxl_filter = "*.jxl;*.JXL";
-
-	gtk_filter_add(chooser, _("JPEG XL Files (*.jxl)"), jxl_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("JPEG XL Files (*.jxl)"), jxl_filter, FALSE);
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, jxl_filter);
 #endif
 
 #ifdef HAVE_LIBPNG
 	const gchar *png_filter = "*.png;*.PNG";
-
-	gtk_filter_add(chooser, _("PNG Files (*.png)"), png_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("PNG Files (*.png)"), png_filter, FALSE);
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, png_filter);
 #endif
 
 #ifdef HAVE_LIBTIFF
 	const gchar *tif_filter = "*.tif;*.TIF;*.tiff;*.TIFF";
-
-	gtk_filter_add(chooser, _("TIFF Files (*.tif, *.tiff)"), tif_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("TIFF Files (*.tif, *.tiff)"), tif_filter, FALSE);
 	all_filter = g_string_append(all_filter, ";");
 	all_filter = g_string_append(all_filter, tif_filter);
 #endif
 
 	/* NETPBM FILES */
-	gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"), netpbm_filter, FALSE);
+	siril_fc_add_filter_pattern(fc, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"), netpbm_filter, FALSE);
 
 	gchar *supported_file = g_string_free(all_filter, FALSE);
-	gtk_filter_add(chooser, _("Supported Image Files"), supported_file, TRUE);
+	siril_fc_add_filter_pattern(fc, _("Supported Image Files"), supported_file, TRUE);
 
 	g_free(supported_file);
 }
@@ -295,13 +288,14 @@ static void prepare_savepopup() {
 static void init_dialog() {
 	if (saveDialog == NULL) {
 		GtkWindow *parent = siril_get_active_window();
-		saveDialog = siril_file_chooser_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
+		saveDialog = siril_fc_save(parent, GTK_FILE_CHOOSER_ACTION_SAVE);
+		set_filters_save_dialog(saveDialog);
 	}
 }
 
 static void close_dialog() {
 	if (saveDialog != NULL) {
-		siril_widget_destroy(saveDialog);
+		siril_fc_destroy(saveDialog);
 		saveDialog = NULL;
 	}
 }
@@ -334,14 +328,12 @@ static image_type get_image_type_from_filter(GtkFileFilter *filter) {
 	return get_filetype(gtk_file_filter_get_name(filter));
 }
 
-static void filter_changed(gpointer user_data) {
-	GtkFileChooser *chooser = GTK_FILE_CHOOSER(user_data);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	GtkFileFilter *filter = gtk_file_chooser_get_filter(chooser);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	gchar *filename = siril_file_chooser_get_filename(chooser);
-	if (!filename)
-		return;
+/* Adjust the basename's extension to match the filter's expected format.
+ * GtkFileDialog has no notify::filter signal, so we reconcile only after
+ * the user accepts: return a possibly-corrected newly-allocated filename
+ * (caller must g_free) or NULL if no change is needed. */
+static gchar *reconcile_filename_with_filter(const gchar *filename, GtkFileFilter *filter) {
+	if (!filename || !filter) return NULL;
 	char *file_no_ext = remove_ext_from_filename(filename);
 	image_type format = get_image_type_from_filter(filter);
 	gchar *new_filename = NULL;
@@ -355,11 +347,8 @@ static void filter_changed(gpointer user_data) {
 		new_filename = g_strdup_printf("%s.bmp", file_no_ext);
 		break;
 	case TYPEPNM:
-		if (gfit->naxes[2] == 1) {
-			new_filename = g_strdup_printf("%s.pgm", file_no_ext);
-		} else {
-			new_filename = g_strdup_printf("%s.ppm", file_no_ext);
-		}
+		new_filename = g_strdup_printf("%s%s", file_no_ext,
+		                              (gfit->naxes[2] == 1) ? ".pgm" : ".ppm");
 		break;
 #ifdef HAVE_LIBTIFF
 	case TYPETIFF:
@@ -382,17 +371,8 @@ static void filter_changed(gpointer user_data) {
 		break;
 #endif
 	}
-	if (new_filename) {
-		gchar *bname = g_path_get_basename(new_filename);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-		gtk_file_chooser_set_current_name(chooser, bname);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		g_free(bname);
-		g_free(new_filename);
-	}
-
-	g_free(file_no_ext);
-	g_free(filename);
+	free(file_no_ext);
+	return new_filename;
 }
 
 gchar* extract_extension_from_filter(const gchar *filter_name) {
@@ -427,39 +407,30 @@ gchar* extract_extension_from_filter(const gchar *filter_name) {
 static int save_dialog() {
 	init_dialog();
 
-	GtkFileChooser *chooser = GTK_FILE_CHOOSER(saveDialog);
-	fileChooserPreview *preview = NULL;
 	gchar *fname = get_filename_and_replace_ext();
-
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	gtk_file_chooser_set_current_name(chooser, fname);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	set_filters_save_dialog(chooser);
-	siril_file_chooser_add_preview(chooser, preview);
-	/* GTK4: gtk_file_chooser_unselect_all removed */;
-	g_signal_connect(chooser, "notify::filter", G_CALLBACK(filter_changed), (gpointer) chooser);
+	siril_fc_set_current_name(saveDialog, fname);
 	g_free(fname);
 
 	while (TRUE) {
-		gint res = siril_dialog_run(saveDialog);
+		gint res = siril_fc_run(saveDialog);
 
 		if (res != GTK_RESPONSE_ACCEPT) {
 			close_dialog();
-			siril_preview_free(preview);
 			return res;
 		}
 
-		gchar *filename = siril_file_chooser_get_filename(chooser);
+		gchar *filename = siril_fc_get_filename(saveDialog);
+		if (!filename) {
+			close_dialog();
+			return GTK_RESPONSE_CANCEL;
+		}
+
+		GtkFileFilter *current_filter = siril_fc_get_filter(saveDialog);
+		const gchar *filter_name = current_filter ? gtk_file_filter_get_name(current_filter) : NULL;
+		gchar *filter_extension = filter_name ? extract_extension_from_filter(filter_name) : NULL;
+
 		image_type file_type = get_type_from_filename(filename);
-
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-		GtkFileFilter *current_filter = gtk_file_chooser_get_filter(chooser);
-		G_GNUC_END_IGNORE_DEPRECATIONS
-		const gchar *filter_name = gtk_file_filter_get_name(current_filter);
-		gchar *filter_extension = extract_extension_from_filter(filter_name);
-
-		image_type filter_format = get_type_for_extension(filter_extension);
-
+		image_type filter_format = filter_extension ? get_type_for_extension(filter_extension) : TYPEUNDEF;
 		image_type selected_type = (filter_format != TYPEUNDEF) ? filter_format : file_type;
 
 		if (file_type != TYPEUNDEF && filter_format != TYPEUNDEF && file_type != filter_format) {
@@ -468,6 +439,15 @@ static int save_dialog() {
 							_("Save Anyway"));
 
 			if (!confirm) {
+				/* User declined: reconcile the basename to the filter's
+				 * expected extension and re-show the dialog. */
+				gchar *fixed = reconcile_filename_with_filter(filename, current_filter);
+				if (fixed) {
+					gchar *bname = g_path_get_basename(fixed);
+					siril_fc_set_current_name(saveDialog, bname);
+					g_free(bname);
+					g_free(fixed);
+				}
 				g_free(filename);
 				g_free(filter_extension);
 				continue;
