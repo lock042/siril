@@ -201,6 +201,12 @@ static gboolean on_siril_plot_window_closed(GtkWidget *widget, GdkEvent *event, 
 	siril_debug_print("Freeing siril_plot data and closing\n");
 	siril_plot_data *spl_data = (siril_plot_data *)g_object_get_data(G_OBJECT(widget), "spl_data");
 	free_siril_plot_data(spl_data);
+	/* The right-click context popover was attached via gtk_widget_set_parent
+	 * rather than through a container; GTK4 will warn ("still has children
+	 * left") if it is still parented when the window is finalized. */
+	GtkWidget *menu = g_object_get_data(G_OBJECT(widget), "menu_handle");
+	if (menu)
+		gtk_widget_unparent(menu);
 	gtk_window_destroy(GTK_WINDOW(widget));
 	return TRUE;
 }
