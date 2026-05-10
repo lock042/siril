@@ -35,6 +35,7 @@ static GtkLabel *find_label = NULL;
 static GtkSourceView *code_view = NULL;
 static GtkSourceBuffer *sourcebuffer = NULL;
 static GtkSourceMap *map = NULL;
+static GtkWidget    *map_wrapper = NULL;  /* clip container holding `map` */
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkDropDown *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -100,6 +101,8 @@ void set_language();
 gboolean on_editor_key_press(GtkEventControllerKey *ctrl, guint keyval, guint keycode,
                               GdkModifierType state, gpointer user_data);
 
+static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
 	{ "save", on_action_file_save, NULL, NULL, NULL },
@@ -116,7 +119,8 @@ static GActionEntry editor_actions[] = {
 	{ "copy", on_copy, NULL, NULL, NULL },
 	{ "paste", on_paste, NULL, NULL, NULL },
 	{ "find", on_find, NULL, NULL, NULL },
-	{ "reload", on_action_file_reload, NULL, NULL, NULL }
+	{ "reload", on_action_file_reload, NULL, NULL, NULL },
+	{ "open_recent", on_action_open_recent, "s", NULL, NULL }
 };
 
 void set_code_view_theme() {
@@ -164,23 +168,41 @@ void add_code_view(GtkBuilder *builder) {
 	map = GTK_SOURCE_MAP(gtk_source_map_new());
 
 	/* Apply a tiny font to the map's text view so the minimap looks like
-	 * a thumbnail rather than a second editor.  The previous CSS used
-	 * `* { font-size: 1px }` which also matched GtkSourceMapSlider and
-	 * gave it font-driven sizing of zero — every snapshot during scroll
-	 * then warned "Trying to snapshot GtkSourceMapSlider without a
-	 * current allocation".  Targeting `textview` instead leaves the
-	 * slider node at its natural size. */
+	 * a thumbnail rather than a second editor.  GtkSourceMap IS itself
+	 * the textview CSS node (it inherits from GtkSourceView → GtkTextView)
+	 * — the previous `.pyeditor-map textview` selector searched for a
+	 * child node that doesn't exist, so the rule never applied and the
+	 * map kept default-font sizing.  Match the map widget directly and
+	 * scope to `text`/`textview` parts to leave the slider node alone. */
 	siril_register_css_for_display("siril-pyeditor-map",
-		".pyeditor-map textview { font-size: 1px; }");
+		".pyeditor-map, .pyeditor-map text { font-size: 1px; }");
 	gtk_widget_add_css_class(GTK_WIDGET(map), "pyeditor-map");
 
 	gtk_widget_set_visible(GTK_WIDGET(map), TRUE);
 	gtk_source_map_set_view(map, code_view);
-	/* Map sits to the right of the scrolled view in codeviewbox; let it
-	 * fill vertically so the slider gets a real allocation and only take
-	 * its natural width horizontally. */
 	gtk_widget_set_valign(GTK_WIDGET(map), GTK_ALIGN_FILL);
-	gtk_box_append(GTK_BOX(codeviewbox), GTK_WIDGET(map));
+	gtk_widget_set_hexpand(GTK_WIDGET(map), FALSE);
+
+	/* GTK4 has no max-width on widgets — `gtk_widget_set_size_request`
+	 * is a MINIMUM, not a maximum, and the natural-width measurement of
+	 * GtkSourceMap (font-driven) propagates upward through the box and
+	 * makes the map grow huge if the font CSS hasn't applied yet.  Wrap
+	 * the map in a GtkScrolledWindow with `propagate-natural-width =
+	 * FALSE` so the scroller's own size_request decides the allocation;
+	 * the inner map is then clipped (no scrollbars enabled). */
+	map_wrapper = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(map_wrapper),
+	                               GTK_POLICY_NEVER, GTK_POLICY_NEVER);
+	gtk_scrolled_window_set_propagate_natural_width(
+		GTK_SCROLLED_WINDOW(map_wrapper), FALSE);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(map_wrapper), TRUE);
+	gtk_widget_set_size_request(map_wrapper, 120, -1);
+	gtk_widget_set_hexpand(map_wrapper, FALSE);
+	gtk_widget_set_valign(map_wrapper, GTK_ALIGN_FILL);
+	gtk_widget_set_halign(map_wrapper, GTK_ALIGN_END);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(map_wrapper), GTK_WIDGET(map));
+	gtk_box_append(GTK_BOX(codeviewbox), map_wrapper);
 
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
@@ -825,6 +847,110 @@ static void on_file_open_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	gtk_window_present(editor_window);
 }
 
+/* "editor.open_recent" action — takes a string GVariant holding the
+ * recent file path.  Loads the file into the editor buffer. */
+static void on_action_open_recent(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	(void)action; (void)user_data;
+	if (!parameter) return;
+	const gchar *path = g_variant_get_string(parameter, NULL);
+	if (!path || !*path) return;
+	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+		siril_log_color_message(_("Recent script no longer exists: %s\n"),
+		                        "salmon", path);
+		gchar *uri = g_filename_to_uri(path, NULL, NULL);
+		if (uri) {
+			gtk_recent_manager_remove_item(
+				gtk_recent_manager_get_default(), uri, NULL);
+			g_free(uri);
+		}
+		return;
+	}
+	if (buffer_modified &&
+	    !siril_confirm_dialog(_("Are you sure?"),
+		_("This will replace the entry buffer. You will not be able to recover any contents."),
+		_("Proceed")))
+		return;
+	GFile *file = g_file_new_for_path(path);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	load_file(file);
+	if (G_IS_OBJECT(current_file))
+		g_object_unref(current_file);
+	current_file = g_object_ref(file);
+	update_title(current_file);
+	g_object_unref(file);
+}
+
+static int pyeditor_recent_cmp_visited_desc(gconstpointer a, gconstpointer b) {
+	GDateTime *ta = gtk_recent_info_get_visited((GtkRecentInfo *) a);
+	GDateTime *tb = gtk_recent_info_get_visited((GtkRecentInfo *) b);
+	if (!ta && !tb) return 0;
+	if (!ta) return 1;
+	if (!tb) return -1;
+	return g_date_time_compare(tb, ta);
+}
+
+/* Build (or rebuild) the Recent submenu inside the script editor's File
+ * menu.  Filters to script extensions (.py, .ssf).  Called each time the
+ * editor opens so it picks up new recent entries. */
+static void populate_pyeditor_recent_menu(void) {
+	GtkWidget *box = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pyeditor_recent_box"));
+	GtkMenuButton *btn = GTK_MENU_BUTTON(
+		gtk_builder_get_object(gui.builder, "pyeditor_recent_button"));
+	if (!box) return;
+	/* Drop any previously appended children. */
+	GtkWidget *c = gtk_widget_get_first_child(box);
+	while (c) {
+		GtkWidget *next = gtk_widget_get_next_sibling(c);
+		gtk_box_remove(GTK_BOX(box), c);
+		c = next;
+	}
+
+	GtkRecentManager *mgr = gtk_recent_manager_get_default();
+	GList *items = mgr ? g_list_sort(gtk_recent_manager_get_items(mgr),
+	                                 pyeditor_recent_cmp_visited_desc)
+	                   : NULL;
+	int count = 0;
+	const int max_items = 15;
+	for (GList *l = items; l && count < max_items; l = l->next) {
+		GtkRecentInfo *info = l->data;
+		const gchar *uri = gtk_recent_info_get_uri(info);
+		if (!uri) continue;
+		gchar *path = g_filename_from_uri(uri, NULL, NULL);
+		if (!path || !g_file_test(path, G_FILE_TEST_EXISTS)) {
+			g_free(path);
+			continue;
+		}
+		/* Restrict to script types. */
+		gchar *lower = g_ascii_strdown(path, -1);
+		gboolean is_script = g_str_has_suffix(lower, ".py") ||
+		                     g_str_has_suffix(lower, ".ssf");
+		g_free(lower);
+		if (!is_script) {
+			g_free(path);
+			continue;
+		}
+		gchar *basename = g_path_get_basename(path);
+		GtkWidget *row = gtk_button_new_with_label(basename);
+		gtk_widget_set_tooltip_text(row, path);
+		gtk_actionable_set_action_name(GTK_ACTIONABLE(row), "editor.open_recent");
+		gtk_actionable_set_action_target_value(GTK_ACTIONABLE(row),
+			g_variant_new_string(path));
+		gtk_box_append(GTK_BOX(box), row);
+		g_free(basename);
+		g_free(path);
+		count++;
+	}
+	if (items) g_list_free_full(items, (GDestroyNotify) gtk_recent_info_unref);
+
+	if (btn)
+		gtk_widget_set_sensitive(GTK_WIDGET(btn), count > 0);
+	if (count == 0) {
+		GtkWidget *empty = gtk_label_new(_("(no recent scripts)"));
+		gtk_widget_add_css_class(empty, "dim-label");
+		gtk_box_append(GTK_BOX(box), empty);
+	}
+}
+
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	(void)action; (void)parameter; (void)user_data;
 	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
@@ -928,6 +1054,7 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 	g_signal_connect(editor_window, "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
 	setup_editor_actions(editor_window);
+	populate_pyeditor_recent_menu();
 
 	/* Phase 17.5: gtk_window_get_position / gtk_window_get_size /
 	 * gtk_window_move are all gone in GTK4 — placement is
@@ -950,21 +1077,66 @@ int on_open_pythonpad(GtkWidget *menuitem, gpointer user_data) {
 	// Focus the SourceView
 	gtk_widget_grab_focus(GTK_WIDGET(code_view));
 
-	// Initialize the View menu based on com.pref.gui.editor_cfg
-	siril_toggle_set_active(GTK_WIDGET(syncheck), com.pref.gui.editor_cfg.highlight_syntax);
-	siril_toggle_set_active(GTK_WIDGET(bracketcheck), com.pref.gui.editor_cfg.highlight_bracketmatch);
-	siril_toggle_set_active(GTK_WIDGET(rmargincheck), com.pref.gui.editor_cfg.rmargin);
-	siril_toggle_set_active(GTK_WIDGET(linenumcheck), com.pref.gui.editor_cfg.show_linenums);
-	siril_toggle_set_active(GTK_WIDGET(linemarkcheck), com.pref.gui.editor_cfg.show_linemarks);
-	siril_toggle_set_active(GTK_WIDGET(currentlinecheck), com.pref.gui.editor_cfg.highlight_currentline);
-	siril_toggle_set_active(GTK_WIDGET(autoindentcheck), com.pref.gui.editor_cfg.autoindent);
-	siril_toggle_set_active(GTK_WIDGET(indenttabcheck), com.pref.gui.editor_cfg.indentontab);
-	siril_toggle_set_active(GTK_WIDGET(smartbscheck), com.pref.gui.editor_cfg.smartbs);
-	siril_toggle_set_active(GTK_WIDGET(homeendcheck), com.pref.gui.editor_cfg.smarthomeend);
-	siril_toggle_set_active(GTK_WIDGET(showspaces), com.pref.gui.editor_cfg.showspaces);
-	siril_toggle_set_active(GTK_WIDGET(shownewlines), com.pref.gui.editor_cfg.shownewlines);
-	siril_toggle_set_active(GTK_WIDGET(minimap), com.pref.gui.editor_cfg.minimap);
-	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
+	/* Initialize the View menu based on com.pref.gui.editor_cfg.
+	 *
+	 * Set the toggle states AND apply each property to the source view
+	 * directly.  Relying on the toggled handlers fires only when the
+	 * toggle's state actually changes — if the .ui-default matches the
+	 * saved preference, the handler doesn't run and the source view ends
+	 * up in its default state instead of the user's preferred state. */
+	const gboolean cfg_syntax        = com.pref.gui.editor_cfg.highlight_syntax;
+	const gboolean cfg_bracket       = com.pref.gui.editor_cfg.highlight_bracketmatch;
+	const gboolean cfg_rmargin       = com.pref.gui.editor_cfg.rmargin;
+	const gboolean cfg_linenums      = com.pref.gui.editor_cfg.show_linenums;
+	const gboolean cfg_linemarks     = com.pref.gui.editor_cfg.show_linemarks;
+	const gboolean cfg_currentline   = com.pref.gui.editor_cfg.highlight_currentline;
+	const gboolean cfg_autoindent    = com.pref.gui.editor_cfg.autoindent;
+	const gboolean cfg_indentontab   = com.pref.gui.editor_cfg.indentontab;
+	const gboolean cfg_smartbs       = com.pref.gui.editor_cfg.smartbs;
+	const gboolean cfg_smarthomeend  = com.pref.gui.editor_cfg.smarthomeend;
+	const gboolean cfg_showspaces    = com.pref.gui.editor_cfg.showspaces;
+	const gboolean cfg_shownewlines  = com.pref.gui.editor_cfg.shownewlines;
+	const gboolean cfg_minimap       = com.pref.gui.editor_cfg.minimap;
+
+	siril_toggle_set_active(GTK_WIDGET(syncheck),         cfg_syntax);
+	siril_toggle_set_active(GTK_WIDGET(bracketcheck),     cfg_bracket);
+	siril_toggle_set_active(GTK_WIDGET(rmargincheck),     cfg_rmargin);
+	siril_toggle_set_active(GTK_WIDGET(linenumcheck),     cfg_linenums);
+	siril_toggle_set_active(GTK_WIDGET(linemarkcheck),    cfg_linemarks);
+	siril_toggle_set_active(GTK_WIDGET(currentlinecheck), cfg_currentline);
+	siril_toggle_set_active(GTK_WIDGET(autoindentcheck),  cfg_autoindent);
+	siril_toggle_set_active(GTK_WIDGET(indenttabcheck),   cfg_indentontab);
+	siril_toggle_set_active(GTK_WIDGET(smartbscheck),     cfg_smartbs);
+	siril_toggle_set_active(GTK_WIDGET(homeendcheck),     cfg_smarthomeend);
+	siril_toggle_set_active(GTK_WIDGET(showspaces),       cfg_showspaces);
+	siril_toggle_set_active(GTK_WIDGET(shownewlines),     cfg_shownewlines);
+	siril_toggle_set_active(GTK_WIDGET(minimap),          cfg_minimap);
+
+	gtk_source_buffer_set_highlight_syntax(sourcebuffer,            cfg_syntax);
+	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, cfg_bracket);
+	gtk_source_view_set_show_right_margin(code_view,                cfg_rmargin);
+	gtk_source_view_set_show_line_numbers(code_view,                cfg_linenums);
+	gtk_source_view_set_show_line_marks(code_view,                  cfg_linemarks);
+	gtk_source_view_set_highlight_current_line(code_view,           cfg_currentline);
+	gtk_source_view_set_auto_indent(code_view,                      cfg_autoindent);
+	gtk_source_view_set_indent_on_tab(code_view,                    cfg_indentontab);
+	gtk_source_view_set_smart_backspace(code_view,                  cfg_smartbs);
+	gtk_source_view_set_smart_home_end(code_view, cfg_smarthomeend ?
+		GTK_SOURCE_SMART_HOME_END_AFTER : GTK_SOURCE_SMART_HOME_END_DISABLED);
+	{
+		GtkSourceSpaceTypeFlags flags = gtk_source_space_drawer_get_types_for_locations(
+			space_drawer, GTK_SOURCE_SPACE_LOCATION_ALL);
+		const GtkSourceSpaceTypeFlags spaces_and_tabs =
+			GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+		flags = cfg_showspaces   ? (flags | spaces_and_tabs)
+		                         : (flags & ~spaces_and_tabs);
+		flags = cfg_shownewlines ? (flags | GTK_SOURCE_SPACE_TYPE_NEWLINE)
+		                         : (flags & ~GTK_SOURCE_SPACE_TYPE_NEWLINE);
+		gtk_source_space_drawer_set_types_for_locations(space_drawer,
+			GTK_SOURCE_SPACE_LOCATION_ALL, flags);
+	}
+	gtk_widget_set_visible(map_wrapper, cfg_minimap);
+
 	gtk_widget_set_visible(GTK_WIDGET(args_box), siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(useargs))));
 	return 0;
 }
@@ -1372,7 +1544,7 @@ void on_editor_shownewlines_toggled(GtkCheckButton *item, gpointer user_data) {
 
 void on_editor_minimap_toggled(GtkCheckButton *item, gpointer user_data) {
 	gboolean status = siril_toggle_get_active(GTK_WIDGET(GTK_CHECK_BUTTON(item)));
-	gtk_widget_set_visible(GTK_WIDGET(map), status);
+	gtk_widget_set_visible(map_wrapper, status);
 	com.pref.gui.editor_cfg.minimap = status;
 }
 

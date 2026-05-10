@@ -73,36 +73,31 @@
                 <property name="visible">True</property>
                 <child>
                                     <object class="GtkMenuButton">
-                    <property name="label" translatable="1">_File</property>
-                    <property name="use-underline">1</property>
+                    <property name="label" translatable="1">File</property>
                     <property name="popover">pyeditor_menu_file</property>
                   </object>
                 </child>
                 <child>
                                     <object class="GtkMenuButton">
-                    <property name="label" translatable="1">_Edit</property>
-                    <property name="use-underline">1</property>
+                    <property name="label" translatable="1">Edit</property>
                     <property name="popover">pyeditor_menu_edit</property>
                   </object>
                 </child>
                 <child>
                                     <object class="GtkMenuButton">
-                    <property name="label" translatable="1">_Script</property>
-                    <property name="use-underline">1</property>
+                    <property name="label" translatable="1">Script</property>
                     <property name="popover">pyeditor_menu_script</property>
                   </object>
                 </child>
                 <child>
                                     <object class="GtkMenuButton">
-                    <property name="label" translatable="1">_Preferences</property>
-                    <property name="use-underline">1</property>
+                    <property name="label" translatable="1">Preferences</property>
                     <property name="popover">pyeditor_menu_preferences</property>
                   </object>
                 </child>
                 <child>
                                     <object class="GtkMenuButton">
-                    <property name="label" translatable="1">_Help</property>
-                    <property name="use-underline">1</property>
+                    <property name="label" translatable="1">Help</property>
                     <property name="popover">pyeditor_menu_help</property>
                   </object>
                 </child>
@@ -446,7 +441,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
             <property name="visible">True</property>
             <property name="tooltip-text" translatable="1">Clear the current script</property>
             <property name="action-name">editor.new</property>
-            <property name="label" translatable="1">_New</property>
+            <property name="label" translatable="1">New</property>
           </object>
         </child>
         <child>
@@ -454,15 +449,15 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
             <property name="visible">True</property>
             <property name="tooltip-text" translatable="1">Open a script from a file</property>
             <property name="action-name">editor.open</property>
-            <property name="label" translatable="1">_Open</property>
+            <property name="label" translatable="1">Open</property>
           </object>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkMenuButton" id="pyeditor_recent_button">
             <property name="visible">True</property>
-            <property name="label" translatable="1">_Recent Files</property>
-            <child type="submenu">
-              </child>
+            <property name="tooltip-text" translatable="1">Open a recently used script</property>
+            <property name="label" translatable="1">Recent Files</property>
+            <property name="popover">pyeditor_recent_popover</property>
           </object>
         </child>
         <child>
@@ -470,7 +465,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
             <property name="visible">True</property>
             <property name="tooltip-text" translatable="1">Save the current script</property>
             <property name="action-name">editor.save</property>
-            <property name="label" translatable="1">_Save</property>
+            <property name="label" translatable="1">Save</property>
           </object>
         </child>
         <child>
@@ -478,7 +473,7 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
             <property name="visible">True</property>
             <property name="tooltip-text" translatable="1">Save the current script (choose filename)</property>
             <property name="action-name">editor.save_as</property>
-            <property name="label" translatable="1">_Save As</property>
+            <property name="label" translatable="1">Save As</property>
           </object>
         </child>
         <child>
@@ -489,6 +484,18 @@ This also ensures SirilInterface is invoked in CLI mode (SirilInterface.is_cli()
             <property name="label" translatable="1">Close</property>
           </object>
         </child>
+      </object>
+    </property>
+  </object>
+  <object class="GtkPopover" id="pyeditor_recent_popover">
+    <property name="child">
+      <object class="GtkBox" id="pyeditor_recent_box">
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <property name="margin-start">4</property>
+        <property name="margin-end">4</property>
+        <property name="margin-top">4</property>
+        <property name="margin-bottom">4</property>
       </object>
     </property>
   </object>
