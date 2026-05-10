@@ -82,6 +82,48 @@ void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *cl
 		gtk_widget_remove_css_class(entry, class_to_remove);
 }
 
+/* Force a sensitivity propagation cycle on the given subtree.  In GTK4,
+ * GtkExpander's user-child subtree can keep GTK_STATE_FLAG_INSENSITIVE
+ * stuck after an initial set_sensitive(FALSE)/set_sensitive(TRUE) cycle.
+ * The flag sits in the descendants' state_flags but gtk_widget_set_sensitive(TRUE)
+ * is a no-op when sensitive is already TRUE — so no re-propagation runs.
+ * Workaround: toggle the local sensitive property FALSE then TRUE on each
+ * affected widget; the FALSE→TRUE transition is non-trivial and forces GTK
+ * to run a fresh propagation, clearing the stuck INSENSITIVE bit. */
+static void force_sensitivity_repropagate(GtkWidget *w) {
+	if (!w) return;
+	if (gtk_widget_get_sensitive(w)) {
+		gtk_widget_set_sensitive(w, FALSE);
+		gtk_widget_set_sensitive(w, TRUE);
+	}
+	for (GtkWidget *c = gtk_widget_get_first_child(w); c; c = gtk_widget_get_next_sibling(c))
+		force_sensitivity_repropagate(c);
+}
+
+void expander_clear_stuck_insensitive(GtkWidget *expander) {
+	if (!expander) return;
+	for (GtkWidget *c = gtk_widget_get_first_child(expander); c; c = gtk_widget_get_next_sibling(c))
+		force_sensitivity_repropagate(c);
+}
+
+void clear_stuck_insensitive_in_tree(GtkWidget *root) {
+	if (!root) return;
+	if (GTK_IS_EXPANDER(root))
+		expander_clear_stuck_insensitive(root);
+	for (GtkWidget *c = gtk_widget_get_first_child(root); c; c = gtk_widget_get_next_sibling(c))
+		clear_stuck_insensitive_in_tree(c);
+}
+
+void clear_stuck_insensitive_in_builder(GtkBuilder *builder) {
+	if (!builder) return;
+	GSList *objects = gtk_builder_get_objects(builder);
+	for (GSList *l = objects; l; l = l->next) {
+		if (GTK_IS_EXPANDER(l->data))
+			expander_clear_stuck_insensitive(GTK_WIDGET(l->data));
+	}
+	g_slist_free(objects);
+}
+
 GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }

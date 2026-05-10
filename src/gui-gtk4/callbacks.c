@@ -2278,6 +2278,12 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "notify::fullscreened",
 	                 G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
+
+	/* GTK4 GtkExpander state-flag quirk: scan every expander in the
+	 * builder (main UI and all dialog .ui files) and clear any stuck
+	 * GTK_STATE_FLAG_INSENSITIVE bits in their child subtrees. */
+	clear_stuck_insensitive_in_builder(gui.builder);
+
 	gui_ready = TRUE;
 }
 

@@ -704,6 +704,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	gtk_expander_set_expanded(stack_expander_method, seqloaded);
 	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_output), seqloaded);
 	gtk_expander_set_expanded(stack_expander_output, seqloaded);
+	if (seqloaded) {
+		expander_clear_stuck_insensitive(GTK_WIDGET(stack_expander_method));
+		expander_clear_stuck_insensitive(GTK_WIDGET(stack_expander_output));
+	}
 	if (!seqloaded) {
 		return;
 	}

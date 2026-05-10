@@ -44,6 +44,21 @@ void set_switcher_buttons_colors(GList *list, int n);
 
 void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove);
 
+/* GTK4 GtkExpander quirk: when the expander is set insensitive then
+ * sensitive again, the GTK_STATE_FLAG_INSENSITIVE flag can stay stuck on
+ * the user-defined child subtree.  Recursively clear it on every
+ * locally-sensitive descendant so the controls become responsive. */
+void expander_clear_stuck_insensitive(GtkWidget *expander);
+
+/* Walk a subtree and apply expander_clear_stuck_insensitive() to every
+ * GtkExpander encountered. */
+void clear_stuck_insensitive_in_tree(GtkWidget *root);
+
+/* Iterate every object in the builder and apply
+ * expander_clear_stuck_insensitive() to every GtkExpander.  Covers both
+ * the main UI and any dialog .ui files loaded into the same builder. */
+void clear_stuck_insensitive_in_builder(GtkBuilder *builder);
+
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();

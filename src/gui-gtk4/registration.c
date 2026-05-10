@@ -899,6 +899,18 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface, but we don't want to reset if user has expanded it
 	gtk_widget_set_sensitive(GTK_WIDGET(autoreg_expander), seqloaded);
 	gtk_expander_set_expanded(autoreg_expander, seqloaded);
+
+	/* GTK4 GtkExpander quirk: its user-child subtree can keep the
+	 * GTK_STATE_FLAG_INSENSITIVE state flag stuck after an earlier
+	 * gtk_widget_set_sensitive(expander, FALSE)/set_sensitive(TRUE)
+	 * cycle, even though the expander itself is sensitive again.  Clear
+	 * it explicitly on every locally-sensitive descendant so the
+	 * controls actually respond to input. */
+	if (seqloaded) {
+		expander_clear_stuck_insensitive(GTK_WIDGET(autoreg_expander));
+		expander_clear_stuck_insensitive(GTK_WIDGET(manualreg_expander));
+	}
+
 	if (!seqloaded) // no need to go further, hide all and return
 		return;
 
