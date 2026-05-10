@@ -443,8 +443,8 @@ static void opendial(int whichdial) {
 			break;
 		case OD_CONVERT:
 			multi = g_slist_sort(multi, (GCompareFunc) strcompare);
-			fill_convert_list(multi);
-			g_slist_free_full(multi, g_free);
+			fill_convert_list(multi);  /* frees each entry's gchar*; we just free the spine */
+			g_slist_free(multi);
 			multi = NULL;
 			break;
 		case OD_BADPIXEL:
