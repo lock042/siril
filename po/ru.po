@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-05 22:28+0100\n"
-"PO-Revision-Date: 2026-03-12 17:44+0000\n"
+"PO-Revision-Date: 2026-05-09 10:17+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril-1-6/ru/>\n"
@@ -6017,12 +6017,12 @@ msgid "Plot fits"
 msgstr "Показать кривые"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
 msgstr ""
-"Показать линейные кривые отношений R/G и B/G между каталогом и изображением"
+"Показать линейные кривые отношений R/G и B/G между каталогом и изображением. "
+"В узкополосном режиме графики вырожденных отношений не будут показаны."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
@@ -15947,7 +15947,7 @@ msgstr "Ошибка в размере шага: должен быть межд�
 #: src/core/command.c:2756
 #, c-format
 msgid "Unsharp mask: sigma=%f, amount=%f"
-msgstr ""
+msgstr "Нерезкая маска: σ=%f, amount=%f"
 
 #: src/core/command.c:2796
 msgid "Unsharp mask"
@@ -16173,7 +16173,7 @@ msgstr "Размер мозаики должен быть > 0.\n"
 #. Use default idle function for command-line
 #: src/core/command.c:4124 src/filters/clahe.c:101 src/filters/clahe.c:206
 msgid "CLAHE"
-msgstr ""
+msgstr "CLAHE"
 
 #: src/core/command.c:4172
 msgid "Cannot list files, set working directory first.\n"
@@ -16789,11 +16789,8 @@ msgid "Clearing tilt information\n"
 msgstr "Очистка данных о наклоне сенсора\n"
 
 #: src/core/command.c:6782
-#, fuzzy
 msgid "Error: cannot run inspector while headless"
-msgstr ""
-"Ошибка: не удалось перезагрузить меню сценариев при работе в автономном "
-"режиме\n"
+msgstr "Ошибка: нельзя запустить инспектор при работе в автономном режиме"
 
 #: src/core/command.c:6833
 #, c-format
