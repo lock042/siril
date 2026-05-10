@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-03-13 09:19+0000\n"
+"PO-Revision-Date: 2026-05-09 10:17+0000\n"
 "Last-Translator: Alexander <akalachev@users.noreply.weblate.siril.org>\n"
 "Language-Team: Russian <https://weblate.siril.org/projects/siril/software/"
 "siril/ru/>\n"
@@ -6005,12 +6005,12 @@ msgid "Plot fits"
 msgstr "Показать кривые"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:721
-#, fuzzy
 msgid ""
 "Plot SPCC linear fits for catalog to image R/G and B/G ratios. In narrowband "
 "mode, plots of degenerate ratios will not be shown."
 msgstr ""
-"Показать линейные кривые отношений R/G и B/G между каталогом и изображением"
+"Показать линейные кривые отношений R/G и B/G между каталогом и изображением. "
+"В узкополосном режиме графики вырожденных отношений не будут показаны."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:736
 msgid "Sensor Type:"
