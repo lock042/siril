@@ -852,14 +852,6 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 	}
 }
 
-/* Phase 14: GtkRecentChooser / GtkRecentManager removed in GTK4.
- * Stubbed out — full recent-files reimplementation lands in Phase 15
- * via GtkApplication recent-files. */
-void on_scratchpad_recent_menu_activated(GObject *chooser, gpointer user_data) {
-	(void)chooser; (void)user_data;
-	/* TODO Phase 15: route through GtkApplication / GMenuModel recent. */
-}
-
 /* Phase 14G.2: GtkFileChooserDialog → GtkFileDialog. */
 static void on_file_save_done(GObject *src, GAsyncResult *res, gpointer ud) {
 	(void)ud;
@@ -1123,12 +1115,22 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	gtk_window_destroy(GTK_WINDOW(dialog));
 }
 
-/* TODO Phase8: window-state-event is gone in GTK4.  Use GtkWindow's
- * "notify::minimized" / "notify::maximized" / "notify::fullscreened"
- * properties to track the equivalent state.  Stubbed for now. */
-gboolean on_main_window_state_changed(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	(void)widget; (void)event; (void)user_data;
-	return FALSE;
+/* GTK4: replaces the GTK3 window-state-event handler.  Wired to the main
+ * window's "notify::minimized" so that minimising the main window also
+ * minimises the editor (and vice-versa on un-minimise).  GTK4 has no
+ * gtk_window_is_minimized() accessor — read the property directly. */
+static void on_main_window_state_changed(GObject *obj, GParamSpec *pspec,
+                                         gpointer user_data) {
+	(void)pspec;
+	GtkWindow *editor = GTK_WINDOW(user_data);
+	if (!editor || !gtk_widget_get_visible(GTK_WIDGET(editor)))
+		return;
+	gboolean minimized = FALSE;
+	g_object_get(obj, "minimized", &minimized, NULL);
+	if (minimized)
+		gtk_window_minimize(editor);
+	else
+		gtk_window_unminimize(editor);
 }
 
 void set_language() {

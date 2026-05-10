@@ -276,17 +276,6 @@
       </object>
     </property>
   </object>
-  <object class="GtkListStore" id="liststore_bkg">
-    <columns>
-      <column type="gint" />
-      <column type="gboolean" />
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_scripts">
-    <columns>
-      <column type="gchararray" />
-    </columns>
-  </object>
   <object class="GtkPopover" id="main_menu">
     <property name="child">
       <object class="GtkBox">

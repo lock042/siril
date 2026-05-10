@@ -79,9 +79,9 @@ static void hide_all_except(GtkWindow *keep_visible) {
 	g_list_free(toplevels);
 }
 
-static void on_window_destroy(GtkWidget *widget, gpointer user_data) {
+static void on_window_destroyed_weakref(gpointer user_data, GObject *where_was) {
+	(void)where_was;
 	WindowKeyHandler *handler = (WindowKeyHandler *)user_data;
-
 	if (handler) {
 		handler->window = NULL;  // invalidate window
 		handler->handler_id = 0;
@@ -144,8 +144,8 @@ static void disconnect_key_handlers() {
 
 		if (handler) {
 			if (handler->window && GTK_IS_WINDOW(handler->window)) {
-				g_signal_handlers_disconnect_by_func(handler->window, G_CALLBACK(on_window_destroy), handler);
-
+				g_object_weak_unref(G_OBJECT(handler->window),
+				                    on_window_destroyed_weakref, handler);
 				if (handler->handler_id > 0) {
 					g_signal_handler_disconnect(handler->window, handler->handler_id);
 				}
@@ -171,9 +171,9 @@ static void add_key_handler_to_widget(GtkWidget *widget) {
 		gtk_widget_add_controller(widget, kctrl);
 	}
 
-	/* TODO Phase8: GTK4 has no "destroy" signal on widgets — use the
-	 * window's "close-request" or weak refs instead. */
-	g_signal_connect(widget, "destroy", G_CALLBACK(on_window_destroy), handler);
+	/* GTK4 widgets have no "destroy" signal.  Use a GObject weak ref so
+	 * we can null out the cached window pointer when GTK finalises it. */
+	g_object_weak_ref(G_OBJECT(widget), on_window_destroyed_weakref, handler);
 
 	key_handler_windows = g_slist_prepend(key_handler_windows, handler);
 }

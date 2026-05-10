@@ -362,13 +362,44 @@ static void initialize_title() {
 	g_free(seq_basename);
 }
 
+/* GTK4: GtkColumnView has no equivalent of gtk_tree_view_set_search_entry().
+ * Re-implement the same behaviour by hand: typing a number locates the row
+ * with that 1-based index, selects it, and scrolls to it. */
+static void on_seqlist_search_changed(GtkSearchEntry *entry, gpointer user_data) {
+	(void)user_data;
+	if (!seq_store || !seq_selection) return;
+	const char *text = gtk_editable_get_text(GTK_EDITABLE(entry));
+	if (!text || !*text) return;
+
+	gchar *end = NULL;
+	long want = strtol(text, &end, 10);
+	if (end == text || want <= 0) return;
+
+	guint n = g_list_model_get_n_items(G_LIST_MODEL(seq_store));
+	for (guint i = 0; i < n; i++) {
+		SirilSeqRow *row = SIRIL_SEQ_ROW(g_list_model_get_item(G_LIST_MODEL(seq_store), i));
+		gboolean match = (row->index == (gint)want);
+		g_object_unref(row);
+		if (match) {
+			gtk_selection_model_select_item(GTK_SELECTION_MODEL(seq_selection), i, TRUE);
+			if (seq_columnview)
+				gtk_column_view_scroll_to(seq_columnview, i, NULL,
+				                          GTK_LIST_SCROLL_FOCUS | GTK_LIST_SCROLL_SELECT,
+				                          NULL);
+			break;
+		}
+	}
+}
+
 static void initialize_search_entry() {
 	sequence_list_init_statics();
 	gtk_editable_set_text(seqlist_search_entry, "");
-	/* TODO Phase 11/15: GtkColumnView has no built-in search-entry feature
-	 * (gtk_tree_view_set_search_entry was tree-view specific).  A future
-	 * pass can add a GtkFilterListModel + GtkStringFilter wired to the
-	 * "changed" signal of seqlist_search_entry. */
+	if (!g_object_get_data(G_OBJECT(seqlist_search_entry), "siril-search-wired")) {
+		g_signal_connect(seqlist_search_entry, "search-changed",
+		                 G_CALLBACK(on_seqlist_search_changed), NULL);
+		g_object_set_data(G_OBJECT(seqlist_search_entry), "siril-search-wired",
+		                  GINT_TO_POINTER(1));
+	}
 }
 
 /* Phase 11: build the GtkColumnView (idempotent — called once). */
@@ -1194,8 +1225,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	if (seqname) free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
-		/* TODO Phase 10/18: GtkDropDown has no public popup API; user must click. */
+		/* GTK4 has no public gtk_drop_down_get_popover().  GtkDropDown
+		 * registers a class-level "dropdown.popup" action (used by its
+		 * default key bindings); invoke it directly to open the menu. */
 		gtk_widget_grab_focus(GTK_WIDGET(seqcombo));
+		gtk_widget_activate_action(GTK_WIDGET(seqcombo), "dropdown.popup", NULL);
 	} else if (index_of_seq_to_load >= 0)
 		gtk_drop_down_set_selected(GTK_DROP_DOWN(seqcombo), index_of_seq_to_load);
 	else

@@ -2214,20 +2214,11 @@ void initialize_all_GUI(gchar *supported_files) {
 	register_selection_update_callback(update_display_selection);
 	register_selection_update_callback(update_display_fwhm);
 
-	/* TODO Phase 14 (drag-and-drop): the Phase 14 GtkDropTarget rewrite
-	 * will replace gtk_drag_dest_set / GtkTargetEntry / GTK_DEST_DEFAULT_*
-	 * with GtkDropTarget and a GValue-typed DnD payload.  The conversion
-	 * tree itself migrates in Phase 11 conversion.c (treeview_convert →
-	 * GtkColumnView). */
-
-	/* TODO Phase 11 sequence_list.c: the sequence-list multi-selection mode
-	 * will be set on the GtkMultiSelection model directly; this gtk_builder
-	 * lookup of "treeview-selection" disappears with the GtkTreeView. */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
-	if (selection)
-		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	/* Drag-and-drop targets are now installed per-widget by the GtkDropTarget
+	 * sites in single_image.c, conversion.c and compositing.c.
+	 * Sequence-list multi-selection lives on the GtkMultiSelection model in
+	 * sequence_list.c.  The old GtkBuilder-based wiring that lived here is
+	 * gone with the GtkTreeView removal. */
 
 	g_signal_connect(lookup_widget("dialog_star_remix"), "close-request", G_CALLBACK(on_remix_close_clicked), NULL);
 	g_signal_connect(lookup_widget("dialog_star_remix"), "close-request", G_CALLBACK(siril_widget_hide_on_delete), NULL);

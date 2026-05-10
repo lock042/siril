@@ -39,6 +39,8 @@ static GtkColumnView    *mouse_action_columnview = NULL;
 static GListStore       *scroll_action_store   = NULL;
 static GtkColumnView    *scroll_action_columnview = NULL;
 
+static void install_mouse_test_controllers(GtkWidget *area);
+
 static void mouse_action_prefs_init_statics(void) {
 	if (mouse_scrolled_window) return;
 	mouse_scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "mouse_treeview_scrolled_window"));
@@ -871,13 +873,11 @@ void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 void on_mouse_actions_dialog_show(GtkDialog *dialog, gpointer user_data) {
 	(void)dialog; (void)user_data;
 	mouse_action_prefs_init_statics();
-	/* GTK4: gtk_widget_add_events removed.  Events are delivered to attached
-	 * GtkEventControllers; the corresponding controllers are wired up in
-	 * Phase 8 as TODO Phase8 elsewhere in this file. */
 
 	siril_register_css_for_display("siril-mouse-test-frame",
 		"frame.mouse-test-frame { border: 2px solid #aaa; border-radius: 4px; padding: 2px; }");
 	gtk_widget_add_css_class(mouse_test_frame_widget, "mouse-test-frame");
+	install_mouse_test_controllers(mouse_test_drawingarea);
 	if (!gui.mouse_actions)  load_or_initialize_mouse_actions();
 	if (!gui.scroll_actions) load_or_initialize_scroll_actions();
 
@@ -903,13 +903,69 @@ static gboolean reset_label_text(GtkLabel *label) {
     return G_SOURCE_REMOVE;
 }
 
-/* TODO Phase8: convert to a GtkGestureClick + GtkEventControllerScroll
- * pair on the test drawing area.  Stubbed because GdkEvent is opaque in
- * GTK4 and direct field/type-switch access no longer compiles. */
-gboolean on_mouse_test_drawingarea_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	(void)widget; (void)event; (void)user_data;
-	(void)reset_label_text; /* still referenced via the timeout in Phase 8 */
-	return FALSE;
+static void update_test_label(const gchar *text) {
+	if (timeout_ref) {
+		g_source_remove(timeout_ref);
+		timeout_ref = 0;
+	}
+	if (text)
+		gtk_label_set_text(mouse_test_label, text);
+	timeout_ref = g_timeout_add(1250, (GSourceFunc)reset_label_text, mouse_test_label);
+}
+
+static void on_mouse_test_pressed(GtkGestureClick *gesture, int n_press,
+                                  double x, double y, gpointer user_data) {
+	(void)x; (void)y; (void)user_data; (void)n_press;
+	guint button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+	gchar *text = g_strdup_printf(_("Button %u"), button);
+	update_test_label(text);
+	g_free(text);
+}
+
+static gboolean on_mouse_test_scroll(GtkEventControllerScroll *ctrl,
+                                     double dx, double dy, gpointer user_data) {
+	(void)ctrl; (void)user_data;
+	GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(ctrl));
+	GdkScrollDirection dir = GDK_SCROLL_SMOOTH;
+	if (event && gdk_event_get_event_type(event) == GDK_SCROLL)
+		dir = gdk_scroll_event_get_direction(event);
+	const gchar *text = NULL;
+	switch (dir) {
+		case GDK_SCROLL_UP:
+		case GDK_SCROLL_DOWN:
+			text = _("Scroll (vertical)");
+			break;
+		case GDK_SCROLL_LEFT:
+		case GDK_SCROLL_RIGHT:
+			text = _("Scroll (horizontal)");
+			break;
+		case GDK_SCROLL_SMOOTH:
+		default:
+			if (dy != 0.0)
+				text = _("Smooth scroll (vertical)");
+			else if (dx != 0.0)
+				text = _("Smooth scroll (horizontal)");
+			break;
+	}
+	if (text)
+		update_test_label(text);
+	return TRUE;
+}
+
+static void install_mouse_test_controllers(GtkWidget *area) {
+	if (g_object_get_data(G_OBJECT(area), "siril-mouse-test-installed"))
+		return;
+	GtkGesture *click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0); /* any button */
+	g_signal_connect(click, "pressed", G_CALLBACK(on_mouse_test_pressed), NULL);
+	gtk_widget_add_controller(area, GTK_EVENT_CONTROLLER(click));
+
+	GtkEventController *scroll = gtk_event_controller_scroll_new(
+		GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
+	g_signal_connect(scroll, "scroll", G_CALLBACK(on_mouse_test_scroll), NULL);
+	gtk_widget_add_controller(area, scroll);
+
+	g_object_set_data(G_OBJECT(area), "siril-mouse-test-installed", GINT_TO_POINTER(1));
 }
 
 GSList *mouse_actions_list_to_config(GSList *actions) {
