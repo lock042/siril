@@ -34,6 +34,7 @@
 #include "gui-gtk4/progress_and_log.h"
 #include "gui-gtk4/message_dialog.h"
 #include "gui-gtk4/dialogs.h"
+#include "gui-gtk4/open_dialog.h"
 #include "algos/background_extraction.h"
 #include "algos/ccd-inspector.h"
 #include "gui-gtk4/ccd-inspector.h"
@@ -493,6 +494,20 @@ static void impl_on_image_loaded(void) {
 		open_single_image_from_gfit(NULL);
 	else
 		execute_idle_and_wait_for_it(open_single_image_from_gfit, NULL);
+
+	/* Register the freshly-opened single image with GtkRecentManager and
+	 * rebuild the header recent-files menu so the new entry appears
+	 * immediately.  Skip the sequence case (com.uniq is NULL there) —
+	 * sequences aren't "recent files" in the GtkRecentManager sense. */
+	if (com.uniq && com.uniq->filename && *com.uniq->filename) {
+		gchar *uri = g_filename_to_uri(com.uniq->filename, NULL, NULL);
+		if (uri) {
+			gtk_recent_manager_add_item(
+				gtk_recent_manager_get_default(), uri);
+			g_free(uri);
+		}
+		populate_recent_files_menu();
+	}
 }
 
 /* ── Clear-log-buffer idle (moved from command.c) ────────────────────────── */

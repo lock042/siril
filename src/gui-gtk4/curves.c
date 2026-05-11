@@ -689,7 +689,27 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gboolean preview_active = siril_toggle_get_active(GTK_WIDGET(curves_preview_check));
 
 		if (preview_active && !gui.roi.active) {
-			// The curve is already applied to gfit via preview; commit and reset for next operation
+			// The curve is already applied to gfit via preview; we are
+			// about to discard the backup that holds the pre-curve
+			// pixels, so push them onto the undo stack first.  Without
+			// this, Undo after Apply (preview-on path) is a no-op
+			// because the worker that would normally call
+			// undo_save_state never runs — the curve was applied
+			// incrementally by the preview pipeline.
+			int algoritm = gtk_drop_down_get_selected(GTK_DROP_DOWN(curves_interpolation_combo));
+			struct curve_params undo_params = {
+				.points = curve_points,
+				.algorithm = algoritm,
+				.do_channel = { do_channel[0], do_channel[1], do_channel[2] }
+			};
+			gchar *summary = curves_log_hook(&undo_params, SUMMARY);
+			fits undo_fit = { 0 };
+			memcpy(&undo_fit, get_preview_gfit_backup(), sizeof(fits));
+			undo_fit.icc_profile = original_icc;
+			undo_fit.color_managed = original_icc != NULL;
+			undo_save_state(&undo_fit, "%s", summary);
+			g_free(summary);
+
 			populate_roi();
 			clear_backup();
 			clear_display_histogram();

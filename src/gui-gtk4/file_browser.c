@@ -29,6 +29,13 @@ typedef struct {
 	GPtrArray *specs;   /* of GPatternSpec* */
 } BrowserFilter;
 
+typedef enum {
+	SORT_NAME_ASC = 0,
+	SORT_NAME_DESC,
+	SORT_TIME_NEWEST,
+	SORT_TIME_OLDEST,
+} SortMode;
+
 static void browser_filter_free(BrowserFilter *bf) {
 	if (!bf) return;
 	g_free(bf->title);
@@ -43,11 +50,12 @@ static void browser_filter_free(BrowserFilter *bf) {
 struct _SirilFileBrowser {
 	GtkWindow              *parent;
 	GtkWindow              *window;
-	GtkLabel               *path_label;
+	GtkEntry               *path_entry;       /* editable; Enter navigates */
 	GtkListView            *listview;
 	GtkPicture             *preview;
 	GtkLabel               *metadata_label;
 	GtkDropDown            *filter_combo;
+	GtkDropDown            *sort_combo;
 	GtkWidget              *open_button;
 	GtkWidget              *back_button;
 	GtkWidget              *forward_button;
@@ -60,8 +68,11 @@ struct _SirilFileBrowser {
 	GtkDirectoryList       *dir_list;        /* +1 ref */
 	GListStore             *recent_store;    /* +1 ref; GFileInfo items, full paths stashed via g_object_set_data */
 	GtkFilterListModel     *filter_model;    /* +1 ref */
+	GtkSortListModel       *sort_model;      /* +1 ref */
+	GtkCustomSorter        *sorter;          /* +1 ref */
 	GtkCustomFilter        *file_filter;     /* +1 ref */
 	GtkSelectionModel      *selection;       /* +1 ref; GtkSingleSelection or GtkMultiSelection */
+	SortMode                sort_mode;
 	gboolean                select_multiple;
 	gboolean                in_recent_mode;
 
@@ -115,6 +126,49 @@ static gboolean fileinfo_filter_func(gpointer item, gpointer user_data) {
 		return TRUE;
 	BrowserFilter *bf = g_ptr_array_index(fb->filters, fb->active_filter_idx);
 	return filter_accepts(bf, g_file_info_get_name(info));
+}
+
+/* ── sort comparator ───────────────────────────────────────────────── */
+
+static gint fileinfo_compare(gconstpointer a, gconstpointer b, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	GFileInfo *ia = (GFileInfo *) a;
+	GFileInfo *ib = (GFileInfo *) b;
+	/* Directories always pinned to the top, regardless of sort key. */
+	gboolean da = g_file_info_get_file_type(ia) == G_FILE_TYPE_DIRECTORY;
+	gboolean db = g_file_info_get_file_type(ib) == G_FILE_TYPE_DIRECTORY;
+	if (da != db) return da ? -1 : 1;
+
+	switch (fb->sort_mode) {
+	case SORT_NAME_ASC:
+	case SORT_NAME_DESC: {
+		const gchar *na = g_file_info_get_display_name(ia);
+		const gchar *nb = g_file_info_get_display_name(ib);
+		gint cmp = g_utf8_collate(na ? na : "", nb ? nb : "");
+		return fb->sort_mode == SORT_NAME_DESC ? -cmp : cmp;
+	}
+	case SORT_TIME_NEWEST:
+	case SORT_TIME_OLDEST: {
+		GDateTime *ta = g_file_info_get_modification_date_time(ia);
+		GDateTime *tb = g_file_info_get_modification_date_time(ib);
+		gint cmp;
+		if (!ta && !tb) cmp = 0;
+		else if (!ta)   cmp = -1;
+		else if (!tb)   cmp = 1;
+		else            cmp = g_date_time_compare(ta, tb);
+		if (ta) g_date_time_unref(ta);
+		if (tb) g_date_time_unref(tb);
+		return fb->sort_mode == SORT_TIME_NEWEST ? -cmp : cmp;
+	}
+	}
+	return 0;
+}
+
+static void on_sort_changed(GObject *obj, GParamSpec *pspec, gpointer ud) {
+	(void) pspec;
+	SirilFileBrowser *fb = ud;
+	fb->sort_mode = (SortMode) gtk_drop_down_get_selected(GTK_DROP_DOWN(obj));
+	gtk_sorter_changed(GTK_SORTER(fb->sorter), GTK_SORTER_CHANGE_DIFFERENT);
 }
 
 /* ── navigation / history ──────────────────────────────────────────── */
@@ -186,14 +240,18 @@ static void enter_recent_mode(SirilFileBrowser *fb) {
 	fb->in_recent_mode = TRUE;
 	gtk_filter_list_model_set_model(fb->filter_model,
 		G_LIST_MODEL(fb->recent_store));
-	gtk_label_set_text(fb->path_label, _("Recent files"));
+	gtk_editable_set_text(GTK_EDITABLE(fb->path_entry), _("Recent files"));
 	update_nav_sensitivity(fb);
 }
 
 static void update_path_label(SirilFileBrowser *fb) {
 	if (!fb->current_folder) return;
 	gchar *path = g_file_get_path(fb->current_folder);
-	gtk_label_set_text(fb->path_label, path ? path : "");
+	gtk_editable_set_text(GTK_EDITABLE(fb->path_entry), path ? path : "");
+	/* Park the cursor at the end so the deepest part is visible (the
+	 * GtkEntry scrolls to keep the cursor in view). */
+	if (path)
+		gtk_editable_set_position(GTK_EDITABLE(fb->path_entry), -1);
 	g_free(path);
 }
 
@@ -267,6 +325,46 @@ static void on_forward_clicked(GtkButton *b, gpointer ud) {
 		g_ptr_array_add(fb->back_history, g_object_ref(fb->current_folder));
 	apply_current_folder(fb, next);
 	g_object_unref(next);
+}
+
+static void on_path_entry_activate(GtkEntry *entry, gpointer ud) {
+	SirilFileBrowser *fb = ud;
+	const gchar *text = gtk_editable_get_text(GTK_EDITABLE(entry));
+	if (!text || !*text) return;
+
+	/* Accept ~ for $HOME — convenient when typing by hand. */
+	gchar *expanded = NULL;
+	if (text[0] == '~' && (text[1] == '\0' || text[1] == G_DIR_SEPARATOR)) {
+		const gchar *home = g_get_home_dir();
+		if (home)
+			expanded = g_strconcat(home, text + 1, NULL);
+	}
+	const gchar *path = expanded ? expanded : text;
+
+	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+		/* Don't disrupt the user's typing — flag the entry with the
+		 * "error" CSS class so it's obvious nothing happened.  Cleared
+		 * the next time update_path_label runs. */
+		gtk_widget_add_css_class(GTK_WIDGET(entry), "error");
+		g_free(expanded);
+		return;
+	}
+	gtk_widget_remove_css_class(GTK_WIDGET(entry), "error");
+
+	GFile *gf = g_file_new_for_path(path);
+	if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		navigate_to(fb, gf);
+	} else {
+		/* Plain file: navigate to its parent and stop (selection is
+		 * cheap to do by eye in a small directory). */
+		GFile *parent = g_file_get_parent(gf);
+		if (parent) {
+			navigate_to(fb, parent);
+			g_object_unref(parent);
+		}
+	}
+	g_object_unref(gf);
+	g_free(expanded);
 }
 
 /* ── list factory ──────────────────────────────────────────────────── */
@@ -736,12 +834,13 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	gtk_box_append(GTK_BOX(toolbar), fb->back_button);
 	gtk_box_append(GTK_BOX(toolbar), fb->forward_button);
 	gtk_box_append(GTK_BOX(toolbar), fb->up_button);
-	fb->path_label = GTK_LABEL(gtk_label_new(""));
-	gtk_label_set_xalign(fb->path_label, 0.0);
-	gtk_label_set_ellipsize(fb->path_label, PANGO_ELLIPSIZE_START);
-	gtk_widget_set_hexpand(GTK_WIDGET(fb->path_label), TRUE);
-	gtk_widget_set_margin_start(GTK_WIDGET(fb->path_label), 6);
-	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_label));
+	fb->path_entry = GTK_ENTRY(gtk_entry_new());
+	gtk_entry_set_placeholder_text(fb->path_entry, _("Type a path and press Enter to navigate"));
+	gtk_widget_set_hexpand(GTK_WIDGET(fb->path_entry), TRUE);
+	gtk_widget_set_margin_start(GTK_WIDGET(fb->path_entry), 6);
+	g_signal_connect(fb->path_entry, "activate",
+	                 G_CALLBACK(on_path_entry_activate), fb);
+	gtk_box_append(GTK_BOX(toolbar), GTK_WIDGET(fb->path_entry));
 
 	/* Models: DirectoryList → FilterListModel → SingleSelection.
 	 *
@@ -750,14 +849,20 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	 * field that we hand off, and we g_object_ref the selection again
 	 * when handing it to gtk_list_view_new (which also takes transfer-full).
 	 */
-	fb->dir_list     = gtk_directory_list_new("standard::*", NULL);
+	/* Request the modified-time attribute too — needed for date sort. */
+	fb->dir_list     = gtk_directory_list_new("standard::*,time::modified", NULL);
 	fb->file_filter  = gtk_custom_filter_new(fileinfo_filter_func, fb, NULL);
 	fb->filter_model = gtk_filter_list_model_new(
 		G_LIST_MODEL(g_object_ref(fb->dir_list)),
 		GTK_FILTER(g_object_ref(fb->file_filter)));
+	/* Sort AFTER filter so we don't waste cycles ordering hidden items. */
+	fb->sorter       = gtk_custom_sorter_new(fileinfo_compare, fb, NULL);
+	fb->sort_model   = gtk_sort_list_model_new(
+		G_LIST_MODEL(g_object_ref(fb->filter_model)),
+		GTK_SORTER(g_object_ref(fb->sorter)));
 	{
 		GtkSingleSelection *ss = gtk_single_selection_new(
-			G_LIST_MODEL(g_object_ref(fb->filter_model)));
+			G_LIST_MODEL(g_object_ref(fb->sort_model)));
 		gtk_single_selection_set_autoselect(ss, FALSE);
 		gtk_single_selection_set_can_unselect(ss, TRUE);
 		fb->selection = GTK_SELECTION_MODEL(ss);
@@ -816,12 +921,30 @@ SirilFileBrowser *siril_file_browser_new(GtkWindow *parent, const gchar *title) 
 	g_signal_connect(fb->filter_combo, "notify::selected",
 	                 G_CALLBACK(on_filter_changed), fb);
 
+	/* Sort dropdown — always visible.  Order matches the SortMode enum. */
+	const char *sort_options[] = {
+		N_("Name (A-Z)"),
+		N_("Name (Z-A)"),
+		N_("Date (newest first)"),
+		N_("Date (oldest first)"),
+		NULL
+	};
+	const char *sort_options_i18n[5] = {
+		_(sort_options[0]), _(sort_options[1]),
+		_(sort_options[2]), _(sort_options[3]), NULL
+	};
+	fb->sort_combo = GTK_DROP_DOWN(gtk_drop_down_new_from_strings(sort_options_i18n));
+	gtk_drop_down_set_selected(fb->sort_combo, (guint) fb->sort_mode);
+	g_signal_connect(fb->sort_combo, "notify::selected",
+	                 G_CALLBACK(on_sort_changed), fb);
+
 	/* Action row. */
 	GtkWidget *action_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	gtk_widget_set_margin_start(action_row, 6);
 	gtk_widget_set_margin_end(action_row, 6);
 	gtk_widget_set_margin_bottom(action_row, 6);
 	gtk_widget_set_margin_top(action_row, 3);
+	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->sort_combo));
 	gtk_box_append(GTK_BOX(action_row), GTK_WIDGET(fb->filter_combo));
 	GtkWidget *spacer = gtk_label_new(NULL);
 	gtk_widget_set_hexpand(spacer, TRUE);
@@ -922,10 +1045,10 @@ void siril_file_browser_set_select_multiple(SirilFileBrowser *fb, gboolean multi
 	GtkSelectionModel *fresh;
 	if (multi) {
 		fresh = GTK_SELECTION_MODEL(gtk_multi_selection_new(
-			G_LIST_MODEL(g_object_ref(fb->filter_model))));
+			G_LIST_MODEL(g_object_ref(fb->sort_model))));
 	} else {
 		GtkSingleSelection *ss = gtk_single_selection_new(
-			G_LIST_MODEL(g_object_ref(fb->filter_model)));
+			G_LIST_MODEL(g_object_ref(fb->sort_model)));
 		gtk_single_selection_set_autoselect(ss, FALSE);
 		gtk_single_selection_set_can_unselect(ss, TRUE);
 		fresh = GTK_SELECTION_MODEL(ss);
@@ -1050,6 +1173,8 @@ void siril_file_browser_destroy(SirilFileBrowser *fb) {
 	 * holds its own refs.  Then destroy the window — which finalizes the
 	 * widget tree, which drops the widget-owned refs. */
 	g_clear_object(&fb->selection);
+	g_clear_object(&fb->sort_model);
+	g_clear_object(&fb->sorter);
 	g_clear_object(&fb->filter_model);
 	g_clear_object(&fb->file_filter);
 	g_clear_object(&fb->dir_list);
