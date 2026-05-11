@@ -269,27 +269,6 @@ GList *widget_list_children(GtkWidget *parent) {
 	return out;
 }
 
-/* Phase 11 transition: this helper still serves the GtkTreeView callers
- * (PSF_list.c, keywords_tree.c, sequence_list.c, pixelmath.c, conversion.c)
- * that have not yet been migrated to GListStore + GtkSelectionModel.
- * Once those files migrate to GtkSingleSelection / GtkMultiSelection, the
- * caller-side patterns become "iterate the selection model's GtkBitset and
- * read items by position" — at that point this function can be deleted.
- * Until then, silence the unavoidable deprecation warnings here. */
-GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
-}
 /* size is in Bytes */
 void set_GUI_MEM(guint64 used, const gchar *label) {
 	if (com.headless)

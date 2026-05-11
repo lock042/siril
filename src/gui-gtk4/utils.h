@@ -34,7 +34,6 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPaintable *paintable);
-GList *get_row_references_of_selected_rows(GtkTreeSelection *selection, GtkTreeModel *model);
 GList *widget_list_children(GtkWidget *parent);
 void set_GUI_MEM(guint64 used, const gchar *label);
 void set_GUI_DiskSpace(gint64 mem, const gchar *label);
