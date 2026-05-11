@@ -94,6 +94,7 @@ src/core/arithm.c
 src/core/command.c
 src/core/command_def.h
 src/core/command_line_processor.c
+src/core/command_list.h
 src/core/cut.c
 src/core/icc_profile.c
 src/core/initfile.c
@@ -105,6 +106,7 @@ src/core/processing_thread.c
 src/core/sequence_filtering.c
 src/core/settings.c
 src/core/siril.c
+src/core/siril.h
 src/core/siril_log.c
 src/core/siril_networking.c
 src/core/siril_update.c
@@ -162,6 +164,7 @@ src/gui/gui_iface_impl.c
 src/gui/histogram.c
 src/gui/icc_profile.c
 src/gui/image_display.c
+src/gui/image_interactions.h
 src/gui/keywords_tree.c
 src/gui/linear_match.c
 src/gui/livestacking_gui.c
@@ -171,6 +174,7 @@ src/gui/menu_gray_geometry.c
 src/gui/merge_cfa.c
 src/gui/message_dialog.c
 src/gui/mouse_action_functions.c
+src/gui/mouse_action_functions.h
 src/gui/mouse_action_preferences.c
 src/gui/newdeconv.c
 src/gui/nina_light_curve.c
