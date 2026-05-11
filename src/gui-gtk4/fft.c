@@ -39,7 +39,7 @@
 static GtkNotebook *fft_notebook = NULL;
 static GtkCheckButton *fft_centered = NULL;
 static GtkEntry *fft_mag_entry = NULL, *fft_phase_entry = NULL;
-static GtkFileChooser *fft_filechooser_mag = NULL, *fft_filechooser_phase = NULL;
+static GtkWidget *fft_filechooser_mag = NULL, *fft_filechooser_phase = NULL;
 
 static void fft_dialog_init_statics(void) {
 	if (fft_notebook) return;
@@ -47,13 +47,13 @@ static void fft_dialog_init_statics(void) {
 	fft_centered = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "fft_centered"));
 	fft_mag_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "fftd_mag_entry"));
 	fft_phase_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "fftd_phase_entry"));
-	fft_filechooser_mag = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_mag"));
-	fft_filechooser_phase = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_phase"));
+	fft_filechooser_mag = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag"));
+	fft_filechooser_phase = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase"));
 	const gchar *fits_pattern =
 		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz";
-	siril_image_button_init(GTK_WIDGET(fft_filechooser_mag),
+	siril_image_button_init(fft_filechooser_mag,
 		_("Select magnitude image"), _("FITS files"), fits_pattern, NULL, NULL);
-	siril_image_button_init(GTK_WIDGET(fft_filechooser_phase),
+	siril_image_button_init(fft_filechooser_phase,
 		_("Select phase image"), _("FITS files"), fits_pattern, NULL, NULL);
 }
 

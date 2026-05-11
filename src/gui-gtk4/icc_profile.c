@@ -202,10 +202,10 @@ static void set_target_information() {
 
 void initialize_icc_preferences_widgets() {
 	GtkToggleButton *monitortogglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
-	GtkFileChooser *monitorfilechooser = (GtkFileChooser*) lookup_widget("pref_custom_monitor_profile");
+	GtkWidget *monitorfilechooser = lookup_widget("pref_custom_monitor_profile");
 
 	GtkToggleButton *proofingtogglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
-	GtkFileChooser *proofingfilechooser = (GtkFileChooser*) lookup_widget("pref_soft_proofing_profile");
+	GtkWidget *proofingfilechooser = lookup_widget("pref_soft_proofing_profile");
 
 	if (!siril_file_chooser_get_filename(monitorfilechooser)) {
 		siril_toggle_set_active(GTK_WIDGET(monitortogglebutton), FALSE);
@@ -223,7 +223,7 @@ void initialize_icc_preferences_widgets() {
 	}
 }
 
-void on_pref_custom_monitor_profile_file_set(GtkFileChooser* filechooser, gpointer user_data) {
+void on_pref_custom_monitor_profile_file_set(GtkWidget* filechooser, gpointer user_data) {
 	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_monitor_profile_active");
 	gchar *filename = siril_file_chooser_get_filename(filechooser);
 	if (filename) {
@@ -231,7 +231,7 @@ void on_pref_custom_monitor_profile_file_set(GtkFileChooser* filechooser, gpoint
 	}
 }
 
-void on_pref_soft_proofing_profile_file_set(GtkFileChooser* filechooser, gpointer user_data) {
+void on_pref_soft_proofing_profile_file_set(GtkWidget* filechooser, gpointer user_data) {
 	GtkToggleButton *togglebutton = (GtkToggleButton*) lookup_widget("custom_proofing_profile_active");
 	gchar *filename = siril_file_chooser_get_filename(filechooser);
 	if (filename) {
@@ -469,7 +469,7 @@ void on_icc_target_combo_changed(GObject *obj, GParamSpec *pspec, gpointer user_
 	set_target_information();
 }
 
-void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* user_data) {
+void on_icc_target_filechooser_file_set(GtkWidget* filechooser, gpointer* user_data) {
 	if (target) {
 		cmsCloseProfile(target);
 		target = NULL;
@@ -545,7 +545,7 @@ gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event
 void on_icc_dialog_show(GtkWidget *dialog, gpointer user_data) {
 	set_source_information();
 	set_target_information();
-	GtkFileChooser* fc = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
+	GtkWidget* fc = lookup_widget("icc_target_filechooser");
 	siril_file_chooser_set_current_folder_path(fc, default_system_icc_path());
 	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit->color_managed);
 	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit->color_managed);
@@ -892,7 +892,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 }
 
 void on_custom_monitor_profile_active_toggled(GtkCheckButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
+	GtkWidget *filechooser = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_custom_monitor_profile"));
 	gboolean no_file = FALSE;
 	gboolean active = siril_toggle_get_active(GTK_WIDGET(button));
 	icc_lock_monitor_profile();
@@ -940,7 +940,7 @@ void on_custom_monitor_profile_active_toggled(GtkCheckButton *button, gpointer u
 }
 
 void on_custom_proofing_profile_active_toggled(GtkCheckButton *button, gpointer user_data) {
-	GtkFileChooser *filechooser = (GtkFileChooser*) GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
+	GtkWidget *filechooser = GTK_WIDGET(gtk_builder_get_object(gui.builder, "pref_soft_proofing_profile"));
 	gboolean no_file = FALSE;
 	gboolean active = siril_toggle_get_active(GTK_WIDGET(button));
 	icc_lock_soft_proof_profile();

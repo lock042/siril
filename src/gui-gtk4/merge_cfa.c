@@ -44,10 +44,10 @@ static gchar *f_cfa0 = NULL, *f_cfa1 = NULL, *f_cfa2 = NULL, *f_cfa3 = NULL;
 fits cfa0 = { 0 }, cfa1 = { 0 }, cfa2 = { 0 }, cfa3 = { 0 };
 static gboolean cfa0_loaded = FALSE, cfa1_loaded = FALSE, cfa2_loaded = FALSE, cfa3_loaded = FALSE;
 
-static GtkFileChooser *mcfa_chooser0 = NULL;
-static GtkFileChooser *mcfa_chooser1 = NULL;
-static GtkFileChooser *mcfa_chooser2 = NULL;
-static GtkFileChooser *mcfa_chooser3 = NULL;
+static GtkWidget *mcfa_chooser0 = NULL;
+static GtkWidget *mcfa_chooser1 = NULL;
+static GtkWidget *mcfa_chooser2 = NULL;
+static GtkWidget *mcfa_chooser3 = NULL;
 static GtkDropDown *mcfa_pattern_combo = NULL;
 static GtkCheckButton *mcfa_seqapply_btn = NULL;
 static GtkWidget *mcfa_seq_controls = NULL;
@@ -59,10 +59,10 @@ static void on_cfa_picked(GtkWidget *btn, const gchar *path, gpointer user_data)
 
 static void merge_cfa_init_statics(void) {
 	if (mcfa_chooser0) return;
-	mcfa_chooser0 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa0"));
-	mcfa_chooser1 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa1"));
-	mcfa_chooser2 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa2"));
-	mcfa_chooser3 = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "filechooser_cfa3"));
+	mcfa_chooser0 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_cfa0"));
+	mcfa_chooser1 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_cfa1"));
+	mcfa_chooser2 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_cfa2"));
+	mcfa_chooser3 = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_cfa3"));
 	mcfa_pattern_combo = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "merge_cfa_pattern"));
 	mcfa_seqapply_btn = GTK_CHECK_BUTTON(gtk_builder_get_object(gui.builder, "merge_cfa_seqapply"));
 	mcfa_seq_controls = GTK_WIDGET(gtk_builder_get_object(gui.builder, "merge_cfa_seq_controls"));
@@ -72,13 +72,13 @@ static void merge_cfa_init_statics(void) {
 
 	const gchar *fits_pattern =
 		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
-	siril_image_button_init(GTK_WIDGET(mcfa_chooser0), _("Select CFA 0"),
+	siril_image_button_init(mcfa_chooser0, _("Select CFA 0"),
 		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(0));
-	siril_image_button_init(GTK_WIDGET(mcfa_chooser1), _("Select CFA 1"),
+	siril_image_button_init(mcfa_chooser1, _("Select CFA 1"),
 		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(1));
-	siril_image_button_init(GTK_WIDGET(mcfa_chooser2), _("Select CFA 2"),
+	siril_image_button_init(mcfa_chooser2, _("Select CFA 2"),
 		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(2));
-	siril_image_button_init(GTK_WIDGET(mcfa_chooser3), _("Select CFA 3"),
+	siril_image_button_init(mcfa_chooser3, _("Select CFA 3"),
 		_("FITS files"), fits_pattern, on_cfa_picked, GINT_TO_POINTER(3));
 }
 

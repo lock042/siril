@@ -30,8 +30,6 @@ gboolean is_a_dialog_opened();
 gboolean is_an_image_processing_dialog_opened();
 void mark_imgproc_dialog_closed();
 
-void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title, const gchar *pattern, gboolean set_default);
-
 /* SirilFileChooser: thin synchronous wrapper around GtkFileDialog so the
  * existing call sites can keep their create → configure → run → read →
  * destroy flow.  GtkFileDialog itself is async-only; siril_dialog_run()

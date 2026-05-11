@@ -896,25 +896,21 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"))), "filefilter_fits", "FITS files");
+	/* The reference_filechooser_linearmatch button's filter is installed
+	 * by linear_match_init_statics() via siril_image_button_init.  No
+	 * extra filter wiring needed here. */
 	siril_open_dialog("linearmatch_dialog");
 }
 
 void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	/* Phase 14: GtkFileChooserButton was removed in GTK4.  The .ui still
-	 * declares filechooser_mag/_phase widgets — at runtime they'll be
-	 * replaced by GtkButton+GtkFileDialog combinations in Phase 18.
-	 * Defensive: cast through GtkWidget so the symbol still resolves;
-	 * the GTK_FILE_CHOOSER cast is harmless if the widget happens to
-	 * implement GtkFileChooser (some legacy widgets do). */
+	/* Path buttons (filechooser_mag/_phase) are initialised in
+	 * fft_dialog_init_statics() with their filter; we just seed the
+	 * "initial folder" hint that the dialog will use when the button is
+	 * clicked without a prior selection. */
 	GtkWidget *magbutton = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag"));
 	GtkWidget *phasebutton = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase"));
-	if (magbutton && GTK_IS_FILE_CHOOSER(magbutton))
-		siril_file_chooser_set_current_folder_path(GTK_FILE_CHOOSER(magbutton), com.wd);
-	if (phasebutton && GTK_IS_FILE_CHOOSER(phasebutton))
-		siril_file_chooser_set_current_folder_path(GTK_FILE_CHOOSER(phasebutton), com.wd);
-	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_mag"))), "filefilter_fits", "FITS files");
-	siril_set_file_filter(GTK_FILE_CHOOSER(GTK_WIDGET(gtk_builder_get_object(gui.builder, "filechooser_phase"))), "filefilter_fits", "FITS files");
+	siril_file_chooser_set_current_folder_path(magbutton, com.wd);
+	siril_file_chooser_set_current_folder_path(phasebutton, com.wd);
 	siril_open_dialog("dialog_FFT");
 }
 

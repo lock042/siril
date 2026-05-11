@@ -63,15 +63,17 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
-void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 gchar* get_control_window_id();
 GdkRGBA uint32_to_gdk_rgba(uint32_t packed_rgba);
 
-gchar    *siril_file_chooser_get_filename (GtkFileChooser *chooser);
-GSList   *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
-gboolean  siril_file_chooser_set_filename (GtkFileChooser *chooser, const char *path);
-gboolean  siril_file_chooser_set_current_folder_path(GtkFileChooser *chooser, const char *path);
+/* Path-button accessors.  Each function operates on a Phase-18 path button
+ * (a GtkButton wired up via siril_path_button_init); non-button widgets are
+ * rejected.  The deprecated GtkFileChooser interface is no longer used. */
+gchar    *siril_file_chooser_get_filename (GtkWidget *button);
+GSList   *siril_file_chooser_get_filenames(GtkWidget *button);
+gboolean  siril_file_chooser_set_filename (GtkWidget *button, const char *path);
+gboolean  siril_file_chooser_set_current_folder_path(GtkWidget *button, const char *path);
 
 /* GTK4 removed GtkFileChooserButton.  Phase 18 converted those widgets to
  * plain GtkButtons with label "(None)"; this helper wires up a click

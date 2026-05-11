@@ -34,16 +34,16 @@
 
 #include "filters/linear_match.h"
 
-static GtkFileChooser *lm_ref_chooser = NULL;
+static GtkWidget *lm_ref_chooser = NULL;
 static GtkSpinButton *lm_high_spin = NULL;
 static GtkSpinButton *lm_low_spin = NULL;
 
 static void linear_match_init_statics(void) {
 	if (lm_ref_chooser) return;
-	lm_ref_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
+	lm_ref_chooser = GTK_WIDGET(gtk_builder_get_object(gui.builder, "reference_filechooser_linearmatch"));
 	lm_high_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_high"));
 	lm_low_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_linearmatch_low"));
-	siril_image_button_init(GTK_WIDGET(lm_ref_chooser),
+	siril_image_button_init(lm_ref_chooser,
 		_("Select reference image"), _("FITS files"),
 		"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz",
 		NULL, NULL);

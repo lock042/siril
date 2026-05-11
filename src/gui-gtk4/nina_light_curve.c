@@ -241,7 +241,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence loaded"));
 		return;
 	}
-	gchar *nina_file = siril_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
+	gchar *nina_file = siril_file_chooser_get_filename(file_chooser);
 	if (!nina_file){	// Any file for processing?
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Choose a comparison stars file"));
 		g_free(nina_file);
@@ -250,7 +250,7 @@ static void on_nina_lc_response(GtkWindow *self, gint response_id, gpointer user
 	gchar *dirname = g_path_get_dirname(nina_file);
 	if (g_strcmp0(dirname, com.wd) != 0) {	// Tests if the file is in the CWD
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The current comparison stars file is not located in the CWD"));
-		siril_file_chooser_set_current_folder_path(GTK_FILE_CHOOSER(file_chooser), com.wd);
+		siril_file_chooser_set_current_folder_path(file_chooser, com.wd);
 		/* GTK4: gtk_file_chooser_unselect_all removed */;
 		g_free(dirname);
 		g_free(nina_file);

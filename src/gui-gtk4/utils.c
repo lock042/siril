@@ -276,7 +276,6 @@ GList *widget_list_children(GtkWidget *parent) {
  * caller-side patterns become "iterate the selection model's GtkBitset and
  * read items by position" — at that point this function can be deleted.
  * Until then, silence the unavoidable deprecation warnings here. */
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
 		GtkTreeModel *model) {
 	GList *ref = NULL;
@@ -291,7 +290,6 @@ GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
 	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
 	return ref;
 }
-G_GNUC_END_IGNORE_DEPRECATIONS
 /* size is in Bytes */
 void set_GUI_MEM(guint64 used, const gchar *label) {
 	if (com.headless)
@@ -486,30 +484,6 @@ point closest_point_on_line(point in, point p1, point p2) {
 	return out;
 }
 
-// Add the GtkFileFilter filter_name to the GtkFileChooser widget_name
-// If the widget already obeys the filter then it is not added a second time
-void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name) {
-	GtkFileFilter* filter = GTK_FILE_FILTER(lookup_gobject(filter_name));
-	gtk_file_filter_set_name(filter, filter_display_name);
-	/* Batch D pending: GtkFileChooser is deprecated in 4.10 — full
-	 * migration to GtkFileDialog requires async-restructuring every
-	 * caller and is queued for a dedicated round.  See deprecation plan. */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	GListModel *filters = gtk_file_chooser_get_filters(chooser);
-	gboolean add_filter = TRUE;
-	guint n = g_list_model_get_n_items(filters);
-	for (guint i = 0; i < n; i++) {
-		GObject *f = g_list_model_get_item(filters, i);
-		if (f == (GObject *) filter)
-			add_filter = FALSE;
-		g_object_unref(f);
-		if (!add_filter) break;
-	}
-	g_object_unref(filters);
-	if (add_filter)
-		gtk_file_chooser_add_filter(chooser, filter);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-}
 
 /* apply_limits moved to core/utils.c */
 
@@ -839,97 +813,48 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 }
 #endif /* HAVE_LIBHEIF */
 
-/* ── File-chooser filename helpers ────────────────────────────────────────── */
+/* ── Path-button accessors ─────────────────────────────────────────────────
+ *
+ * Phase 18 replaced every GtkFileChooserButton in the .ui files with a
+ * plain GtkButton wired through siril_path_button_init().  The selected
+ * file path is stashed on the button via g_object_set_data so the rest
+ * of the codebase can keep using "char *path" semantics.  These four
+ * helpers read/write that stashed data.
+ *
+ * For actual dialog-based open/save flows, callers should use
+ * SirilFileChooser (siril_fc_*) which wraps GtkFileDialog
+ * synchronously; the deprecated GtkFileChooser interface is no longer
+ * touched here. */
 
-/* Phase 14B: GTK4 removed gtk_file_chooser_get_uri/_uris and
- * gtk_file_chooser_get_filename.  The replacements are
- * gtk_file_chooser_get_file (returns GFile*) and
- * gtk_file_chooser_get_files (returns GListModel<GFile*>).  We still want
- * to hand callers a plain "char *path" so the rest of the codebase can keep
- * its filename-string semantics. */
-
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
-	if (!chooser) return NULL;
-	/* GTK4 removed GtkFileChooserButton; the migrated .ui uses plain
-	 * GtkButtons that we wire up to open a GtkFileDialog and stash the
-	 * chosen path on the button via g_object_set_data.  Read from there
-	 * when the caller hands us a GtkButton. */
-	if (GTK_IS_BUTTON(chooser)) {
-		const gchar *p = g_object_get_data(G_OBJECT(chooser), "siril-path");
-		return p ? g_strdup(p) : NULL;
-	}
-	if (!GTK_IS_FILE_CHOOSER(chooser)) return NULL;
-	/* Batch D pending: GtkFileChooser is deprecated in 4.10. */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	GFile *gf = gtk_file_chooser_get_file(chooser);
-	gchar *filename = NULL;
-	if (gf) {
-		filename = g_file_get_path(gf);
-		g_object_unref(gf);
-	}
-	/* Fallback for Save dialogs where the typed name has no GFile yet. */
-	if (!filename)
-		filename = g_strdup(gtk_file_chooser_get_current_name(chooser));
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	return filename;
+gchar *siril_file_chooser_get_filename(GtkWidget *button) {
+	if (!button || !GTK_IS_BUTTON(button)) return NULL;
+	const gchar *p = g_object_get_data(G_OBJECT(button), "siril-path");
+	return p ? g_strdup(p) : NULL;
 }
 
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
-	GSList *filenames = NULL;
-	if (!chooser) return NULL;
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	GListModel *files = gtk_file_chooser_get_files(chooser);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	if (!files) return NULL;
-	guint n = g_list_model_get_n_items(files);
-	for (guint i = 0; i < n; ++i) {
-		GFile *gf = G_FILE(g_list_model_get_item(files, i));
-		if (gf) {
-			gchar *path = g_file_get_path(gf);
-			if (path)
-				filenames = g_slist_append(filenames, path);
-			g_object_unref(gf);
-		}
-	}
-	g_object_unref(files);
-	return filenames;
+GSList *siril_file_chooser_get_filenames(GtkWidget *button) {
+	/* Path buttons hold a single path; multi-select isn't supported
+	 * on this widget.  Return a single-element list to keep the
+	 * caller's iteration shape. */
+	gchar *p = siril_file_chooser_get_filename(button);
+	return p ? g_slist_append(NULL, p) : NULL;
 }
 
-gboolean siril_file_chooser_set_filename(GtkFileChooser *chooser, const char *path) {
-	if (!chooser || !path) return FALSE;
-	if (GTK_IS_BUTTON(chooser)) {
-		g_object_set_data_full(G_OBJECT(chooser), "siril-path",
-		                       g_strdup(path), g_free);
-		gchar *base = g_path_get_basename(path);
-		gtk_button_set_label(GTK_BUTTON(chooser), base && *base ? base : "(None)");
-		g_free(base);
-		return TRUE;
-	}
-	if (!GTK_IS_FILE_CHOOSER(chooser)) return FALSE;
-	GFile *gf = g_file_new_for_path(path);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	gboolean ok = gtk_file_chooser_set_file(chooser, gf, NULL);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	g_object_unref(gf);
-	return ok;
+gboolean siril_file_chooser_set_filename(GtkWidget *button, const char *path) {
+	if (!button || !path || !GTK_IS_BUTTON(button)) return FALSE;
+	g_object_set_data_full(G_OBJECT(button), "siril-path",
+	                       g_strdup(path), g_free);
+	gchar *base = g_path_get_basename(path);
+	gtk_button_set_label(GTK_BUTTON(button), base && *base ? base : "(None)");
+	g_free(base);
+	return TRUE;
 }
 
-gboolean siril_file_chooser_set_current_folder_path(GtkFileChooser *chooser, const char *path) {
-	if (!chooser || !path) return FALSE;
-	/* GtkButton path-picker replacement: stash the folder as an initial
-	 * hint the click handler will use when no previous file is recorded. */
-	if (GTK_IS_BUTTON(chooser)) {
-		g_object_set_data_full(G_OBJECT(chooser), "siril-initial-folder",
-		                       g_strdup(path), g_free);
-		return TRUE;
-	}
-	if (!GTK_IS_FILE_CHOOSER(chooser)) return FALSE;
-	GFile *gf = g_file_new_for_path(path);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch D pending */
-	gboolean ok = gtk_file_chooser_set_current_folder(chooser, gf, NULL);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	g_object_unref(gf);
-	return ok;
+gboolean siril_file_chooser_set_current_folder_path(GtkWidget *button, const char *path) {
+	if (!button || !path || !GTK_IS_BUTTON(button)) return FALSE;
+	g_object_set_data_full(G_OBJECT(button), "siril-initial-folder",
+	                       g_strdup(path), g_free);
+	return TRUE;
 }
 
 /* ---- GtkFileChooserButton replacement ----
