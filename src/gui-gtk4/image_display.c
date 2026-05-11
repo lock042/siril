@@ -106,13 +106,46 @@ static void image_display_init_statics(void) {
 
 static void invalidate_image_render_cache(int vport);
 
+/* Build (or rebuild) view->texture from view->buf at its current
+ * stride / height.  Must be called with gui.cairo_mutex held.
+ *
+ * GdkTexture is documented as immutable: GTK4 may cache its GPU upload
+ * keyed on the texture object, so modifying the underlying bytes after
+ * the upload leaves the on-screen image stale.  We therefore drop the
+ * previous texture and create a fresh one whenever view->buf is
+ * (re-)written, which assigns it a new identity and forces GSK to
+ * re-upload the bytes on the next snapshot.
+ *
+ * The bytes are wrapped via g_bytes_new_static — the buffer is owned by
+ * the view and outlives any texture that points at it; the caller is
+ * responsible for clearing the texture before reallocating buf. */
+static void view_refresh_texture(struct image_view *view) {
+	if (view->texture) {
+		g_object_unref(view->texture);
+		view->texture = NULL;
+	}
+	if (!view->buf || view->full_surface_stride <= 0 || view->full_surface_height <= 0)
+		return;
+	int w = view->full_surface_stride / 4;
+	int h = view->full_surface_height;
+	gsize len = (gsize)view->full_surface_stride * h;
+	GBytes *bytes = g_bytes_new_static(view->buf, len);
+	/* CAIRO_FORMAT_RGB24 is a 32-bit-per-pixel format with R/G/B in the
+	 * upper 24 bits and an unused byte in the high position.  On little-
+	 * endian targets the bytes in memory are B, G, R, X — which matches
+	 * GDK_MEMORY_B8G8R8X8. */
+	view->texture = gdk_memory_texture_new(w, h, GDK_MEMORY_B8G8R8X8,
+	                                        bytes, view->full_surface_stride);
+	g_bytes_unref(bytes);
+}
+
 static int allocate_full_surface(struct image_view *view) {
 	g_mutex_lock(&gui.cairo_mutex);
 
 	/* Cairo surfaces are limited to 32767 px per side (int16_t internally).
 	 * For images that exceed this limit, scale down to at most 4096 px per
 	 * side so the display buffer stays within reasonable memory bounds.
-	 * (Step 2 - GtkGLArea - will provide full-resolution tile rendering.) */
+	 * (Phase 2 — tiling — will eliminate this limit entirely.) */
 #define SIRIL_MAX_SURFACE_DIM 4096
 	double scale = 1.0;
 	if (gfit->rx > 32767 || gfit->ry > 32767)
@@ -133,6 +166,13 @@ static int allocate_full_surface(struct image_view *view) {
 				|| sh != view->full_surface_height
 				|| !view->full_surface || !view->buf) {
 		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
+
+		/* Drop the texture before realloc: it wraps view->buf via a
+		 * static GBytes that would dangle if realloc moved the buffer. */
+		if (view->texture) {
+			g_object_unref(view->texture);
+			view->texture = NULL;
+		}
 
 		guchar *tmp = realloc(view->buf, (size_t)stride * sh * sizeof(guchar));
 		if (!tmp) {
@@ -168,6 +208,8 @@ static int allocate_full_surface(struct image_view *view) {
 			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
+		/* The texture will be (re-)created at the end of the next remap
+		 * pass when buf is populated; leave it NULL here. */
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 	return 0;
@@ -220,6 +262,7 @@ static void remaprgb(void) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(rgbview->full_surface);
 	cairo_surface_mark_dirty(rgbview->full_surface);
+	view_refresh_texture(rgbview);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -417,6 +460,7 @@ static void remap_mask(mask_t *mask) {
 
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	view_refresh_texture(view);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -638,6 +682,7 @@ static void remap(int vport) {
 	// flush to ensure all writing to the image was done and redraw the surface
 	cairo_surface_flush(view->full_surface);
 	cairo_surface_mark_dirty(view->full_surface);
+	view_refresh_texture(view);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -1009,6 +1054,7 @@ static void remap_all_vports() {
 	for (int vport = 0 ; vport < 3 ; vport++) {
 		cairo_surface_flush(view[vport]->full_surface);
 		cairo_surface_mark_dirty(view[vport]->full_surface);
+		view_refresh_texture(view[vport]);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
@@ -1195,9 +1241,229 @@ static void request_gtk_redraw_of_cvport() {
 void redraw_drawingarea(GtkDrawingArea *area, cairo_t *cr,
                          int width, int height, gpointer data);
 
-/* GTK4 has no signal-block facility on the draw_func.  Use an atomic flag
- * the draw_func consults to short-circuit drawing while the worker runs. */
+/* GTK4 has no signal-block facility on the draw_func / snapshot vfunc.
+ * Use an atomic flag the renderers consult to short-circuit drawing while
+ * a worker repaints the buffers. */
 static gint drawarea_handlers_blocked;
+
+/* Forward declarations for overlay-drawing helpers used by both the
+ * legacy redraw_drawingarea path and the new SirilImageView::snapshot path
+ * below.  All are defined later in this file. */
+static void draw_empty_image(const draw_data_t* dd);
+static void draw_selection(const draw_data_t* dd);
+static void draw_roi(const draw_data_t *dd);
+static void draw_cut_line(const draw_data_t* dd);
+static void draw_measurement_line(const draw_data_t* dd);
+static void draw_in_progress_poly(const draw_data_t* dd);
+static void draw_user_polygons(const draw_data_t* dd);
+static void draw_stars(const draw_data_t* dd);
+static void draw_wcs_grid(const draw_data_t* dd);
+static void draw_wcs_disto(const draw_data_t *dd);
+static void draw_annotates(const draw_data_t* dd);
+static void draw_analysis(const draw_data_t *dd);
+static void draw_brg_boxes(const draw_data_t* dd);
+static void draw_regframe(const draw_data_t* dd);
+static void draw_rgb_centers(const draw_data_t* dd);
+
+/* ── SirilImageView: GTK4 snapshot-based image viewport ───────────────────
+ *
+ * This widget replaces GtkDrawingArea for the five image viewports.  Its
+ * snapshot() vfunc renders the image via gtk_snapshot_append_scaled_texture
+ * (from a GdkMemoryTexture that wraps view->buf) and overlays via
+ * gtk_snapshot_append_cairo, so the image flows through GSK to the GPU
+ * compositor while the existing Cairo overlay drawing code remains
+ * unchanged.
+ *
+ * The disp_surface cache and the Cairo full_surface → disp_surface compose
+ * pass that the legacy redraw_drawingarea path uses are bypassed here —
+ * GSK already caches its render-node tree between frames, so panning and
+ * zooming don't re-walk pixel data.  The legacy Cairo path is retained for
+ * add_image_and_label_to_cairo (used by the snapshot-save feature). */
+
+struct _SirilImageView {
+	GtkWidget parent_instance;
+};
+
+G_DEFINE_FINAL_TYPE(SirilImageView, siril_image_view, GTK_TYPE_WIDGET)
+
+static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot);
+
+static void siril_image_view_class_init(SirilImageViewClass *klass) {
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(klass);
+	widget_class->snapshot = siril_image_view_snapshot;
+}
+
+static void siril_image_view_init(SirilImageView *self) {
+	gtk_widget_set_focusable(GTK_WIDGET(self), TRUE);
+}
+
+void siril_image_view_register(void) {
+	g_type_ensure(SIRIL_TYPE_IMAGE_VIEW);
+}
+
+/* Snapshot vfunc — see redraw_drawingarea for the legacy Cairo equivalent.
+ * The two share the overlay-drawing call sequence; only the image draw
+ * differs (snapshot append_texture vs Cairo set_source_surface + paint). */
+static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) {
+	if (g_atomic_int_get(&drawarea_handlers_blocked))
+		return;
+
+	int vport = match_drawing_area_widget(widget, TRUE);
+	if (vport < 0)
+		return;
+
+	const int width  = gtk_widget_get_width(widget);
+	const int height = gtk_widget_get_height(widget);
+	if (width <= 0 || height <= 0)
+		return;
+
+	image_display_init_statics();
+
+	g_mutex_lock(&gui.cairo_mutex);
+	const gboolean has_buf = (gui.view[vport].buf != NULL);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	/* GTK4 doesn't auto-clip a widget's snapshot tree to its allocation —
+	 * append_texture with a transform that extends past the widget bounds
+	 * will paint over neighbouring widgets.  Push a clip rectangle that
+	 * matches our allocation, covering both the texture pass and the
+	 * Cairo overlay below. */
+	gtk_snapshot_push_clip(snapshot,
+		&GRAPHENE_RECT_INIT(0, 0, (float)width, (float)height));
+
+	if (!has_buf) {
+		/* No image loaded: route to the existing Cairo "splash" code via
+		 * a snapshot Cairo subnode. */
+		cairo_t *cr = gtk_snapshot_append_cairo(snapshot,
+			&GRAPHENE_RECT_INIT(0, 0, width, height));
+		draw_data_t dd = { 0 };
+		dd.cr = cr;
+		dd.vport = vport;
+		dd.window_width = width;
+		dd.window_height = height;
+		draw_empty_image(&dd);
+		cairo_destroy(cr);
+		gtk_snapshot_pop(snapshot);
+		return;
+	}
+
+	/* Recompute display_matrix from current zoom/offset (matches the
+	 * legacy path before draw_main_image runs). */
+	adjust_vport_size_to_image();
+
+	/* Snapshot the texture + dimensions under the lock so a concurrent
+	 * remap (which may release & rebuild view->texture under cairo_mutex)
+	 * can't pull the rug from under us mid-render. */
+	g_mutex_lock(&gui.cairo_mutex);
+	GdkTexture *tex = gui.view[vport].texture;
+	if (tex) g_object_ref(tex);
+	const int fs_h = gui.view[vport].full_surface_height;
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	if (tex) {
+		const int tex_w = gdk_texture_get_width(tex);
+		const int tex_h = gdk_texture_get_height(tex);
+
+		gtk_snapshot_save(snapshot);
+
+		/* display_matrix maps image-space → widget-space: (x,y) ↦
+		 * (xx*x + x0, yy*y + y0).  Express it as translate-then-scale. */
+		gtk_snapshot_translate(snapshot,
+			&GRAPHENE_POINT_INIT((float)gui.display_matrix.x0,
+			                      (float)gui.display_matrix.y0));
+		gtk_snapshot_scale(snapshot,
+			(float)gui.display_matrix.xx,
+			(float)gui.display_matrix.yy);
+
+		/* If gui.surface_scale < 1.0, the texture is smaller than the
+		 * image (the Cairo 32k-px workaround).  Scale up by the inverse
+		 * so image-space coords still map correctly. */
+		double ss = (fs_h > 0 && gfit->ry > 0)
+			? (double)fs_h / (double)gfit->ry : 1.0;
+		if (ss < 1.0 && ss > 0.0) {
+			float k = (float)(1.0 / ss);
+			gtk_snapshot_scale(snapshot, k, k);
+		}
+
+		/* The remap writes rows bottom-up so that the image renders
+		 * top-down on screen — except in the livestacking TOP-DOWN case,
+		 * where the buffer is stored top-down and needs a y-flip. */
+		if (livestacking_is_started()
+		    && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
+			gtk_snapshot_translate(snapshot,
+				&GRAPHENE_POINT_INIT(0.0f, (float)tex_h));
+			gtk_snapshot_scale(snapshot, 1.0f, -1.0f);
+		}
+
+		const double zoom = get_zoom_val();
+		const GskScalingFilter filter = (zoom < 1.0)
+			? GSK_SCALING_FILTER_TRILINEAR
+			: GSK_SCALING_FILTER_NEAREST;
+		gtk_snapshot_append_scaled_texture(snapshot, tex, filter,
+			&GRAPHENE_RECT_INIT(0, 0, tex_w, tex_h));
+
+		gtk_snapshot_restore(snapshot);
+		g_object_unref(tex);
+	}
+
+	/* Overlays: open a Cairo subnode covering the full widget, apply
+	 * display_matrix so overlay drawing functions operate in image-space
+	 * (matches what redraw_drawingarea sets up). */
+	cairo_t *cr = gtk_snapshot_append_cairo(snapshot,
+		&GRAPHENE_RECT_INIT(0, 0, width, height));
+	cairo_transform(cr, &gui.display_matrix);
+
+	draw_data_t dd = { 0 };
+	dd.cr = cr;
+	dd.vport = vport;
+	dd.window_width = width;
+	dd.window_height = height;
+	dd.zoom = get_zoom_val();
+	dd.image_width = gfit->rx;
+	dd.image_height = gfit->ry;
+	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
+
+	static GAction *action_neg = NULL;
+	if (action_neg == NULL)
+		action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
+	if (action_neg) {
+		GVariant *state = g_action_get_state(action_neg);
+		dd.neg_view = g_variant_get_boolean(state);
+		g_variant_unref(state);
+	}
+
+	/* Same overlay sequence redraw_drawingarea uses, minus draw_main_image
+	 * (which we've already rendered via the texture path above). */
+	draw_selection(&dd);
+	draw_roi(&dd);
+	draw_cut_line(&dd);
+	draw_measurement_line(&dd);
+	draw_in_progress_poly(&dd);
+	draw_user_polygons(&dd);
+	g_mutex_lock(&com.mutex);
+	draw_stars(&dd);
+	g_mutex_unlock(&com.mutex);
+	draw_wcs_grid(&dd);
+	draw_wcs_disto(&dd);
+	draw_annotates(&dd);
+	draw_analysis(&dd);
+	draw_brg_boxes(&dd);
+	draw_regframe(&dd);
+	draw_rgb_centers(&dd);
+	if (gui.draw_extra)
+		gui.draw_extra(&dd);
+
+	/* GTK3-equivalent: histogram_overlay_paint inherits the
+	 * display_matrix transform that's been applied to cr above — this
+	 * matches the legacy redraw_drawingarea behaviour and is what the
+	 * widget-coords-vs-image-coords positioning expects. */
+	histogram_overlay_paint(widget, cr);
+
+	cairo_destroy(cr);
+
+	gtk_snapshot_pop(snapshot);  /* matches push_clip at the top */
+}
+
 
 void block_drawarea_handlers(void) {
 	g_atomic_int_set(&drawarea_handlers_blocked, 1);

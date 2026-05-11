@@ -31,6 +31,18 @@ void block_drawarea_handlers(void);   // block viewport draw signal handlers (GT
 void unblock_drawarea_handlers(void); // unblock viewport draw signal handlers (GTK main thread only)
 void install_drawarea_draw_funcs(void); // wire viewports to redraw_drawingarea (GTK4)
 
+/* Custom GtkWidget that renders an image viewport via GtkSnapshot + GdkTexture
+ * (Phase 1 of the image-display GPU migration).  Replaces GtkDrawingArea in
+ * siril.ui so we can append a GdkTexture for the image and a Cairo subnode
+ * for overlays in a single snapshot pass.  The type must be registered with
+ * GType before gtk_builder reads the XML, see siril_image_view_register(). */
+#define SIRIL_TYPE_IMAGE_VIEW (siril_image_view_get_type())
+G_DECLARE_FINAL_TYPE(SirilImageView, siril_image_view, SIRIL, IMAGE_VIEW, GtkWidget)
+
+/* Ensure the SirilImageView GType is registered.  Called once from
+ * application startup before any GtkBuilder XML is parsed. */
+void siril_image_view_register(void);
+
 double get_zoom_val();	// for image_interactions
 
 point get_center_of_vport();

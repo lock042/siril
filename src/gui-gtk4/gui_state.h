@@ -79,8 +79,14 @@ struct image_view {
 	int               view_width;        /* drawing area dimensions */
 	int               view_height;
 
-	cairo_surface_t  *full_surface;
-	cairo_surface_t  *disp_surface;      /* cached rendered frame */
+	cairo_surface_t  *full_surface;      /* Cairo wrapper over buf — used by the
+	                                        snapshot-save / add_image_and_label_to_cairo
+	                                        path; not used by the on-screen renderer. */
+	GdkTexture       *texture;           /* GdkMemoryTexture wrapper over buf — used by
+	                                        SirilImageView::snapshot for GPU compositing.
+	                                        Recreated after every remap (immutable). */
+	cairo_surface_t  *disp_surface;      /* legacy disp-cache, retained while the
+	                                        snapshot-rendering path is being phased in. */
 };
 
 /* ── draw callback context ────────────────────────────────────────────────── */

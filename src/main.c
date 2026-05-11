@@ -99,6 +99,7 @@
 #include "gui-gtk4/ui_files.h"
 #include "gui-gtk4/utils.h"
 #include "gui-gtk4/callbacks.h"
+#include "gui-gtk4/image_display.h"
 #include "gui-gtk4/siril_css.h"
 #include "gui-gtk4/splashscreen.h"
 #else
@@ -527,6 +528,11 @@ static void siril_app_activate(GApplication *application) {
 
 		/* Load UI files */
 		update_splash_progress(_("Loading user interface..."), 0.65);
+#ifdef USE_GTK4
+		/* Register custom widget types before the builder reads any XML
+		 * that references them. */
+		siril_image_view_register();
+#endif
 		load_ui_files();
 		init_histogram_overlay();
 		siril_register_gui_iface();

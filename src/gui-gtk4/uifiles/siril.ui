@@ -2651,7 +2651,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </object>
                             </child>
                             <child>
-                              <object class="GtkDrawingArea" id="drawingarear">
+                              <object class="SirilImageView" id="drawingarear">
                                 <property name="vexpand">1</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
@@ -2744,7 +2744,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </object>
                             </child>
                             <child>
-                              <object class="GtkDrawingArea" id="drawingareag">
+                              <object class="SirilImageView" id="drawingareag">
                                 <property name="vexpand">1</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
@@ -2835,7 +2835,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </object>
                             </child>
                             <child>
-                              <object class="GtkDrawingArea" id="drawingareab">
+                              <object class="SirilImageView" id="drawingareab">
                                 <property name="vexpand">1</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
@@ -2928,7 +2928,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               <object class="GtkOverlay">
                                 <property name="vexpand">1</property>
                                 <property name="child">
-                                  <object class="GtkDrawingArea" id="drawingareargb">
+                                  <object class="SirilImageView" id="drawingareargb">
                                     <property name="margin-start">2</property>
                                     <property name="margin-end">2</property>
                                     <property name="margin-top">2</property>
@@ -3036,7 +3036,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
                               </object>
                             </child>
                             <child>
-                              <object class="GtkDrawingArea" id="drawingareamask">
+                              <object class="SirilImageView" id="drawingareamask">
                                 <property name="vexpand">1</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
