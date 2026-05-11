@@ -168,31 +168,28 @@ static void show_undo_history_popover(GtkWidget *button, int dir) {
 	gtk_popover_popup(GTK_POPOVER(popover));
 }
 
-static void on_long_press_undo(GtkGestureLongPress *gesture, gdouble x, gdouble y, gpointer user_data) {
-	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-	show_undo_history_popover(GTK_WIDGET(user_data), UNDO);
+static gboolean on_undo_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	if (event->button == GDK_BUTTON_SECONDARY) {
+		show_undo_history_popover(widget, UNDO);
+		return TRUE;
+	}
+	return FALSE;
 }
 
-static void on_long_press_redo(GtkGestureLongPress *gesture, gdouble x, gdouble y, gpointer user_data) {
-	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-	show_undo_history_popover(GTK_WIDGET(user_data), REDO);
+static gboolean on_redo_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+	if (event->button == GDK_BUTTON_SECONDARY) {
+		show_undo_history_popover(widget, REDO);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 void setup_undo_redo_long_press(void) {
 	GtkWidget *undo_btn = lookup_widget("header_undo_button");
 	GtkWidget *redo_btn = lookup_widget("header_redo_button");
 
-	/* Intentionally not unreffed: the widget holds no strong ref in GTK 3.24,
-	 * so we keep the reference alive for the lifetime of the application. */
-	GtkGesture *undo_gesture = gtk_gesture_long_press_new(undo_btn);
-	gtk_gesture_single_set_touch_only(GTK_GESTURE_SINGLE(undo_gesture), FALSE);
-	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(undo_gesture), GTK_PHASE_CAPTURE);
-	g_signal_connect(undo_gesture, "pressed", G_CALLBACK(on_long_press_undo), undo_btn);
-
-	GtkGesture *redo_gesture = gtk_gesture_long_press_new(redo_btn);
-	gtk_gesture_single_set_touch_only(GTK_GESTURE_SINGLE(redo_gesture), FALSE);
-	gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(redo_gesture), GTK_PHASE_CAPTURE);
-	g_signal_connect(redo_gesture, "pressed", G_CALLBACK(on_long_press_redo), redo_btn);
+	g_signal_connect(undo_btn, "button-press-event", G_CALLBACK(on_undo_button_press), NULL);
+	g_signal_connect(redo_btn, "button-press-event", G_CALLBACK(on_redo_button_press), NULL);
 }
 
 static GList *roi_callbacks = NULL;
