@@ -70,31 +70,48 @@ typedef struct {
 /* Rendering cache for one display viewport.  The raw pixel buffer (buf) is
  * written by worker threads; all other fields are GTK/Cairo and live only
  * on the main thread. */
+/* Per-tile state.  In eager mode tile->data is a pointer into the shared
+ * view->buf (no separate allocation); in lazy mode each tile owns its own
+ * malloc'd byte buffer that can be freed under LRU pressure.  In both
+ * modes tile->texture wraps tile->data (or its slice of buf) via a static
+ * GBytes; both pointers are NULL when the tile is evicted / not yet
+ * materialised. */
+struct image_tile {
+	guchar     *data;
+	GdkTexture *texture;
+	guint64     last_used;   /* lazy-mode LRU epoch */
+	gboolean    dirty;       /* lazy-mode flag: LUT/data changed since last fill */
+};
+
 struct image_view {
 	GtkWidget        *drawarea;
 
-	/* Row-major BGRA8 (CAIRO_FORMAT_RGB24 / GDK_MEMORY_B8G8R8X8 byte layout)
-	 * pixel buffer at the image's natural dimensions (no longer downsampled
-	 * for the Cairo 32k limit — the renderer wraps this buffer as a grid of
-	 * GdkTextures, each one well under any GPU texture-size limit).
-	 *
-	 * The remap inner loops still write to `buf` in the same row-major way;
-	 * the texture grid only changes how the GPU sees the buffer. */
-	guchar           *buf;
-	int               buf_stride;        /* bytes per row in `buf` */
-	int               buf_height;        /* rows in `buf` */
+	/* Image dimensions the tile grid represents. */
+	int               buf_stride;        /* bytes per image row (= img_w * 4 rounded) */
+	int               buf_height;        /* img_h */
 	int               view_width;        /* drawing area dimensions */
 	int               view_height;
 
-	/* Tile grid wrapping `buf`.  Each tile is at most SIRIL_TILE_DIM × SIRIL_TILE_DIM
-	 * pixels; right- and bottom-edge tiles may be smaller (sized to the image's
-	 * remaining extent).  Each texture wraps the corresponding sub-region of `buf`
-	 * via the buf_stride so consecutive texture rows index into consecutive image
-	 * rows of the wider buffer.  Recreated after every remap (GdkTexture is
-	 * immutable). */
+	/* Tile grid.  Each tile is at most SIRIL_TILE_DIM × SIRIL_TILE_DIM pixels;
+	 * right- and bottom-edge tiles may be smaller. */
 	int               tile_dim;
 	int               tile_cols, tile_rows;
-	GdkTexture      **tile_textures;
+	struct image_tile *tiles;            /* tile_cols * tile_rows entries */
+
+	/* Eager-mode contiguous buffer: a single allocation of the whole image,
+	 * with each tile->data pointing into it (each texture wraps a sub-region
+	 * via buf_stride).  NULL in lazy mode.  buf is borrowed from buf_gbytes
+	 * for convenient indexing — the refcounted GBytes is what actually owns
+	 * the allocation, so the bytes outlive any tile texture that GSK is
+	 * still rendering. */
+	guchar           *buf;
+	GBytes           *buf_gbytes;
+
+	/* Lazy mode: tile bytes are allocated on demand by materialise_tile and
+	 * may be freed by LRU eviction once lazy_bytes_used exceeds the budget. */
+	gboolean          lazy;
+	gsize             lazy_bytes_used;
+	guint64           lazy_epoch;
 };
 
 /* ── draw callback context ────────────────────────────────────────────────── */

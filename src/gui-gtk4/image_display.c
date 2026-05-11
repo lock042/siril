@@ -114,66 +114,196 @@ static void invalidate_image_render_cache(int vport);
  * images Siril works with. */
 #define SIRIL_TILE_DIM 2048
 
-/* Release every tile texture; the underlying bytes (view->buf) are not
- * freed by this. */
-static void view_drop_tile_textures(struct image_view *view) {
-	if (!view->tile_textures) return;
-	int n = view->tile_cols * view->tile_rows;
+/* Per-tile guard band (extra pixels along the right and bottom edges).
+ * GSK's TRILINEAR filter builds an independent mipmap pyramid per
+ * texture; at mipmap level k each texel is averaged from 2^k source
+ * pixels.  For adjacent tiles' boundary mip-texels to be averaged from
+ * the *same* source-pixel range (i.e. for the boundary to look seamless
+ * at zoom 1/2^k), each tile needs a guard of at least 2^k pixels of the
+ * next tile's data on each open edge.  64 covers zoom levels down to
+ * 1/64, which is well past what users normally zoom out to.  Costs ~6 %
+ * extra texture memory for interior tiles (2112² vs 2048²). */
+#define SIRIL_TILE_GUARD 64
+
+/* Lazy-mode RAM budget.  Once the sum of materialised tile bytes for one
+ * viewport exceeds this, materialise_tile evicts the LRU tile(s) until
+ * back under budget.  Only meaningful for multi-tile images — single-
+ * tile images use eager mode and bypass the LRU entirely. */
+#define SIRIL_LAZY_BUDGET    ((gsize)512 * 1024 * 1024)
+
+/* Return the dimensions of tile (tx, ty) in image-space.  Edge tiles may
+ * be smaller than tile_dim. */
+static inline void tile_dims(const struct image_view *view, int tx, int ty,
+                              int *out_x0, int *out_y0, int *out_w, int *out_h) {
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const int x0 = tx * view->tile_dim;
+	const int y0 = ty * view->tile_dim;
+	*out_x0 = x0;
+	*out_y0 = y0;
+	*out_w = MIN(view->tile_dim, img_w - x0);
+	*out_h = MIN(view->tile_dim, img_h - y0);
+}
+
+/* As tile_dims, but also returns the texture's actual width and height
+ * including a SIRIL_TILE_GUARD-pixel "guard band" along the right and
+ * bottom edges (when there's an adjacent tile to take the guard data
+ * from).  The guard duplicates the first SIRIL_TILE_GUARD rows/columns
+ * of the neighbouring tile so the scaling filter — including TRILINEAR
+ * mipmap pre-filtering — samples consistent data across the boundary
+ * instead of seeing per-tile pyramid discontinuities. */
+static inline void tile_dims_padded(const struct image_view *view,
+                                     int tx, int ty,
+                                     int *out_x0, int *out_y0,
+                                     int *out_w, int *out_h,
+                                     int *out_tex_w, int *out_tex_h) {
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	tile_dims(view, tx, ty, out_x0, out_y0, out_w, out_h);
+	/* The guard is the smaller of SIRIL_TILE_GUARD and however many real
+	 * image pixels actually exist past this tile's edge — never invent
+	 * data, and never read past the image. */
+	const int guard_x = (tx < view->tile_cols - 1)
+		? MIN(SIRIL_TILE_GUARD, img_w - (*out_x0 + *out_w))
+		: 0;
+	const int guard_y = (ty < view->tile_rows - 1)
+		? MIN(SIRIL_TILE_GUARD, img_h - (*out_y0 + *out_h))
+		: 0;
+	*out_tex_w = *out_w + guard_x;
+	*out_tex_h = *out_h + guard_y;
+}
+
+/* Release a lazy-mode tile.  We unref the texture but do NOT free
+ * tile->data directly: the texture's GBytes was constructed with
+ * g_bytes_new_with_free_func(free), so the bytes are released
+ * automatically when the GBytes' last reference drops — which is
+ * deferred until GSK finishes any in-flight render that referenced
+ * this texture, avoiding the use-after-free that would otherwise hit
+ * gdk_memory_convert.
+ *
+ * lazy_bytes_used tracks the "logical" budget — we decrement it here
+ * even though the physical bytes may live a little longer.  Worst case
+ * the budget overshoots briefly during a busy redraw; for the
+ * 512 MB-default target that's a sub-tile margin.  Must be called with
+ * gui.cairo_mutex held. */
+static void tile_release(struct image_view *view, struct image_tile *tile) {
+	if (!view->lazy) return;  /* eager-mode tiles share view->buf */
+	gsize bytes = 0;
+	if (tile->data) {
+		ptrdiff_t ti = tile - view->tiles;
+		int tx = (int)(ti % view->tile_cols);
+		int ty = (int)(ti / view->tile_cols);
+		int x0, y0, tw, th;
+		tile_dims(view, tx, ty, &x0, &y0, &tw, &th);
+		bytes = (gsize)tw * th * 4;
+	}
+	if (tile->texture) {
+		g_object_unref(tile->texture);
+		tile->texture = NULL;
+	}
+	tile->data = NULL;
+	if (view->lazy_bytes_used >= bytes)
+		view->lazy_bytes_used -= bytes;
+	else
+		view->lazy_bytes_used = 0;
+	tile->dirty = TRUE;
+}
+
+/* Release every tile texture (and, in lazy mode, the bytes too).  Must be
+ * called with gui.cairo_mutex held. */
+static void view_drop_all_tile_textures(struct image_view *view) {
+	if (!view->tiles) return;
+	const int n = view->tile_cols * view->tile_rows;
 	for (int i = 0; i < n; i++) {
-		if (view->tile_textures[i]) {
-			g_object_unref(view->tile_textures[i]);
-			view->tile_textures[i] = NULL;
+		if (view->lazy) {
+			tile_release(view, &view->tiles[i]);
+		} else {
+			if (view->tiles[i].texture) {
+				g_object_unref(view->tiles[i].texture);
+				view->tiles[i].texture = NULL;
+			}
+			/* eager tile->data points into view->buf; not owned. */
+			view->tiles[i].data = NULL;
 		}
 	}
 }
 
-/* (Re)build the array of GdkTextures that expose view->buf as a tile
- * grid.  Must be called with gui.cairo_mutex held.
+/* Eager mode: (re)build all tile textures, each wrapping a sub-region of
+ * view->buf via the buf row stride.  Each tile's GBytes is a sub-bytes
+ * of the parent view->buf_gbytes, so it retains a refcount on the parent
+ * — the parent's free function (which frees view->buf) won't fire until
+ * every tile texture that GSK still holds is also released, preventing
+ * the use-after-free that happens if realloc/free runs while the
+ * renderer is mid-frame.
  *
- * Each tile texture wraps a sub-region of view->buf via a static GBytes
- * with the buf's row stride — so consecutive texture rows index into
- * consecutive buf rows of the wider image.  The buffer is owned by the
- * view and outlives any texture pointing at it; callers must clear the
- * textures (via view_drop_tile_textures) before reallocating buf.
+ * Non-rightmost / non-bottommost tiles include a SIRIL_TILE_GUARD-pixel
+ * guard band beyond their nominal extent — the underlying buf already
+ * contains the neighbouring tile's first pixels there, so the texture
+ * simply extends into them via the buf row stride.  See
+ * tile_dims_padded for the rationale (mipmap-consistent boundaries).
  *
- * GdkTexture is immutable: GSK may cache its GPU upload keyed on the
- * texture object, so we drop and recreate the textures after every
- * remap to give them fresh identities and force re-upload. */
-static void view_refresh_tile_textures(struct image_view *view) {
-	view_drop_tile_textures(view);
-	if (!view->buf || !view->tile_textures || view->buf_stride <= 0 ||
-	    view->buf_height <= 0)
+ * Must be called with gui.cairo_mutex held. */
+static void view_refresh_tile_textures_eager(struct image_view *view) {
+	view_drop_all_tile_textures(view);
+	if (!view->buf_gbytes || !view->tiles || view->buf_stride <= 0
+	    || view->buf_height <= 0)
 		return;
-	const int img_w = view->buf_stride / 4;
-	const int img_h = view->buf_height;
 	for (int ty = 0; ty < view->tile_rows; ty++) {
 		for (int tx = 0; tx < view->tile_cols; tx++) {
-			const int x0 = tx * view->tile_dim;
-			const int y0 = ty * view->tile_dim;
-			const int tw = MIN(view->tile_dim, img_w - x0);
-			const int th = MIN(view->tile_dim, img_h - y0);
-			if (tw <= 0 || th <= 0)
-				continue;
-			guchar *p = view->buf + (size_t)y0 * view->buf_stride + (size_t)x0 * 4;
-			/* The GBytes covers from the tile's first row up to the
-			 * last byte of its last row (not the full buf row stride
-			 * past that), so g_bytes_new_static doesn't claim memory
-			 * outside the buffer. */
-			gsize len = (gsize)(th - 1) * view->buf_stride + (gsize)tw * 4;
-			GBytes *bytes = g_bytes_new_static(p, len);
-			view->tile_textures[ty * view->tile_cols + tx] =
-				gdk_memory_texture_new(tw, th, GDK_MEMORY_B8G8R8X8,
-				                        bytes, view->buf_stride);
+			int x0, y0, tw, th, tex_w, tex_h;
+			tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th,
+				&tex_w, &tex_h);
+			if (tex_w <= 0 || tex_h <= 0) continue;
+			const gsize offset = (gsize)y0 * view->buf_stride
+			                   + (gsize)x0 * 4;
+			const gsize len = (gsize)(tex_h - 1) * view->buf_stride
+			                + (gsize)tex_w * 4;
+			GBytes *bytes = g_bytes_new_from_bytes(view->buf_gbytes,
+				offset, len);
+			struct image_tile *t = &view->tiles[ty * view->tile_cols + tx];
+			t->data = view->buf + offset;
+			t->texture = gdk_memory_texture_new(tex_w, tex_h,
+				GDK_MEMORY_B8G8R8X8, bytes, view->buf_stride);
+			t->dirty = FALSE;
 			g_bytes_unref(bytes);
 		}
 	}
 }
 
-/* Allocate (or reallocate) the display buffer + tile-texture array for
- * the viewport's current gfit dimensions.  No more surface_scale dance —
- * the tile grid removes the Cairo 32767-px constraint that needed it.
- *
- * Returns 0 on success, non-zero on allocation failure. */
+/* Lazy mode: mark every tile as needing re-materialisation on next
+ * snapshot.  Does NOT free any already-materialised bytes — those stay
+ * resident under LRU so the snapshot path can re-use what's there.
+ * Must be called with gui.cairo_mutex held. */
+static void view_invalidate_tiles_lazy(struct image_view *view) {
+	if (!view->tiles) return;
+	const int n = view->tile_cols * view->tile_rows;
+	for (int i = 0; i < n; i++) {
+		/* Drop the texture (its GPU upload is keyed on object identity);
+		 * keep tile->data so we can refill it in-place. */
+		if (view->tiles[i].texture) {
+			g_object_unref(view->tiles[i].texture);
+			view->tiles[i].texture = NULL;
+		}
+		view->tiles[i].dirty = TRUE;
+	}
+}
+
+/* Compatibility wrapper called from every remap exit point.  In eager
+ * mode this rebuilds all tile textures from the freshly-filled view->buf;
+ * in lazy mode it just marks tiles dirty so the next snapshot
+ * materialises the visible ones using the up-to-date LUT. */
+static void view_refresh_tile_textures(struct image_view *view) {
+	if (view->lazy)
+		view_invalidate_tiles_lazy(view);
+	else
+		view_refresh_tile_textures_eager(view);
+}
+
+/* Allocate (or reallocate) the per-viewport tile grid for the current
+ * gfit dimensions.  Images that fit in a single tile (≤ SIRIL_TILE_DIM
+ * on both axes) get eager mode — one contiguous buf, no LRU; anything
+ * larger uses lazy mode — tile bytes materialised on demand and bounded
+ * by SIRIL_LAZY_BUDGET.  Returns 0 on success. */
 static int allocate_full_surface(struct image_view *view) {
 	g_mutex_lock(&gui.cairo_mutex);
 
@@ -184,51 +314,356 @@ static int allocate_full_surface(struct image_view *view) {
 		return 1;
 	}
 
-	/* CAIRO_FORMAT_RGB24 stride: 4 bytes/px with the row padded up to a
-	 * 4-byte boundary (no-op for 4-byte pixels but kept for clarity). */
-	const int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, img_w);
+	const int stride   = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, img_w);
 	const int tile_dim = SIRIL_TILE_DIM;
 	const int tile_cols = (img_w + tile_dim - 1) / tile_dim;
 	const int tile_rows = (img_h + tile_dim - 1) / tile_dim;
+	const gsize total_bytes = (gsize)stride * img_h;
+	/* Single-tile images render fine eagerly (one texture, no LRU
+	 * overhead); multi-tile images go lazy so we don't allocate the
+	 * full image up-front. */
+	const gboolean want_lazy = (tile_cols > 1 || tile_rows > 1);
 
 	if (stride != view->buf_stride
 				|| img_h != view->buf_height
-				|| !view->buf
 				|| tile_cols != view->tile_cols
 				|| tile_rows != view->tile_rows
-				|| !view->tile_textures) {
-		siril_debug_print("display buffer (re-)allocation %p — %d×%d, %d×%d tiles\n",
-				view, img_w, img_h, tile_cols, tile_rows);
+				|| want_lazy != view->lazy
+				|| !view->tiles
+				|| (!want_lazy && !view->buf_gbytes)) {
+		siril_debug_print("display buffer (re-)allocation %p — %d×%d, %d×%d tiles, %s mode\n",
+				view, img_w, img_h, tile_cols, tile_rows,
+				want_lazy ? "lazy" : "eager");
 
-		/* Drop textures before realloc — their static GBytes would
-		 * dangle if realloc moved view->buf. */
-		view_drop_tile_textures(view);
-		g_free(view->tile_textures);
-		view->tile_textures = NULL;
+		/* Drop existing textures.  In eager mode the tile textures hold
+		 * sub-refs on view->buf_gbytes; once we unref our copy of
+		 * buf_gbytes below, the bytes live until every still-referenced
+		 * texture is released by GSK. */
+		view_drop_all_tile_textures(view);
+		g_free(view->tiles);
+		view->tiles = NULL;
 
-		guchar *tmp = realloc(view->buf, (size_t)stride * img_h * sizeof(guchar));
-		if (!tmp) {
-			PRINT_ALLOC_ERR;
-			free(view->buf);
-			view->buf = NULL;
-			view->buf_stride = 0;
-			view->buf_height = 0;
-			view->tile_dim = view->tile_cols = view->tile_rows = 0;
-			g_mutex_unlock(&gui.cairo_mutex);
-			return 1;
+		if (view->buf_gbytes) {
+			g_bytes_unref(view->buf_gbytes);
+			view->buf_gbytes = NULL;
 		}
-		view->buf = tmp;
+		view->buf = NULL;
+
+		if (!want_lazy) {
+			guchar *fresh = malloc(total_bytes * sizeof(guchar));
+			if (!fresh) {
+				PRINT_ALLOC_ERR;
+				view->buf_stride = 0;
+				view->buf_height = 0;
+				view->tile_dim = view->tile_cols = view->tile_rows = 0;
+				view->lazy = FALSE;
+				view->lazy_bytes_used = 0;
+				g_mutex_unlock(&gui.cairo_mutex);
+				return 1;
+			}
+			view->buf_gbytes = g_bytes_new_with_free_func(
+				fresh, total_bytes, free, fresh);
+			view->buf = fresh;
+		}
+
 		view->buf_stride = stride;
 		view->buf_height = img_h;
-		view->tile_dim = tile_dim;
-		view->tile_cols = tile_cols;
-		view->tile_rows = tile_rows;
-		view->tile_textures = g_new0(GdkTexture *, tile_cols * tile_rows);
-		/* Textures are created at the end of the next remap pass when
-		 * buf is populated; leave the array zero-filled for now. */
+		view->tile_dim   = tile_dim;
+		view->tile_cols  = tile_cols;
+		view->tile_rows  = tile_rows;
+		view->lazy       = want_lazy;
+		view->lazy_bytes_used = 0;
+		view->tiles = g_new0(struct image_tile, tile_cols * tile_rows);
+		if (view->lazy)
+			for (int i = 0; i < tile_cols * tile_rows; i++)
+				view->tiles[i].dirty = TRUE;
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 	return 0;
+}
+
+/* ── Lazy-mode materialisation ────────────────────────────────────────────
+ *
+ * In lazy mode the remap pass only recomputes the LUTs (HISTEQ histogram,
+ * STF midtones, …) and marks every tile dirty.  The per-pixel work is
+ * deferred to materialise_tile, which runs at snapshot time for each tile
+ * the renderer is about to draw.  Per-tile bytes are LRU-evicted once the
+ * viewport's resident set exceeds SIRIL_LAZY_BUDGET.
+ *
+ * All functions in this block must be called with gui.cairo_mutex held. */
+
+static void materialise_tile_evict_until(struct image_view *view, gsize headroom);
+
+/* Apply the LUT + flags to a tile rect of a gray (R/G/B) viewport and
+ * build a fresh texture from a freshly-malloc'd byte buffer.  The
+ * texture's GBytes owns the bytes via a free function, so when the
+ * texture is unrefed (now, or later when GSK finishes rendering) the
+ * bytes are reclaimed automatically.  Crucially we don't re-use the
+ * tile's previous data buffer — GSK may still be reading it for an
+ * in-flight frame, and writing into it in-place would corrupt that
+ * upload (the assertion that fires inside gdk_memory_convert). */
+static gboolean materialise_tile_gray(struct image_view *view, int vport,
+                                       int tx, int ty,
+                                       const BYTE *lut, gboolean hd_mode,
+                                       gboolean inverted, gboolean cut_over,
+                                       WORD remap_lo, WORD remap_hi) {
+	(void) remap_hi; (void) cut_over; (void) remap_lo;
+	int x0, y0, tw, th, tex_w, tex_h;
+	tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th, &tex_w, &tex_h);
+	if (tex_w <= 0 || tex_h <= 0) return TRUE;  /* empty edge tile */
+
+	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
+	const gsize tile_bytes = (gsize)tex_w * tex_h * 4;
+
+	/* Reclaim budget for the new buffer.  If the previous buffer for
+	 * this tile is still alive in a pending render, it'll be freed
+	 * when GSK is done; in the meantime we'll briefly overshoot. */
+	const gsize prev_bytes = tile->data ? tile_bytes : 0;
+	if (prev_bytes && view->lazy_bytes_used >= prev_bytes)
+		view->lazy_bytes_used -= prev_bytes;
+	materialise_tile_evict_until(view, tile_bytes);
+
+	guchar *data = malloc(tile_bytes);
+	if (!data) return FALSE;
+
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const WORD *src   = gfit->pdata[vport];
+	const float *fsrc = gfit->fpdata[vport];
+	const guint hd_max = gui.hd_remap_max;
+
+	for (int dy = 0; dy < tex_h; dy++) {
+		/* display row (y0+dy) → image row (img_h-1-(y0+dy)).  This is
+		 * the y-flip the legacy remap performs at fill time.  Guard
+		 * rows (dy in [th, tex_h)) sample from the next tile's image
+		 * rows — same source data the neighbouring tile would render,
+		 * so the per-tile mipmap pyramids agree at the boundary. */
+		const int iy = img_h - 1 - (y0 + dy);
+		guint32 *row_out = (guint32 *)(data + (size_t)dy * tex_w * 4);
+		for (int dx = 0; dx < tex_w; dx++) {
+			const int ix = x0 + dx;
+			const size_t si = (size_t)iy * img_w + ix;
+			BYTE val;
+			if (gfit->type == DATA_USHORT) {
+				const WORD sv = src[si];
+				val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+			} else {
+				val = hd_mode
+					? lut[float_to_max_range(fsrc[si], hd_max)]
+					: lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+			}
+			if (inverted) val = UCHAR_MAX - val;
+			row_out[dx] = ((guint32)val << 16) | ((guint32)val << 8) | val;
+		}
+	}
+
+	/* The new GBytes owns `data` — when the texture's last reference
+	 * drops (anywhere from this scope to many frames later, once GSK
+	 * is done with it), free(data) will be called automatically. */
+	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
+	GdkTexture *new_tex = gdk_memory_texture_new(tex_w, tex_h, GDK_MEMORY_B8G8R8X8,
+	                                              bytes, tex_w * 4);
+	g_bytes_unref(bytes);
+
+	if (tile->texture)
+		g_object_unref(tile->texture);  /* old bytes survive until GSK is done */
+	tile->texture = new_tex;
+	tile->data = data;  /* non-owning view; valid for as long as tile->texture lives */
+	tile->dirty = FALSE;
+	tile->last_used = ++view->lazy_epoch;
+	view->lazy_bytes_used += tile_bytes;
+	return TRUE;
+}
+
+/* Apply the per-channel LUTs and optional ICC transform to a tile rect of
+ * the RGB composite viewport.  Same fresh-buffer-each-call pattern as
+ * materialise_tile_gray — see that function for the rationale.  idx[c]
+ * is the LUT slot to use for channel c (the dispatcher mirrors remap()'s
+ * target_index logic so HISTEQ / linked-STF / linear modes correctly
+ * read slot 0 instead of stale per-channel slots). */
+static gboolean materialise_tile_rgb(struct image_view *view,
+                                      int tx, int ty,
+                                      const BYTE * const idx[3],
+                                      gboolean hd_mode,
+                                      gboolean inverted,
+                                      gboolean do_icc) {
+	int x0, y0, tw, th, tex_w, tex_h;
+	tile_dims_padded(view, tx, ty, &x0, &y0, &tw, &th, &tex_w, &tex_h);
+	if (tex_w <= 0 || tex_h <= 0) return TRUE;
+
+	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
+	const gsize tile_bytes = (gsize)tex_w * tex_h * 4;
+
+	const gsize prev_bytes = tile->data ? tile_bytes : 0;
+	if (prev_bytes && view->lazy_bytes_used >= prev_bytes)
+		view->lazy_bytes_used -= prev_bytes;
+	materialise_tile_evict_until(view, tile_bytes);
+
+	guchar *data = malloc(tile_bytes);
+	if (!data) return FALSE;
+
+	/* Per-row scratch for the three byte channels (optionally ICC-
+	 * transformed in-place).  Sized to the padded width so the guard
+	 * column is processed alongside the real tile pixels. */
+	BYTE *lb = malloc((size_t)tex_w * 3);
+	if (!lb) {
+		free(data);
+		return FALSE;
+	}
+	BYTE *lb_r = lb;
+	BYTE *lb_g = lb + tex_w;
+	BYTE *lb_b = lb + 2 * tex_w;
+
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const guint hd_max = gui.hd_remap_max;
+
+	for (int dy = 0; dy < tex_h; dy++) {
+		const int iy = img_h - 1 - (y0 + dy);
+		guint32 *row_out = (guint32 *)(data + (size_t)dy * tex_w * 4);
+
+		for (int dx = 0; dx < tex_w; dx++) {
+			const int ix = x0 + dx;
+			const size_t si = (size_t)iy * img_w + ix;
+			BYTE *channels[3] = { lb_r, lb_g, lb_b };
+			for (int c = 0; c < 3; c++) {
+				/* Mirror remap()'s indexing exactly — the LUT already
+				 * encodes lo/hi, cut_over, and the display curve, so
+				 * just look the source pixel up directly.  No
+				 * remap_lo subtraction; no cut_over branch. */
+				BYTE val;
+				if (gfit->type == DATA_USHORT) {
+					const WORD sv = gfit->pdata[c][si];
+					val = hd_mode
+						? idx[c][(guint)sv * hd_max / USHRT_MAX]
+						: idx[c][sv];
+				} else {
+					const float fv = gfit->fpdata[c][si];
+					val = hd_mode
+						? idx[c][float_to_max_range(fv, hd_max)]
+						: idx[c][roundf_to_WORD(fv * USHRT_MAX_SINGLE)];
+				}
+				if (inverted) val = UCHAR_MAX - val;
+				channels[c][dx] = val;
+			}
+		}
+
+		if (do_icc)
+			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
+				lb, lb, tex_w, 1, tex_w * 3, tex_w * 3, tex_w, tex_w);
+
+		for (int dx = 0; dx < tex_w; dx++) {
+			row_out[dx] = ((guint32)lb_r[dx] << 16)
+				| ((guint32)lb_g[dx] << 8)
+				|  (guint32)lb_b[dx];
+		}
+	}
+
+	free(lb);
+
+	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
+	GdkTexture *new_tex = gdk_memory_texture_new(tex_w, tex_h, GDK_MEMORY_B8G8R8X8,
+	                                              bytes, tex_w * 4);
+	g_bytes_unref(bytes);
+
+	if (tile->texture)
+		g_object_unref(tile->texture);
+	tile->texture = new_tex;
+	tile->data = data;
+	tile->dirty = FALSE;
+	tile->last_used = ++view->lazy_epoch;
+	view->lazy_bytes_used += tile_bytes;
+	return TRUE;
+}
+
+/* Dispatch to the right per-vport implementation.  Materialises the tile
+ * if it's dirty or has no data; no-op otherwise.  Returns FALSE on
+ * allocation failure. */
+static gboolean materialise_tile(struct image_view *view, int vport,
+                                  int tx, int ty) {
+	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
+	if (!tile->dirty && tile->texture) {
+		tile->last_used = ++view->lazy_epoch;  /* refresh LRU position */
+		return TRUE;
+	}
+
+	const int target_index = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels)
+		? vport : 0;
+	const gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY
+		&& gui.use_hd_remap && gfit->type == DATA_FLOAT);
+
+	WORD remap_lo, remap_hi;
+	g_mutex_lock(&com.mutex);
+	remap_lo = gui.lo;
+	remap_hi = gui.hi;
+	g_mutex_unlock(&com.mutex);
+
+	/* Negative-view flag — sample the action state once per tile. */
+	gboolean neg = FALSE;
+	GAction *action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win),
+	                                                  "negative-view");
+	if (action_neg) {
+		GVariant *st = g_action_get_state(action_neg);
+		neg = g_variant_get_boolean(st);
+		g_variant_unref(st);
+	}
+
+	if (vport == RGB_VPORT) {
+		/* Pick the LUT slot for each channel the same way remap() picks
+		 * its target_index: STF unlinked → per-channel slot; everything
+		 * else (HISTEQ, linked STF, LINEAR/LOG/SQRT/SQUARED/ASINH) →
+		 * slot 0.  Reading gui.remap_index[c] unconditionally was the
+		 * autostretch / histogram bug: slots 1 and 2 contain stale
+		 * data for non-unlinked modes. */
+		const BYTE *idx[3];
+		for (int c = 0; c < 3; c++) {
+			const int slot = (gui.rendering_mode == STF_DISPLAY
+			                  && gui.unlink_channels) ? c : 0;
+			idx[c] = hd_mode ? gui.hd_remap_index[slot]
+			                 : gui.remap_index[slot];
+		}
+		const gboolean do_icc = (gfit->color_managed
+			&& com.gui_icc.proofing_transform && !identical
+			&& !com.gui_icc.same_primaries);
+		return materialise_tile_rgb(view, tx, ty, idx, hd_mode, neg, do_icc);
+	}
+
+	if (vport >= 0 && vport <= 2) {
+		const BYTE *lut = hd_mode
+			? gui.hd_remap_index[target_index]
+			: gui.remap_index[target_index];
+		return materialise_tile_gray(view, vport, tx, ty, lut, hd_mode,
+			neg, gui.cut_over, remap_lo, remap_hi);
+	}
+
+	/* Mask vport doesn't yet have a lazy materialiser; fall back to a
+	 * cleared tile so the renderer just shows transparent in lazy mode.
+	 * In practice the mask viewport is small and rarely triggers lazy. */
+	return TRUE;
+}
+
+/* LRU eviction: free tile bytes (and their texture) starting from the
+ * least-recently-used tile until the viewport has at least `headroom`
+ * bytes of budget remaining.  The currently-being-materialised tile is
+ * NOT in the LRU yet (caller hasn't bumped its last_used), so it can't
+ * accidentally evict itself.  Called with gui.cairo_mutex held. */
+static void materialise_tile_evict_until(struct image_view *view, gsize headroom) {
+	if (!view->lazy) return;
+	while (view->lazy_bytes_used + headroom > SIRIL_LAZY_BUDGET) {
+		/* Linear scan for the oldest materialised tile.  N is small
+		 * (hundreds at most for typical huge images), and eviction is
+		 * a rare event compared to per-pixel work. */
+		struct image_tile *victim = NULL;
+		const int n = view->tile_cols * view->tile_rows;
+		for (int i = 0; i < n; i++) {
+			struct image_tile *t = &view->tiles[i];
+			if (!t->data) continue;
+			if (!victim || t->last_used < victim->last_used)
+				victim = t;
+		}
+		if (!victim) break;  /* nothing to evict */
+		tile_release(view, victim);
+	}
 }
 
 void check_gfit_profile_identical_to_monitor() {
@@ -251,10 +686,18 @@ static void remaprgb(void) {
 	if (allocate_full_surface(rgbview))
 		return;
 
-	// Source pointers are captured inside the lock to avoid a race with a
-	// concurrent allocate_full_surface() realloc between its internal unlock
-	// and the lock acquisition below.
 	g_mutex_lock(&gui.cairo_mutex);
+
+	/* Lazy mode: no gray bufs to composite from.  materialise_tile_rgb
+	 * reads gfit + the per-channel LUTs directly when it fills each
+	 * RGB tile, so we just invalidate here. */
+	if (rgbview->lazy) {
+		view_refresh_tile_textures(rgbview);
+		g_mutex_unlock(&gui.cairo_mutex);
+		invalidate_image_render_cache(RGB_VPORT);
+		return;
+	}
+
 	bufr = (const guint32*) gui.view[RED_VPORT].buf;
 	bufg = (const guint32*) gui.view[GREEN_VPORT].buf;
 	bufb = (const guint32*) gui.view[BLUE_VPORT].buf;
@@ -321,6 +764,18 @@ static void remap_mask(mask_t *mask) {
 		return;
 
 	g_mutex_lock(&gui.cairo_mutex);
+
+	/* Lazy mode: no view->buf to write into.  Mask materialisation is
+	 * stubbed out for now (see materialise_tile); just refresh textures
+	 * (which marks tiles dirty) and bail. */
+	if (view->lazy) {
+		view_refresh_tile_textures(view);
+		g_mutex_unlock(&gui.cairo_mutex);
+		invalidate_image_render_cache(vport);
+		test_and_allocate_reference_image(vport);
+		return;
+	}
+
 	unsigned char *dst_base = view->buf;
 	int dst_stride = view->buf_stride;
 
@@ -330,9 +785,6 @@ static void remap_mask(mask_t *mask) {
 	guint ry = gfit->ry;
 	int bitpix = mask->bitpix;
 
-	/* Image is now always rendered at full resolution; the previous
-	 * "downscaled" branch (kept for the Cairo 32k-px limit) has been
-	 * retired by the tile-grid texture wrapping. */
 	// We switch ONCE. This requires duplicating the loop code,
 	// but ensures the tightest possible inner loops for the compiler to vectorize.
 	switch (bitpix) {
@@ -506,6 +958,18 @@ static void remap(int vport) {
 	fsrc = gfit->fpdata[vport];
 
 	g_mutex_lock(&gui.cairo_mutex);
+
+	/* Lazy mode: gui.remap_index[vport] is now populated for the new
+	 * display state; mark all tiles dirty and let snapshot materialise
+	 * the visible ones on demand. */
+	if (view->lazy) {
+		view_refresh_tile_textures(view);
+		g_mutex_unlock(&gui.cairo_mutex);
+		invalidate_image_render_cache(vport);
+		test_and_allocate_reference_image(vport);
+		return;
+	}
+
 	dst = view->buf;
 
 	GVariant *rainbow_state = g_action_get_state(action_color_cached);
@@ -727,6 +1191,21 @@ static void remap_all_vports() {
 			return;
 	}
 	g_mutex_lock(&gui.cairo_mutex);
+
+	/* Lazy mode: per-channel LUTs (gui.remap_index[0..2]) are now valid.
+	 * Mark all gray tiles dirty so the snapshot path can materialise
+	 * the visible ones; skip the eager pixel pass entirely. */
+	if (view[0]->lazy) {
+		for (int i = 0; i < 3; i++)
+			view_refresh_tile_textures(view[i]);
+		g_mutex_unlock(&gui.cairo_mutex);
+		for (int vport = 0; vport < 3; vport++) {
+			invalidate_image_render_cache(vport);
+			test_and_allocate_reference_image(vport);
+		}
+		return;
+	}
+
 	for (int i = 0 ; i < 3 ; i++)
 		dst[i] = view[i]->buf;
 
@@ -1215,7 +1694,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	image_display_init_statics();
 
 	g_mutex_lock(&gui.cairo_mutex);
-	const gboolean has_buf = (gui.view[vport].buf != NULL);
+	const gboolean has_image = (gui.view[vport].tiles != NULL);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	/* GTK4 doesn't auto-clip a widget's snapshot tree to its allocation —
@@ -1226,7 +1705,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	gtk_snapshot_push_clip(snapshot,
 		&GRAPHENE_RECT_INIT(0, 0, (float)width, (float)height));
 
-	if (!has_buf) {
+	if (!has_image) {
 		/* No image loaded: route to the existing Cairo "splash" code via
 		 * a snapshot Cairo subnode. */
 		cairo_t *cr = gtk_snapshot_append_cairo(snapshot,
@@ -1246,10 +1725,29 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	 * legacy path before draw_main_image runs). */
 	adjust_vport_size_to_image();
 
-	/* Snapshot the tile-texture array under the lock so a concurrent
-	 * remap (which may release & rebuild the texture grid under
-	 * cairo_mutex) can't pull the rug from under us mid-render.  We
-	 * take refs on each tile texture for use after the unlock. */
+	/* Compute the image-space rectangle currently visible in the widget
+	 * by inverting the display matrix on the widget corners.  Tiles
+	 * outside this rect are skipped — both to avoid wasted GPU upload
+	 * (eager mode) and to avoid eager materialisation (lazy mode). */
+	cairo_matrix_t inv = gui.display_matrix;
+	cairo_matrix_invert(&inv);
+	double cx[4] = { 0, (double)width, (double)width, 0 };
+	double cy[4] = { 0, 0, (double)height, (double)height };
+	double vis_xmin = +1e30, vis_ymin = +1e30, vis_xmax = -1e30, vis_ymax = -1e30;
+	for (int i = 0; i < 4; i++) {
+		double x = cx[i], y = cy[i];
+		cairo_matrix_transform_point(&inv, &x, &y);
+		if (x < vis_xmin) vis_xmin = x;
+		if (y < vis_ymin) vis_ymin = y;
+		if (x > vis_xmax) vis_xmax = x;
+		if (y > vis_ymax) vis_ymax = y;
+	}
+
+	/* Walk the tile grid under the mutex.  Materialise dirty/missing
+	 * tiles in lazy mode (skipped automatically in eager mode where they
+	 * were filled by view_refresh_tile_textures_eager at remap time).
+	 * Take refs on every texture we intend to draw so a concurrent remap
+	 * can't free them out from under the snapshot. */
 	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[vport];
 	const int tile_dim  = view->tile_dim;
@@ -1257,12 +1755,32 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	const int tile_rows = view->tile_rows;
 	const int img_w     = view->buf_stride / 4;
 	const int img_h     = view->buf_height;
+	const gboolean suppressed = g_atomic_int_get(&gui.suppress_drawarea_redraw);
+
 	GdkTexture **tiles_snapshot = NULL;
-	if (view->tile_textures && tile_cols > 0 && tile_rows > 0) {
+	if (view->tiles && tile_cols > 0 && tile_rows > 0) {
 		tiles_snapshot = g_new0(GdkTexture *, tile_cols * tile_rows);
-		for (int i = 0; i < tile_cols * tile_rows; i++) {
-			tiles_snapshot[i] = view->tile_textures[i];
-			if (tiles_snapshot[i]) g_object_ref(tiles_snapshot[i]);
+		for (int ty = 0; ty < tile_rows; ty++) {
+			for (int tx = 0; tx < tile_cols; tx++) {
+				const int x0 = tx * tile_dim;
+				const int y0 = ty * tile_dim;
+				/* Display-space y → image-space y is flipped, but the
+				 * visible rect was computed in image-space, so the
+				 * tile's stored display position (x0, y0) and visible
+				 * (vis_xmin..vis_xmax, vis_ymin..vis_ymax) compare
+				 * directly. */
+				if (x0 + tile_dim < vis_xmin) continue;
+				if (y0 + tile_dim < vis_ymin) continue;
+				if (x0 > vis_xmax) continue;
+				if (y0 > vis_ymax) continue;
+				if (view->lazy && !suppressed)
+					materialise_tile(view, vport, tx, ty);
+				GdkTexture *t = view->tiles[ty * tile_cols + tx].texture;
+				if (t) {
+					tiles_snapshot[ty * tile_cols + tx] = t;
+					g_object_ref(t);
+				}
+			}
 		}
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
@@ -1290,14 +1808,17 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		}
 
 		const double zoom = get_zoom_val();
+		/* TRILINEAR for downscale: mipmap pre-filtering gives correct
+		 * antialiasing.  The wider SIRIL_TILE_GUARD masks the per-tile
+		 * pyramid discontinuity that LINEAR was a band-aid for —
+		 * adjacent tiles' boundary mip-texels are now built from the
+		 * same source range at every mipmap level up to log2(GUARD).
+		 * NEAREST at zoom ≥ 1 preserves individual-pixel display when
+		 * zoomed in (matches the legacy behaviour). */
 		const GskScalingFilter filter = (zoom < 1.0)
 			? GSK_SCALING_FILTER_TRILINEAR
 			: GSK_SCALING_FILTER_NEAREST;
 
-		/* Walk the tile grid, painting each tile texture at its
-		 * image-space rectangle.  Edge tiles are sized to match the
-		 * actual image extent so no garbage is rendered past
-		 * (img_w, img_h). */
 		for (int ty = 0; ty < tile_rows; ty++) {
 			for (int tx = 0; tx < tile_cols; tx++) {
 				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
@@ -1507,10 +2028,9 @@ static void draw_vport(const draw_data_t* dd) {
 	const int tile_dim = view->tile_dim;
 	const int tile_cols = view->tile_cols;
 	const int tile_rows = view->tile_rows;
-	guchar *buf = view->buf;
 	const int buf_stride = view->buf_stride;
 
-	if (!buf || img_w <= 0 || img_h <= 0) {
+	if (img_w <= 0 || img_h <= 0 || !view->tiles) {
 		g_mutex_unlock(&gui.cairo_mutex);
 		return;
 	}
@@ -1525,7 +2045,12 @@ static void draw_vport(const draw_data_t* dd) {
 	}
 
 	/* Walk the tile grid, painting each as a separate Cairo image
-	 * surface whose data pointer is the tile's sub-region of buf. */
+	 * surface.  In eager mode the surface wraps a sub-region of
+	 * view->buf via the full row stride.  In lazy mode the tile is
+	 * materialised on demand, the surface wraps its compact data block
+	 * with a per-tile stride.  Painting + destroying the surface
+	 * synchronously means cairo never holds on to view bytes past the
+	 * fill, so the LRU eviction policy is free to reclaim them. */
 	for (int ty = 0; ty < tile_rows; ty++) {
 		for (int tx = 0; tx < tile_cols; tx++) {
 			const int x0 = tx * tile_dim;
@@ -1533,9 +2058,21 @@ static void draw_vport(const draw_data_t* dd) {
 			const int tw = MIN(tile_dim, img_w - x0);
 			const int th = MIN(tile_dim, img_h - y0);
 			if (tw <= 0 || th <= 0) continue;
-			guchar *p = buf + (size_t)y0 * buf_stride + (size_t)x0 * 4;
+
+			guchar *p = NULL;
+			int stride;
+			if (view->lazy) {
+				if (!materialise_tile(view, dd->vport, tx, ty)) continue;
+				p = view->tiles[ty * tile_cols + tx].data;
+				stride = tw * 4;
+			} else {
+				p = view->buf + (size_t)y0 * buf_stride + (size_t)x0 * 4;
+				stride = buf_stride;
+			}
+			if (!p) continue;
+
 			cairo_surface_t *tile_surf = cairo_image_surface_create_for_data(
-				p, CAIRO_FORMAT_RGB24, tw, th, buf_stride);
+				p, CAIRO_FORMAT_RGB24, tw, th, stride);
 			if (cairo_surface_status(tile_surf) != CAIRO_STATUS_SUCCESS) {
 				cairo_surface_destroy(tile_surf);
 				continue;
@@ -1558,10 +2095,10 @@ static void draw_vport(const draw_data_t* dd) {
 
 static void draw_main_image(const draw_data_t* dd) {
 	g_mutex_lock(&gui.cairo_mutex);
-	gboolean has_buf = (gui.view[dd->vport].buf != NULL);
+	gboolean has_image = (gui.view[dd->vport].tiles != NULL);
 	g_mutex_unlock(&gui.cairo_mutex);
 
-	if (has_buf) {
+	if (has_image) {
 		draw_vport(dd);
 	} else {
 		draw_empty_image(dd);

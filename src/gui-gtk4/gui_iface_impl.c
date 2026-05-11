@@ -444,20 +444,30 @@ static gboolean free_image_data_gui(gpointer p) {
 
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
-		/* Drop tile textures before freeing the buf they wrap. */
-		if (view->tile_textures) {
+		/* Drop tile textures.  Per-tile bytes (lazy mode) and the eager
+		 * view->buf are owned by the textures' GBytes / view->buf_gbytes
+		 * respectively, so they're reclaimed automatically once GSK
+		 * releases its references. */
+		if (view->tiles) {
 			int n = view->tile_cols * view->tile_rows;
 			for (int i = 0; i < n; i++) {
-				if (view->tile_textures[i]) {
-					g_object_unref(view->tile_textures[i]);
-					view->tile_textures[i] = NULL;
+				if (view->tiles[i].texture) {
+					g_object_unref(view->tiles[i].texture);
+					view->tiles[i].texture = NULL;
 				}
+				view->tiles[i].data = NULL;
 			}
-			g_free(view->tile_textures);
-			view->tile_textures = NULL;
+			g_free(view->tiles);
+			view->tiles = NULL;
 		}
 		view->tile_dim = view->tile_cols = view->tile_rows = 0;
-		if (view->buf) { free(view->buf); view->buf = NULL; }
+		view->lazy = FALSE;
+		view->lazy_bytes_used = 0;
+		if (view->buf_gbytes) {
+			g_bytes_unref(view->buf_gbytes);
+			view->buf_gbytes = NULL;
+		}
+		view->buf = NULL;
 		view->buf_stride = 0;
 		view->buf_height = 0;
 		view->view_width = -1;

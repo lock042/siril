@@ -1372,10 +1372,31 @@ void update_histogram_display(void) {
 		gtk_widget_queue_draw(histo_state.b_area);
 }
 
-/* Update cursor value from image coordinates (called on mouse motion) */
+/* Update cursor value from image coordinates (called on mouse motion).
+ *
+ * Holds gfit->rwlock as a reader for the duration of the read: a
+ * concurrent operation (e.g. Resample) may be rewriting gfit->pdata
+ * and updating gfit->rx/ry under the writer lock — without the reader
+ * lock we can see new dimensions but a stale pdata pointer, indexing
+ * past the buffer end and crashing. */
 void histogram_update_cursor_value(int x, int y) {
-	/* Calculate pixel index (y-axis is flipped in image coordinates) */
-	int index = gfit->rx * (gfit->ry - y - 1) + x;
+	g_rw_lock_reader_lock(&gfit->rwlock);
+
+	/* Re-clamp under the lock against the now-stable dimensions; the
+	 * caller's clamp ran without the lock and may have used a torn
+	 * (rx, ry) snapshot. */
+	if (gfit->rx <= 0 || gfit->ry <= 0) {
+		g_rw_lock_reader_unlock(&gfit->rwlock);
+		return;
+	}
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+	if ((guint)x >= gfit->rx) x = (int)gfit->rx - 1;
+	if ((guint)y >= gfit->ry) y = (int)gfit->ry - 1;
+
+	/* Calculate pixel index (y-axis is flipped in image coordinates).
+	 * Use size_t so very large images don't overflow int32 arithmetic. */
+	const size_t index = (size_t)gfit->rx * ((size_t)gfit->ry - y - 1) + x;
 
 	if (histo_state.mode_luminance && gfit->naxes[2] == 3) {
 		/* Luminance mode: calculate weighted average and store in R */
@@ -1447,6 +1468,8 @@ void histogram_update_cursor_value(int x, int y) {
 		histo_state.cursor_value_g = -1.0;
 		histo_state.cursor_value_b = -1.0;
 	}
+
+	g_rw_lock_reader_unlock(&gfit->rwlock);
 
 	/* Redraw histogram to show the marker(s) */
 	if (histo_state.rgb_area)
