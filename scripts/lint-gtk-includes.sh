@@ -1,15 +1,21 @@
 #!/bin/sh
 # lint-gtk-includes.sh — enforce the GUI boundary in non-GUI source files.
 #
+# Siril has two parallel GUI trees:
+#   src/gui/       — the GTK3 build
+#   src/gui-gtk4/  — the GTK4 build (one of these is compiled per build,
+#                    selected via the `gtk_version` meson option)
+# Both trees are GUI compilation units and may include GTK/GDK headers.
+#
 # CHECK 1: Direct GTK/GDK header includes
 #   Fails if any file outside the GUI compilation units includes <gtk/gtk.h>
 #   or <gdk/gdk.h> directly.
 #
-# CHECK 2: gui/ header includes from outside src/gui/
-#   Fails if any non-GUI source file includes a "gui/..." header, unless
-#   the (file, header) pair is in the whitelist below.
+# CHECK 2: gui*/ header includes from outside the GUI trees
+#   Fails if any non-GUI source file includes a "gui/..." or "gui-gtk4/..."
+#   header, unless the (file, header) pair is in the whitelist below.
 #
-#   Rationale: headers under src/gui/ are part of the GUI compilation unit
+#   Rationale: headers under src/gui*/ are part of a GUI compilation unit
 #   and may pull in GTK types even when they are themselves GTK-free.
 #   Keeping them out of non-GUI code prevents future GTK leakage and
 #   documents which cross-boundary dependencies still exist.
@@ -38,7 +44,7 @@ bad=0
 for pattern in '#include <gtk/gtk.h>' '#include <gdk/gdk.h>'; do
     while IFS=: read -r file line content; do
         case "$file" in
-            "$SRC_ROOT/gui/"*) continue ;;
+            "$SRC_ROOT/gui/"*|"$SRC_ROOT/gui-gtk4/"*) continue ;;
         esac
 
         allowed=0
@@ -78,9 +84,9 @@ io/siril_pythonmodule.c:user_polygons.h
 #     its implementation should eventually move out of gui/ to algos/ or io/.
 
 while IFS=: read -r file line content; do
-    # Skip files under src/gui/
+    # Skip files under src/gui/ and src/gui-gtk4/ (both are GUI trees)
     case "$file" in
-        "$SRC_ROOT/gui/"*) continue ;;
+        "$SRC_ROOT/gui/"*|"$SRC_ROOT/gui-gtk4/"*) continue ;;
     esac
     # Skip main.c and main-cli.c (entry points)
     case "$file" in
@@ -91,8 +97,8 @@ while IFS=: read -r file line content; do
         "$SRC_ROOT/tests/"*) continue ;;
     esac
 
-    # Extract the included gui/ header name
-    gui_header=$(printf '%s' "$content" | sed 's/.*"gui\/\([^"]*\)".*/\1/')
+    # Extract the included gui*/ header name (everything after "gui<…>/").
+    gui_header=$(printf '%s' "$content" | sed -E 's|.*"gui(-gtk4)?/([^"]*)".*|\2|')
 
     # Build the file suffix (path relative to SRC_ROOT)
     file_suffix="${file#$SRC_ROOT/}"
@@ -113,15 +119,15 @@ while IFS=: read -r file line content; do
     bad=1
 done <<EOF
 $(grep -rn --include='*.c' --include='*.h' --include='*.cpp' --include='*.hpp' \
-    -E '#include "gui/[^"]+\.h"' "$SRC_ROOT" 2>/dev/null || true)
+    -E '#include "gui(-gtk4)?/[^"]+\.h"' "$SRC_ROOT" 2>/dev/null || true)
 EOF
 
 if [ "$bad" -eq 1 ]; then
     echo ""
     echo "FAIL: GUI boundary violations found."
-    echo "Move the code to src/gui/, route calls through gui_iface,"
-    echo "or add an entry to the whitelist in scripts/lint-gtk-includes.sh"
-    echo "with a justification comment."
+    echo "Move the code to src/gui/ (GTK3) or src/gui-gtk4/ (GTK4),"
+    echo "route calls through gui_iface, or add an entry to the whitelist"
+    echo "in scripts/lint-gtk-includes.sh with a justification comment."
     exit 1
 fi
 
