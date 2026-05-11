@@ -1986,6 +1986,13 @@ gboolean first_start_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
+/* GTK3 build currently has no toolkit-specific GApplication-level
+ * actions; the function is still defined so main.c can call it
+ * unconditionally regardless of which GUI tree is compiled in. */
+void register_toolkit_app_actions(GApplication *app) {
+	(void)app;
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");

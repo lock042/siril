@@ -76,7 +76,6 @@
 #include "algos/photometric_cc.h"
 #ifdef USE_GTK4
 #include "gui-gtk4/siril_actions.h"
-#include "gui-gtk4/open_dialog.h"
 #else
 #include "gui/siril_actions.h"
 #endif
@@ -192,11 +191,15 @@ static GOptionEntry main_option[] = {
 	{ NULL },
 };
 
+/* App-level actions available in every build.  Toolkit-specific extras
+ * (e.g. GTK4's "open-recent" parameterised action) are registered by
+ * register_toolkit_app_actions(), implemented per-toolkit in
+ * src/gui/callbacks.c or src/gui-gtk4/callbacks.c, so main.c never
+ * references symbols that live in only one of the two GUI trees. */
 static GActionEntry app_entries[] = {
 	{ "quit", quit_action_activate },
 	{ "preferences", preferences_action_activate },
 	{ "open",  open_action_activate },
-	{ "open-recent", open_recent_action_activate, "s", NULL, NULL },
 	{ "save", save_action_activate },
 	{ "save-as", save_as_action_activate },
 	{ "about", about_action_activate }
@@ -373,15 +376,25 @@ static void siril_app_startup(GApplication *application) {
 	 * that named-icon lookups (e.g. "siril" for the window's titlebar
 	 * icon) find /org/siril/ui/pixmaps/siril.svg.  Without this, a
 	 * stock-iconless dev build falls back to the broken-image / no-entry
-	 * placeholder. */
+	 * placeholder.  The accessor differs between GTK versions:
+	 *   GTK3 — gtk_icon_theme_get_default()
+	 *   GTK4 — gtk_icon_theme_get_for_display(...)
+	 */
+#ifdef USE_GTK4
 	gtk_icon_theme_add_resource_path(
 		gtk_icon_theme_get_for_display(gdk_display_get_default()),
 		"/org/siril/ui/pixmaps");
+#else
+	gtk_icon_theme_add_resource_path(
+		gtk_icon_theme_get_default(),
+		"/org/siril/ui/pixmaps");
+#endif
 	gtk_window_set_default_icon_name("siril");
 	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
+	register_toolkit_app_actions(application);
 	// Initialize GtkSource (only needed for gtksourceview-4; v5 auto-initialises).
 #ifndef USE_GTK4
 	gtk_source_init();
@@ -771,25 +784,11 @@ int main(int argc, char *argv[]) {
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
 
-#ifdef __APPLE__
-	{	/* Setting the 'register-session' property is for macOS
-		 * - to enable DnD via dock icon
-		 * - to enable system menu "Quit"
-		 *
-		 * On Linux this property hooks GApplication into the
-		 * systemd-logind session manager for sleep / resume / inhibit
-		 * signals.  Those fire on a GIO worker thread, dispatching
-		 * into GTK across the suspend boundary, and have been observed
-		 * to crash the GTK4 build (SIGSEGV inside libgtk-4 on a
-		 * GtkApplication action lookup) when closing/reopening the
-		 * laptop lid.  The macOS workaround is not needed on Linux. */
-		GValue value = G_VALUE_INIT;
-		g_value_init(&value, G_TYPE_BOOLEAN);
-		g_value_set_boolean(&value, TRUE);
-		g_object_set_property(G_OBJECT(app), "register-session", &value);
-		g_value_unset(&value);
-	}
-#endif
+	GValue value = G_VALUE_INIT;
+	g_value_init(&value, G_TYPE_BOOLEAN);
+	g_value_set_boolean(&value, TRUE);
+	g_object_set_property(G_OBJECT(app), "register-session", &value);
+	g_value_unset(&value);
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {

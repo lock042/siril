@@ -2089,6 +2089,18 @@ gboolean first_start_cb(gpointer user_data) {
 	return G_SOURCE_REMOVE;
 }
 
+/* GTK4-only GApplication-level actions.  Registered from
+ * siril_app_startup via the per-toolkit hook so main.c never has to
+ * reference the open_recent_action_activate symbol (which has no GTK3
+ * counterpart). */
+void register_toolkit_app_actions(GApplication *app) {
+	static const GActionEntry entries[] = {
+		{ "open-recent", open_recent_action_activate, "s", NULL, NULL },
+	};
+	g_action_map_add_action_entries(G_ACTION_MAP(app), entries,
+			G_N_ELEMENTS(entries), app);
+}
+
 void initialize_all_GUI(gchar *supported_files) {
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
