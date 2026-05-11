@@ -591,11 +591,11 @@ void on_icc_gamut_visualisation_clicked() {
 	GtkWidget *win = lookup_widget("icc_gamut_dialog");
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("settings_window")));
 	if (!colorspace_comparison_image_set) {
-		/* Use the resource directly via GtkImage's GTK4-native paintable
-		 * loader so the image renders even on systems without the
-		 * librsvg GdkPixbuf loader. */
-		gtk_image_set_from_resource(GTK_IMAGE(lookup_widget("colorspace_comparison")),
-		                            "/org/siril/ui/pixmaps/CIE1931.svg");
+		/* GtkPicture renders the SVG at its natural / fitted size via
+		 * GTK4's paintable infrastructure, so the image isn't capped at
+		 * icon-size the way GtkImage would render it. */
+		gtk_picture_set_resource(GTK_PICTURE(lookup_widget("colorspace_comparison")),
+		                          "/org/siril/ui/pixmaps/CIE1931.svg");
 		colorspace_comparison_image_set = TRUE;
 	}
 	/* Here this is wanted that we do not use siril_open_dialog */

@@ -56,26 +56,21 @@
 #include "core/proto.h"
 #include "filters/mtf.h"
 
-/* get_thumbnail_from_fits lives in io/image_format_fits.c (needs TRYFITS and
- * other file-local helpers); it is only called from this file so it is not
- * exposed in image_format_fits.h.  Forward-declare it here instead. */
-GdkPixbuf *get_thumbnail_from_fits(char *filename, gchar **descr);
+/* extract_thumbnail_from_fits is the raw-byte FITS thumbnail extractor;
+ * its declaration is intentionally not in io/image_format_fits.h to
+ * keep that core header free of gdk-pixbuf includes.  See the comment
+ * in image_format_fits.h. */
+extern guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
+                                            int *width_out, int *height_out);
 
-/* Helpers and functions that belong in GUI code only. */
-static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
-	free(pixels);
-	free(data);
-	return FALSE;
-}
-
-/* Moved from core/utils.c — uses gdk_pixbuf_get_file_info, GUI-only. */
-static gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
+/* Moved from core/utils.c — uses gdk_pixbuf_get_file_info to probe
+ * format and dimensions without loading.  GTK4 has no native equivalent
+ * for this header-only probe (gdk_texture_new_from_* require a full
+ * decode) so we keep the gdk-pixbuf call here.  GUI-only. */
+static gchar *siril_get_file_info(const gchar *filename, int n_channel) {
 	int width, height;
-	int n_channel = 0;
 
 	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
-	if (pixbuf)
-		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
 
 	if (pixbuf_file_info != NULL) {
 		if (n_channel > 0) {
@@ -90,8 +85,11 @@ static gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	return NULL;
 }
 
-GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
-	GdkPixbuf *pixbuf = NULL;
+/* Returns a malloc'd RGB888 byte buffer plus the thumbnail's dimensions
+ * and a g_strdup'd description string.  Caller owns the buffer (free()).
+ * Returns NULL on error. */
+static guchar *extract_thumbnail_from_ser(const char *filename, gchar **descr,
+                                           int *width_out, int *height_out) {
 	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;
 	int i, j, k, l, N, M;
@@ -350,17 +348,15 @@ GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	}
 
 	ser_close_file(&ser);
-	pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
-			GDK_COLORSPACE_RGB, FALSE, 8,
-			Ws, Hs, Ws * 3,
-			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 	free(ima_data);
 	free(pix);
 	free(pix_r);
 	free(pix_g);
 	free(pix_b);
 	*descr = description;
-	return pixbuf;
+	if (width_out)  *width_out  = Ws;
+	if (height_out) *height_out = Hs;
+	return pixbuf_data;
 }
 
 #ifdef HAVE_LIBJPEG
@@ -406,7 +402,7 @@ struct _updta_preview_data {
 	GtkFileChooser *file_chooser;
 	gchar *filename;
 	gchar *description;
-	GdkPixbuf *pixbuf;
+	GdkTexture *texture;
 	GFileInfo *file_info;
 	fileChooserPreview *preview;
 };
@@ -445,6 +441,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 		return FALSE;
 	}
 
+	(void) bytes_str;
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
@@ -455,23 +452,19 @@ static gboolean end_update_preview_cb(gpointer p) {
 	}
 	type = g_file_info_get_file_type(args->file_info);
 
-	/* try to read file size */
-	if (args->pixbuf && (bytes_str = gdk_pixbuf_get_option(args->pixbuf, "tEXt::Thumb::Size")) != NULL) {
-		int bytes = g_ascii_strtoll(bytes_str, NULL, 10);
-		size_str = g_format_size(bytes);
-	} else {
-		if (type == G_FILE_TYPE_REGULAR) {
-			size_str = g_format_size(g_file_info_get_size(args->file_info));
-		}
+	/* File size — uses the filesystem-reported size.  The pixbuf
+	 * tEXt::Thumb::Size option (which encoded the original file size
+	 * inside embedded PNG thumbnails) is no longer consulted; the
+	 * GdkTexture API has no equivalent and the filesystem size is
+	 * always available and accurate. */
+	if (type == G_FILE_TYPE_REGULAR) {
+		size_str = g_format_size(g_file_info_get_size(args->file_info));
 	}
 
 	/* load icon */
-	if (type == G_FILE_TYPE_REGULAR && args->pixbuf) {
-		GdkTexture *tex = siril_texture_from_pixbuf(args->pixbuf);
-		if (tex) {
-			gtk_image_set_from_paintable(GTK_IMAGE(preview->image), GDK_PAINTABLE(tex));
-			g_object_unref(tex);
-		}
+	if (type == G_FILE_TYPE_REGULAR && args->texture) {
+		gtk_image_set_from_paintable(GTK_IMAGE(preview->image),
+		                              GDK_PAINTABLE(args->texture));
 		info_str = args->description;
 	} else if (type == G_FILE_TYPE_DIRECTORY) {
 		gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "folder");
@@ -501,8 +494,8 @@ static gboolean end_update_preview_cb(gpointer p) {
 	gtk_label_set_text(GTK_LABEL(preview->dim_label), info_str);
 	gtk_label_set_text(GTK_LABEL(preview->size_label), size_str);
 
-	if (args->pixbuf)
-		g_object_unref(args->pixbuf);
+	if (args->texture)
+		g_object_unref(args->texture);
 	g_free(markup);
 	g_free(name_str);
 	g_free(info_str);
@@ -522,7 +515,7 @@ G_GNUC_UNUSED static gpointer update_preview(gpointer p) {
 	uint8_t *buffer = NULL;
 	size_t size;
 	char *mime_type = NULL;
-	GdkPixbuf *pixbuf = NULL;
+	GdkTexture *texture = NULL;
 	image_type im_type;
 	gboolean libheif_is_ok = FALSE;
 
@@ -535,29 +528,30 @@ G_GNUC_UNUSED static gpointer update_preview(gpointer p) {
 	im_type = get_type_from_filename(args->filename);
 
 	if (im_type == TYPEFITS) {
-		/* try FITS file */
-		pixbuf = get_thumbnail_from_fits(args->filename, &args->description);
+		int w = 0, h = 0;
+		guchar *data = extract_thumbnail_from_fits(args->filename,
+		                                            &args->description, &w, &h);
+		if (data) {
+			texture = siril_texture_from_rgb_bytes(data,
+				(gsize)w * h * 3, w, h, w * 3, FALSE,
+				(GDestroyNotify)free, data);
+			if (!texture) free(data);
+		}
 	}
 #ifdef HAVE_LIBXISF
 	else if (im_type == TYPEXISF) {
-		GdkPixbuf *pixtmp = get_thumbnail_from_xisf(args->filename, &args->description);
-
-		if (pixtmp) {
-			/* The size of the XISF thumbnails is different. We want to resize it */
-			const int MAX_SIZE = com.pref.gui.thumbnail_size;
-
-			int w = gdk_pixbuf_get_width(pixtmp);
-			int h = gdk_pixbuf_get_height(pixtmp);
-
-			const int x = (int) ceil((float) w / MAX_SIZE);
-			const int y = (int) ceil((float) h / MAX_SIZE);
-			const int pixScale = (x > y) ? x : y;	// picture scale factor
-			const int Ws = w / pixScale; 			// picture width in pixScale blocks
-			const int Hs = h / pixScale; 			// -//- height pixScale
-
-			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
-
-			g_object_unref(pixtmp);
+		int w = 0, h = 0;
+		guchar *data = extract_thumbnail_from_xisf(args->filename,
+		                                            &args->description, &w, &h);
+		if (data && w > 0 && h > 0) {
+			/* GtkPicture/GtkImage will scale at display time; we no
+			 * longer need a pre-scaled thumbnail. */
+			texture = siril_texture_from_rgb_bytes(data,
+				(gsize)w * h * 3, w, h, w * 3, FALSE,
+				(GDestroyNotify)free, data);
+			if (!texture) free(data);
+		} else if (data) {
+			free(data);
 		}
 	}
 #endif
@@ -572,60 +566,57 @@ G_GNUC_UNUSED static gpointer update_preview(gpointer p) {
 			goto cleanup2;
 		}
 		siril_debug_print("Generating JXL preview, filesize %lu\n", jxl_size);
-		GdkPixbuf *pixtmp = get_thumbnail_from_jxl(jxl_data, &args->description, jxl_size);
-		if (pixtmp) {
-		/* The size of the JXL thumbnails is different. We want to resize it */
-			const int MAX_SIZE = com.pref.gui.thumbnail_size;
-
-			int w = gdk_pixbuf_get_width(pixtmp);
-			int h = gdk_pixbuf_get_height(pixtmp);
-
-			const int x = (int) ceil((float) w / MAX_SIZE);
-			const int y = (int) ceil((float) h / MAX_SIZE);
-			const int pixScale = (x > y) ? x : y;	// picture scale factor
-			const int Ws = w / pixScale; 			// picture width in pixScale blocks
-			const int Hs = h / pixScale; 			// -//- height pixScale
-
-			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
-
-			g_object_unref(pixtmp);
+		int w = 0, h = 0;
+		guchar *data = extract_thumbnail_from_jxl(jxl_data, &args->description,
+		                                           jxl_size, &w, &h);
+		if (data && w > 0 && h > 0) {
+			texture = siril_texture_from_rgb_bytes(data,
+				(gsize)w * h * 3, w, h, w * 3, FALSE,
+				(GDestroyNotify)free, data);
+			if (!texture) free(data);
+		} else if (data) {
+			free(data);
 		}
 	}
 #endif
 	else if (im_type == TYPESER) {
-		pixbuf = get_thumbnail_from_ser(args->filename, &args->description);
+		int w = 0, h = 0;
+		guchar *data = extract_thumbnail_from_ser(args->filename,
+		                                           &args->description, &w, &h);
+		if (data) {
+			texture = siril_texture_from_rgb_bytes(data,
+				(gsize)w * h * 3, w, h, w * 3, FALSE,
+				(GDestroyNotify)free, data);
+			if (!texture) free(data);
+		}
 	} else {
+		/* Try the EXIF-embedded thumbnail first. */
 		if (im_type != TYPEUNDEF && !siril_get_thumbnail_exiv(args->filename, &buffer, &size,
 				&mime_type)) {
-			// Scale the image to the correct size
-			GdkPixbuf *tmp;
-				GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
-			if (!gdk_pixbuf_loader_write(loader, buffer, size, NULL))
-				goto cleanup;
-			// Calling gdk_pixbuf_loader_close forces the data to be parsed by the
-			// loader. We must do this before calling gdk_pixbuf_loader_get_pixbuf.
-			if (!gdk_pixbuf_loader_close(loader, NULL))
-				goto cleanup;
-			if (!(tmp = gdk_pixbuf_loader_get_pixbuf(loader)))
-				goto cleanup;
-			float ratio = 1.0 * gdk_pixbuf_get_height(tmp) / gdk_pixbuf_get_width(tmp);
-			int width = com.pref.gui.thumbnail_size, height = com.pref.gui.thumbnail_size * ratio;
-			pixbuf = gdk_pixbuf_scale_simple(tmp, width, height, GDK_INTERP_BILINEAR);
-			args->description = siril_get_file_info(args->filename, pixbuf);
-
-			cleanup: gdk_pixbuf_loader_close(loader, NULL);
-			free(buffer);
-			g_object_unref(loader); // This should clean up tmp as well
+			/* gdk_texture_new_from_bytes (GTK 4.6+) decodes the
+			 * thumbnail blob via the same gdk-pixbuf loaders the old
+			 * GdkPixbufLoader path used, but produces a GdkTexture
+			 * directly. */
+			GBytes *bytes = g_bytes_new_take(buffer, size);
+			buffer = NULL;  /* ownership transferred to bytes */
+			GError *terr = NULL;
+			texture = gdk_texture_new_from_bytes(bytes, &terr);
+			g_bytes_unref(bytes);
+			if (terr) g_error_free(terr);
+			if (texture) {
+				int nch = gdk_texture_get_format(texture) == GDK_MEMORY_R8G8B8 ? 3 : 4;
+				args->description = siril_get_file_info(args->filename, nch);
+			}
 		}
 
-		/* if no pixbuf created try to directly read the file */
+		/* if no texture yet, try to directly read the file */
 		/* libheif < 1.6.2 has a bug, therefore we can't open preview if libheif is too old
 		 * bug fixed in https://github.com/strukturag/libheif/commit/fbd6d28e8604ecb53a2eb33b522a664b6bcabd0b*/
 #ifdef HAVE_LIBHEIF
 		libheif_is_ok = LIBHEIF_HAVE_VERSION(1, 6, 2);
 #endif
 
-		if (!pixbuf && (im_type != TYPEHEIF || libheif_is_ok)) {
+		if (!texture && (im_type != TYPEHEIF || libheif_is_ok)) {
 			/* gdk_pixbuf_get_file_info() is itself broken for very large JPEG
 			 * images — it internally allocates a full pixbuf during header
 			 * parsing, which triggers a GdkPixbuf assertion when rowstride *
@@ -644,17 +635,32 @@ G_GNUC_UNUSED static gpointer update_preview(gpointer p) {
 				dims_ok = (pw > 0 && ph > 0);
 			}
 			if (dims_ok && (gint64)pw * ph <= (gint64)G_MAXINT / 3) {
-				pixbuf = gdk_pixbuf_new_from_file_at_size(args->filename,
+				/* GdkTexture has no "load at size" entry point, so we
+				 * keep gdk_pixbuf_new_from_file_at_size here to bound
+				 * peak memory for large source images (a full-size
+				 * load of a 100 MP image would be ~400 MB).  The
+				 * deprecation-free helper then wraps the pixbuf as a
+				 * GdkMemoryTexture. */
+				GdkPixbuf *pb = gdk_pixbuf_new_from_file_at_size(args->filename,
 						com.pref.gui.thumbnail_size, com.pref.gui.thumbnail_size, NULL);
+				if (pb) {
+					texture = siril_texture_from_pixbuf(pb);
+					if (texture)
+						args->description = siril_get_file_info(args->filename,
+							gdk_pixbuf_get_n_channels(pb));
+					g_object_unref(pb);
+				}
 			}
-			args->description = siril_get_file_info(args->filename, pixbuf);
+			if (!args->description)
+				args->description = siril_get_file_info(args->filename, 0);
 		}
 	}
 #ifdef HAVE_LIBJXL
 	cleanup2:
 #endif
+	if (buffer) free(buffer);  /* untaken EXIF buffer */
 	free(mime_type);
-	args->pixbuf = pixbuf;
+	args->texture = texture;
 	g_idle_add(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);
 }

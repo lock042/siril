@@ -18,10 +18,11 @@
 
 #include <string.h>
 
-/* From io/image_format_fits.c — produces a small RGB GdkPixbuf for any
+/* From io/image_format_fits.c — produces a small RGB byte buffer for any
  * FITS file plus a textual description string.  Used by the default
  * preview handler so the browser can show FITS thumbnails. */
-extern GdkPixbuf *get_thumbnail_from_fits(char *filename, gchar **descr);
+extern guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
+                                            int *width_out, int *height_out);
 
 typedef struct {
 	gchar *title;
@@ -662,14 +663,18 @@ void siril_file_browser_default_preview(const gchar *path,
 
 	if (is_fits) {
 		gchar *descr = NULL;
-		GdkPixbuf *pb = get_thumbnail_from_fits((char *)path, &descr);
-		if (pb) {
-			GdkTexture *tex = siril_texture_from_pixbuf(pb);
+		int w = 0, h = 0;
+		guchar *data = extract_thumbnail_from_fits(path, &descr, &w, &h);
+		if (data) {
+			GdkTexture *tex = siril_texture_from_rgb_bytes(data,
+				(gsize)w * h * 3, w, h, w * 3, FALSE,
+				(GDestroyNotify)free, data);
 			if (tex) {
 				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
 				g_object_unref(tex);
+			} else {
+				free(data);
 			}
-			g_object_unref(pb);
 		}
 		if (metadata_label && descr)
 			gtk_label_set_text(metadata_label, descr);

@@ -14,8 +14,11 @@
           <object class="GtkBox">
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkImage" id="colorspace_comparison">
+              <object class="GtkPicture" id="colorspace_comparison">
                 <property name="vexpand">1</property>
+                <property name="hexpand">1</property>
+                <property name="can-shrink">1</property>
+                <property name="content-fit">contain</property>
                 <property name="tooltip-text" translatable="1">This image shows a comparison of the various working gamuts available in Siril. (Note P3 is not available in Siril: it is shown for reference, and you can provide a P3 ICC profile if desired.)
 The CIE1931 xy space represents all the colors visible to human eyesight.
 sRGB is a standard for web publication and corresponds to the gamut of most monitors.

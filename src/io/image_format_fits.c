@@ -2875,11 +2875,14 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
 	} while(0)
 
 /**
- * Create a preview of a FITS file in a GdkPixbuf (color if available)
- * @param filename
- * @return a GdkPixbuf containing the preview or NULL
+ * Build a downsampled RGB888 thumbnail from a FITS file.
+ * Returns a malloc'd 3-channel RGB byte buffer (caller frees with free()),
+ * or NULL on error.  *description is set to a freshly-allocated g_free()
+ * string with image dimensions / channel count.  *width_out and
+ * *height_out are set to the thumbnail's dimensions on success.
  */
-GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+guchar *extract_thumbnail_from_fits(const char *filename, gchar **descr,
+                                     int *width_out, int *height_out) {
 	fitsfile *fp;
 	gchar *description = NULL;
 	const int MAX_SIZE = com.pref.gui.thumbnail_size;
@@ -3088,16 +3091,22 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	free(ima_data);
 	free(preview_data);
 
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,
-			GDK_COLORSPACE_RGB,
-			FALSE,
-			8,
-			Ws, Hs,
-			Ws * 3,
-			(GdkPixbufDestroyNotify) free_preview_data,
-			NULL);
 	*descr = description;
-	return pixbuf;
+	if (width_out) *width_out = Ws;
+	if (height_out) *height_out = Hs;
+	return pixbuf_data;
+}
+
+/* Pixbuf-returning shim around extract_thumbnail_from_fits, kept for the
+ * GTK3 build and for any caller that still wants a GdkPixbuf.  Ownership
+ * of the byte buffer is transferred to the pixbuf via free_preview_data. */
+GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
+	int w = 0, h = 0;
+	guchar *data = extract_thumbnail_from_fits(filename, descr, &w, &h);
+	if (!data) return NULL;
+	return gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, FALSE, 8,
+			w, h, w * 3,
+			(GdkPixbufDestroyNotify) free_preview_data, NULL);
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */

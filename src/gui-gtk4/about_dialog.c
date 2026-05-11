@@ -61,11 +61,10 @@ void siril_show_about_dialog() {
 			"Copyright © 2012-%s Team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
 
 	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
-	/* "logo" expects a GdkPixbuf (deprecated path that fails without the
-	 * librsvg pixbuf loader on some systems); "logo-icon-name" goes
-	 * through the icon theme — main.c registers /org/siril/ui/pixmaps as
-	 * a resource path so "siril" resolves to siril.svg via GTK4's
-	 * native paintable infrastructure. */
+	/* "logo-icon-name" resolves through the icon theme: main.c registers
+	 * /org/siril/ui/pixmaps as a resource path so "siril" picks up
+	 * siril.svg via GTK4's native paintable infrastructure, avoiding the
+	 * deprecated "logo" pixbuf path. */
 
 	gtk_show_about_dialog(parent,
 			"program-name", PACKAGE,

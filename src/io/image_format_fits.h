@@ -65,7 +65,20 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-// get_thumbnail_from_fits is GUI-only; forward-declared in gui/dialog_preview.c.
+/* Thumbnail extraction (GUI-only).
+ *
+ * extract_thumbnail_from_fits returns a malloc'd RGB888 byte buffer plus
+ * the thumbnail's dimensions and a g_malloc'd description string.  The
+ * caller frees the byte buffer with free() and the description with
+ * g_free().  Use this from the GTK4 build where a raw byte buffer can be
+ * wrapped directly as a GdkTexture.
+ *
+ * get_thumbnail_from_fits is a thin GdkPixbuf wrapper around the above,
+ * kept for the GTK3 build and any other caller that still wants a
+ * GdkPixbuf.
+ *
+ * Forward-declared in callers rather than included here to keep this
+ * core header gdk-pixbuf-free. */
 
 // internal read of FITS file, for FITS images and FITS sequences
 void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix);
