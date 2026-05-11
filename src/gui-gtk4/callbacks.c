@@ -628,6 +628,13 @@ void on_display_item_toggled(GtkCheckButton *checkmenuitem, gpointer user_data) 
 			gui_function(redraw_previews, NULL);
 		}
 	}
+
+	/* The display-mode menu is a radio group; once the user picks a mode
+	 * the menu has done its job and should dismiss itself. */
+	GtkWidget *popover = gtk_widget_get_ancestor(GTK_WIDGET(checkmenuitem),
+	                                              GTK_TYPE_POPOVER);
+	if (popover)
+		gtk_popover_popdown(GTK_POPOVER(popover));
 }
 
 void on_mask_enable_toggled(GtkCheckButton *button, gpointer user_data) {

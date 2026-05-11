@@ -953,15 +953,28 @@ static void remap_all_vports() {
 						}
 					}
 				} else {
-					// Normal without mask
-					for (int c = 0 ; c < 3 ; c++) {
-						const BYTE *line_byte = linebuf_byte[c];
+					// Normal without mask.  Hoist `downscaled` out of the
+					// inner loop: the unit-stride branch is SIMD-vectorizable;
+					// the strided-gather branch isn't, so we don't decorate it.
+					if (downscaled) {
+						for (int c = 0 ; c < 3 ; c++) {
+							const BYTE *line_byte = linebuf_byte[c];
+							for (x = 0 ; x < (guint)out_w ; x++) {
+								const int sx = (int)(x * inv_scale);
+								const guint dst_index = dst_row_start + x * 4;
+								const BYTE pixel_val = line_byte[sx];
+								*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
+							}
+						}
+					} else {
+						for (int c = 0 ; c < 3 ; c++) {
+							const BYTE *line_byte = linebuf_byte[c];
 #pragma omp simd
-						for (x = 0 ; x < (guint)out_w ; x++) {
-							const int sx = downscaled ? (int)(x * inv_scale) : (int)x;
-							const guint dst_index = dst_row_start + x * 4;
-							const BYTE pixel_val = line_byte[sx];
-							*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
+							for (x = 0 ; x < (guint)out_w ; x++) {
+								const guint dst_index = dst_row_start + x * 4;
+								const BYTE pixel_val = line_byte[x];
+								*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
+							}
 						}
 					}
 				}
