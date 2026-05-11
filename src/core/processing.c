@@ -1621,8 +1621,8 @@ gpointer generic_image_worker(gpointer p) {
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		// If we are being run from the GUI and not just updating a preview, set the undo state
-		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || args->command);
+		// If we are being run from the GUI/command (not script/headless) and not just updating a preview, set the undo state
+		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || com.script);
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}

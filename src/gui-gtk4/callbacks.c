@@ -44,6 +44,7 @@
 #include "gui-gtk4/photometric_cc.h"
 #include "gui-gtk4/stacking.h"
 #include "gui-gtk4/python_gui.h"
+#include "gui-gtk4/undo_gui.h"
 /* Forward declaration: defined in gui/sequence_export.c */
 void update_export_crop_label();
 #include "algos/siril_wcs.h"
@@ -989,14 +990,16 @@ gboolean update_MenuItem(gpointer user_data) {
 
 	/* update undo/redo button tooltips */
 	if (is_undo_available()) {
-		gchar *str = g_strdup_printf(_("Undo: \"%s\""), com.history[com.hist_display - 1].history);
+		historic *h = (historic *) com.undo_stack->data;
+		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
 		g_free(str);
 	} else {
 		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
 	}
 	if (is_redo_available()) {
-		gchar *str = g_strdup_printf(_("Redo: \"%s\""), com.history[com.hist_display].history);
+		historic *h = (historic *) com.redo_stack->data;
+		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
 		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
 		g_free(str);
 	} else {
@@ -2252,6 +2255,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* map all actions for main window */
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
+
+	/* secondary-click popover for undo/redo history navigation */
+	setup_undo_redo_long_press();
 
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);

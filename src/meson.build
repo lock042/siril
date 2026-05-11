@@ -262,6 +262,7 @@ gui_filenames_shared = [
   'denoisegui.c',
   'background_extraction.c',
   'callbacks.c',
+  'undo_gui.c',
   'ccd-inspector.c',
   'colors.c',
   'catmag.c',
