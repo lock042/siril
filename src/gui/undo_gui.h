@@ -17,18 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef UNDO_H_
-#define UNDO_H_
 
-#define UNDO		-1
-#define REDO		 1
+#ifndef SIRIL_UNDO_GUI_H
+#define SIRIL_UNDO_GUI_H
 
-gboolean is_undo_available();
-gboolean is_redo_available();
-int undo_display_data(int dir);
-int undo_save_state(fits *fit, const char *message, ...);
-int	undo_flush();
-gboolean undo_in_thread(gpointer user_data);
-gboolean redo_in_thread(gpointer user_data);
+void setup_undo_redo_long_press(void);
 
-#endif /* UNDO_H_ */
+#endif /* SIRIL_UNDO_GUI_H */
