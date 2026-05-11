@@ -327,6 +327,7 @@ static void curves_rebuild_from_stages() {
 	gtk_widget_queue_draw(curves_drawingarea);
 	notify_gfit_data_modified();
 	gfit_modified_update_gui();
+	curves_update_image();
 	set_cursor_waiting(FALSE);
 }
 
@@ -1641,7 +1642,6 @@ gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMo
 	else selected_point->x = xpos;
 
 	_update_entry_text();
-	update_display_histogram_from_curve();
 	gtk_widget_queue_draw(widget);
 	return FALSE;
 }
@@ -1710,6 +1710,8 @@ gboolean on_curves_drawingarea_button_press_event(GtkWidget *widget, GdkEventBut
 
 gboolean on_curves_drawingarea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
 	is_drawingarea_pressed = FALSE;
+	update_display_histogram_from_curve();
+	gtk_widget_queue_draw(widget);
 	curves_update_image();
 	return FALSE;
 }
