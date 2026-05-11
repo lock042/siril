@@ -618,9 +618,12 @@ void open_compositing_window() {
 		/* GTK4 GtkColorDialog has no palette API equivalent to GTK3's
 		 * gtk_color_chooser_add_palette — the 12-colour palette feature
 		 * is intentionally dropped here. */
-		populate_filter_lists();
+		/* wl_entry must be resolved BEFORE populate_filter_lists() runs:
+		 * appending items to the dropdown fires items-changed →
+		 * notify::selected → on_filter_changed, which writes into wl_entry. */
 		wl_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry_wavelength"));
 		box = GTK_DROP_DOWN(gtk_builder_get_object(gui.builder, "comboboxtext_filters"));
+		populate_filter_lists();
 
 
 		/* allocate default layers and populate widget data */
@@ -1863,6 +1866,7 @@ static void populate_filter_lists() {
 void on_filter_changed(GObject *obj, GParamSpec *pspec, gpointer user_data) {
 	GtkDropDown *widget = GTK_DROP_DOWN(obj);
 	(void)pspec;
+	if (!wl_entry) return;  /* fired during dropdown population, before init finished */
 	gint active = gtk_drop_down_get_selected(widget);
 	char wl_text[20];
 	if (active == -1) return;

@@ -337,37 +337,39 @@ static void update_user_interface_preferences() {
 	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
 	update_roi_config();
 	/* Configure colors */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	GdkRGBA color;
+	/* Read RGBA from each GtkColorDialogButton.  The pointer it hands back
+	 * is owned by the widget — copy it before stringifying. */
+	const GdkRGBA *rgba;
 
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_bkg")));
 	g_free(com.pref.gui.config_colors.color_bkg_samples);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	com.pref.gui.config_colors.color_bkg_samples = gdk_rgba_to_string(&color);
+	com.pref.gui.config_colors.color_bkg_samples =
+		rgba ? gdk_rgba_to_string(rgba) : NULL;
 
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_std_annot")));
 	g_free(com.pref.gui.config_colors.color_std_annotations);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	com.pref.gui.config_colors.color_std_annotations = gdk_rgba_to_string(&color);
+	com.pref.gui.config_colors.color_std_annotations =
+		rgba ? gdk_rgba_to_string(rgba) : NULL;
 
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_dso_annot")));
 	g_free(com.pref.gui.config_colors.color_dso_annotations);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	com.pref.gui.config_colors.color_dso_annotations = gdk_rgba_to_string(&color);
+	com.pref.gui.config_colors.color_dso_annotations =
+		rgba ? gdk_rgba_to_string(rgba) : NULL;
 
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_sso_annot")));
 	g_free(com.pref.gui.config_colors.color_sso_annotations);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
-	com.pref.gui.config_colors.color_sso_annotations = gdk_rgba_to_string(&color);
+	com.pref.gui.config_colors.color_sso_annotations =
+		rgba ? gdk_rgba_to_string(rgba) : NULL;
 
-	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_tmp_annot")));
 	g_free(com.pref.gui.config_colors.color_tmp_annotations);
-	com.pref.gui.config_colors.color_tmp_annotations = gdk_rgba_to_string(&color);
+	com.pref.gui.config_colors.color_tmp_annotations =
+		rgba ? gdk_rgba_to_string(rgba) : NULL;
 }
 
 static void update_color_management_preferences() {
@@ -879,18 +881,21 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")), pref->gui.mouse_speed_limit);
 
 	GdkRGBA color;
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);
-	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_bkg")), &color);
+	gtk_color_dialog_button_set_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_bkg")), &color);
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_std_annotations);
-	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_std_annot")), &color);
+	gtk_color_dialog_button_set_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_std_annot")), &color);
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_dso_annotations);
-	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_dso_annot")), &color);
+	gtk_color_dialog_button_set_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_dso_annot")), &color);
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_sso_annotations);
-	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_sso_annot")), &color);
+	gtk_color_dialog_button_set_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_sso_annot")), &color);
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_tmp_annotations);
-	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(lookup_widget("color_button_tmp_annot")), &color);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	gtk_color_dialog_button_set_rgba(
+		GTK_COLOR_DIALOG_BUTTON(lookup_widget("color_button_tmp_annot")), &color);
 	/* tab Color Management.  The .ui widgets here are now plain GtkButtons
 	 * (path-picker replacements for GTK3's GtkFileChooserButton); pass
 	 * them through the polymorphic siril_file_chooser_set_filename shim
