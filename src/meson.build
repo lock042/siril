@@ -239,10 +239,13 @@ src_files = [
 ]
 
 # GUI-only source files (require GTK; excluded when -Dgui=disabled).
+#
 # gui_subdir is set in the top-level meson.build to either 'gui' (gtk3,
-# default) or 'gui-gtk4' (gtk4).  The two trees are physically separated;
-# only one is compiled into a given build.
-gui_filenames = [
+# default) or 'gui-gtk4' (gtk4).  The two trees are physically separated
+# and only one is compiled into a given build.  As the GTK4 migration
+# progresses, some files exist in only one tree; this is captured by
+# splitting the file list into shared + per-tree extras.
+gui_filenames_shared = [
   'livestacking_gui.c',
   'about_dialog.c',
   'annotate.c',
@@ -270,7 +273,6 @@ gui_filenames = [
   'dialogs.c',
   'documentation.c',
   'epf.c',
-  'file_browser.c',
   'gui_iface_impl.c',
   'fix_xtrans_af.c',
   'geometry.c',
@@ -332,6 +334,19 @@ gui_filenames = [
   'utils.c',
   'wavelets.c',
 ]
+
+# Files that exist only in src/gui-gtk4/ (no GTK3 counterpart).
+gui_filenames_gtk4_only = [
+  'file_browser.c',  # custom GtkDirectoryList-based file picker with preview
+]
+
+# Files that exist only in src/gui/ (no GTK4 counterpart).  Currently none.
+gui_filenames_gtk3_only = []
+
+gui_filenames = gui_filenames_shared + (use_gtk4
+  ? gui_filenames_gtk4_only
+  : gui_filenames_gtk3_only)
+
 src_files_gui = []
 foreach f : gui_filenames
   src_files_gui += gui_subdir / f
