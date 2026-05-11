@@ -93,7 +93,7 @@ static void conversion_init_statics(void) {
 	conv_start_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "startIndiceEntry"));
 	conv_go_button = GTK_WIDGET(gtk_builder_get_object(gui.builder, "convert_button"));
 	conv_status_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "statuslabel_convert"));
-	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "conv_root_entry"));
+	conv_root_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "convroot_entry"));
 }
 
 static void check_for_conversion_form_completeness();
