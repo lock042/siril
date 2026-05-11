@@ -444,17 +444,22 @@ static gboolean free_image_data_gui(gpointer p) {
 
 	for (int vport = 0; vport < MAXVPORT; vport++) {
 		struct image_view *view = &gui.view[vport];
+		/* Drop tile textures before freeing the buf they wrap. */
+		if (view->tile_textures) {
+			int n = view->tile_cols * view->tile_rows;
+			for (int i = 0; i < n; i++) {
+				if (view->tile_textures[i]) {
+					g_object_unref(view->tile_textures[i]);
+					view->tile_textures[i] = NULL;
+				}
+			}
+			g_free(view->tile_textures);
+			view->tile_textures = NULL;
+		}
+		view->tile_dim = view->tile_cols = view->tile_rows = 0;
 		if (view->buf) { free(view->buf); view->buf = NULL; }
-		if (view->full_surface) {
-			cairo_surface_destroy(view->full_surface);
-			view->full_surface = NULL;
-		}
-		view->full_surface_stride = 0;
-		view->full_surface_height = 0;
-		if (view->disp_surface) {
-			cairo_surface_destroy(view->disp_surface);
-			view->disp_surface = NULL;
-		}
+		view->buf_stride = 0;
+		view->buf_height = 0;
 		view->view_width = -1;
 		view->view_height = -1;
 	}

@@ -106,110 +106,126 @@ static void image_display_init_statics(void) {
 
 static void invalidate_image_render_cache(int vport);
 
-/* Build (or rebuild) view->texture from view->buf at its current
- * stride / height.  Must be called with gui.cairo_mutex held.
- *
- * GdkTexture is documented as immutable: GTK4 may cache its GPU upload
- * keyed on the texture object, so modifying the underlying bytes after
- * the upload leaves the on-screen image stale.  We therefore drop the
- * previous texture and create a fresh one whenever view->buf is
- * (re-)written, which assigns it a new identity and forces GSK to
- * re-upload the bytes on the next snapshot.
- *
- * The bytes are wrapped via g_bytes_new_static — the buffer is owned by
- * the view and outlives any texture that points at it; the caller is
- * responsible for clearing the texture before reallocating buf. */
-static void view_refresh_texture(struct image_view *view) {
-	if (view->texture) {
-		g_object_unref(view->texture);
-		view->texture = NULL;
+/* Tile side length.  Each viewport's buf is exposed to GSK as a grid of
+ * GdkTextures of up to SIRIL_TILE_DIM × SIRIL_TILE_DIM pixels; right- and
+ * bottom-edge tiles may be smaller.  The chosen size sits comfortably
+ * inside every GPU's max-texture-size limit (typically ≥ 4096 on any
+ * GL/Vulkan path) and divides easily into the typical megapixel-scale
+ * images Siril works with. */
+#define SIRIL_TILE_DIM 2048
+
+/* Release every tile texture; the underlying bytes (view->buf) are not
+ * freed by this. */
+static void view_drop_tile_textures(struct image_view *view) {
+	if (!view->tile_textures) return;
+	int n = view->tile_cols * view->tile_rows;
+	for (int i = 0; i < n; i++) {
+		if (view->tile_textures[i]) {
+			g_object_unref(view->tile_textures[i]);
+			view->tile_textures[i] = NULL;
+		}
 	}
-	if (!view->buf || view->full_surface_stride <= 0 || view->full_surface_height <= 0)
-		return;
-	int w = view->full_surface_stride / 4;
-	int h = view->full_surface_height;
-	gsize len = (gsize)view->full_surface_stride * h;
-	GBytes *bytes = g_bytes_new_static(view->buf, len);
-	/* CAIRO_FORMAT_RGB24 is a 32-bit-per-pixel format with R/G/B in the
-	 * upper 24 bits and an unused byte in the high position.  On little-
-	 * endian targets the bytes in memory are B, G, R, X — which matches
-	 * GDK_MEMORY_B8G8R8X8. */
-	view->texture = gdk_memory_texture_new(w, h, GDK_MEMORY_B8G8R8X8,
-	                                        bytes, view->full_surface_stride);
-	g_bytes_unref(bytes);
 }
 
+/* (Re)build the array of GdkTextures that expose view->buf as a tile
+ * grid.  Must be called with gui.cairo_mutex held.
+ *
+ * Each tile texture wraps a sub-region of view->buf via a static GBytes
+ * with the buf's row stride — so consecutive texture rows index into
+ * consecutive buf rows of the wider image.  The buffer is owned by the
+ * view and outlives any texture pointing at it; callers must clear the
+ * textures (via view_drop_tile_textures) before reallocating buf.
+ *
+ * GdkTexture is immutable: GSK may cache its GPU upload keyed on the
+ * texture object, so we drop and recreate the textures after every
+ * remap to give them fresh identities and force re-upload. */
+static void view_refresh_tile_textures(struct image_view *view) {
+	view_drop_tile_textures(view);
+	if (!view->buf || !view->tile_textures || view->buf_stride <= 0 ||
+	    view->buf_height <= 0)
+		return;
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	for (int ty = 0; ty < view->tile_rows; ty++) {
+		for (int tx = 0; tx < view->tile_cols; tx++) {
+			const int x0 = tx * view->tile_dim;
+			const int y0 = ty * view->tile_dim;
+			const int tw = MIN(view->tile_dim, img_w - x0);
+			const int th = MIN(view->tile_dim, img_h - y0);
+			if (tw <= 0 || th <= 0)
+				continue;
+			guchar *p = view->buf + (size_t)y0 * view->buf_stride + (size_t)x0 * 4;
+			/* The GBytes covers from the tile's first row up to the
+			 * last byte of its last row (not the full buf row stride
+			 * past that), so g_bytes_new_static doesn't claim memory
+			 * outside the buffer. */
+			gsize len = (gsize)(th - 1) * view->buf_stride + (gsize)tw * 4;
+			GBytes *bytes = g_bytes_new_static(p, len);
+			view->tile_textures[ty * view->tile_cols + tx] =
+				gdk_memory_texture_new(tw, th, GDK_MEMORY_B8G8R8X8,
+				                        bytes, view->buf_stride);
+			g_bytes_unref(bytes);
+		}
+	}
+}
+
+/* Allocate (or reallocate) the display buffer + tile-texture array for
+ * the viewport's current gfit dimensions.  No more surface_scale dance —
+ * the tile grid removes the Cairo 32767-px constraint that needed it.
+ *
+ * Returns 0 on success, non-zero on allocation failure. */
 static int allocate_full_surface(struct image_view *view) {
 	g_mutex_lock(&gui.cairo_mutex);
 
-	/* Cairo surfaces are limited to 32767 px per side (int16_t internally).
-	 * For images that exceed this limit, scale down to at most 4096 px per
-	 * side so the display buffer stays within reasonable memory bounds.
-	 * (Phase 2 — tiling — will eliminate this limit entirely.) */
-#define SIRIL_MAX_SURFACE_DIM 4096
-	double scale = 1.0;
-	if (gfit->rx > 32767 || gfit->ry > 32767)
-		scale = MIN((double)SIRIL_MAX_SURFACE_DIM / gfit->rx,
-		            (double)SIRIL_MAX_SURFACE_DIM / gfit->ry);
-#undef SIRIL_MAX_SURFACE_DIM
-	gui.surface_scale = scale;
+	const int img_w = (int)gfit->rx;
+	const int img_h = (int)gfit->ry;
+	if (img_w <= 0 || img_h <= 0) {
+		g_mutex_unlock(&gui.cairo_mutex);
+		return 1;
+	}
 
-	int sw = (int)(gfit->rx * scale);
-	int sh = (int)(gfit->ry * scale);
-	if (sw < 1) sw = 1;
-	if (sh < 1) sh = 1;
+	/* CAIRO_FORMAT_RGB24 stride: 4 bytes/px with the row padded up to a
+	 * 4-byte boundary (no-op for 4-byte pixels but kept for clarity). */
+	const int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, img_w);
+	const int tile_dim = SIRIL_TILE_DIM;
+	const int tile_cols = (img_w + tile_dim - 1) / tile_dim;
+	const int tile_rows = (img_h + tile_dim - 1) / tile_dim;
 
-	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, sw);
+	if (stride != view->buf_stride
+				|| img_h != view->buf_height
+				|| !view->buf
+				|| tile_cols != view->tile_cols
+				|| tile_rows != view->tile_rows
+				|| !view->tile_textures) {
+		siril_debug_print("display buffer (re-)allocation %p — %d×%d, %d×%d tiles\n",
+				view, img_w, img_h, tile_cols, tile_rows);
 
-	// allocate the image surface if not already done or the same size
-	if (stride != view->full_surface_stride
-				|| sh != view->full_surface_height
-				|| !view->full_surface || !view->buf) {
-		siril_debug_print("display buffers and full_surface (re-)allocation %p\n", view);
+		/* Drop textures before realloc — their static GBytes would
+		 * dangle if realloc moved view->buf. */
+		view_drop_tile_textures(view);
+		g_free(view->tile_textures);
+		view->tile_textures = NULL;
 
-		/* Drop the texture before realloc: it wraps view->buf via a
-		 * static GBytes that would dangle if realloc moved the buffer. */
-		if (view->texture) {
-			g_object_unref(view->texture);
-			view->texture = NULL;
-		}
-
-		guchar *tmp = realloc(view->buf, (size_t)stride * sh * sizeof(guchar));
+		guchar *tmp = realloc(view->buf, (size_t)stride * img_h * sizeof(guchar));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
 			free(view->buf);
 			view->buf = NULL;
-			if (view->full_surface) {
-				cairo_surface_destroy(view->full_surface);
-				view->full_surface = NULL;
-			}
-			view->full_surface_stride = 0;
-			view->full_surface_height = 0;
+			view->buf_stride = 0;
+			view->buf_height = 0;
+			view->tile_dim = view->tile_cols = view->tile_rows = 0;
 			g_mutex_unlock(&gui.cairo_mutex);
 			return 1;
 		}
 		view->buf = tmp;
-		// Only update dimension fields once the allocation succeeded
-		view->full_surface_stride = stride;
-		view->full_surface_height = sh;
-
-		if (view->full_surface)
-			cairo_surface_destroy(view->full_surface);
-		view->full_surface = cairo_image_surface_create_for_data(view->buf,
-					CAIRO_FORMAT_RGB24, sw, sh, stride);
-		if (cairo_surface_status(view->full_surface) != CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the cairo image full_surface for the RGB image\n");
-			cairo_surface_destroy(view->full_surface);
-			view->full_surface = NULL;
-			free(view->buf);
-			view->buf = NULL;
-			view->full_surface_stride = 0;
-			view->full_surface_height = 0;
-			g_mutex_unlock(&gui.cairo_mutex);
-			return 1;
-		}
-		/* The texture will be (re-)created at the end of the next remap
-		 * pass when buf is populated; leave it NULL here. */
+		view->buf_stride = stride;
+		view->buf_height = img_h;
+		view->tile_dim = tile_dim;
+		view->tile_cols = tile_cols;
+		view->tile_rows = tile_rows;
+		view->tile_textures = g_new0(GdkTexture *, tile_cols * tile_rows);
+		/* Textures are created at the end of the next remap pass when
+		 * buf is populated; leave the array zero-filled for now. */
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 	return 0;
@@ -248,9 +264,7 @@ static void remaprgb(void) {
 		return;
 	}
 	dst = (guint32*) rgbview->buf;	// index is j
-	/* Channel bufs are at surface dimensions (may be smaller than gfit when image
-	 * exceeds Cairo's 32767-px limit); use the actual surface size here. */
-	nbdata = (rgbview->full_surface_stride / 4) * rgbview->full_surface_height;
+	nbdata = (rgbview->buf_stride / 4) * rgbview->buf_height;
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
@@ -259,10 +273,7 @@ static void remaprgb(void) {
 		dst[i] = (bufr[i] & 0xFF0000) | (bufg[i] & 0xFF00) | (bufb[i] & 0xFF);
 	}
 
-	// flush to ensure all writing to the image was done and redraw the surface
-	cairo_surface_flush(rgbview->full_surface);
-	cairo_surface_mark_dirty(rgbview->full_surface);
-	view_refresh_texture(rgbview);
+	view_refresh_tile_textures(rgbview);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -310,9 +321,8 @@ static void remap_mask(mask_t *mask) {
 		return;
 
 	g_mutex_lock(&gui.cairo_mutex);
-	// Cairo setup
-	unsigned char *dst_base = cairo_image_surface_get_data(view->full_surface);
-	int dst_stride = cairo_image_surface_get_stride(view->full_surface);
+	unsigned char *dst_base = view->buf;
+	int dst_stride = view->buf_stride;
 
 	// Mask setup
 	void *src_data = mask->data;
@@ -320,71 +330,9 @@ static void remap_mask(mask_t *mask) {
 	guint ry = gfit->ry;
 	int bitpix = mask->bitpix;
 
-	/* When the image exceeds Cairo's 32767-px limit, the surface is smaller than
-	 * gfit; nearest-neighbour downsample into the surface dimensions. */
-	const gboolean downscaled = (gui.surface_scale < 1.0);
-	const int sh = view->full_surface_height;
-	const int sw = (int)(rx * gui.surface_scale);
-	const double inv_scale = downscaled ? 1.0 / gui.surface_scale : 1.0;
-
-	if (downscaled) {
-		switch (bitpix) {
-			case 8: {
-				uint8_t *s8 = (uint8_t *)src_data;
-				#ifdef _OPENMP
-				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-				#endif
-				for (int dy = 0; dy < sh; dy++) {
-					int sy = (int)(dy * inv_scale);
-					uint8_t *src_row = s8 + (guint)sy * rx;
-					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
-					for (int dx = 0; dx < sw; dx++) {
-						int sx = (int)(dx * inv_scale);
-						uint8_t val = src_row[sx];
-						dst_row[dx] = (val << 16) | (val << 8) | val;
-					}
-				}
-				break;
-			}
-			case 16: {
-				uint16_t *s16 = (uint16_t *)src_data;
-				#ifdef _OPENMP
-				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-				#endif
-				for (int dy = 0; dy < sh; dy++) {
-					int sy = (int)(dy * inv_scale);
-					uint16_t *src_row = s16 + (guint)sy * rx;
-					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
-					for (int dx = 0; dx < sw; dx++) {
-						int sx = (int)(dx * inv_scale);
-						uint32_t val = ((uint32_t)src_row[sx] * 255 + 32895) >> 16;
-						dst_row[dx] = (val << 16) | (val << 8) | val;
-					}
-				}
-				break;
-			}
-			case 32: {
-				float *sf = (float *)src_data;
-				#ifdef _OPENMP
-				#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-				#endif
-				for (int dy = 0; dy < sh; dy++) {
-					int sy = (int)(dy * inv_scale);
-					float *src_row = sf + (guint)sy * rx;
-					uint32_t *dst_row = (uint32_t *)(dst_base + (sh - 1 - dy) * dst_stride);
-					for (int dx = 0; dx < sw; dx++) {
-						int sx = (int)(dx * inv_scale);
-						uint8_t val = roundf_to_BYTE(src_row[sx] * UCHAR_MAX_SINGLE);
-						dst_row[dx] = (val << 16) | (val << 8) | val;
-					}
-				}
-				break;
-			}
-			default:
-				siril_debug_print("Error: invalid mask bitpix\n");
-				break;
-		}
-	} else {
+	/* Image is now always rendered at full resolution; the previous
+	 * "downscaled" branch (kept for the Cairo 32k-px limit) has been
+	 * retired by the tile-grid texture wrapping. */
 	// We switch ONCE. This requires duplicating the loop code,
 	// but ensures the tightest possible inner loops for the compiler to vectorize.
 	switch (bitpix) {
@@ -456,11 +404,8 @@ static void remap_mask(mask_t *mask) {
 			break;
 		}
 	}
-	} // end !downscaled
 
-	cairo_surface_flush(view->full_surface);
-	cairo_surface_mark_dirty(view->full_surface);
-	view_refresh_texture(view);
+	view_refresh_tile_textures(view);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -647,42 +592,19 @@ static void remap(int vport) {
 		} \
 	} while (0)
 
-	if (gui.surface_scale < 1.0) {
-		/* Downscaled path: buf/full_surface smaller than gfit; nearest-neighbour. */
-		const int sw = (int)(width * gui.surface_scale);
-		const int sh = view->full_surface_height;
-		const int dstride = view->full_surface_stride;
-		const double inv_scale = 1.0 / gui.surface_scale;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (int dy = 0; dy < sh; dy++) {
-			const int sy = (int)(dy * inv_scale);
-			const guint src_row_start = (guint)sy * width;
-			const guint dst_row_start = (guint)(sh - 1 - dy) * (guint)dstride;
-			for (int dx = 0; dx < sw; dx++) {
-				const int sx = (int)(dx * inv_scale);
-				REMAP_WRITE_PIXEL(src_row_start + (guint)sx, dst_row_start + (guint)dx * 4);
-			}
-		}
-	} else {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
-#endif
-		for (guint y = 0; y < height; y++) {
-			const guint src_row_start = y * width;
-			const guint dst_row_start = (height - 1 - y) * width * 4;
-			for (guint x = 0; x < width; ++x) {
-				REMAP_WRITE_PIXEL(src_row_start + x, dst_row_start + x * 4);
-			}
+	for (guint y = 0; y < height; y++) {
+		const guint src_row_start = y * width;
+		const guint dst_row_start = (height - 1 - y) * width * 4;
+		for (guint x = 0; x < width; ++x) {
+			REMAP_WRITE_PIXEL(src_row_start + x, dst_row_start + x * 4);
 		}
 	}
 #undef REMAP_WRITE_PIXEL
 
-	// flush to ensure all writing to the image was done and redraw the surface
-	cairo_surface_flush(view->full_surface);
-	cairo_surface_mark_dirty(view->full_surface);
-	view_refresh_texture(view);
+	view_refresh_tile_textures(view);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	// invalidate_image_render_cache is self-locking; must be called after our unlock
@@ -812,12 +734,11 @@ static void remap_all_vports() {
 	const guint width = gfit->rx;
 	const guint height = gfit->ry;
 
-	/* When image exceeds Cairo's 32767-px limit, the surface is downscaled. */
-	const gboolean downscaled = (gui.surface_scale < 1.0);
-	const int loop_max = downscaled ? view[0]->full_surface_height : (int)height;
-	const int sw = downscaled ? (int)(width * gui.surface_scale) : (int)width;
-	const int dstride = downscaled ? view[0]->full_surface_stride : (int)(width * 4);
-	const double inv_scale = downscaled ? 1.0 / gui.surface_scale : 1.0;
+	/* Render is always at the image's natural resolution now — the
+	 * downscaled path that worked around the Cairo 32767-px limit has
+	 * been retired by the tile-grid texture wrapping. */
+	const int loop_max = (int)height;
+	const int sw = (int)width;
 
 	// Shared flag for per-thread allocation failures; checked after the parallel block.
 	gboolean alloc_error = FALSE;
@@ -863,8 +784,8 @@ static void remap_all_vports() {
 #endif
 		for (int row = 0; row < loop_max; row++) {
 			guint x;
-			/* row == destination row; sy == source row */
-			const guint sy = downscaled ? (guint)(row * inv_scale) : (guint)row;
+			/* row == destination row; sy == source row (1:1 mapping). */
+			const guint sy = (guint)row;
 			const guint src_i = sy * width;
 
 			// Precompute mask values for entire source row if mask is active
@@ -933,9 +854,7 @@ static void remap_all_vports() {
 				cmsDoTransformLineStride(com.gui_icc.proofing_transform, pixelbuf_byte, pixelbuf_byte, width, 1, width * 3, width * 3, width, width);
 			}
 
-			const guint dst_row_start = downscaled
-				? (guint)(loop_max - 1 - row) * (guint)dstride
-				: (height - 1 - sy) * (guint)width * 4;
+			const guint dst_row_start = (height - 1 - sy) * (guint)width * 4;
 			const int out_w = sw;  /* number of destination pixels to write */
 
 			if (color == RAINBOW_COLOR) {
@@ -944,10 +863,9 @@ static void remap_all_vports() {
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
 						for (int dx = 0 ; dx < out_w ; dx++) {
-							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
 							const guint dst_index = dst_row_start + (guint)dx * 4;
-							const BYTE pixel_val = line_byte[sx];
-							const BYTE mask_val = mask_row[sx];
+							const BYTE pixel_val = line_byte[dx];
+							const BYTE mask_val = mask_row[dx];
 
 							const BYTE rainbow_r = rainbow_index[pixel_val][0];
 							const BYTE rainbow_g = rainbow_index[pixel_val][1];
@@ -967,9 +885,8 @@ static void remap_all_vports() {
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
 						for (int dx = 0 ; dx < out_w ; dx++) {
-							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
 							const guint dst_index = dst_row_start + (guint)dx * 4;
-							const BYTE pixel_val = line_byte[sx];
+							const BYTE pixel_val = line_byte[dx];
 							*(guint32*)(dst[c] + dst_index) = rainbow_index[pixel_val][0] << 16 |
 							                                   rainbow_index[pixel_val][1] << 8 |
 							                                   rainbow_index[pixel_val][2];
@@ -983,10 +900,9 @@ static void remap_all_vports() {
 					for (int c = 0 ; c < 3 ; c++) {
 						const BYTE *line_byte = linebuf_byte[c];
 						for (int dx = 0 ; dx < out_w ; dx++) {
-							const int sx = downscaled ? (int)(dx * inv_scale) : dx;
 							const guint dst_index = dst_row_start + (guint)dx * 4;
-							const BYTE pixel_val = line_byte[sx];
-							const BYTE mask_val = mask_row[sx];
+							const BYTE pixel_val = line_byte[dx];
+							const BYTE mask_val = mask_row[dx];
 
 							const uint16_t inv_mask = UCHAR_MAX - mask_val;
 							const uint16_t r_sum = inv_mask + pixel_val;
@@ -998,28 +914,14 @@ static void remap_all_vports() {
 						}
 					}
 				} else {
-					// Normal without mask.  Hoist `downscaled` out of the
-					// inner loop: the unit-stride branch is SIMD-vectorizable;
-					// the strided-gather branch isn't, so we don't decorate it.
-					if (downscaled) {
-						for (int c = 0 ; c < 3 ; c++) {
-							const BYTE *line_byte = linebuf_byte[c];
-							for (x = 0 ; x < (guint)out_w ; x++) {
-								const int sx = (int)(x * inv_scale);
-								const guint dst_index = dst_row_start + x * 4;
-								const BYTE pixel_val = line_byte[sx];
-								*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
-							}
-						}
-					} else {
-						for (int c = 0 ; c < 3 ; c++) {
-							const BYTE *line_byte = linebuf_byte[c];
+					// Normal without mask — SIMD-vectorizable unit-stride
+					for (int c = 0 ; c < 3 ; c++) {
+						const BYTE *line_byte = linebuf_byte[c];
 #pragma omp simd
-							for (x = 0 ; x < (guint)out_w ; x++) {
-								const guint dst_index = dst_row_start + x * 4;
-								const BYTE pixel_val = line_byte[x];
-								*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
-							}
+						for (x = 0 ; x < (guint)out_w ; x++) {
+							const guint dst_index = dst_row_start + x * 4;
+							const BYTE pixel_val = line_byte[x];
+							*(guint32*)(dst[c] + dst_index) = pixel_val << 16 | pixel_val << 8 | pixel_val;
 						}
 					}
 				}
@@ -1050,11 +952,8 @@ static void remap_all_vports() {
 		return;
 	}
 
-	// flush to ensure all writing to the image was done and redraw the surfaces
 	for (int vport = 0 ; vport < 3 ; vport++) {
-		cairo_surface_flush(view[vport]->full_surface);
-		cairo_surface_mark_dirty(view[vport]->full_surface);
-		view_refresh_texture(view[vport]);
+		view_refresh_tile_textures(view[vport]);
 	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
@@ -1237,10 +1136,6 @@ static void request_gtk_redraw_of_cvport() {
 	gtk_widget_queue_draw(widget);
 }
 
-/* forward declaration — redraw_drawingarea is defined later in this file */
-void redraw_drawingarea(GtkDrawingArea *area, cairo_t *cr,
-                         int width, int height, gpointer data);
-
 /* GTK4 has no signal-block facility on the draw_func / snapshot vfunc.
  * Use an atomic flag the renderers consult to short-circuit drawing while
  * a worker repaints the buffers. */
@@ -1351,19 +1246,28 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	 * legacy path before draw_main_image runs). */
 	adjust_vport_size_to_image();
 
-	/* Snapshot the texture + dimensions under the lock so a concurrent
-	 * remap (which may release & rebuild view->texture under cairo_mutex)
-	 * can't pull the rug from under us mid-render. */
+	/* Snapshot the tile-texture array under the lock so a concurrent
+	 * remap (which may release & rebuild the texture grid under
+	 * cairo_mutex) can't pull the rug from under us mid-render.  We
+	 * take refs on each tile texture for use after the unlock. */
 	g_mutex_lock(&gui.cairo_mutex);
-	GdkTexture *tex = gui.view[vport].texture;
-	if (tex) g_object_ref(tex);
-	const int fs_h = gui.view[vport].full_surface_height;
+	struct image_view *view = &gui.view[vport];
+	const int tile_dim  = view->tile_dim;
+	const int tile_cols = view->tile_cols;
+	const int tile_rows = view->tile_rows;
+	const int img_w     = view->buf_stride / 4;
+	const int img_h     = view->buf_height;
+	GdkTexture **tiles_snapshot = NULL;
+	if (view->tile_textures && tile_cols > 0 && tile_rows > 0) {
+		tiles_snapshot = g_new0(GdkTexture *, tile_cols * tile_rows);
+		for (int i = 0; i < tile_cols * tile_rows; i++) {
+			tiles_snapshot[i] = view->tile_textures[i];
+			if (tiles_snapshot[i]) g_object_ref(tiles_snapshot[i]);
+		}
+	}
 	g_mutex_unlock(&gui.cairo_mutex);
 
-	if (tex) {
-		const int tex_w = gdk_texture_get_width(tex);
-		const int tex_h = gdk_texture_get_height(tex);
-
+	if (tiles_snapshot && img_w > 0 && img_h > 0) {
 		gtk_snapshot_save(snapshot);
 
 		/* display_matrix maps image-space → widget-space: (x,y) ↦
@@ -1375,23 +1279,13 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			(float)gui.display_matrix.xx,
 			(float)gui.display_matrix.yy);
 
-		/* If gui.surface_scale < 1.0, the texture is smaller than the
-		 * image (the Cairo 32k-px workaround).  Scale up by the inverse
-		 * so image-space coords still map correctly. */
-		double ss = (fs_h > 0 && gfit->ry > 0)
-			? (double)fs_h / (double)gfit->ry : 1.0;
-		if (ss < 1.0 && ss > 0.0) {
-			float k = (float)(1.0 / ss);
-			gtk_snapshot_scale(snapshot, k, k);
-		}
-
 		/* The remap writes rows bottom-up so that the image renders
 		 * top-down on screen — except in the livestacking TOP-DOWN case,
 		 * where the buffer is stored top-down and needs a y-flip. */
 		if (livestacking_is_started()
 		    && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
 			gtk_snapshot_translate(snapshot,
-				&GRAPHENE_POINT_INIT(0.0f, (float)tex_h));
+				&GRAPHENE_POINT_INIT(0.0f, (float)img_h));
 			gtk_snapshot_scale(snapshot, 1.0f, -1.0f);
 		}
 
@@ -1399,11 +1293,32 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 		const GskScalingFilter filter = (zoom < 1.0)
 			? GSK_SCALING_FILTER_TRILINEAR
 			: GSK_SCALING_FILTER_NEAREST;
-		gtk_snapshot_append_scaled_texture(snapshot, tex, filter,
-			&GRAPHENE_RECT_INIT(0, 0, tex_w, tex_h));
+
+		/* Walk the tile grid, painting each tile texture at its
+		 * image-space rectangle.  Edge tiles are sized to match the
+		 * actual image extent so no garbage is rendered past
+		 * (img_w, img_h). */
+		for (int ty = 0; ty < tile_rows; ty++) {
+			for (int tx = 0; tx < tile_cols; tx++) {
+				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
+				if (!tile) continue;
+				const int x0 = tx * tile_dim;
+				const int y0 = ty * tile_dim;
+				const int tw = gdk_texture_get_width(tile);
+				const int th = gdk_texture_get_height(tile);
+				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
+					&GRAPHENE_RECT_INIT((float)x0, (float)y0,
+					                     (float)tw, (float)th));
+			}
+		}
 
 		gtk_snapshot_restore(snapshot);
-		g_object_unref(tex);
+	}
+	if (tiles_snapshot) {
+		for (int i = 0; i < tile_cols * tile_rows; i++) {
+			if (tiles_snapshot[i]) g_object_unref(tiles_snapshot[i]);
+		}
+		g_free(tiles_snapshot);
 	}
 
 	/* Overlays: open a Cairo subnode covering the full widget, apply
@@ -1474,11 +1389,10 @@ void unblock_drawarea_handlers(void) {
 }
 
 void install_drawarea_draw_funcs(void) {
-	for (int i = 0; i < MAXVPORT; i++) {
-		if (gui.view[i].drawarea && GTK_IS_DRAWING_AREA(gui.view[i].drawarea))
-			gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(gui.view[i].drawarea),
-					redraw_drawingarea, NULL, NULL);
-	}
+	/* No-op in Phase 2: SirilImageView's snapshot vfunc is set at class
+	 * init time, not per-instance.  Kept as an empty entry point so
+	 * callbacks.c::initialize_all_GUI can keep calling it without a
+	 * compile-time conditional. */
 }
 
 static void draw_empty_image(const draw_data_t* dd) {
@@ -1576,209 +1490,70 @@ static void draw_empty_image(const draw_data_t* dd) {
 	g_object_unref(layout);
 }
 
-/* Fill disp_surface at full image resolution when zoom >= 1.0 on images that
- * exceed Cairo's 32767-pixel limit (gui.surface_scale < 1.0).  Reads directly
- * from gfit pixel data and applies the same LUT as the regular remap path,
- * avoiding the blurry upscale of the downsampled full_surface.
- * Must be called with gui.cairo_mutex held.
- * Returns TRUE on success, FALSE on allocation failure. */
-static gboolean fill_hires_disp(const draw_data_t *dd, struct image_view *view,
-                                 WORD remap_hi, WORD remap_lo) {
-	unsigned char *disp_data = cairo_image_surface_get_data(view->disp_surface);
-	const int disp_stride = cairo_image_surface_get_stride(view->disp_surface);
-	if (!disp_data) return FALSE;
-
-	const int win_w = dd->window_width;
-	const int win_h = dd->window_height;
-	const int img_w = (int)gfit->rx;
-	const int img_h = (int)gfit->ry;
-	const double zoom  = dd->zoom;
-	const double off_x = gui.display_offset.x;
-	const double off_y = gui.display_offset.y;
-
-	const gboolean inverted = dd->neg_view;
-	const gboolean cut_over = gui.cut_over;
-	const gboolean hd_mode  = (gui.rendering_mode == STF_DISPLAY &&
-	                            gui.use_hd_remap && gfit->type == DATA_FLOAT);
-	const gboolean is_rgb   = (dd->vport == RGB_VPORT);
-
-	/* x range of screen columns that overlap the image */
-	const int dx_first = MAX(0, (int)floor(off_x));
-	const int dx_last  = MIN(win_w - 1, (int)ceil(off_x + (double)img_w * zoom) - 1);
-	const int visible_w = (dx_last >= dx_first) ? (dx_last - dx_first + 1) : 0;
-
-	/* Clear entire surface to opaque black */
-	memset(disp_data, 0, (size_t)win_h * disp_stride);
-	if (visible_w <= 0) return TRUE;
-
-	/* RGB path: per-row channel buffers + optional ICC transform */
-	BYTE *lb_rgb = NULL;
-	gboolean do_transform = FALSE;
-	cmsHTRANSFORM transform = NULL;
-	if (is_rgb) {
-		lb_rgb = malloc((size_t)visible_w * 3);
-		if (!lb_rgb) return FALSE;
-		lock_display_transform();
-		if (gfit->color_managed && com.gui_icc.proofing_transform && !identical &&
-				!com.gui_icc.same_primaries) {
-			do_transform = TRUE;
-			transform = com.gui_icc.proofing_transform;
-		}
-		unlock_display_transform();
-	}
-
-	for (int dy = 0; dy < win_h; dy++) {
-		/* Screen row → image buf row → gfit row.
-		 * buf stores rows bottom-up (gfit row 0 = buf last row), so we flip. */
-		const double fy  = (dy - off_y) / zoom;
-		const int buf_row = (int)fy;
-		if (buf_row < 0 || buf_row >= img_h) continue;
-		const int iy = img_h - 1 - buf_row;
-
-		uint32_t *row_out = (uint32_t *)(disp_data + dy * disp_stride);
-
-		if (!is_rgb) {
-			/* Single-channel vport: mirrors REMAP_WRITE_PIXEL logic */
-			const int vp = (dd->vport < 3) ? dd->vport : 0;
-			const int ti = (gui.rendering_mode == STF_DISPLAY && gui.unlink_channels) ? vp : 0;
-			const BYTE *lut = hd_mode ? gui.hd_remap_index[ti] : gui.remap_index[ti];
-
-			for (int dx = dx_first; dx <= dx_last; dx++) {
-				const int ix = (int)((dx - off_x) / zoom);
-				if ((unsigned)ix >= (unsigned)img_w) continue;
-				const size_t si = (size_t)iy * img_w + ix;
-				BYTE val;
-				if (gfit->type == DATA_FLOAT) {
-					val = hd_mode
-						? lut[float_to_max_range(gfit->fpdata[vp][si], gui.hd_remap_max)]
-						: lut[roundf_to_WORD(gfit->fpdata[vp][si] * USHRT_MAX_SINGLE)];
-				} else {
-					const WORD sv = gfit->pdata[vp][si];
-					val = hd_mode ? lut[(guint)sv * gui.hd_remap_max / USHRT_MAX] : lut[sv];
-				}
-				if (inverted) val = UCHAR_MAX - val;
-				row_out[dx] = 0xFF000000u | ((uint32_t)val << 16) | ((uint32_t)val << 8) | val;
-			}
-		} else {
-			/* RGB composite vport: mirrors remap_all_vports logic */
-			BYTE *lb_r = lb_rgb;
-			BYTE *lb_g = lb_rgb + visible_w;
-			BYTE *lb_b = lb_rgb + 2 * visible_w;
-
-			for (int dx = dx_first; dx <= dx_last; dx++) {
-				const int ix = (int)((dx - off_x) / zoom);
-				const int li = dx - dx_first;
-				if ((unsigned)ix >= (unsigned)img_w) {
-					lb_r[li] = lb_g[li] = lb_b[li] = 0;
-					continue;
-				}
-				const size_t si = (size_t)iy * img_w + ix;
-				BYTE *channels[3] = { lb_r, lb_g, lb_b };
-				for (int c = 0; c < 3; c++) {
-					const int cc = gfit->color_managed ? c : 0;
-					WORD w;
-					if (gfit->type == DATA_FLOAT)
-						w = roundf_to_WORD(gfit->fpdata[c][si] * USHRT_MAX_SINGLE);
-					else
-						w = gfit->pdata[c][si];
-					const int sh = (int)w - remap_lo;
-					BYTE val = (cut_over && w > remap_hi) ? 0 : gui.remap_index[cc][sh < 0 ? 0 : sh];
-					if (inverted) val = UCHAR_MAX - val;
-					channels[c][li] = val;
-				}
-			}
-
-			if (do_transform && transform)
-				cmsDoTransformLineStride(transform, lb_rgb, lb_rgb, visible_w, 1,
-					visible_w * 3, visible_w * 3, visible_w, visible_w);
-
-			for (int dx = dx_first; dx <= dx_last; dx++) {
-				const int li = dx - dx_first;
-				row_out[dx] = 0xFF000000u
-					| ((uint32_t)lb_r[li] << 16)
-					| ((uint32_t)lb_g[li] <<  8)
-					|  (uint32_t)lb_b[li];
-			}
-		}
-	}
-
-	free(lb_rgb);
-	cairo_surface_flush(view->disp_surface);
-	cairo_surface_mark_dirty(view->disp_surface);
-	return TRUE;
-}
-
+/* Compose the viewport image into dd->cr by painting each tile of
+ * view->buf as a per-tile Cairo image surface (wrapping a sub-region of
+ * the buffer via the buf row stride).  Used by add_image_and_label_to_cairo
+ * for the snapshot-save / copy-to-clipboard path.  On-screen drawing
+ * goes through SirilImageView::snapshot instead.
+ *
+ * After this returns the cr's transform has display_matrix applied so
+ * subsequent overlay drawing operates in image-space — matching the
+ * legacy convention. */
 static void draw_vport(const draw_data_t* dd) {
-	/* Snapshot lo/hi before cairo_mutex to preserve lock ordering
-	 * (remap takes com.mutex then cairo_mutex; never the reverse). */
-	g_mutex_lock(&com.mutex);
-	WORD remap_hi = gui.hi;
-	WORD remap_lo = gui.lo;
-	g_mutex_unlock(&com.mutex);
-
 	g_mutex_lock(&gui.cairo_mutex);
 	struct image_view *view = &gui.view[dd->vport];
-	if (!view->disp_surface) {
-		cairo_surface_t *target = cairo_get_target(dd->cr);
-		view->disp_surface = cairo_surface_create_similar_image(target, CAIRO_FORMAT_ARGB32,
-					dd->window_width, dd->window_height);
-		if (cairo_surface_status(view->disp_surface) != CAIRO_STATUS_SUCCESS) {
-			siril_debug_print("Error creating the cairo image disp_surface for vport %d\n", dd->vport);
-			cairo_surface_destroy(view->disp_surface);
-			view->disp_surface = NULL;
-			g_mutex_unlock(&gui.cairo_mutex);
-			return;
-		}
-		view->view_width = dd->window_width;
-		view->view_height = dd->window_height;
+	const int img_w = view->buf_stride > 0 ? view->buf_stride / 4 : 0;
+	const int img_h = view->buf_height;
+	const int tile_dim = view->tile_dim;
+	const int tile_cols = view->tile_cols;
+	const int tile_rows = view->tile_rows;
+	guchar *buf = view->buf;
+	const int buf_stride = view->buf_stride;
 
-		/* For large images at zoom >= 1.0 (surface_scale < 1.0), paint at full
-		 * resolution directly from gfit data rather than upscaling the small
-		 * surface.
-		 * Skip when generic_image_worker is running: gfit->pdata may be
-		 * mid-modification; fall back to view->buf via full_surface instead. */
-		const gboolean do_hires = (gui.surface_scale < 1.0 && dd->zoom >= 1.0
-		                           && !g_atomic_int_get(&gui.suppress_drawarea_redraw));
-		if (do_hires && fill_hires_disp(dd, view, remap_hi, remap_lo)) {
-			/* hires surface filled - skip standard surface paint */
-		} else {
-		cairo_t *cached_cr = cairo_create(view->disp_surface);
-		cairo_matrix_t y_reflection_matrix, flipped_matrix;
-		cairo_matrix_init_identity(&y_reflection_matrix);
-		if (livestacking_is_started() && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
-			y_reflection_matrix.yy = -1.0;
-			/* y0 must be the surface height, not the image height, so the
-			 * flip stays in surface coordinate space. */
-			y_reflection_matrix.y0 = (double)view->full_surface_height;
-		}
-		/* When gui.surface_scale < 1, full_surface is smaller than gfit.
-		 * Compensate in the matrix so the surface renders at the correct
-		 * zoom level (image-space coordinates remain unchanged for overlays). */
-		cairo_matrix_t surf_disp_matrix;
-		double ss = (view->full_surface_height > 0 && gfit->ry > 0)
-			? (double)view->full_surface_height / (double)gfit->ry : 1.0;
-		double surf_zoom = gui.display_matrix.xx / ss;
-		cairo_matrix_init(&surf_disp_matrix,
-				surf_zoom, 0, 0, surf_zoom,
-				gui.display_matrix.x0, gui.display_matrix.y0);
-		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &surf_disp_matrix);
-		cairo_transform(cached_cr, &flipped_matrix);
-		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
-		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
-		cairo_paint(cached_cr);
-		cairo_destroy(cached_cr);
-		}
-
-//		siril_debug_print("@@@\t\t\tcache surface created (%d x %d)\t\t\t@@@\n",
-//				view->view_width, view->view_height);
+	if (!buf || img_w <= 0 || img_h <= 0) {
+		g_mutex_unlock(&gui.cairo_mutex);
+		return;
 	}
-	cairo_set_source_surface(dd->cr, view->disp_surface, 0, 0);
-	cairo_paint(dd->cr);
 
-	// prepare the display matrix for remaining drawing (selection, stars, ...)
+	cairo_save(dd->cr);
+	cairo_transform(dd->cr, &gui.display_matrix);
+
+	if (livestacking_is_started()
+	    && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
+		cairo_translate(dd->cr, 0.0, (double)img_h);
+		cairo_scale(dd->cr, 1.0, -1.0);
+	}
+
+	/* Walk the tile grid, painting each as a separate Cairo image
+	 * surface whose data pointer is the tile's sub-region of buf. */
+	for (int ty = 0; ty < tile_rows; ty++) {
+		for (int tx = 0; tx < tile_cols; tx++) {
+			const int x0 = tx * tile_dim;
+			const int y0 = ty * tile_dim;
+			const int tw = MIN(tile_dim, img_w - x0);
+			const int th = MIN(tile_dim, img_h - y0);
+			if (tw <= 0 || th <= 0) continue;
+			guchar *p = buf + (size_t)y0 * buf_stride + (size_t)x0 * 4;
+			cairo_surface_t *tile_surf = cairo_image_surface_create_for_data(
+				p, CAIRO_FORMAT_RGB24, tw, th, buf_stride);
+			if (cairo_surface_status(tile_surf) != CAIRO_STATUS_SUCCESS) {
+				cairo_surface_destroy(tile_surf);
+				continue;
+			}
+			cairo_set_source_surface(dd->cr, tile_surf, x0, y0);
+			cairo_pattern_set_filter(cairo_get_source(dd->cr), dd->filter);
+			cairo_rectangle(dd->cr, x0, y0, tw, th);
+			cairo_fill(dd->cr);
+			cairo_surface_destroy(tile_surf);
+		}
+	}
+
+	cairo_restore(dd->cr);
+	/* Re-apply display_matrix to dd->cr (cairo_restore reset it) so
+	 * subsequent overlay drawing operates in image-space, matching the
+	 * legacy contract. */
 	cairo_transform(dd->cr, &gui.display_matrix);
 	g_mutex_unlock(&gui.cairo_mutex);
-
 }
 
 static void draw_main_image(const draw_data_t* dd) {
@@ -2942,7 +2717,6 @@ void initialize_image_display() {
 		// only HISTEQ mode always computes the index, it's a good initializer here
 	}
 	cairo_matrix_init_identity(&gui.display_matrix);
-	gui.surface_scale = 1.0;
 }
 
 /* this function calculates the "fit to window" zoom values, given the window
@@ -2963,23 +2737,12 @@ double get_zoom_val() {
 }
 
 static void invalidate_image_render_cache(int vport) {
-	/* the render cache is a surface containing the rendering of the image
-	 * from the mapped buffers to the drawing area.
-	 * If some of the parameters change, the cache must be invalidated to
-	 * redraw the image: image content, image mapping, widget dimensions.
-	 */
-	g_mutex_lock(&gui.cairo_mutex);
-	for (int i = 0; i < MAXVPORT; i++) {
-		if (vport >= 0 && i != vport)
-			continue;
-		if (gui.view[i].disp_surface)
-			cairo_surface_destroy(gui.view[i].disp_surface);
-		gui.view[i].disp_surface = NULL;
-		gui.view[i].view_height = -1;
-		gui.view[i].view_width = -1;
-	}
-	g_mutex_unlock(&gui.cairo_mutex);
-	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
+	/* Phase 2 retired the disp_surface render cache; GSK now caches the
+	 * snapshot render-node tree per frame.  The cache-invalidation call
+	 * sites are kept (they're harmless no-ops here) so that future
+	 * additions to the render cache can hook back in without auditing
+	 * every remap exit point. */
+	(void) vport;
 }
 
 void adjust_vport_size_to_image() {
@@ -3139,143 +2902,11 @@ void queue_redraw(remap_type doremap) {
 	siril_add_idle(redraw_idle, GINT_TO_POINTER((int)doremap));
 }
 
-/* callback for GtkDrawingArea, draw event */
-void redraw_drawingarea(GtkDrawingArea *area, cairo_t *cr,
-                         int width, int height, gpointer data) {
-	GtkWidget *widget = GTK_WIDGET(area);
-	if (g_atomic_int_get(&drawarea_handlers_blocked))
-		return;
-	draw_data_t dd;
-	static GAction *action_neg = NULL;
-	if (action_neg == NULL) {
-		image_display_init_statics();
-		action_neg = g_action_map_lookup_action(G_ACTION_MAP(imgdisp_app_win), "negative-view");
-	}
-	// we need to identify which vport is being redrawn
-	dd.vport = match_drawing_area_widget(widget, TRUE);
-	if (dd.vport == -1) {
-		fprintf(stderr, "Could not find the vport for the draw callback\n");
-		return;
-	}
-
-	/* While generic_image_worker is running the remap buffers (gfit pixel
-	 * data) are stale.  Repaint from the cached display surface so the
-	 * previous correct frame stays visible, avoiding a grey flash.
-	 *
-	 * If disp_surface was invalidated — e.g. the user changed zoom level or
-	 * resized the window during a long operation — fall through to a normal
-	 * draw.  Zoom and resize do not require a remap: gui.view[].buf already
-	 * holds the full-resolution remapped image and is safe to read from the
-	 * GTK thread.  draw_main_image() will re-render buf into a fresh
-	 * disp_surface at the new viewport geometry without touching gfit. */
-	if (g_atomic_int_get(&gui.suppress_drawarea_redraw)) {
-		g_mutex_lock(&gui.cairo_mutex);
-		cairo_surface_t *cached = gui.view[dd.vport].disp_surface;
-		if (cached) {
-			cairo_set_source_surface(cr, cached, 0, 0);
-			cairo_paint(cr);
-			g_mutex_unlock(&gui.cairo_mutex);
-			return;
-		}
-		g_mutex_unlock(&gui.cairo_mutex);
-		/* disp_surface invalidated by viewport change; buf is still valid —
-		 * fall through to rebuild disp_surface from buf */
-	}
-
-	/* catch and compute rendering data */
-	dd.cr = cr;
-	dd.window_width = width;
-	dd.window_height = height;
-
-	if (dd.window_width != gui.view[dd.vport].view_width ||
-			dd.window_height != gui.view[dd.vport].view_height) {
-		//siril_debug_print("draw area and disp surface size mismatch: %d,%d vs %d,%d\n",
-		//		dd.window_width, dd.window_height,
-		//		gui.view[dd.vport].view_width, gui.view[dd.vport].view_height);
-		invalidate_image_render_cache(dd.vport);
-	}
-
-	dd.zoom = get_zoom_val();
-	dd.image_width = gfit->rx;
-	dd.image_height = gfit->ry;
-	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
-
-	GVariant *state = g_action_get_state(action_neg);
-	dd.neg_view = g_variant_get_boolean(state);
-	g_variant_unref(state);
-
-#if 0
-	static struct timeval prevtime = { 0 };
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	int us = (now.tv_sec - prevtime.tv_sec) * 1000000 + now.tv_usec - prevtime.tv_usec;
-	prevtime = now;
-
-	GdkRectangle rect;
-	if (!gdk_cairo_get_clip_rectangle(cr, &rect) || (rect.width == 0 && rect.height == 0)) {
-		printf("nothing to redraw\n");
-		return;
-	}
-	if (us < 320000)
-		printf("redraw %d ms\t(at %d, %d of size %d x %d)\n", us/1000,
-				rect.x, rect.y, rect.width, rect.height);
-#endif
-
-
-	adjust_vport_size_to_image();
-
-	/* RGB or gray images */
-	draw_main_image(&dd);
-
-	/* selection rectangle */
-	draw_selection(&dd);
-
-	/* ROI */
-	draw_roi(&dd);
-
-	/* cut line */
-	draw_cut_line(&dd);
-
-	/* draw measurement line */
-	draw_measurement_line(&dd);
-
-	/* draw user polygons */
-	draw_in_progress_poly(&dd);
-	draw_user_polygons(&dd);
-
-	/* detected stars and highlight the selected star */
-	g_mutex_lock(&com.mutex);
-	draw_stars(&dd);
-	g_mutex_unlock(&com.mutex);
-
-	/* celestial grid */
-	draw_wcs_grid(&dd);
-
-	/* distortions */
-	draw_wcs_disto(&dd);
-
-	/* detected objects */
-	draw_annotates(&dd);
-
-	/* analysis tool */
-	draw_analysis(&dd);
-
-	/* background removal gradient selection boxes */
-	draw_brg_boxes(&dd);
-
-	/* registration framing*/
-	draw_regframe(&dd);
-
-	/* RGB composition center points */
-	draw_rgb_centers(&dd);
-
-	/* allow custom rendering */
-	if (gui.draw_extra)
-		gui.draw_extra(&dd);
-
-	/* GTK4: histogram overlay (was a separate connect_after("draw") in GTK3) */
-	histogram_overlay_paint(widget, cr);
-}
+/* The legacy GtkDrawingArea-driven Cairo redraw_drawingarea entry point
+ * was removed in Phase 2.  All on-screen image rendering now flows
+ * through SirilImageView::snapshot, and the Cairo save / clipboard
+ * pathway calls draw_main_image directly via
+ * add_image_and_label_to_cairo. */
 
 point get_center_of_vport() {
 	image_display_init_statics();

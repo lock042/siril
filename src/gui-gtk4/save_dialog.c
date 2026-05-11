@@ -872,7 +872,17 @@ void on_header_save_as_button_clicked() {
 }
 
 static gboolean snapshot_notification_close(gpointer user_data) {
-	gtk_widget_set_visible(GTK_WIDGET(user_data), FALSE);
+	GtkWidget *popover = GTK_WIDGET(user_data);
+	/* gtk_widget_set_visible(FALSE) hides the popover widget but does
+	 * NOT release the GTK4 popover input grab — that grab keeps
+	 * swallowing every click in the application until the popover is
+	 * finalised.  gtk_popover_popdown() ends the grab cleanly; we then
+	 * unparent so the popover is freed once its remaining refs (the
+	 * paintable / Cairo surface chain) drop. */
+	if (GTK_IS_POPOVER(popover)) {
+		gtk_popover_popdown(GTK_POPOVER(popover));
+		gtk_widget_unparent(popover);
+	}
 	return FALSE;
 }
 
@@ -893,6 +903,16 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
+	/* Dismiss the snapshot menu popover (it doesn't auto-popdown on
+	 * action-button clicks the way GtkPopoverMenu would).  Without this
+	 * the popover's input grab swallows every subsequent click and the
+	 * application appears frozen until the menu times out — which it
+	 * won't, since it has no timeout.  Safe to call when invoked from
+	 * a keyboard shortcut (the popover is hidden/popped-down already). */
+	GObject *snap_menu = gtk_builder_get_object(gui.builder, "snapshot_menu");
+	if (snap_menu && GTK_IS_POPOVER(snap_menu))
+		gtk_popover_popdown(GTK_POPOVER(snap_menu));
+
 	widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, area[gui.cvport]));
 	timestamp = build_timestamp_filename();
 	filename = g_strdup_printf("%s.png", timestamp);
@@ -901,7 +921,9 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	/* create cr from the surface */
 	int width = max(gfit->rx, gtk_widget_get_width(widget));
 	int height = max(gfit->ry, gtk_widget_get_height(widget));
-	cairo_surface_t *surface = cairo_surface_create_similar(gui.view[gui.cvport].full_surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+	/* Phase 2 removed view->full_surface; create a fresh image surface
+	 * (cairo_surface_create_similar needed a non-NULL template). */
+	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 	cairo_t *cr = cairo_create(surface);
 
 	/* add image and all annotations if available */

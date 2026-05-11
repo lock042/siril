@@ -73,20 +73,28 @@ typedef struct {
 struct image_view {
 	GtkWidget        *drawarea;
 
-	guchar           *buf;               /* display buffer (8-bit per channel × 3) */
-	int               full_surface_stride;
-	int               full_surface_height;
+	/* Row-major BGRA8 (CAIRO_FORMAT_RGB24 / GDK_MEMORY_B8G8R8X8 byte layout)
+	 * pixel buffer at the image's natural dimensions (no longer downsampled
+	 * for the Cairo 32k limit — the renderer wraps this buffer as a grid of
+	 * GdkTextures, each one well under any GPU texture-size limit).
+	 *
+	 * The remap inner loops still write to `buf` in the same row-major way;
+	 * the texture grid only changes how the GPU sees the buffer. */
+	guchar           *buf;
+	int               buf_stride;        /* bytes per row in `buf` */
+	int               buf_height;        /* rows in `buf` */
 	int               view_width;        /* drawing area dimensions */
 	int               view_height;
 
-	cairo_surface_t  *full_surface;      /* Cairo wrapper over buf — used by the
-	                                        snapshot-save / add_image_and_label_to_cairo
-	                                        path; not used by the on-screen renderer. */
-	GdkTexture       *texture;           /* GdkMemoryTexture wrapper over buf — used by
-	                                        SirilImageView::snapshot for GPU compositing.
-	                                        Recreated after every remap (immutable). */
-	cairo_surface_t  *disp_surface;      /* legacy disp-cache, retained while the
-	                                        snapshot-rendering path is being phased in. */
+	/* Tile grid wrapping `buf`.  Each tile is at most SIRIL_TILE_DIM × SIRIL_TILE_DIM
+	 * pixels; right- and bottom-edge tiles may be smaller (sized to the image's
+	 * remaining extent).  Each texture wraps the corresponding sub-region of `buf`
+	 * via the buf_stride so consecutive texture rows index into consecutive image
+	 * rows of the wider buffer.  Recreated after every remap (GdkTexture is
+	 * immutable). */
+	int               tile_dim;
+	int               tile_cols, tile_rows;
+	GdkTexture      **tile_textures;
 };
 
 /* ── draw callback context ────────────────────────────────────────────────── */
@@ -115,7 +123,6 @@ struct guiinf {
 	cairo_matrix_t    image_matrix;     /* display → image coordinate transform */
 	double            zoom_value;       /* 1.0 = 100 %; use get_zoom_val() */
 	point             display_offset;   /* image pan offset */
-	double            surface_scale;    /* <1.0 when image exceeds Cairo's 32767-px limit; 1.0 otherwise */
 
 	gboolean          translating;      /* panning in progress */
 

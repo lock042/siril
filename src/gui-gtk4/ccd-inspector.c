@@ -99,7 +99,7 @@ static void set_edge_square(gchar **panel) {
 	image_width = gfit->rx;
 	image_height = gfit->ry;
 	/* New surface as we modify it */
-	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->full_surface_stride);
+	edge_surface = cairo_image_surface_create_for_data(view->buf, CAIRO_FORMAT_RGB24, image_width, image_height, view->buf_stride);
 
 	if (cairo_surface_status(edge_surface) != CAIRO_STATUS_SUCCESS) {
 		cairo_surface_destroy(edge_surface);

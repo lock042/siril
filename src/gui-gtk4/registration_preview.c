@@ -164,12 +164,12 @@ void test_and_allocate_reference_image(int vport) {
 		struct image_view *view = &gui.view[vport];
 		/* Use actual surface dimensions — may be smaller than gfit when the
 		 * image exceeds Cairo's 32767-px limit (gui.surface_scale < 1.0). */
-		const int surf_h = view->full_surface_height;
-		const int surf_w = view->full_surface_stride / 4; /* stride = sw*4 for RGB24 */
+		const int surf_h = view->buf_height;
+		const int surf_w = view->buf_stride / 4; /* stride = sw*4 for RGB24 */
 		if (!gui.refimage_regbuffer || !gui.refimage_surface) {
 			guchar *oldbuf = gui.refimage_regbuffer;
 			gui.refimage_regbuffer = realloc(gui.refimage_regbuffer,
-					view->full_surface_stride * surf_h * sizeof(guchar));
+					view->buf_stride * surf_h * sizeof(guchar));
 			if (gui.refimage_regbuffer == NULL) {
 				PRINT_ALLOC_ERR;
 				if (oldbuf)
@@ -181,7 +181,7 @@ void test_and_allocate_reference_image(int vport) {
 				cairo_surface_destroy(gui.refimage_surface);
 			gui.refimage_surface = cairo_image_surface_create_for_data(
 					gui.refimage_regbuffer, CAIRO_FORMAT_RGB24, surf_w,
-					surf_h, view->full_surface_stride);
+					surf_h, view->buf_stride);
 			if (cairo_surface_status(gui.refimage_surface)
 					!= CAIRO_STATUS_SUCCESS) {
 				fprintf(stderr,
@@ -195,7 +195,7 @@ void test_and_allocate_reference_image(int vport) {
 			}
 		}
 		memcpy(gui.refimage_regbuffer, view->buf,
-				view->full_surface_stride * surf_h * sizeof(guchar));
+				view->buf_stride * surf_h * sizeof(guchar));
 		cairo_surface_flush(gui.refimage_surface);
 		cairo_surface_mark_dirty(gui.refimage_surface);
 	}
@@ -238,8 +238,8 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 
 	struct image_view *view = &gui.view[gui.cvport];
 	/* Surface dimensions may be smaller than gfit when gui.surface_scale < 1. */
-	const int surf_h = view->full_surface_height;
-	const int surf_w = view->full_surface_stride / 4;
+	const int surf_h = view->buf_height;
+	const int surf_w = view->buf_stride / 4;
 	if (!gui.preview_surface[preview_area] ||
 			cairo_image_surface_get_width(gui.preview_surface[preview_area]) != surf_w ||
 			cairo_image_surface_get_height(gui.preview_surface[preview_area]) != surf_h) {
@@ -249,7 +249,7 @@ void set_preview_area(int preview_area, int centerX, int centerY) {
 			cairo_image_surface_create_for_data(view->buf,
 					CAIRO_FORMAT_RGB24,
 					surf_w, surf_h,
-					view->full_surface_stride);
+					view->buf_stride);
 		if (cairo_surface_status(gui.preview_surface[preview_area]) != CAIRO_STATUS_SUCCESS) {
 			fprintf(stderr, "Error creating the Cairo image surface for preview %d\n", preview_area);
 			cairo_surface_destroy(gui.preview_surface[preview_area]);
