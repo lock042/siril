@@ -92,11 +92,76 @@ static gboolean on_drawingarea_drop(GtkDropTarget *target, const GValue *value,
 	return TRUE;
 }
 
-void siril_drag_single_image_set_dest() {
+static GdkDragAction on_drop_enter(GtkDropTarget *target, double x, double y,
+                                   gpointer user_data) {
+	(void)target; (void)x; (void)y; (void)user_data;
+	return GDK_ACTION_COPY;
+}
+
+static GdkDragAction on_drop_motion(GtkDropTarget *target, double x, double y,
+                                    gpointer user_data) {
+	(void)target; (void)x; (void)y; (void)user_data;
+	return GDK_ACTION_COPY;
+}
+
+static void install_one_drop_target(GtkWidget *w) {
+	if (!w) return;
+	GtkEventController *old = g_object_get_data(G_OBJECT(w), "siril-drop-target");
+	if (old) {
+		gtk_widget_remove_controller(w, old);
+		g_object_set_data(G_OBJECT(w), "siril-drop-target", NULL);
+	}
+	GtkDropTarget *target = gtk_drop_target_new(GDK_TYPE_FILE_LIST, GDK_ACTION_COPY);
+	g_signal_connect(target, "enter",  G_CALLBACK(on_drop_enter),       NULL);
+	g_signal_connect(target, "motion", G_CALLBACK(on_drop_motion),      NULL);
+	g_signal_connect(target, "drop",   G_CALLBACK(on_drawingarea_drop), NULL);
+	gtk_widget_add_controller(w, GTK_EVENT_CONTROLLER(target));
+	g_object_set_data(G_OBJECT(w), "siril-drop-target", target);
+}
+
+static void install_all_drop_targets(void) {
 	for (int i = 0; i < G_N_ELEMENTS(drawing_area); i++) {
 		GtkWidget *w = GTK_WIDGET(gtk_builder_get_object(gui.builder, drawing_area[i]));
-		GtkDropTarget *target = gtk_drop_target_new(GDK_TYPE_FILE_LIST, GDK_ACTION_COPY);
-		g_signal_connect(target, "drop", G_CALLBACK(on_drawingarea_drop), NULL);
-		gtk_widget_add_controller(w, GTK_EVENT_CONTROLLER(target));
+		install_one_drop_target(w);
+	}
+}
+
+/* Re-install drop targets and toggle can-target on the toplevel.  GTK
+ * 4.14 has a surface-state bug where, after an xdg_toplevel.configure
+ * (resize / maximise change), GDK_DRAG_ENTER events stop being
+ * dispatched to widget DnD controllers.  Tearing down and re-creating
+ * the GtkDropTarget plus a can-target toggle is the only workaround
+ * that consistently re-establishes the dispatch path. */
+static gboolean refresh_drop_targets_idle(gpointer ud) {
+	(void)ud;
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (win) {
+		gtk_widget_set_can_target(win, FALSE);
+		gtk_widget_set_can_target(win, TRUE);
+	}
+	install_all_drop_targets();
+	return G_SOURCE_REMOVE;
+}
+
+static void on_window_state_changed(GObject *obj, GParamSpec *pspec, gpointer ud) {
+	(void)obj; (void)pspec; (void)ud;
+	g_idle_add(refresh_drop_targets_idle, NULL);
+}
+
+void siril_drag_single_image_set_dest() {
+	install_all_drop_targets();
+
+	GtkWidget *win = GTK_WIDGET(gtk_builder_get_object(gui.builder, "control_window"));
+	if (win && !g_object_get_data(G_OBJECT(win), "siril-drop-state-hooks")) {
+		g_signal_connect(win, "notify::maximized",
+		                 G_CALLBACK(on_window_state_changed), NULL);
+		g_signal_connect(win, "notify::fullscreened",
+		                 G_CALLBACK(on_window_state_changed), NULL);
+		g_signal_connect(win, "notify::default-width",
+		                 G_CALLBACK(on_window_state_changed), NULL);
+		g_signal_connect(win, "notify::default-height",
+		                 G_CALLBACK(on_window_state_changed), NULL);
+		g_object_set_data(G_OBJECT(win), "siril-drop-state-hooks",
+		                  GINT_TO_POINTER(1));
 	}
 }

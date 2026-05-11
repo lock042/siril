@@ -725,11 +725,35 @@ static void siril_macos_setenv(const char *progname) {
 #endif
 
 
+/* GTK 4.14 emits a sustained storm of internal GtkDropTarget assertion
+ * warnings ("self->drop == crossing->drop") for every external file-drag
+ * across a non-maximised window — its built-in drop handling on CSD/
+ * decoration descendants races with the per-drop GdkDrop ID changes
+ * the compositor reports.  These criticals are harmless but flood the
+ * console.  Drop them at the log-writer level so other criticals still
+ * surface normally. */
+static GLogWriterOutput siril_log_writer_filter(GLogLevelFlags log_level,
+                                                const GLogField *fields,
+                                                gsize n_fields,
+                                                gpointer user_data) {
+	(void)user_data;
+	for (gsize i = 0; i < n_fields; i++) {
+		if (g_strcmp0(fields[i].key, "MESSAGE") != 0) continue;
+		const char *msg = fields[i].value;
+		if (msg && (strstr(msg, "gtk_drop_target_handle_crossing") ||
+		            strstr(msg, "gtk_drop_target_handle_event")))
+			return G_LOG_WRITER_HANDLED;
+		break;
+	}
+	return g_log_writer_default(log_level, fields, n_fields, NULL);
+}
+
 int main(int argc, char *argv[]) {
 	GtkApplication *app;
 	const gchar *dir;
 	gint status;
 	gfit = calloc(1, sizeof(fits));
+	g_log_set_writer_func(siril_log_writer_filter, NULL, NULL);
 
 #if defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	// Remove macOS session identifier from command line arguments.
