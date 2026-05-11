@@ -822,11 +822,10 @@ int save_history_keywords(fits *fit) {
 	}
 
 	status = 0;
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0')
-				fits_write_history(fit->fptr, com.history[i].history, &status);
-		}
+	for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+		historic *h = (historic *)l->data;
+		if (h->history[0] != '\0')
+			fits_write_history(fit->fptr, h->history, &status);
 	}
 
 	return status;
