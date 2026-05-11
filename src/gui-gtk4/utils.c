@@ -750,14 +750,19 @@ gboolean heif_dialog(struct heif_context *heif, uint32_t *selected_image) {
 		int stride;
 		const uint8_t *data = heif_image_get_plane_readonly(
 				heif_images[i].thumbnail, heif_channel_interleaved, &stride);
-		GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB,
-				FALSE, 8, heif_images[i].width, heif_images[i].height, stride,
-				NULL, NULL);
 		SirilHeifRow *row = g_object_new(SIRIL_TYPE_HEIF_ROW, NULL);
 		row->caption = g_strdup(heif_images[i].caption);
-		row->texture = pixbuf ? gdk_texture_new_for_pixbuf(pixbuf) : NULL;
+		/* The HEIF data is borrowed from heif_images[].thumbnail and
+		 * stays valid until heif_image_release() runs below at function
+		 * end.  The store + rows (which own the textures) are dropped
+		 * before then, so a static GBytes wrapper is safe. */
+		row->texture = data
+			? siril_texture_from_rgb_bytes(data,
+					(gsize)stride * heif_images[i].height,
+					heif_images[i].width, heif_images[i].height,
+					stride, FALSE, NULL, NULL)
+			: NULL;
 		row->array_index = (guint)i;
-		if (pixbuf) g_object_unref(pixbuf);
 		g_list_store_append(store, row);
 		g_object_unref(row);
 		if (heif_images[i].ID == *selected_image)
@@ -1080,6 +1085,44 @@ gboolean siril_cairo_paint_resource(cairo_t *cr, const char *resource_path,
 	cairo_restore(cr);
 	gsk_render_node_unref(node);
 	return TRUE;
+}
+
+GdkTexture *siril_texture_from_cairo_surface(cairo_surface_t *surface) {
+	if (!surface) return NULL;
+	if (cairo_image_surface_get_format(surface) != CAIRO_FORMAT_ARGB32)
+		return NULL;
+	int w = cairo_image_surface_get_width(surface);
+	int h = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	cairo_surface_flush(surface);
+	unsigned char *data = cairo_image_surface_get_data(surface);
+	if (!data || w <= 0 || h <= 0) return NULL;
+	cairo_surface_reference(surface);
+	GBytes *bytes = g_bytes_new_with_free_func(
+		data, (gsize)stride * h,
+		(GDestroyNotify)cairo_surface_destroy, surface);
+	GdkTexture *tex = gdk_memory_texture_new(
+		w, h, GDK_MEMORY_B8G8R8A8_PREMULTIPLIED, bytes, stride);
+	g_bytes_unref(bytes);
+	return tex;
+}
+
+GdkTexture *siril_texture_from_rgb_bytes(const guchar *data, gsize len,
+                                          int width, int height, int stride,
+                                          gboolean has_alpha,
+                                          GDestroyNotify notify,
+                                          gpointer notify_data) {
+	if (!data || width <= 0 || height <= 0 || stride <= 0)
+		return NULL;
+	GBytes *bytes = notify
+		? g_bytes_new_with_free_func((gconstpointer)data, len, notify, notify_data)
+		: g_bytes_new_static((gconstpointer)data, len);
+	GdkTexture *tex = gdk_memory_texture_new(
+		width, height,
+		has_alpha ? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8,
+		bytes, stride);
+	g_bytes_unref(bytes);
+	return tex;
 }
 
 void siril_path_button_init(GtkWidget *button, const gchar *title,

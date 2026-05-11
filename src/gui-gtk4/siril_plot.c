@@ -148,20 +148,13 @@ gboolean save_siril_plot_to_clipboard(siril_plot_data *spl_data, int width, int 
 	if (!surface)
 		return TRUE;
 
-	/* gdk_pixbuf_get_from_surface has no clean GTK4 replacement (plot
-	 * → clipboard / png save still needs a GdkPixbuf). */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, width, height);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	GdkTexture *tex = siril_texture_from_cairo_surface(surface);
 	cairo_surface_destroy(surface);
-
-	if (pixbuf) {
+	if (tex) {
 		GdkClipboard *cb = gdk_display_get_clipboard(gdk_display_get_default());
-		GdkTexture *tex = gdk_texture_new_for_pixbuf(pixbuf);
 		gdk_clipboard_set_texture(cb, tex);
 		g_object_unref(tex);
 		siril_log_message(_("Snapshot was saved into the clipboard.\n"));
-		g_object_unref(pixbuf);
 	} else {
 		siril_log_message(_("Could not copy the snapshot into the clipboard.\n"));
 	}

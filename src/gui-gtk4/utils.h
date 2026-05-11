@@ -103,6 +103,25 @@ GdkPaintable *siril_paintable_from_resource(const char *resource_path, int size)
 gboolean siril_cairo_paint_resource(cairo_t *cr, const char *resource_path,
                                     double x, double y, int width, int height);
 
+/* Wrap an existing CAIRO_FORMAT_ARGB32 image surface as a
+ * GdkMemoryTexture (B8G8R8A8 premultiplied — the byte order Cairo
+ * uses on little-endian).  The texture takes a fresh reference on the
+ * surface and releases it when its GBytes is unreffed, so the caller
+ * can drop its own reference immediately.  Returns NULL if the
+ * surface is the wrong format.  Avoids the deprecated
+ * gdk_texture_new_for_pixbuf path. */
+GdkTexture *siril_texture_from_cairo_surface(cairo_surface_t *surface);
+
+/* Build a GdkMemoryTexture directly from an RGB/RGBA byte buffer.
+ * `data` is borrowed for the lifetime of the texture (until its GBytes
+ * is released); pass a `notify` callback if you need to free it then.
+ * Pass `has_alpha=TRUE` for 4-byte RGBA pixels, FALSE for 3-byte RGB. */
+GdkTexture *siril_texture_from_rgb_bytes(const guchar *data, gsize len,
+                                          int width, int height, int stride,
+                                          gboolean has_alpha,
+                                          GDestroyNotify notify,
+                                          gpointer notify_data);
+
 /* GtkDropDown helpers (replace deprecated GtkComboBoxText paths).
  * siril_drop_down_get_active_text returns a freshly-allocated copy of the
  * currently-selected string-list entry (caller g_free), or NULL if no

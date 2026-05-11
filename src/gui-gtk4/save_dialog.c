@@ -939,18 +939,33 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_width(widget));
 	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_height(widget));
 
-	/* gdk_pixbuf_get_from_surface has no clean GTK4 replacement; the
-	 * recommended path is GdkTexture + GBytes, but our consumers (PNG
-	 * encoder, GdkClipboard text/image bridge) want a GdkPixbuf. */
+	/* gdk_pixbuf_get_from_surface has no clean GTK4 replacement; the PNG
+	 * encoder and the snapshot-notification image (utils.c:226) both
+	 * still want a GdkPixbuf.  The clipboard branch routes through a
+	 * GdkTexture though, and we build that one directly from the
+	 * cairo surface instead of via the deprecated
+	 * gdk_texture_new_for_pixbuf. */
 	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	G_GNUC_END_IGNORE_DEPRECATIONS
 	if (pixbuf) {
 		if (clipboard) {
 			GdkClipboard *cb = gdk_display_get_clipboard(gdk_display_get_default());
-			GdkTexture *tex = gdk_texture_new_for_pixbuf(pixbuf);
-			gdk_clipboard_set_texture(cb, tex);
-			g_object_unref(tex);
+			/* Crop the cairo surface into a fresh image surface so we
+			 * can use it for memory-texture construction (Cairo
+			 * sub-surfaces aren't image surfaces and have no get_data). */
+			cairo_surface_t *sub = cairo_image_surface_create(
+				CAIRO_FORMAT_ARGB32, x2 - x1, y2 - y1);
+			cairo_t *scr = cairo_create(sub);
+			cairo_set_source_surface(scr, surface, -x1, -y1);
+			cairo_paint(scr);
+			cairo_destroy(scr);
+			GdkTexture *tex = siril_texture_from_cairo_surface(sub);
+			cairo_surface_destroy(sub);
+			if (tex) {
+				gdk_clipboard_set_texture(cb, tex);
+				g_object_unref(tex);
+			}
 			/* gtk_clipboard_store has no GTK4 equivalent — the clipboard
 			 * already retains a reference to the texture. */
 			GtkWidget *w = sd_header_snapshot_btn;
