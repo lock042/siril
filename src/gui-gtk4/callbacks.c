@@ -1683,6 +1683,61 @@ static void on_menu_page_activate(GSimpleAction *action, GVariant *parameter,
 	gtk_stack_set_visible_child_name(stack, name);
 }
 
+/* When a stacked menu popover closes, jump its stack back to the "root"
+ * page so the next time the user opens the menu they land on the top
+ * level, not the submenu they were last on.  Transition is suppressed
+ * during the reset so the slide-back isn't visible if the popover is
+ * still mid-fade. */
+static void on_menu_popover_closed(GtkPopover *popover, gpointer user_data) {
+	(void) popover;
+	GtkStack *stack = GTK_STACK(user_data);
+	if (!GTK_IS_STACK(stack)) return;
+	GtkStackTransitionType t = gtk_stack_get_transition_type(stack);
+	gtk_stack_set_transition_type(stack, GTK_STACK_TRANSITION_TYPE_NONE);
+	gtk_stack_set_visible_child_name(stack, "root");
+	gtk_stack_set_transition_type(stack, t);
+}
+
+/* The menu popovers in siril.ui are GtkBox + GtkButton (rather than
+ * GMenu / GtkPopoverMenu).  A button created with <property name="label">
+ * holds a single GtkLabel child whose xalign defaults to 0.5, so the
+ * text sits centred — which makes the rows look unlike menu items.
+ * CSS can't reach GtkLabel::xalign, so we walk the tree at startup and
+ * left-align every plain-label button.  Submenu-nav buttons (whose
+ * child is a GtkBox containing label + arrow) and check buttons
+ * (already laid out left-to-right by GTK) are skipped automatically. */
+static void align_button_label_left_recursive(GtkWidget *widget) {
+	if (GTK_IS_BUTTON(widget)
+	    && !GTK_IS_CHECK_BUTTON(widget)
+	    && !GTK_IS_TOGGLE_BUTTON(widget)
+	    && !GTK_IS_MENU_BUTTON(widget)) {
+		GtkWidget *child = gtk_button_get_child(GTK_BUTTON(widget));
+		if (GTK_IS_LABEL(child)) {
+			gtk_label_set_xalign(GTK_LABEL(child), 0.0f);
+			gtk_widget_set_halign(child, GTK_ALIGN_FILL);
+			gtk_widget_set_hexpand(child, TRUE);
+		}
+	}
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child;
+	     child = gtk_widget_get_next_sibling(child)) {
+		align_button_label_left_recursive(child);
+	}
+}
+
+static void align_menu_popover_labels_left(void) {
+	static const char *const menu_popovers[] = {
+		"main_menu", "menu_display", "menu_plot", "menu_seq_clean",
+		"menugray", "menumask_rmb", "processing_menu", "tools_menu",
+		"proofing_menu", "snapshot_menu", "precision_menu",
+		"clear_menu", "display_plot_menu", "output_plot_menu",
+		NULL
+	};
+	for (int i = 0; menu_popovers[i]; i++) {
+		GtkWidget *p = lookup_widget(menu_popovers[i]);
+		if (p) align_button_label_left_recursive(p);
+	}
+}
+
 /* Install a "<action_namespace>.page(s)" action onto the named popover so
  * that GtkModelButtons inside the popover can drive the submenu stack via
  *   action-name="<ns>.page"   action-target="'<page-name>'"
@@ -1755,6 +1810,11 @@ static void wire_popover_menu_stack(const char *popover_id, const char *action_n
 	gchar *nav = g_strdup_printf("%s.page", action_namespace);
 	connect_popdown_handlers_recursive(GTK_WIDGET(popover), popover, nav);
 	g_free(nav);
+
+	/* Reset the stack to the "root" page whenever this popover closes,
+	 * so re-opening the menu always starts at the top level. */
+	g_signal_connect(popover, "closed",
+	                 G_CALLBACK(on_menu_popover_closed), stack);
 }
 
 static void load_accels() {
@@ -2147,6 +2207,13 @@ void initialize_all_GUI(gchar *supported_files) {
 	 * (See uifiles/siril.ui after the Phase 8B/18 menu restructuring.) */
 	wire_popover_menu_stack("processing_menu", "processing");
 	wire_popover_menu_stack("tools_menu", "tools");
+
+	/* Left-align the label of every plain-label GtkButton inside our
+	 * menu popovers (siril.ui builds menus as GtkBox + GtkButton, so the
+	 * labels default to xalign=0.5 which looks unlike a menu).  Submenu
+	 * navigation buttons and check buttons are already aligned and
+	 * skipped by the walker. */
+	align_menu_popover_labels_left();
 
 	/* Populate the Recent Files dropdown next to the Open button.  GTK4
 	 * removed GtkRecentChooserMenu; we build a GMenuModel from

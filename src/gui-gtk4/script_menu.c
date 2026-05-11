@@ -188,6 +188,10 @@ static void script_edit_action_cb(GSimpleAction *action, GVariant *parameter,
                                   gpointer user_data);
 static void install_script_popover_rmb(void);
 
+/* Set by the popover's capture-phase press handler; consulted by
+ * script_execute_action_cb to decide whether to redirect to script-edit. */
+static gint64 script_secondary_press_time = 0;
+
 /* Phase 15: dispatch helper called from the GAction "script-execute"
  * activation handler.  The legacy `on_script_execution` GtkMenuItem
  * trampoline that GTK3 used was deleted — its callers no longer exist
@@ -250,86 +254,88 @@ static void script_dispatch(const gchar *user_data) {
 }
 
 /* GAction backer for the "win.script-execute" menu items.  Activation
- * parameter is a GVariant string holding the absolute script path. */
+ * parameter is a GVariant string holding the absolute script path.
+ * If the most recent button press on the script popover was secondary
+ * (within 500 ms), redirect to the edit action — see the comment on
+ * script_secondary_press_time. */
 static void script_execute_action_cb(GSimpleAction *action, GVariant *parameter,
                                      gpointer user_data) {
-	(void)action;
-	(void)user_data;
 	if (!parameter)
 		return;
+	if (script_secondary_press_time != 0
+	    && g_get_monotonic_time() - script_secondary_press_time < 500000) {
+		script_secondary_press_time = 0;
+		script_edit_action_cb(action, parameter, user_data);
+		return;
+	}
+	script_secondary_press_time = 0;
 	const gchar *path = g_variant_get_string(parameter, NULL);
 	if (path && *path)
 		script_dispatch(path);
 }
 
-/* Per-button secondary-click handler.  Reads the button's action target
- * (the script's full path) and activates "win.script-edit" instead of
- * the default "win.script-execute" the button is wired to. */
-static void on_script_button_rmb(GtkGestureClick *gesture, int n_press,
-                                 double x, double y, gpointer user_data) {
-	(void)x; (void)y; (void)user_data;
-	if (n_press != 1) return;
-	GtkWidget *btn = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
-	if (!GTK_IS_ACTIONABLE(btn)) return;
-	GVariant *target = gtk_actionable_get_action_target_value(GTK_ACTIONABLE(btn));
-	if (!target) return;
-	GtkPopover *popover = NULL;
-	for (GtkWidget *p = gtk_widget_get_parent(btn); p; p = gtk_widget_get_parent(p)) {
-		if (GTK_IS_POPOVER(p)) { popover = GTK_POPOVER(p); break; }
-	}
-	gtk_widget_activate_action_variant(btn, "win.script-edit", target);
-	if (popover) gtk_popover_popdown(popover);
-	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+/* GtkModelButton (the internal widget GtkPopoverMenu uses for each
+ * menu entry) does NOT expose its bound action via the GtkActionable
+ * interface — gtk_actionable_get_action_name returns NULL on it, so we
+ * can't identify which script a click corresponds to by walking the
+ * widget tree.  Worse, model-button activates on release of any mouse
+ * button, and returning TRUE from a capture-phase legacy event handler
+ * on the popover does not stop that release-time activation.
+ *
+ * Workaround: record the most recent button press from the script
+ * popover and have script_execute_action_cb consult that flag.  If the
+ * triggering press was secondary, redirect to script_edit_action_cb;
+ * otherwise run the script as normal.  The 500 ms window is large
+ * enough to outlast any plausible press-release latency but small
+ * enough that a stale flag from an earlier interaction can't redirect
+ * an unrelated future invocation. */
+static gboolean on_script_popover_event(GtkEventControllerLegacy *ctl,
+                                        GdkEvent *event,
+                                        gpointer user_data) {
+	(void) ctl; (void) user_data;
+	if (gdk_event_get_event_type(event) != GDK_BUTTON_PRESS)
+		return FALSE;
+	guint button = gdk_button_event_get_button(event);
+	if (button == GDK_BUTTON_SECONDARY)
+		script_secondary_press_time = g_get_monotonic_time();
+	else
+		script_secondary_press_time = 0;  /* primary cancels any pending flag */
+	return FALSE;  /* let the model-button activate; we redirect in the action cb */
 }
 
-/* Walk a widget subtree and install a secondary-click gesture on every
- * GtkActionable whose action-name is "win.script-execute".
- * Idempotent: a "siril-rmb-installed" data flag on each button suppresses
- * double-attachment.  Per-button gestures (rather than a single
- * popover-level gesture) are needed because GtkPopoverMenu's internal
- * GtkModelButton dispatches its action on *any* mouse button — installing
- * the gesture directly on the button gives us a sibling gesture in the
- * same propagation phase, and `gtk_gesture_set_state(... CLAIMED)`
- * suppresses the model-button's default activation. */
-static void install_rmb_on_buttons_recursive(GtkWidget *widget) {
-	if (GTK_IS_ACTIONABLE(widget)) {
-		const char *name = gtk_actionable_get_action_name(GTK_ACTIONABLE(widget));
-		if (name && g_strcmp0(name, "win.script-execute") == 0
-		    && !g_object_get_data(G_OBJECT(widget), "siril-rmb-installed")) {
-			GtkGesture *click = gtk_gesture_click_new();
-			gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_SECONDARY);
-			g_signal_connect(click, "pressed", G_CALLBACK(on_script_button_rmb), NULL);
-			gtk_widget_add_controller(widget, GTK_EVENT_CONTROLLER(click));
-			g_object_set_data(G_OBJECT(widget), "siril-rmb-installed", GINT_TO_POINTER(1));
-		}
-	}
-	for (GtkWidget *c = gtk_widget_get_first_child(widget); c; c = gtk_widget_get_next_sibling(c))
-		install_rmb_on_buttons_recursive(c);
+/* Install the popover-level capture handler once per popover.
+ * gtk_menu_button_get_popover may return NULL until the menu model is
+ * set and (in some GTK builds) the menu has been opened at least once.
+ * We retry from notify::active in case the popover wasn't there yet. */
+static void install_capture_on_popover(GtkPopover *popover) {
+	if (!popover) return;
+	if (g_object_get_data(G_OBJECT(popover), "siril-rmb-installed"))
+		return;
+	GtkEventController *ctl = gtk_event_controller_legacy_new();
+	gtk_event_controller_set_propagation_phase(ctl, GTK_PHASE_CAPTURE);
+	g_signal_connect(ctl, "event", G_CALLBACK(on_script_popover_event), NULL);
+	gtk_widget_add_controller(GTK_WIDGET(popover), ctl);
+	g_object_set_data(G_OBJECT(popover), "siril-rmb-installed",
+	                  GINT_TO_POINTER(1));
 }
 
-/* GtkMenuButton creates its popover lazily — the first call to
- * gtk_menu_button_get_popover after set_menu_model returns NULL, and
- * GtkPopoverMenu builds its widget tree only when first shown.
- * Walk the popover's tree every time it becomes active so newly-added
- * buttons get gestures attached too. */
+/* When the menu button becomes active, ensure the popover has its
+ * capture-phase right-click handler attached.  Cheap on the second
+ * and later opens (idempotent via the "siril-rmb-installed" flag). */
 static void on_menuscript_active_notify(GObject *obj, GParamSpec *pspec,
                                         gpointer user_data) {
 	(void)pspec; (void)user_data;
 	GtkMenuButton *mb = GTK_MENU_BUTTON(obj);
 	if (!gtk_menu_button_get_active(mb)) return;
-	GtkPopover *popover = gtk_menu_button_get_popover(mb);
-	if (!popover) return;
-	install_rmb_on_buttons_recursive(GTK_WIDGET(popover));
+	install_capture_on_popover(gtk_menu_button_get_popover(mb));
 }
 
-/* Called after every gtk_menu_button_set_menu_model.  Connects the
- * notify::active watcher (idempotent via a data flag on the menu
- * button); the watcher walks the popover tree on every menu open and
- * installs per-button secondary-click gestures.  We don't try the
- * immediate-attach path here because GtkPopoverMenu doesn't actually
- * build its child buttons until first show. */
+/* Called after every gtk_menu_button_set_menu_model.  Tries to install
+ * the popover-level capture handler immediately; if the popover hasn't
+ * been built yet, connects to notify::active to install on first open. */
 static void install_script_popover_rmb(void) {
 	if (!menuscript) return;
+	install_capture_on_popover(gtk_menu_button_get_popover(GTK_MENU_BUTTON(menuscript)));
 	if (g_object_get_data(G_OBJECT(menuscript), "siril-rmb-active-watch"))
 		return;
 	g_signal_connect(menuscript, "notify::active",

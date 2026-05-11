@@ -56,6 +56,37 @@ button.menu-nav:hover image {
    opacity: 0.9;
 }
 
+/* Menus in this build are GtkPopover + GtkBox + GtkButton (rather than
+ * the GMenu / GtkPopoverMenu pair).  Without this CSS the children
+ * render with the default button chrome — visible border, rounded
+ * background — so each row looks like a button.  Strip the chrome and
+ * give them a subtle hover so they read as menu rows.
+ * popover_catalogs is excluded; it hosts a list of catalog toggles, not
+ * a menu, and should keep its native widget appearance. */
+popover:not(#popover_catalogs) button,
+popover:not(#popover_catalogs) checkbutton {
+   background: none;
+   background-color: transparent;
+   border: none;
+   box-shadow: none;
+   border-radius: 4px;
+   padding: 6px 10px;
+   margin: 0;
+   font-weight: normal;
+   outline: none;
+}
+popover:not(#popover_catalogs) button:hover,
+popover:not(#popover_catalogs) checkbutton:hover {
+   background-color: alpha(currentColor, 0.10);
+}
+popover:not(#popover_catalogs) button:active,
+popover:not(#popover_catalogs) checkbutton:active {
+   background-color: alpha(currentColor, 0.18);
+}
+popover:not(#popover_catalogs) separator {
+   margin: 4px 4px;
+}
+
 /* GTK4 ports the bottom toolbar from the GTK3 single-row design but the
  * default Adwaita scale + entry have larger min-heights, which combined
  * with the stacked max/min scales doubles the toolbar height.  Constrain
