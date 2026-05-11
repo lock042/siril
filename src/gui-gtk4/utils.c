@@ -166,10 +166,10 @@ GtkWidget* popover_new(GtkWidget *widget, const gchar *text) {
  * Create a popover with icon and text
  * @param widget is the parent widget where the popover arises from
  * @param text will be shown in the popover
- * @param pixbuf will be shown in the popover
+ * @param paintable will be shown in the popover (NULL for an info icon)
  * @return the GtkWidget of popover
  */
-GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf) {
+GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPaintable *paintable) {
 	GtkWidget *popover, *box, *image, *label;
 
 	popover = gtk_popover_new();
@@ -214,20 +214,18 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 	gtk_label_set_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD);
 	box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 
-	if (pixbuf) {
-		float ratio = 1.0 * gdk_pixbuf_get_height(pixbuf) / gdk_pixbuf_get_width(pixbuf);
-		int width = 128, height = 128 * ratio;
-		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height, GDK_INTERP_BILINEAR);
-		/* gtk_image_new_from_pixbuf is deprecated in GTK 4.10; wrap the
-		 * pixbuf as a GdkTexture (a GdkPaintable) and use the paintable
-		 * constructor instead.  GtkPicture would be more idiomatic for
-		 * arbitrary-size images but GtkImage with a paintable is fine
-		 * here since the caller scaled it explicitly above. */
-		GdkTexture *texture = gdk_texture_new_for_pixbuf(new_pixbuf);
-		image = gtk_image_new_from_paintable(GDK_PAINTABLE(texture));
+	if (paintable) {
+		int iw = gdk_paintable_get_intrinsic_width(paintable);
+		int ih = gdk_paintable_get_intrinsic_height(paintable);
+		float ratio = iw > 0 ? (float)ih / (float)iw : 1.0f;
+		int width = 128, height = (int)(128 * ratio);
+		/* GtkPicture handles arbitrary-size paintables: it scales the
+		 * paintable into the widget's allocation with preserved aspect
+		 * ratio.  No need to pre-scale the source. */
+		image = gtk_picture_new_for_paintable(paintable);
+		gtk_picture_set_content_fit(GTK_PICTURE(image), GTK_CONTENT_FIT_CONTAIN);
+		gtk_picture_set_can_shrink(GTK_PICTURE(image), TRUE);
 		gtk_widget_set_size_request(image, width, height);
-		g_object_unref(texture);
-		g_object_unref(new_pixbuf);
 	} else {
 		image = gtk_image_new_from_icon_name("dialog-information-symbolic");
 	}
@@ -1103,6 +1101,28 @@ GdkTexture *siril_texture_from_cairo_surface(cairo_surface_t *surface) {
 		(GDestroyNotify)cairo_surface_destroy, surface);
 	GdkTexture *tex = gdk_memory_texture_new(
 		w, h, GDK_MEMORY_B8G8R8A8_PREMULTIPLIED, bytes, stride);
+	g_bytes_unref(bytes);
+	return tex;
+}
+
+GdkTexture *siril_texture_from_pixbuf(GdkPixbuf *pb) {
+	if (!pb || gdk_pixbuf_get_bits_per_sample(pb) != 8
+	    || gdk_pixbuf_get_colorspace(pb) != GDK_COLORSPACE_RGB)
+		return NULL;
+	int w = gdk_pixbuf_get_width(pb);
+	int h = gdk_pixbuf_get_height(pb);
+	int rs = gdk_pixbuf_get_rowstride(pb);
+	gboolean alpha = gdk_pixbuf_get_has_alpha(pb);
+	int nch = gdk_pixbuf_get_n_channels(pb);
+	if (w <= 0 || h <= 0 || rs <= 0 || (nch != 3 && nch != 4))
+		return NULL;
+	guchar *pixels = gdk_pixbuf_get_pixels(pb);
+	g_object_ref(pb);
+	GBytes *bytes = g_bytes_new_with_free_func(pixels, (gsize)rs * h,
+	                                            g_object_unref, pb);
+	GdkTexture *tex = gdk_memory_texture_new(
+		w, h, alpha ? GDK_MEMORY_R8G8B8A8 : GDK_MEMORY_R8G8B8,
+		bytes, rs);
 	g_bytes_unref(bytes);
 	return tex;
 }

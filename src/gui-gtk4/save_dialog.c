@@ -876,41 +876,19 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 	return FALSE;
 }
 
-static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
+static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPaintable *paintable) {
 	gchar *text;
 	if (filename)
 		text = g_strdup_printf(_("Snapshot <b>%s</b> was saved into the working directory."), filename);
 	else
 		text = g_strdup((_("Snapshot was saved into the clipboard.")));
-	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
-#if GTK_CHECK_VERSION(3, 22, 0)
+	GtkWidget *popover = popover_new_with_image(widget, text, paintable);
 	gtk_popover_popup(GTK_POPOVER(popover));
-#else
-	gtk_widget_set_visible(popover, TRUE);
-#endif
 	g_free(text);
 	return popover;
 }
 
-static void snapshot_callback(GObject *source_object, GAsyncResult *result,
-		gpointer user_data) {
-	GError *error = NULL;
-
-	if (!gdk_pixbuf_save_to_stream_finish(result, &error)) {
-		siril_log_message(_("Cannot take snapshot: %s\n"), error->message);
-		g_clear_error(&error);
-	} else {
-		gchar *filename = (gchar *)user_data;
-		GtkWidget *widget = sd_header_snapshot_btn;
-		GtkWidget *popover = snapshot_notification(widget, filename, (GdkPixbuf *)source_object);
-		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
-
-		g_free(filename);
-	}
-}
-
 void on_header_snapshot_button_clicked(gboolean clipboard) {
-	GError *error = NULL;
 	gchar *timestamp, *filename;
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
@@ -939,61 +917,53 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_width(widget));
 	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_height(widget));
 
-	/* gdk_pixbuf_get_from_surface has no clean GTK4 replacement; the PNG
-	 * encoder and the snapshot-notification image (utils.c:226) both
-	 * still want a GdkPixbuf.  The clipboard branch routes through a
-	 * GdkTexture though, and we build that one directly from the
-	 * cairo surface instead of via the deprecated
-	 * gdk_texture_new_for_pixbuf. */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
-	G_GNUC_END_IGNORE_DEPRECATIONS
-	if (pixbuf) {
-		if (clipboard) {
-			GdkClipboard *cb = gdk_display_get_clipboard(gdk_display_get_default());
-			/* Crop the cairo surface into a fresh image surface so we
-			 * can use it for memory-texture construction (Cairo
-			 * sub-surfaces aren't image surfaces and have no get_data). */
-			cairo_surface_t *sub = cairo_image_surface_create(
-				CAIRO_FORMAT_ARGB32, x2 - x1, y2 - y1);
-			cairo_t *scr = cairo_create(sub);
-			cairo_set_source_surface(scr, surface, -x1, -y1);
-			cairo_paint(scr);
-			cairo_destroy(scr);
-			GdkTexture *tex = siril_texture_from_cairo_surface(sub);
-			cairo_surface_destroy(sub);
-			if (tex) {
-				gdk_clipboard_set_texture(cb, tex);
-				g_object_unref(tex);
-			}
-			/* gtk_clipboard_store has no GTK4 equivalent — the clipboard
-			 * already retains a reference to the texture. */
-			GtkWidget *w = sd_header_snapshot_btn;
-			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
-			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
-		} else {
-			GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
-
-			GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
-			if (stream == NULL) {
-				if (error != NULL) {
-					g_warning("%s\n", error->message);
-					g_clear_error(&error);
-				}
-				cairo_surface_destroy(surface);
-				g_free(filename);
-				g_object_unref(pixbuf);
-				g_object_unref(file);
-				return;
-			}
-			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL, snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
-
-			g_object_unref(stream);
-			g_object_unref(file);
-		}
-		g_object_unref(pixbuf);
-	}
+	/* Crop into a fresh ARGB32 image surface, then build a GdkTexture
+	 * from it.  Cairo sub-surfaces aren't image surfaces and don't have
+	 * a get_data accessor, so we paint the cropped region into a new
+	 * image surface that the memory-texture helper can wrap. */
+	cairo_surface_t *sub = cairo_image_surface_create(
+		CAIRO_FORMAT_ARGB32, x2 - x1, y2 - y1);
+	cairo_t *scr = cairo_create(sub);
+	cairo_set_source_surface(scr, surface, -x1, -y1);
+	cairo_paint(scr);
+	cairo_destroy(scr);
 	cairo_surface_destroy(surface);
+
+	GdkTexture *tex = siril_texture_from_cairo_surface(sub);
+	cairo_surface_destroy(sub);
+
+	if (!tex) {
+		g_free(filename);
+		return;
+	}
+
+	if (clipboard) {
+		GdkClipboard *cb = gdk_display_get_clipboard(gdk_display_get_default());
+		gdk_clipboard_set_texture(cb, tex);
+		GtkWidget *popover = snapshot_notification(sd_header_snapshot_btn, NULL,
+		                                           GDK_PAINTABLE(tex));
+		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+	} else {
+		GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
+		gchar *path = g_file_get_path(file);
+		/* gdk_texture_save_to_png is synchronous, but PNG-encoding a
+		 * screen-sized snapshot is fast enough (single-digit ms) that
+		 * the async dance with gdk_pixbuf_save_to_stream_async isn't
+		 * worth keeping just to dodge a brief main-loop hitch. */
+		gboolean ok = path && gdk_texture_save_to_png(tex, path);
+		if (ok) {
+			gchar *basename = g_file_get_basename(file);
+			GtkWidget *popover = snapshot_notification(sd_header_snapshot_btn,
+			                                           basename, GDK_PAINTABLE(tex));
+			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+			g_free(basename);
+		} else {
+			siril_log_message(_("Cannot take snapshot\n"));
+		}
+		g_free(path);
+		g_object_unref(file);
+	}
+	g_object_unref(tex);
 	g_free(filename);
 }
 

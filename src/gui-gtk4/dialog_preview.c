@@ -38,6 +38,7 @@
 #include "core/exif.h"
 #include "gui-gtk4/histogram.h"
 #include "gui-gtk4/progress_and_log.h"
+#include "gui-gtk4/utils.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 
@@ -465,14 +466,12 @@ static gboolean end_update_preview_cb(gpointer p) {
 	}
 
 	/* load icon */
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS  /* Batch C/D pending — see /tmp/deprecation-migration-plan.md */
 	if (type == G_FILE_TYPE_REGULAR && args->pixbuf) {
-		/* gtk_image_set_from_pixbuf is deprecated in GTK 4.10; wrap the
-	G_GNUC_END_IGNORE_DEPRECATIONS
-		 * pixbuf as a GdkTexture and use the paintable setter. */
-		GdkTexture *tex = gdk_texture_new_for_pixbuf(args->pixbuf);
-		gtk_image_set_from_paintable(GTK_IMAGE(preview->image), GDK_PAINTABLE(tex));
-		g_object_unref(tex);
+		GdkTexture *tex = siril_texture_from_pixbuf(args->pixbuf);
+		if (tex) {
+			gtk_image_set_from_paintable(GTK_IMAGE(preview->image), GDK_PAINTABLE(tex));
+			g_object_unref(tex);
+		}
 		info_str = args->description;
 	} else if (type == G_FILE_TYPE_DIRECTORY) {
 		gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "folder");

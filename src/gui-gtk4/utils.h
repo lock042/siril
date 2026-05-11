@@ -33,7 +33,7 @@ GObject* lookup_gobject(const gchar *gobject_name);
 GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
-GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);
+GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPaintable *paintable);
 GList *get_row_references_of_selected_rows(GtkTreeSelection *selection, GtkTreeModel *model);
 GList *widget_list_children(GtkWidget *parent);
 void set_GUI_MEM(guint64 used, const gchar *label);
@@ -121,6 +121,12 @@ GdkTexture *siril_texture_from_rgb_bytes(const guchar *data, gsize len,
                                           gboolean has_alpha,
                                           GDestroyNotify notify,
                                           gpointer notify_data);
+
+/* Drop-in non-deprecated replacement for gdk_texture_new_for_pixbuf.
+ * Wraps the pixbuf's pixel buffer in a GBytes (keeping the pixbuf alive
+ * for the texture's lifetime) and constructs a GdkMemoryTexture in the
+ * matching format.  Returns NULL if the pixbuf isn't 8-bit RGB/RGBA. */
+GdkTexture *siril_texture_from_pixbuf(GdkPixbuf *pb);
 
 /* GtkDropDown helpers (replace deprecated GtkComboBoxText paths).
  * siril_drop_down_get_active_text returns a freshly-allocated copy of the

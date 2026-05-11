@@ -14,6 +14,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "gui-gtk4/file_browser.h"
+#include "gui-gtk4/utils.h"
 
 #include <string.h>
 
@@ -663,9 +664,11 @@ void siril_file_browser_default_preview(const gchar *path,
 		gchar *descr = NULL;
 		GdkPixbuf *pb = get_thumbnail_from_fits((char *)path, &descr);
 		if (pb) {
-			GdkTexture *tex = gdk_texture_new_for_pixbuf(pb);
-			gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
-			g_object_unref(tex);
+			GdkTexture *tex = siril_texture_from_pixbuf(pb);
+			if (tex) {
+				gtk_picture_set_paintable(picture, GDK_PAINTABLE(tex));
+				g_object_unref(tex);
+			}
 			g_object_unref(pb);
 		}
 		if (metadata_label && descr)
