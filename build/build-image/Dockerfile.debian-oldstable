@@ -20,6 +20,12 @@ RUN if [ ! -f /etc/apt/sources.list ]; then \
         libgsl-dev \
         libgtksourceview-4-dev \
         librsvg2-dev \
+        libgraphene-1.0-dev \
+        libxkbcommon-dev \
+        wayland-protocols \
+        sassc \
+        libxml2-utils \
+        libx11-dev \
         libffms2-dev \
         libtiff-dev \
         libturbojpeg0 \
@@ -120,3 +126,41 @@ RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.3.zip \
     && rm -rf opencv-4.5.3 opencv.zip
 
 RUN pip install meson==1.9.1 ninja!=1.11.1
+
+# Debian bookworm (oldstable) ships GTK 4.8.3 but Siril's gtk4 branch
+# requires >= 4.10.0 (see meson.build).  Build a pinned stable GTK4
+# from source so the oldstable image — used to build the AppImage —
+# can produce a GTK4 binary.  Remove once oldstable advances to trixie
+# (Debian 13), which ships GTK 4.14+ as a system package.
+RUN git clone --branch 4.14.5 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtk.git \
+    && cd gtk \
+    && meson setup _build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Dintrospection=disabled \
+        -Ddocumentation=false \
+        -Dman-pages=false \
+        -Dbuild-tests=false \
+        -Dbuild-testsuite=false \
+        -Dbuild-demos=false \
+        -Dbuild-examples=false \
+        -Dmedia-gstreamer=disabled \
+        -Dprint-cups=disabled \
+        -Dvulkan=disabled \
+    && meson compile -C _build \
+    && meson install -C _build \
+    && cd .. \
+    && rm -rf gtk \
+    && git clone --branch 5.10.0 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtksourceview.git \
+    && cd gtksourceview \
+    && meson setup _build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Dintrospection=disabled \
+        -Dvapi=false \
+        -Dgtk_doc=false \
+        -Dinstall_tests=false \
+    && meson compile -C _build \
+    && meson install -C _build \
+    && cd .. \
+    && rm -rf gtksourceview

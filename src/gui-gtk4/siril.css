@@ -1,6 +1,18 @@
 /* don't change this first line without updating siril_css.c */
 * { font-size: 1.0em; -gtk-icon-style: regular; }
 
+/* The X11 drop-fallback in single_image.c swallows GDK_DROP_START so
+ * the underlying GtkDropTarget never clears its :drop(active) state,
+ * leaving a stuck green outline around the drawing area after a drop.
+ * The .siril-x11-dnd-fallback class is added at runtime only when the
+ * fallback is active (X11 + HAVE_X11_DND_FALLBACK); on Wayland the
+ * default :drop(active) feedback continues to work normally. */
+.siril-x11-dnd-fallback:drop(active) {
+    outline: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
 box {
     border-width: 0;
     border-style: none;

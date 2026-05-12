@@ -268,6 +268,13 @@ if use_gtk4
 else
   gtk_dep = dependency('gtk+-3.0', required : enable_gui, version: '>= 3.22.0')
 endif
+# libX11 is used by the GTK4 GDK X11 drag-and-drop fallback (see
+# src/gui-gtk4/single_image.c).  Gated by the legacy-x11-support option
+# and host OS — only built on Linux / BSD with GTK4; off elsewhere.
+enable_x11_dnd_fallback = (use_gtk4
+  and get_option('legacy-x11-support')
+  and host_machine.system() not in ['darwin', 'windows'])
+x11_dep = enable_x11_dnd_fallback ? dependency('x11', required : true) : no_dep
 # Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
 # are in the core library, so they are always required.
 cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
@@ -524,6 +531,7 @@ conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') 
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
 conf_data.set('HAVE_GTK', enable_gui ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_X11_DND_FALLBACK', enable_x11_dnd_fallback ? 1 : false, description : 'GTK4 X11 drag-and-drop fallback compiled in (libX11 linked).')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -775,6 +783,7 @@ externals_dep = declare_dependency(
     core_dep,
     gtk_dep,           # not found/linked when -Dgui=disabled and GTK absent
     gtksourceview_dep, # no_dep when -Dgui=disabled
+    x11_dep,           # no_dep on GTK3 / non-X11 builds
   ]
 )
 
