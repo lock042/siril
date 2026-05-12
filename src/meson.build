@@ -238,7 +238,7 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
-# GUI-only source files (require GTK; excluded when -Dgui=disabled).
+# GUI-only source files (require GTK; excluded when -Dgtk=false).
 src_files_gui = [
   'gui/livestacking_gui.c',
   'gui/about_dialog.c',
@@ -330,7 +330,7 @@ src_files_gui = [
   'gui/wavelets.c',
 ]
 
-# enable_gui is defined in the top-level meson.build
+# enable_gtk is defined in the top-level meson.build
 #
 # Build strategy:
 #
@@ -349,12 +349,13 @@ src_files_gui = [
 #
 #  siril             — link_whole: siril_lib  +  src_files_gui compiled directly.
 #                      gui_iface_impl.c (in src_files_gui) provides real GTK
-#                      implementations; main.c defines guiinfo gui.
+#                      implementations; main.c defines guiinfo gui.  Only built
+#                      when -Dgtk=true (the default).
 #
 #  siril-cli         — link_whole: siril_lib  +  siril_headless_lib (on demand).
 #                      gui_iface_impl.c is NEVER linked here; gui_iface_stubs.c
 #                      (in siril_lib) provides headless no-ops for all slots.
-#                      main-cli.c does NOT define guiinfo gui.
+#                      main-cli.c does NOT define guiinfo gui.  Always built.
 
 # Define the resource file
 gnome = import('gnome')
@@ -384,9 +385,9 @@ siril_dep = declare_dependency(link_with: [siril_lib, siril_headless_lib],
 # Custom target for glib-compile-resources
 
 ################################################################################
-# Build gui executable (only when -Dgui=enabled, the default)
+# Build gui executable (only when -Dgtk=true, the default)
 
-if enable_gui
+if enable_gtk
 siril_gui = executable('siril', siril_resources[1], 'main.c', src_files_gui, win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
