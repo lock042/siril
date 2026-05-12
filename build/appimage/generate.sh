@@ -53,6 +53,20 @@ cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/g
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
 sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
 
+# Bundle the OpenGL / EGL stack: GTK4 defaults to GskGLRenderer /
+# GskNglRenderer, both of which need libEGL.so.1 to come up.  Because
+# the bundled ld-linux is patched to block /usr (see the sed above),
+# every part of the GL stack has to live inside the AppImage.
+#
+# - libegl1/libgl1/libgles2/libglx0/libglvnd0 are the libglvnd dispatch
+#   libraries (the libEGL.so.1 / libGL.so.1 entry points).
+# - libegl-mesa0/libglx-mesa0/libglapi-mesa are Mesa's actual EGL/GLX
+#   implementation that GLVND dispatches to.
+# - libgl1-mesa-dri provides the DRI driver modules (incl. swrast for
+#   the software fallback when no GPU driver matches the host).
+apt_bundle libegl1 libgl1 libgles2 libglx0 libglvnd0 \
+           libegl-mesa0 libglx-mesa0 libglapi-mesa libgl1-mesa-dri
+
 # Bundle fontconfig settings
 mkdir -p etc/fonts/
 cp /etc/fonts/fonts.conf etc/fonts/

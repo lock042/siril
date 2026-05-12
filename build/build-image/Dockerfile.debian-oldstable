@@ -33,6 +33,9 @@ RUN if [ ! -f /etc/apt/sources.list ]; then \
         libffi-dev \
         libopencv-dev \
         libjxl-dev \
+        libegl-dev \
+        libgl-dev \
+        libgles-dev \
         libffms2-dev \
         libtiff-dev \
         libturbojpeg0 \

@@ -42,6 +42,15 @@ export GDK_PIXBUF_MODULEDIR=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-p
 export GDK_PIXBUF_MODULE_FILE=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache ) # Patched to contain no paths
 export GI_TYPELIB_PATH="${HERE}/usr/lib/x86_64-linux-gnu/girepository-1.0"
 
+# OpenGL / EGL stack: point libglvnd at the bundled Mesa vendor config
+# and point Mesa at the bundled DRI driver directory.  Required for
+# GTK4's GskGLRenderer to come up — libepoxy dlopens libEGL.so.1 which
+# is the libglvnd dispatch, which in turn looks for vendor .json files
+# in __EGL_VENDOR_LIBRARY_DIRS, and Mesa looks for its DRI drivers in
+# LIBGL_DRIVERS_PATH.
+export __EGL_VENDOR_LIBRARY_DIRS="$HERE/usr/share/glvnd/egl_vendor.d"
+export LIBGL_DRIVERS_PATH="$HERE/usr/lib/x86_64-linux-gnu/dri"
+
 # For bundled shares
 export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
