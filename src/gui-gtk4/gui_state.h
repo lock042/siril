@@ -81,6 +81,14 @@ struct image_tile {
 	GdkTexture *texture;
 	guint64     last_used;   /* lazy-mode LRU epoch */
 	gboolean    dirty;       /* lazy-mode flag: LUT/data changed since last fill */
+	int         mip;         /* lazy-mode downsample level: texture dim = src_dim >> mip;
+	                          * 0 = full-resolution (eager mode is always 0).
+	                          * Set by materialise_tile_{gray,rgb}; consumed by tile_release
+	                          * for accurate budget bookkeeping and by the snapshot path to
+	                          * detect "current mip differs from target mip" → re-materialise. */
+	gsize       bytes;       /* size in bytes of tile->data when materialised; tracks the
+	                          * actual allocation so tile_release returns the right amount
+	                          * to lazy_bytes_used regardless of mip/edge size. */
 };
 
 struct image_view {

@@ -131,6 +131,29 @@ static void invalidate_image_render_cache(int vport);
  * tile images use eager mode and bypass the LRU entirely. */
 #define SIRIL_LAZY_BUDGET    ((gsize)512 * 1024 * 1024)
 
+/* Cap on the downsample level a tile may be materialised at.  At mip M the
+ * texture is 1/(2^M)² of the source area; at mip 6 a 2048-pixel tile yields
+ * a 32-pixel texture (4 KB), and there's no useful saving past that point.
+ * Also keeps tex_w >> mip strictly positive on every realistic tile. */
+#define SIRIL_MAX_MIP        6
+
+/* Choose the mip level we want to materialise tiles at, given the current
+ * display zoom.  At mip M each texture pixel covers 2^M × 2^M source pixels;
+ * the coarsest mip that still keeps the texture at least as dense as the
+ * display is M_necessary = floor(-log2(zoom)).  We deliberately materialise
+ * at one level finer (M_necessary − 1) so that zooming in by one octave
+ * doesn't force a re-materialise of every visible tile (which would stutter
+ * on every wheel notch).  Cost: 4× the memory of M_necessary, still 4^M_target
+ * less than full-res.  At zoom ≥ 1 we stay at mip 0. */
+static int compute_target_mip(double zoom) {
+	if (zoom >= 1.0 || !(zoom > 0.0)) return 0;
+	const int necessary = (int)floor(-log2(zoom));
+	int target = necessary - 1;
+	if (target < 0) target = 0;
+	if (target > SIRIL_MAX_MIP) target = SIRIL_MAX_MIP;
+	return target;
+}
+
 /* Return the dimensions of tile (tx, ty) in image-space.  Edge tiles may
  * be smaller than tile_dim. */
 static inline void tile_dims(const struct image_view *view, int tx, int ty,
@@ -188,20 +211,13 @@ static inline void tile_dims_padded(const struct image_view *view,
  * gui.cairo_mutex held. */
 static void tile_release(struct image_view *view, struct image_tile *tile) {
 	if (!view->lazy) return;  /* eager-mode tiles share view->buf */
-	gsize bytes = 0;
-	if (tile->data) {
-		ptrdiff_t ti = tile - view->tiles;
-		int tx = (int)(ti % view->tile_cols);
-		int ty = (int)(ti / view->tile_cols);
-		int x0, y0, tw, th;
-		tile_dims(view, tx, ty, &x0, &y0, &tw, &th);
-		bytes = (gsize)tw * th * 4;
-	}
+	const gsize bytes = tile->data ? tile->bytes : 0;
 	if (tile->texture) {
 		g_object_unref(tile->texture);
 		tile->texture = NULL;
 	}
 	tile->data = NULL;
+	tile->bytes = 0;
 	if (view->lazy_bytes_used >= bytes)
 		view->lazy_bytes_used -= bytes;
 	else
@@ -264,6 +280,8 @@ static void view_refresh_tile_textures_eager(struct image_view *view) {
 			t->data = view->buf + offset;
 			t->texture = gdk_memory_texture_new(tex_w, tex_h,
 				GDK_MEMORY_B8G8R8X8, bytes, view->buf_stride);
+			t->mip = 0;
+			t->bytes = 0;   /* eager tiles don't count against lazy_bytes_used */
 			t->dirty = FALSE;
 			g_bytes_unref(bytes);
 		}
@@ -403,7 +421,7 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
  * in-flight frame, and writing into it in-place would corrupt that
  * upload (the assertion that fires inside gdk_memory_convert). */
 static gboolean materialise_tile_gray(struct image_view *view, int vport,
-                                       int tx, int ty,
+                                       int tx, int ty, int mip,
                                        const BYTE *lut, gboolean hd_mode,
                                        gboolean inverted, gboolean cut_over,
                                        WORD remap_lo, WORD remap_hi) {
@@ -413,12 +431,21 @@ static gboolean materialise_tile_gray(struct image_view *view, int vport,
 	if (tex_w <= 0 || tex_h <= 0) return TRUE;  /* empty edge tile */
 
 	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
-	const gsize tile_bytes = (gsize)tex_w * tex_h * 4;
+	/* At mip M each output pixel averages a step×step block of source pixels
+	 * (with the LUT applied per source pixel — averaging in display-byte
+	 * space, not in raw-pixel space, so the stretch curve is preserved).  The
+	 * texture is handed to GSK at this reduced size; the snapshot rect stays
+	 * in image-space coords so the existing display_matrix transform works
+	 * unchanged and GSK upscales the small texture into the image-space rect. */
+	const int step = 1 << mip;
+	const int out_w = MAX(1, tex_w >> mip);
+	const int out_h = MAX(1, tex_h >> mip);
+	const gsize tile_bytes = (gsize)out_w * out_h * 4;
 
-	/* Reclaim budget for the new buffer.  If the previous buffer for
-	 * this tile is still alive in a pending render, it'll be freed
-	 * when GSK is done; in the meantime we'll briefly overshoot. */
-	const gsize prev_bytes = tile->data ? tile_bytes : 0;
+	/* Reclaim budget for the new buffer.  If the previous buffer for this
+	 * tile is still alive in a pending render, it'll be freed when GSK is
+	 * done; in the meantime we'll briefly overshoot. */
+	const gsize prev_bytes = (tile->data ? tile->bytes : 0);
 	if (prev_bytes && view->lazy_bytes_used >= prev_bytes)
 		view->lazy_bytes_used -= prev_bytes;
 	materialise_tile_evict_until(view, tile_bytes);
@@ -432,43 +459,85 @@ static gboolean materialise_tile_gray(struct image_view *view, int vport,
 	const float *fsrc = gfit->fpdata[vport];
 	const guint hd_max = gui.hd_remap_max;
 
-	for (int dy = 0; dy < tex_h; dy++) {
-		/* display row (y0+dy) → image row (img_h-1-(y0+dy)).  This is
-		 * the y-flip the legacy remap performs at fill time.  Guard
-		 * rows (dy in [th, tex_h)) sample from the next tile's image
-		 * rows — same source data the neighbouring tile would render,
-		 * so the per-tile mipmap pyramids agree at the boundary. */
-		const int iy = img_h - 1 - (y0 + dy);
-		guint32 *row_out = (guint32 *)(data + (size_t)dy * tex_w * 4);
-		for (int dx = 0; dx < tex_w; dx++) {
-			const int ix = x0 + dx;
-			const size_t si = (size_t)iy * img_w + ix;
-			BYTE val;
-			if (gfit->type == DATA_USHORT) {
-				const WORD sv = src[si];
-				val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
-			} else {
-				val = hd_mode
-					? lut[float_to_max_range(fsrc[si], hd_max)]
-					: lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+	if (mip == 0) {
+		for (int dy = 0; dy < tex_h; dy++) {
+			/* display row (y0+dy) → image row (img_h-1-(y0+dy)).  This
+			 * is the y-flip the legacy remap performs at fill time.
+			 * Guard rows (dy in [th, tex_h)) sample from the next
+			 * tile's image rows — same source data the neighbour would
+			 * render, so the per-tile mipmap pyramids agree at the
+			 * boundary. */
+			const int iy = img_h - 1 - (y0 + dy);
+			guint32 *row_out = (guint32 *)(data + (size_t)dy * out_w * 4);
+			for (int dx = 0; dx < tex_w; dx++) {
+				const int ix = x0 + dx;
+				const size_t si = (size_t)iy * img_w + ix;
+				BYTE val;
+				if (gfit->type == DATA_USHORT) {
+					const WORD sv = src[si];
+					val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+				} else {
+					val = hd_mode
+						? lut[float_to_max_range(fsrc[si], hd_max)]
+						: lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+				}
+				if (inverted) val = UCHAR_MAX - val;
+				row_out[dx] = ((guint32)val << 16) | ((guint32)val << 8) | val;
 			}
-			if (inverted) val = UCHAR_MAX - val;
-			row_out[dx] = ((guint32)val << 16) | ((guint32)val << 8) | val;
+		}
+	} else {
+		/* Box-average path.  Each output pixel sums up to step*step
+		 * LUT-applied source values, then divides by the actual count
+		 * (smaller at the right/bottom edge when tex_w/h isn't a
+		 * multiple of step). */
+		for (int oy = 0; oy < out_h; oy++) {
+			guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
+			for (int ox = 0; ox < out_w; ox++) {
+				unsigned sum = 0;
+				int count = 0;
+				for (int sy = 0; sy < step; sy++) {
+					const int dy = oy * step + sy;
+					if (dy >= tex_h) break;
+					const int iy = img_h - 1 - (y0 + dy);
+					for (int sx = 0; sx < step; sx++) {
+						const int dx = ox * step + sx;
+						if (dx >= tex_w) break;
+						const int ix = x0 + dx;
+						const size_t si = (size_t)iy * img_w + ix;
+						BYTE val;
+						if (gfit->type == DATA_USHORT) {
+							const WORD sv = src[si];
+							val = hd_mode ? lut[(guint)sv * hd_max / USHRT_MAX] : lut[sv];
+						} else {
+							val = hd_mode
+								? lut[float_to_max_range(fsrc[si], hd_max)]
+								: lut[roundf_to_WORD(fsrc[si] * USHRT_MAX_SINGLE)];
+						}
+						if (inverted) val = UCHAR_MAX - val;
+						sum += val;
+						count++;
+					}
+				}
+				const BYTE avg = count > 0 ? (BYTE)(sum / count) : 0;
+				row_out[ox] = ((guint32)avg << 16) | ((guint32)avg << 8) | avg;
+			}
 		}
 	}
 
 	/* The new GBytes owns `data` — when the texture's last reference
-	 * drops (anywhere from this scope to many frames later, once GSK
-	 * is done with it), free(data) will be called automatically. */
+	 * drops (anywhere from this scope to many frames later, once GSK is
+	 * done with it), free(data) will be called automatically. */
 	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
-	GdkTexture *new_tex = gdk_memory_texture_new(tex_w, tex_h, GDK_MEMORY_B8G8R8X8,
-	                                              bytes, tex_w * 4);
+	GdkTexture *new_tex = gdk_memory_texture_new(out_w, out_h, GDK_MEMORY_B8G8R8X8,
+	                                              bytes, out_w * 4);
 	g_bytes_unref(bytes);
 
 	if (tile->texture)
 		g_object_unref(tile->texture);  /* old bytes survive until GSK is done */
 	tile->texture = new_tex;
 	tile->data = data;  /* non-owning view; valid for as long as tile->texture lives */
+	tile->mip = mip;
+	tile->bytes = tile_bytes;
 	tile->dirty = FALSE;
 	tile->last_used = ++view->lazy_epoch;
 	view->lazy_bytes_used += tile_bytes;
@@ -482,7 +551,7 @@ static gboolean materialise_tile_gray(struct image_view *view, int vport,
  * target_index logic so HISTEQ / linked-STF / linear modes correctly
  * read slot 0 instead of stale per-channel slots). */
 static gboolean materialise_tile_rgb(struct image_view *view,
-                                      int tx, int ty,
+                                      int tx, int ty, int mip,
                                       const BYTE * const idx[3],
                                       gboolean hd_mode,
                                       gboolean inverted,
@@ -492,9 +561,12 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 	if (tex_w <= 0 || tex_h <= 0) return TRUE;
 
 	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
-	const gsize tile_bytes = (gsize)tex_w * tex_h * 4;
+	const int step = 1 << mip;
+	const int out_w = MAX(1, tex_w >> mip);
+	const int out_h = MAX(1, tex_h >> mip);
+	const gsize tile_bytes = (gsize)out_w * out_h * 4;
 
-	const gsize prev_bytes = tile->data ? tile_bytes : 0;
+	const gsize prev_bytes = (tile->data ? tile->bytes : 0);
 	if (prev_bytes && view->lazy_bytes_used >= prev_bytes)
 		view->lazy_bytes_used -= prev_bytes;
 	materialise_tile_evict_until(view, tile_bytes);
@@ -503,73 +575,97 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 	if (!data) return FALSE;
 
 	/* Per-row scratch for the three byte channels (optionally ICC-
-	 * transformed in-place).  Sized to the padded width so the guard
-	 * column is processed alongside the real tile pixels. */
-	BYTE *lb = malloc((size_t)tex_w * 3);
+	 * transformed in-place).  Sized to the OUTPUT width so the ICC
+	 * transform at mip>0 runs once per averaged pixel rather than once per
+	 * source pixel — averaging-then-ICC is a small approximation vs ICC-
+	 * then-averaging, but the perceptual error is far smaller than the
+	 * downsampling itself and saves 4^mip× ICC calls.  At mip=0 it
+	 * matches the legacy semantics exactly. */
+	BYTE *lb = malloc((size_t)out_w * 3);
 	if (!lb) {
 		free(data);
 		return FALSE;
 	}
 	BYTE *lb_r = lb;
-	BYTE *lb_g = lb + tex_w;
-	BYTE *lb_b = lb + 2 * tex_w;
+	BYTE *lb_g = lb + out_w;
+	BYTE *lb_b = lb + 2 * out_w;
 
 	const int img_w = view->buf_stride / 4;
 	const int img_h = view->buf_height;
 	const guint hd_max = gui.hd_remap_max;
 
-	for (int dy = 0; dy < tex_h; dy++) {
-		const int iy = img_h - 1 - (y0 + dy);
-		guint32 *row_out = (guint32 *)(data + (size_t)dy * tex_w * 4);
+	for (int oy = 0; oy < out_h; oy++) {
+		guint32 *row_out = (guint32 *)(data + (size_t)oy * out_w * 4);
 
-		for (int dx = 0; dx < tex_w; dx++) {
-			const int ix = x0 + dx;
-			const size_t si = (size_t)iy * img_w + ix;
-			BYTE *channels[3] = { lb_r, lb_g, lb_b };
-			for (int c = 0; c < 3; c++) {
-				/* Mirror remap()'s indexing exactly — the LUT already
-				 * encodes lo/hi, cut_over, and the display curve, so
-				 * just look the source pixel up directly.  No
-				 * remap_lo subtraction; no cut_over branch. */
-				BYTE val;
-				if (gfit->type == DATA_USHORT) {
-					const WORD sv = gfit->pdata[c][si];
-					val = hd_mode
-						? idx[c][(guint)sv * hd_max / USHRT_MAX]
-						: idx[c][sv];
-				} else {
-					const float fv = gfit->fpdata[c][si];
-					val = hd_mode
-						? idx[c][float_to_max_range(fv, hd_max)]
-						: idx[c][roundf_to_WORD(fv * USHRT_MAX_SINGLE)];
+		for (int ox = 0; ox < out_w; ox++) {
+			unsigned sum[3] = { 0, 0, 0 };
+			int count = 0;
+			for (int sy = 0; sy < step; sy++) {
+				const int dy = oy * step + sy;
+				if (dy >= tex_h) break;
+				const int iy = img_h - 1 - (y0 + dy);
+				for (int sx = 0; sx < step; sx++) {
+					const int dx = ox * step + sx;
+					if (dx >= tex_w) break;
+					const int ix = x0 + dx;
+					const size_t si = (size_t)iy * img_w + ix;
+					for (int c = 0; c < 3; c++) {
+						/* Mirror remap()'s indexing exactly — the LUT
+						 * already encodes lo/hi, cut_over, and the
+						 * display curve, so just look the source pixel
+						 * up directly.  No remap_lo subtraction; no
+						 * cut_over branch. */
+						BYTE val;
+						if (gfit->type == DATA_USHORT) {
+							const WORD sv = gfit->pdata[c][si];
+							val = hd_mode
+								? idx[c][(guint)sv * hd_max / USHRT_MAX]
+								: idx[c][sv];
+						} else {
+							const float fv = gfit->fpdata[c][si];
+							val = hd_mode
+								? idx[c][float_to_max_range(fv, hd_max)]
+								: idx[c][roundf_to_WORD(fv * USHRT_MAX_SINGLE)];
+						}
+						if (inverted) val = UCHAR_MAX - val;
+						sum[c] += val;
+					}
+					count++;
 				}
-				if (inverted) val = UCHAR_MAX - val;
-				channels[c][dx] = val;
+			}
+			if (count > 0) {
+				lb_r[ox] = (BYTE)(sum[0] / count);
+				lb_g[ox] = (BYTE)(sum[1] / count);
+				lb_b[ox] = (BYTE)(sum[2] / count);
+			} else {
+				lb_r[ox] = lb_g[ox] = lb_b[ox] = 0;
 			}
 		}
 
 		if (do_icc)
 			cmsDoTransformLineStride(com.gui_icc.proofing_transform,
-				lb, lb, tex_w, 1, tex_w * 3, tex_w * 3, tex_w, tex_w);
+				lb, lb, out_w, 1, out_w * 3, out_w * 3, out_w, out_w);
 
-		for (int dx = 0; dx < tex_w; dx++) {
-			row_out[dx] = ((guint32)lb_r[dx] << 16)
-				| ((guint32)lb_g[dx] << 8)
-				|  (guint32)lb_b[dx];
+		for (int ox = 0; ox < out_w; ox++) {
+			row_out[ox] = ((guint32)lb_r[ox] << 16)
+				| ((guint32)lb_g[ox] << 8)
+				|  (guint32)lb_b[ox];
 		}
 	}
 
 	free(lb);
 
 	GBytes *bytes = g_bytes_new_with_free_func(data, tile_bytes, free, data);
-	GdkTexture *new_tex = gdk_memory_texture_new(tex_w, tex_h, GDK_MEMORY_B8G8R8X8,
-	                                              bytes, tex_w * 4);
+	GdkTexture *new_tex = gdk_memory_texture_new(out_w, out_h, GDK_MEMORY_B8G8R8X8,
+	                                              bytes, out_w * 4);
 	g_bytes_unref(bytes);
 
 	if (tile->texture)
 		g_object_unref(tile->texture);
 	tile->texture = new_tex;
 	tile->data = data;
+	tile->mip = mip;
+	tile->bytes = tile_bytes;
 	tile->dirty = FALSE;
 	tile->last_used = ++view->lazy_epoch;
 	view->lazy_bytes_used += tile_bytes;
@@ -577,12 +673,16 @@ static gboolean materialise_tile_rgb(struct image_view *view,
 }
 
 /* Dispatch to the right per-vport implementation.  Materialises the tile
- * if it's dirty or has no data; no-op otherwise.  Returns FALSE on
- * allocation failure. */
+ * if it's dirty, has no data, or its current mip differs from the one the
+ * caller is asking for; no-op otherwise.  `mip` is the downsample level
+ * the caller wants — the snapshot path picks it from the current zoom
+ * (compute_target_mip); paths that consume tile->data directly at native
+ * stride (the Cairo fallback) must pass 0.  Returns FALSE on allocation
+ * failure. */
 static gboolean materialise_tile(struct image_view *view, int vport,
-                                  int tx, int ty) {
+                                  int tx, int ty, int mip) {
 	struct image_tile *tile = &view->tiles[ty * view->tile_cols + tx];
-	if (!tile->dirty && tile->texture) {
+	if (!tile->dirty && tile->texture && tile->mip == mip) {
 		tile->last_used = ++view->lazy_epoch;  /* refresh LRU position */
 		return TRUE;
 	}
@@ -625,14 +725,14 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 		const gboolean do_icc = (gfit->color_managed
 			&& com.gui_icc.proofing_transform && !identical
 			&& !com.gui_icc.same_primaries);
-		return materialise_tile_rgb(view, tx, ty, idx, hd_mode, neg, do_icc);
+		return materialise_tile_rgb(view, tx, ty, mip, idx, hd_mode, neg, do_icc);
 	}
 
 	if (vport >= 0 && vport <= 2) {
 		const BYTE *lut = hd_mode
 			? gui.hd_remap_index[target_index]
 			: gui.remap_index[target_index];
-		return materialise_tile_gray(view, vport, tx, ty, lut, hd_mode,
+		return materialise_tile_gray(view, vport, tx, ty, mip, lut, hd_mode,
 			neg, gui.cut_over, remap_lo, remap_hi);
 	}
 
@@ -1757,6 +1857,26 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	const int img_h     = view->buf_height;
 	const gboolean suppressed = g_atomic_int_get(&gui.suppress_drawarea_redraw);
 
+	/* Zoom-aware mip selection: at strong zoom-outs we materialise tiles
+	 * at a downsampled resolution so resident bytes track what's actually
+	 * visible (see compute_target_mip).  Eager mode (single-tile images)
+	 * stays at mip 0 — there's no memory pressure to relieve.
+	 *
+	 * Once the entire image fits inside the window (zoom ≤ zoom_fit) no
+	 * finer mip will reveal more pixels, so cap the effective zoom at
+	 * zoom_fit.  This prevents the visible "jerk" of a re-materialise on
+	 * every octave of further zoom-out past the fit boundary — at that
+	 * point GSK's TRILINEAR pyramid handles the remaining downscale
+	 * cheaply on the GPU. */
+	const double zoom_now = get_zoom_val();
+	double zoom_effective = zoom_now;
+	if (img_w > 0 && img_h > 0) {
+		const double zoom_fit = MIN((double)width  / img_w,
+		                            (double)height / img_h);
+		if (zoom_effective < zoom_fit) zoom_effective = zoom_fit;
+	}
+	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
+
 	GdkTexture **tiles_snapshot = NULL;
 	if (view->tiles && tile_cols > 0 && tile_rows > 0) {
 		tiles_snapshot = g_new0(GdkTexture *, tile_cols * tile_rows);
@@ -1774,7 +1894,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				if (x0 > vis_xmax) continue;
 				if (y0 > vis_ymax) continue;
 				if (view->lazy && !suppressed)
-					materialise_tile(view, vport, tx, ty);
+					materialise_tile(view, vport, tx, ty, target_mip);
 				GdkTexture *t = view->tiles[ty * tile_cols + tx].texture;
 				if (t) {
 					tiles_snapshot[ty * tile_cols + tx] = t;
@@ -1823,13 +1943,17 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			for (int tx = 0; tx < tile_cols; tx++) {
 				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
 				if (!tile) continue;
-				const int x0 = tx * tile_dim;
-				const int y0 = ty * tile_dim;
-				const int tw = gdk_texture_get_width(tile);
-				const int th = gdk_texture_get_height(tile);
+				/* Rect is in IMAGE-SPACE: the same dimensions whether the
+				 * tile was materialised at mip 0 (texture == image-space)
+				 * or a coarser mip (smaller texture, same image-space
+				 * extent — GSK upscales by 2^mip to fill the rect, then
+				 * display_matrix maps image→widget as usual). */
+				int x0, y0, tw_unused, th_unused, tex_w_img, tex_h_img;
+				tile_dims_padded(view, tx, ty, &x0, &y0, &tw_unused,
+					&th_unused, &tex_w_img, &tex_h_img);
 				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
 					&GRAPHENE_RECT_INIT((float)x0, (float)y0,
-					                     (float)tw, (float)th));
+					                     (float)tex_w_img, (float)tex_h_img));
 			}
 		}
 
@@ -2062,7 +2186,12 @@ static void draw_vport(const draw_data_t* dd) {
 			guchar *p = NULL;
 			int stride;
 			if (view->lazy) {
-				if (!materialise_tile(view, dd->vport, tx, ty)) continue;
+				/* The Cairo fallback consumes tile->data as a native-stride
+				 * image surface; it can't accept a mip-downsampled buffer.
+				 * Force mip 0 here.  This path is only used for non-snapshot
+				 * destinations (export, save-as) so the occasional re-
+				 * materialise vs the snapshot mip is not on the hot path. */
+				if (!materialise_tile(view, dd->vport, tx, ty, 0)) continue;
 				p = view->tiles[ty * tile_cols + tx].data;
 				stride = tw * 4;
 			} else {
