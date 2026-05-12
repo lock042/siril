@@ -731,13 +731,16 @@ static void siril_macos_setenv(const char *progname) {
 #endif
 
 
-/* GTK 4.14 emits a sustained storm of internal GtkDropTarget assertion
- * warnings ("self->drop == crossing->drop") for every external file-drag
- * across a non-maximised window — its built-in drop handling on CSD/
- * decoration descendants races with the per-drop GdkDrop ID changes
- * the compositor reports.  These criticals are harmless but flood the
- * console.  Drop them at the log-writer level so other criticals still
- * surface normally. */
+/* GTK4 emits a sustained storm of internal GtkDropTarget(Async)
+ * assertion warnings ("self->drop == crossing->drop") during external
+ * file-drags.  On X11 this comes from the upstream X11-backend DnD bug
+ * that breaks our own drop target after a window state change (see
+ * dnd-investigation.md).  On Wayland it comes from GTK's own internal
+ * GtkDropTargetAsync controllers attached to stock widgets
+ * (GtkListView etc.) that the drag passes over en route to our target
+ * — the drop on our target still succeeds.  Either way the warnings
+ * are harmless noise; suppressed at the log-writer level so other
+ * criticals still surface normally. */
 static GLogWriterOutput siril_log_writer_filter(GLogLevelFlags log_level,
                                                 const GLogField *fields,
                                                 gsize n_fields,
@@ -747,7 +750,9 @@ static GLogWriterOutput siril_log_writer_filter(GLogLevelFlags log_level,
 		if (g_strcmp0(fields[i].key, "MESSAGE") != 0) continue;
 		const char *msg = fields[i].value;
 		if (msg && (strstr(msg, "gtk_drop_target_handle_crossing") ||
-		            strstr(msg, "gtk_drop_target_handle_event")))
+		            strstr(msg, "gtk_drop_target_handle_event") ||
+		            strstr(msg, "gtk_drop_target_async_handle_crossing") ||
+		            strstr(msg, "gtk_drop_target_async_handle_event")))
 			return G_LOG_WRITER_HANDLED;
 		break;
 	}
