@@ -130,7 +130,6 @@ static gchar *check_or_download_test_file(const char *filename) {
 /***********************************************/
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 
 void test_rsgps_data_loading() {

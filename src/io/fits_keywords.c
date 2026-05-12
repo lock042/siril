@@ -899,7 +899,7 @@ void save_gps_keywords(fits *fit) {
 		fits_update_key(fit->fptr, TSTRING, "READOUTM", &fit->keywords.gps_data->readout_mode, "Sensor readout mode", &status);
 	} else if (fit->keywords.date_and_exp_from_gps) {
 		int status = 0;
-		fits_update_key(fit->fptr, TINT, "DATE-GPS", &fit->keywords.date_and_exp_from_gps, "DATE-OBS and EXPTIME come from GPS", &status);
+		fits_update_key(fit->fptr, TLOGICAL, "DATE-GPS", &fit->keywords.date_and_exp_from_gps, "DATE-OBS and EXPTIME come from GPS", &status);
 	}
 }
 
@@ -1209,7 +1209,7 @@ int read_fits_keywords(fits *fit) {
         if (!fit->keywords.gps_data) {
                 // maybe it's a global shutter GPS camera?
                 status = 0;
-                fits_read_key(fit->fptr, TINT, "DATE-GPS", &(fit->keywords.date_and_exp_from_gps), NULL, &status);
+                fits_read_key(fit->fptr, TLOGICAL, "DATE-GPS", &(fit->keywords.date_and_exp_from_gps), NULL, &status);
                 if (status || !fit->keywords.date_and_exp_from_gps) {
                         // first time opening the image, check if it has all the GPS headers (not the
 			// pixel metadata) and update DATE-OBS and EXPTIME with them, mark it done with
