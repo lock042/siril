@@ -67,6 +67,11 @@ sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86
 apt_bundle libegl1 libgl1 libgles2 libglx0 libglvnd0 \
            libegl-mesa0 libglx-mesa0 libglapi-mesa libgl1-mesa-dri
 
+# Ensure the gio modules directory exists (empty) so the bundled glib
+# enumerates a known-empty path and never falls through to the host's
+# /usr/lib/.../gio/modules.  AppRun sets GIO_MODULE_DIR to point here.
+mkdir -p usr/lib/x86_64-linux-gnu/gio/modules
+
 # Bundle fontconfig settings
 mkdir -p etc/fonts/
 cp /etc/fonts/fonts.conf etc/fonts/

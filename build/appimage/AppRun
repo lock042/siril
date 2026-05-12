@@ -41,6 +41,11 @@ export GTK_EXE_PREFIX="$HERE/usr"
 export GDK_PIXBUF_MODULEDIR=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/ )
 export GDK_PIXBUF_MODULE_FILE=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache ) # Patched to contain no paths
 export GI_TYPELIB_PATH="${HERE}/usr/lib/x86_64-linux-gnu/girepository-1.0"
+# Force gio to enumerate ONLY the bundled (empty) module directory, not
+# the host's /usr/lib/.../gio/modules — otherwise libgvfsdbus.so etc.
+# get dlopen'd from the host and pull in newer GLIBC symbols than the
+# bundled libc.so.6 from bookworm supplies.
+export GIO_MODULE_DIR="$HERE/usr/lib/x86_64-linux-gnu/gio/modules"
 
 # OpenGL / EGL stack: point libglvnd at the bundled Mesa vendor config
 # and point Mesa at the bundled DRI driver directory.  Required for
