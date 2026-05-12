@@ -261,10 +261,11 @@ endif
 # gui/ header contamination is removed from core files these can be removed from
 # the non-GUI dep list and truly omitted in headless builds.
 if use_gtk4
-  # 4.10 required for GtkAlertDialog, GtkFileDialog, GtkColorDialog,
-  # gtk_widget_add_css_class — these replaced the deprecated dialog and
-  # style-context APIs.
-  gtk_dep = dependency('gtk4',     required : enable_gui, version: '>= 4.10.0')
+  # 4.10 introduced GtkAlertDialog, GtkFileDialog, GtkColorDialog and
+  # gtk_widget_add_css_class.  4.12 added gtk_column_view_scroll_to /
+  # GTK_LIST_SCROLL_NONE which gui-gtk4/keywords_tree.c relies on, so
+  # 4.12 is the effective floor for the GTK4 backend.
+  gtk_dep = dependency('gtk4',     required : enable_gui, version: '>= 4.12.0')
 else
   gtk_dep = dependency('gtk+-3.0', required : enable_gui, version: '>= 3.22.0')
 endif
