@@ -124,5 +124,5 @@ option('simd_logs',
 option('legacy-x11-support',
  type : 'boolean',
  value : true,
- description : 'GTK4 only: build the X11 drag-and-drop fallback that works around the upstream GTK X11 bug whereby gdk_drop_read_value_async never completes (see dnd-investigation.md). Pulls in libX11. Linux/BSD only — ignored on macOS/Windows.'
+ description : 'GTK4 only: build the X11 drag-and-drop fallback that works around an upstream GTK X11 bug whereby gdk_drop_read_value_async never completes. Pulls in libX11. Linux/BSD only — ignored on macOS/Windows.'
 )
