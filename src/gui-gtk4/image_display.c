@@ -125,11 +125,19 @@ static void invalidate_image_render_cache(int vport);
  * extra texture memory for interior tiles (2112² vs 2048²). */
 #define SIRIL_TILE_GUARD 64
 
-/* Lazy-mode RAM budget.  Once the sum of materialised tile bytes for one
- * viewport exceeds this, materialise_tile evicts the LRU tile(s) until
- * back under budget.  Only meaningful for multi-tile images — single-
- * tile images use eager mode and bypass the LRU entirely. */
-#define SIRIL_LAZY_BUDGET    ((gsize)512 * 1024 * 1024)
+/* Per-viewport RAM budget — serves two roles:
+ *  1. Eager-vs-lazy threshold in allocate_full_surface.  If the whole
+ *     image fits inside this budget at native resolution we go eager
+ *     (one contiguous buf, tiles slice into it, no LRU, no mip
+ *     downsampling, no glitching on zoom).  This covers almost every
+ *     realistic image — a 24 Mpix RGB frame is ~96 MB.
+ *  2. Soft cap on lazy-mode resident tile bytes for the pathological
+ *     outliers (huge mosaics) that don't fit eager.  materialise_tile
+ *     evicts the LRU tile(s) until back under budget.
+ * Four lazy viewports × 128 MB = ~512 MB worst-case across all vports
+ * (R, G, B, RGB).  Mono images use only one view; RGB cycles materialise
+ * R/G/B/RGB on demand. */
+#define SIRIL_LAZY_BUDGET    ((gsize)128 * 1024 * 1024)
 
 /* Cap on the downsample level a tile may be materialised at.  At mip M the
  * texture is 1/(2^M)² of the source area; at mip 6 a 2048-pixel tile yields
@@ -317,6 +325,10 @@ static void view_refresh_tile_textures(struct image_view *view) {
 		view_refresh_tile_textures_eager(view);
 }
 
+/* Forward declaration: cancel any pending mip-prefetch idle for a view
+ * (defined further down with the rest of the prefetch machinery). */
+static void cancel_view_prefetch_idle(struct image_view *view);
+
 /* Allocate (or reallocate) the per-viewport tile grid for the current
  * gfit dimensions.  Images that fit in a single tile (≤ SIRIL_TILE_DIM
  * on both axes) get eager mode — one contiguous buf, no LRU; anything
@@ -337,10 +349,12 @@ static int allocate_full_surface(struct image_view *view) {
 	const int tile_cols = (img_w + tile_dim - 1) / tile_dim;
 	const int tile_rows = (img_h + tile_dim - 1) / tile_dim;
 	const gsize total_bytes = (gsize)stride * img_h;
-	/* Single-tile images render fine eagerly (one texture, no LRU
-	 * overhead); multi-tile images go lazy so we don't allocate the
-	 * full image up-front. */
-	const gboolean want_lazy = (tile_cols > 1 || tile_rows > 1);
+	/* Eager when the whole image fits in one viewport's budget at native
+	 * resolution: a single contiguous buf, tile textures slice into it,
+	 * no LRU and no mip-driven re-materialisation — so no glitches when
+	 * zoom crosses a mip boundary.  Lazy is the fallback for pathological
+	 * outliers (huge mosaics) where holding the whole image is infeasible. */
+	const gboolean want_lazy = (total_bytes > SIRIL_LAZY_BUDGET);
 
 	if (stride != view->buf_stride
 				|| img_h != view->buf_height
@@ -352,6 +366,10 @@ static int allocate_full_surface(struct image_view *view) {
 		siril_debug_print("display buffer (re-)allocation %p — %d×%d, %d×%d tiles, %s mode\n",
 				view, img_w, img_h, tile_cols, tile_rows,
 				want_lazy ? "lazy" : "eager");
+
+		/* Cancel any pending background prefetch — it would otherwise
+		 * dereference tile state we're about to free. */
+		cancel_view_prefetch_idle(view);
 
 		/* Drop existing textures.  In eager mode the tile textures hold
 		 * sub-refs on view->buf_gbytes; once we unref our copy of
@@ -742,6 +760,17 @@ static gboolean materialise_tile(struct image_view *view, int vport,
 	return TRUE;
 }
 
+/* True when `mip` is in the snapshot's acceptable range for displaying a
+ * tile at the current target.  We accept the strict target plus one level
+ * finer (i.e. the prefetched mip) so the background prefetch idle's work
+ * isn't undone on the next snapshot.  Anything coarser than target_mip is
+ * too aliased; anything more than one level finer than target_mip is just
+ * wasting memory and should be coarsened. */
+static inline gboolean tile_mip_acceptable(int mip, int target_mip) {
+	const int lo = target_mip > 0 ? target_mip - 1 : 0;
+	return mip >= lo && mip <= target_mip;
+}
+
 /* LRU eviction: free tile bytes (and their texture) starting from the
  * least-recently-used tile until the viewport has at least `headroom`
  * bytes of budget remaining.  The currently-being-materialised tile is
@@ -764,6 +793,126 @@ static void materialise_tile_evict_until(struct image_view *view, gsize headroom
 		if (!victim) break;  /* nothing to evict */
 		tile_release(view, victim);
 	}
+}
+
+/* ── Background mip prefetch ──────────────────────────────────────────────
+ *
+ * After the snapshot has materialised visible tiles at `target_mip` we kick
+ * a low-priority idle that walks the tile grid and steps one tile per tick
+ * down from target_mip to (target_mip − 1), starting with the most-recently-
+ * used candidate.  This means the *next* zoom-in step (where target_mip
+ * decreases by 1) finds those tiles already at the new target and the
+ * snapshot path doesn't need to stall on a fresh materialise.  When the user
+ * zooms in again, target_mip drops further and the idle starts over at the
+ * new target_mip − 1, cascading toward mip 0 as long as the user keeps
+ * zooming.  On zoom-out the snapshot coarsens stale-finer tiles back to the
+ * new target — the prefetched bytes are reclaimed via the usual LRU path.
+ *
+ * Memory cost: at steady state with prefetch complete, visible tiles hold
+ * ~4× the bytes of a strict-target materialisation.  Still bounded by the
+ * zoom_fit cap and the global SIRIL_LAZY_BUDGET.
+ *
+ * The idle does at most ONE tile per main-loop tick to keep input
+ * responsive; it self-removes once nothing is left to upgrade. */
+
+static gboolean prefetch_idle_cb(gpointer data);
+
+/* Schedule the prefetch idle for a viewport if one isn't already running
+ * and there's plausibly work to do (lazy mode, target_mip > 0).  The idle
+ * itself rechecks both conditions under the mutex before doing anything,
+ * so this is just a cheap "maybe-kick" test. */
+static void schedule_view_prefetch_idle(struct image_view *view, int vport,
+                                         int target_mip) {
+	if (view->prefetch_idle_id != 0) return;
+	if (!view->lazy) return;
+	if (target_mip <= 0) return;
+	view->prefetch_idle_id = g_idle_add_full(G_PRIORITY_LOW,
+	                                          prefetch_idle_cb,
+	                                          GINT_TO_POINTER(vport), NULL);
+}
+
+/* Cancel any pending prefetch idle for a view.  Must be called whenever the
+ * tile array is reallocated (so the idle doesn't dereference freed state). */
+static void cancel_view_prefetch_idle(struct image_view *view) {
+	if (view->prefetch_idle_id != 0) {
+		g_source_remove(view->prefetch_idle_id);
+		view->prefetch_idle_id = 0;
+	}
+}
+
+static gboolean prefetch_idle_cb(gpointer data) {
+	const int vport = GPOINTER_TO_INT(data);
+	if (vport < 0 || vport >= MAXVPORT) return G_SOURCE_REMOVE;
+
+	g_mutex_lock(&gui.cairo_mutex);
+	struct image_view *view = &gui.view[vport];
+
+	/* Re-derive target_mip under the lock — the zoom may have shifted since
+	 * the snapshot scheduled us.  Same cap-at-zoom_fit logic as the snapshot. */
+	const int img_w = view->buf_stride / 4;
+	const int img_h = view->buf_height;
+	const double zoom_now = get_zoom_val();
+	double zoom_effective = zoom_now;
+	if (img_w > 0 && img_h > 0 && view->drawarea) {
+		const int ww = gtk_widget_get_width(view->drawarea);
+		const int wh = gtk_widget_get_height(view->drawarea);
+		if (ww > 0 && wh > 0) {
+			const double zoom_fit = MIN((double)ww / img_w,
+			                            (double)wh / img_h);
+			if (zoom_effective < zoom_fit) zoom_effective = zoom_fit;
+		}
+	}
+	const int target_mip = view->lazy ? compute_target_mip(zoom_effective) : 0;
+	const int prefetch_mip = target_mip > 0 ? target_mip - 1 : 0;
+
+	if (!view->lazy || !view->tiles || target_mip <= 0) {
+		view->prefetch_idle_id = 0;
+		g_mutex_unlock(&gui.cairo_mutex);
+		return G_SOURCE_REMOVE;
+	}
+
+	/* Find the most-recently-used tile that's currently above prefetch_mip
+	 * (i.e. could be stepped one level finer) and isn't dirty.  Skipping
+	 * dirty tiles avoids racing the next snapshot's own re-materialise. */
+	int best_tx = -1, best_ty = -1;
+	guint64 best_last = 0;
+	gboolean have_best = FALSE;
+	const int n = view->tile_cols * view->tile_rows;
+	for (int i = 0; i < n; i++) {
+		struct image_tile *t = &view->tiles[i];
+		if (!t->texture) continue;
+		if (t->dirty) continue;
+		if (t->mip <= prefetch_mip) continue;
+		if (!have_best || t->last_used > best_last) {
+			have_best = TRUE;
+			best_last = t->last_used;
+			best_tx = i % view->tile_cols;
+			best_ty = i / view->tile_cols;
+		}
+	}
+
+	if (!have_best) {
+		view->prefetch_idle_id = 0;
+		g_mutex_unlock(&gui.cairo_mutex);
+		return G_SOURCE_REMOVE;
+	}
+
+	/* Step this tile down one mip level.  If it fails (allocation refusal),
+	 * stop — the next snapshot will try again. */
+	const gboolean ok = materialise_tile(view, vport, best_tx, best_ty, prefetch_mip);
+	g_mutex_unlock(&gui.cairo_mutex);
+
+	if (!ok) {
+		view->prefetch_idle_id = 0;
+		return G_SOURCE_REMOVE;
+	}
+
+	/* Queue a redraw so the snapshot picks up the now-finer texture (which
+	 * is inside the acceptable range and sharpens the displayed image
+	 * slightly compared to the strict-target mip). */
+	if (view->drawarea)
+		gtk_widget_queue_draw(view->drawarea);
+	return G_SOURCE_CONTINUE;  /* more candidates may remain — keep going */
 }
 
 void check_gfit_profile_identical_to_monitor() {
@@ -1893,8 +2042,21 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 				if (y0 + tile_dim < vis_ymin) continue;
 				if (x0 > vis_xmax) continue;
 				if (y0 > vis_ymax) continue;
-				if (view->lazy && !suppressed)
-					materialise_tile(view, vport, tx, ty, target_mip);
+				if (view->lazy && !suppressed) {
+					/* Accept the prefetched mip (target_mip − 1) without
+					 * re-materialising, so the background prefetch idle's
+					 * work isn't undone here.  Only force a re-materialise
+					 * when the tile is dirty, missing, or outside the
+					 * accepted [target − 1, target] mip range — i.e. too
+					 * coarse (aliased) or wastefully fine (zoom-out). */
+					struct image_tile *t = &view->tiles[ty * tile_cols + tx];
+					const gboolean ok = !t->dirty && t->texture
+					                   && tile_mip_acceptable(t->mip, target_mip);
+					if (!ok)
+						materialise_tile(view, vport, tx, ty, target_mip);
+					else
+						t->last_used = ++view->lazy_epoch;
+				}
 				GdkTexture *t = view->tiles[ty * tile_cols + tx].texture;
 				if (t) {
 					tiles_snapshot[ty * tile_cols + tx] = t;
@@ -1903,6 +2065,10 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			}
 		}
 	}
+	/* Kick the background prefetch idle (no-op if one is already running,
+	 * if we're not in lazy mode, or if target_mip is already 0). */
+	if (!suppressed)
+		schedule_view_prefetch_idle(view, vport, target_mip);
 	g_mutex_unlock(&gui.cairo_mutex);
 
 	if (tiles_snapshot && img_w > 0 && img_h > 0) {

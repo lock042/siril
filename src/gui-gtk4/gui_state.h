@@ -115,6 +115,15 @@ struct image_view {
 	guchar           *buf;
 	GBytes           *buf_gbytes;
 
+	/* Background prefetch idle: GLib source id (0 = none) of an idle that
+	 * walks visible tiles whose current mip is one coarser than the target
+	 * prefetch level and re-materialises them at target_mip - 1, so that
+	 * the *next* zoom-in step finds them already at the right resolution
+	 * and doesn't have to stall the snapshot path.  Scheduled at the end
+	 * of the snapshot vfunc; auto-removes when no more candidates remain.
+	 * Cancelled when the tile grid is reallocated. */
+	guint             prefetch_idle_id;
+
 	/* Lazy mode: tile bytes are allocated on demand by materialise_tile and
 	 * may be freed by LRU eviction once lazy_bytes_used exceeds the budget. */
 	gboolean          lazy;
