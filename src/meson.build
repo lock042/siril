@@ -176,6 +176,8 @@ src_files = [
   'io/FITS_symlink.c',
   'io/healpix/healpix.cpp',
   'io/healpix/fluxcache.cpp',
+  'io/healpix/xp_continuous.cpp',
+  'io/healpix/gaia_xp_design.c',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
