@@ -169,7 +169,7 @@ siril-deb-meson:
 siril-deb-meson-gtk4:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk_version=gtk4 -Db_coverage=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=gtk4 -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
   artifacts:
@@ -182,7 +182,7 @@ siril-deb-meson-gtk4:
 siril-headless-build:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgui=disabled -Db_coverage=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Dgtk=false -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
   artifacts:
@@ -232,11 +232,11 @@ macos:
     #   1) builds GTK4 + GtkSourceView5 (not GTK3 + GtkSourceView4) in
     #      its jhb-based deps toolset, and
     #   2) appends $SIRIL_MESON_EXTRA_OPTIONS to the meson setup call in
-    #      210-siril_build.sh so this gtk_version override actually
-    #      reaches the build.
+    #      210-siril_build.sh so this -Dgtk override actually reaches
+    #      the build.
     SM_REPO_REF: b36e7eba5dd191caf7e7017c3fd5eaf3c5ee5640
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
-    SIRIL_MESON_EXTRA_OPTIONS: "-Dgtk_version=gtk4"
+    SIRIL_MESON_EXTRA_OPTIONS: "-Dgtk=gtk4"
   script:
     # Clone the repo containing all the build scripts.
     - |

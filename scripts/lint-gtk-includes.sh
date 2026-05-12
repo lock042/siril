@@ -4,7 +4,7 @@
 # Siril has two parallel GUI trees:
 #   src/gui/       — the GTK3 build
 #   src/gui-gtk4/  — the GTK4 build (one of these is compiled per build,
-#                    selected via the `gtk_version` meson option)
+#                    selected via the `gtk` meson option)
 # Both trees are GUI compilation units and may include GTK/GDK headers.
 #
 # CHECK 1: Direct GTK/GDK header includes
