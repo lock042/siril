@@ -22,10 +22,13 @@ RUN if [ ! -f /etc/apt/sources.list ]; then \
         librsvg2-dev \
         libgraphene-1.0-dev \
         libxkbcommon-dev \
+        libwayland-dev \
         wayland-protocols \
+        libfribidi-dev \
         sassc \
         libxml2-utils \
         libx11-dev \
+        libdrm-dev \
         libffms2-dev \
         libtiff-dev \
         libturbojpeg0 \
@@ -132,26 +135,37 @@ RUN pip install meson==1.9.1 ninja!=1.11.1
 # from source so the oldstable image — used to build the AppImage —
 # can produce a GTK4 binary.  Remove once oldstable advances to trixie
 # (Debian 13), which ships GTK 4.14+ as a system package.
-RUN git clone --branch 4.14.5 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtk.git \
+#
+# Why pin specifically to 4.10.5: it is Siril's hard minimum, and is
+# also the highest 4.x release whose glib requirement (>= 2.72) is
+# satisfied by bookworm's stock glib (2.74).  GTK 4.12+ requires
+# glib >= 2.76, which would force us to build glib from source too.
+RUN git clone --branch 4.10.5 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtk.git \
     && cd gtk \
     && meson setup _build \
         --prefix=/usr \
         --buildtype=release \
         -Dintrospection=disabled \
-        -Ddocumentation=false \
+        -Dgtk_doc=false \
         -Dman-pages=false \
         -Dbuild-tests=false \
         -Dbuild-testsuite=false \
-        -Dbuild-demos=false \
+        -Ddemos=false \
         -Dbuild-examples=false \
         -Dmedia-gstreamer=disabled \
+        -Dmedia-ffmpeg=disabled \
         -Dprint-cups=disabled \
+        -Dprint-cpdb=disabled \
         -Dvulkan=disabled \
+        -Dcolord=disabled \
+        -Dcloudproviders=disabled \
+        -Dsysprof=disabled \
+        -Dtracker=disabled \
     && meson compile -C _build \
     && meson install -C _build \
     && cd .. \
     && rm -rf gtk \
-    && git clone --branch 5.10.0 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtksourceview.git \
+    && git clone --branch 5.8.0 --single-branch --depth 1 https://gitlab.gnome.org/GNOME/gtksourceview.git \
     && cd gtksourceview \
     && meson setup _build \
         --prefix=/usr \
