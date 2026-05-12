@@ -228,8 +228,15 @@ macos:
     REP_DIR: $CI_PROJECT_DIR
     SDKROOT: /opt/sdks/MacOSX11.3.sdk
     SIRIL_BUILD: $CI_PIPELINE_IID
+    # SM_REPO_REF must point at a siril_macos commit that:
+    #   1) builds GTK4 + GtkSourceView5 (not GTK3 + GtkSourceView4) in
+    #      its jhb-based deps toolset, and
+    #   2) appends $SIRIL_MESON_EXTRA_OPTIONS to the meson setup call in
+    #      210-siril_build.sh so this gtk_version override actually
+    #      reaches the build.
     SM_REPO_REF: b36e7eba5dd191caf7e7017c3fd5eaf3c5ee5640
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
+    SIRIL_MESON_EXTRA_OPTIONS: "-Dgtk_version=gtk4"
   script:
     # Clone the repo containing all the build scripts.
     - |
@@ -283,6 +290,9 @@ win64-native:
     CCACHE_MAXSIZE: "50M"
     CHERE_INVOKING: "yes"
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
+    # SDW_VERSION must point at a build that ships GTK4 + GtkSourceView5
+    # (not GTK3 + GtkSourceView4) — see build/windows/native-gitlab-ci/
+    # siril-deps.sh for the package list the deps image must contain.
     SDW_VERSION: 63
     SDW_NAME: siril${SDW_VERSION}_${MSYSTEM}
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z

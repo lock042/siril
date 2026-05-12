@@ -126,6 +126,20 @@ static void history_add_line(char *line) {
 
 /* ── Interactive console callbacks ───────────────────────────────────────── */
 
+/* The completion popover and its associated model live here; their full
+ * setup is below in init_completion_command().  Forward-declared so the
+ * key handler can Tab into the popover. */
+typedef struct {
+	GtkEntry          *entry;
+	GtkPopover        *popover;
+	GtkStringList     *all_commands;
+	GtkStringFilter   *filter;
+	GtkSingleSelection *selection;
+	GtkListView       *list_view;
+} CommandCompletion;
+
+static CommandCompletion g_cmd_complete = { 0 };
+
 void on_command_activate(GtkEntry *entry, gpointer user_data) {
 	const gchar *text = gtk_editable_get_text(GTK_EDITABLE(entry));
 	history_add_line(strdup(text));
@@ -146,6 +160,25 @@ static gboolean on_command_key_press_event(GtkEventControllerKey *controller,
 	int entrylength = 0;
 
 	switch (keyval) {
+	case GDK_KEY_Tab:
+	case GDK_KEY_ISO_Left_Tab:
+		/* Tab into the completion popover when it's open.  GTK's default
+		 * forward-focus is racy here: gtk_popover_popup() defers actual
+		 * realisation/focus-chain rebuild by a frame or two, so a Tab
+		 * pressed quickly after the popover appears would miss it and
+		 * move focus to whatever the next widget in the window is.
+		 * Doing it explicitly here is deterministic.  Seed a selection
+		 * so arrow keys immediately navigate. */
+		if (gtk_widget_get_visible(GTK_WIDGET(g_cmd_complete.popover))) {
+			GtkSingleSelection *sel = g_cmd_complete.selection;
+			if (gtk_single_selection_get_selected(sel) == GTK_INVALID_LIST_POSITION
+			    && g_list_model_get_n_items(G_LIST_MODEL(sel)) > 0) {
+				gtk_single_selection_set_selected(sel, 0);
+			}
+			gtk_widget_grab_focus(GTK_WIDGET(g_cmd_complete.list_view));
+			handled = 1;
+		}
+		break;
 	case GDK_KEY_Up:
 		handled = 1;
 		if (!gui.cmd_history)
@@ -197,16 +230,17 @@ static gboolean on_command_key_press_event(GtkEventControllerKey *controller,
  * GtkStringFilter (prefix match) bound to the GtkEntry's text, displayed
  * in a GtkListView inside a GtkPopover anchored at the entry.            */
 
-typedef struct {
-	GtkEntry          *entry;
-	GtkPopover        *popover;
-	GtkStringList     *all_commands;     /* unfiltered, owned by the filter */
-	GtkStringFilter   *filter;
-	GtkSingleSelection *selection;
-	GtkListView       *list_view;
-} CommandCompletion;
-
-static CommandCompletion g_cmd_complete = { 0 };
+/* When focus returns to the entry after popover dismissal, GtkText's
+ * select-on-focus-in highlights all the just-inserted text — so the user's
+ * next keystroke wipes the completion they just chose.  Defer a
+ * select_region(-1,-1) to the next main-loop turn, after focus has settled,
+ * to collapse the selection to a zero-width cursor at the end.  This is
+ * essential for the Tab-to-completion path. */
+static gboolean clear_entry_selection_idle(gpointer data) {
+	GtkEditable *e = GTK_EDITABLE(data);
+	gtk_editable_select_region(e, -1, -1);
+	return G_SOURCE_REMOVE;
+}
 
 static void cmd_complete_apply(CommandCompletion *cc, guint pos) {
 	if (!cc || pos == GTK_INVALID_LIST_POSITION) return;
@@ -218,8 +252,17 @@ static void cmd_complete_apply(CommandCompletion *cc, guint pos) {
 		cmd = gtk_string_object_get_string(GTK_STRING_OBJECT(o));
 	if (cmd) {
 		GtkEditable *e = GTK_EDITABLE(cc->entry);
+		/* Block on_cmd_entry_changed while we replace the text — the
+		 * delete + insert each fire "changed" synchronously, which would
+		 * otherwise re-popup the completion list for the just-selected
+		 * prefix (e.g. selecting "load" would refilter to load, loadfits,
+		 * …).  The explicit popdown below can lose to GTK's queued show. */
+		g_signal_handlers_block_matched(cc->entry, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, cc);
 		gtk_editable_delete_text(e, 0, -1);
 		gtk_editable_insert_text(e, cmd, -1, &(int){0});
+		gtk_editable_set_position(e, -1);
+		g_signal_handlers_unblock_matched(cc->entry, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, cc);
+		g_idle_add(clear_entry_selection_idle, cc->entry);
 	}
 	g_object_unref(o);
 	gtk_widget_set_visible(GTK_WIDGET(cc->popover), FALSE);
