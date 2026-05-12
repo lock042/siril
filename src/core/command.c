@@ -11758,6 +11758,7 @@ static gpointer stackall_worker(gpointer garg) {
 			fprintf(stderr, "stackall: %s\n", error->message);
 			g_clear_error(&error);
 		}
+		com.script = was_in_script;
 		siril_add_idle(end_generic, NULL);
 		return NULL;
 	}
