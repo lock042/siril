@@ -21,6 +21,7 @@
 #ifndef SRC_GUI_PLOT_H_
 #define SRC_GUI_PLOT_H_
 
+#include <cairo.h>
 #include "core/siril.h"
 #include "kplot.h"
 

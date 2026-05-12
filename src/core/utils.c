@@ -43,8 +43,9 @@
 #include "io/conversion.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
+#include "core/arithm.h"
+#include "algos/statistics.h"
 #include "io/single_image.h"
 
 #if GLIB_CHECK_VERSION(2,68,0)
@@ -889,40 +890,14 @@ char *format_basename(char *root, gboolean can_free) {
 * @return the computed slope
 */
 float compute_slope(WORD *lo, WORD *hi) {
-	*lo = gui.lo;
-	*hi = gui.hi;
+	int ilo, ihi;
+	gui_iface.get_display_lo_hi(&ilo, &ihi);
+	*lo = (WORD)ilo;
+	*hi = (WORD)ihi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
-/**
-* Try to get file info, i.e width and height
-* @param filename name of the file
-* @param pixbuf
-* @return a newly allocated and formatted string containing dimension information or NULL
-*/
-gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
-	int width, height;
-	int n_channel = 0;
-
-	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
-
-	if (pixbuf) {
-		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
-	}
-
-	if (pixbuf_file_info != NULL) {
-		/* Pixel size of image: width x height in pixel */
-		if (n_channel > 0) {
-			return g_strdup_printf("%d x %d %s\n%d %s", width, height,
-					ngettext("pixel", "pixels", height), n_channel,
-					ngettext("channel", "channels", n_channel));
-		} else {
-			return g_strdup_printf("%d x %d %s", width, height,
-				ngettext("pixel", "pixels", height));
-		}
-	}
-	return NULL;
-}
+/* siril_get_file_info moved to gui/dialog_preview.c (GUI-only, sole callers). */
 
 /**
 * Truncate a string str to not exceed an length of size
@@ -1368,49 +1343,6 @@ int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
 	*dx = fx - 0.5;
 	*dy = ry - fy + 0.5;
 	return 0;
-}
-
-gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser) {
-	gchar *filename = NULL;
-	gchar *uri = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(chooser));
-
-	if (uri != NULL) {
-		filename = g_filename_from_uri(uri, NULL, NULL);
-		if (filename != NULL) {
-			char *scheme = g_uri_parse_scheme(uri);
-			if (g_strcmp0(scheme, "file") == 0) {
-				printf("The URI points to a local file.\n");
-			} else {
-				printf("The URI is non-local (scheme: %s).\n", uri);
-			}
-			g_free(scheme);
-		}
-		g_free(uri);
-	}
-	/* Fallback for Save dialogs where the typed name has no URI yet
-	 * (gtk_file_chooser_get_uri returns NULL before the file exists). */
-	if (!filename)
-		filename = gtk_file_chooser_get_current_name(chooser);
-	return filename;
-}
-
-GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
-	GSList *filenames = NULL;
-	GSList *uris = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(chooser));
-
-	for (GSList *iter = uris; iter != NULL; iter = g_slist_next(iter)) {
-		const gchar *uri = (const gchar *)iter->data;
-		gchar *filename = g_filename_from_uri(uri, NULL, NULL);
-
-		if (filename != NULL) {
-			printf("filename=%s\n", filename);
-			filenames = g_slist_append(filenames, filename);
-		}
-	}
-
-	g_slist_free(uris);
-
-	return filenames;
 }
 
 // This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
@@ -2348,4 +2280,35 @@ ellipsize (const gchar *str, int n_chars, EllipsizePosition position) {
 			return result;
 		}
 	}
+}
+
+/* Apply pixel range correction and notify the GUI.
+ * Pixel operations are done in core; gfit_modified_update_gui() dispatches
+ * the display-refresh idle callback through gui_iface. */
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
+	switch (method) {
+		case RESPONSE_CLIP:;
+			siril_log_message(_("Significantly out of range pixels detected: clipping outliers\n"));
+			clip(fit);
+			break;
+		case RESPONSE_RESCALE_CLIPNEG:;
+			siril_log_message(_("Negative-valued pixels detected: clipping and scaling to [0,1]\n"));
+			clipneg(fit);
+			if (maxval > 1.0)
+				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
+			break;
+		case RESPONSE_RESCALE_ALL:;
+			siril_log_message(_("Marginally out of range pixels detected: scaling to [0,1]\n"));
+			double range = maxval - minval;
+			if (minval < 0.0)
+				soper(fit, minval, OPER_SUB, TRUE);
+			if (range > 1.0)
+				soper(fit, (1.0 / range), OPER_MUL, TRUE);
+			break;
+		default:
+			method = RESPONSE_CANCEL;
+	}
+	if (fit == gfit)
+		gfit_modified_update_gui();
+	return method;
 }

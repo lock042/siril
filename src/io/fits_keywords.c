@@ -25,7 +25,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
-#include "gui/keywords_tree.h"
+#include "core/gui_iface.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/path_parse.h"
@@ -823,11 +823,10 @@ int save_history_keywords(fits *fit) {
 	}
 
 	status = 0;
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0')
-				fits_write_history(fit->fptr, com.history[i].history, &status);
-		}
+	for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+		historic *h = (historic *)l->data;
+		if (h->history[0] != '\0')
+			fits_write_history(fit->fptr, h->history, &status);
 	}
 
 	return status;
@@ -1375,7 +1374,7 @@ gboolean end_keywords_sequence(gpointer p) {
 			}
 		}
 		update_sequences_list(args->seq->seqname);
-		gui_function(refresh_keywords_dialog, NULL);
+		gui_iface.refresh_keywords_dialog();
 	}
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);

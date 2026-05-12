@@ -288,7 +288,7 @@ This option has no effect if processing a sequence.</property>
                       <item translatable="yes">Star mask</item>
                       <item translatable="yes">Original</item>
                     </items>
-                    <signal name="changed" handler="on_combo_starnet_next_sequence_changed" swapped="no"/>
+                    <signal name="changed" handler="on_sng_combo_next_seq_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

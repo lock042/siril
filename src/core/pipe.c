@@ -53,7 +53,6 @@
 #include "command_line_processor.h"
 #include "io/single_image.h"
 #include "core/processing_thread.h"
-#include "gui/progress_and_log.h"
 
 #ifdef _WIN32
 LPTSTR lpszPipename_r = TEXT("\\\\.\\pipe\\" PIPE_NAME_R);

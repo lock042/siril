@@ -28,7 +28,6 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
-#include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
 
 #include "arithm.h"

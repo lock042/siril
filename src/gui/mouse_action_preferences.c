@@ -26,6 +26,23 @@
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 
+static GtkScrolledWindow *mouse_scrolled_window = NULL;
+static GtkScrolledWindow *scroll_scrolled_window = NULL;
+static GtkSpinButton *mouse_speed_spin = NULL;
+static GtkWidget *mouse_test_drawingarea = NULL;
+static GtkWidget *mouse_test_frame_widget = NULL;
+static GtkLabel *mouse_test_label = NULL;
+
+static void mouse_action_prefs_init_statics(void) {
+	if (mouse_scrolled_window) return;
+	mouse_scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "mouse_treeview_scrolled_window"));
+	scroll_scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scroll_treeview_scrolled_window"));
+	mouse_speed_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_mouse_speed_limit"));
+	mouse_test_drawingarea = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mouse_test_drawingarea"));
+	mouse_test_frame_widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, "mouse_test_frame"));
+	mouse_test_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "mouse_test_area_label"));
+}
+
 /* Elements that require updating when adding new functions */
 
 const mouse_function_metadata* mouse_metadata_array[] = {
@@ -166,7 +183,8 @@ static gboolean fill_mouse_actions_list_idle(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		gtk_widget_destroy(existing_tree_view);
@@ -375,7 +393,8 @@ void add_row_to_tree_view(GtkListStore *store) {
 }
 
 void on_mouse_actions_add_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -395,7 +414,8 @@ static void delete_selected_row(GtkTreeView *tree_view, GtkListStore *store) {
 }
 
 void on_mouse_actions_remove_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -442,7 +462,8 @@ static gboolean fill_scroll_actions_list_idle(gpointer data) {
 	// Remove unused argument warnings
 	(void) data;
 	// Check if there is already a GtkTreeView child of the scrollable window
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		gtk_widget_destroy(existing_tree_view);
@@ -626,7 +647,8 @@ void add_row_to_scroll_tree_view(GtkListStore *store) {
 }
 
 void on_scroll_actions_add_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -637,7 +659,8 @@ void on_scroll_actions_add_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_scroll_actions_remove_clicked(GtkButton *button, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = scroll_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		GtkTreeView *tree_view = GTK_TREE_VIEW(existing_tree_view);
@@ -668,13 +691,14 @@ void on_mouse_actions_reset_clicked(GtkButton *button, gpointer user_data) {
 
 void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("mouse_treeview_scrolled_window"));
+	mouse_action_prefs_init_statics();
+	GtkScrolledWindow *scrolled_window = mouse_scrolled_window;
 	GtkWidget *existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
-	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_mouse_speed_limit")));
+	com.pref.gui.mouse_speed_limit = gtk_spin_button_get_value(mouse_speed_spin);
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "mouse_actions_treeview") == 0) {
 		update_mouse_actions_from_treeview(GTK_TREE_VIEW(existing_tree_view));
 	}
-	scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scroll_treeview_scrolled_window"));
+	scrolled_window = scroll_scrolled_window;
 	existing_tree_view = gtk_bin_get_child(GTK_BIN(scrolled_window));
 	if (existing_tree_view && strcmp(gtk_widget_get_name(existing_tree_view), "scroll_actions_treeview") == 0) {
 		update_scroll_actions_from_treeview(GTK_TREE_VIEW(existing_tree_view));
@@ -689,11 +713,11 @@ void on_mouse_actions_apply_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_mouse_actions_dialog_show(GtkDialog *dialog, gpointer user_data) {
-	GtkWidget *widget = lookup_widget("mouse_test_drawingarea");
-	gtk_widget_add_events(widget, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_BUTTON_PRESS_MASK);
+	mouse_action_prefs_init_statics();
+	gtk_widget_add_events(mouse_test_drawingarea, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_BUTTON_PRESS_MASK);
 
 	// Use CSS to draw a frame around the mouse test area
-	widget = lookup_widget("mouse_test_frame");
+	GtkWidget *widget = mouse_test_frame_widget;
 	GtkCssProvider *provider = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(provider, "frame { border: 2px solid #aaa; border-radius: 4px; padding: 2px; }", -1, NULL);
 	GtkStyleContext *context = gtk_widget_get_style_context(widget);
@@ -728,7 +752,8 @@ static gboolean reset_label_text(GtkLabel *label) {
 }
 
 gboolean on_mouse_test_drawingarea_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkLabel *label = GTK_LABEL(lookup_widget("mouse_test_area_label"));
+	mouse_action_prefs_init_statics();
+	GtkLabel *label = mouse_test_label;
 	gchar *text = NULL;
 	gboolean refresh_callback = FALSE;
 	if (event->type == GDK_SCROLL) {

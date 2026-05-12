@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -38,10 +37,7 @@
 #include "io/remote_catalogues.h"
 #include "io/local_catalogues.h"
 #include "registration/matching/misc.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/utils.h"
-#include "gui/siril_plot.h"
+#include "core/gui_iface.h"
 
 void free_conesearch_params(void *p);
 void free_conesearch_args(void *p);
@@ -1075,25 +1071,16 @@ int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, doubl
 	return 0;
 }
 
-// TODO: move to a file for callbacks and remove gtk include
 static gboolean end_conesearch(gpointer p) {
 	siril_catalogue *temp_cat = (siril_catalogue *) p;
 	if (temp_cat) {
 		// purge_user_catalogue(CAT_AN_USER_TEMP); // we don't clear so as to accumulate displays of various conesearches/show commands
 		if (!load_siril_cat_to_temp(temp_cat)) {
-			GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-			// refresh_annotation_to_temp(); // may need to make that an option later on
-			refresh_annotation_visibility();
-			if (!gtk_toggle_tool_button_get_active(button)) {
-				gtk_toggle_tool_button_set_active(button, TRUE);
-			} else {
-				refresh_found_objects();
-				redraw(REDRAW_OVERLAY);
-			}
+			gui_iface.activate_annotation_display();
 		}
 	}
 //	return end_generic(NULL); // don't call this as it calls stop_processing_thread which causes a deadlock
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	// we don't free temp_cat as it is passed as the new CAT_AN_USER_TEMP
 	return FALSE;
 }
@@ -1171,7 +1158,7 @@ int execute_show_command(show_params *params) {
 
 	if (params->clear) { // this is safe even in script/headless,used by the command, not the UI
 		purge_user_catalogue(CAT_AN_USER_TEMP);
-		redraw(REDRAW_OVERLAY);
+		gui_iface.redraw_image(REDRAW_OVERLAY);
 	}
 
 	siril_catalogue *siril_cat = siril_catalog_new(CAT_SHOW);	
@@ -1516,8 +1503,8 @@ exit_conesearch:
 
 		if (go_idle) {
 			if (spl_data)
-				siril_add_pythonsafe_idle(create_new_siril_plot_window, spl_data);
-			execute_idle_and_wait_for_it(end_conesearch, temp_cat);
+				gui_iface.show_siril_plot(spl_data);
+			gui_iface.execute_idle_sync(end_conesearch, temp_cat);
 			siril_add_pythonsafe_idle(end_generic, NULL);
 		} else {
 			end_generic(NULL);

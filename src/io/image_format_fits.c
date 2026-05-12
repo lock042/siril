@@ -40,8 +40,10 @@
 #include "filters/mtf.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
-#include "gui/progress_and_log.h"
-#include "gui/siril_preview.h"
+#include "core/gui_iface.h"
+/* TODO: thumbnail generation in this file uses GdkPixbuf; these calls
+ * should move to gui/ so that image_format_fits.c is GDK-free. */
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include "algos/statistics.h"
 #include "algos/demosaicing.h"
 #include "algos/spcc.h"
@@ -1335,8 +1337,8 @@ void clearfits_header(fits *fit) {
 	fit->icc_profile = NULL;
 	free_wcs(fit);
 	reset_wcsdata(fit);
-	if (fit == gfit && is_preview_active())
-		clear_backup();
+	if (fit == gfit && gui_iface.is_preview_active())
+		gui_iface.clear_backup();
 	memset(fit, 0, offsetof(struct ffit, rwlock));
 	// Do not mess with the rwlock, this must only be engaged with using g_rwlock_* functions
 	// and preserving the lock in a fits struct being copied into relies on it not being cleared here
@@ -2917,7 +2919,26 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	if (w <= 0 || h <= 0)
 		return NULL;
 
+	/* Build description from header data — always available regardless of image size */
+	if (fitseq_is_fitseq(filename, &frames)) {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype), frames,
+				ngettext("frame", "frames", frames));
+	} else {
+		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
+				h, ngettext("pixel", "pixels", h), n_channels,
+				ngettext("channel", "channels", n_channels), abs(dtype));
+	}
+	*descr = description;
+
 	size_t sz = (size_t)w * h * n_channels;
+	/* Skip pixel loading for images too large to thumbnail (>256 M floats ≈ 1 GB) */
+	if (sz > 256UL * 1024 * 1024) {
+		fits_close_file(fp, &status);
+		return NULL;
+	}
+
 	ima_data = malloc(sz * sizeof(float));
 	if (!ima_data) {
 		fits_close_file(fp, &status);
@@ -2932,25 +2953,13 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	const int Ws = w / pixScale;            // preview width
 	const int Hs = h / pixScale;            // preview height
 
-	if (fitseq_is_fitseq(filename, &frames)) {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)\n%d %s", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype), frames,
-				ngettext("frame", "frames", frames));
-	} else {
-		description = g_strdup_printf("%d x %d %s\n%d %s (%d bits)", w,
-				h, ngettext("pixel", "pixels", h), n_channels,
-				ngettext("channel", "channels", n_channels), abs(dtype));
-	}
-
 	/* Allocate preview_data */
 	size_t prev_size = (size_t)Ws * Hs;
 	float *preview_data = malloc(prev_size * n_channels * sizeof(float));
 	if (!preview_data) {
 		free(ima_data);
 		fits_close_file(fp, &status);
-		g_free(description);
-		return NULL;
+		return NULL;  /* description already in *descr; caller owns it */
 	}
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2971,11 +2980,11 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 					for (int l = 0; l < pixScale && (M + l) < h; l++) {
 						for (int k = 0; k < pixScale && (N + k) < w; k++) {
-							int idx;
+							size_t idx;
 							if (is_color) {
-								idx = ch * w * h + (M + l) * w + (N + k);
+								idx = (size_t)ch * (size_t)w * h + (size_t)(M + l) * w + (N + k);
 							} else {
-								idx = (M + l) * w + (N + k);
+								idx = (size_t)(M + l) * w + (N + k);
 							}
 							sum += ima_data[idx];
 							count++;

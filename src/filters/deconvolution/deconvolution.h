@@ -102,12 +102,32 @@ EXTERNC typedef struct estk_data {
     gboolean mask_aware; // Added for mask operations
 } estk_data;
 
+/* Forward declaration for sequence type (full definition in core/siril.h).
+ * Only used as a pointer here, so a forward declaration is sufficient. */
+typedef struct sequ sequence;
+
+/* Sequence processing container; used by filters/deconvolution.c and gui/newdeconv.c */
+typedef struct deconvolution_sequence_data {
+	sequence *seq;
+	char *seqEntry;
+	estk_data *deconv_data;
+	gboolean from_command;
+} deconvolution_sequence_data;
+
 EXTERNC void free_estk_data(void *p);
 EXTERNC estk_data *alloc_estk_data();
 EXTERNC gchar *makepsf_log_hook(gpointer p, log_hook_detail detail);
 EXTERNC gchar *deconvolve_log_hook(gpointer p, log_hook_detail detail);
 EXTERNC int deconvolve_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
 EXTERNC int estimate_only_image_hook(struct generic_img_args *args, fits *fit, int nb_threads);
+
+/* Processing functions implemented in filters/deconvolution.c */
+EXTERNC void     reset_conv_kernel(void);
+EXTERNC void     reset_conv_args(estk_data *args);
+EXTERNC int      load_kernel(gchar *filename, estk_data *args);
+EXTERNC int      save_kernel(gchar *filename, estk_data *args);
+EXTERNC gpointer deconvolve_sequence_command(gpointer p, sequence *seqname);
+EXTERNC gpointer estimate_only(gpointer p);
 
 EXTERNC float *estimate_kernel(estk_data *args, int max_threads);
 EXTERNC float *gf_estimate_kernel(estk_data *args, int max_threads);

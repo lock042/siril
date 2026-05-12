@@ -42,6 +42,8 @@
 #include "gui/photometric_cc.h"
 #include "gui/stacking.h"
 #include "gui/python_gui.h"
+/* Forward declaration: defined in gui/sequence_export.c */
+void update_export_crop_label();
 #include "algos/siril_wcs.h"
 #include "io/annotation_catalogues.h"
 #include "io/films.h"
@@ -71,6 +73,7 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+#include "undo_gui.h"
 #include "io/healpix/fluxcache_cat.h"
 
 static GList *roi_callbacks = NULL;
@@ -615,7 +618,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit->naxes[2] == 3);
 
-	gui.icc.same_primaries = same_primaries(gfit->icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
+	com.gui_icc.same_primaries = same_primaries(gfit->icc_profile, com.gui_icc.monitor, com.gui_icc.soft_proof ? com.gui_icc.soft_proof : NULL);
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		if (processing_is_job_active()) {
@@ -968,7 +971,23 @@ gboolean update_MenuItem(gpointer user_data) {
 	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_undo), is_undo_available());
 	g_simple_action_set_enabled(G_SIMPLE_ACTION (action_redo), is_redo_available());
 
-	set_undo_redo_tooltip();
+	/* update undo/redo button tooltips */
+	if (is_undo_available()) {
+		historic *h = (historic *) com.undo_stack->data;
+		gchar *str = g_strdup_printf(_("Undo: \"%s\""), h->history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), str);
+		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_undo_button"), _("Nothing to undo"));
+	}
+	if (is_redo_available()) {
+		historic *h = (historic *) com.redo_stack->data;
+		gchar *str = g_strdup_printf(_("Redo: \"%s\""), h->history);
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), str);
+		g_free(str);
+	} else {
+		gtk_widget_set_tooltip_text(lookup_widget("header_redo_button"), _("Nothing to redo"));
+	}
 
 	/* save and save as */
 	GAction *action_save = g_action_map_lookup_action (G_ACTION_MAP(gtk_window_get_application(GTK_WINDOW(app_win))), "save");
@@ -2017,6 +2036,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
 
+	/* long-press popover for undo/redo history navigation */
+	setup_undo_redo_long_press();
+
 	/* initialize menu gui */
 	gui_function(update_MenuItem, NULL);
 
@@ -2196,9 +2218,9 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	if (gfit->color_managed) {
 		lock_display_transform();
-		if (gui.icc.proofing_transform)
-			cmsDeleteTransform(gui.icc.proofing_transform);
-		gui.icc.proofing_transform = initialize_proofing_transform();
+		if (com.gui_icc.proofing_transform)
+			cmsDeleteTransform(com.gui_icc.proofing_transform);
+		com.gui_icc.proofing_transform = initialize_proofing_transform();
 		unlock_display_transform();
 	}
 	notify_gfit_data_modified();

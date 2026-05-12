@@ -33,8 +33,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h" // For the datalink FITS functions
-#include "gui/progress_and_log.h"
-#include "gui/photometric_cc.h"
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 

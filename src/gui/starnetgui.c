@@ -43,6 +43,32 @@ static gboolean sgui_follow_on;
 static int sgui_starnet_stride;
 static int sgui_next_seq_index;
 
+static GtkSpinButton *sng_spin_stride = NULL;
+static GtkToggleButton *sng_toggle_stretch = NULL, *sng_toggle_followon = NULL;
+static GtkToggleButton *sng_toggle_upsample = NULL, *sng_toggle_starmask = NULL;
+static GtkToggleButton *sng_toggle_customstride = NULL, *sng_toggle_sequence = NULL;
+static GtkWidget *sng_next_seq_controls = NULL;
+static GtkLabel *sng_label_info = NULL;
+static GtkWidget *sng_apply_btn = NULL;
+static GtkWidget *sng_stride_control = NULL;
+static GtkComboBox *sng_combo_next_seq = NULL;
+
+static void starnetgui_init_statics(void) {
+	if (sng_spin_stride) return;
+	sng_spin_stride = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_starnet_stride"));
+	sng_toggle_stretch = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_starnet_stretch"));
+	sng_toggle_followon = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_starnet_postremix"));
+	sng_toggle_upsample = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_starnet_upsample"));
+	sng_toggle_starmask = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_starnet_starmask"));
+	sng_toggle_customstride = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_starnet_customstride"));
+	sng_toggle_sequence = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "starnet_sequence_toggle"));
+	sng_next_seq_controls = GTK_WIDGET(gtk_builder_get_object(gui.builder, "starnet_next_sequence_controls"));
+	sng_label_info = GTK_LABEL(gtk_builder_get_object(gui.builder, "label_starnetinfo"));
+	sng_apply_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "starnet_apply"));
+	sng_stride_control = GTK_WIDGET(gtk_builder_get_object(gui.builder, "stride_control"));
+	sng_combo_next_seq = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "sng_combo_next_seq"));
+}
+
 static void starnet_startup() {
 	sgui_linear = TRUE;
 	sgui_customstride = FALSE;
@@ -56,52 +82,44 @@ static void starnet_startup() {
 /*** callbacks **/
 
 void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
-	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
-	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
-	GtkToggleButton *toggle_starnet_followon = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix"));
-	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
-	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
-	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
-	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
-	GtkWidget *starnet_next_sequence_controls = lookup_widget("starnet_next_sequence_controls");
-	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
-	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+	starnetgui_init_statics();
+	gtk_widget_set_sensitive(sng_apply_btn, TRUE);
 
-	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
+	gtk_widget_set_visible(sng_stride_control, FALSE);
 	if (!com.pref.starnet_exe || g_access(com.pref.starnet_exe, R_OK)) {
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-		gtk_label_set_text(label_starnetinfo, "StarNet installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
+		gtk_widget_set_sensitive(sng_apply_btn, FALSE);
+		gtk_label_set_text(sng_label_info, "StarNet installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
 	} else
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+		gtk_widget_set_sensitive(sng_apply_btn, TRUE);
 
 #ifndef HAVE_LIBTIFF
-	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	gtk_label_set_text(label_starnetinfo, "StarNet unavailable: requires Siril to be compiled with libtiff support.");
+	gtk_widget_set_sensitive(sng_apply_btn, FALSE);
+	gtk_label_set_text(sng_label_info, "StarNet unavailable: requires Siril to be compiled with libtiff support.");
 #endif
 #ifdef HAVE_LIBTIFF
 	gchar *temp = NULL, *winext = NULL, *starnetcommand = NULL;
 	gchar *bothtext = g_strdup(_("Valid StarNet v1 mono and RGB executables found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 	switch (starnet_executablecheck(com.pref.starnet_exe)) {
 		case NIL:
-			gtk_label_set_text(label_starnetinfo, _("No valid StarNet executable found in the configured StarNet installation directory.\nCheck your StarNet installation and Siril configuration."));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			gtk_label_set_text(sng_label_info, _("No valid StarNet executable found in the configured StarNet installation directory.\nCheck your StarNet installation and Siril configuration."));
+			gtk_widget_set_sensitive(sng_apply_btn, FALSE);
 			break;
 		case TORCH:
-			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2-Torch executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
+			gtk_label_set_text(sng_label_info, _("Valid StarNet v2-Torch executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 			break;
 		case V2:
-			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2 executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
+			gtk_label_set_text(sng_label_info, _("Valid StarNet v2 executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 			break;
 		case V1MONO:
 			temp = g_path_get_dirname(com.pref.starnet_exe);
 			winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
 			if (starnet_executablecheck(starnetcommand) == V1RGB)
-				gtk_label_set_text(label_starnetinfo, bothtext);
+				gtk_label_set_text(sng_label_info, bothtext);
 			else {
-				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
+				gtk_label_set_text(sng_label_info, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
 				if (gfit->naxes[2] == 3)
-					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+					gtk_widget_set_sensitive(sng_apply_btn, FALSE);
 			}
 			g_free(temp);
 			temp = NULL;
@@ -115,11 +133,11 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 			winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
 			if (starnet_executablecheck(starnetcommand) == V1MONO)
-				gtk_label_set_text(label_starnetinfo, bothtext);
+				gtk_label_set_text(sng_label_info, bothtext);
 			else {
-				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
+				gtk_label_set_text(sng_label_info, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
 				if (gfit->naxes[2] == 1)
-					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+					gtk_widget_set_sensitive(sng_apply_btn, FALSE);
 			}
 			g_free(temp);
 			temp = NULL;
@@ -134,14 +152,14 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	starnet_startup();
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_starnet_followon, sgui_follow_on);
-	gtk_toggle_button_set_active(toggle_starnet_sequence, FALSE);
-	gtk_toggle_button_set_active(toggle_starnet_stretch, sgui_linear);
-	gtk_toggle_button_set_active(toggle_starnet_upsample, sgui_upscale);
-	gtk_toggle_button_set_active(toggle_starnet_starmask, sgui_starmask);
-	gtk_toggle_button_set_active(toggle_starnet_customstride, sgui_customstride);
-	gtk_spin_button_set_value(spin_starnet_stride, sgui_starnet_stride);
-	gtk_widget_set_sensitive(starnet_next_sequence_controls, sgui_starmask && gtk_toggle_button_get_active(toggle_starnet_sequence));
+	gtk_toggle_button_set_active(sng_toggle_followon, sgui_follow_on);
+	gtk_toggle_button_set_active(sng_toggle_sequence, FALSE);
+	gtk_toggle_button_set_active(sng_toggle_stretch, sgui_linear);
+	gtk_toggle_button_set_active(sng_toggle_upsample, sgui_upscale);
+	gtk_toggle_button_set_active(sng_toggle_starmask, sgui_starmask);
+	gtk_toggle_button_set_active(sng_toggle_customstride, sgui_customstride);
+	gtk_spin_button_set_value(sng_spin_stride, sgui_starnet_stride);
+	gtk_widget_set_sensitive(sng_next_seq_controls, sgui_starmask && gtk_toggle_button_get_active(sng_toggle_sequence));
 	set_notify_block(FALSE);
 }
 
@@ -158,19 +176,12 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
-	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
-	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
-	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
-	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
-	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
-	GtkComboBox *combo_starnet_next_sequence = GTK_COMBO_BOX(lookup_widget("combo_starnet_next_sequence"));
-
-	sgui_customstride = gtk_toggle_button_get_active(toggle_starnet_customstride);
-	sgui_starmask = gtk_toggle_button_get_active(toggle_starnet_starmask);
-	sgui_upscale = gtk_toggle_button_get_active(toggle_starnet_upsample);
-	sgui_linear = gtk_toggle_button_get_active(toggle_starnet_stretch);
-	sgui_starnet_stride = (int) gtk_spin_button_get_value(spin_starnet_stride);
+	starnetgui_init_statics();
+	sgui_customstride = gtk_toggle_button_get_active(sng_toggle_customstride);
+	sgui_starmask = gtk_toggle_button_get_active(sng_toggle_starmask);
+	sgui_upscale = gtk_toggle_button_get_active(sng_toggle_upsample);
+	sgui_linear = gtk_toggle_button_get_active(sng_toggle_stretch);
+	sgui_starnet_stride = (int) gtk_spin_button_get_value(sng_spin_stride);
 	if (sgui_starnet_stride % 2)
 		sgui_starnet_stride++;
 	if (sgui_starnet_stride < 2)
@@ -198,7 +209,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
+	if (gtk_toggle_button_get_active(sng_toggle_sequence) == FALSE) {
 		if (single_image_is_loaded()) {
 			// Save backup for undo before processing
 			copy_gfit_to_backup();
@@ -242,7 +253,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			starnet_params->multi_args = multi_args;
 			multi_args->seq = &com.seq;
 			multi_args->n = sgui_starmask ? 2 : 1;
-			multi_args->new_seq_index = gtk_combo_box_get_active(combo_starnet_next_sequence);
+			multi_args->new_seq_index = gtk_combo_box_get_active(sng_combo_next_seq);
 			multi_args->prefixes = calloc(multi_args->n, sizeof(char*));
 			multi_args->prefixes[0] = g_strdup("starless_");
 			if (sgui_starmask) {
@@ -275,9 +286,9 @@ void on_spin_starnet_stride_value_changed(GtkSpinButton *button, gpointer user_d
 void on_toggle_starnet_customstride_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_customstride = gtk_toggle_button_get_active(button);
 	if (sgui_customstride) {
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), TRUE);
+		gtk_widget_set_visible(sng_stride_control, TRUE);
 	} else {
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
+		gtk_widget_set_visible(sng_stride_control, FALSE);
 	}
 }
 
@@ -288,7 +299,7 @@ void on_toggle_starnet_postremix_toggled(GtkToggleButton *button, gpointer user_
 	sgui_follow_on = gtk_toggle_button_get_active(button);
 	if (sgui_follow_on && !sgui_starmask) {
 		sgui_starmask = TRUE;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask")), sgui_starmask);
+		gtk_toggle_button_set_active(sng_toggle_starmask, sgui_starmask);
 	}
 }
 
@@ -297,19 +308,19 @@ void on_toggle_starnet_upsample_toggled(GtkToggleButton *button, gpointer user_d
 }
 
 void on_toggle_starnet_starmask_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
+	starnetgui_init_statics();
 	sgui_starmask = gtk_toggle_button_get_active(button);
 		if (sgui_follow_on && !sgui_starmask) {
 		sgui_follow_on = FALSE;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix")), sgui_follow_on);
+		gtk_toggle_button_set_active(sng_toggle_followon, sgui_follow_on);
 	}
-	gtk_widget_set_sensitive(lookup_widget("starnet_next_sequence_controls"), sgui_starmask && gtk_toggle_button_get_active(toggle_starnet_sequence));
+	gtk_widget_set_sensitive(sng_next_seq_controls, sgui_starmask && gtk_toggle_button_get_active(sng_toggle_sequence));
 }
 
 void on_starnet_sequence_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("starnet_next_sequence_controls"), sgui_starmask && gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(sng_next_seq_controls, sgui_starmask && gtk_toggle_button_get_active(button));
 }
 
-void on_combo_starnet_next_sequence_changed(GtkComboBox *combo, gpointer user_data) {
+void on_sng_combo_next_seq_changed(GtkComboBox *combo, gpointer user_data) {
 	sgui_next_seq_index = gtk_combo_box_get_active(combo);
 }

@@ -31,8 +31,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
-#include "gui/PSF_list.h"
-#include "gui/progress_and_log.h"
+#include "core/gui_iface.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -161,7 +160,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 				stars[i+1] = NULL;
 			}
 		}
-		update_star_list(stars, FALSE, FALSE);
+		gui_iface.update_star_list(stars, FALSE, FALSE);
 	}
 
 	// We prepare the distortion structure maps if required
@@ -504,7 +503,7 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 		free(sadata->success);
 	free(sadata);
 	args->user = NULL;
-	clear_stars_list(FALSE);
+	gui_iface.clear_star_list();
 	return regargs->new_total == 0;
 }
 
@@ -1097,7 +1096,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->seq->selnum);
-	clear_stars_list(FALSE);
+	gui_iface.clear_star_list();
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 

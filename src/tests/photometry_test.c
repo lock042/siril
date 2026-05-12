@@ -22,6 +22,7 @@
 #include <gsl/gsl_matrix.h>
 
 #include "core/siril.h"
+#include "gui/gui_state.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 

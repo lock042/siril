@@ -23,19 +23,13 @@
 #include <ctype.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "algos/statistics.h"
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
-#include "gui/image_interactions.h"
-#include "gui/image_display.h"
-#include "gui/callbacks.h"
-#include "gui/histogram.h"
-#include "gui/script_menu.h"
+/* gui_calls.h removed: no direct calls remain */
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
@@ -202,88 +196,24 @@ int execute_command(int wordnb) {
 	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
 	int retval = commands[i].process(wordnb);
-	if (gui.roi.active)
-		populate_roi();
+	if (gui_iface.roi_is_active())
+		gui_iface.populate_roi();
 	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
 		waiting_for_thread(); // we can't proceed until the generic_image_Worker is done
 		if (!com.python_script) {
 			gfit_modified_update_gui();
 		} else {
 			invalidate_stats_from_fit(gfit);
-			invalidate_gfit_histogram();
-			execute_idle_and_wait_for_it(end_gfit_operation, NULL);
+			gui_iface.invalidate_histogram();
+			gui_iface.execute_idle_sync(end_gfit_operation, NULL);
 		}
 		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	return (int) retval & ~CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-static void update_log_icon(gboolean is_running) {
-	GtkImage *image = GTK_IMAGE(lookup_widget("image_log"));
-	if (is_running)
-		gtk_image_set_from_icon_name(image, "gtk-yes", GTK_ICON_SIZE_LARGE_TOOLBAR);
-	else
-		gtk_image_set_from_icon_name(image, "gtk-no", GTK_ICON_SIZE_LARGE_TOOLBAR);
-}
-
-struct log_status_bar_idle_data {
-	gchar *myline;
-	int line;
-};
-
-static gboolean log_status_bar_idle_callback(gpointer p) {
-	struct log_status_bar_idle_data *data = (struct log_status_bar_idle_data *) p;
-
-	GtkStatusbar *statusbar_script = GTK_STATUSBAR(lookup_widget("statusbar_script"));
-	gchar *status;
-	gchar *newline;
-
-	update_log_icon(TRUE);
-
-	newline = g_strdup(data->myline);
-	status = g_strdup_printf(_("Processing line %d: %s"), data->line, newline);
-
-	gtk_statusbar_push(statusbar_script, 0, status);
-	g_free(newline);
-	g_free(status);
-	g_free(data->myline);
-	free(data);
-
-	return FALSE;	// only run once
-}
-
-static void display_command_on_status_bar(int line, char *myline) {
-	if (!com.headless) {
-		struct log_status_bar_idle_data *data;
-
-		data = malloc(sizeof(struct log_status_bar_idle_data));
-		data->line = line;
-		data->myline = myline ? g_strdup(myline) : NULL;
-		gdk_threads_add_idle(log_status_bar_idle_callback, data);
-	}
-}
-
-static void clear_status_bar() {
-	GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
-	gtk_statusbar_remove_all(bar, 0);
-	update_log_icon(FALSE);
-}
-
-static gboolean end_script(gpointer p) {
-	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
-	clear_status_bar();
-	gui_function(set_GUI_CWD, NULL);
-	gui_function(update_MenuItem, NULL);
-	gfit_modified_update_gui();
-	gui_function(redraw_previews, NULL);
-	update_zoom_label();
-	update_display_fwhm();
-	display_filename();
-	gui_function(new_selection_zone, NULL);
-	update_spinCPU(GINT_TO_POINTER(0));
-	set_cursor_waiting(FALSE);
-	return FALSE;
-}
+/* update_log_icon, log_status_bar_idle_callback, display_command_on_status_bar,
+ * clear_status_bar, end_script moved to gui/script_console.c */
 
 int check_requires(gboolean *checked_requires, gboolean is_required) {
 	int retval = CMD_OK;
@@ -359,7 +289,7 @@ gpointer execute_script(gpointer p) {
 			continue;
 		}
 
-		display_command_on_status_bar(line, buffer);
+		gui_iface.console_set_status(buffer, line);
 		parse_line(buffer, length, &wordnb);
 		if (check_requires(&checked_requires, com.pref.script_check_requires)) {
 			g_free (buffer);
@@ -397,7 +327,7 @@ gpointer execute_script(gpointer p) {
 	if (!com.headless) {
 		com.script = FALSE;
 		notify_gfit_data_modified();
-		gui_function(end_script, NULL);
+		gui_iface.end_script_gui();
 	}
 
 	/* Now we want to restore the saved cwd */
@@ -410,7 +340,7 @@ gpointer execute_script(gpointer p) {
 	} else {
 		char *msg = siril_log_message(_("Script execution failed.\n"));
 		msg[strlen(msg) - 1] = '\0';
-		set_progress_bar_data(msg, PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, msg);
 	}
 	g_free(saved_cwd);
 
@@ -419,150 +349,11 @@ gpointer execute_script(gpointer p) {
 		com.script_thread_exited = TRUE;
 	}
 	/* If called from the GUI, re-enable widgets blocked during the script */
-	siril_add_idle(script_widgets_idle, NULL);
+	gui_iface.script_widgets_async(TRUE);
 	return GINT_TO_POINTER(retval);
 }
 
-static gboolean show_command_help_popup(gpointer user_data) {
-	GtkEntry *entry = (GtkEntry*) user_data;
-	gchar *helper = NULL;
-
-	const gchar *text = gtk_entry_get_text(entry);
-	if (*text == '\0') {
-		helper = g_strdup(_("Please enter an existing command before hitting this button"));
-	} else {
-		command *current = commands;
-		gchar **command_line = g_strsplit_set(text, " ", -1);
-		while (current->process) {
-			if (!g_ascii_strcasecmp(current->name, command_line[0])) {
-				gchar **token;
-
-				token = g_strsplit_set(current->usage, " \n", -1);
-				GString *str = g_string_new(token[0]);
-				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
-				str = g_string_append(str, "</b>");
-				if (token[1] != NULL) {
-					int i = 1;
-					while (token[i]) {
-						str = g_string_append(str, " ");
-						if (!g_ascii_strcasecmp(current->name, token[i])) {
-							str = g_string_append(str, "\n<b>");
-						}
-						str = g_string_append(str, token[i]);
-						if (!g_ascii_strcasecmp(current->name, token[i])) {
-							str = g_string_append(str, "</b>");
-						}
-						i++;
-					}
-				}
-				str = g_string_append(str, "</span>\n\n\t");
-				str = g_string_append(str, _(current->definition));
-				str = g_string_append(str, "\n\n<b>");
-				str = g_string_append(str, _("Can be used in a script: "));
-
-				if (current->scriptable) {
-					str = g_string_append(str, "<span foreground=\"green\">");
-					str = g_string_append(str, _("YES"));
-				} else {
-					str = g_string_append(str, "<span foreground=\"red\">");
-					str = g_string_append(str, _("NO"));
-				}
-				str = g_string_append(str, "</span></b>");
-				helper = g_string_free(str, FALSE);
-				g_strfreev(token);
-				break;
-			}
-			current++;
-		}
-		g_strfreev(command_line);
-	}
-	if (!helper) {
-		helper = g_strdup(_("No help for this command"));
-	}
-
-	GtkWidget *popover = popover_new(lookup_widget("command"), helper);
-#if GTK_CHECK_VERSION(3, 22, 0)
-	gtk_popover_popup(GTK_POPOVER(popover));
-#else
-	gtk_widget_show(popover);
-#endif
-	g_free(helper);
-	return FALSE;
-}
-
-/* handler for the single-line console */
-#if GTK_CHECK_VERSION(3, 24, 24)
-static gboolean on_command_key_press_event(GtkEventController *controller,
-		guint keyval, guint keycode, GdkModifierType modifiers,
-		GtkWidget *widget) {
-#else
-static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event,
-		gpointer user_data) {
-	guint keyval = event->keyval;
-#endif
-	int handled = 0;
-	static GtkEntry *entry = NULL;
-	if (!entry)
-		entry = GTK_ENTRY(widget);
-	GtkEditable *editable = GTK_EDITABLE(entry);
-	int entrylength = 0;
-
-	switch (keyval) {
-	case GDK_KEY_Up:
-		handled = 1;
-		if (!gui.cmd_history)
-			break;
-		if (gui.cmd_hist_display > 0) {
-			if (gui.cmd_history[gui.cmd_hist_display - 1])
-				--gui.cmd_hist_display;
-			// display previous entry
-			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
-		} else if (gui.cmd_history[gui.cmd_hist_size - 1]) {
-			// ring back, display previous
-			gui.cmd_hist_display = gui.cmd_hist_size - 1;
-			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
-		}
-		entrylength = gtk_entry_get_text_length(entry);
-		gtk_editable_set_position(editable, entrylength);
-		break;
-	case GDK_KEY_Down:
-		handled = 1;
-		if (!gui.cmd_history)
-			break;
-		if (gui.cmd_hist_display == gui.cmd_hist_current)
-			break;
-		if (gui.cmd_hist_display == gui.cmd_hist_size - 1) {
-			if (gui.cmd_hist_current == 0) {
-				// ring forward, end
-				gtk_entry_set_text(entry, "");
-				gui.cmd_hist_display++;
-			} else if (gui.cmd_history[0]) {
-				// ring forward, display next
-				gui.cmd_hist_display = 0;
-				gtk_entry_set_text(entry, gui.cmd_history[0]);
-			}
-		} else {
-			if (gui.cmd_hist_display == gui.cmd_hist_current - 1) {
-				// end
-				gtk_entry_set_text(entry, "");
-				gui.cmd_hist_display++;
-			} else if (gui.cmd_history[gui.cmd_hist_display + 1]) {
-				// display next
-				gtk_entry_set_text(entry,
-						gui.cmd_history[++gui.cmd_hist_display]);
-			}
-		}
-		entrylength = gtk_entry_get_text_length(entry);
-		gtk_editable_set_position(editable, entrylength);
-		break;
-	case GDK_KEY_Page_Up:
-	case GDK_KEY_Page_Down:
-		handled = 1;
-		// go to first and last in history
-		break;
-	}
-	return (handled == 1);
-}
+/* show_command_help_popup, on_command_key_press_event moved to gui/script_console.c */
 
 int processcommand(const char *line, gboolean wait_for_completion) {
 	int wordnb = 0;
@@ -580,7 +371,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			wait_for_script_thread();
 
 		/* Switch to console tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.show_panel("output_logs", TRUE);
 
 		char filename[256];
 		g_strlcpy(filename, line + 1, 250);
@@ -604,7 +395,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 		g_object_unref(file);
 	} else {
 		/* Switch to console tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
+		gui_iface.show_panel("output_logs", TRUE);
 
 		gchar *myline = strdup(line);
 		int len = strlen(line);
@@ -618,7 +409,7 @@ int processcommand(const char *line, gboolean wait_for_completion) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!(com.script || com.python_script) && !com.headless &&
 				(ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
-				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
+				gui_iface.show_command_help();
 			}
 			free(myline);
 			return ret;
@@ -689,140 +480,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 
 /* callback functions */
 
-#define COMPLETION_COLUMN 0
-
-static gboolean on_match_selected(GtkEntryCompletion *widget, GtkTreeModel *model,
-		GtkTreeIter *iter, gpointer user_data) {
-	const gchar *cmd;
-	GtkEditable *e = (GtkEditable *) gtk_entry_completion_get_entry(widget);
-	gchar *s = gtk_editable_get_chars(e, 0, -1);
-	gint cur_pos = gtk_editable_get_position(e);
-	gint p = cur_pos;
-	gchar *end;
-
-	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &cmd, -1);
-
-	end = s + cur_pos;
-	gint del_end_pos = end - s + 1;
-
-	gtk_editable_delete_text(e, 0, del_end_pos);
-	gtk_editable_insert_text(e, cmd, -1, &p);
-	gtk_editable_set_position(e, p);
-
-	return TRUE;
-}
-
-static gboolean completion_match_func(GtkEntryCompletion *completion,
-		const gchar *key, GtkTreeIter *iter, gpointer user_data) {
-	gboolean res = FALSE;
-	char *tag = NULL;
-
-	if (*key == '\0') return FALSE;
-
-	GtkTreeModel *model = gtk_entry_completion_get_model(completion);
-	int column = gtk_entry_completion_get_text_column(completion);
-
-	if (gtk_tree_model_get_column_type(model, column) != G_TYPE_STRING)
-		return FALSE;
-
-	gtk_tree_model_get(model, iter, column, &tag, -1);
-
-	if (tag) {
-		char *normalized = g_utf8_normalize(tag, -1, G_NORMALIZE_ALL);
-		if (normalized) {
-			char *casefold = g_utf8_casefold(normalized, -1);
-			if (casefold) {
-				res = g_strstr_len(casefold, -1, key) != NULL;
-			}
-			g_free(casefold);
-		}
-		g_free(normalized);
-		g_free(tag);
-	}
-
-	return res;
-}
-
-static void init_completion_command() {
-	GtkEntryCompletion *completion = gtk_entry_completion_new();
-	GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
-	GtkTreeIter iter;
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("command"));
-
-	gtk_entry_completion_set_model(completion, GTK_TREE_MODEL(model));
-	gtk_entry_completion_set_text_column(completion, COMPLETION_COLUMN);
-	gtk_entry_completion_set_minimum_key_length(completion, 2);
-	gtk_entry_completion_set_popup_completion(completion, TRUE);
-	gtk_entry_completion_set_inline_completion(completion, TRUE);
-	gtk_entry_completion_set_popup_single_match(completion, FALSE);
-	gtk_entry_completion_set_match_func(completion, completion_match_func, NULL, NULL);
-	gtk_entry_set_completion(entry, completion);
-	g_signal_connect(G_OBJECT(completion), "match-selected", G_CALLBACK(on_match_selected), NULL);
-
-	/* Populate the completion database. */
-	command *current = commands;
-
-	while (current->process) {
-		gtk_list_store_append(model, &iter);
-		gtk_list_store_set(model, &iter, COMPLETION_COLUMN, current->name, -1);
-		current++;
-	}
-	g_object_unref(model);
-}
-
-static void init_controller_command() {
-	GtkWidget *widget = lookup_widget("command");
-
-#if GTK_CHECK_VERSION(3, 24, 24)
-	GtkEventController *controller = gtk_event_controller_key_new(widget);
-	g_signal_connect(controller, "key-pressed", G_CALLBACK(on_command_key_press_event), widget);
-#else
-	g_signal_connect(widget, "key-press-event", G_CALLBACK(on_command_key_press_event), NULL);
-#endif
-}
-
-void init_command() {
-	init_completion_command();
-	init_controller_command();
-}
-
-void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
-	show_command_help_popup((GtkEntry *)user_data);
-}
-
-/** Callbacks **/
-
-/*
- * Command line history static function
- */
-
-static void history_add_line(char *line) {
-	if (!gui.cmd_history) {
-		gui.cmd_hist_size = CMD_HISTORY_SIZE;
-		gui.cmd_history = calloc(gui.cmd_hist_size, sizeof(const char*));
-		gui.cmd_hist_current = 0;
-		gui.cmd_hist_display = 0;
-	}
-	gui.cmd_history[gui.cmd_hist_current] = line;
-	gui.cmd_hist_current++;
-	// circle at the end
-	if (gui.cmd_hist_current == gui.cmd_hist_size)
-		gui.cmd_hist_current = 0;
-	if (gui.cmd_history[gui.cmd_hist_current]) {
-		free(gui.cmd_history[gui.cmd_hist_current]);
-		gui.cmd_history[gui.cmd_hist_current] = NULL;
-	}
-	gui.cmd_hist_display = gui.cmd_hist_current;
-}
-
-void on_command_activate(GtkEntry *entry, gpointer user_data) {
-	const gchar *text = gtk_entry_get_text(entry);
-	history_add_line(strdup(text));
-	if (!(processcommand(text, FALSE))) {
-		gtk_entry_set_text(entry, "");
-		gui_function(set_precision_switch, NULL);
-	}
-}
+/* COMPLETION_COLUMN, completion helpers, init_command, on_GtkCommandHelper moved to gui/script_console.c */
 
 void log_several_lines(char *text) {
 	char *line = text;

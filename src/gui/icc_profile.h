@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef SRC_GUI_ICC_PROFILE_H_
+#include <gtk/gtk.h>
 #define SRC_GUI_ICC_PROFILE_H_
 #include <stdint.h>
 #include <lcms2.h>

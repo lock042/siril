@@ -38,14 +38,8 @@
 #include "core/masks.h"
 #include "core/OS_utils.h"
 #include "core/undo.h"
-#include "gui/callbacks.h"
-#include "gui/dialogs.h"
-#include "gui/image_display.h"
+#include "core/gui_iface.h"
 #include "io/single_image.h"
-#include "gui/progress_and_log.h"
-#include "gui/script_menu.h"
-#include "gui/siril_preview.h"
-#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -97,7 +91,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	assert(args->seq);
 	assert(args->image_hook);
 	g_rw_lock_reader_lock(&com.pref_rwlock);
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 
 	if (args->nb_filtered_images > 0)
@@ -117,7 +111,7 @@ gpointer generic_sequence_worker(gpointer p) {
 #ifdef HAVE_FFMS2
 	// If the sequence is of type SEQ_AVI, lock out the sequence browser as it can cause a crash
 	if (args->seq->type == SEQ_AVI && !com.headless) {
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(0));
+		gui_iface.set_seq_browser_active(FALSE);
 	}
 #endif
 #ifdef _OPENMP
@@ -325,7 +319,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			else {
 				g_atomic_int_inc(&excluded_frames);
 				g_atomic_int_inc(&progress);
-				set_progress_bar_data(NULL, (float)progress / nb_framesf);
+				gui_iface.set_progress((float)progress / nb_framesf, NULL);
 			}
 			if (args->seq->type == SEQ_INTERNAL) {
 				fit->data = NULL;
@@ -376,7 +370,7 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		g_atomic_int_inc(&progress);
 		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
-		set_progress_bar_data(msg, (float)progress / nb_framesf);
+		gui_iface.set_progress((float)progress / nb_framesf, msg);
 		g_free(msg);
 	}
 
@@ -387,7 +381,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		abort = 1;
 	}
 	if (abort || excluded_frames == nb_frames) {
-		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing failed. Check the log."));
 		siril_log_color_message(_("Sequence processing failed.\n"), "red");
 		if (!abort)
 			abort = 1;
@@ -395,10 +389,10 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 	else {
 		if (excluded_frames) {
-			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing partially succeeded. Check the log."));
 			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
 		} else {
-			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
+			gui_iface.set_progress(PROGRESS_RESET, _("Sequence processing succeeded."));
 			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
 		}
 		gettimeofday(&t_end, NULL);
@@ -422,7 +416,7 @@ the_end:
 	int retval = args->retval;	// so we can free args if needed in the idle
 #ifdef HAVE_FFMS2
 	if (args->seq->type == SEQ_AVI && !com.headless)
-		gui_function(set_seq_browser_active, GINT_TO_POINTER(1)); // re-enable the sequence browser if necessary
+		gui_iface.set_seq_browser_active(TRUE); // re-enable the sequence browser if necessary
 #endif
 
 	if (!args->already_in_a_thread) {
@@ -470,7 +464,7 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
-		update_sequences_list(seqname);
+		gui_iface.update_sequences_list(seqname);
 		g_free(seqname);
 		g_free(basename);
 	}
@@ -819,22 +813,15 @@ int multi_finalize(struct generic_seq_args *args) {
  */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.python_command && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
-
-static gboolean set_display_mode_menu_sensitive_idle(gpointer p) {
-	gtk_widget_set_sensitive(lookup_widget("menu_display_button"),
-			GPOINTER_TO_INT(p));
-	return FALSE;
-}
-
 
 /* Must only ever be used for GTK updates. Do not call any functions that mess about
  * with files using this idle, it can break python scripts */
 guint siril_add_pythonsafe_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
-		return gdk_threads_add_idle(idle_function, data);
+		return g_idle_add(idle_function, data);
 	return 0;
 }
 
@@ -1093,7 +1080,7 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	guint children = g_slist_length(com.children);
 	if (children > 1) {
 		child_mutex_unlock();
-		GPid pid = show_child_process_selection_dialog(com.children);
+		GPid pid = gui_iface.select_child_process(com.children);
 		kill_child_process(pid, FALSE);
 	} else if (children == 1) {
 		child_info *child = (child_info*) com.children->data;
@@ -1108,8 +1095,8 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	if (!com.headless) {
-		script_widgets_enable(TRUE);
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+		gui_iface.script_widgets_enable(TRUE);
+		gui_iface.set_progress(PROGRESS_RESET, PROGRESS_TEXT_RESET);
 	}
 }
 
@@ -1127,7 +1114,7 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 gpointer generic_sequence_metadata_worker(gpointer arg) {
 	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
 	struct timeval t_start, t_end;
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	int input_idx, frame, retval = 0;
 	int *index_mapping = NULL;
@@ -1381,8 +1368,8 @@ void free_generic_mask_args(struct generic_mask_args *args) {
 gboolean end_generic_mask(gpointer p) {
 	struct generic_mask_args *args = (struct generic_mask_args*) p;
 	stop_processing_thread();
-	show_or_hide_mask_tab();
-	queue_redraw_mask();
+	gui_iface.on_mask_state_changed();
+	gui_iface.queue_redraw_mask();
 	free_generic_mask_args(args);
 	return FALSE;
 }
@@ -1392,7 +1379,7 @@ gboolean end_generic_image_update_gfit(gpointer p) {
 	stop_processing_thread();
 	gfit_modified_update_gui();
 	if (args->has_mask)
-		queue_redraw_mask();
+		gui_iface.queue_redraw_mask();
 	free_generic_img_args(args);
 	return FALSE;
 }
@@ -1401,7 +1388,7 @@ gboolean end_generic_image_reset_cursor(gpointer p) {
 	struct generic_img_args *args = (struct generic_img_args*) p;
 	stop_processing_thread();
 	free_generic_img_args(args);
-	set_cursor_waiting(FALSE);
+	gui_iface.set_busy(FALSE);
 	return FALSE;
 }
 
@@ -1566,12 +1553,10 @@ gpointer generic_image_worker(gpointer p) {
 	 * stale until remap_all() runs, so suppress viewport redraws and disable
 	 * the display-mode menu for the duration.  Sequence operations leave gfit
 	 * untouched, so neither suppression is needed there. */
-	if (!com.headless && !com.script && !com.python_command && args->fit == gfit) {
-		g_atomic_int_set(&gui.suppress_drawarea_redraw, 1);
-		siril_add_idle(set_display_mode_menu_sensitive_idle, GINT_TO_POINTER(FALSE));
-	}
+	if (!com.script && !com.python_command && args->fit == gfit)
+		gui_iface.set_suppress_redraws(TRUE);
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 
@@ -1616,7 +1601,7 @@ gpointer generic_image_worker(gpointer p) {
 		g_free(desc);
 	}
 
-	set_progress_bar_data(_("Processing image..."), 0.1f);
+	gui_iface.set_progress(0.1f, _("Processing image..."));
 
 	// Call the image processing hook - operates in-place on args->fit
 	if (args->image_hook(args, args->fit, args->max_threads)) {
@@ -1636,8 +1621,8 @@ gpointer generic_image_worker(gpointer p) {
 		// If there is a log_hook, set the HISTORY card and update the log as required
 		// Generate the message used for undo label and HISTORY, ideally from the log hook but we use the simple description as a backup
 		history = args->log_hook ? args->log_hook(args->user, DETAILED): g_strdup(args->description); // Dynamically allocates memory
-		// If we are being run from the GUI and not just updating a preview, set the undo state
-		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || args->command);
+		// If we are being run from the GUI/command (not script/headless) and not just updating a preview, set the undo state
+		undo_state = args->fit == gfit && !(args->custom_undo || args->for_preview || com.script);
 		if (undo_state)
 			summary = args->log_hook ? args->log_hook(args->user, SUMMARY): g_strdup(args->description);
 	}
@@ -1656,16 +1641,16 @@ the_end:;
 	if (args->populate_roi_on_complete && !com.script && !com.python_command && !com.headless) {
 		if (argfit != gfit) {
 			g_rw_lock_reader_lock(&gfit->rwlock);
-			populate_roi();
+			gui_iface.populate_roi();
 			g_rw_lock_reader_unlock(&gfit->rwlock);
 		} else {
-			populate_roi();
+			gui_iface.populate_roi();
 		}
 	}
 
 	/* Cairo buffers are up to date; re-enable full viewport redraws so the
 	 * completion idle paints the updated image. */
-	g_atomic_int_set(&gui.suppress_drawarea_redraw, 0);
+	gui_iface.set_suppress_redraws(FALSE);
 
 	// Cleanup / idles
 	if (args->command) {
@@ -1674,9 +1659,9 @@ the_end:;
 			free_generic_img_args(args);
 		} else if (args->command_updates_gfit) {
 			// commands do not use custom idles and the generic ones must run synchronously
-			execute_idle_and_wait_for_it(end_generic_image_update_gfit, args);
+			gui_iface.execute_idle_sync(end_generic_image_update_gfit, args);
 		} else {
-			execute_idle_and_wait_for_it(end_generic_image, args);
+			gui_iface.execute_idle_sync(end_generic_image, args);
 		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);
@@ -1690,9 +1675,9 @@ the_end:;
 	// early redraws
 
 	if (retval) {
-		set_progress_bar_data(_("Image processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Image processing failed. Check the log."));
 	} else {
-		set_progress_bar_data(_("Image processing succeeded."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Image processing succeeded."));
 	}
 
 	if (!argpreview && !retval)
@@ -1740,7 +1725,7 @@ gpointer generic_mask_worker(gpointer p) {
 	gchar *history = NULL;
 	gboolean rwlocked = FALSE;
 
-	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gui_iface.set_progress(PROGRESS_RESET, NULL);
 	gettimeofday(&t_start, NULL);
 	args->retval = 0;
 	g_rw_lock_reader_lock(&com.pref_rwlock);
@@ -1764,7 +1749,7 @@ gpointer generic_mask_worker(gpointer p) {
 		g_free(desc);
 	}
 
-	set_progress_bar_data(_("Processing mask..."), 0.1f);
+	gui_iface.set_progress(0.1f, _("Processing mask..."));
 
 	g_rw_lock_writer_lock(&args->fit->rwlock);
 	rwlocked = TRUE;
@@ -1792,9 +1777,9 @@ gpointer generic_mask_worker(gpointer p) {
 
 the_end:
 	if (args->retval) {
-		set_progress_bar_data(_("Mask processing failed. Check the log."), PROGRESS_RESET);
+		gui_iface.set_progress(PROGRESS_RESET, _("Mask processing failed. Check the log."));
 	} else {
-		set_progress_bar_data(_("Mask processing succeeded."), PROGRESS_DONE);
+		gui_iface.set_progress(PROGRESS_DONE, _("Mask processing succeeded."));
 	}
 
 	int retval = args->retval;
@@ -1812,7 +1797,7 @@ the_end:
 			free_generic_mask_args(args);
 		} else {
 			// commands do not use custom idles and must run synchronously
-			execute_idle_and_wait_for_it(end_generic_mask, args);
+			gui_iface.execute_idle_sync(end_generic_mask, args);
 		}
 	} else if (args->idle_function) {
 		siril_add_idle(args->idle_function, args);

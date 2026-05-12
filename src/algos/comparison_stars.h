@@ -27,6 +27,7 @@ struct compstars_arg {
 	gchar *AAVSO_uri;
 	gboolean has_GUI;
 	int retval;
+	GSourceFunc notify_done; /* set by GUI layer; called as idle on completion */
 };
 
 typedef struct {

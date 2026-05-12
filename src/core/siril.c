@@ -24,15 +24,11 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/gui_iface.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/arithm.h"
 #include "core/siril_log.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/histogram.h"
-#include "gui/progress_and_log.h"
-#include "gui/registration_preview.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
@@ -41,6 +37,7 @@
 #include "algos/demosaicing.h"
 #include "opencv/opencv.h"
 #include "rt/gauss.h"
+/* gui_calls.h removed: computeHisto/computeHisto_Selection come from algos/statistics.h */
 
 int threshlo(fits *fit, WORD level) {
 	size_t i, n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
@@ -303,12 +300,10 @@ int visu(fits *fit, int low, int high) {
 		return 1;
 	if (!single_image_is_loaded() && !sequence_is_loaded())
 		return 1;
-	gui.lo = low;
-	gui.hi = high;
-	set_cutoff_sliders_values();
 	notify_gfit_data_modified();
-	redraw(REMAP_ALL);
-	gui_function(redraw_previews, NULL);
+	gui_iface.set_display_range(low, high);
+	gui_iface.redraw_image(REMAP_ALL);
+	gui_iface.redraw_previews();
 	return 0;
 }
 

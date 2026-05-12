@@ -33,18 +33,15 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/gui_iface.h"
 #include "drizzle/cdrizzlebox.h"
 #include "drizzle/cdrizzlemap.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/progress_and_log.h"
-#include "gui/utils.h"
-#include "gui/message_dialog.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "io/fits_keywords.h"
 #include "registration/registration.h"
-#include "algos/demosaicing.h"
 
 #include "opencv/opencv.h"
 
@@ -1101,7 +1098,7 @@ clean_and_exit:
 // Used by both apply_reg and global methods: definition is in registration.h
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
-	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
+	gui_iface.set_progress(PROGRESS_PULSATE, _("Initializing drizzle data..."));
 	driz->scale = regargs->output_scale;
 	driz_param_dump(driz); // Print some info to the log
 	/* preparing reference data from reference fit and making sanity checks*/
@@ -1147,7 +1144,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	gui_iface.show_panel("output_logs", TRUE);
 	int retval = 0;
 	int *included = NULL;
 
@@ -1352,21 +1349,6 @@ void guess_transform_from_seq(sequence *seq, int layer,
 		fix_selnum(seq, FALSE);
 }
 
-static int confirm_exceed_cairomaxdim(gpointer user_data) {
-	struct registration_args *regargs = (struct registration_args*)user_data;
-	gchar *msg = g_strdup(_("Images will be larger than what Siril can display for now. "
-		"Tune scale ratio to get max dimension smaller than 32767 pixels "
-		"or proceed and post process your images with an external program."));
-	if (regargs->no_output) { // Estimate button was pressed, we just warn
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("Output too large"), msg);
-	} else if (!siril_confirm_dialog(_("Output too large"),  // Register button was pressed, we ask for confirmation
-				msg, _("Proceed"))) {
-		regargs->retval = 1;
-	}
-	g_free(msg);
-	return 0;
-}
-
 static gboolean check_applyreg_output(struct registration_args *regargs) {
 	/* compute_framing uses the filtered list of images, so we compute the filter here */
 
@@ -1374,21 +1356,6 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	if (!compute_framing(regargs)) {
 		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
 		return FALSE;
-	}
-
-	// TODO: temp check for final image size
-	// if larger than cairo image buffer, pop a warning that image will not display at all
-	int max_dim = max(regargs->framingd.roi_out.w, regargs->framingd.roi_out.h);
-	if (max_dim > 32767) {
-		if (!(com.script || com.python_script)) { // through GUI, we warn with GTK objects
-			if (!com.headless)
-				execute_idle_and_wait_for_it(confirm_exceed_cairomaxdim, regargs);
-			if (regargs->retval)
-				return FALSE;
-		} else {
-			siril_log_color_message(_("Images will be larger than what Siril can display for now.\n"), "salmon");
-			siril_log_color_message(_("Tune scale ratio to get max dimension smaller than 32767 pixels.\n"), "salmon");
-		}
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size

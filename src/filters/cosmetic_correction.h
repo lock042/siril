@@ -58,7 +58,4 @@ gchar* cosme_log_hook(gpointer p, log_hook_detail detail);
 int cosme_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads);
 int cosmetic_image_hook_generic(struct generic_img_args *args, fits *fit, int nb_threads);
 
-/* Idle function for generic_image_worker */
-gboolean cosme_idle(gpointer p);
-
 #endif /* COSMETIC_CORRECTION_H_ */

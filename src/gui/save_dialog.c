@@ -47,6 +47,38 @@
 static image_type type_of_image = TYPEUNDEF;
 static SirilWidget *saveDialog = NULL;
 
+static GtkNotebook *sd_notebook_format = NULL;
+static GtkWidget *sd_savepopup = NULL;
+static GtkWidget *sd_filenameframe = NULL;
+static GtkWidget *sd_button_savepopup = NULL;
+static GtkWindow *sd_control_window = NULL;
+static GtkEntry *sd_savetxt_entry = NULL;
+static GtkToggleButton *sd_fits_8 = NULL, *sd_fits_16s = NULL, *sd_fits_16 = NULL;
+static GtkToggleButton *sd_fits_32f = NULL;
+static GtkToggleButton *sd_update_hilo = NULL, *sd_checksum = NULL;
+static GtkEntry *sd_size_estimate_entry = NULL;
+static GtkWidget *sd_header_snapshot_btn = NULL;
+static GtkScrolledWindow *sd_scrolledwindow3 = NULL;
+
+static void save_dialog_init_statics(void) {
+	if (sd_notebook_format) return;
+	sd_notebook_format = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebookFormat"));
+	sd_savepopup = GTK_WIDGET(gtk_builder_get_object(gui.builder, "savepopup"));
+	sd_filenameframe = GTK_WIDGET(gtk_builder_get_object(gui.builder, "filenameframe"));
+	sd_button_savepopup = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_savepopup"));
+	sd_control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+	sd_savetxt_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "savetxt"));
+	sd_fits_8 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton_save_fit8"));
+	sd_fits_16s = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton_save_fit16s"));
+	sd_fits_16 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton_save_fit16"));
+	sd_fits_32f = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton_save_fit32f"));
+	sd_update_hilo = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_update_hilo"));
+	sd_checksum = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_chksum"));
+	sd_size_estimate_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "size_estimate_entry"));
+	sd_header_snapshot_btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "header_snapshot_button"));
+	sd_scrolledwindow3 = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "scrolledwindow3"));
+}
+
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	GString *all_filter = NULL;
 	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
@@ -148,7 +180,7 @@ static void set_copyright_in_TIFF() {
 	gchar *copyright;
 
 	if (TIFF_txt == NULL)
-		TIFF_txt = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
+		TIFF_txt = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "Copyright_txt"));
 
 	tbuf = gtk_text_view_get_buffer(TIFF_txt);
 
@@ -170,14 +202,14 @@ static void set_description_in_TIFF() {
 	GtkTextIter itStart, itEnd;
 
 	if (TIFF_txt == NULL)
-		TIFF_txt = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
+		TIFF_txt = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "Description_txt"));
 
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(TIFF_txt);
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
 
-	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_type_of_tiff"))) == 0) {
 		gchar *astro_tiff = AstroTiff_build_header(gfit);
 
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
@@ -197,34 +229,26 @@ static void set_description_in_TIFF() {
 			}
 		}
 		/* New history */
-		if (com.history) {
-			for (int i = 0; i < com.hist_display; i++) {
-				if (com.history[i].history[0] != '\0') {
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
-					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-					gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-				}
+		for (GList *l = g_list_last(com.undo_stack); l; l = l->prev) {
+			historic *h = (historic *)l->data;
+			if (h->history[0] != '\0') {
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, h->history, strlen(h->history));
+				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+				gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
 			}
 		}
 	}
 }
 
 static void prepare_savepopup() {
-	static GtkNotebook* notebookFormat = NULL;
-	static GtkWidget *savepopup = NULL;
-	static GtkWidget *savetxt = NULL;
-	static GtkWidget *button_savepopup = NULL;
+	save_dialog_init_statics();
+	GtkWidget *savepopup = sd_savepopup;
+	GtkWidget *savetxt = sd_filenameframe;
+	GtkWidget *button_savepopup = sd_button_savepopup;
 	int tab;
 
-	if (notebookFormat == NULL) {
-		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
-		savepopup = lookup_widget("savepopup");
-		savetxt = lookup_widget("filenameframe");
-		button_savepopup = lookup_widget("button_savepopup");
-	}
-
-	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	GtkWindow *parent = sd_control_window;
 
 	switch (type_of_image) {
 	case TYPEBMP:
@@ -263,7 +287,7 @@ static void prepare_savepopup() {
 	gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 
 	gtk_widget_set_visible(savetxt, FALSE);
-	gtk_notebook_set_current_page(notebookFormat, tab);
+	gtk_notebook_set_current_page(sd_notebook_format, tab);
 	gtk_widget_grab_focus(button_savepopup);
 }
 
@@ -448,7 +472,7 @@ static int save_dialog() {
 
 		type_of_image = selected_type;
 
-		GtkEntry *savetext = GTK_ENTRY(lookup_widget("savetxt"));
+		GtkEntry *savetext = sd_savetxt_entry;
 		gtk_entry_set_text(savetext, filename);
 
 		prepare_savepopup();
@@ -468,7 +492,7 @@ static gboolean end_save(gpointer p) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("File saving failed. Check the logs for more info."));
 
 	gtk_entry_set_text(args->entry, "");
-	gtk_widget_hide(lookup_widget("savepopup"));
+	gtk_widget_hide(sd_savepopup);
 	display_filename(); // update filename display
 	adjust_sellabel();
 	gui_function(set_precision_switch, NULL);
@@ -495,31 +519,32 @@ static gboolean test_for_viewer_mode() {
 static void initialize_data(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 
-	GtkToggleButton *fits_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
-	GtkToggleButton *fits_16s = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16s"));
-	GtkToggleButton *fits_16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
-	GtkToggleButton *update_hilo = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_update_hilo")));
-	GtkToggleButton *checksum = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_chksum")));
+	save_dialog_init_statics();
+	GtkToggleButton *fits_8 = sd_fits_8;
+	GtkToggleButton *fits_16s = sd_fits_16s;
+	GtkToggleButton *fits_16 = sd_fits_16;
+	GtkToggleButton *update_hilo = sd_update_hilo;
+	GtkToggleButton *checksum = sd_checksum;
 #ifdef HAVE_LIBJPEG
-	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(lookup_widget("quality_spinbutton"));
+	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "quality_spinbutton"));
 	args->quality = gtk_spin_button_get_value_as_int(qlty_spin_button);
 #endif
 #ifdef HAVE_LIBJXL
-	GtkSpinButton *quality_spin_button = GTK_SPIN_BUTTON(lookup_widget("jxl_quality_spinbutton"));
+	GtkSpinButton *quality_spin_button = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "jxl_quality_spinbutton"));
 	args->jxl_quality = gtk_spin_button_get_value_as_int(quality_spin_button);
-	GtkSpinButton *effort_spin_button = GTK_SPIN_BUTTON(lookup_widget("jxl_effort_spinbutton"));
+	GtkSpinButton *effort_spin_button = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "jxl_effort_spinbutton"));
 	args->jxl_effort = gtk_spin_button_get_value_as_int(effort_spin_button);
-	GtkToggleButton *toggle_button_8bit = GTK_TOGGLE_BUTTON(lookup_widget("jxl_force_8bit"));
+	GtkToggleButton *toggle_button_8bit = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "jxl_force_8bit"));
 	args->jxl_force_8bit = gtk_toggle_button_get_active(toggle_button_8bit);
 #endif
 #ifdef HAVE_LIBTIFF
-	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
-	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
+	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton8bits"));
+	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
 	get_tif_data_from_ui(gfit, &args->description, &args->copyright);
 	args->tiff_compression = get_tiff_compression();
 #endif
-	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
+	args->entry = sd_savetxt_entry;
 	args->filename = gtk_entry_get_text(args->entry);
 
 	if (gtk_toggle_button_get_active(fits_8))
@@ -590,7 +615,7 @@ static gboolean end_calculate_jpeg_size(gpointer p) {
     struct jpeg_size_result *res = p;
 
     gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget("size_estimate_entry")),
+        sd_size_estimate_entry,
         res->txt
     );
 
@@ -719,7 +744,7 @@ void set_entry_filename() {
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		char filename[256];
 		/* set the output file name default as the current image.jpg */
-		GtkEntry *entry = GTK_ENTRY(lookup_widget("savetxt"));
+		GtkEntry *entry = sd_savetxt_entry;
 		seq_get_image_filename(&com.seq, com.seq.current, filename);
 		char *file_no_ext = remove_ext_from_filename(filename);
 		gtk_entry_set_text(entry, file_no_ext);
@@ -729,7 +754,7 @@ void set_entry_filename() {
 
 void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 	GtkEntry *entry = GTK_ENTRY(editable);
-	GtkWidget *button = lookup_widget("button_savepopup");
+	GtkWidget *button = sd_button_savepopup;
 
 	const gchar *name = gtk_entry_get_text(entry);
 	gtk_widget_set_sensitive(button, (*name != '\0'));
@@ -754,7 +779,7 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 		}
 	}
 	// Clear preview size
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
+	gtk_entry_set_text(sd_size_estimate_entry, "");
 
 	g_free(args->description);
 	g_free(args->copyright);
@@ -762,7 +787,7 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 }
 
 void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("size_estimate_toggle")))) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "size_estimate_toggle")))) {
 		struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 		if (!args) {
 			PRINT_ALLOC_ERR;
@@ -823,12 +848,12 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_button_cancelpopup_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("savepopup"));
+	gtk_widget_hide(sd_savepopup);
 }
 
 void on_header_save_as_button_clicked() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
-		GtkWidget *savepopup = lookup_widget("savepopup");
+		GtkWidget *savepopup = sd_savepopup;
 
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
 			/* now it is not needed for some formats */
@@ -853,7 +878,7 @@ void on_header_save_as_button_clicked() {
 				close_dialog();
 				GtkWindow *parent = siril_get_active_window();
 				if (!GTK_IS_WINDOW(parent)) {
-					parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+					parent = sd_control_window;
 				}
 				gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 				gtk_widget_show(savepopup);
@@ -893,7 +918,7 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 		g_clear_error(&error);
 	} else {
 		gchar *filename = (gchar *)user_data;
-		GtkWidget *widget = lookup_widget("header_snapshot_button");
+		GtkWidget *widget = sd_header_snapshot_btn;
 		GtkWidget *popover = snapshot_notification(widget, filename, (GdkPixbuf *)source_object);
 		g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
 
@@ -907,7 +932,7 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
-	widget = lookup_widget(area[gui.cvport]);
+	widget = GTK_WIDGET(gtk_builder_get_object(gui.builder, area[gui.cvport]));
 	timestamp = build_timestamp_filename();
 	filename = g_strdup_printf("%s.png", timestamp);
 
@@ -939,7 +964,7 @@ void on_header_snapshot_button_clicked(gboolean clipboard) {
 #if !defined _WIN32
 			gtk_clipboard_store(cb);
 #endif
-			GtkWidget *w = lookup_widget("header_snapshot_button");
+			GtkWidget *w = sd_header_snapshot_btn;
 			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
 			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
 		} else {
@@ -977,12 +1002,13 @@ void on_header_save_button_clicked() {
 }
 
 void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(lookup_widget("scrolledwindow3"));
+	save_dialog_init_statics();
+	GtkScrolledWindow *scrolled_window = sd_scrolledwindow3;
 	gint height, width;
 
 	if (type_of_image & TYPETIFF) {
-		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton16bits"));
-		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
+		GtkToggleButton *b16 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton16bits"));
+		GtkToggleButton *b32 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "radiobutton32bits"));
 		gtk_toggle_button_set_active(b32, gfit->type == DATA_FLOAT);
 		gtk_toggle_button_set_active(b16, gfit->type == DATA_USHORT);
 		width = 400;
@@ -995,8 +1021,8 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 	 * is not explicitly written. In this case the FITS format will be chosen
 	 */
 	if (type_of_image & (TYPEFITS | TYPEUNDEF)) {
-		GtkToggleButton *b16bitu = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
-		GtkToggleButton *b32bits = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit32f"));
+		GtkToggleButton *b16bitu = sd_fits_16;
+		GtkToggleButton *b32bits = sd_fits_32f;
 		gtk_toggle_button_set_active(b32bits, gfit->type == DATA_FLOAT);
 		gtk_toggle_button_set_active(b16bitu, gfit->type == DATA_USHORT);
 	}
@@ -1007,4 +1033,38 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 
 void on_combo_type_of_tiff_changed(GtkComboBox* box, gpointer user_data) {
 	set_description_in_TIFF();
+}
+
+gboolean get_tiff_compression(void) {
+	if (!com.headless) {
+		GtkToggleButton *button = GTK_TOGGLE_BUTTON(GTK_WIDGET(gtk_builder_get_object(gui.builder, "radiobuttonCompDeflate")));
+		if (gtk_toggle_button_get_active(button))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
+	if (!com.script && !com.headless) {
+		/*******************************************************************
+		 * If the user saves a tif from the graphical menu, he can set
+		 * the Description and the Copyright of the Image
+		 ******************************************************************/
+
+		GtkTextIter itDebut;
+		GtkTextIter itFin;
+
+		GtkTextView *description_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Description_txt")));
+		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
+		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
+		gtk_text_buffer_get_end_iter(desbuf, &itFin);
+		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
+
+		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(GTK_WIDGET(gtk_builder_get_object(gui.builder, "Copyright_txt")));
+		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
+		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
+		gtk_text_buffer_get_end_iter(copybuf, &itFin);
+		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
+
+	}
 }

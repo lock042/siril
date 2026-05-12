@@ -38,8 +38,7 @@
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "gui/PSF_list.h"
-#include "gui/utils.h"
+#include "core/gui_iface.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 #include <wcsfix.h>
@@ -1441,7 +1440,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 
 	if (args->update_GUI)
-		update_star_list(stars, TRUE, com.python_script);
+		gui_iface.update_star_list(stars, TRUE, com.python_script);
 
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
@@ -1467,7 +1466,7 @@ gpointer findstar_worker(gpointer p) {
 		free_fitted_stars(stars);
 END:
 	if (args->update_GUI)
-		execute_idle_and_wait_for_it(end_findstar, args);
+		gui_iface.execute_idle_sync(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
 	gchar *msg = g_strdup_printf("findstar for image %d", args->im.index_in_seq);
 	show_time_msg(t_start, t_end, msg);
