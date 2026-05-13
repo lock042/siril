@@ -907,11 +907,15 @@ static gboolean prefetch_idle_cb(gpointer data) {
 		return G_SOURCE_REMOVE;
 	}
 
-	/* Queue a redraw so the snapshot picks up the now-finer texture (which
-	 * is inside the acceptable range and sharpens the displayed image
-	 * slightly compared to the strict-target mip). */
-	if (view->drawarea)
-		gtk_widget_queue_draw(view->drawarea);
+	/* Deliberately NOT queueing a redraw here: the freshly-built
+	 * GdkMemoryTexture lives CPU-side only until the next user-driven
+	 * snapshot (zoom, pan, exposure event) actually appends it to the
+	 * render tree, at which point GSK does a single GPU upload.  Queueing
+	 * a redraw per tick would force GSK to upload each prefetched tile
+	 * as it lands, producing a stream of small uploads that contend with
+	 * the very zoom snapshots they're meant to accelerate.  The accept
+	 * range will still pick the finer texture up on the next legitimate
+	 * redraw. */
 	return G_SOURCE_CONTINUE;  /* more candidates may remain — keep going */
 }
 
