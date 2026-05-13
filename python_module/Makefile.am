@@ -1,7 +1,7 @@
 SUBDIRS = sirilpy
 
 pythondir = $(pkgdatadir)/python_module
-python_DATA = pyproject.toml MANIFEST.in
+python_DATA = pyproject.toml
 
 pythondocdir = $(docdir)/python_module
 pythondoc_DATA = README.md
