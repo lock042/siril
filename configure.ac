@@ -137,14 +137,32 @@ case "$host_os" in
     ;;
 esac
 
-dnl check GTK
-PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
+dnl ================ OPTIONAL GTK GUI ================
+dnl --disable-gtk produces a headless build with only the siril-cli target.
+dnl Default is --enable-gtk, which builds both siril (GUI) and siril-cli.
+AC_ARG_ENABLE(gtk,
+              [AS_HELP_STRING([--disable-gtk],
+                              [build only the headless siril-cli target [default=enabled]])],
+              [enable_gtk="$enableval"],
+              [enable_gtk="yes"])
+
+if test "x$enable_gtk" = "xyes"; then
+  PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
+  PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-4])
+  AC_DEFINE([HAVE_GTK], [1], [Build with GTK GUI support])
+fi
+AM_CONDITIONAL([ENABLE_GTK], [test "x$enable_gtk" = "xyes"])
 
 dnl check lcms2
 PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
 
-dnl check cairo
+dnl check cairo, pango and gdk-pixbuf
+dnl These are needed unconditionally by core code (io/siril_plot.c, io/ser.c,
+dnl FITS thumbnails); they were previously pulled in transitively via GTK.
 PKG_CHECK_MODULES(CAIRO, cairo)
+PKG_CHECK_MODULES(PANGO, pango)
+PKG_CHECK_MODULES(PANGOCAIRO, pangocairo)
+PKG_CHECK_MODULES(GDK_PIXBUF, gdk-pixbuf-2.0 >= 2.36.0)
 
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, wcslib >= 7.12)
@@ -161,9 +179,6 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
-
-dnl Check for gtksourceview-4
-PKG_CHECK_MODULES(GTKSOURCEVIEW, [gtksourceview-4])
 
 dnl check opencv
 AC_PROG_CXX
@@ -337,6 +352,19 @@ PKG_CHECK_MODULES([LIBGIT], [libgit2],
 		  [AC_DEFINE([HAVE_LIBGIT2], [1], [Using online scripts])],
 		  AC_MSG_WARN([libgit2 was not found. Not using online scripts.]))
 
+dnl check sqlite3 (used by online catalog cache)
+PKG_CHECK_MODULES([SQLITE], [sqlite3 >= 3.0],
+		  [AC_DEFINE([HAVE_SQLITE], [1], [Using SQLite for online catalog cache])],
+		  AC_MSG_WARN([sqlite3 not found. Online catalog cache disabled.]))
+
+dnl check libjxl (JPEG XL support)
+PKG_CHECK_MODULES([LIBJXL], [libjxl],
+		  [AC_DEFINE([HAVE_LIBJXL], [1], [Using JPEG XL images])
+		   PKG_CHECK_MODULES([LIBJXL_THREADS], [libjxl_threads],
+		                     [AC_DEFINE([HAVE_LIBJXL_THREADS], [1], [Using JPEG XL threaded decoder])],
+		                     [:])],
+		  AC_MSG_WARN([libjxl not found. Not using JPEG XL importer and exporter.]))
+
 dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================
@@ -448,22 +476,23 @@ AC_SUBST(WINDRES)
 #####################################
 # Check for gdk windowing style
 #####################################
-AC_MSG_CHECKING([for native gdk windows style])
-gdk_targets=`$PKG_CONFIG --variable=targets gdk-3.0`
 gdk_windowing="x11"
-for target in $gdk_targets;
-do
-	case "$target" in
-		quartz)
-			gdk_windowing=quartz
-			;;
-		win32)
-			gdk_windowing=win32
-			;;
-	esac
-done
-
-AC_MSG_RESULT([$gdk_windowing])
+if test "x$enable_gtk" = "xyes"; then
+	AC_MSG_CHECKING([for native gdk windows style])
+	gdk_targets=`$PKG_CONFIG --variable=targets gdk-3.0`
+	for target in $gdk_targets;
+	do
+		case "$target" in
+			quartz)
+				gdk_windowing=quartz
+				;;
+			win32)
+				gdk_windowing=win32
+				;;
+		esac
+	done
+	AC_MSG_RESULT([$gdk_windowing])
+fi
 AM_CONDITIONAL(GDK_WINDOWING_QUARTZ, test "$gdk_windowing" = "quartz")
 AM_CONDITIONAL(GDK_WINDOWING_WIN32, test "$gdk_windowing" = "win32")
 AM_CONDITIONAL(GDK_WINDOWING_X11, test "$gdk_windowing" = "x11")
@@ -471,10 +500,11 @@ AM_CONDITIONAL(GDK_WINDOWING_X11, test "$gdk_windowing" = "x11")
 if test "$platform" = "osx"; then
 	AC_DEFINE([OS_OSX],[1],[Defined if os is Mac OSX])
 
-	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8)
-
-	AC_SUBST(GTK_MAC_CFLAGS)
-	AC_SUBST(GTK_MAC_LIBS)
+	if test "x$enable_gtk" = "xyes"; then
+		PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8)
+		AC_SUBST(GTK_MAC_CFLAGS)
+		AC_SUBST(GTK_MAC_LIBS)
+	fi
 fi
 
 if test `uname` != "Darwin"; then
@@ -518,3 +548,12 @@ AC_SUBST([AM_LDFLAGS])
 
 AC_CONFIG_FILES([Makefile src/Makefile subprojects/Makefile data/Makefile pixmaps/Makefile pixmaps/icons/Makefile platform-specific/Makefile platform-specific/linux/Makefile po/Makefile.in python_module/Makefile python_module/sirilpy/Makefile])
 AC_OUTPUT
+
+if test "x$enable_gtk" = "xyes"; then
+  siril_targets="siril siril-cli"
+else
+  siril_targets="siril-cli (headless)"
+fi
+AC_MSG_NOTICE([Build configuration:])
+AC_MSG_NOTICE([  GTK GUI support  : $enable_gtk])
+AC_MSG_NOTICE([  Targets          : $siril_targets])

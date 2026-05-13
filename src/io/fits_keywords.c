@@ -586,7 +586,7 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_USHORT:
 			status = 0;
-			us = (*((int*) keys->data));
+			us = (*((gushort*) keys->data));
 			if (us) {
 				fits_update_key(fit->fptr, TUSHORT, keys->key, &us, keys->comment, &status);
 			}
@@ -956,6 +956,8 @@ int read_fits_keywords(fits *fit) {
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
+	GRegex *wcs_regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
+
 	// Loop through each keyword
 #ifdef DEBUG_PRINT_HEADER
 	printf("FITS Header:\n");
@@ -994,8 +996,6 @@ int read_fits_keywords(fits *fit) {
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
-			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
-
 			if (strncmp(card, "HISTORY", 7) == 0
 					|| strncmp(card, "CHECKSUM", 8) == 0
 					|| strncmp(card, "DATASUM", 7) == 0) {
@@ -1003,17 +1003,14 @@ int read_fits_keywords(fits *fit) {
 			}
 
 			GMatchInfo *match_info = NULL;
-			if (g_regex_match(regex, card, 0, &match_info)) {
+			if (g_regex_match(wcs_regex, card, 0, &match_info)) {
 				g_match_info_free(match_info);
-				g_regex_unref(regex);
 				continue;
 			}
 
 			if (match_info) {
 				g_match_info_free(match_info);
 			}
-
-			g_regex_unref(regex);
 
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
@@ -1042,7 +1039,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_INT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < G_MININT || double_value > G_MAXINT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for INT: %s\n",
+				siril_log_color_message(_("Warning: FITS value for keyname '%s' out of range for INT: %s\n"),
 						"salmon", keyname, value);
 			}
 			int_value = (int) double_value;
@@ -1056,7 +1053,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_UINT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < 0 || double_value > G_MAXUINT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for UINT: %s\n",
+				siril_log_color_message(_("Warning: FITS value for keyname '%s' out of range for UINT: %s\n"),
 						"salmon", keyname, value);
 			}
 			uint_value = (guint) double_value;
@@ -1070,7 +1067,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_USHORT:
 			double_value = g_ascii_strtod(value, &end);
 			if (double_value < 0 || double_value > G_MAXUSHORT) {
-				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n",
+				siril_log_color_message(_("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n"),
 						"salmon", keyname, value);
 			}
 			ushort_value = (gushort) double_value;
@@ -1101,13 +1098,15 @@ int read_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_STR:
 			unquoted = g_shell_unquote(value, NULL);
+			if (!unquoted) break;
 			str_value = g_strstrip(unquoted);
-			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
+			g_strlcpy((char*) current_key->data, str_value, FLEN_VALUE);
 			g_free(unquoted);
 			current_key->used = TRUE;
 			break;
 		case KTYPE_DATE:
 			unquoted = g_shell_unquote(value, NULL);
+			if (!unquoted) break;
 			str_value = g_strstrip(unquoted);
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
@@ -1132,6 +1131,8 @@ int read_fits_keywords(fits *fit) {
 			current_key->special_handler_read(fit, comment, current_key);
 		}
 	}
+
+	g_regex_unref(wcs_regex);
 
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
@@ -1185,12 +1186,14 @@ static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_has
 			case KTYPE_STR:
 				memset((char*) keyword_info->data, 0, FLEN_VALUE);
 				break;
-			case KTYPE_DATE:
-				if ((GDateTime*) keyword_info->data) {
-					g_date_time_unref((GDateTime*) keyword_info->data);
-					keyword_info->data = NULL;
+			case KTYPE_DATE: {
+				GDateTime **dt_ptr = (GDateTime **) keyword_info->data;
+				if (dt_ptr && *dt_ptr) {
+					g_date_time_unref(*dt_ptr);
+					*dt_ptr = NULL;
 				}
 				break;
+			}
 			default:
 				break;
 			}

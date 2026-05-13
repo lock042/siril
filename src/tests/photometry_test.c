@@ -22,12 +22,10 @@
 #include <gsl/gsl_matrix.h>
 
 #include "core/siril.h"
-#include "gui/gui_state.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 
 static float star[] = {

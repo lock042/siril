@@ -31,8 +31,6 @@ For compilation, these tools are needed in addition to the base development pack
 
 Then, mandatory build dependencies:
 - **glib-2.0** (>= 2.56.0) Glib Convenience Library
-- **GTK+ 3**, (>= 3.20) as GUI toolkit
-- **gtksourceview4** to provide context highlighting in the script editor
 - **lcms2** for color space management
 - **cfitsio** for FITS image read and write
 - **wcslib** (>=7.12) to handle astrometric data
@@ -44,6 +42,12 @@ background extraction
 possible without some shift-only registration)
 - **yyjson**, (>= 0.10.0) for Siril update check, spectrophotometry
 color calibration and metadata output
+
+GUI libraries are optional: most users will require them so they are enabled
+by default, but can be disabled if you only wish to build the headless siril-cli:
+
+- **GTK+ 3**, (>= 3.20) as GUI toolkit
+- **gtksourceview4** to provide context highlighting in the script editor
 
 Siril works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file

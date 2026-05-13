@@ -46,7 +46,7 @@ have_fftw3fomp = false
 have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
-enable_gui       = get_option('gui').enabled()
+enable_gtk       = get_option('gtk')
 enable_openmp    = get_option('openmp')
 enable_libcurl   = get_option('libcurl')
 enable_sqlite    = get_option('sqlite')
@@ -247,12 +247,11 @@ if platform_windows
 else
   gio_platform_dep = dependency('gio-unix-2.0', required : true, version: '>= 2.56.0')
 endif
-# GTK is required for GUI builds.  For headless builds it is still detected
-# when present (required: false → optional) so non-GUI files that still include
-# gui/ headers compile correctly on GTK-equipped systems.  Once all remaining
-# gui/ header contamination is removed from core files these can be removed from
-# the non-GUI dep list and truly omitted in headless builds.
-gtk_dep = dependency('gtk+-3.0', required : enable_gui, version: '>= 3.22.0')
+# GTK is required for GUI builds and entirely omitted in headless builds
+# (-Dgtk=false).  The GUI/core boundary is enforced by siril_lib being compiled
+# against core_dep (GTK-free); any gui/ header leakage into core sources would
+# fail to compile.
+gtk_dep = enable_gtk ? dependency('gtk+-3.0', required : true, version: '>= 3.22.0') : no_dep
 # Cairo, Pango and gdk-pixbuf are used by io/siril_plot.c and io/ser.c which
 # are in the core library, so they are always required.
 cairo_dep = dependency('cairo', required : true, version: '>= 1.14.0')
@@ -337,7 +336,7 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
-gtksourceview_dep = enable_gui ? dependency('gtksourceview-4') : no_dep
+gtksourceview_dep = enable_gtk ? dependency('gtksourceview-4', required : true) : no_dep
 
 healpix_dep = dependency('healpix_cxx', fallback : ['healpix_cxx', 'healpix_cxx_dep'], required : true, version: '>= 3.83')
 yyjson_dep = dependency('yyjson', required : false, version: '>= 0.10.0')
@@ -504,7 +503,7 @@ conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
-conf_data.set('HAVE_GTK', enable_gui ? 1 : false, description : 'Build includes GTK GUI support.')
+conf_data.set('HAVE_GTK', enable_gtk ? 1 : false, description : 'Build includes GTK GUI support.')
 
 conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
 conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
@@ -754,8 +753,8 @@ core_dep = declare_dependency(
 externals_dep = declare_dependency(
   dependencies: [
     core_dep,
-    gtk_dep,           # not found/linked when -Dgui=disabled and GTK absent
-    gtksourceview_dep, # no_dep when -Dgui=disabled
+    gtk_dep,           # no_dep when -Dgtk=false
+    gtksourceview_dep, # no_dep when -Dgtk=false
   ]
 )
 
@@ -815,6 +814,7 @@ summary(
 
 summary(
   {
+    'gtk (GUI)' : enable_gtk,
     'openmp'    : get_option('openmp'),
     'arch_native' : get_option('arch_native'),
   }, section: 'Optional features'

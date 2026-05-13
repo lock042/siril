@@ -20,7 +20,6 @@
 
 #include <criterion/criterion.h>
 #include "../core/siril.h"
-#include "gui/gui_state.h"
 #include "../algos/sorting.h"
 
 #include <stdlib.h>
@@ -33,7 +32,6 @@
 #define NBTRIES 200	// for result checking, unit test of implementations
 
 cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
 fits *gfit;	// currently loaded image
 
 double median_from_sorted_array(WORD *arr, int size)
