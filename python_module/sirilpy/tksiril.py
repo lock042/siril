@@ -6,6 +6,13 @@
 """
 TKsiril submodule for Siril, providing utility methods to achieve consistent
 script GUI appearance using the TKinter toolkit.
+
+DEPRECATION WARNING: the tksiril submodule is deprecated from Siril 1.4.3.
+It will remain part of sirilpy throughout the stable 1.4 series but has been
+removed from master and will therefore disappear with the release of Siril 1.6.0.
+
+No new scripts will be accepted in the siril-scripts repository if they use
+the tksiril submodule.
 """
 
 import platform

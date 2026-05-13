@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-11 13:08+0100\n"
-"PO-Revision-Date: 2026-03-09 21:55+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"PO-Revision-Date: 2026-05-09 10:17+0000\n"
+"Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.siril.org/projects/siril/software/"
 "siril/de/>\n"
 "Language: de\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.8.4\n"
+"X-Generator: Weblate 5.16.2\n"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1942
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -2717,7 +2717,7 @@ msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:136
 msgid "Multi-layer image composition"
-msgstr "Multi-layer Bild Komposition"
+msgstr "Multi-Layer Bildkomposition"
 
 #: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:439
 #: src/compositing/compositing.c:440 src/compositing/compositing.c:833
@@ -3840,7 +3840,7 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:1117
 #: src/gui/uifiles/histogram_dialog.ui:1040
 msgid "Local stretch intensity (b)"
-msgstr "Intensität der lokalen Dehnung (b)"
+msgstr "Intensität der lokalen Streckung (b)"
 
 #: src/gui/uifiles/dialog_star_remix.ui:490
 #: src/gui/uifiles/dialog_star_remix.ui:514
@@ -4045,10 +4045,10 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
-"Mit dieser Pipette können Sie den Symmetriepunkt für die Hintergrunddehnung "
-"auf der Grundlage des Durchschnittswerts der aktuellen Auswahl festlegen. "
-"Dies hilft dabei, schwache Details über dem dunklen Hintergrund "
-"hervorzuheben."
+"Mit dieser Pipette können Sie den Symmetriepunkt für die "
+"Hintergrundstreckung auf der Grundlage des Durchschnittswerts der aktuellen "
+"Auswahl festlegen. Dies hilft dabei, schwache Details über dem dunklen "
+"Hintergrund hervorzuheben."
 
 #: src/gui/uifiles/dialog_star_remix.ui:1361
 #: src/gui/uifiles/dialog_star_remix.ui:1387
@@ -4247,7 +4247,7 @@ msgstr ""
 #: src/gui/uifiles/extract_channel_dialog.ui:35 src/gui/uifiles/siril.ui:1386
 #: src/gui/uifiles/siril.ui:1697
 msgid "Channel Extraction"
-msgstr "Kanal Extraktion"
+msgstr "Kanalextraktion"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:107
 msgid "File name for the first FITS file to save."
@@ -4488,7 +4488,7 @@ msgstr "Übertragungskurve und die Linie y=x anzeigen"
 
 #: src/gui/uifiles/histogram_dialog.ui:459
 msgid "Show pre-stretch histogram"
-msgstr "Vordehnungshistogramm anzeigen"
+msgstr "Vorstreckungshistogramm anzeigen"
 
 #: src/gui/uifiles/histogram_dialog.ui:486
 msgid ""
@@ -9026,7 +9026,7 @@ msgstr "Setze letzte Kurve der Photometrie zurück."
 
 #: src/gui/uifiles/siril.ui:313
 msgid "Clear latest"
-msgstr "Letztes zurücksetzen"
+msgstr "Letzten löschen"
 
 #: src/gui/uifiles/siril.ui:335
 msgid "Julian Date"
@@ -9462,7 +9462,7 @@ msgstr "Vollständige Resynthese"
 
 #: src/gui/uifiles/siril.ui:1851
 msgid "Open Dynamic PSF dialog."
-msgstr "Dialgo dynamisches PSF öffnen."
+msgstr "Dialog dynamisches PSF öffnen."
 
 #: src/gui/uifiles/siril.ui:1894
 msgid "Filters Processing"
@@ -9664,7 +9664,7 @@ msgstr "Verzerrungen anzeigen"
 
 #: src/gui/uifiles/siril.ui:2544
 msgid "Dynamic PSF..."
-msgstr "Dynamisches PSF..."
+msgstr "Dynamische PSF..."
 
 #: src/gui/uifiles/siril.ui:2585
 msgid ""
@@ -28526,7 +28526,7 @@ msgstr "Stern-Neuzusammensetzung"
 
 #: src/gui/remixer.c:641 src/gui/remixer.c:1353
 msgid "Show advanced stretch options."
-msgstr "Zeige weitere Optionen zur Streckung/Dehnung."
+msgstr "Zeige weitere Optionen zur Streckung."
 
 #: src/gui/remixer.c:972 src/gui/remixer.c:989
 msgid ""

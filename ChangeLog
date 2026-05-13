@@ -1,18 +1,21 @@
 siril-1.4.3
---/--/--
+05/07/26
 
 **Fixes**
 * SirilInterface.save_undo_state fixed to no longer raise an exception if called headless
 * Fixed incorrect dimensions constraint in sirilpy when setting FFit.data
 * Fixed use-after-free error that caused a crash if the python module fails to install
 * Fixed Windows pipes naming (#1921)
+* Fixed the 'Keep all samples' in background extraction
 * Added None as a keyword value for BAYERPAT
+* Fixed file extension handling in Save As dialog (#1748)
+* Fixed crash when loading some Hubble images (#1932)
+* Fixed individual frame reading when browsing through a fitseq with different image sizes (!1021)
 
 **Improvements**
 * Added SirilInterface.open_dialog()
 * Allow certain python scripts to be run automatically at startup (!1001)
 * Added -async option to pyscript command (!1015)
-
 
 siril-1.4.2-HF1
 04/08/26

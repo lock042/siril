@@ -27,6 +27,7 @@ void fit_get_photometry_data(fits *fit);
 int fit_stats(fitsfile *fptr, float *mini, float *maxi);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
+gchar *get_original_filename_from_fits(const gchar *filename);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
 void clearfits(fits*);
 void clearfits_header(fits*);
