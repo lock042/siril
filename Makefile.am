@@ -84,7 +84,15 @@ git-version.h: update-git-version-header
 	  echo "  git HEAD changed: $@ regenerated"; \
 	fi
 
-siril_resource.h: src/siril_resource.xml
+# The gtk4 backend uses a parallel resource XML pointing at
+# gui-gtk4/uifiles/* and gui-gtk4/siril.css instead of gui/*.
+if USE_GTK4
+siril_resource_xml = $(srcdir)/src/siril_resource_gtk4.xml
+else
+siril_resource_xml = $(srcdir)/src/siril_resource.xml
+endif
+
+siril_resource.h: $(siril_resource_xml)
 	$(AM_V_GEN)
 	glib-compile-resources \
 	--sourcedir=$(top_builddir) \
@@ -94,6 +102,6 @@ siril_resource.h: src/siril_resource.xml
 	--target=src/$@ \
 	--generate-header \
 	--c-name siril_resource \
-	$(srcdir)/src/siril_resource.xml
+	$(siril_resource_xml)
 
 .PHONY: update-git-version-header siril_resource.h
