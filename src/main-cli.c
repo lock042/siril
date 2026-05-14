@@ -111,6 +111,13 @@ static gboolean _set_offline(const gchar *option_name,
 	return TRUE;
 }
 
+static gboolean _set_bare(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	com.python_disabled = TRUE;
+	return TRUE;
+}
+
+
 static GOptionEntry main_option[] = {
 	{ "directory", 'd', 0, G_OPTION_ARG_FILENAME, &main_option_directory, N_("changing the current working directory as the argument"), NULL },
 	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
@@ -123,6 +130,7 @@ static GOptionEntry main_option[] = {
 	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
 	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
+	{ "bare", 'b', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_bare, N_("start in bare mode (no python engine)"), NULL },
 	{ NULL },
 };
 
@@ -212,6 +220,10 @@ static void siril_app_activate(GApplication *application) {
 	init_num_procs();
 	log_num_procs();
 	siril_log_message(_("Supported file types: %s\n"), supported_files);
+	if (!com.python_disabled)
+		initialize_python_venv_in_thread();
+	else
+		siril_log_message(_("Python support disabled, running in bare mode.\n"));
 
 #if defined(HAVE_LIBCURL)
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -248,7 +260,6 @@ static void siril_app_activate(GApplication *application) {
 		read_pipe(main_option_rpipe_path);
 	}
 
-	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 	initialize_spcc_mirrors();
 	if (main_option_sync_spcc) {

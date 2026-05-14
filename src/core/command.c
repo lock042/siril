@@ -14572,6 +14572,10 @@ gpointer execute_python_script_wrapper(gpointer user_data) {
 }
 
 int process_pyscript(int nb) {
+	if (com.python_disabled) {
+		siril_log_color_message(_("Python scripting has been disabled at startup.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
 	gchar *script_name = NULL;
 	GStatBuf statbuf;
 

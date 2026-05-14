@@ -840,6 +840,7 @@ struct cominf {
 	// TODO: these three variables could / should be accessed using g_atomic_int_*
 	// (this would be a broad but light change with many read / write sites)
 	gboolean script;		// script being executed, always TRUE when headless is
+	gboolean python_disabled;	// python support enabled
 	gboolean python_command;	// python is running a Siril command
 	gboolean stop_script;		// abort script execution, not just a command
 
