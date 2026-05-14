@@ -1397,20 +1397,14 @@ static void paint_mpp_ref_frame_into_gfit(const int32_t *src, int rows, int cols
 	memcpy(gfit, &ref_fits, offsetof(fits, rwlock));
 	g_rw_lock_writer_unlock(&gfit->rwlock);
 
-	/* Mirror seq_load_image's post-load display-refresh sequence so the
-	 * cutoff sliders pick up the new bitpix, autostretch fits the
-	 * ref-frame range, and the canvas re-renders. */
-	sliders_mode sliders = (sliders_mode) gui_iface.get_sliders_mode();
-	if (sliders != USER) {
-		init_layers_hi_and_lo_values(sliders);
-		gui_iface.sliders_mode_set_state(gui_iface.get_sliders_mode());
-		gui_iface.set_cutoff_sliders_max_values();
-		gui_iface.set_cutoff_sliders_values();
-		gui_iface.update_display_mode_state();
-	}
-	gui_iface.update_histogram();
-	gui_iface.remap_all_vports();
-	gui_iface.redraw_image(REMAP_ALL);
+	/* update_single_image_from_gfit is the canonical "key aspects of
+	 * gfit have changed (channels, bitpix)" refresh — see comment in
+	 * single_image.c. It runs init_layers_hi_and_lo_values, the slider
+	 * mode/max/values sequence, set_precision_switch, close_tab +
+	 * init_right_tab (which handle mono-vs-RGB viewport visibility — a
+	 * Bayer SER was 3-channel, the ref frame is mono), remap_all_vports,
+	 * update_histogram, redraw_image(REMAP_ALL). */
+	update_single_image_from_gfit(NULL);
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in
