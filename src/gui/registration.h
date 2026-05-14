@@ -42,4 +42,9 @@ void update_reg_interface(gboolean dont_change_reg_radio);
 gboolean end_register_idle(gpointer p);
 void initialize_registration_methods();
 
+/* MPP editor button sensitivity. Reads com.mpp_run; safe to call from
+ * any GTK thread. Called by end_register_idle (Analyze success), by
+ * close_sequence_idle, and by the editor on AP edits. */
+void mpp_update_edit_button_sensitivity(void);
+
 #endif /* SRC_GUI_REGISTRATION_H_ */

@@ -894,6 +894,14 @@ struct cominf {
 	/* all fields below are used by some specific features as a temporary storage */
 	GSList *grad_samples;		// list of samples for the background extraction
 
+	/* Multipoint planetary registration (REG_MPP) cached run. Lives from
+	 * Analyze success until close_sequence (or app exit). Forward-declared
+	 * as void* to avoid pulling registration/mpp.h into siril.h; access via
+	 * mpp_get_cached_run() / mpp_set_cached_run() / mpp_clear_cached_run()
+	 * declared in registration/mpp.h. The pointer's actual type is
+	 * struct mpp_run *. */
+	void *mpp_run;
+
 	GSList *found_object;		// list of objects found in the image from catalogues
 
 	struct spcc_data_store spcc_data; // library of SPCC filters, sensors

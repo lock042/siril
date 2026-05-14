@@ -36,6 +36,9 @@
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "io/annotation_catalogues.h"
+#include "registration/mpp.h"
+#include "registration/mpp_ap.h"
+#include "registration/mpp_config.h"
 #include "filters/mtf.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -1974,6 +1977,27 @@ static void draw_stars(const draw_data_t* dd) {
 	}
 }
 
+/* Draw alignment-point boxes from the cached MPP run (com.mpp_run).
+ * Called from redraw_drawingarea right after draw_brg_boxes so APs sit
+ * in the same overlay stratum as bgext samples. Yellow stroke at the
+ * ref-frame coordinates from each mpp_ap_record_t — same coordinate
+ * system as the displayed image (top-down on SER). Skipped silently if
+ * no run is cached, so non-MPP workflows pay zero cost. */
+static void draw_mpp_aps(const draw_data_t* dd) {
+	mpp_run_t *run = mpp_get_cached_run();
+	if (!run || !run->aps || run->aps->count <= 0 || !run->cfg) return;
+	const int hb = run->cfg->alignment_points_half_box_width;
+	if (hb <= 0) return;
+	const int side = 2 * hb;
+	cairo_set_line_width(dd->cr, 1.0 / dd->zoom);
+	cairo_set_source_rgba(dd->cr, 1.0, 1.0, 0.0, 0.7);   /* yellow, semi-transparent */
+	for (int i = 0; i < run->aps->count; ++i) {
+		const mpp_ap_record_t *ap = &run->aps->records[i];
+		cairo_rectangle(dd->cr, ap->x - hb, ap->y - hb, side, side);
+		cairo_stroke(dd->cr);
+	}
+}
+
 static void draw_brg_boxes(const draw_data_t* dd) {
 	GSList *list;
 	GdkRGBA gdk_color;
@@ -2978,6 +3002,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* background removal gradient selection boxes */
 	draw_brg_boxes(&dd);
+
+	/* multipoint planetary alignment-point grid (active after Analyze) */
+	draw_mpp_aps(&dd);
 
 	/* registration framing*/
 	draw_regframe(&dd);

@@ -45,6 +45,7 @@
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
 #include "registration/3stars.h"
 #include "registration/mpp_config.h"
 #include "stacking/stacking.h"
@@ -1346,6 +1347,27 @@ void on_seqmpp_analyze_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 }
 
+/* Stub for the "Edit APs…" button — opens the AP editor dialog (slice 9
+ * brings the dialog itself; this slot just exists so gtk_builder_connect_signals
+ * can find the handler at startup). */
+void on_seqmpp_edit_aps_button_clicked(GtkButton *button, gpointer user_data) {
+	(void) button; (void) user_data;
+	if (!mpp_get_cached_run()) return;   /* defensive: button should be insensitive */
+	siril_log_message(_("AP editor: dialog not yet implemented (slice 9).\n"));
+}
+
+/* Toggle "Edit APs..." button sensitivity from com.mpp_run state. Called
+ * from end_register_idle (Analyze success) and from close_sequence_idle
+ * via gui_iface_impl. The button widget is fetched lazily on first call. */
+void mpp_update_edit_button_sensitivity(void) {
+	static GtkWidget *btn = NULL;
+	if (!btn) {
+		btn = GTK_WIDGET(gtk_builder_get_object(gui.builder, "button_mpp_edit_aps"));
+		if (!btn) return;
+	}
+	gtk_widget_set_sensitive(btn, mpp_get_cached_run() != NULL);
+}
+
 /* Paint the analysis-built mean reference frame into gfit so the user sees
  * the image that AP placement was performed against. Single-channel,
  * 16-bit; values clamped from the int32 source (which carries a 16-bit-
@@ -1441,17 +1463,19 @@ gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
-			if (args->mpp_stage_a_only && args->mpp_ref_frame) {
+			if (args->mpp_stage_a_only && mpp_get_cached_run()) {
 				/* Skip seq_load_image — it would overwrite the ref frame
 				 * we're about to paint. The user explicitly wants the
 				 * analysis ref frame on screen, not whatever the sequence's
 				 * reference_image happens to be. */
-				paint_mpp_ref_frame_into_gfit(args->mpp_ref_frame,
-				                              args->mpp_ref_rows,
-				                              args->mpp_ref_cols);
+				const mpp_run_t *run = mpp_get_cached_run();
+				paint_mpp_ref_frame_into_gfit(run->mean_frame_data,
+				                              run->mean_frame_rows,
+				                              run->mean_frame_cols);
 			} else {
 				seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			}
+			mpp_update_edit_button_sensitivity();
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {
@@ -1481,7 +1505,6 @@ gboolean end_register_idle(gpointer p) {
 	}
 
 	free(args->new_seq_name);
-	free(args->mpp_ref_frame);
 	free(args);
 	return FALSE;
 }

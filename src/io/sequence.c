@@ -56,6 +56,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "registration/registration.h"
+#include "registration/mpp.h"
 #include "stacking/stacking.h"	// for stack_method and related types
 #include "opencv/opencv.h"
 
@@ -1609,6 +1610,9 @@ void close_sequence(int loading_sequence_from_combo) {
 
 		free_sequence(&com.seq, FALSE);
 		initialize_sequence(&com.seq, FALSE);
+
+		/* Drop any cached MPP run — it pertains to the closed sequence. */
+		mpp_clear_cached_run();
 
 		if (!com.headless)
 			gui_iface.on_sequence_closed(loading_sequence_from_combo);

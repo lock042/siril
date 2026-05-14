@@ -399,6 +399,39 @@ extern "C" mpp_status_t mpp_stack_apply(sequence *seq, const mpp_config_t *cfg,
 	return MPP_OK;
 }
 
+/* -------------------- GUI cache for the current run --------------------
+ *
+ * The cached run is stored on com.mpp_run (declared as void* in siril.h to
+ * avoid cycles). Lifetime: installed by Stage A on success, freed by
+ * close_sequence (or replaced by a subsequent Stage A). The AP overlay in
+ * gui/image_display.c reads it under the mutex; the AP editor mutates it
+ * via mpp_get_cached_run + the mpp_ap_* helpers.
+ */
+static GMutex mpp_cache_mutex;
+
+extern "C" void mpp_set_cached_run(mpp_run_t *run) {
+	g_mutex_lock(&mpp_cache_mutex);
+	mpp_run_t *prev = (mpp_run_t *) com.mpp_run;
+	com.mpp_run = run;
+	g_mutex_unlock(&mpp_cache_mutex);
+	if (prev) mpp_run_free(prev);
+}
+
+extern "C" void mpp_clear_cached_run(void) {
+	g_mutex_lock(&mpp_cache_mutex);
+	mpp_run_t *prev = (mpp_run_t *) com.mpp_run;
+	com.mpp_run = NULL;
+	g_mutex_unlock(&mpp_cache_mutex);
+	if (prev) mpp_run_free(prev);
+}
+
+extern "C" mpp_run_t *mpp_get_cached_run(void) {
+	g_mutex_lock(&mpp_cache_mutex);
+	mpp_run_t *r = (mpp_run_t *) com.mpp_run;
+	g_mutex_unlock(&mpp_cache_mutex);
+	return r;
+}
+
 /* -------------------- Siril register-framework entry point -------------------- */
 
 /* Populate seq->regparam[layer][i].quality from a completed Stage-A run so
@@ -486,29 +519,12 @@ extern "C" int register_mpp(struct registration_args *regargs) {
 	mpp_write_quality_to_regdata(regargs->seq, regargs->layer, run);
 
 	if (stage_a_only) {
-		/* Stash the mean reference frame on the args struct so
-		 * end_register_idle can paint it into gfit on the main thread.
-		 * Single-channel int32, 16-bit-equivalent range. mpp_run_free is
-		 * about to drop the original below, so we copy. */
-		if (run->mean_frame_data && run->mean_frame_rows > 0
-		    && run->mean_frame_cols > 0) {
-			const size_t bytes = (size_t) run->mean_frame_rows
-			                   * run->mean_frame_cols * sizeof(int32_t);
-			regargs->mpp_ref_frame = (int32_t *) std::malloc(bytes);
-			if (regargs->mpp_ref_frame) {
-				std::memcpy(regargs->mpp_ref_frame,
-				            run->mean_frame_data, bytes);
-				regargs->mpp_ref_rows = run->mean_frame_rows;
-				regargs->mpp_ref_cols = run->mean_frame_cols;
-			} else {
-				siril_log_color_message(
-				        _("mpp: out of memory copying ref frame "
-				          "for display; image view not updated\n"),
-				        "salmon");
-			}
-		}
+		/* Install the run in the GUI cache so end_register_idle can
+		 * paint the mean frame and the AP overlay can pick up the AP
+		 * grid. mpp_set_cached_run takes ownership and frees any prior
+		 * cached run from a previous Analyze in this session. */
 		gui_iface.set_progress(PROGRESS_DONE, _("Analyze: done"));
-		mpp_run_free(run);
+		mpp_set_cached_run(run);
 		return MPP_OK;
 	}
 

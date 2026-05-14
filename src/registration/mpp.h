@@ -110,6 +110,21 @@ int register_mpp(struct registration_args *regargs);
  * so Siril's existing frame selector and quality plot surface them. */
 void mpp_write_quality_to_regdata(sequence *seq, int layer, const mpp_run_t *run);
 
+/* GUI-side cache of the current run. Stage A installs the run via
+ * mpp_set_cached_run; the AP overlay and the AP editor read it back via
+ * mpp_get_cached_run; close_sequence calls mpp_clear_cached_run.
+ *
+ * Ownership transfers to the cache on set: the cache frees the prior run
+ * (if any), and frees the current run on clear or replacement. Thread-safe
+ * via an internal mutex; callers must not hold a returned pointer across
+ * a call to mpp_set/clear_cached_run from another thread.
+ *
+ * The actual storage is com.mpp_run (declared as void* in core/siril.h to
+ * avoid include cycles); these helpers cast for you. */
+void mpp_set_cached_run(mpp_run_t *run);
+void mpp_clear_cached_run(void);
+mpp_run_t *mpp_get_cached_run(void);
+
 #ifdef __cplusplus
 }
 #endif
