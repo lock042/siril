@@ -401,6 +401,8 @@ static const char* log_color_to_str(LogColor color) {
 			return "green";
 		case LOG_BLUE:
 			return "blue";
+		case LOG_BOLD:
+			return "bold";
 		default:
 			return NULL;
 	}
