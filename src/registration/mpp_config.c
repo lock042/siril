@@ -8,7 +8,7 @@ mpp_status_t mpp_config_defaults(mpp_config_t *cfg) {
 	cfg->rank_laplacian_alpha = 1.0 / 256.0;
 	cfg->frames_normalization = true;
 	cfg->frames_normalization_threshold = 15;
-	cfg->bitpix = 16;
+	cfg->bitdepth = 16;
 
 	/* Phase 2 — global alignment */
 	cfg->align_frames_search_width = 34;

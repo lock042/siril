@@ -9,6 +9,18 @@ Tracker for porting the PSS multipoint registration + stacking pipeline into Sir
 - **Headless first.** Everything driven by a new `pss` command. GUI gated behind an explicit go/no-go pause.
 - **Algorithmic-match definition:** behaviour-equivalent within float-rounding. Bit-identical is not achievable across platforms even between two Python runs.
 
+## Cross-cutting invariants
+
+### Bit-depth handling
+
+Siril stores both 8-bit and 16-bit SER data as `WORD` (uint16) but keeps the values in their native range: 0..255 for `fit->bitpix == BYTE_IMG (8)`, 0..65535 for `USHORT_IMG (20)`. There is no automatic upscale at load time (`ser.c:ser_manage_endianess_and_depth` just zero-extends 8-bit bytes to WORDs).
+
+`mpp_config_t.bitdepth` is our 8/16 abstraction — set it from `fit->bitpix` via `mpp_bitdepth_from_fits_bitpix(int)`. The threshold scale is `mpp_cfg_threshold_scale(cfg)` (1.0 for 8-bit, 256.0 for 16-bit). `align_average_frame` upscales 8-bit data by `256/N` so `mean_frame` always lands in the 0..65535 range, mirroring PSS — downstream AP code can then assume 16-bit-equivalent units and hardcode `× 256` threshold scaling.
+
+### Per-frame global shifts (no separate pre-alignment)
+
+Wind jolts, telescope drift, tracking errors and other large frame-to-frame translations are handled by Phase 2's `align_global_from_frames` directly. Its two-phase `cv::TM_CCORR_NORMED` against an auto-picked patch on the best frame searches `±align_frames_search_width` (default 34 px) per axis on the coarse stride-2 grid, plus PSS's backward-then-forward cumulative-shift chaining (a shifted reference window if the running drift would push the patch off-frame). For larger or more pathological drift the search width can be raised via `cfg.align_frames_search_width`. **A separate COG / pre-alignment pass is not required and is not on the plan.**
+
 ## Scope
 
 In scope: SER ingest, debayering, frame ranking, global alignment, AP grid, per-AP shifts, multipoint stacking, bicubic drizzle (PSS-faithful), STScI drizzle (Siril-original), Bayer drizzle (Siril-original), `pss` command, eventually a GUI.

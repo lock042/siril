@@ -403,13 +403,12 @@ AlignAverageResult align_average_frame(const std::vector<cv::Mat> &frames_raw,
 		accum += patch_f32;
 	}
 
-	/* PSS scales by 256/N for uint8 inputs and 1/N for uint16. We approximate
-	 * the input type by frames_raw[0].depth(); float inputs (already
-	 * normalised by an upstream Siril stage) just average normally. */
-	double scale;
-	if (frames_raw[0].depth() == CV_8U)        scale = 256.0 / (double) indices.size();
-	else if (frames_raw[0].depth() == CV_16U)  scale = 1.0   / (double) indices.size();
-	else                                       scale = 1.0   / (double) indices.size();
+	/* PSS scales by 256/N for uint8 inputs and 1/N for uint16. Siril stores
+	 * 8-bit SER data as WORD without upscaling (values 0..255), so we look
+	 * at cfg.bitdepth — NOT cv::Mat::depth() — to decide. Output mean_frame
+	 * always lands in the 0..65535 range, matching PSS so downstream AP
+	 * code can use a single `× 256` threshold scale. */
+	const double scale = (cfg.bitdepth == 8 ? 256.0 : 1.0) / (double) indices.size();
 	accum *= scale;
 	accum.convertTo(out.mean_frame, CV_32S);
 	return out;

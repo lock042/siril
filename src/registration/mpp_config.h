@@ -22,8 +22,13 @@ struct mpp_config {
 	bool frames_normalization;             /* PSS frames_normalization = true */
 	int frames_normalization_threshold;    /* PSS frames_normalization_threshold = 15, on 0..255 scale */
 
-	/* Input bit depth — drives threshold scaling. 8 or 16. */
-	int bitpix;
+	/* Source bit depth (PSS-conceptual: the value range of pixels, NOT the
+	 * CFITSIO bitpix code). Either 8 (values in 0..255) or 16 (values in
+	 * 0..65535). Drives threshold scaling and average-frame upscaling so
+	 * downstream code (post-mean_frame) can always treat values as 16-bit-
+	 * range, matching PSS. Use mpp_bitdepth_from_fits_bitpix() to convert
+	 * from Siril's fit->bitpix. */
+	int bitdepth;
 
 	/* Global frame alignment (Phase 2). All names mirror PSS configuration.py. */
 	int align_frames_search_width;              /* 34 */
@@ -56,6 +61,22 @@ static inline int mpp_cfg_half_patch_width(const struct mpp_config *c) {
 static inline int mpp_cfg_step_size(const struct mpp_config *c) {
 	/* PSS: round((half_patch_width * 4.5) / 3) == round(half_patch_width * 1.5) */
 	return (mpp_cfg_half_patch_width(c) * 3) / 2;
+}
+
+/* Threshold scale: PSS expresses brightness thresholds in 0..255 units but
+ * compares against pixel values in their native range. Returns 1.0 for 8-bit
+ * input (0..255) and 256.0 for 16-bit (0..65535). */
+static inline double mpp_cfg_threshold_scale(const struct mpp_config *c) {
+	return c->bitdepth == 8 ? 1.0 : 256.0;
+}
+
+/* Convert Siril's fit->bitpix (CFITSIO BITPIX codes: BYTE_IMG=8,
+ * SHORT_IMG=16, USHORT_IMG=20, FLOAT_IMG=-32, ...) to our 8/16 bit-depth
+ * convention. Only BYTE_IMG maps to 8; everything else is treated as
+ * 16-bit-equivalent, which is how Siril stores both 16-bit integer and
+ * float frames internally (WORD or fnormalised float). */
+static inline int mpp_bitdepth_from_fits_bitpix(int fits_bitpix) {
+	return fits_bitpix == 8 ? 8 : 16;
 }
 
 mpp_status_t mpp_config_defaults(mpp_config_t *cfg);

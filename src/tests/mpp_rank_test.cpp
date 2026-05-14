@@ -9,12 +9,14 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
 
+#include "registration/mpp_align_priv.hpp"
 #include "registration/mpp_rank_priv.hpp"
 
 extern "C" {
@@ -77,7 +79,15 @@ Test(mpp_rank, default_config_has_pss_values) {
 	cr_assert_float_eq(cfg.rank_laplacian_alpha, 1.0 / 256.0, 1e-12);
 	cr_assert(cfg.frames_normalization);
 	cr_assert_eq(cfg.frames_normalization_threshold, 15);
-	cr_assert_eq(cfg.bitpix, 16);
+	cr_assert_eq(cfg.bitdepth, 16);
+	cr_assert_float_eq(mpp_cfg_threshold_scale(&cfg), 256.0, 1e-12);
+}
+
+Test(mpp_rank, fits_bitpix_maps_correctly) {
+	cr_assert_eq(mpp_bitdepth_from_fits_bitpix(8),   8);   /* BYTE_IMG */
+	cr_assert_eq(mpp_bitdepth_from_fits_bitpix(16),  16);  /* SHORT_IMG (signed) */
+	cr_assert_eq(mpp_bitdepth_from_fits_bitpix(20),  16);  /* USHORT_IMG — Siril's normal 16-bit */
+	cr_assert_eq(mpp_bitdepth_from_fits_bitpix(-32), 16);  /* FLOAT_IMG */
 }
 
 Test(mpp_rank, score_is_positive_on_sharp_frame) {
@@ -210,16 +220,16 @@ Test(mpp_rank, oracle_equivalence_synthetic) {
 }
 
 /* PSS uses 16-bit input by default; threshold scales by 256 in that case. */
-Test(mpp_rank, brightness_threshold_scales_with_bitpix) {
+Test(mpp_rank, brightness_threshold_scales_with_bitdepth) {
 	const cv::Mat f = make_sharp_frame();
 
 	auto cfg16 = default_cfg();
-	cfg16.bitpix = 16;
+	cfg16.bitdepth = 16;
 	cfg16.frames_normalization_threshold = 15;
 	const double ab16 = mpp::rank_average_brightness(f, cfg16);
 
 	auto cfg8 = default_cfg();
-	cfg8.bitpix = 8;
+	cfg8.bitdepth = 8;
 	cfg8.frames_normalization_threshold = 15;
 	const double ab8 = mpp::rank_average_brightness(f, cfg8);
 
@@ -228,4 +238,42 @@ Test(mpp_rank, brightness_threshold_scales_with_bitpix) {
 	 * should therefore be ≥ the 16-bit-threshold reading. */
 	cr_assert_geq(ab8, ab16,
 	              "ab(thr=15)=%.2f should be ≥ ab(thr=3840)=%.2f", ab8, ab16);
+}
+
+/* 8-bit Siril SER data is stored as WORD with values 0..255. align_average_frame
+ * must upscale these by 256/N so mean_frame lands in the 16-bit-equivalent
+ * range that downstream AP code assumes (matching PSS frames.average_frame). */
+Test(mpp_rank, average_frame_upscales_8bit_input) {
+	/* This test lives here because it exercises the same bitdepth knob; the
+	 * function under test is mpp::align_average_frame. */
+	auto cfg = default_cfg();
+	/* Build a CV_16U-stored "8-bit-range" frame: values in 0..255. */
+	cv::Mat truth(64, 80, CV_16U);
+	for (int y = 0; y < truth.rows; ++y)
+		for (int x = 0; x < truth.cols; ++x)
+			truth.at<uint16_t>(y, x) = static_cast<uint16_t>((x + y) % 256);
+
+	std::vector<cv::Mat> frames = {truth, truth, truth, truth};
+	std::vector<double> q = {1.0, 0.9, 0.8, 0.7};
+	std::vector<cv::Vec2i> shifts(4, cv::Vec2i(0, 0));
+
+	cfg.bitdepth = 8;
+	cfg.align_frames_fast_changing_object = false;
+	const auto r8 = mpp::align_average_frame(frames, q, shifts, cfg);
+	cfg.bitdepth = 16;
+	const auto r16 = mpp::align_average_frame(frames, q, shifts, cfg);
+	/* For 8-bit input, mean = 256 * sum/N = 256 * value (since all frames
+	 * are the same). For 16-bit input, mean = sum/N = value. So r8 should
+	 * be 256× r16 cell-for-cell. */
+	cr_assert_eq(r8.mean_frame.size(), r16.mean_frame.size());
+	int worst = 0;
+	for (int y = 0; y < r8.mean_frame.rows; ++y)
+		for (int x = 0; x < r8.mean_frame.cols; ++x) {
+			const int v8  = r8.mean_frame.at<int>(y, x);
+			const int v16 = r16.mean_frame.at<int>(y, x);
+			worst = std::max(worst, std::abs(v8 - 256 * v16));
+		}
+	cr_assert_lt(worst, 256,
+	             "8-bit mean_frame should be ~256× the 16-bit one; worst Δ = %d",
+	             worst);
 }

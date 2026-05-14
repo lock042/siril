@@ -49,8 +49,7 @@ cv::Mat stride_subsample(const cv::Mat &src, int s) {
 }
 
 double brightness_threshold(const mpp_config_t &cfg) {
-	const double base = (double) cfg.frames_normalization_threshold;
-	return cfg.bitpix == 16 ? base * 256.0 : base;
+	return (double) cfg.frames_normalization_threshold * mpp_cfg_threshold_scale(&cfg);
 }
 
 }  // namespace
