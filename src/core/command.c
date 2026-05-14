@@ -14641,13 +14641,50 @@ static mpp_flag_status apply_mpp_flag(const char *arg, mpp_config_t *cfg,
 	return MPP_FLAG_NOT_FOR_MODE;
 }
 
+/* Peek at byte offset 18 of a `.ser` file (ColorID, little-endian int32) to
+ * decide whether forcing the debayer pref is the right call. Returns TRUE
+ * for SER files that need debayering (anything with a Bayer pattern), FALSE
+ * for mono SERs (where Siril would otherwise reinterpret them as CFA using
+ * the user's preferred Bayer pattern — wrong for true-mono planetary work),
+ * and TRUE for non-SER inputs (no-op since their readers don't have this
+ * footgun). */
+static gboolean mpp_should_force_debayer(const char *name) {
+	if (!name) return TRUE;
+	/* Try the name as-is, then with .ser appended (sequences are typically
+	 * referenced by basename). If neither exists or doesn't look like an SER,
+	 * default to forcing debayer — non-SER readers handle their own colour
+	 * logic and ignore the pref. */
+	const gchar *dot = strrchr(name, '.');
+	const gboolean has_ser_ext = dot && !g_ascii_strcasecmp(dot, ".ser");
+	const gboolean has_other_ext = dot && !has_ser_ext;
+	FILE *f = NULL;
+	if (has_ser_ext) {
+		f = g_fopen(name, "rb");
+	} else if (!has_other_ext) {
+		gchar *with_ext = g_strdup_printf("%s.ser", name);
+		f = g_fopen(with_ext, "rb");
+		g_free(with_ext);
+	}
+	if (!f) return TRUE;
+	if (fseek(f, 18, SEEK_SET) != 0) { fclose(f); return TRUE; }
+	int32_t color_id = -1;
+	const size_t n = fread(&color_id, sizeof(color_id), 1, f);
+	fclose(f);
+	if (n != 1) return TRUE;
+	/* SER ColorID 0 == SER_MONO. Anything else (Bayer or CYYM/YCMY family)
+	 * is interpreted by Siril's reader; force debayer for those. */
+	return color_id != 0;
+}
+
 /* `load_sequence_force_debayer` opens a sequence with `com.pref.debayer.open_debayer`
- * forced TRUE for the duration of the call, so Bayer SERs come back as 3-layer
- * RGB regardless of the user's saved preference. Returns the sequence (caller
- * may have to substitute `&com.seq` via `check_seq_is_comseq`) or NULL. */
+ * forced TRUE for Bayer SERs so they come back as 3-layer RGB regardless of
+ * the user's saved preference. Mono SERs and non-SER inputs are loaded with
+ * the saved preference untouched. Returns the sequence (caller may have to
+ * substitute `&com.seq` via `check_seq_is_comseq`) or NULL. */
 static sequence *load_sequence_force_debayer(const char *name) {
+	const gboolean want_debayer = mpp_should_force_debayer(name);
 	const gboolean saved = com.pref.debayer.open_debayer;
-	com.pref.debayer.open_debayer = TRUE;
+	if (want_debayer) com.pref.debayer.open_debayer = TRUE;
 	sequence *seq = load_sequence(name, NULL);
 	com.pref.debayer.open_debayer = saved;
 	return seq;
