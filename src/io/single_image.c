@@ -437,12 +437,14 @@ void notify_gfit_data_modified() {
 			gui_iface.copy_roi_into_gfit();
 		gui_iface.compute_histo_for_fit(gfit); // reads gfit pixel data; GTK toggle update deferred to idle
 		g_mutex_unlock(&com.histogram_mutex);
-		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
-		/* gui.hi / gui.lo are read on the GTK main thread (set_cutoff_sliders_values);
-		 * protect the write with com.mutex to prevent a data race. */
+		/* Update hi/lo display range BEFORE remapping so the first rendered frame
+		 * of a new image uses the correct stretch (not stale values from the
+		 * previously displayed image).  In USER slider mode this is a no-op, so
+		 * manually-set slider values are preserved. */
 		g_mutex_lock(&com.mutex);
 		init_layers_hi_and_lo_values((sliders_mode)gui_iface.get_sliders_mode());
 		g_mutex_unlock(&com.mutex);
+		gui_iface.remap_all_vports(); // Updates the Cairo image buffers based on applying the remap LUT to gfit
 	}
 }
 

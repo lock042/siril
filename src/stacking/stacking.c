@@ -122,12 +122,16 @@ gpointer stack_function_handler(gpointer p) {
 		g_rw_lock_writer_lock(&gfit->rwlock);
 		clearfits(gfit);
 		memcpy(gfit, &args->result, offsetof(fits, rwlock));
-		if (!com.script)
-			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
-		/* check in com.seq, because args->seq may have been replaced */
+		/* Set com.seq.current before icc_auto_assign so that any
+		 * notify_gfit_data_modified triggered from within it sees the
+		 * correct state and does not mistake the stacking result for
+		 * a sequence frame (avoids buffer overrun in
+		 * test_and_allocate_reference_image). */
 		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
+		if (!com.script)
+			icc_auto_assign(gfit, ICC_ASSIGN_ON_STACK);
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
