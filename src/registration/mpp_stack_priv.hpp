@@ -125,6 +125,36 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
                                       int drizzle_factor,
                                       const mpp_config_t &cfg);
 
+/* Stage B: per-AP per-frame shift compute (PSS stack_frames.py's per-(frame, AP)
+ * call to compute_shift_alignment_point with weight_matrix_first_phase set).
+ *
+ * Stage B is split out from the main stacking loop so the GUI workflow can
+ * pause after AP placement (Stage A) and frame selection but BEFORE the
+ * heavy per-AP correlation. The resulting mpp_shifts_t is the canonical
+ * Stage-B output: sparse where (frame, AP) is not in apq.used_alignment_points;
+ * dense in the integer-mode default. Caller frees via mpp_shift_free. */
+mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurred,
+                                   const cv::Mat &mean_frame_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const mpp_config_t &cfg);
+
+/* Stage C: apply pre-computed Stage-B shifts to produce per-AP buffers and
+ * averaged_background. Takes the same shifts vector as Stage B; the rest of
+ * the bookkeeping (brightness equalise, drizzle resize, remap_rigid,
+ * background accumulate) is identical to stack_frames_loop. */
+struct StackLoopOutput;  /* defined below */
+StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const mpp_shifts_t *shifts,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const std::vector<double> &frame_brightness,
+                                   const std::vector<int> &quality_sorted_idx,
+                                   const cv::Vec4i &intersection,
+                                   const mpp_config_t &cfg);
+
 /* PSS stack_frames.stack_frames main loop (stack_frames.py:281-506).
  *
  * Inputs:

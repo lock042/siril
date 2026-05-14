@@ -1,9 +1,73 @@
+/*
+ * Bridge between Siril's sequence/fits machinery and mpp's cv::Mat
+ * pipeline. Phase 6.1.
+ *
+ * The headline reason this exists rather than calling seq_read_frame
+ * directly is the debayer-on-open behaviour. PSS expects Bayer SERs to
+ * come in as RGB; Siril's seq_read_frame routes that through the global
+ * `com.pref.debayer.open_debayer` preference which we don't want to
+ * mutate (it's user-visible and not thread-safe under our parallel reads
+ * in later phases). We dispatch the same way seq_read_frame does but
+ * pass our own debayer flag for SER reads.
+ */
+
+#include <opencv2/core.hpp>
+
+/* Siril headers don't have `extern "C"` guards; wrap them so the C symbols
+ * link from a C++ TU. */
+extern "C" {
+#include "core/siril.h"
+#include "io/sequence.h"
+#include "io/ser.h"
+#include "io/fits_sequence.h"
+#include "io/image_format_fits.h"
+#ifdef HAVE_FFMS2
+#include "io/films.h"
+#endif
+
 #include "registration/mpp.h"
 #include "registration/mpp_frames.h"
+}
 
-extern "C" mpp_status_t mpp_frames_load_mono(struct sequence *seq, int idx,
-                                             const mpp_config_t *cfg,
-                                             struct fits *out) {
-	(void) seq; (void) idx; (void) cfg; (void) out;
-	return MPP_ENOTIMPL;
+extern "C" int mpp_seq_read_frame(sequence *seq, int idx, fits *dest,
+                                  bool force_float, int thread_id) {
+	if (!seq || !dest || idx < 0 || idx >= seq->number)
+		return MPP_EINVAL;
+
+	const gboolean ff = force_float ? TRUE : FALSE;
+	switch (seq->type) {
+		case SEQ_REGULAR: {
+			char filename[256];
+			fit_sequence_get_image_filename_checkext(seq, idx, filename);
+			if (readfits(filename, dest, NULL, ff))
+				return MPP_EIO;
+			break;
+		}
+		case SEQ_SER:
+			if (!seq->ser_file) return MPP_EINVAL;
+			/* Force debayer-on-open regardless of the user's global pref so
+			 * Bayer SERs always come back as RGB for our pipeline. */
+			if (ser_read_frame(seq->ser_file, idx, dest, ff, TRUE))
+				return MPP_EIO;
+			break;
+		case SEQ_FITSEQ:
+			if (!seq->fitseq_file) return MPP_EINVAL;
+			if (fitseq_read_frame(seq->fitseq_file, idx, dest, ff, thread_id))
+				return MPP_EIO;
+			break;
+#ifdef HAVE_FFMS2
+		case SEQ_AVI:
+			if (!seq->film_file) return MPP_EINVAL;
+			if (film_read_frame(seq->film_file, idx, dest))
+				return MPP_EIO;
+			break;
+#endif
+		case SEQ_INTERNAL:
+			/* In-memory sequence — used by tests. Defer to Siril's helper. */
+			return seq_read_frame(seq, idx, dest, ff, thread_id) == 0
+			    ? MPP_OK : MPP_EIO;
+		default:
+			return MPP_EINVAL;
+	}
+	return MPP_OK;
 }

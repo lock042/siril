@@ -298,25 +298,72 @@ StackState stack_prepare_for_blending(const mpp_aps_t &aps,
 	return s;
 }
 
-StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
-                                  const std::vector<cv::Mat> &frames_mono_blurred,
-                                  const cv::Mat &mean_frame_raw,
-                                  const mpp_aps_t &aps,
-                                  const APQualities &apq,
-                                  const std::vector<FrameOffset> &offsets,
-                                  const std::vector<double> &frame_brightness,
-                                  const std::vector<int> &quality_sorted_idx,
-                                  const cv::Vec4i &intersection,
-                                  const mpp_config_t &cfg) {
-	StackLoopOutput out;
-	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
-	                                       cfg.drizzle_factor, cfg);
-
-	const int N = (int) frames_raw.size();
+mpp_shifts_t *stack_compute_shifts(const std::vector<cv::Mat> &frames_mono_blurred,
+                                   const cv::Mat &mean_frame_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const mpp_config_t &cfg) {
+	const int N = (int) frames_mono_blurred.size();
+	const int M = aps.count;
 	const int K = cfg.drizzle_factor;
 	const bool use_subpixel = (K != 1);
 
-	/* PSS median brightness (frames.frames_average_brightness). */
+	mpp_shifts_t *out = (mpp_shifts_t *) std::calloc(1, sizeof(*out));
+	if (!out) return nullptr;
+	out->num_frames = N;
+	out->num_aps = M;
+	out->shifts  = (double *) std::calloc((size_t) N * (size_t) M * 2, sizeof(double));
+	out->success = (uint8_t *) std::calloc((size_t) N * (size_t) M, sizeof(uint8_t));
+	if (!out->shifts || !out->success) {
+		mpp_shift_free(out);
+		return nullptr;
+	}
+
+	const cv::Mat weight_matrix = stack_build_first_phase_weight_matrix(cfg);
+	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
+	int failures = 0;
+
+	for (int f = 0; f < N; ++f) {
+		const int dy = offsets[f].dy, dx = offsets[f].dx;
+		for (int a : apq.used_alignment_points[f]) {
+			const auto &ap = aps.records[a];
+			const MultilevelShiftResult r = multilevel_correlation(
+			    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
+			    frames_mono_blurred[f],
+			    ap.box_y_low + dy, ap.box_y_high + dy,
+			    ap.box_x_low + dx, ap.box_x_high + dx,
+			    cfg.frames_gauss_width, cfg.alignment_points_search_width,
+			    use_subpixel, weight_matrix);
+			const size_t off = (size_t) (f * M + a) * 2;
+			out->shifts[off + 0] = r.dy;
+			out->shifts[off + 1] = r.dx;
+			out->success[f * M + a] = r.success ? 1 : 0;
+			if (!r.success) ++failures;
+		}
+	}
+	out->failure_counter = failures;
+	return out;
+}
+
+StackLoopOutput stack_apply_shifts(const std::vector<cv::Mat> &frames_raw,
+                                   const mpp_aps_t &aps,
+                                   const APQualities &apq,
+                                   const mpp_shifts_t *shifts,
+                                   const std::vector<FrameOffset> &offsets,
+                                   const std::vector<double> &frame_brightness,
+                                   const std::vector<int> &quality_sorted_idx,
+                                   const cv::Vec4i &intersection,
+                                   const mpp_config_t &cfg) {
+	StackLoopOutput out;
+	out.state = stack_prepare_for_blending(aps, intersection, apq.stack_size,
+	                                       cfg.drizzle_factor, cfg);
+	out.shift_failure_counter = shifts ? shifts->failure_counter : 0;
+
+	const int N = (int) frames_raw.size();
+	const int M = aps.count;
+	const int K = cfg.drizzle_factor;
+
 	double median_brightness = 0.0;
 	if (cfg.frames_normalization) {
 		std::vector<double> sorted_b(frame_brightness);
@@ -327,23 +374,13 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 		    : 0.5 * (sorted_b[n / 2 - 1] + sorted_b[n / 2]);
 	}
 
-	/* Phase-1 penalty matrix (stack_frames.py:311-317). */
-	const cv::Mat weight_matrix = stack_build_first_phase_weight_matrix(cfg);
-
-	/* Reference boxes from the UNBLURRED mean_frame, matching PSS's
-	 * set_reference_boxes_correlation (alignment_points.py:506). */
-	const auto ref_boxes = shift_prepare_ref_boxes(mean_frame_raw, aps);
-
-	/* Frames in the global top-stack_size contribute to averaged_background. */
 	std::set<int> top_for_bg;
 	for (int i = 0; i < apq.stack_size && i < (int) quality_sorted_idx.size(); ++i)
 		top_for_bg.insert(quality_sorted_idx[i]);
 
 	for (int f = 0; f < N; ++f) {
 		const cv::Mat &frame_raw = frames_raw[f];
-		const cv::Mat &frame_blurred = frames_mono_blurred[f];
 
-		/* Brightness equalisation (PSS line 343 / 346). */
 		cv::Mat frame_f32;
 		if (cfg.frames_normalization) {
 			const double scale = median_brightness
@@ -353,7 +390,6 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 			frame_raw.convertTo(frame_f32, CV_32F);
 		}
 
-		/* Drizzle resize (PSS line 350 — INTER_LINEAR, not INTER_CUBIC). */
 		cv::Mat frame_drizzled;
 		if (K != 1)
 			cv::resize(frame_f32, frame_drizzled,
@@ -367,23 +403,12 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 		const int dy_K = dy * K;
 		const int dx_K = dx * K;
 
-		/* Per-AP shift + remap. */
 		for (int a : apq.used_alignment_points[f]) {
-			const auto &ap = aps.records[a];
-			const MultilevelShiftResult r = multilevel_correlation(
-			    ref_boxes[a].second_phase, ref_boxes[a].first_phase,
-			    frame_blurred,
-			    ap.box_y_low + dy, ap.box_y_high + dy,
-			    ap.box_x_low + dx, ap.box_x_high + dx,
-			    cfg.frames_gauss_width, cfg.alignment_points_search_width,
-			    use_subpixel, weight_matrix);
-			if (!r.success)
-				++out.shift_failure_counter;
-
-			/* PSS: int(round(shift * K)). On failure r.dy/dx are 0 → no
-			 * per-AP correction, only the global shift applies. */
-			const int shift_y_K = (int) std::lround(r.dy * (double) K);
-			const int shift_x_K = (int) std::lround(r.dx * (double) K);
+			const size_t soff = (size_t) (f * M + a) * 2;
+			const double shift_y = shifts ? shifts->shifts[soff + 0] : 0.0;
+			const double shift_x = shifts ? shifts->shifts[soff + 1] : 0.0;
+			const int shift_y_K = (int) std::lround(shift_y * (double) K);
+			const int shift_x_K = (int) std::lround(shift_x * (double) K);
 			const int total_y_K = dy_K - shift_y_K;
 			const int total_x_K = dx_K - shift_x_K;
 
@@ -393,8 +418,6 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 			                  out.border);
 		}
 
-		/* Background contribution (PSS line 459-474). Uses the *pre-drizzle*
-		 * brightness-equalised frame (frame_f32) regardless of drizzle. */
 		if (out.state.number_stacking_holes > 0
 		 && top_for_bg.find(f) != top_for_bg.end()) {
 			if (!out.state.background_patches.empty()) {
@@ -416,8 +439,6 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 		}
 	}
 
-	/* Post-loop: extend averaged_background to drizzled coords (if needed)
-	 * and divide by stack_size. */
 	if (out.state.number_stacking_holes > 0) {
 		if (K != 1) {
 			cv::Mat r;
@@ -429,6 +450,27 @@ StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
 		out.state.averaged_background /= (float) apq.stack_size;
 	}
 
+	return out;
+}
+
+StackLoopOutput stack_frames_loop(const std::vector<cv::Mat> &frames_raw,
+                                  const std::vector<cv::Mat> &frames_mono_blurred,
+                                  const cv::Mat &mean_frame_raw,
+                                  const mpp_aps_t &aps,
+                                  const APQualities &apq,
+                                  const std::vector<FrameOffset> &offsets,
+                                  const std::vector<double> &frame_brightness,
+                                  const std::vector<int> &quality_sorted_idx,
+                                  const cv::Vec4i &intersection,
+                                  const mpp_config_t &cfg) {
+	/* Thin wrapper preserving the Phase-5a API: Stage B then Stage C. */
+	mpp_shifts_t *shifts = stack_compute_shifts(frames_mono_blurred,
+	                                            mean_frame_raw, aps, apq,
+	                                            offsets, cfg);
+	StackLoopOutput out = stack_apply_shifts(frames_raw, aps, apq, shifts,
+	                                         offsets, frame_brightness,
+	                                         quality_sorted_idx, intersection, cfg);
+	mpp_shift_free(shifts);
 	return out;
 }
 

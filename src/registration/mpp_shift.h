@@ -27,6 +27,7 @@ struct mpp_shifts {
 	int num_aps;
 	double *shifts;       /* malloc'd, length 2 * num_frames * num_aps */
 	uint8_t *success;     /* malloc'd, length     num_frames * num_aps */
+	int failure_counter;  /* diagnostic: count of (frame, AP) shifts that failed */
 };
 
 /* For each AP in `aps`, compute per-frame local shifts via two-phase

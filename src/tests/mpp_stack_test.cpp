@@ -617,6 +617,15 @@ Test(mpp_stack, end_to_end_stacked_oracle) {
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *aps, cfg);
 
+	if (const char *dump = std::getenv("MPP_DUMP_RESULT_DIR")) {
+		const fs::path out = fs::path(dump) / "stacked_u16_siril.bin";
+		std::ofstream fout(out, std::ios::binary);
+		fout.write(reinterpret_cast<const char *>(stacked.data),
+		           (std::streamsize) stacked.total() * sizeof(uint16_t));
+		std::ofstream dims_out(fs::path(dump) / "stacked_u16_siril_dims.csv");
+		dims_out << stacked.rows << " " << stacked.cols << "\n";
+	}
+
 	const auto dims = read_ints_csv(stacked_dims);
 	cr_assert_eq(dims.size(), 2u);
 	const int eH = dims[0], eW = dims[1];
@@ -727,6 +736,18 @@ Test(mpp_stack, end_to_end_real_ser_oracle) {
 	                                         sorted_idx, avg.intersection, cfg);
 	const cv::Mat stacked = mpp::stack_merge_alignment_point_buffers(
 	    loop.state, loop.border, *aps, cfg);
+
+	/* Optional side-effect: dump the Siril stacked output next to PSS's so
+	 * the two can be compared visually. Enabled via MPP_DUMP_RESULT_DIR
+	 * which the test runner can set ad-hoc; off by default. */
+	if (const char *dump = std::getenv("MPP_DUMP_RESULT_DIR")) {
+		const fs::path out = fs::path(dump) / "stacked_u16_siril.bin";
+		std::ofstream fout(out, std::ios::binary);
+		fout.write(reinterpret_cast<const char *>(stacked.data),
+		           (std::streamsize) stacked.total() * sizeof(uint16_t));
+		std::ofstream dims_out(fs::path(dump) / "stacked_u16_siril_dims.csv");
+		dims_out << stacked.rows << " " << stacked.cols << "\n";
+	}
 
 	const auto dims = read_ints_csv(stacked_dims);
 	cr_assert_eq(dims.size(), 2u);
