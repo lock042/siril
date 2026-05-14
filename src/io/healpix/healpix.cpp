@@ -148,7 +148,7 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
     // Open the catalog file in binary mode
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
-        siril_log_color_message(_("Failed to open file: %s\n"), "red", filename.c_str());
+        siril_log_error(_("Failed to open file: %s\n"), filename.c_str());
         return results;
     }
 
@@ -159,7 +159,7 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         file.seekg(pos, std::ios::beg);
         file.read(reinterpret_cast<char*>(&index_value), sizeof(uint32_t));
         if (!file) {
-            siril_log_color_message(_("Failed to read catalog index entry.\n"), "red");
+            siril_log_error(_("Failed to read catalog index entry.\n"));
             results.clear();
             return 0;
         }
@@ -172,7 +172,7 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         uint32_t end_healpixel = range.end_id;
 
         if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
-            siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
+            siril_log_error(_("ID range exceeds catalog bounds.\n"));
             results.clear();
             return results;
         }
@@ -201,7 +201,7 @@ static std::vector<EntryType> query_catalog(const std::string& filename, std::ve
         file.read(reinterpret_cast<char*>(buffer.data()), num_records * sizeof(EntryType));
 
         if (!file) {
-            siril_log_color_message(_("Failed to read data entries.\n"), "red");
+            siril_log_error(_("Failed to read data entries.\n"));
             results.clear();
             return results;
         }
@@ -267,15 +267,14 @@ static HealpixCatHeader read_healpix_cat_header_http_with_curl(CURL* curl, const
         if (std::filesystem::file_size(cache_path, ec) == HEADER_SIZE) {
             cache_exists = true;
         } else {
-            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
-                                "salmon", cache_path.c_str());
+            siril_log_warning(_("Cache file %s is corrupted or incomplete. Deleting...\n"), cache_path.c_str());
             std::filesystem::remove(cache_path, ec);
         }
     }
 
     // Download if it doesn't exist
     if (!cache_exists) {
-        siril_debug_print(_("Fetching header to cache: %s\n"), filename.c_str());
+        siril_log_debug(_("Fetching header to cache: %s\n"), filename.c_str());
 
         gsize response_length;
         int error;
@@ -342,15 +341,14 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         if (std::filesystem::file_size(cache_path, ec) == INDEX_SIZE) {
             cache_exists = true;
         } else {
-            siril_log_color_message(_("Cache file %s is corrupted or incomplete. Deleting...\n"),
-                                "salmon", cache_path.c_str());
+            siril_log_warning(_("Cache file %s is corrupted or incomplete. Deleting...\n"), cache_path.c_str());
             std::filesystem::remove(cache_path, ec);
         }
     }
 
     // Ensure cache exists; if not, fetch and create it
     if (!cache_exists) {
-        siril_debug_print(_("Fetching index to cache\n"));
+        siril_log_debug(_("Fetching index to cache\n"));
 
         gsize response_length;
         int error;
@@ -366,14 +364,14 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         );
 
         if (error || !buffer || response_length != INDEX_SIZE) {
-            siril_log_color_message(_("Failed to download index via HTTP\n"), "red");
+            siril_log_error(_("Failed to download index via HTTP\n"));
             return std::nullopt;
         }
 
         // Write buffer to cache file
         std::ofstream out(cache_path, std::ios::binary);
         if (!out.good()) {
-            siril_log_color_message(_("Failed to write index cache file\n"), "red");
+            siril_log_error(_("Failed to write index cache file\n"));
             free(buffer);
             return std::nullopt;
         }
@@ -384,11 +382,11 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
     }
 
     // At this point, the cache file is guaranteed to exist.
-    siril_debug_print(_("Loading index from cache\n"));
+    siril_log_debug(_("Loading index from cache\n"));
 
     std::ifstream in(cache_path, std::ios::binary);
     if (!in.good()) {
-        siril_log_color_message(_("Failed to read index cache file\n"), "red");
+        siril_log_error(_("Failed to read index cache file\n"));
         return std::nullopt;
     }
 
@@ -401,7 +399,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
         uint32_t end_healpixel = range.end_id;
 
         if (start_healpixel >= n_healpixels || end_healpixel >= n_healpixels) {
-            siril_log_color_message(_("ID range exceeds catalog bounds.\n"), "red");
+            siril_log_error(_("ID range exceeds catalog bounds.\n"));
             results.clear();
             return std::nullopt;
         }
@@ -425,7 +423,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
             gsize data_response_length;
             int data_error;
 
-            siril_debug_print(_("Fetching range %zu - %zu\n"), data_start_pos, data_length);
+            siril_log_debug(_("Fetching range %zu - %zu\n"), data_start_pos, data_length);
             data_buffer = fetch_url_range_with_curl(
                 (void*)curl,
                 full_url.c_str(),
@@ -437,7 +435,7 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
             );
 
             if (data_error || !data_buffer) {
-                siril_log_color_message(_("Failed to read data entries via HTTP\n"), "red");
+                siril_log_error(_("Failed to read data entries via HTTP\n"));
                 results.clear();
                 return std::nullopt;
             }
@@ -477,12 +475,12 @@ static std::optional<std::vector<EntryType>> query_catalog_http_with_curl(CURL* 
 
 	// Commit to cache
 	if (!segments.empty()) {
-            siril_debug_print(_("Committing %zu pixels (%zu total records) to SQLite cache\n"),
+            siril_log_debug(_("Committing %zu pixels (%zu total records) to SQLite cache\n"),
                               segments.size(), num_records);
             cache->setCacheEntry(segments);
         } else {
             // Shouldn't happen
-            siril_debug_print(_("No data found in range %u-%u to cache.\n"), start_healpixel, end_healpixel);
+            siril_log_debug(_("No data found in range %u-%u to cache.\n"), start_healpixel, end_healpixel);
         }
 
         free(data_buffer);
@@ -503,7 +501,7 @@ static std::vector<EntryType> query_catalog_http(const std::string& base_url,
                                                   const HealpixCatHeader& header) {
     CURL* curl = curl_easy_init();
     if (!curl) {
-        siril_log_color_message(_("Error initialising CURL handle\n"), "red");
+        siril_log_error(_("Error initialising CURL handle\n"));
         return std::vector<EntryType>();
     }
 
@@ -529,8 +527,7 @@ static bool read_healpix_cat_header_http_with_fallback(CURL* curl, const char* p
         return true;  // Current mirror works
     }
 
-    siril_log_color_message(_("Mirror %s failed, trying alternatives...\n"),
-                           "salmon", com.spcc_remote_catalogue);
+    siril_log_warning(_("Mirror %s failed, trying alternatives...\n"), com.spcc_remote_catalogue);
 
     // Try each mirror in sequence
     for (int i = 0; spcc_mirrors[i] != NULL; i++) {
@@ -548,14 +545,13 @@ static bool read_healpix_cat_header_http_with_fallback(CURL* curl, const char* p
             // This mirror works! Update the global setting
             g_free(com.spcc_remote_catalogue);
             com.spcc_remote_catalogue = g_strdup(spcc_mirrors[i]);
-            siril_log_color_message(_("Switched to working mirror: %s\n"),
-                                   "green", com.spcc_remote_catalogue);
+            siril_log_info(_("Switched to working mirror: %s\n"), com.spcc_remote_catalogue);
             return true;
         }
     }
 
     // All mirrors failed
-    siril_log_color_message(_("All catalogue mirrors failed to respond.\n"), "red");
+    siril_log_error(_("All catalogue mirrors failed to respond.\n"));
     return false;
 }
 
@@ -585,8 +581,7 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
     }
 
     // Current mirror failed, try alternatives
-    siril_log_color_message(_("Query failed on mirror %s, trying alternatives...\n"),
-                           "salmon", com.spcc_remote_catalogue);
+    siril_log_warning(_("Query failed on mirror %s, trying alternatives...\n"), com.spcc_remote_catalogue);
 
     for (int i = 0; spcc_mirrors[i] != NULL; i++) {
         // Skip if this is the current mirror (already tried)
@@ -606,14 +601,13 @@ static std::vector<EntryType> query_catalog_http_with_fallback(
             // This mirror works! Update the global setting
             g_free(com.spcc_remote_catalogue);
             com.spcc_remote_catalogue = g_strdup(spcc_mirrors[i]);
-            siril_log_color_message(_("Switched to working mirror: %s\n"),
-                                   "green", com.spcc_remote_catalogue);
+            siril_log_info(_("Switched to working mirror: %s\n"), com.spcc_remote_catalogue);
             return response.value();
         }
     }
 
     // All mirrors failed
-    siril_log_color_message(_("All catalogue mirrors failed for query.\n"), "red");
+    siril_log_error(_("All catalogue mirrors failed for query.\n"));
     return {};  // Return empty vector
 }
 
@@ -777,7 +771,7 @@ extern "C" {
 #endif
 
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
-        siril_debug_print("Search radius: %f deg\n", radius);
+        siril_log_debug("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         double ra_rad = ra * DEG_TO_RAD;
@@ -798,7 +792,7 @@ extern "C" {
 
         pointing point(theta, phi);
         std::vector<int> pixel_indices;
-        siril_debug_print("query_disc_inclusive params: theta = %f, phi = %f, rad = %f\n", point.theta, point.phi, radius_rad);
+        siril_log_debug("query_disc_inclusive params: theta = %f, phi = %f, rad = %f\n", point.theta, point.phi, radius_rad);
 
         // Perform the cone search
         healpix_base.query_disc_inclusive(point, radius_rad, pixel_indices);
@@ -881,7 +875,7 @@ extern "C" {
 
     int get_raw_stars_from_local_gaia_xpsampled_catalogue(double ra, double dec, double radius, double limitmag, SourceEntryXPsamp **stars, uint32_t *nb_stars) {
         radius /= 60.0; // the catalogue radius is in arcmin, we want it in degrees to convert to radians
-        siril_debug_print("Search radius: %f deg\n", radius);
+        siril_log_debug("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         double ra_rad = ra * DEG_TO_RAD;
@@ -897,7 +891,7 @@ extern "C" {
         std::string first_chunk = find_matching_cat_file(chunkpath);
 
         if (first_chunk.empty()) {
-            siril_log_color_message(_("Error: no chunks detected.\n"), "red");
+            siril_log_error(_("Error: no chunks detected.\n"));
             *stars = nullptr;
             *nb_stars = 0;
             return 1;
@@ -947,7 +941,7 @@ extern "C" {
             std::string this_chunk_path = (std::filesystem::path(chunkpath) / chunkfile).string();
 
             if (!std::filesystem::exists(this_chunk_path)) {
-                siril_log_color_message(_("Chunk file not found: %s\n"), "red", this_chunk_path.c_str());
+                siril_log_error(_("Chunk file not found: %s\n"), this_chunk_path.c_str());
                 file_error = true;
                 break;
             }
@@ -955,7 +949,7 @@ extern "C" {
             int status = 0;
             HealpixCatHeader this_header = read_healpix_cat_header(this_chunk_path, &status);
             if (!header_compatible(header, this_header)) {
-                siril_log_color_message(_("Error: catalog header values for chunk %lu are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"), "red");
+                siril_log_error(_("Error: catalog header values for chunk %lu are incompatible with previous values. All chunk files must have the same chunk level and indexing level and must represent the same Gaia data release\n"));
                 return 1;
             }
             // Query the catalogue for matches
@@ -1019,7 +1013,7 @@ extern "C" {
                                                            double limitmag, SourceEntryXPsamp **stars,
                                                            uint32_t *nb_stars) {
         radius /= 60.0;
-        siril_debug_print("Search radius: %f deg\n", radius);
+        siril_log_debug("Search radius: %f deg\n", radius);
         const double DEG_TO_RAD = M_PI / 180.0;
         double radius_rad = radius * DEG_TO_RAD;
         double ra_rad = ra * DEG_TO_RAD;
@@ -1031,7 +1025,7 @@ extern "C" {
         // Initialize CURL handle for first chunk request
         CURL* curl = curl_easy_init();
         if (!curl) {
-            siril_log_color_message(_("Error initialising CURL handle\n"), "red");
+            siril_log_error(_("Error initialising CURL handle\n"));
             *stars = nullptr;
             *nb_stars = 0;
             return 1;
@@ -1140,8 +1134,7 @@ extern "C" {
             // If initial header read fails, try other mirrors
             if (chunk_status != 0) {
                 if (!read_healpix_cat_header_http_with_fallback(thread_curl, chunk_filename.c_str(), &this_header, &chunk_status)) {
-                    siril_log_color_message(_("Failed to read header for chunk %d from any mirror\n"),
-                                          "red", chunk_id);
+                    siril_log_error(_("Failed to read header for chunk %d from any mirror\n"), chunk_id);
                     #pragma omp atomic write
                     file_error = true;
                     curl_easy_cleanup(thread_curl);
@@ -1151,8 +1144,7 @@ extern "C" {
 
             // Verify chunk header - this helps catch if a mirror has incomplete data
             if (!header_compatible(header, this_header)) {
-                siril_log_color_message(_("Error: catalog header values for chunk %d are incompatible\n"),
-                                       "red", chunk_id);
+                siril_log_error(_("Error: catalog header values for chunk %d are incompatible\n"), chunk_id);
                 #pragma omp atomic write
                 file_error = true;
                 curl_easy_cleanup(thread_curl);
@@ -1170,8 +1162,7 @@ extern "C" {
 
             if (results_in_chunks[i].empty() && !chunk_pixels.empty()) {
                 // Query returned nothing but we expected data - this might indicate failure
-                siril_log_color_message(_("Warning: No data retrieved for chunk %d\n"),
-                                       "salmon", chunk_id);
+                siril_log_warning(_("Warning: No data retrieved for chunk %d\n"), chunk_id);
             }
 
 	    // Clean up thread local curl
@@ -1235,7 +1226,7 @@ extern "C" {
     int get_raw_stars_from_remote_gaia_xpsampled_catalogue(double ra, double dec, double radius,
                                                            double limitmag, SourceEntryXPsamp **stars,
                                                            uint32_t *nb_stars) {
-        siril_log_color_message(_("Error: Siril was compiled without libcurl support. Remote catalogue access is unavailable.\n"), "red");
+        siril_log_error(_("Error: Siril was compiled without libcurl support. Remote catalogue access is unavailable.\n"));
         *stars = nullptr;
         *nb_stars = 0;
         return 1;

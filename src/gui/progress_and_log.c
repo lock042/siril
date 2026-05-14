@@ -245,7 +245,7 @@ static void save_log_file(gchar *filename) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
+			siril_log_error(_("Cannot create logfile [%s]\n"), filename);
 		}
 		g_object_unref(file);
 		return;

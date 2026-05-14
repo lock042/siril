@@ -90,7 +90,7 @@ void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
 		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
 		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
 		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
-		// siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+		// siril_log_debug("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
 	}
 	int x0 = (int)xmin;
 	int y0 = (int)ymin;
@@ -126,13 +126,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
 				n++;
-				siril_debug_print("Image #%d:\n", i + 1);
+				siril_log_debug("Image #%d:\n", i + 1);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					siril_log_debug("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
 				}
@@ -140,7 +140,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				quicksort_d(&ys[0], 4);
 				// check we have overlap with the reference
 				if (xs[3] < 0. || xs[0] > (double)rx || ys[3] < 0. || ys[0] > (double)ry) {
-					siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+					siril_log_error(_("Image %d has no overlap with the reference\n"), i + 1);
 					retval = FALSE;
 				}
 			}
@@ -154,7 +154,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
-				siril_debug_print("Image #%d:\n", i);
+				siril_log_debug("Image #%d:\n", i);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
 				double img_xmin = DBL_MAX, img_xmax = -DBL_MAX, img_ymin = DBL_MAX, img_ymax = -DBL_MAX; 
@@ -168,7 +168,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					if (img_ymin > current_framing.pt[j].y) img_ymin = current_framing.pt[j].y;
 					if (img_xmax < current_framing.pt[j].x) img_xmax = current_framing.pt[j].x;
 					if (img_ymax < current_framing.pt[j].y) img_ymax = current_framing.pt[j].y;
-					// siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					// siril_log_debug("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 				}
 				total_Mpix += (double)(img_xmax - img_xmin + 1) * (img_ymax - img_ymin + 1) * 1.e-6;
 			}
@@ -176,8 +176,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			ry_0 = (int)ymax - (int)ymin + 1;
 			x0 = (int)xmin;
 			y0 = (int)ymin;
-			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
-			siril_debug_print("new origin: %d %d\n", x0, y0);
+			siril_log_debug("new size: %d %d\n", rx_0, ry_0);
+			siril_log_debug("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			total_Mpix *= regargs->output_scale * regargs->output_scale;
@@ -191,13 +191,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
 				n++;
-				siril_debug_print("Image #%d:\n", i + 1);
+				siril_log_debug("Image #%d:\n", i + 1);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					siril_log_debug("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
 				}
@@ -211,13 +211,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			rx_0 = (int)xmax - (int)xmin + 1;
 			ry_0 = (int)ymax - (int)ymin + 1;
 			if (rx_0 < 0 || ry_0 < 0) {
-				siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
+				siril_log_error(_("The intersection of all images is null or negative\n"));
 				retval = FALSE;
 			}
 			x0 = (int)xmin;
 			y0 = (int)ymin;
-			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
-			siril_debug_print("new origin: %d %d\n", x0, y0);
+			siril_log_debug("new size: %d %d\n", rx_0, ry_0);
+			siril_log_debug("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			total_Mpix = (double)n * rx_0 * ry_0 * regargs->output_scale * regargs->output_scale * 1.e-6;
@@ -254,13 +254,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
-				siril_debug_print("Image #%d:\n", i + 1);
+				siril_log_debug("Image #%d:\n", i + 1);
 				regframe current_framing = framing;
 				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, newHref, 1.);
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					siril_log_debug("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
 				}
@@ -268,7 +268,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				quicksort_d(&ys[0], 4);
 				// check we have overlap with the reference
 				if (xs[3] < 0. || xs[0] > (double)rx || ys[3] < 0. || ys[0] > (double)ry) {
-					siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+					siril_log_error(_("Image %d has no overlap with the reference\n"), i + 1);
 					retval = FALSE;
 				}
 			}
@@ -308,7 +308,7 @@ static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int 
 		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
 		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
 		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
-		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+		siril_log_debug("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
 	}
 	*dst_rx_out = (int)xmax - (int)xmin + 1;
 	*dst_ry_out = (int)ymax - (int)ymin + 1;
@@ -336,13 +336,13 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 
 
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
-		siril_log_color_message(_("Could not load reference image\n"), "red");
+		siril_log_error(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		clearfits(&fit);
 		return 1;
 	}
 	if (!regargs->driz && fit_is_cfa(&fit))
-		siril_log_color_message(_("Applying interpolation on a sequence opened as CFA is a bad idea.\n"), "red");
+		siril_log_error(_("Applying interpolation on a sequence opened as CFA is a bad idea.\n"));
 
 	if (regargs->undistort) {
 		siril_log_message(_("Distortion data was found in the sequence file, undistortion will be applied\n"));
@@ -350,8 +350,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 
 		// We prepare the distortion structure maps if required
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
-		siril_log_color_message(
-				_("Could not init distortion mapping\n"), "red");
+		siril_log_error(
+				_("Could not init distortion mapping\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -359,8 +359,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
-		siril_log_color_message(
-				_("Could not init drizzle\n"), "red");
+		siril_log_error(
+				_("Could not init drizzle\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -389,7 +389,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
 	if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
-		siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
+		siril_log_bold(_("Frame %d:\n"), filenum);
 	}
 
 	// Composing transformation wrt reference image
@@ -460,14 +460,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		int cfadim = 0;
 		if (fit_is_cfa(fit)) {
 			if (get_compiled_pattern(fit, cfa, &cfadim, FALSE)) {
-				siril_log_color_message(_("Drizzle: Could not get compiled CFA pattern from the image.\n"), "red");
+				siril_log_error(_("Drizzle: Could not get compiled CFA pattern from the image.\n"));
 				free(p->error);
 				free(p->pixmap);
 				free(p);
 				return 1;
 			}
 			if (cfadim != driz->cfadim || !compare_compiled_pattern(driz->cfa, cfa, driz->cfadim)) {
-				siril_log_color_message(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), "salmon", in_index + 1);
+				siril_log_warning(_("Drizzle: CFA pattern mismatch between reference image and image #%d, using reference pattern.\n"), in_index + 1);
 			}
 			memcpy(p->cfa, driz->cfa, 36 * sizeof(BYTE));
 			p->cfadim = driz->cfadim;
@@ -490,7 +490,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		}
 
 		if (!p->pixmap->xmap) {
-			siril_log_color_message(_("Error generating mapping array.\n"), "red");
+			siril_log_error(_("Error generating mapping array.\n"));
 			free(p->error);
 			free(p->pixmap);
 			free(p);
@@ -500,7 +500,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		// Convert fit to 32-bit float if required
 		float *newbuf = NULL;
 		if (fit->type == DATA_USHORT) {
-			siril_debug_print("Replacing ushort buffer for drizzling\n");
+			siril_log_debug("Replacing ushort buffer for drizzling\n");
 			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
 			newbuf = malloc(ndata * sizeof(float));
 			if (!newbuf) {
@@ -567,7 +567,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->weights = driz->flat;
 
 		if (dobox(p)) { // Do the drizzle
-			siril_log_color_message("s\n", p->error->last_message);
+			siril_log_error("%s\n", p->error->last_message);
 			return 1;
 		}
 		clearfits(fit);
@@ -688,7 +688,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
 		if (regargs->new_total <= 1) {
-			siril_log_color_message(_("No image was registered to the reference\n"), "red");
+			siril_log_error(_("No image was registered to the reference\n"));
 			args->retval = 1;
 		}
 	}
@@ -731,8 +731,8 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Applying registration completed.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
-		siril_log_color_message(str, "green");
-		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
+		siril_log_info(str);
+		siril_log_info(_("Total: %d failed, %d exported.\n"), failed, regargs->new_total);
 
 		g_free(str);
 		if (!(args->seq->type == SEQ_INTERNAL)) {
@@ -867,8 +867,7 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -879,7 +878,7 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
 				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -914,7 +913,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	int extent = (driz->scale >= 1) ? patch_size_in : (int)(patch_size_in / driz->scale);
 	fits *tiny_flat = NULL;
 	float *flatbuf = NULL;
-	siril_debug_print("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
+	siril_log_debug("Drizzle scale: %f, patch size: %d, extent: %d\n", driz->scale, patch_size_in, extent);
 
 	if (disto) {
 		src_rx = reffits->rx;
@@ -935,14 +934,14 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 
 	float *buffer = calloc(size_in, sizeof(float));
 	if (!buffer) {
-		siril_log_color_message(_("Drizzle: Could not allocate memory for weight calculation.\n"), "red");
+		siril_log_error(_("Drizzle: Could not allocate memory for weight calculation.\n"));
 		retval = 1;
 		goto clean_and_exit;
 	}
 	if (driz->flat && !disto) {
 		flatbuf = calloc(size_in, sizeof(float));
 		if (!flatbuf) {
-			siril_log_color_message(_("Drizzle: Could not allocate memory for tiny flat calculation.\n"), "red");
+			siril_log_error(_("Drizzle: Could not allocate memory for tiny flat calculation.\n"));
 			retval = 1;
 			goto clean_and_exit;
 		}
@@ -990,13 +989,13 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	cvGetEye(&H);
 
 	if (map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, driz->scale, disto, 1)) {
-		siril_log_color_message(_("Drizzle: Could not compute mapping for weights calculation.\n"), "red");
+		siril_log_error(_("Drizzle: Could not compute mapping for weights calculation.\n"));
 		retval = 1;
 		goto clean_and_exit;
 	}
 
 	if (!p->pixmap->xmap) {
-		siril_log_color_message(_("Drizzle:Error generating mapping array.\n"), "red");
+		siril_log_error(_("Drizzle:Error generating mapping array.\n"));
 		retval = 1;
 		goto clean_and_exit;
 	}
@@ -1030,7 +1029,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 			if (output_counts->naxes[2] == 1) {
 				imstats *stat = statistics(NULL, -1, driz->flat, 0, NULL, STATS_MINMAX, 1);
 				if (!stat || stat->max <= 1e-3f) {
-					siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", 0);
+					siril_log_error(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), 0);
 					retval = 1;
 					goto clean_and_exit;
 				}
@@ -1041,7 +1040,7 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 				for (int c = 0; c < 3; c++) { // we need to do the stats on cfa channels to create the mock-up tiny flat
 					imstats *stat = statistics(NULL, -1, driz->flat, -(c + 1), NULL, STATS_MINMAX, 1);
 					if (!stat || stat->max <= 1e-3f) {
-						siril_log_color_message(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), "red", c - 1);
+						siril_log_error(_("Drizzle: Statistics for drizzle flat on layer %d is invalid.\n"), c - 1);
 						retval = 1;
 						goto clean_and_exit;
 					}
@@ -1060,18 +1059,18 @@ static int compute_max_drizzle_weights(struct driz_args_t *driz, fits *reffits, 
 	}
 
 	if (dobox(p)) { // Do the drizzle
-		siril_log_color_message("s\n", p->error->last_message);
+		siril_log_error("%s\n", p->error->last_message);
 		return 1;
 	}
 	for (int c = 0; c < output_counts->naxes[2]; c++) {
 		imstats *stat = statistics(NULL, -1, output_counts, c, NULL, STATS_MINMAX, 1);
 		if (!stat) {
-			siril_log_color_message(_("Error computing statistics for drizzle weights.\n"), "red");
+			siril_log_error(_("Error computing statistics for drizzle weights.\n"));
 			retval = 1;
 			continue;
 		}
 		if (stat->max <= 1e-3f) {
-			siril_log_color_message(_("Max drizzle weight for layer %d is invalid.\n"), "red", c);
+			siril_log_error(_("Max drizzle weight for layer %d is invalid.\n"), c);
 			retval = 1;
 			continue;
 		}
@@ -1106,13 +1105,13 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 
 	/* fit will now hold the reference frame */
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
-		siril_log_message(_("Could not load reference image\n"));
+		siril_log_error(_("Could not load reference image\n"));
 	}
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern);
 	driz->is_bayer = fit.naxes[2] == 1 && pattern >= BAYER_FILTER_MIN; // any pattern above BAYER_FILTER_MIN is a valid pattern, that includes XTrans;
 	int cfadim = 0;
 	if (driz->is_bayer && get_compiled_pattern(&fit, driz->cfa, &cfadim, FALSE)) {
-		siril_log_color_message(_("Warning: the CFA pattern in the reference image is not supported by drizzle.\n"), "red");
+		siril_log_error(_("Warning: the CFA pattern in the reference image is not supported by drizzle.\n"));
 		return 1;
 	}
 	if (driz->is_bayer)
@@ -1189,8 +1188,8 @@ int register_apply_reg(struct registration_args *regargs) {
 			regargs->filtering_criterion, regargs->filtering_parameter);
 		regargs->new_total = nb_frames2;	// to avoid recomputing it later
 		if (nb_frames2 != nb_frames) {
-			siril_log_color_message(_("Warning: the number of images after collecting astrometry is different from the number of images before filtering.\n"), "salmon");
-			siril_log_color_message(_("The registration will be applied to the filtered images only.\n"), "salmon");
+			siril_log_warning(_("Warning: the number of images after collecting astrometry is different from the number of images before filtering.\n"));
+			siril_log_warning(_("The registration will be applied to the filtered images only.\n"));
 		}
 		Homography Href = { 0 };
 		if (compute_Hs_from_astrometry(regargs->seq, included, regargs->reference_image, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
@@ -1250,7 +1249,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
-			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
+			siril_log_error(_("Could not initialize distortion data, aborting\n"));
 			free(sadata);
 			args->user = NULL;
 			retval = 1;
@@ -1266,7 +1265,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (regargs->undistort && regargs->wcsref->lin.dispre)
 			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
 		if (!regargs->undistort && regargs->wcsref->lin.dispre)
-			siril_log_color_message(_("Distortion was found in reference image astrometry but you did not include distortion correction when registering the images\n"), "salmon");
+			siril_log_warning(_("Distortion was found in reference image astrometry but you did not include distortion correction when registering the images\n"));
 		if (index == DISTO_FILES && image_is_flipped_from_wcs(regargs->wcsref)) { // we are in astrometric reg, we will need to flip the solution if required
 			Homography H = { 0 };
 			cvGetEye(&H);
@@ -1287,7 +1286,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		// we fetch the reference date to compute back comet shifts
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
-			siril_log_message(_("Could not load reference image\n"));
+			siril_log_error(_("Could not load reference image\n"));
 			free(sadata);
 			args->user = NULL;
 			retval = -1;
@@ -1332,12 +1331,12 @@ void guess_transform_from_seq(sequence *seq, int layer,
 	gboolean needs_sel_update = FALSE;
 
 	if (!layer_has_registration(seq, layer)) {
-		siril_debug_print("No registration data found in sequence or layer\n");
+		siril_log_debug("No registration data found in sequence or layer\n");
 		return;
 	}
 	for (int i = 0; i < seq->number; i++){
 		transformation_type val = guess_transform_from_H(seq->regparam[layer][i].H);
-		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
+		//siril_log_debug("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
 		if (val == NULL_TRANSFORMATION && excludenull) {
@@ -1354,7 +1353,7 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 
 	// determines the reference homography (including framing shift) and output size
 	if (!compute_framing(regargs)) {
-		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
+		siril_log_error(_("Unselect the images generating the error or change framing method to max\n"));
 		return FALSE;
 	}
 
@@ -1362,8 +1361,8 @@ static gboolean check_applyreg_output(struct registration_args *regargs) {
 	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
-		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
-		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
+		siril_log_error(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"));
+		siril_log_error(_("You should change framing method, aborting\n"));
 		return FALSE;
 	}
 
@@ -1375,49 +1374,49 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		// check the reference image matrix is not null
 	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
-		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
+		siril_log_error(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"));
 		return FALSE;
 	}
 	// check the number of dof if -interp=none
 	transformation_type min, max;
 	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
 	if (!driz && max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
-		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
+		siril_log_error(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), ((int)max + 1) * 2);
 		return FALSE;
 	}
 
 	// check the consistency of output images size if -interp=none
 	if (!driz && regargs->interpolation == OPENCV_NONE && (regargs->output_scale != 1.f || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
-		siril_log_color_message(_("Applying registration with changes in output image size is not allowed when interpolation is set to none , aborting\n"), "red");
+		siril_log_error(_("Applying registration with changes in output image size is not allowed when interpolation is set to none , aborting\n"));
 		return FALSE;
 	}
 
 	// check the consistency of images size if -interp=none
 	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
-		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");
+		siril_log_error(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"));
 		return FALSE;
 	}
 
 	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->undistort) {
-		siril_log_color_message(_("Applying registration on images with distortions when interpolation is set to none is not allowed, aborting\n"), "red");
+		siril_log_error(_("Applying registration on images with distortions when interpolation is set to none is not allowed, aborting\n"));
 		return FALSE;
 	}
 
 	// check that we are not trying to apply identity transform to all the images
 	if (max == IDENTITY_TRANSFORMATION) {
-		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
+		siril_log_error(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"));
 		return FALSE;
 	}
 
 	// check that we are not trying to apply null transform to all the images
 	if (max == NULL_TRANSFORMATION || (regargs->seq->selnum <= 1) ) {
-		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
+		siril_log_error(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"));
 		return FALSE;
 	}
 
 	// force -selected if some matrices were null
 	if (min == NULL_TRANSFORMATION) {
-		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
+		siril_log_warning(_("Some images were not registered, excluding them\n"));
 		regargs->filters.filter_included = TRUE;
 		// We update filtering
 		convert_parsed_filter_to_filter(&regargs->filters,
@@ -1427,13 +1426,13 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// cog framing method requires all images to be of same size
 	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
-		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
+		siril_log_error(_("Framing method \"cog\" requires all images to be of same size, aborting\n"));
 		return FALSE;
 	}
 
 	// max framing method cannot output FITSEQ or SER
 	if (regargs->framing == FRAMING_MAX && (regargs->seq->type == SEQ_FITSEQ || regargs->seq->type == SEQ_SER)) {
-		siril_log_color_message(_("Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"), "red");
+		siril_log_error(_("Framing method \"max\" cannot export to FITSEQ or SER format, aborting\n"));
 		return FALSE;
 	}
 
@@ -1443,8 +1442,8 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 	if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, ref_index, regargs->filtering_parameter)) {
 		if (regargs->framing == FRAMING_CURRENT) {
-			siril_log_color_message(_("Reference image is not included in the filtered list, aborting\n"), "red");
-			siril_log_color_message(_("This is not compatible with framing mode \"current\", change reference image"), "red");
+			siril_log_error(_("Reference image is not included in the filtered list, aborting\n"));
+			siril_log_error(_("This is not compatible with framing mode \"current\", change reference image"));
 			return FALSE;
 		} else {
 			for (int i = 0; i < regargs->seq->number; i++) {
@@ -1453,7 +1452,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 					break;
 				}
 			}
-			siril_log_color_message(_("Reference image is not included in the filtered list, using image #%d instead\n"), "salmon", regargs->reference_image + 1);
+			siril_log_warning(_("Reference image is not included in the filtered list, using image #%d instead\n"), regargs->reference_image + 1);
 		}
 	}
 	return TRUE;

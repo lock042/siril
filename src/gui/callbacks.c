@@ -191,7 +191,7 @@ void on_press_seq_field() {
 }
 
 static void update_icons_to_theme(gboolean is_dark) {
-	siril_debug_print("Loading %s theme...\n", is_dark ? "dark" : "light");
+	siril_log_debug("Loading %s theme...\n", is_dark ? "dark" : "light");
 	if (is_dark) {
 		update_theme_button("annotate_button", "astrometry_dark.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid_dark.svg");
@@ -527,7 +527,7 @@ void set_cutoff_sliders_max_values() {
 	 */
 
 	max_val = (gfit->type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit->orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
-	siril_debug_print(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
+	siril_log_debug(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
 	gtk_adjustment_set_lower(adj1, 0.0);
 	gtk_adjustment_set_lower(adj2, 0.0);
 	gtk_adjustment_set_upper(adj1, max_val);
@@ -559,7 +559,7 @@ void set_cutoff_sliders_values() {
 	WORD lo = gui.lo;
 	g_mutex_unlock(&com.mutex);
 
-	siril_debug_print(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
+	siril_log_debug(_("Setting ranges scalemin=%d, scalemax=%d\n"), lo, hi);
 	gtk_adjustment_set_value(adjmin, (gdouble)lo);
 	gtk_adjustment_set_value(adjmax, (gdouble)hi);
 	g_snprintf(buffer, 6, "%u", hi);
@@ -599,7 +599,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	}
 
 	gui.rendering_mode = get_display_mode_from_menu();
-	siril_debug_print("Display mode %d\n", gui.rendering_mode);
+	siril_log_debug("Display mode %d\n", gui.rendering_mode);
 	gboolean override_label = FALSE;
 
 	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit->type != DATA_FLOAT)
@@ -793,7 +793,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
-	siril_debug_print("bitdepth: %d\n", bitdepth);
+	siril_log_debug("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != 1 << bitdepth) {
 		siril_log_message(_("Setting HD AutoStretch display mode bit depth to %d...\n"), bitdepth);
 		com.pref.hd_bitdepth = bitdepth;
@@ -856,7 +856,7 @@ gboolean set_display_mode_idle(gpointer user_data) {
 }
 
 void set_unlink_channels(gboolean unlinked) {
-	siril_debug_print("channels unlinked: %d\n", unlinked);
+	siril_log_debug("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	notify_gfit_data_modified();
 	redraw(REMAP_ALL);
@@ -1193,7 +1193,7 @@ static const char *untranslated_vport_number_to_name(int vport) {
 const gchar *layer_name_for_gfit(int layer) {
 	if (gfit->naxes[2] == 1) {
 		if (layer != 0) {
-			siril_debug_print("unloaded layer name requested %d\n", layer);
+			siril_log_debug("unloaded layer name requested %d\n", layer);
 			return "unset";
 		}
 		return _("Luminance");
@@ -1206,7 +1206,7 @@ const gchar *layer_name_for_gfit(int layer) {
 		case 2:
 			return _("Blue");
 		default:
-			siril_debug_print("unloaded layer name requested %d\n", layer);
+			siril_log_debug("unloaded layer name requested %d\n", layer);
 			return "unset";
 	}
 }
@@ -2397,7 +2397,7 @@ void gtk_main_quit() {
 	 * the main thread deadlocks: worker holds the write lock waiting for an
 	 * idle, main thread waits for the write lock. */
 	gint64 deadline = g_get_monotonic_time() + 2 * G_TIME_SPAN_SECOND;
-	siril_log_color_message(_("### Application Quit ###\n\nShutting down the processing subsystem..."), "blue");
+	siril_log_status(_("### Application Quit ###\n\nShutting down the processing subsystem..."));
 	while (processing_is_job_active() && g_get_monotonic_time() < deadline) {
 		if (g_main_context_pending(g_main_context_default()))
 			g_main_context_iteration(g_main_context_default(), FALSE);

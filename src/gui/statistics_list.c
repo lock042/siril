@@ -231,7 +231,7 @@ void computeStat() {
 			super_chan = -channel - 1;
 		stat[channel] = statistics(NULL, -1, gfit, super_chan, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat[channel]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 		}
 	}
 	add_chan_stats_to_list(stat, nb_channels, gfit->type, normalized);

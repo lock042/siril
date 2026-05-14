@@ -58,7 +58,7 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 			dbl_si_y[i] = xps->y[i] * y1931(xps->x[i]);
 			dbl_si_z[i] = xps->y[i] * z1931(xps->x[i]);
 #ifdef XYYDEBUG
-			siril_debug_print("%f %f %f %f %f\n", xps->x[i], xps->y[i], dbl_si_x[i], dbl_si_y[i], dbl_si_z[i]);
+			siril_log_debug("%f %f %f %f %f\n", xps->x[i], xps->y[i], dbl_si_x[i], dbl_si_y[i], dbl_si_z[i]);
 #endif
 		}
 	} else {
@@ -312,7 +312,7 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 // from this profile.
 int spcc_set_source_profile(struct photometric_cc_data *args) {
 	if (!memcmp(&args->primaries.Red, &args->primaries.Green, sizeof(cmsCIExyY)) || !memcmp(&args->primaries.Red, &args->primaries.Blue, sizeof(cmsCIExyY)) || !memcmp(&args->primaries.Green, &args->primaries.Blue, sizeof(cmsCIExyY))) {
-		siril_log_message(_("Cannot make a source profile as the chromaticity primaries are not unique. This will occur when carrying out SPCC on compositions such as HOO whre the same data is assigned to multiple channels.\n"));
+		siril_log_error(_("Cannot make a source profile as the chromaticity primaries are not unique. This will occur when carrying out SPCC on compositions such as HOO whre the same data is assigned to multiple channels.\n"));
 		return 0; // We don't return an error here otherwise SPCC will fail on such compositions
 	}
 	cmsCIExyY d50_illuminant_specs = {0.345702915, 0.358538597, 1.0};

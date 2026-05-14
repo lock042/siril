@@ -73,7 +73,7 @@ static float evaluateNoiseOfCalibratedImage(fits *fit, fits *dark,
 		/* STATS_SIGMEAN computes mean and normvalue */
 		imstats *stat = statistics(NULL, -1, &fit_tmp, chan, &area, STATS_SIGMEAN, SINGLE_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
+			siril_log_error(_("Error: statistics computation failed.\n"));
 			return -1.0;
 		}
 		noise += stat->sigma / stat->normValue;
@@ -100,7 +100,7 @@ static float goldenSectionSearch(fits *raw, fits *dark, float a, float b,
 	fd = evaluateNoiseOfCalibratedImage(raw, dark, d, allow_32bits);
 	if (fc == fd) return 1.f;
 	do {
-		siril_debug_print("Iter: %d (%1.2f, %1.2f)\n", ++iter, c, d);
+		siril_log_debug("Iter: %d (%1.2f, %1.2f)\n", ++iter, c, d);
 		if (fc < 0.f || fd < 0.f)
 			return -1.f;
 		if (fc < fd) {
@@ -166,7 +166,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	fits dark_tmp = { 0 };
 
 	if (memcmp(raw->naxes, dark->naxes, sizeof raw->naxes)) {
-		siril_log_color_message(_("Images must have same dimensions\n"), "red");
+		siril_log_error(_("Images must have same dimensions\n"));
 		return 1;
 	}
 
@@ -177,27 +177,27 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 
 	if (args->use_exposure) {
 		if (dark->keywords.exposure <= 0.0) {
-			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
+			siril_log_error(_("The dark frame contains no exposure data or incorrect exposure data.\n"));
 			clearfits(&dark_tmp);
 			return 1;
 		}
 		if (raw->keywords.exposure <= 0.0) {
-			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index + 1);
+			siril_log_error(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), in_index + 1);
 			clearfits(&dark_tmp);
 			return 1;
 		}
 		/* linear scale with time */
 		k0 = raw->keywords.exposure / dark->keywords.exposure;
 		if (k0 > 1.f) {
-			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
-						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+			siril_log_warning(_("Warning: master dark is shorter than lights. It is "
+						"recommended that the master dark be at least as long as the lights.\n"));
 		}
 	} else {
 		/* Minimization of background noise to find better k */
 		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
 	}
 	if (k0 < 0.f) {
-		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+		siril_log_error(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
 	} else {
 		/* Multiply coefficient to master-dark */
@@ -209,7 +209,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 			if (hist)
 				hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
 		}
-		else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
+		else siril_log_error(_("Dark optimization of image %d failed\n"), in_index);
 	}
 	clearfits(&dark_tmp);
 	return ret;
@@ -271,15 +271,14 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
                          * plus how many images can be stored in what remains
                          * unused by the main processing */
                         limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-			siril_debug_print("%u MB avail for writer\n", MB_avail - required * thread_limit);
+			siril_log_debug("%u MB avail for writer\n", MB_avail - required * thread_limit);
                 } else limit = thread_limit;
 	}
 	if (limit == 0) {
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
+		siril_log_error(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"), args->description, mem_per_thread, mem_available);
 
 		g_free(mem_per_thread);
 		g_free(mem_available);
@@ -290,7 +289,7 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 			if (limit > max_queue_size)
 				limit = max_queue_size;
 		}
-		siril_debug_print("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
+		siril_log_debug("Memory required per thread: %u MB, per input image: %u MB, per output image %u MB, limiting to %d %s\n",
 				required, MB_per_input_image, MB_per_output_image, limit, for_writer ? "images" : "threads");
 #else
 		if (!for_writer)
@@ -344,7 +343,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 			imstats *stat = statistics(NULL, -1, prepro->flat, RLAYER, &selection, STATS_BASIC, MULTI_THREADED);
 			if (!stat) {
-				siril_log_message(_("Error: statistics computation failed.\n"));
+				siril_log_error(_("Error: statistics computation failed.\n"));
 				return 1;
 			}
 			prepro->normalisation = stat->mean;
@@ -387,7 +386,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
 		if (strlen(prepro->dark->keywords.bayer_pattern) > 4) {
-			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
+			siril_log_error(_("Cosmetic correction cannot be applied on X-Trans files.\n"));
 			prepro->use_cosmetic_correction = FALSE;
 		} else {
 			if (prepro->dark->naxes[2] == 1) {
@@ -488,7 +487,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
 	if (!prepro->ignore_exclusion) {
-		siril_debug_print("Ignoring exclusions: frames marked as excluded will still be processed.\n");
+		siril_log_debug("Ignoring exclusions: frames marked as excluded will still be processed.\n");
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = prepro->seq->selnum;
 	}
@@ -575,7 +574,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 	struct generic_seq_args generic = { .user = args };
 
 	if (readfits(file, &fit, NULL, !com.pref.force_16bit)) {
-		siril_log_message(_("Could not load the image, aborting.\n"));
+		siril_log_error(_("Could not load the image, aborting.\n"));
 		return 1;
 	}
 

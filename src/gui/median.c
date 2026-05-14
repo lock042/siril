@@ -140,7 +140,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	if (!for_preview && !com.script) {
 		undo_save_state(gfit, _("Median Filter (filter=%dx%d px, iters=%d), mod=%.3lf"),
 			params->ksize, params->ksize, params->iterations, params->amount);
-		siril_log_color_message(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"), "green",
+		siril_log_info(_("Median Filter (filter=%dx%d px, iterations=%d, modulation=%.3lf)\n"),
 			params->ksize, params->ksize, params->iterations, params->amount);
 	}
 

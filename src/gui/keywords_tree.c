@@ -264,7 +264,7 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS keyname */
 		if (g_strcmp0(old_keyname, new_val)) {
 			if (strlen(new_val) > 8) {
-				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
+				siril_log_error(_("Keyname can contain a maximum of 8 characters.\n"));
 			} else {
 				if (!updateFITSKeyword(gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
 					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
@@ -314,7 +314,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 		/* update FITS comment */
 		gsize len = g_strlcpy(commentstring, new_comment, FLEN_COMMENT);
 		if (len >= FLEN_COMMENT) {
-			siril_debug_print("Exceeded FITS COMMENT length\n");
+			siril_log_debug("Exceeded FITS COMMENT length\n");
 		}
 		if (g_strcmp0(original_comment, new_comment)) {
 			if (!updateFITSKeyword(gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {

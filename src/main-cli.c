@@ -139,7 +139,7 @@ static void global_initialization() {
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 	initialize_default_settings();	// com.pref
 
-	siril_debug_print("Initializing processing thread...\n");
+	siril_log_debug("Initializing processing thread...\n");
 	processing_system_init();
 
 #ifdef HAVE_FFTW3F_OMP

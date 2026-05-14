@@ -225,7 +225,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 	size_t ref_size = reference_fit->rx * reference_fit->ry;
 
 	if (memcmp(target_fit->naxes, reference_fit->naxes, sizeof target_fit->naxes)) {
-		gchar *err = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		gchar *err = siril_log_error(_("Images must have same dimensions.\n"));
 		if (error) {
 			*error = err;
 		}
@@ -235,7 +235,7 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 	low *= USHRT_MAX_DOUBLE;
 	high *= USHRT_MAX_DOUBLE;
 
-	siril_log_color_message(_("Linear fit functions:\n"), "green");
+	siril_log_info(_("Linear fit functions:\n"));
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
 		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
@@ -254,13 +254,13 @@ static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, doubl
 		j--;
 		if (j > 1) {
 			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
-			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			siril_log_status("y_0 = %e + %e*x_0 (%d)\n", c0, c1, (int)j);
 			free(x);
 			free(y);
 			a[channel] = c1;
 			b[channel] = c0;
 		} else {
-			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			gchar *err = siril_log_error(_("Error! Need at least 2 points...\n"));
 			if (error) {
 				*error = err;
 			}
@@ -278,14 +278,14 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 	size_t ref_size = reference_fit->rx * reference_fit->ry;
 
 	if (memcmp(target_fit->naxes, reference_fit->naxes, sizeof target_fit->naxes)) {
-		gchar *err = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+		gchar *err = siril_log_error(_("Images must have same dimensions.\n"));
 		if (error) {
 			*error = err;
 		}
 		return -1;
 	}
 
-	siril_log_color_message(_("Linear fit functions:\n"), "green");
+	siril_log_info(_("Linear fit functions:\n"));
 	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
 		ssize_t j = 0;
 		double *x = malloc(ref_size * sizeof(double));
@@ -304,13 +304,13 @@ static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double
 		j--;
 		if (j > 1) {
 			gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
-			siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
+			siril_log_status("y_0 = %e + %e*x_0 (%d)\n", c0, c1, (int)j);
 			free(x);
 			free(y);
 			a[channel] = c1;
 			b[channel] = c0;
 		} else {
-			gchar *err = siril_log_color_message(_("Error! Need at least 2 points...\n"), "red");
+			gchar *err = siril_log_error(_("Error! Need at least 2 points...\n"));
 			if (error) {
 				*error = err;
 			}

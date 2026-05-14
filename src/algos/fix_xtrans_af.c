@@ -89,19 +89,19 @@ static void set_af_matrix(const gchar *pattern, af_pixel_matrix af_matrix) {
 			}
 
 			// Print the matrix if debug is enabled.
-			siril_debug_print("XTRANS matrix:\n");
-			siril_debug_print("  %.6s\n", af_matrix[0]);
-			siril_debug_print("  %.6s\n", af_matrix[1]);
-			siril_debug_print("  %.6s\n", af_matrix[2]);
-			siril_debug_print("  %.6s\n", af_matrix[3]);
-			siril_debug_print("  %.6s\n", af_matrix[4]);
-			siril_debug_print("  %.6s\n", af_matrix[5]);
-			siril_debug_print("  %.6s\n", af_matrix[6]);
-			siril_debug_print("  %.6s\n", af_matrix[7]);
-			siril_debug_print("  %.6s\n", af_matrix[8]);
-			siril_debug_print("  %.6s\n", af_matrix[9]);
-			siril_debug_print("  %.6s\n", af_matrix[10]);
-			siril_debug_print("  %.6s\n", af_matrix[11]);
+			siril_log_debug("XTRANS matrix:\n");
+			siril_log_debug("  %.6s\n", af_matrix[0]);
+			siril_log_debug("  %.6s\n", af_matrix[1]);
+			siril_log_debug("  %.6s\n", af_matrix[2]);
+			siril_log_debug("  %.6s\n", af_matrix[3]);
+			siril_log_debug("  %.6s\n", af_matrix[4]);
+			siril_log_debug("  %.6s\n", af_matrix[5]);
+			siril_log_debug("  %.6s\n", af_matrix[6]);
+			siril_log_debug("  %.6s\n", af_matrix[7]);
+			siril_log_debug("  %.6s\n", af_matrix[8]);
+			siril_log_debug("  %.6s\n", af_matrix[9]);
+			siril_log_debug("  %.6s\n", af_matrix[10]);
+			siril_log_debug("  %.6s\n", af_matrix[11]);
 
 			break;
 		}
@@ -160,9 +160,9 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 
 		// Show the average integer adjustment.  Should be close to the calculated fudge by a few decimal places.
 		if (total_pixels != 0)
-			siril_debug_print("XTRANS Integer Mean.... %.10lf\n", (double)total_fudgew/(double)total_pixels);
+			siril_log_debug("XTRANS Integer Mean.... %.10lf\n", (double)total_fudgew/(double)total_pixels);
 		else
-			siril_debug_print("XTRANS Integer Mean: div/0\n");
+			siril_log_debug("XTRANS Integer Mean: div/0\n");
 
 	} else if (fit->type == DATA_FLOAT) {
 		float *buf = fit->fpdata[RLAYER];
@@ -186,14 +186,14 @@ int fix_xtrans_ac(fits *fit) {
 
 	int model = get_model(fit->keywords.instrume);
 	if (model < 0) {
-		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->keywords.instrume);
+		siril_log_error(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), fit->keywords.instrume);
 		if (com.pref.prepro.xtrans_af.w != 0 && com.pref.prepro.xtrans_af.h != 0) {
 			if (com.pref.prepro.xtrans_sample.w > fit->rx || com.pref.prepro.xtrans_sample.h > fit->ry) {
-				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"), "red");
+				siril_log_error(_("Sample box cannot be bigger than the image.\n"));
 				return 1;
 			}
 			if (com.pref.prepro.xtrans_af.w > fit->rx || com.pref.prepro.xtrans_af.h > fit->ry) {
-				siril_log_color_message(_("AF box cannot be bigger than the image.\n"), "red");
+				siril_log_error(_("AF box cannot be bigger than the image.\n"));
 				return 1;
 			}
 			af = com.pref.prepro.xtrans_af;
@@ -206,7 +206,7 @@ int fix_xtrans_ac(fits *fit) {
 				sam.h = fit->ry - 1;
 			}
 		} else {
-			siril_log_color_message(_("No information available in preferences.\n"), "red");
+			siril_log_error(_("No information available in preferences.\n"));
 			return 1;
 		}
 	} else {
@@ -258,7 +258,7 @@ int fix_xtrans_ac(fits *fit) {
 	float *fbuf = fit->fpdata[RLAYER];
 
 	if (af_matrix[0][0] == 0) {
-		siril_log_color_message(_("This CFA pattern cannot be handled by fix_xtrans_ac.\n"), "red");
+		siril_log_error(_("This CFA pattern cannot be handled by fix_xtrans_ac.\n"));
 		return 1;
 	}
 
@@ -340,7 +340,7 @@ int fix_xtrans_ac(fits *fit) {
 
 		// Make sure we have a valid sample.
 		if (af_types[f].nfcount == 0 || af_types[f].afcount == 0) {
-			siril_log_message(_("Failed to sample enough pixels for AF type %d.\n"),f);
+			siril_log_error(_("Failed to sample enough pixels for AF type %d.\n"),f);
 			return -1.f;
 		}
 
@@ -350,9 +350,9 @@ int fix_xtrans_ac(fits *fit) {
 		af_types[f].fudge = af_types[f].afmean - af_types[f].nfmean;
 
 		// Debug statements.
-		siril_debug_print("XTRANS %d non-AF Mean... %.10f (%ld pixels)\n", f, af_types[f].nfmean, af_types[f].nfcount);
-		siril_debug_print("XTRANS %d AF Mean....... %.10f (%ld pixels)\n", f, af_types[f].afmean, af_types[f].afcount);
-		siril_debug_print("XTRANS %d AF Adjust..... %.10f\n", f, af_types[f].fudge);
+		siril_log_debug("XTRANS %d non-AF Mean... %.10f (%ld pixels)\n", f, af_types[f].nfmean, af_types[f].nfcount);
+		siril_log_debug("XTRANS %d AF Mean....... %.10f (%ld pixels)\n", f, af_types[f].afmean, af_types[f].afcount);
+		siril_log_debug("XTRANS %d AF Adjust..... %.10f\n", f, af_types[f].fudge);
 
 		// Pick the winner.
 		if (fabsf(af_types[f].fudge) > fabsf(best_fudge)) {
@@ -362,7 +362,7 @@ int fix_xtrans_ac(fits *fit) {
 	}
 
 	// Debug for the winner.
-	siril_debug_print("XTRANS Best Type %c .... %.10f\n", best_af_type, best_fudge);
+	siril_log_debug("XTRANS Best Type %c .... %.10f\n", best_af_type, best_fudge);
 
 	// Stay FIT, Subtract the fudge!
 	subtract_fudge(fit, af, best_fudge, &af_matrix, best_af_type);

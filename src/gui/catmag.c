@@ -165,7 +165,7 @@ GtkWidget *get_catmag_dialog() {
 }
 
 static void on_catmag_response(GtkDialog* self, gint response_id, gpointer user_data) {
-	//siril_debug_print("got response event\n");
+	//siril_log_debug("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
 		gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
 		gtk_widget_hide(dialog);
