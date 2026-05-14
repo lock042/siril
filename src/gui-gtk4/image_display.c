@@ -2078,22 +2078,30 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	if (tiles_snapshot && img_w > 0 && img_h > 0) {
 		gtk_snapshot_save(snapshot);
 
-		/* display_matrix maps image-space → widget-space: (x,y) ↦
-		 * (xx*x + x0, yy*y + y0).  Express it as translate-then-scale. */
+		const double xx = gui.display_matrix.xx;
+		const double yy = gui.display_matrix.yy;
+
+		/* We deliberately do NOT apply gtk_snapshot_scale(xx, yy) here and
+		 * pass image-space rects.  Doing so makes the TextureScaleNode's
+		 * rect equal to the mip-0 texture size (a no-op scale), so its
+		 * GskScalingFilter is ignored — GSK then upscales to widget-space
+		 * via the ambient transform with the renderer's default (linear)
+		 * filter, blurring pixel edges at zoom > 1.  Instead we push the
+		 * zoom into the per-tile rect dimensions, so the TextureScaleNode
+		 * itself does the rasterise-and-scale and NEAREST is honoured. */
 		gtk_snapshot_translate(snapshot,
 			&GRAPHENE_POINT_INIT((float)gui.display_matrix.x0,
 			                      (float)gui.display_matrix.y0));
-		gtk_snapshot_scale(snapshot,
-			(float)gui.display_matrix.xx,
-			(float)gui.display_matrix.yy);
 
 		/* The remap writes rows bottom-up so that the image renders
 		 * top-down on screen — except in the livestacking TOP-DOWN case,
-		 * where the buffer is stored top-down and needs a y-flip. */
+		 * where the buffer is stored top-down and needs a y-flip.  The
+		 * flip is now done in widget-space (after the per-tile rect has
+		 * had `yy` folded in), so the translate distance is yy*img_h. */
 		if (livestacking_is_started()
 		    && !g_strcmp0(gfit->keywords.row_order, "TOP-DOWN")) {
 			gtk_snapshot_translate(snapshot,
-				&GRAPHENE_POINT_INIT(0.0f, (float)img_h));
+				&GRAPHENE_POINT_INIT(0.0f, (float)(yy * img_h)));
 			gtk_snapshot_scale(snapshot, 1.0f, -1.0f);
 		}
 
@@ -2113,17 +2121,20 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 			for (int tx = 0; tx < tile_cols; tx++) {
 				GdkTexture *tile = tiles_snapshot[ty * tile_cols + tx];
 				if (!tile) continue;
-				/* Rect is in IMAGE-SPACE: the same dimensions whether the
-				 * tile was materialised at mip 0 (texture == image-space)
-				 * or a coarser mip (smaller texture, same image-space
-				 * extent — GSK upscales by 2^mip to fill the rect, then
-				 * display_matrix maps image→widget as usual). */
+				/* Rect is in WIDGET-SPACE (post-translate): image-space
+				 * coords multiplied by the per-axis zoom.  This makes
+				 * rect_size != texture_size at any zoom ≠ 1, so GSK's
+				 * TextureScaleNode rasteriser is what scales the texture
+				 * — and `filter` actually applies. */
 				int x0, y0, tw_unused, th_unused, tex_w_img, tex_h_img;
 				tile_dims_padded(view, tx, ty, &x0, &y0, &tw_unused,
 					&th_unused, &tex_w_img, &tex_h_img);
 				gtk_snapshot_append_scaled_texture(snapshot, tile, filter,
-					&GRAPHENE_RECT_INIT((float)x0, (float)y0,
-					                     (float)tex_w_img, (float)tex_h_img));
+					&GRAPHENE_RECT_INIT(
+						(float)(x0 * xx),
+						(float)(y0 * yy),
+						(float)(tex_w_img * xx),
+						(float)(tex_h_img * yy)));
 			}
 		}
 
@@ -2151,7 +2162,7 @@ static void siril_image_view_snapshot(GtkWidget *widget, GtkSnapshot *snapshot) 
 	dd.zoom = get_zoom_val();
 	dd.image_width = gfit->rx;
 	dd.image_height = gfit->ry;
-	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
+	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST;
 
 	static GAction *action_neg = NULL;
 	if (action_neg == NULL)
@@ -3770,7 +3781,7 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	dd.zoom = get_zoom_val();
 	dd.image_width = gfit->rx;
 	dd.image_height = gfit->ry;
-	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_FAST;
+	dd.filter = (dd.zoom < 1.0) ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST;
 	dd.neg_view = g_variant_get_boolean(state);
 	g_variant_unref(state);
 
